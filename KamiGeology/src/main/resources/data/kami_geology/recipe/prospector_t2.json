@@ -1,9 +1,6 @@
 {
-  "type": "minecraft:crafting_shapeless",
-  "category": "misc",
-  "ingredients": [
-    { "item": "kami_geology:prospector_t1" },
-    { "item": "minecraft:gold_ingot" }
-  ],
-  "result": { "id": "kami_geology:prospector_t2", "count": 1 }
+  "neoforge:conditions": [{ "type": "neoforge:mod_loaded", "modid": "create" }],
+  "type": "create:deploying",
+  "ingredients": [{ "item": "kami_geology:prospector_t1" }, { "item": "create:golden_sheet" }],
+  "results": [{ "id": "kami_geology:prospector_t2" }]
 }

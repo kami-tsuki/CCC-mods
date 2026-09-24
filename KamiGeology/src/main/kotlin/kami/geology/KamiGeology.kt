@@ -2,6 +2,7 @@ package kami.geology
 
 import com.mojang.logging.LogUtils
 import kami.geology.command.GeologyCommand
+import kami.geology.config.Compat
 import kami.geology.config.ConfigStore
 import kami.geology.item.ProspectorItem
 import kami.geology.loot.RichnessModifier
@@ -68,7 +69,12 @@ object KamiGeology {
             if (event.tabKey == CreativeModeTabs.TOOLS_AND_UTILITIES) PROSPECTORS.forEach { event.accept(it.get()) }
         }
         FORGE_BUS.addListener<RegisterCommandsEvent> { GeologyCommand.register(it.dispatcher) }
-        FORGE_BUS.addListener<TagsUpdatedEvent> { if (it.updateCause == TagsUpdatedEvent.UpdateCause.SERVER_DATA_LOAD) ConfigStore.load() }
+        FORGE_BUS.addListener<TagsUpdatedEvent> {
+            if (it.updateCause == TagsUpdatedEvent.UpdateCause.SERVER_DATA_LOAD) {
+                Compat.scan(it.registryAccess)
+                ConfigStore.load()
+            }
+        }
         FORGE_BUS.addListener<ServerStoppedEvent> { Worlds.clear() }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { event ->
             val player = event.entity as? ServerPlayer ?: return@addListener

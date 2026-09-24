@@ -175,19 +175,11 @@ object Heatmap {
         return lines
     }
 
-    /** Single-column check for one ore, used by the tier 1 prospector (scans just the block the player stands on). */
-    fun probeOre(world: WorldContext, ore: Ore, x: Int, z: Int, y0: Int, y1: Int): String {
-        for (site in world.sitesIn(ore, x, z, x, z)) {
-            var low = Int.MAX_VALUE
-            var high = Int.MIN_VALUE
-            for (y in max(site.minY, y0)..min(site.maxY, y1)) {
-                if (site.radius(x + 0.5, y + 0.5, z + 0.5, world.noise) <= 1.0) {
-                    low = min(low, y)
-                    high = max(high, y)
-                }
-            }
-            if (low <= high) return "${ore.id} detected here, Y $low..$high (${site.tier.name} ${site.grade.name})"
+    /** Single-column check for every ore, used by the tier 1 prospector (scans just the block the player stands on). */
+    fun probeColumn(world: WorldContext, x: Int, z: Int, y0: Int, y1: Int): List<Pair<String, String>> =
+        world.settings.ores.mapNotNull { ore ->
+            world.sitesIn(ore, x, z, x, z).firstOrNull { site ->
+                (max(site.minY, y0)..min(site.maxY, y1)).any { y -> site.radius(x + 0.5, y + 0.5, z + 0.5, world.noise) <= 1.0 }
+            }?.let { ore.id to it.tier.name }
         }
-        return "No ${ore.id} detected in this block"
-    }
 }

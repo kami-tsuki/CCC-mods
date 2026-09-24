@@ -230,8 +230,15 @@ jobs:
           [ "$ENABLED" = "true" ] || skip "MODRINTH_PUBLISH is not 'true'"
           [ -n "$ID" ] || skip "no modrinth_id in ${{ matrix.mod }}/gradle.properties"
           [ -n "$TOKEN" ] || skip "MODRINTH_TOKEN secret is missing"
-          versions=$(curl -sfS -H "Authorization: $TOKEN" "https://api.modrinth.com/v2/project/$ID/version")
-          jq -e --arg v "$VERSION" 'any(.[]; .version_number == $v)' <<< "$versions" > /dev/null && skip "$VERSION is already on Modrinth"
+          fail() { echo "::error title=Modrinth ${{ matrix.mod }}::$1"; exit 1; }
+          code=$(curl -sS -o versions.json -w '%{http_code}' -H "Authorization: $TOKEN" "https://api.modrinth.com/v2/project/$ID/version")
+          case "$code" in
+            200) ;;
+            401) fail "MODRINTH_TOKEN is invalid or expired" ;;
+            404) fail "Project '$ID' not found. Check modrinth_id in ${{ matrix.mod }}/gradle.properties and that MODRINTH_TOKEN has the 'Read projects' and 'Read versions' scopes (required for draft/unapproved projects)" ;;
+            *) fail "Modrinth API returned HTTP $code: $(head -c 300 versions.json)" ;;
+          esac
+          jq -e --arg v "$VERSION" 'any(.[]; .version_number == $v)' versions.json > /dev/null && skip "$VERSION is already on Modrinth"
           echo "publish=true" >> "$GITHUB_OUTPUT"
 
       - name: Publish ${{ needs.prepare.outputs.version }}

@@ -20,7 +20,8 @@ class GeologyBiomeModifier(private val features: HolderSet<PlacedFeature>) : Bio
         val generation = builder.generationSettings
         when (phase) {
             BiomeModifier.Phase.REMOVE -> if (settings.general.removeOriginalOres || settings.removeIds.isNotEmpty()) {
-                GenerationStep.Decoration.entries.forEach { step -> generation.getFeatures(step).removeIf { removable(it, settings) } }
+                val overworld = biome.`is`(BiomeTags.IS_OVERWORLD)
+                GenerationStep.Decoration.entries.forEach { step -> generation.getFeatures(step).removeIf { removable(it, settings, overworld) } }
             }
             BiomeModifier.Phase.ADD -> if (biome.`is`(BiomeTags.IS_OVERWORLD)) {
                 features.forEach { generation.addFeature(GenerationStep.Decoration.UNDERGROUND_ORES, it) }
@@ -29,13 +30,13 @@ class GeologyBiomeModifier(private val features: HolderSet<PlacedFeature>) : Bio
         }
     }
 
-    private fun removable(holder: Holder<PlacedFeature>, settings: Settings): Boolean {
+    private fun removable(holder: Holder<PlacedFeature>, settings: Settings, overworld: Boolean): Boolean {
         val id = holder.unwrapKey().map { it.location() }.orElse(null)
         if (id != null) {
             if (id in settings.keepIds) return false
             if (id in settings.removeIds) return true
         }
-        return settings.general.removeOriginalOres && holder.value().features.anyMatch { feature ->
+        return overworld && settings.general.removeOriginalOres && holder.value().features.anyMatch { feature ->
             (feature.config() as? OreConfiguration)?.targetStates?.any { it.state.block in settings.managed } == true
         }
     }

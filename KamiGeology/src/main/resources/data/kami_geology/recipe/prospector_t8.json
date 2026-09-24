@@ -1,12 +1,41 @@
 {
-  "type": "minecraft:crafting_shapeless",
-  "category": "misc",
-  "ingredients": [
-    { "item": "kami_geology:prospector_t7" },
-    { "item": "minecraft:netherite_ingot" },
-    { "item": "minecraft:diamond" },
-    { "item": "tfmg:circuit_board" },
-    { "item": "powergrid:electrical_gizmo" }
+  "neoforge:conditions": [{ "type": "neoforge:mod_loaded", "modid": "create" }, { "type": "neoforge:mod_loaded", "modid": "tfmg" }, { "type": "neoforge:mod_loaded", "modid": "advancednetherite" }],
+  "type": "create:sequenced_assembly",
+  "ingredient": { "item": "kami_geology:prospector_t7" },
+  "transitional_item": { "id": "kami_geology:prospector_t7" },
+  "loops": 1,
+  "sequence": [
+    {
+      "type": "create:deploying",
+      "ingredients": [{ "item": "kami_geology:prospector_t7" }, { "item": "advancednetherite:netherite_diamond_ingot" }],
+      "results": [{ "id": "kami_geology:prospector_t7" }]
+    },
+    {
+      "type": "create:deploying",
+      "ingredients": [{ "item": "kami_geology:prospector_t7" }, { "item": "tfmg:circuit_board" }],
+      "results": [{ "id": "kami_geology:prospector_t7" }]
+    },
+    {
+      "type": "create:deploying",
+      "ingredients": [{ "item": "kami_geology:prospector_t7" }, { "item": "tfmg:electromagnetic_coil" }],
+      "results": [{ "id": "kami_geology:prospector_t7" }]
+    },
+    {
+      "type": "create:deploying",
+      "ingredients": [{ "item": "kami_geology:prospector_t7" }, { "item": "tfmg:transistor_item" }],
+      "results": [{ "id": "kami_geology:prospector_t7" }]
+    },
+    {
+      "type": "tfmg:winding",
+      "ingredients": [{ "item": "kami_geology:prospector_t7" }, { "item": "tfmg:constantan_spool" }],
+      "processing_time": 100,
+      "results": [{ "id": "kami_geology:prospector_t7" }]
+    },
+    {
+      "type": "create:deploying",
+      "ingredients": [{ "item": "kami_geology:prospector_t7" }, { "item": "tfmg:screwdriver" }],
+      "results": [{ "id": "kami_geology:prospector_t7" }]
+    }
   ],
-  "result": { "id": "kami_geology:prospector_t8", "count": 1 }
+  "results": [{ "id": "kami_geology:prospector_t8" }]
 }

@@ -1,9 +1,10 @@
 package kami.geology.item
 
 import kami.geology.map.Heatmap
+import kami.geology.map.MapColors
 import kami.geology.net.MapServer
-import kami.geology.world.Prospector
 import kami.geology.world.Worlds
+import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionHand
@@ -19,18 +20,26 @@ class ProspectorItem(val tier: Int, props: Properties) : Item(props) {
         val stack = player.getItemInHand(hand)
         if (hand == InteractionHand.MAIN_HAND && player is ServerPlayer) {
             val world = Worlds.of(player.serverLevel())
-            val sample = player.offhandItem
-            val ore = world?.let { Prospector.oreOf(it, sample) }
             when {
-                world == null -> player.displayClientMessage(Component.literal("No geology in this dimension"), true)
-                ore == null -> player.displayClientMessage(Component.literal("Hold a sample of the ore in your other hand"), true)
+                world == null -> player.displayClientMessage(Component.literal("No geology in this dimension").withStyle(ChatFormatting.GRAY), true)
                 tier == 1 -> player.displayClientMessage(
-                    Component.literal(Heatmap.probeOre(world, ore, player.blockX, player.blockZ, level.minBuildHeight, level.maxBuildHeight - 1)),
+                    result(Heatmap.probeColumn(world, player.blockX, player.blockZ, level.minBuildHeight, level.maxBuildHeight - 1)),
                     false
                 )
-                else -> MapServer.scan(player, ore, tier)
+                else -> MapServer.scan(player, tier)
             }
         }
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide)
+    }
+
+    private fun result(found: List<Pair<String, String>>): Component {
+        val message = Component.literal("Prospector: ").withStyle(ChatFormatting.GOLD)
+        if (found.isEmpty()) return message.append(Component.literal("nothing found here").withStyle(ChatFormatting.GRAY))
+        found.forEachIndexed { i, (ore, size) ->
+            if (i > 0) message.append(Component.literal(", ").withStyle(ChatFormatting.DARK_GRAY))
+            message.append(Component.literal(ore.split('_').joinToString(" ") { it.replaceFirstChar(Char::uppercase) }).withColor(MapColors.ore(ore)))
+            message.append(Component.literal(" ($size)").withStyle(ChatFormatting.GRAY))
+        }
+        return message
     }
 }

@@ -30,3 +30,4 @@ XaeroPlus-
 XaeroZoomout-
 XaeroHeadTracker-
 xaerotrainmap-
+createjeicompat-

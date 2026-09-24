@@ -1,14 +1,25 @@
 package kami.geology.config
 
+import com.google.gson.JsonElement
+import com.mojang.serialization.JsonOps
+import kami.geology.KamiGeology
 import kami.geology.util.Rng
+import net.minecraft.core.Registry
+import net.minecraft.core.RegistryAccess
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
+import net.minecraft.resources.RegistryOps
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.tags.BiomeTags
 import net.minecraft.tags.BlockTags
 import net.minecraft.tags.TagKey
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.levelgen.feature.ConfiguredFeature
+import net.minecraft.world.level.levelgen.placement.PlacedFeature
 import net.neoforged.fml.ModList
+import net.neoforged.neoforge.common.world.BiomeModifiers
+import net.neoforged.neoforge.registries.NeoForgeRegistries
 import net.minecraft.world.level.block.Blocks as Vanilla
 
 object Compat {
@@ -35,9 +46,68 @@ object Compat {
     private fun tagsOf(block: Block, prefix: String) = BuiltInRegistries.BLOCK.wrapAsHolder(block).tags().map { it.location() }
         .filter { it.namespace == "c" && it.path.startsWith(prefix) }.map { it.path }.toList()
 
+    @Volatile
+    private var placed: Set<Block>? = null
+    private var scanned: Registry<Biome>? = null
+
     private fun overworld(block: Block): Boolean {
         val hosts = tagsOf(block, "ores_in_ground/")
-        return if (hosts.isEmpty()) key(block).namespace != "minecraft" else hosts.any { it.endsWith("/stone") || it.endsWith("/deepslate") }
+        if (hosts.isNotEmpty()) return hosts.any { it.endsWith("/stone") || it.endsWith("/deepslate") }
+        return placed?.contains(block) == true
+    }
+
+    @Synchronized
+    fun scan(access: RegistryAccess) {
+        val biomes = access.registry(Registries.BIOME).orElse(null) ?: return
+        if (biomes === scanned) return
+        placed = try {
+            overworldBlocks(access, biomes).also { scanned = biomes }
+        } catch (e: Exception) {
+            KamiGeology.LOG.warn("Could not scan overworld ore features", e)
+            null
+        }
+    }
+
+    private fun overworldBlocks(access: RegistryAccess, biomes: Registry<Biome>): Set<Block> {
+        val overworld = biomes.holders().filter { it.`is`(BiomeTags.IS_OVERWORLD) }.toList()
+        val features = LinkedHashSet<PlacedFeature>()
+        overworld.forEach { biome ->
+            biome.value().modifiableBiomeInfo().originalBiomeInfo.generationSettings().features().forEach { step -> step.forEach { features += it.value() } }
+        }
+        access.registry(NeoForgeRegistries.Keys.BIOME_MODIFIERS).ifPresent { modifiers ->
+            modifiers.forEach { modifier ->
+                if (modifier is BiomeModifiers.AddFeaturesBiomeModifier && overworld.any { modifier.biomes().contains(it) }) {
+                    modifier.features().forEach { features += it.value() }
+                }
+            }
+        }
+        val ops = RegistryOps.create(JsonOps.INSTANCE, access)
+        val placedRegistry = access.registry(Registries.PLACED_FEATURE).orElse(null)
+        val configuredRegistry = access.registry(Registries.CONFIGURED_FEATURE).orElse(null)
+        val seen = HashSet<Any>()
+        val out = HashSet<Block>()
+
+        fun visit(feature: ConfiguredFeature<*, *>) {
+            if (!seen.add(feature)) return
+            val json = ConfiguredFeature.DIRECT_CODEC.encodeStart(ops, feature).result().orElse(null) ?: return
+            val stack = ArrayDeque<JsonElement>().apply { add(json) }
+            while (stack.isNotEmpty()) {
+                val element = stack.removeLast()
+                when {
+                    element.isJsonObject -> element.asJsonObject.entrySet().forEach { stack += it.value }
+                    element.isJsonArray -> element.asJsonArray.forEach { stack += it }
+                    element.isJsonPrimitive && element.asJsonPrimitive.isString -> {
+                        val id = ResourceLocation.tryParse(element.asString) ?: continue
+                        BuiltInRegistries.BLOCK.getOptional(id).ifPresent { out += it }
+                        placedRegistry?.get(id)?.let { visit(it.feature().value()) }
+                        configuredRegistry?.get(id)?.let { visit(it) }
+                    }
+                }
+            }
+        }
+
+        features.forEach { visit(it.feature().value()) }
+        return out
     }
 
     fun material(name: String): List<Block> = members(blockTag("ores/$name")).filter(::overworld).sortedWith(order)

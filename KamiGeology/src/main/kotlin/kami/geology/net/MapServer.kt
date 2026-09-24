@@ -3,12 +3,12 @@ package kami.geology.net
 import kami.geology.KamiGeology
 import kami.geology.client.ClientHooks
 import kami.geology.config.Distribution
-import kami.geology.config.Ore
 import kami.geology.map.Heatmap
 import kami.geology.map.MapColors
 import kami.geology.map.Sparse
 import kami.geology.map.Workers
 import kami.geology.world.Prospector
+import kami.geology.world.WorldContext
 import kami.geology.world.Worlds
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
@@ -23,29 +23,40 @@ object MapServer {
     private val latestMap = ConcurrentHashMap<UUID, Int>()
     private val latestProbe = ConcurrentHashMap<UUID, Int>()
 
-    private class ScanLock(val dimension: ResourceLocation, val oreId: String, val x0: Int, val z0: Int, val w: Int, val h: Int)
+    private class ScanLock(val dimension: ResourceLocation, val x0: Int, val z0: Int, val w: Int, val h: Int)
     private val scans = ConcurrentHashMap<UUID, ScanLock>()
 
-    /** Survival prospector: opens a heatmap locked to a single ore and the tool tier's region, no OP needed. Tier 1 is handled separately (see Heatmap.probeOre). */
-    fun scan(player: ServerPlayer, ore: Ore, tier: Int) {
+    /** Survival prospector: opens a heatmap locked to the tool tier's region, no OP needed. Tier 1 is handled separately (see Heatmap.probeColumn). */
+    fun scan(player: ServerPlayer, tier: Int) {
         val level = player.serverLevel()
+        val world = Worlds.of(level) ?: return
         val chunkX = Math.floorDiv(player.blockX, 16)
         val chunkZ = Math.floorDiv(player.blockZ, 16)
         val region = Prospector.region(tier, player.blockX, player.blockZ, chunkX, chunkZ)
-        scans[player.uuid] = ScanLock(level.dimension().location(), ore.id, region.x0, region.z0, region.w, region.h)
-        val info = OreInfo(
-            ore.id, MapColors.ore(ore.id), ore.deposit != null, Heatmap.scatterColumn(ore).toFloat(),
-            ore.scatter?.height?.get(0) ?: 0, ore.scatter?.height?.get(1) ?: 0,
-            ore.scatter?.distribution == Distribution.TRIANGLE, null
-        )
+        scans[player.uuid] = ScanLock(level.dimension().location(), region.x0, region.z0, region.w, region.h)
+        val (ores, provinces) = legend(world)
         PacketDistributor.sendToPlayer(
             player,
             OpenMap(
                 level.dimension().location().toString(), region.x0 + region.w / 2, region.z0 + region.h / 2,
-                level.minBuildHeight, level.maxBuildHeight - 1, listOf(info), emptyList(),
+                level.minBuildHeight, level.maxBuildHeight - 1, ores, provinces,
                 region.x0, region.z0, region.w, region.h
             )
         )
+    }
+
+    private fun legend(world: WorldContext): Pair<List<OreInfo>, List<ProvinceInfo>> {
+        val names = world.settings.provinces.names.toList()
+        val ores = world.settings.ores.map { ore ->
+            val scatter = ore.scatter
+            OreInfo(
+                ore.id, MapColors.ore(ore.id), ore.deposit != null,
+                Heatmap.scatterColumn(ore).toFloat(),
+                scatter?.height?.get(0) ?: 0, scatter?.height?.get(1) ?: 0, scatter?.distribution == Distribution.TRIANGLE,
+                ore.scatterProvinces?.map { names.indexOf(it) }?.filter { it >= 0 }
+            )
+        }
+        return ores to names.map { ProvinceInfo(it, MapColors.province(it)) }
     }
 
     fun register(event: RegisterPayloadHandlersEvent) {
@@ -63,17 +74,7 @@ object MapServer {
     fun open(player: ServerPlayer): Boolean {
         val level = player.serverLevel()
         val world = Worlds.of(level) ?: return false
-        val names = world.settings.provinces.names.toList()
-        val ores = world.settings.ores.map { ore ->
-            val scatter = ore.scatter
-            OreInfo(
-                ore.id, MapColors.ore(ore.id), ore.deposit != null,
-                Heatmap.scatterColumn(ore).toFloat(),
-                scatter?.height?.get(0) ?: 0, scatter?.height?.get(1) ?: 0, scatter?.distribution == Distribution.TRIANGLE,
-                ore.scatterProvinces?.map { names.indexOf(it) }?.filter { it >= 0 }
-            )
-        }
-        val provinces = names.map { ProvinceInfo(it, MapColors.province(it)) }
+        val (ores, provinces) = legend(world)
         PacketDistributor.sendToPlayer(
             player,
             OpenMap(level.dimension().location().toString(), player.blockX, player.blockZ, level.minBuildHeight, level.maxBuildHeight - 1, ores, provinces)
@@ -85,17 +86,14 @@ object MapServer {
 
     private fun map(player: ServerPlayer, r: MapRequest) {
         val world = Worlds.of(player.serverLevel()) ?: return
-        val ores: List<Ore>
         if (allowed(player)) {
             if (r.cell !in 1..256 || r.w < 1 || r.h < 1 || r.w.toLong() * r.h > MAX_CELLS || r.y0 > r.y1) return
-            ores = world.settings.ores
         } else {
             val lock = scans[player.uuid] ?: return
             if (lock.dimension != player.serverLevel().dimension().location()) return
             if (r.cell != 1 || r.w != lock.w || r.h != lock.h || r.x0 != lock.x0 || r.z0 != lock.z0 || r.y0 > r.y1) return
-            ores = listOfNotNull(world.settings.ore(lock.oreId))
-            if (ores.isEmpty()) return
         }
+        val ores = world.settings.ores
         latestMap[player.uuid] = r.seq
         val server = player.server
         val query = Heatmap.Query(r.x0, r.z0, r.cell, r.w, r.h, r.y0, r.y1)

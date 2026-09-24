@@ -47,6 +47,7 @@ private const val MAX_BPP = 12.0
 private const val DEBOUNCE_MS = 120L
 private const val REBUILD_MS = 90L
 private const val DEFAULT_THRESHOLD = 80
+private const val LOCK_FILL = 0.92
 
 class HeatmapScreen(private val info: OpenMap) : Screen(Component.literal("Geology Map")) {
     private class Tile(val x0: Int, val z0: Int, val cell: Int, val w: Int, val h: Int, ores: Int) {
@@ -151,11 +152,10 @@ class HeatmapScreen(private val info: OpenMap) : Screen(Component.literal("Geolo
             val h = info.lockH!!
             centerX = info.lockX0!! + w / 2.0
             centerZ = info.lockZ0!! + h / 2.0
-            bpp = (max(w, h).toDouble() / min(mapX1 - mapX0, mapY1 - mapY0)).coerceIn(MIN_BPP, MAX_BPP)
-        } else {
-            addRenderableWidget(Button.builder(Component.literal("All")) { setAll(true) }.bounds(4, TOP + 4, 68, 14).build())
-            addRenderableWidget(Button.builder(Component.literal("None")) { setAll(false) }.bounds(76, TOP + 4, 70, 14).build())
+            bpp = max(w.toDouble() / (mapX1 - mapX0), h.toDouble() / (mapY1 - mapY0)) / LOCK_FILL
         }
+        addRenderableWidget(Button.builder(Component.literal("All")) { setAll(true) }.bounds(4, TOP + 4, 68, 14).build())
+        addRenderableWidget(Button.builder(Component.literal("None")) { setAll(false) }.bounds(76, TOP + 4, 70, 14).build())
 
         val by = height - BOTTOM + 5
         val sx = PANEL + 6
@@ -244,7 +244,7 @@ class HeatmapScreen(private val info: OpenMap) : Screen(Component.literal("Geolo
         }
         if (rebuildDue && now - lastRebuild >= REBUILD_MS) rebuild()
         rest++
-        if (rest == 8 && inMap(mouseX.toDouble(), mouseY.toDouble()) && !dragging) {
+        if (rest == 8 && !locked && inMap(mouseX.toDouble(), mouseY.toDouble()) && !dragging) {
             PacketDistributor.sendToServer(
                 ProbeRequest(++probeSeq, floor(worldX(mouseX.toDouble())).toInt(), floor(worldZ(mouseY.toDouble())).toInt(), yMin, yMax)
             )
@@ -458,7 +458,7 @@ class HeatmapScreen(private val info: OpenMap) : Screen(Component.literal("Geolo
         g.disableScissor()
     }
 
-    private fun gridStep(): Int = intArrayOf(16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384).firstOrNull { it / bpp >= 80 } ?: 16384
+    private fun gridStep(): Int = intArrayOf(1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384).firstOrNull { it / bpp >= 80 } ?: 16384
 
     private fun drawGrid(g: GuiGraphics) {
         val step = gridStep()
@@ -479,7 +479,7 @@ class HeatmapScreen(private val info: OpenMap) : Screen(Component.literal("Geolo
     }
 
     private fun drawScale(g: GuiGraphics) {
-        val length = intArrayOf(10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000).lastOrNull { it / bpp <= 140 } ?: 10
+        val length = intArrayOf(1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000).lastOrNull { it / bpp <= 140 } ?: 10
         val px = max(2, (length / bpp).roundToInt())
         val x = mapX0 + 10
         val y = mapY1 - 12
@@ -651,6 +651,7 @@ class HeatmapScreen(private val info: OpenMap) : Screen(Component.literal("Geolo
     }
 
     private fun zoom(factor: Double, mx: Double, my: Double) {
+        if (locked) return
         val wx = worldX(mx)
         val wz = worldZ(my)
         bpp = (bpp * factor).coerceIn(MIN_BPP, MAX_BPP)
