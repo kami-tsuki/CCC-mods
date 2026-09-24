@@ -23,8 +23,6 @@ subprojects {
     group = property("mod_group") as String
     version = property("mod_version") as String
 
-    extra["instanceModsDir"] = instanceDir.resolve("mods")
-
     extensions.configure<BasePluginExtension> { archivesName = modId }
 
     extensions.configure<KotlinJvmProjectExtension> {
@@ -40,6 +38,9 @@ subprojects {
         mavenCentral()
         maven("https://thedarkcolour.github.io/KotlinForForge/") {
             content { includeGroup("thedarkcolour") }
+        }
+        maven("https://api.modrinth.com/maven") {
+            content { includeGroup("maven.modrinth") }
         }
     }
 

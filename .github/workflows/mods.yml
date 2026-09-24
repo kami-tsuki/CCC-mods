@@ -1,0 +1,90 @@
+name: Mods
+
+on:
+  push:
+    branches: [main, master, develop, 'release**']
+
+concurrency:
+  group: mods-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect changed mods
+    runs-on: ubuntu-latest
+    outputs:
+      mods: ${{ steps.filter.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            KamiLibs: &libs
+              - 'build.gradle.kts'
+              - 'settings.gradle.kts'
+              - 'gradle.properties'
+              - 'gradle/**'
+              - '.github/workflows/mods.yml'
+              - 'KamiLibs/**'
+            KamiGeology:
+              - *libs
+              - 'KamiGeology/**'
+            KamiClaims:
+              - *libs
+              - 'KamiClaims/**'
+            KamiEconomy:
+              - *libs
+              - 'KamiEconomy/**'
+
+  mod:
+    name: ${{ matrix.mod }}
+    needs: changes
+    if: needs.changes.outputs.mods != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mod: ${{ fromJSON(needs.changes.outputs.mods) }}
+    env:
+      GRADLE: ./gradlew --daemon -Pdeploy_enabled=false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read java version
+        id: props
+        run: echo "java=$(grep -E '^java_version=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Java ${{ steps.props.outputs.java }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ steps.props.outputs.java }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Compile
+        run: $GRADLE :${{ matrix.mod }}:classes :${{ matrix.mod }}:testClasses
+
+      - name: Test
+        run: $GRADLE :${{ matrix.mod }}:test
+
+      - name: Package
+        run: $GRADLE :${{ matrix.mod }}:jar
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.mod }}-reports
+          path: build/${{ matrix.mod }}/reports/
+          if-no-files-found: ignore
+
+      - name: Upload jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.mod }}
+          path: build/${{ matrix.mod }}/libs/*.jar
+          if-no-files-found: error

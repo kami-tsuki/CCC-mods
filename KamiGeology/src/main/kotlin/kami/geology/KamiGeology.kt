@@ -45,7 +45,7 @@ object KamiGeology {
 
     /** Index 0 = tier 1 (free, 1 block) ... index 7 = tier 8 (netherite-diamond, 9x9 chunks). */
     val PROSPECTORS: List<DeferredHolder<Item, ProspectorItem>> = (1..8).map { tier ->
-        items.register("prospector_t$tier") { ProspectorItem(tier, Item.Properties().stacksTo(1)) }
+        items.register("prospector_t$tier") { -> ProspectorItem(tier, Item.Properties().stacksTo(1)) }
     }
 
     init {
@@ -65,7 +65,7 @@ object KamiGeology {
             }
         }
         MOD_BUS.addListener<BuildCreativeModeTabContentsEvent> { event ->
-            if (event.tabKey == CreativeModeTabs.TOOLS_AND_UTILITIES) PROSPECTORS.forEach { event.accept(it) }
+            if (event.tabKey == CreativeModeTabs.TOOLS_AND_UTILITIES) PROSPECTORS.forEach { event.accept(it.get()) }
         }
         FORGE_BUS.addListener<RegisterCommandsEvent> { GeologyCommand.register(it.dispatcher) }
         FORGE_BUS.addListener<TagsUpdatedEvent> { if (it.updateCause == TagsUpdatedEvent.UpdateCause.SERVER_DATA_LOAD) ConfigStore.load() }
