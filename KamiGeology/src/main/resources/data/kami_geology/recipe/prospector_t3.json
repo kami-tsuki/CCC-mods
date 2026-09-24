@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    { "item": "kami_geology:prospector_t2" },
+    { "item": "minecraft:diamond" }
+  ],
+  "result": { "id": "kami_geology:prospector_t3", "count": 1 }
+}

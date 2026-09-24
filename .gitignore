@@ -1,0 +1,38 @@
+# --- Not part of this repo -------------------------------------------------
+# Local test server and any non-mod folders next to the mods.
+/Test-Server-NeoForge-1.21.1/
+/OreGen/
+/TaczAutomation/
+
+# Claude / AI assistant notes
+CLAUDE.md
+**/CLAUDE.md
+.claude/
+
+# --- Gradle / Kotlin build output -----------------------------------------
+.gradle/
+build/
+.kotlin/
+run/
+runs/
+out/
+!gradle/wrapper/gradle-wrapper.jar
+
+# --- IDEs ------------------------------------------------------------------
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+bin/
+
+# --- OS / misc -------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+*.tmp

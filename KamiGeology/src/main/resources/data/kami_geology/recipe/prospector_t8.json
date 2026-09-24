@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    { "item": "kami_geology:prospector_t7" },
+    { "item": "minecraft:netherite_ingot" },
+    { "item": "minecraft:diamond" },
+    { "item": "tfmg:circuit_board" },
+    { "item": "powergrid:electrical_gizmo" }
+  ],
+  "result": { "id": "kami_geology:prospector_t8", "count": 1 }
+}

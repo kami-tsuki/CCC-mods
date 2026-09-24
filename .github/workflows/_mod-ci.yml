@@ -1,0 +1,40 @@
+name: Mod CI (template)
+
+on:
+  workflow_call:
+    inputs:
+      mod:
+        description: Top-level mod folder, which is also the Gradle project name (e.g. KamiGeology).
+        required: true
+        type: string
+
+jobs:
+  build:
+    name: Build & test ${{ inputs.mod }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read java_version
+        id: props
+        run: echo "java=$(grep -E '^java_version=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ steps.props.outputs.java }}
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build and test
+        run: ./gradlew ":${{ inputs.mod }}:build" -Pdeploy_enabled=false --stacktrace
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.mod }}-test-reports
+          path: build/${{ inputs.mod }}/reports/
+          if-no-files-found: ignore
+
+      - name: Upload jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.mod }}-jar
+          path: build/${{ inputs.mod }}/libs/*.jar
+          if-no-files-found: error

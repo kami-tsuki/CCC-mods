@@ -1,0 +1,11 @@
+{
+  "item.kami_geology.prospector_t1": "Wooden Prospector",
+  "item.kami_geology.prospector_t2": "Gilded Prospector",
+  "item.kami_geology.prospector_t3": "Diamond Prospector",
+  "item.kami_geology.prospector_t4": "Netherite Prospector",
+  "item.kami_geology.prospector_t5": "Netherite-Iron Prospector",
+  "item.kami_geology.prospector_t6": "Netherite-Gold Prospector",
+  "item.kami_geology.prospector_t7": "Netherite-Emerald Prospector",
+  "item.kami_geology.prospector_t8": "Netherite-Diamond Prospector",
+  "itemGroup.kami_geology": "Kami Geology"
+}

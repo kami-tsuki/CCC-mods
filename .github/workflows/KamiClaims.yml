@@ -1,0 +1,20 @@
+name: KamiClaims
+
+on:
+  push:
+    branches: [main, master, develop, 'release**']
+    paths:
+      - 'KamiClaims/**'
+      - 'KamiLibs/**' 
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - 'gradle.properties'
+      - 'gradle/**'
+      - '.github/workflows/_mod-ci.yml'
+      - '.github/workflows/KamiClaims.yml'
+
+jobs:
+  ci:
+    uses: ./.github/workflows/_mod-ci.yml
+    with:
+      mod: KamiClaims

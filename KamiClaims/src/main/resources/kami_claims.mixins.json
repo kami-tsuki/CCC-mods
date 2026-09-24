@@ -1,0 +1,9 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "kami.claims.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": ["FireBlockMixin", "FlowingFluidMixin"],
+  "client": [],
+  "injectors": { "defaultRequire": 0 }
+}
