@@ -2,22 +2,57 @@ name: Mods
 
 on:
   push:
-    branches: [main, master, develop, 'release**']
+    branches: [main, master, develop, 'release-*']
 
 concurrency:
   group: mods-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ !startsWith(github.ref_name, 'release-') }}
 
 jobs:
-  changes:
-    name: Detect changed mods
+  prepare:
+    name: Prepare
     runs-on: ubuntu-latest
     outputs:
-      mods: ${{ steps.filter.outputs.changes }}
+      mods: ${{ steps.plan.outputs.mods }}
+      version: ${{ steps.version.outputs.version }}
+      build: ${{ steps.version.outputs.build }}
+      channel: ${{ steps.version.outputs.channel }}
+      release: ${{ steps.version.outputs.release }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: version
+        run: |
+          prop() { grep -E "^$1=" gradle.properties | cut -d= -f2- || true; }
+          tag=$(prop version_tag)
+          base="$(prop version_major).$(prop version_minor).$(prop version_patch)${tag:+-$tag}"
+          bump=$(git log -1 --format=%H -G'^version_[a-z]*=' -- gradle.properties)
+          build=$(( ${bump:+$(git rev-list --count "$bump..HEAD")} + 1 ))
+          version="$base-$(printf %03d "$build")"
+          case "$tag" in alpha) channel=alpha ;; beta|rc*) channel=beta ;; *) channel=release ;; esac
+          release=false
+          if [[ "$GITHUB_REF_NAME" == release-* ]]; then
+            if [ "$GITHUB_REF_NAME" != "release-$base" ]; then
+              echo "::error title=Release branch mismatch::Branch '$GITHUB_REF_NAME' must be named 'release-$base' to match gradle.properties"
+              exit 1
+            fi
+            release=true
+          fi
+          echo "::notice title=Version::$version ($channel)$([ "$release" = true ] && echo ' - release build')"
+          {
+            echo "version=$version"
+            echo "build=$build"
+            echo "channel=$channel"
+            echo "release=$release"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Detect changed mods
         id: filter
+        uses: dorny/paths-filter@v3
         with:
           filters: |
             KamiLibs: &libs
@@ -37,17 +72,45 @@ jobs:
               - *libs
               - 'KamiEconomy/**'
 
-  mod:
+      - name: Plan
+        id: plan
+        env:
+          BEFORE: ${{ github.event.before }}
+          CHANGED: ${{ steps.filter.outputs.changes }}
+          VERSION: ${{ steps.version.outputs.version }}
+          RELEASE: ${{ steps.version.outputs.release }}
+        run: |
+          all=$(sed -n '/listOf(/,/)/p' settings.gradle.kts | grep -oE '"[^"]+"' | tr -d '"')
+          if [ "$RELEASE" = true ]; then mods=$(jq -cn '$ARGS.positional' --args $all); else mods=$CHANGED; fi
+          echo "mods=$mods" >> "$GITHUB_OUTPUT"
+          base=$BEFORE
+          git cat-file -e "$base^{commit}" 2>/dev/null || base=$(git hash-object -t tree /dev/null)
+          {
+            echo "### $VERSION $([ "$RELEASE" = true ] && echo '· 🚀 release' || echo "· $GITHUB_REF_NAME")"
+            echo "| Mod | Build | Files added | Files changed | Files removed | Lines |"
+            echo "|---|---|--:|--:|--:|--:|"
+            for mod in $all; do
+              status=$(git diff --name-status "$base" HEAD -- "$mod/" | cut -c1)
+              added=$(grep -c '^A' <<< "$status" || true)
+              changed=$(grep -c '^[MRCT]' <<< "$status" || true)
+              removed=$(grep -c '^D' <<< "$status" || true)
+              lines=$(git diff --numstat "$base" HEAD -- "$mod/" | awk '{a+=$1; d+=$2} END {printf "+%d / −%d", a, d}')
+              build=$(grep -q "\"$mod\"" <<< "$mods" && echo "✅" || echo "—")
+              echo "| $mod | $build | $added | $changed | $removed | $lines |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  build:
     name: ${{ matrix.mod }}
-    needs: changes
-    if: needs.changes.outputs.mods != '[]'
+    needs: prepare
+    if: needs.prepare.outputs.mods != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        mod: ${{ fromJSON(needs.changes.outputs.mods) }}
+        mod: ${{ fromJSON(needs.prepare.outputs.mods) }}
     env:
-      GRADLE: ./gradlew --daemon -Pdeploy_enabled=false
+      GRADLE: ./gradlew --daemon -Pdeploy_enabled=false -Pbuild_number=${{ needs.prepare.outputs.build }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -71,7 +134,7 @@ jobs:
       - name: Test
         run: $GRADLE :${{ matrix.mod }}:test
 
-      - name: Package
+      - name: Package ${{ needs.prepare.outputs.version }}
         run: $GRADLE :${{ matrix.mod }}:jar
 
       - name: Upload test reports
@@ -88,3 +151,103 @@ jobs:
           name: ${{ matrix.mod }}
           path: build/${{ matrix.mod }}/libs/*.jar
           if-no-files-found: error
+
+  release:
+    name: Release ${{ needs.prepare.outputs.version }}
+    needs: [prepare, build]
+    if: needs.prepare.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: v${{ needs.prepare.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download jars
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Tag and GitHub release
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "::notice title=Release::$TAG already exists"
+            exit 0
+          fi
+          gh release create "$TAG" dist/*.jar \
+            --target "$GITHUB_SHA" \
+            --title "${{ needs.prepare.outputs.version }}" \
+            --generate-notes \
+            $([ "${{ needs.prepare.outputs.channel }}" != release ] && echo --prerelease)
+
+  modrinth:
+    name: Modrinth ${{ matrix.mod }}
+    needs: [prepare, release]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mod: ${{ fromJSON(needs.prepare.outputs.mods) }}
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download jar
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.mod }}
+          path: dist
+
+      - name: Read properties
+        id: props
+        run: |
+          prop() { grep -hE "^$1=" "${{ matrix.mod }}/gradle.properties" gradle.properties | head -1 | cut -d= -f2- || true; }
+          {
+            echo "java=$(prop java_version)"
+            echo "minecraft=$(prop minecraft_version)"
+            echo "name=$(prop mod_name)"
+            echo "modrinth_id=$(prop modrinth_id)"
+            echo "modrinth_dependencies<<EOF"
+            prop modrinth_dependencies | tr ',' '\n'
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Check Modrinth
+        id: modrinth
+        env:
+          ENABLED: ${{ vars.MODRINTH_PUBLISH }}
+          TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          ID: ${{ steps.props.outputs.modrinth_id }}
+        run: |
+          skip() { echo "::notice title=Modrinth ${{ matrix.mod }}::Skipped: $1"; echo "publish=false" >> "$GITHUB_OUTPUT"; exit 0; }
+          [ "$ENABLED" = "true" ] || skip "MODRINTH_PUBLISH is not 'true'"
+          [ -n "$ID" ] || skip "no modrinth_id in ${{ matrix.mod }}/gradle.properties"
+          [ -n "$TOKEN" ] || skip "MODRINTH_TOKEN secret is missing"
+          versions=$(curl -sfS -H "Authorization: $TOKEN" "https://api.modrinth.com/v2/project/$ID/version")
+          jq -e --arg v "$VERSION" 'any(.[]; .version_number == $v)' <<< "$versions" > /dev/null && skip "$VERSION is already on Modrinth"
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+
+      - name: Publish ${{ needs.prepare.outputs.version }}
+        if: steps.modrinth.outputs.publish == 'true'
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          modrinth-id: ${{ steps.props.outputs.modrinth_id }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          files: dist/*.jar
+          name: ${{ steps.props.outputs.name }} ${{ env.VERSION }}
+          version: ${{ env.VERSION }}
+          version-type: ${{ needs.prepare.outputs.channel }}
+          loaders: neoforge
+          game-versions: ${{ steps.props.outputs.minecraft }}
+          java: ${{ steps.props.outputs.java }}
+          dependencies: ${{ steps.props.outputs.modrinth_dependencies }}
+          changelog: |
+            ${{ github.event.head_commit.message }}
+
+            Full release: ${{ github.server_url }}/${{ github.repository }}/releases/tag/v${{ env.VERSION }}
