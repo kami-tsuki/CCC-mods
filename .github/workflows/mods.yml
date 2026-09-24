@@ -2,11 +2,11 @@ name: Mods
 
 on:
   push:
-    branches: [main, master, develop, 'release-*']
+    branches: [main, master, develop, 'release/v*']
 
 concurrency:
   group: mods-${{ github.ref }}
-  cancel-in-progress: ${{ !startsWith(github.ref_name, 'release-') }}
+  cancel-in-progress: ${{ !startsWith(github.ref_name, 'release/') }}
 
 jobs:
   prepare:
@@ -35,9 +35,9 @@ jobs:
           version="$base-$(printf %03d "$build")"
           case "$tag" in alpha) channel=alpha ;; beta|rc*) channel=beta ;; *) channel=release ;; esac
           release=false
-          if [[ "$GITHUB_REF_NAME" == release-* ]]; then
-            if [ "$GITHUB_REF_NAME" != "release-$base" ]; then
-              echo "::error title=Release branch mismatch::Branch '$GITHUB_REF_NAME' must be named 'release-$base' to match gradle.properties"
+          if [[ "$GITHUB_REF_NAME" == release/* ]]; then
+            if [ "$GITHUB_REF_NAME" != "release/v$base" ]; then
+              echo "::error title=Release branch mismatch::Branch '$GITHUB_REF_NAME' must be 'release/v$base' to match gradle.properties (the build number is added automatically)"
               exit 1
             fi
             release=true
@@ -192,23 +192,21 @@ jobs:
       fail-fast: false
       matrix:
         mod: ${{ fromJSON(needs.prepare.outputs.mods) }}
+    permissions:
+      contents: read
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Download jar
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ matrix.mod }}
-          path: dist
 
       - name: Read properties
         id: props
         run: |
           prop() { grep -hE "^$1=" "${{ matrix.mod }}/gradle.properties" gradle.properties | head -1 | cut -d= -f2- || true; }
           {
+            echo "mod_id=$(prop mod_id)"
             echo "java=$(prop java_version)"
             echo "minecraft=$(prop minecraft_version)"
             echo "name=$(prop mod_name)"
@@ -217,6 +215,9 @@ jobs:
             prop modrinth_dependencies | tr ',' '\n'
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
+
+      - name: Download jar from GitHub release
+        run: gh release download "v$VERSION" --pattern "${{ steps.props.outputs.mod_id }}-$VERSION.jar" --dir dist
 
       - name: Check Modrinth
         id: modrinth
