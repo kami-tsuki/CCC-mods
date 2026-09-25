@@ -11,13 +11,12 @@ import java.nio.file.Path
 
 @OptIn(ExperimentalSerializationApi::class)
 object Configs {
-    const val FOLDER = "kami"
     internal val log: Logger = LoggerFactory.getLogger("kami_libs")
+    private val reloaders = LinkedHashMap<String, MutableList<() -> String?>>()
 
     var base: Path? = null
-    val root: Path get() = (base ?: FMLPaths.CONFIGDIR.get()).resolve(FOLDER)
-
-    private val reloaders = LinkedHashMap<String, MutableList<() -> String?>>()
+    val root: Path get() = (base ?: FMLPaths.CONFIGDIR.get()).resolve("kami")
+    val mods: List<String> @Synchronized get() = reloaders.keys.toList()
 
     fun json(build: JsonBuilder.() -> Unit = {}): Json = Json {
         prettyPrint = true
@@ -29,16 +28,14 @@ object Configs {
         build()
     }
 
-    fun dir(mod: String): Path = root.resolve(mod).also { Files.createDirectories(it) }
+    fun dir(mod: String): Path = Files.createDirectories(root.resolve(mod))
 
-    fun path(mod: String, file: String = ""): String = "config/$FOLDER/$mod/$file"
+    fun path(mod: String, file: String = "") = "config/kami/$mod/$file"
 
     fun moveLegacy(old: String, mod: String) {
         val from = root.resolveSibling(old)
-        val to = root.resolve(mod)
-        if (!Files.isDirectory(from) || Files.exists(to)) return
-        Files.createDirectories(root)
-        Files.move(from, to)
+        if (!Files.isDirectory(from) || Files.exists(root.resolve(mod))) return
+        Files.move(from, Files.createDirectories(root).resolve(mod))
         log.info("Moved config/{} to {}", old, path(mod))
     }
 
@@ -46,8 +43,6 @@ object Configs {
     fun onReload(mod: String, action: () -> String?) {
         reloaders.getOrPut(mod) { ArrayList() } += action
     }
-
-    val mods: List<String> @Synchronized get() = reloaders.keys.toList()
 
     @Synchronized
     fun reload(mod: String? = null): List<Pair<String, Result<String?>>> =

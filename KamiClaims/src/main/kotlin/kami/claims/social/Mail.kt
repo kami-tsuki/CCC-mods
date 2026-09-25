@@ -14,7 +14,7 @@ object Mail {
 
     fun direct(id: String, text: String, tone: Tone = Tone.INFO) {
         val online = runCatching { UUID.fromString(id) }.getOrNull()?.let { server?.playerList?.getPlayer(it) }
-        if (online != null) online.tell(chat.of(tone, text))
+        if (online != null) online.tell(chat.say(tone, text))
         else Realm.of(id)?.members?.get(id)?.mail?.let { if (it.size < Config.s.mailLimit) it += "${tone.name}|$text" }
     }
 

@@ -7,7 +7,7 @@ import kami.libs.config.Jsonc
 import net.minecraft.commands.CommandSourceStack
 
 object KamiCommands {
-    class Module(val name: String, val title: String, val build: Node.() -> Unit)
+    private class Module(val name: String, val title: String, val build: Node.() -> Unit)
 
     private val modules = LinkedHashMap<String, Module>()
 
@@ -18,21 +18,17 @@ object KamiCommands {
 
     @Synchronized
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
-        val nodes = modules.values.map { m ->
-            val node = lit(m.name).does { help(it, dispatcher, m) }
-            node.then(lit("help").does { help(it, dispatcher, m) })
-            if (m.name in Configs.mods) node.then(lit("reload").requires(op).does { reload(it, m.name) })
-            m.build(node)
-            node.build()
-        }
         val kami = dispatcher.register(
             lit("kami").does(::overview)
                 .then(lit("help").does(::overview))
                 .then(lit("reload").requires(op).does { reload(it, null) })
         )
-        nodes.forEach {
-            kami.addChild(it)
-            dispatcher.root.addChild(it)
+        modules.values.forEach { m ->
+            val node = lit(m.name).does { help(it, dispatcher, m) }.then(lit("help").does { help(it, dispatcher, m) })
+            if (m.name in Configs.mods) node.then(lit("reload").requires(op).does { reload(it, m.name) })
+            val built = node.apply(m.build).build()
+            kami.addChild(built)
+            dispatcher.root.addChild(built)
         }
     }
 
@@ -42,21 +38,16 @@ object KamiCommands {
     }
 
     private fun help(ctx: Ctx, dispatcher: CommandDispatcher<CommandSourceStack>, m: Module) {
-        val node = dispatcher.root.getChild(m.name) ?: return
         ctx.msg { value(m.title) }
-        dispatcher.getSmartUsage(node, ctx.source).values.filter { it != "help" }.sorted().forEach { usage ->
-            val name = usage.substringBefore(' ')
+        dispatcher.getSmartUsage(dispatcher.root.getChild(m.name), ctx.source).values.filter { it != "help" }.sorted().forEach { usage ->
+            val name = "/${m.name} ${usage.substringBefore(' ')}"
             val rest = usage.substringAfter(' ', "")
-            ctx.row { suggest("/${m.name} $name", "/${m.name} $name ", "Click to type it"); if (rest.isNotEmpty()) muted(" $rest") }
+            ctx.row { suggest(name, "$name ", "Click to type it"); if (rest.isNotEmpty()) muted(" $rest") }
         }
     }
 
-    private fun reload(ctx: Ctx, mod: String?) {
-        val results = Configs.reload(mod)
-        if (results.isEmpty()) fail("Nothing to reload.")
-        results.forEach { (name, result) ->
-            val chat = Chat.of(name)
-            ctx.reply(result.fold({ chat.ok("Config reloaded.${it?.let { d -> " $d" }.orEmpty()}") }, { chat.bad("Reload failed: ${Jsonc.reason(it)}") }), true)
-        }
+    private fun reload(ctx: Ctx, mod: String?) = Configs.reload(mod).ifEmpty { fail("Nothing to reload.") }.forEach { (name, result) ->
+        val chat = Chat.of(name)
+        ctx.reply(result.fold({ chat.ok(listOfNotNull("Config reloaded.", it).joinToString(" ")) }, { chat.bad("Reload failed: ${Jsonc.reason(it)}") }), true)
     }
 }

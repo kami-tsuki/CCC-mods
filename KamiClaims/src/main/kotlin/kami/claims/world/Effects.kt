@@ -5,7 +5,6 @@ import kami.claims.*
 import net.minecraft.core.particles.ParticleTypes
 import kami.claims.social.Mail
 import kami.libs.chat.tell
-import net.minecraft.network.chat.Component
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer

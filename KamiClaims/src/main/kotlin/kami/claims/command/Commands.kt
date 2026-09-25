@@ -3,7 +3,6 @@ package kami.claims.command
 import kami.claims.*
 import kami.claims.net.Net
 import kami.claims.net.Sync
-import kami.claims.service.Fail
 import kami.claims.service.Service
 import kami.claims.service.Upkeep
 import kami.claims.social.Perms
@@ -19,16 +18,13 @@ import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.LongArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import net.minecraft.commands.arguments.GameProfileArgument
-import net.minecraft.network.chat.Component
-import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
-import kotlin.math.abs
 
 private val s get() = Config.s
 
 private fun player() = arg("player", GameProfileArgument.gameProfile())
 
-private fun Ctx.who() = (GameProfileArgument.getGameProfiles(this, "player").firstOrNull() ?: throw Fail("Unknown player.")).id.toString()
+private fun Ctx.who() = (GameProfileArgument.getGameProfiles(this, "player").firstOrNull() ?: fail("Unknown player.")).id.toString()
 private fun Ctx.run(name: String, vararg args: String) = ok(Service.act(me(), name, args.toList()))
 
 private fun color(c: Country?) = c?.color?.takeIf { it != 0 } ?: Theme.ACCENT
@@ -86,7 +82,7 @@ private fun Node.countryCmd(): Node {
         }
         .then(lit("gui").does { ctx ->
             val p = ctx.me()
-            if (!Net.canOpen(p)) throw Fail("The Kami Claims mod is not installed on your client.")
+            if (!Net.canOpen(p)) fail("The Kami Claims mod is not installed on your client.")
             Sync.focus(p, Service.here(p).x, Service.here(p).z)
             Net.send(p, open = true)
         })
@@ -94,12 +90,12 @@ private fun Node.countryCmd(): Node {
         .then(lit("disband").then(lit("confirm").does { it.run("disband") }))
         .then(lit("info").does { ctx -> ctx.status(Service.home(ctx.me())) }
             .then(word("country", countries).does { ctx ->
-                ctx.status(Realm.country(ctx.text("country")) ?: throw Fail("Unknown country {${ctx.text("country")}}."))
+                ctx.status(Realm.country(ctx.text("country")) ?: fail("Unknown country {${ctx.text("country")}}."))
             }))
         .then(lit("list").does { ctx ->
             val all = Realm.data.countries.values.sortedByDescending { Realm.claims(it.id).size }
             if (all.isEmpty()) return@does ctx.info("No countries yet. Found one with {/claims create <name>}.")
-            ctx.info("{${all.size}} ${if (all.size == 1) "country" else "countries"}")
+            ctx.info("{${plural(all.size, "country", "countries")}}")
             all.forEach { c -> ctx.row { run(c.name, "/claims info ${c.id}", "Show ${c.name}"); muted("  ${plural(c.members.size, "member")}, ${plural(Realm.claims(c.id).size, "chunk")}") } }
         })
         .then(lit("map").does { ctx -> ctx.map(ctx.me()) })
@@ -110,7 +106,7 @@ private fun Node.countryCmd(): Node {
         .then(lit("requests").does { ctx ->
             val c = Service.home(ctx.me())
             if (c.requests.isEmpty()) return@does ctx.info("No open join requests.")
-            ctx.info("{${c.requests.size}} join ${if (c.requests.size == 1) "request" else "requests"}")
+            ctx.info("{${plural(c.requests.size, "join request")}}")
             c.requests.keys.forEach { id -> Names.of(ctx.source.server, id).let { n -> ctx.row { value(n); muted("  "); button("Approve", "/claims approve $n"); text(" "); button("Deny", "/claims deny $n") } } }
         })
         .then(target("approve"))
@@ -178,7 +174,7 @@ private fun provinceCmd(countries: () -> Collection<String>): Node {
             val c = Service.home(ctx.me())
             c.parent?.let { Realm.country(it) }?.let { par -> ctx.info("Province of {${par.name}}, tribute {${taxTerm(c)}}, missed {${c.provinceDebt}}/${s.maxProvinceDebt}") }
             c.provinces.mapNotNull { Realm.country(it) }.takeIf { it.isNotEmpty() }?.let { list ->
-                ctx.info("{${list.size}} ${if (list.size == 1) "province" else "provinces"}")
+                ctx.info("{${plural(list.size, "province")}}")
                 list.forEach { pr -> ctx.row { value(pr.name); muted("  ${taxTerm(pr)}, missed ${pr.provinceDebt}/${s.maxProvinceDebt}"); if (pr.independenceRequested) text("  wants independence", Theme.WARN) } }
             }
             if (c.parent == null && c.provinces.isEmpty()) ctx.info("Independent, no provinces.")
@@ -194,24 +190,24 @@ private fun plotCmd(): Node =
         .then(lit("info").does { ctx ->
             val p = ctx.me()
             val c = Service.home(p)
-            val cl = Realm.index[Service.here(p)]?.takeIf { it.country == c.id && it.owner != null } ?: throw Fail("Nobody owns this plot.")
+            val cl = Realm.index[Service.here(p)]?.takeIf { it.country == c.id && it.owner != null } ?: fail("Nobody owns this plot.")
             ctx.info("Plot of {${Names.of(ctx.source.server, cl.owner!!)}}, tax {${spur(if (cl.tax >= 0) cl.tax else c.tax)}} a day, unpaid {${cl.lapse}}/${c.shutdown + c.release} days")
             cl.roles.forEach { (id, r) -> ctx.row { value(Names.of(ctx.source.server, id)); muted("  ${r.name.lowercase()}") } }
         })
 
 private fun adminCmd() = lit("admin").requires { Perms.has(it, Perms.ADMIN) }
     .then(lit("disband").then(word("country") { Realm.data.countries.keys }.does { ctx ->
-        Realm.disband(Realm.country(ctx.text("country")) ?: throw Fail("Unknown country."))
+        Realm.disband(Realm.country(ctx.text("country")) ?: fail("Unknown country."))
         ctx.ok("Country disbanded.", true)
     }))
     .then(lit("treasury").then(word("country") { Realm.data.countries.keys }.then(arg("amount", LongArgumentType.longArg(0)).does { ctx ->
-        val c = Realm.country(ctx.text("country")) ?: throw Fail("Unknown country.")
+        val c = Realm.country(ctx.text("country")) ?: fail("Unknown country.")
         c.treasury = LongArgumentType.getLong(ctx, "amount")
         Realm.dirty = true
         ctx.ok("Treasury of {${c.name}} set to {${spur(c.treasury)}}.", true)
     })))
     .then(lit("unclaim").does { ctx ->
-        Realm.unclaim(Realm.index[Service.here(ctx.me())] ?: throw Fail("Nobody owns this chunk."), false)
+        Realm.unclaim(Realm.index[Service.here(ctx.me())] ?: fail("Nobody owns this chunk."), false)
         ctx.ok("Chunk released.", true)
     })
     .then(lit("day").does { ctx ->

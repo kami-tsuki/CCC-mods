@@ -2,7 +2,6 @@ package kami.economy
 
 import com.mojang.logging.LogUtils
 import kami.economy.client.ClientEconomy
-import kami.economy.client.ClientHooks
 import kami.economy.command.EconomyCommands
 import kami.economy.economy.Auctions
 import kami.economy.economy.History
@@ -13,7 +12,6 @@ import kami.economy.net.Net
 import kami.economy.world.Vendors
 import kami.libs.economy.MarketApi
 import kami.libs.economy.MarketProvider
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.item.ItemStack
 import net.neoforged.api.distmarker.Dist

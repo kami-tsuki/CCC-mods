@@ -195,7 +195,7 @@ object Config {
         )
     )
 
-    val file = KamiConfig("claims", Settings(), sections, legacy = "kami_claims.json", sane = { it.sane() })
+    private val file = KamiConfig("claims", Settings(), sections, legacy = "kami_claims.json", sane = { it.sane() })
 
     var s: Settings
         get() = file.value

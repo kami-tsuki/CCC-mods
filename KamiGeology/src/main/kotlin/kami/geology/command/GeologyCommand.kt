@@ -11,6 +11,7 @@ import kami.geology.net.MapServer
 import kami.geology.world.WorldContext
 import kami.geology.world.Worlds
 import kami.libs.chat.Chat
+import kami.libs.chat.plural
 import kami.libs.command.*
 import net.minecraft.core.BlockPos
 
@@ -94,7 +95,7 @@ object GeologyCommand {
         val origin = BlockPos.containing(ctx.source.position)
         val sites = world.sitesNear(origin, radius).sortedBy { distance(origin, it) }
         if (sites.isEmpty()) return ctx.info("No deposits within {$radius} blocks.")
-        ctx.info("{${sites.size}} deposit${if (sites.size == 1) "" else "s"} within {$radius} blocks")
+        ctx.info("{${plural(sites.size, "deposit")}} within {$radius} blocks")
         sites.forEach { site -> ctx.row { site(site, origin, dim(ctx)) } }
     }
 

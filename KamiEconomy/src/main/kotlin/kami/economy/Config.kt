@@ -38,12 +38,6 @@ data class Settings(
         "minecraft:jigsaw", "minecraft:light", "minecraft:knowledge_book", "minecraft:spawner"
     ),
     val storageItemIds: List<String> = listOf("minecraft:shulker_box", "minecraft:bundle"),
-    val componentBlocklist: List<String> = listOf(
-        "minecraft:custom_name", "minecraft:custom_data", "minecraft:trim",
-        "minecraft:block_entity_data", "minecraft:container", "minecraft:bundle_contents",
-        "minecraft:charged_projectiles", "minecraft:fireworks",
-        "minecraft:writable_book_content", "minecraft:written_book_content", "minecraft:profile"
-    ),
 
     val historyRawRetention: Int = 360,
     val historyHourlyRetention: Int = 24 * 30,
@@ -56,7 +50,6 @@ data class Settings(
 ) {
     val endlessByItem: Map<String, EndlessItem> by lazy { endlessSupply.associateBy { it.item } }
     val storageItemSet: Set<String> by lazy { storageItemIds.toHashSet() }
-    val componentBlockSet: Set<String> by lazy { componentBlocklist.toHashSet() }
     val creativeItemSet: Set<String> by lazy { creativeItemIds.toHashSet() }
 }
 
@@ -103,8 +96,7 @@ object Config {
             "blocked-items.json", "Items kept out of the market. Coins from library/coins.json are always blocked.",
             mapOf(
                 "creativeItemIds" to "Items that can never be traded.",
-                "storageItemIds" to "Containers that may only be sold at the auction house.",
-                "componentBlocklist" to "Reserved for item data rules, not used yet."
+                "storageItemIds" to "Containers that may only be sold at the auction house."
             )
         ),
         Section(
@@ -120,7 +112,7 @@ object Config {
         )
     )
 
-    val file = KamiConfig("economy", Settings(), sections, legacy = "kami_economy.json", sane = { it.sane() })
+    private val file = KamiConfig("economy", Settings(), sections, legacy = "kami_economy.json", sane = { it.sane() })
 
     var s: Settings
         get() = file.value
