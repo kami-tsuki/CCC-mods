@@ -66,7 +66,7 @@ class KamiConfig<T : Any>(
         value = v
         val all = json.encodeToJsonElement(serializer, v).jsonObject
         val dir = Configs.dir(mod)
-        val hint = if (reloadable) "Save, then run /kami reload $mod to apply." else "Changes apply on the next start."
+        val hint = if (reloadable) "Save, then run /$mod reload to apply." else "Changes apply on the next start."
         sections.forEachIndexed { i, s ->
             val part = all.filterKeys { it in s.keys || (i == 0 && sections.none { o -> it in o.keys }) }
             Jsonc.write(dir.resolve(s.file), Jsonc.annotate(json.encodeToString(JsonObject.serializer(), JsonObject(part)), s.docs, listOf(s.title, hint)))

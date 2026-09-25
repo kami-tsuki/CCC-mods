@@ -14,7 +14,7 @@ import kotlin.io.path.nameWithoutExtension
 object ConfigStore {
     private val json = Configs.json { explicitNulls = false }
     private const val ORE = "One ore. Set enabled to false to turn it off, deleted built-in ores come back with defaults."
-    private const val HINT = "Save, then run /kami reload geology. New chunks use the change."
+    private const val HINT = "Save, then run /geology reload. New chunks use the change."
     private val dir: Path get() = Configs.dir("geology")
     val problems = ArrayList<String>()
     private var version = 0

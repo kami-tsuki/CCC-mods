@@ -20,7 +20,6 @@ import net.neoforged.api.distmarker.Dist
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
 import net.neoforged.fml.loading.FMLEnvironment
-import net.neoforged.neoforge.event.RegisterCommandsEvent
 import net.neoforged.neoforge.event.entity.player.PlayerEvent
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent
 import net.neoforged.neoforge.event.server.ServerStartedEvent
@@ -46,7 +45,7 @@ object KamiEconomy {
         }
         MOD_BUS.addListener<RegisterPayloadHandlersEvent> { Net.register(it) }
         if (FMLEnvironment.dist == Dist.CLIENT) ClientEconomy.init()
-        FORGE_BUS.addListener<RegisterCommandsEvent> { EconomyCommands.register(it.dispatcher) }
+        EconomyCommands.register()
         FORGE_BUS.addListener<ServerStartedEvent> { Market.load(it.server); History.load(it.server) }
         FORGE_BUS.addListener<ServerStoppingEvent> { Market.save(true); History.save(true) }
         FORGE_BUS.addListener<ServerTickEvent.Post> {

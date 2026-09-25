@@ -22,7 +22,6 @@ import net.minecraft.world.item.ItemStack
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent
-import net.neoforged.neoforge.event.RegisterCommandsEvent
 import net.neoforged.neoforge.event.TagsUpdatedEvent
 import net.neoforged.neoforge.event.entity.player.PlayerEvent
 import net.neoforged.neoforge.event.server.ServerStoppedEvent
@@ -70,7 +69,7 @@ object KamiGeology {
         MOD_BUS.addListener<BuildCreativeModeTabContentsEvent> { event ->
             if (event.tabKey == CreativeModeTabs.TOOLS_AND_UTILITIES) PROSPECTORS.forEach { event.accept(it.get()) }
         }
-        FORGE_BUS.addListener<RegisterCommandsEvent> { GeologyCommand.register(it.dispatcher) }
+        GeologyCommand.register()
         FORGE_BUS.addListener<TagsUpdatedEvent> {
             if (it.updateCause == TagsUpdatedEvent.UpdateCause.SERVER_DATA_LOAD) {
                 Compat.scan(it.registryAccess)

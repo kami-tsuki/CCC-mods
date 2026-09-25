@@ -1,6 +1,6 @@
 package kami.claims
 
-import kami.claims.command.Commands
+import kami.claims.command.ClaimsCommands
 import kami.claims.net.Net
 import kami.claims.service.Upkeep
 import kami.claims.social.Mail
@@ -19,7 +19,6 @@ import net.neoforged.api.distmarker.Dist
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
 import net.neoforged.fml.loading.FMLEnvironment
-import net.neoforged.neoforge.event.RegisterCommandsEvent
 import net.neoforged.neoforge.event.entity.EntityMobGriefingEvent
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent
@@ -60,7 +59,7 @@ object KamiClaims {
         MOD_BUS.addListener<RegisterPayloadHandlersEvent> { Net.register(it) }
         if (FMLEnvironment.dist == Dist.CLIENT) ClientHooks.init()
         FORGE_BUS.addListener<PermissionGatherEvent.Nodes> { Perms.register(it) }
-        FORGE_BUS.addListener<RegisterCommandsEvent> { Commands.register(it.dispatcher) }
+        ClaimsCommands.register()
         FORGE_BUS.addListener<ServerStartedEvent> { Realm.load(it.server) }
         FORGE_BUS.addListener<ServerStoppingEvent> { Realm.save(true) }
         FORGE_BUS.addListener<ServerTickEvent.Post> {

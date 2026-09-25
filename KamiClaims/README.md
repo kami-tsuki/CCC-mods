@@ -14,8 +14,23 @@ Claim land together as a country. Every chunk costs upkeep, so land means respon
 - **Jobs** with quotas and daily pay, counted on their own from what players mine or farm
 - **Provinces** so a country can rule land that is far away
 - **Protection** against griefing, explosions, fire, fluids, pistons and PvP, all set per chunk type
-- **GUI** on `K` or `/country`, with a clickable map, plus an overlay for Xaero's World Map
+- **GUI** on `K` or `/claims`, with a clickable map, plus an overlay for Xaero's World Map
 - **LuckPerms** nodes for every action
+
+## Commands
+
+All commands start with `/claims`, or `/kami claims` if you prefer the long form. `/claims help` lists everything you may use.
+
+| Command | Use |
+|---|---|
+| `/claims` | Open the GUI, or show your country in chat without the client mod |
+| `/claims create <name>` | Found a country |
+| `/claims claim [type] [radius]` | Claim the chunk you stand in |
+| `/claims info [country]` | Treasury, upkeep and chunks |
+| `/claims invite <player>` | Invite a player |
+| `/claims plot ...` | Claim, release and share plots |
+| `/claims province ...` | Rule other countries as provinces |
+| `/claims admin ...` | Server tools for admins |
 
 ## Dependencies
 
@@ -33,7 +48,7 @@ Clients can join without the mod. With it installed, they get the GUI and the ma
 
 ## Config
 
-Everything is in `config/kami/claims/`. Change a file and run `/kami reload claims`.
+Everything is in `config/kami/claims/`. Change a file and run `/claims reload`.
 
 | File | What's in it |
 |---|---|
@@ -54,9 +69,10 @@ Coin values come from `config/kami/library/coins.json`.
 
 ## Changelog
 
-### Unreleased
+### 0.0.2-alpha
 - Config moved to `config/kami/claims/` and split into topic files with comments
-- Reload the config in game with `/kami reload claims`
+- Reload the config in game with `/claims reload`
+- Commands moved: `/country ...` is now `/claims ...`, `/plot` is `/claims plot` and `/countryadmin` is `/claims admin`
 - Coin values now come from KamiLibs
 
 ### 0.0.1-alpha-003

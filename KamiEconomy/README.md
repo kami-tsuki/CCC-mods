@@ -6,7 +6,7 @@ A server wide market built on Create: Numismatics. Players sell into a shared or
 
 ## Features
 
-- **Market** on `/market`, open from anywhere
+- **Market** on `/economy`, open from anywhere
 - **Live prices** that shift smoothly and stay inside set limits, so inflation stays in check
 - **Price tooltips** on every item, with a small arrow showing where the price is heading
 - **Charts** for each item as line, candle or bar graph
@@ -28,7 +28,7 @@ A server wide market built on Create: Numismatics. Players sell into a shared or
 
 ## Config
 
-Everything is in `config/kami/economy/`. Change a file and run `/kami reload economy`.
+Everything is in `config/kami/economy/`. Change a file and run `/economy reload`.
 
 | File | What's in it |
 |---|---|
@@ -46,9 +46,10 @@ Coin values come from `config/kami/library/coins.json`.
 
 ## Changelog
 
-### Unreleased
+### 0.0.2-alpha
 - Config moved to `config/kami/economy/` and split into topic files with comments
-- Reload the config in game with `/kami reload economy`
+- Reload the config in game with `/economy reload`
+- `/market` is now `/economy` (or `/economy market`), admin tools moved to `/economy admin`
 - Coin values now come from KamiLibs
 - `maxMovePct` in `categoryBounds` now works per item
 

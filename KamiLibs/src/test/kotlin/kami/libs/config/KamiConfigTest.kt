@@ -45,7 +45,7 @@ class KamiConfigTest {
     fun writesSplitDocumentedFiles() {
         assertTrue(config().load())
         val general = read("general.json")
-        assertTrue(general.startsWith("// General\n// Save, then run /kami reload demo to apply.\n"))
+        assertTrue(general.startsWith("// General\n// Save, then run /demo reload to apply.\n"))
         assertTrue("// How fast." in general && "\"speed\": 5" in general)
         assertTrue("\"extra\": false" in general)
         assertFalse("jobs" in general)

@@ -9,42 +9,22 @@ import kami.claims.service.Upkeep
 import kami.claims.social.Perms
 import kami.claims.world.Effects
 
-import com.mojang.brigadier.CommandDispatcher
-import com.mojang.brigadier.arguments.ArgumentType
+import kami.libs.command.*
 import com.mojang.brigadier.arguments.DoubleArgumentType
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.LongArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
-import com.mojang.brigadier.builder.ArgumentBuilder
-import com.mojang.brigadier.builder.LiteralArgumentBuilder
-import com.mojang.brigadier.context.CommandContext
-import net.minecraft.commands.CommandSourceStack
-import net.minecraft.commands.Commands
-import net.minecraft.commands.SharedSuggestionProvider
 import net.minecraft.commands.arguments.GameProfileArgument
 import net.minecraft.network.chat.Component
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import kotlin.math.abs
 
-private typealias Ctx = CommandContext<CommandSourceStack>
-
 private val s get() = Config.s
 
-private fun <T : ArgumentBuilder<CommandSourceStack, T>> T.does(f: (Ctx) -> Unit): T = executes {
-    try { f(it); 1 } catch (e: Fail) { it.source.sendFailure(Component.literal(e.message ?: "")); 0 }
-}
-
-private fun lit(n: String) = Commands.literal(n)
-private fun <T> arg(n: String, t: ArgumentType<T>) = Commands.argument(n, t)
-private fun word(n: String, options: () -> Collection<String>) =
-    arg(n, StringArgumentType.word()).suggests { _, b -> SharedSuggestionProvider.suggest(options(), b) }
 private fun player() = arg("player", GameProfileArgument.gameProfile())
 
-private fun Ctx.me() = source.playerOrException
-private fun Ctx.text(n: String) = StringArgumentType.getString(this, n)
 private fun Ctx.who() = (GameProfileArgument.getGameProfiles(this, "player").firstOrNull() ?: throw Fail("Unknown player.")).id.toString()
-private fun Ctx.say(msg: String) = source.sendSuccess({ Component.literal(msg) }, false)
 private fun Ctx.run(name: String, vararg args: String) = say("§a" + Service.act(me(), name, args.toList()))
 
 private fun status(c: Country, server: MinecraftServer): List<String> {
@@ -74,7 +54,7 @@ private fun map(p: ServerPlayer): List<String> {
     return rows + "§7" + legend.joinToString { "§${palette[abs(it.hashCode()) % palette.length]}$it" }
 }
 
-private fun countryCmd(): LiteralArgumentBuilder<CommandSourceStack> {
+private fun Node.countryCmd(): Node {
     val countries = { Realm.data.countries.values.map { it.id } }
     val types = { s.types.keys }
     val jobs = { s.jobs.keys }
@@ -82,7 +62,7 @@ private fun countryCmd(): LiteralArgumentBuilder<CommandSourceStack> {
     fun target(name: String, action: String = name) = lit(name).then(player().does { it.run(action, it.who()) })
     fun byCountry(name: String, action: String = name) = lit(name).then(word("country", countries).does { it.run(action, it.text("country")) })
 
-    return lit("country").requires { Perms.has(it, Perms.USE) }
+    return requires { Perms.has(it, Perms.USE) }
         .does { ctx ->
             val p = ctx.me()
             if (!Net.canOpen(p)) status(Service.home(p), ctx.source.server).forEach(ctx::say) else Net.send(p, open = true)
@@ -151,7 +131,7 @@ private fun countryCmd(): LiteralArgumentBuilder<CommandSourceStack> {
 
 private fun taxTerm(c: Country) = if (c.taxMode == TaxMode.PERCENT) "${(c.taxAmount * 100).toInt()}%" else "${c.taxAmount.toInt()} spur/day"
 
-private fun provinceCmd(countries: () -> Collection<String>): LiteralArgumentBuilder<CommandSourceStack> {
+private fun provinceCmd(countries: () -> Collection<String>): Node {
     fun offer(name: String, action: String) = lit(name).then(word("country", countries).then(word("mode") { listOf("percent", "flat") }
         .then(arg("amount", DoubleArgumentType.doubleArg(0.0)).does {
             it.run(action, it.text("country"), it.text("mode"), DoubleArgumentType.getDouble(it, "amount").toString())
@@ -177,7 +157,7 @@ private fun provinceCmd(countries: () -> Collection<String>): LiteralArgumentBui
         })
 }
 
-private fun plotCmd(): LiteralArgumentBuilder<CommandSourceStack> =
+private fun plotCmd(): Node =
     lit("plot").requires { Perms.has(it, Perms.PLOT) }
         .then(lit("claim").does { it.run("plot_claim") })
         .then(lit("release").does { it.run("plot_release") })
@@ -191,7 +171,7 @@ private fun plotCmd(): LiteralArgumentBuilder<CommandSourceStack> =
             cl.roles.forEach { (id, r) -> ctx.say("§7${Names.of(ctx.source.server, id)}: ${r.name.lowercase()}") }
         })
 
-private fun adminCmd() = lit("countryadmin").requires { Perms.has(it, Perms.ADMIN) }
+private fun adminCmd() = lit("admin").requires { Perms.has(it, Perms.ADMIN) }
     .then(lit("disband").then(word("country") { Realm.data.countries.keys }.does { ctx ->
         Realm.disband(Realm.country(ctx.text("country")) ?: throw Fail("Unknown country."))
         ctx.say("§aDisbanded.")
@@ -212,12 +192,9 @@ private fun adminCmd() = lit("countryadmin").requires { Perms.has(it, Perms.ADMI
         ctx.say("§aProcessed one billing day.")
     })
     .then(lit("save").does { ctx -> Realm.save(true); ctx.say("§aSaved.") })
-    .then(lit("reload").does { ctx -> Config.load(); ctx.say("§aConfig reloaded.") })
 
-object Commands {
-    fun register(d: CommandDispatcher<CommandSourceStack>) {
-        d.register(countryCmd())
-        d.register(plotCmd())
-        d.register(adminCmd())
+object ClaimsCommands {
+    fun register() = KamiCommands.module("claims", "Countries, claims, plots and provinces") {
+        countryCmd().then(plotCmd()).then(adminCmd())
     }
 }

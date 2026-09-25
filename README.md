@@ -38,6 +38,19 @@ Versions look like `0.0.1-alpha-003`.
 - The last number is the build number. It counts the commits since the version was last changed.
 - The tag decides the Modrinth channel: `alpha` goes to alpha, `beta` goes to beta, and an empty tag is a full release.
 
+## Commands
+
+Every command follows `/kami <mod> <command>`. The same command also works without the `kami` in front, so `/kami claims info` and `/claims info` do the same thing.
+
+| Command | Use |
+|---|---|
+| `/kami` | List all Kami mods |
+| `/kami reload` | Reload every Kami config |
+| `/<mod> help` | List the commands of one mod, only the ones you may use |
+| `/<mod> reload` | Reload one mod's config |
+
+The mods are `library`, `claims`, `economy` and `geology`.
+
 ## Configs
 
 All settings live in one folder on the server, one subfolder per mod:
@@ -51,7 +64,7 @@ config/kami/
 ```
 
 - Every file is created on first start, with a short comment above each setting.
-- Edit a file, save it and run `/kami reload`. Use `/kami reload claims` to reload a single mod. `/kami` on its own shows where everything is.
+- Edit a file, save it and run `/kami reload`. Use `/claims reload` to reload a single mod.
 - If a file has a typo, it stays untouched. The mod keeps its current values and the command tells you which file broke and why.
 - Values out of range get fixed and written back. Unknown settings are removed.
 - Coin values are shared: KamiClaims and KamiEconomy both read `library/coins.json`.

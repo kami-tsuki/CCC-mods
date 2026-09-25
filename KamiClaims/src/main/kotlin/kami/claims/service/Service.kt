@@ -12,7 +12,7 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-class Fail(msg: String) : RuntimeException(msg)
+class Fail(msg: String) : kami.libs.command.CommandFail(msg)
 
 object Service {
     private val s get() = Config.s

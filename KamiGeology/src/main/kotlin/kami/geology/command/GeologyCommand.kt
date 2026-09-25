@@ -1,6 +1,5 @@
 package kami.geology.command
 
-import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.BoolArgumentType
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
@@ -11,6 +10,8 @@ import kami.geology.net.MapServer
 import kami.geology.world.Site
 import kami.geology.world.WorldContext
 import kami.geology.world.Worlds
+import kami.libs.command.KamiCommands
+import kami.libs.command.op
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.commands.SharedSuggestionProvider
@@ -22,48 +23,46 @@ import kotlin.math.roundToInt
 object GeologyCommand {
     private val searchRadii = listOf(256, 512, 1024, 2048, 3072)
 
-    fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
-        dispatcher.register(
-            Commands.literal("kami_geology").requires { it.hasPermission(2) }
-                .then(Commands.literal("heatmap").executes(::heatmap))
-                .then(
-                    Commands.literal("audit").executes { audit(it, 200, 5, 3000) }
-                        .then(
-                            Commands.argument("samples", IntegerArgumentType.integer(20, 2000)).executes { audit(it, IntegerArgumentType.getInteger(it, "samples"), 5, 3000) }
-                                .then(
-                                    Commands.argument("claimChunks", IntegerArgumentType.integer(1, 32)).executes {
-                                        audit(it, IntegerArgumentType.getInteger(it, "samples"), IntegerArgumentType.getInteger(it, "claimChunks"), 3000)
-                                    }.then(
-                                        Commands.argument("radius", IntegerArgumentType.integer(256, 20000)).executes {
-                                            audit(
-                                                it, IntegerArgumentType.getInteger(it, "samples"),
-                                                IntegerArgumentType.getInteger(it, "claimChunks"), IntegerArgumentType.getInteger(it, "radius")
-                                            )
-                                        }
-                                    )
-                                )
-                        )
-                )
-                .then(
-                    Commands.literal("info").executes { info(it, 96) }
-                        .then(Commands.argument("radius", IntegerArgumentType.integer(16, 512)).executes { info(it, IntegerArgumentType.getInteger(it, "radius")) })
-                )
-                .then(
-                    Commands.literal("find").then(
-                        Commands.argument("ore", StringArgumentType.word())
-                            .suggests { _, builder -> SharedSuggestionProvider.suggest(ConfigStore.current?.ores?.map { it.id }.orEmpty(), builder) }
-                            .executes { find(it, StringArgumentType.getString(it, "ore"), null, null) }
+    fun register() = KamiCommands.module("geology", "Ore deposits, heatmap and audits") {
+        requires(op)
+            .then(Commands.literal("heatmap").executes(::heatmap))
+            .then(
+                Commands.literal("audit").executes { audit(it, 200, 5, 3000) }
+                    .then(
+                        Commands.argument("samples", IntegerArgumentType.integer(20, 2000)).executes { audit(it, IntegerArgumentType.getInteger(it, "samples"), 5, 3000) }
                             .then(
-                                Commands.literal("core").then(
-                                    Commands.argument("core", BoolArgumentType.bool())
-                                        .executes { find(it, StringArgumentType.getString(it, "ore"), BoolArgumentType.getBool(it, "core"), null) }
-                                        .then(tierArgument(withCore = true))
+                                Commands.argument("claimChunks", IntegerArgumentType.integer(1, 32)).executes {
+                                    audit(it, IntegerArgumentType.getInteger(it, "samples"), IntegerArgumentType.getInteger(it, "claimChunks"), 3000)
+                                }.then(
+                                    Commands.argument("radius", IntegerArgumentType.integer(256, 20000)).executes {
+                                        audit(
+                                            it, IntegerArgumentType.getInteger(it, "samples"),
+                                            IntegerArgumentType.getInteger(it, "claimChunks"), IntegerArgumentType.getInteger(it, "radius")
+                                        )
+                                    }
                                 )
                             )
-                            .then(tierArgument(withCore = false))
                     )
+            )
+            .then(
+                Commands.literal("info").executes { info(it, 96) }
+                    .then(Commands.argument("radius", IntegerArgumentType.integer(16, 512)).executes { info(it, IntegerArgumentType.getInteger(it, "radius")) })
+            )
+            .then(
+                Commands.literal("find").then(
+                    Commands.argument("ore", StringArgumentType.word())
+                        .suggests { _, builder -> SharedSuggestionProvider.suggest(ConfigStore.current?.ores?.map { it.id }.orEmpty(), builder) }
+                        .executes { find(it, StringArgumentType.getString(it, "ore"), null, null) }
+                        .then(
+                            Commands.literal("core").then(
+                                Commands.argument("core", BoolArgumentType.bool())
+                                    .executes { find(it, StringArgumentType.getString(it, "ore"), BoolArgumentType.getBool(it, "core"), null) }
+                                    .then(tierArgument(withCore = true))
+                            )
+                        )
+                        .then(tierArgument(withCore = false))
                 )
-        )
+            )
     }
 
     fun reload(): String {
@@ -76,7 +75,7 @@ object GeologyCommand {
     private fun heatmap(context: CommandContext<CommandSourceStack>): Int {
         val player = context.source.playerOrException
         if (!MapServer.canOpen(player)) {
-            context.source.sendFailure(Component.literal("Your client needs the kami_geology mod to open the map"))
+            context.source.sendFailure(Component.literal("Your client needs KamiGeology to open the map"))
             return 0
         }
         if (!MapServer.open(player)) {

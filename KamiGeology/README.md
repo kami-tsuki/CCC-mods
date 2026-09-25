@@ -11,7 +11,7 @@ Ores stop being random specks. KamiGeology swaps them for real deposits that dep
 - **Richness grades** that change how dense a deposit is and how much it drops
 - **Prospectors** in 8 tiers, from Wooden up to Netherite-Diamond. The first one checks the ground right under you, the rest open a heatmap of the area.
 - **Modded ores** tagged `c:ores` get picked up on their own
-- **Config** in `config/kami/geology/`: `general.json`, `provinces.json` and one file per ore in `ores/`, all generated and commented on first start. Reload with `/kami reload geology`.
+- **Config** in `config/kami/geology/`: `general.json`, `provinces.json` and one file per ore in `ores/`, all generated and commented on first start. Reload with `/geology reload`.
 
 ## Commands
 
@@ -19,10 +19,10 @@ All commands need operator rights.
 
 | Command | Use |
 |---|---|
-| `/kami_geology heatmap` | Open the deposit map |
-| `/kami_geology info` | List deposits nearby |
-| `/kami_geology find <ore>` | Find the closest deposit of an ore |
-| `/kami_geology audit` | Check that every production chain has enough ore |
+| `/geology heatmap` | Open the deposit map |
+| `/geology info` | List deposits nearby |
+| `/geology find <ore>` | Find the closest deposit of an ore |
+| `/geology audit` | Check that every production chain has enough ore |
 
 ## Dependencies
 
@@ -39,9 +39,9 @@ No other mod needs it. It offers deposit data through the geology API in KamiLib
 
 ## Changelog
 
-### Unreleased
+### 0.0.2-alpha
 - Config moved from `config/kami_geology/` to `config/kami/geology/`, existing files move over on their own
-- `/kami_geology reload` is now `/kami reload geology` and lists any file it had to skip
+- `/kami_geology` is now `/geology` (or `/kami geology`), and `/geology reload` lists any file it had to skip
 
 ### 0.0.1-alpha-003
 - Redesigned prospector textures for all 8 tiers

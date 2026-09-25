@@ -27,7 +27,7 @@ object Effects {
     fun invite(server: MinecraftServer, id: String, c: Country) {
         server.playerList.getPlayer(UUID.fromString(id))?.sendSystemMessage(
             Component.literal("§6You were invited to ${c.name}. ").append(
-                Component.literal("§a[Accept]").withStyle { it.withClickEvent(ClickEvent(ClickEvent.Action.RUN_COMMAND, "/country accept ${c.id}")) })
+                Component.literal("§a[Accept]").withStyle { it.withClickEvent(ClickEvent(ClickEvent.Action.RUN_COMMAND, "/claims accept ${c.id}")) })
         )
     }
 

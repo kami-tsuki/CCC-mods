@@ -1,6 +1,6 @@
 package kami.libs
 
-import kami.libs.config.ConfigCommand
+import kami.libs.command.KamiCommands
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
 import net.neoforged.neoforge.event.RegisterCommandsEvent
@@ -15,7 +15,8 @@ object KamiLibs {
     val LOG: Logger = LoggerFactory.getLogger("kami_libs")
 
     init {
+        KamiCommands.module("library", "Shared settings of all Kami mods") {}
         MOD_BUS.addListener<FMLCommonSetupEvent> { LibConfig.file.load() }
-        FORGE_BUS.addListener<RegisterCommandsEvent> { ConfigCommand.register(it.dispatcher) }
+        FORGE_BUS.addListener<RegisterCommandsEvent> { KamiCommands.register(it.dispatcher) }
     }
 }
