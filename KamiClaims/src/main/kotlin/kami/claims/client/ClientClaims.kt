@@ -1,18 +1,31 @@
 package kami.claims.client
 
 import kami.claims.service.View
-import kami.libs.config.Configs
+import kami.libs.config.KamiConfig
+import kami.libs.config.Section
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import java.nio.file.Files
 
 @Serializable
 class Prefs(var overlay: Boolean = true, var hud: Boolean = true, var labels: Boolean = true, var grid: Boolean = true, var claimable: Boolean = true)
 
 object ClientClaims {
-    private val json = Configs.json()
-    private val file get() = Configs.file("kami_claims_client.json")
-    val prefs: Prefs by lazy { runCatching { json.decodeFromString<Prefs>(Files.readString(file)) }.getOrElse { Prefs() } }
+    private val config = KamiConfig(
+        "claims", Prefs(),
+        listOf(
+            Section(
+                "client.json", "Map and HUD settings of this game client. The buttons on the claims map change them too.",
+                mapOf(
+                    "overlay" to "Show claims on Xaero's maps.",
+                    "hud" to "Show the territory HUD.",
+                    "labels" to "Show chunk type letters on the claims map.",
+                    "grid" to "Show the chunk grid on the claims map.",
+                    "claimable" to "Mark chunks you could claim on the claims map."
+                )
+            )
+        ),
+        legacy = "kami_claims_client.json", reloadable = false
+    )
+    val prefs: Prefs by lazy { config.load(); config.value }
 
     var dims: List<String> = emptyList()
         private set
@@ -26,7 +39,7 @@ object ClientClaims {
     private var maps: List<HashMap<Long, View.Entry>> = emptyList()
     private val regions = HashMap<Long, Int>()
 
-    fun savePrefs() = runCatching { Files.writeString(file, json.encodeToString(prefs)) }
+    fun savePrefs() = runCatching { config.save(prefs) }
 
     fun update(p: View.Payload) {
         dims = p.dims

@@ -1,9 +1,8 @@
 package kami.claims
 
-import kami.libs.config.Configs
+import kami.libs.config.KamiConfig
+import kami.libs.config.Section
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import java.nio.file.Files
 
 @Serializable
 data class Rule(
@@ -66,14 +65,6 @@ data class Settings(
     val broadcast: Boolean = true,
     val guiCooldown: Int = 4,
     val mailLimit: Int = 10,
-    val coins: Map<String, Int> = linkedMapOf(
-        "numismatics:spur" to 1,
-        "numismatics:bevel" to 8,
-        "numismatics:sprocket" to 16,
-        "numismatics:cog" to 64,
-        "numismatics:crown" to 512,
-        "numismatics:sun" to 4096
-    ),
     val types: Map<String, TypeDef> = linkedMapOf(
         "civic" to type(1, rule = rule(Access.CITIZEN, Access.CITIZEN, Access.ALLIED, Access.CITIZEN)),
         "mining" to type(3, job = "miner", rule = rule(Access.JOB, Access.WORKER, Access.ALLIED, Access.WORKER, true)),
@@ -118,14 +109,97 @@ private fun Settings.sane(): Settings {
 }
 
 object Config {
-    private val json = Configs.json { coerceInputValues = true }
-    var s = Settings()
+    private val sections = listOf(
+        Section(
+            "general.json", "Countries, upkeep and time. Durations count in real days.",
+            mapOf(
+                "dayMillis" to "Length of one upkeep day in milliseconds. 86400000 is one real day.",
+                "dimensions" to "Dimensions where land can be claimed.",
+                "freeChunks" to "Chunks every country gets for free, the capital included.",
+                "freeBonusMembers" to "Members needed for one extra free chunk.",
+                "freeBonusCap" to "Most extra free chunks a country can earn from members.",
+                "maxDebt" to "Unpaid days before a chunk is lost.",
+                "reserveDays" to "Days a lost chunk stays reserved for its old country.",
+                "inactiveDays" to "Days without any member online before a country loses its free chunks.",
+                "successionDays" to "Days a president can be offline before the chancellor takes over.",
+                "inviteDays" to "Days an invite stays open.",
+                "capitalCooldownDays" to "Days between two capital moves.",
+                "maxRect" to "Most chunks one area selection may cover.",
+                "maxCatchUp" to "Most missed days worked off at once after downtime.",
+                "nameLength" to "Shortest and longest country name.",
+                "provinceTaxRateBounds" to "Lowest and highest percent tribute a province can pay, 0 to 1.",
+                "maxProvinceDebt" to "Missed tribute payments before the ruling country gets an urgent warning.",
+                "guiCooldown" to "Ticks between two GUI actions of one player."
+            )
+        ),
+        Section(
+            "chunk-types.json", "Chunk types, their daily price and who may do what.",
+            mapOf(
+                "defaultType" to "Type of a freshly claimed chunk.",
+                "types" to "price is paid every period days. Access: NONE, OFFICER, JOB, WORKER, CITIZEN, ALLIED or ANY.",
+                "types.*.period" to "Days between two payments.",
+                "types.*.job" to "Job that works in this chunk type, or null.",
+                "types.*.rule" to "Default rules. Countries can change them in game.",
+                "types.*.rule.machines" to "Create machines may break blocks here.",
+                "types.*.rule.pvp" to "Players may fight here.",
+                "types.*.rule.explosions" to "Explosions break blocks here.",
+                "types.*.rule.fire" to "Fire may spread into this chunk.",
+                "types.*.rule.fluid" to "Fluids may flow into this chunk."
+            )
+        ),
+        Section(
+            "jobs.json", "Jobs and their daily pay. Countries can change pay and quota in game.",
+            mapOf(
+                "jobShare" to "Most of the daily income that may go to job pay, 0 to 1.",
+                "maxJobPay" to "Highest pay a country can set for one job.",
+                "jobs" to "type is the chunk type, actions count towards the quota, blocks limits what counts (tags start with #).",
+                "jobs.*.quota" to "Actions needed per period to get paid.",
+                "jobs.*.period" to "Days per work period."
+            )
+        ),
+        Section(
+            "plots.json", "Player plots inside residential chunks.",
+            mapOf(
+                "maxPlots" to "Most plots one player can own.",
+                "residentialTax" to "Default daily rent of a plot.",
+                "shutdownDays" to "Unpaid days before the owner is locked out.",
+                "releaseDays" to "Days after the lockout before others can take the plot.",
+                "plotAllied" to "What allied players may do on a plot."
+            )
+        ),
+        Section(
+            "protection.json", "Protection outside of countries and a few global rules.",
+            mapOf(
+                "freeBlocks" to "Blocks anyone may place anywhere, like train tracks.",
+                "nomanslandAllow" to "What players may do in unclaimed land: BREAK, PLACE, INTERACT or CONTAINER.",
+                "nomanslandPvp" to "Players may fight in unclaimed land.",
+                "mobGriefing" to "Mobs like creepers and endermen may change blocks in the claim dimensions.",
+                "nomanslandExplosions" to "Explosions break blocks in unclaimed land.",
+                "nomanslandFire" to "Fire spreads in unclaimed land.",
+                "nomanslandFluid" to "Fluids flow in unclaimed land.",
+                "pistonProtection" to "Stop pistons from pushing blocks across claim borders."
+            )
+        ),
+        Section(
+            "ranks.json", "Lowest rank that may use each feature.",
+            mapOf("caps" to "Ranks from low to high: BANISHED, ALLIED, CITIZEN, OFFICER, CHANCELLOR, PRESIDENT.")
+        ),
+        Section(
+            "messages.json", "Messages and notifications.",
+            mapOf(
+                "notify" to "Show the country name when a player walks into other land.",
+                "titles" to "Use a big title when crossing a border between countries.",
+                "broadcast" to "Tell the whole server when a country is founded.",
+                "mailLimit" to "Most messages kept for an offline member."
+            )
+        )
+    )
 
-    fun load() {
-        val path = Configs.file("kami_claims.json")
-        val parsed = if (Files.exists(path)) runCatching { json.decodeFromString<Settings>(Files.readString(path)) } else null
-        s = (parsed?.getOrNull() ?: Settings()).sane()
-        parsed?.exceptionOrNull()?.let { KamiClaims.LOG.error("Invalid kami_claims.json, using defaults without overwriting it", it) }
-            ?: Files.writeString(path, json.encodeToString(s))
-    }
+    val file = KamiConfig("claims", Settings(), sections, legacy = "kami_claims.json", sane = { it.sane() })
+
+    var s: Settings
+        get() = file.value
+        set(value) { file.value = value }
+
+    fun load() = file.load()
 }

@@ -12,6 +12,7 @@ import kami.geology.net.MapServer
 import kami.geology.world.GeologyBiomeModifier
 import kami.geology.world.GeologyFeature
 import kami.geology.world.Worlds
+import kami.libs.config.Configs
 import kami.libs.geology.GeologyApi
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.server.level.ServerPlayer
@@ -58,6 +59,7 @@ object KamiGeology {
         MOD_BUS.addListener<RegisterPayloadHandlersEvent> { MapServer.register(it) }
         MOD_BUS.addListener<FMLCommonSetupEvent> {
             ConfigStore.load()
+            Configs.onReload("geology", GeologyCommand::reload)
             GeologyApi.register { level, x, z, y0, y1, callback ->
                 val world = Worlds.of(level)
                 if (world == null) callback(emptyList()) else Workers.pool.execute {

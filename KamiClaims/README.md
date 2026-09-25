@@ -31,11 +31,33 @@ Claim land together as a country. Every chunk costs upkeep, so land means respon
 
 Clients can join without the mod. With it installed, they get the GUI and the map overlay.
 
+## Config
+
+Everything is in `config/kami/claims/`. Change a file and run `/kami reload claims`.
+
+| File | What's in it |
+|---|---|
+| `general.json` | Free chunks, debt, inactivity, invites and other time limits |
+| `chunk-types.json` | Every chunk type with its price and default rules |
+| `jobs.json` | Jobs, quotas and pay limits |
+| `plots.json` | Plot limits, rent and lockout days |
+| `protection.json` | Rules for unclaimed land, mobs and pistons |
+| `ranks.json` | Lowest rank that may use each feature |
+| `messages.json` | Border titles, notifications and mail |
+| `client.json` | Map and HUD toggles, on each player's own game |
+
+Coin values come from `config/kami/library/coins.json`.
+
 ## Used by
 
 - [KamiEconomy](../KamiEconomy/README.md) uses claims to decide where vendor blocks may be placed.
 
 ## Changelog
+
+### Unreleased
+- Config moved to `config/kami/claims/` and split into topic files with comments
+- Reload the config in game with `/kami reload claims`
+- Coin values now come from KamiLibs
 
 ### 0.0.1-alpha-003
 - Rebuilt with the other mods, no changes.

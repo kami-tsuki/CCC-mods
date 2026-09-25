@@ -1,6 +1,7 @@
 package kami.economy.economy
 
 import kami.economy.Config
+import kami.libs.economy.Coins
 import net.minecraft.core.component.DataComponents
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.item.ItemStack
@@ -25,7 +26,7 @@ object Blacklist {
         if (taczAmmoId(stack) != null) return Classification.ALLOWED
 
         val id = registryId(stack)
-        if (id in Config.s.coins.keys) return Classification.BLOCKED
+        if (id in Coins.values.keys) return Classification.BLOCKED
         if (id in Config.s.creativeItemSet) return Classification.BLOCKED
 
         if (stack.has(DataComponents.CUSTOM_DATA) && !stack.get(DataComponents.CUSTOM_DATA)!!.isEmpty) return Classification.AUCTION_ONLY

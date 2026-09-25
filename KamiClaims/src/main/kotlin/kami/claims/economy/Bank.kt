@@ -1,6 +1,6 @@
 package kami.claims.economy
 
-import kami.claims.Config
+import kami.libs.economy.Coins
 import kami.libs.economy.Numismatics
 
 import net.minecraft.core.registries.BuiltInRegistries
@@ -10,7 +10,7 @@ import net.minecraft.world.item.ItemStack
 import java.util.UUID
 
 object Bank {
-    private fun value(stack: ItemStack) = if (stack.isEmpty) 0 else Config.s.coins[BuiltInRegistries.ITEM.getKey(stack.item).toString()] ?: 0
+    private fun value(stack: ItemStack) = if (stack.isEmpty) 0 else Coins.values[BuiltInRegistries.ITEM.getKey(stack.item).toString()] ?: 0
 
     private fun carried(p: ServerPlayer) = p.inventory.items.sumOf { value(it).toLong() * it.count }
 
@@ -44,7 +44,7 @@ object Bank {
 
     private fun coins(p: ServerPlayer, amount: Int) {
         var rest = amount
-        Config.s.coins.entries.sortedByDescending { it.value }.forEach { (item, unit) ->
+        Coins.values.entries.sortedByDescending { it.value }.forEach { (item, unit) ->
             val n = rest / unit
             if (n <= 0) return@forEach
             rest -= n * unit

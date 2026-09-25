@@ -21,7 +21,7 @@ object Pricing {
             if (totalQty > 0) {
                 val weighted = fills.sumOf { it.price.toDouble() * it.qty } / totalQty
                 val base = if (book.midPrice <= 0.0) weighted else book.midPrice
-                val maxMove = base * Config.s.maxPriceMovePct
+                val maxMove = base * (Config.s.categoryBounds[book.item]?.maxMovePct ?: Config.s.maxPriceMovePct)
                 book.midPrice = base + (weighted - base).coerceIn(-maxMove, maxMove)
             }
         }

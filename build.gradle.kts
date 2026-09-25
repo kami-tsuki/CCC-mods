@@ -37,6 +37,7 @@ subprojects {
     apply(plugin = "net.neoforged.moddev")
 
     val modId = property("mod_id") as String
+    val configName = property("config_name") as String
 
     group = property("mod_group") as String
 
@@ -64,6 +65,7 @@ subprojects {
     dependencies {
         add("implementation", "thedarkcolour:kotlinforforge-neoforge:${property("kff_version")}")
         add("testImplementation", kotlin("test"))
+        add("testRuntimeOnly", "org.slf4j:slf4j-api:2.0.9")
     }
 
     tasks.withType<Test> { useJUnitPlatform() }
@@ -98,6 +100,7 @@ subprojects {
                 mods.mkdirs()
                 mods.listFiles { f -> f.name.startsWith(modId) && f.extension == "jar" }?.forEach { it.delete() }
                 config.listFiles { f -> f.name.startsWith(modId) }?.forEach { it.deleteRecursively() }
+                config.resolve("kami/$configName").deleteRecursively()
                 jarFile.copyTo(mods.resolve(jarFile.name), overwrite = true)
             }
         }

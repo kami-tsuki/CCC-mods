@@ -38,6 +38,25 @@ Versions look like `0.0.1-alpha-003`.
 - The last number is the build number. It counts the commits since the version was last changed.
 - The tag decides the Modrinth channel: `alpha` goes to alpha, `beta` goes to beta, and an empty tag is a full release.
 
+## Configs
+
+All settings live in one folder on the server, one subfolder per mod:
+
+```
+config/kami/
+├── library/   coins.json
+├── claims/    general, chunk-types, jobs, plots, protection, ranks, messages, client
+├── economy/   general, market, auctions, starter-items, blocked-items
+└── geology/   general, provinces, ores/<ore>.json
+```
+
+- Every file is created on first start, with a short comment above each setting.
+- Edit a file, save it and run `/kami reload`. Use `/kami reload claims` to reload a single mod. `/kami` on its own shows where everything is.
+- If a file has a typo, it stays untouched. The mod keeps its current values and the command tells you which file broke and why.
+- Values out of range get fixed and written back. Unknown settings are removed.
+- Coin values are shared: KamiClaims and KamiEconomy both read `library/coins.json`.
+- Configs from 0.0.1 (`config/kami_claims.json` and friends) move over on their own. The old file stays in the new folder as `.old`.
+
 ## Pipeline
 
 The workflow lives in `.github/workflows/mods.yml` and runs on every push to `main`, `develop` and `release/v*`.

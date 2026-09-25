@@ -1,5 +1,6 @@
 package kami.libs.economy
 
+import kami.libs.LibConfig
 import kotlin.math.abs
 
 object Coins {
@@ -11,6 +12,8 @@ object Coins {
     private const val SUN = ''
 
     private val denominations = listOf(4096L to SUN, 512L to CROWN, 64L to COG, 16L to SPROCKET, 8L to BEVEL, 1L to SPUR)
+
+    val values: Map<String, Int> get() = LibConfig.s.coins
 
     fun glyph(spurValue: Long): Char = denominations.firstOrNull { spurValue == it.first }?.second ?: SPUR
 

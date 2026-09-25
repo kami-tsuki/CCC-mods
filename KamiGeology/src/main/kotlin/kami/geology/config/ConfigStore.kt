@@ -2,6 +2,7 @@ package kami.geology.config
 
 import kami.geology.KamiGeology
 import kami.libs.config.Configs
+import kami.libs.config.Jsonc
 import kami.libs.mc.MissingMod
 import kotlinx.serialization.ExperimentalSerializationApi
 import java.nio.file.Files
@@ -11,14 +12,11 @@ import kotlin.io.path.nameWithoutExtension
 
 @OptIn(ExperimentalSerializationApi::class)
 object ConfigStore {
-    private val json = Configs.json {
-        explicitNulls = false
-        coerceInputValues = true
-        allowComments = true
-        allowTrailingComma = true
-    }
-    private val key = Regex("""^(\s*)"([^"]+)":\s*(.*)$""")
-    private val dir: Path get() = Configs.dir(KamiGeology.ID)
+    private val json = Configs.json { explicitNulls = false }
+    private const val ORE = "One ore. Set enabled to false to turn it off, deleted built-in ores come back with defaults."
+    private const val HINT = "Save, then run /kami reload geology. New chunks use the change."
+    private val dir: Path get() = Configs.dir("geology")
+    val problems = ArrayList<String>()
     private var version = 0
 
     @Volatile
@@ -47,13 +45,15 @@ object ConfigStore {
     }
 
     private fun build(): Settings {
+        problems.clear()
+        Configs.moveLegacy(KamiGeology.ID, "geology")
         val oreDir = dir.resolve("ores")
         Files.createDirectories(oreDir)
-        val general = sync(dir.resolve("general.json"), GeneralConfig(), Docs.general) ?: GeneralConfig()
-        val provinceMap = sync(dir.resolve("provinces.json"), Defaults.provinces, emptyMap()) ?: Defaults.provinces
+        val general = sync(dir.resolve("general.json"), GeneralConfig(), Docs.general, "General world generation settings.") ?: GeneralConfig()
+        val provinceMap = sync(dir.resolve("provinces.json"), Defaults.provinces, emptyMap(), "Provinces: which biomes belong together. Ore files refer to these names.") ?: Defaults.provinces
         Defaults.ores.forEach { (id, config) ->
             val file = oreDir.resolve("$id.json")
-            if (!Files.exists(file)) Compat.adapt(id, config)?.let { save(file, json.encodeToString(it), Docs.ore) }
+            if (!Files.exists(file)) Compat.adapt(id, config)?.let { save(file, json.encodeToString(it), Docs.ore, ORE) }
         }
 
         val order = Defaults.ores.keys.toList()
@@ -64,11 +64,11 @@ object ConfigStore {
         val replaceable = BlockRule(fixed.replaceable, "general.replaceable")
         val deepslate = BlockRule(fixed.deepslateHosts, "general.deepslateHosts")
 
-        val parsed = files.map { it.nameWithoutExtension to sync<OreConfig>(it, null, Docs.ore) }
+        val parsed = files.map { it.nameWithoutExtension to sync<OreConfig>(it, null, Docs.ore, ORE) }
         val found = if (fixed.discoverOres && tagged) {
             val claimed = parsed.flatMapTo(HashSet()) { (id, config) -> config?.let { Compat.claims(id, it) }.orEmpty() }
             Compat.discover(claimed, parsed.mapTo(HashSet()) { it.first }, provinceMap.keys.toList())
-                .onEach { (id, config) -> save(oreDir.resolve("$id.json"), json.encodeToString(config), Docs.ore) }
+                .onEach { (id, config) -> save(oreDir.resolve("$id.json"), json.encodeToString(config), Docs.ore, ORE) }
                 .map { it.key to it.value }
         } else emptyList()
 
@@ -123,6 +123,7 @@ object ConfigStore {
             null
         } catch (e: IllegalArgumentException) {
             KamiGeology.LOG.error("Ore '{}' disabled: {}", id, e.message)
+            problems += "ore '$id' disabled: ${e.message}"
             null
         }
     }
@@ -169,9 +170,9 @@ object ConfigStore {
     private fun doubles(range: List<Double>, name: String) =
         require(range.size == 2 && range[0] <= range[1]) { "$name must be [min, max]" }
 
-    private inline fun <reified T> sync(path: Path, default: T?, docs: Map<String, String>): T? {
+    private inline fun <reified T> sync(path: Path, default: T?, docs: Map<String, String>, title: String): T? {
         val value = if (Files.exists(path)) parse<T>(path) ?: return null else default ?: return null
-        save(path, json.encodeToString(value), docs)
+        save(path, json.encodeToString(value), docs, title)
         return value
     }
 
@@ -179,29 +180,10 @@ object ConfigStore {
         json.decodeFromString<T>(Files.readString(path))
     } catch (e: Exception) {
         KamiGeology.LOG.error("Ignoring {}: {}", path.fileName, e.message)
+        problems += "${dir.relativize(path).joinToString("/")}: ${Jsonc.reason(e)}"
         null
     }
 
-    private fun save(path: Path, text: String, docs: Map<String, String>) {
-        val annotated = annotate(text, docs)
-        if (!Files.exists(path) || Files.readString(path) != annotated) Files.writeString(path, annotated)
-    }
-
-    private fun annotate(text: String, docs: Map<String, String>): String {
-        val parents = ArrayDeque<Pair<Int, String>>()
-        val seen = HashSet<String>()
-        return buildString {
-            text.lines().forEach { line ->
-                val match = key.matchEntire(line)
-                if (match != null) {
-                    val (indent, name, rest) = match.destructured
-                    while (parents.isNotEmpty() && parents.last().first >= indent.length) parents.removeLast()
-                    val path = (parents.map { it.second } + name).joinToString(".")
-                    docs[path]?.takeIf { seen.add(path) }?.let { append(indent).append("// ").append(it).append('\n') }
-                    if (rest.endsWith("{") || rest.endsWith("[")) parents.addLast(indent.length to name)
-                }
-                append(line).append('\n')
-            }
-        }.trimEnd() + "\n"
-    }
+    private fun save(path: Path, text: String, docs: Map<String, String>, title: String) =
+        Jsonc.write(path, Jsonc.annotate(text, docs, listOf(title, HINT)))
 }

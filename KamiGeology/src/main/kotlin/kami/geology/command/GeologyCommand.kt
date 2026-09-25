@@ -25,7 +25,6 @@ object GeologyCommand {
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
         dispatcher.register(
             Commands.literal("kami_geology").requires { it.hasPermission(2) }
-                .then(Commands.literal("reload").executes(::reload))
                 .then(Commands.literal("heatmap").executes(::heatmap))
                 .then(
                     Commands.literal("audit").executes { audit(it, 200, 5, 3000) }
@@ -67,14 +66,11 @@ object GeologyCommand {
         )
     }
 
-    private fun reload(context: CommandContext<CommandSourceStack>): Int {
-        val settings = ConfigStore.load()
+    fun reload(): String {
+        val settings = ConfigStore.load() ?: error("could not load, see the log")
         Worlds.clear()
-        context.source.sendSuccess(
-            { Component.literal(if (settings == null) "Reload failed, see the log" else "Loaded ${settings.ores.size} ores. New chunks use it, ore removal needs a restart.") },
-            true
-        )
-        return if (settings == null) 0 else settings.ores.size
+        val skipped = ConfigStore.problems.let { if (it.isEmpty()) "" else ", skipped ${it.joinToString("; ")}" }
+        return "${settings.ores.size} ores loaded$skipped. New chunks use it, ore removal needs a restart."
     }
 
     private fun heatmap(context: CommandContext<CommandSourceStack>): Int {

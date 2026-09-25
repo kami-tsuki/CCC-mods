@@ -6,7 +6,8 @@ The shared base for every Kami mod. On its own it adds nothing you can see in ga
 
 ## What's inside
 
-- **Networking and config** helpers, so every mod sends packets and saves settings the same way
+- **Networking** helpers, so every mod sends packets the same way
+- **Config system** behind `config/kami/`: commented files split by topic, safe reloads with `/kami reload` and automatic moves from old config paths
 - **UI kit** with one theme, scroll lists and line, candle and bar charts
 - **Numismatics bridge** for coins and bank accounts
 - **Cross-mod APIs** for claims, geology and the market, so the mods can talk to each other without hard links
@@ -20,6 +21,19 @@ The shared base for every Kami mod. On its own it adds nothing you can see in ga
 | [Kotlin for Forge](https://modrinth.com/mod/kotlin-for-forge) | Required |
 | [Create](https://modrinth.com/mod/create), [Numismatics](https://modrinth.com/mod/numismatics), [Xaero's World Map](https://modrinth.com/mod/xaeros-world-map) | Optional, only used when present |
 
+## Config
+
+| File | What's in it |
+|---|---|
+| `config/kami/library/coins.json` | Coin items and their worth in spurs, shared by KamiClaims and KamiEconomy |
+
+| Command | Use |
+|---|---|
+| `/kami` | Show the config folder and all Kami mods |
+| `/kami reload [mod]` | Reload every Kami config, or just one mod |
+
+Both need operator rights.
+
 ## Used by
 
 - [KamiGeology](../KamiGeology/README.md)
@@ -27,6 +41,11 @@ The shared base for every Kami mod. On its own it adds nothing you can see in ga
 - [KamiEconomy](../KamiEconomy/README.md)
 
 ## Changelog
+
+### Unreleased
+- New config system: every Kami mod keeps its settings in `config/kami/<mod>/`, split by topic and commented
+- `/kami reload [mod]` reloads configs and tells you exactly which file has an error
+- Coin values moved here, so claims and economy always agree on them
 
 ### 0.0.1-alpha-003
 - Rebuilt with the other mods, no changes.

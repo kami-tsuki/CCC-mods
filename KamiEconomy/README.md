@@ -26,11 +26,31 @@ A server wide market built on Create: Numismatics. Players sell into a shared or
 | [Numismatics](https://modrinth.com/mod/numismatics) | Required |
 | [KamiClaims](../KamiClaims/README.md) | Optional, limits vendor blocks to market chunks |
 
+## Config
+
+Everything is in `config/kami/economy/`. Change a file and run `/kami reload economy`.
+
+| File | What's in it |
+|---|---|
+| `market.json` | Price updates, limits per item and the sales tax |
+| `auctions.json` | Auction fee and duration |
+| `starter-items.json` | Items the server always buys, and at what price |
+| `blocked-items.json` | Items that can't be traded or only go to auction |
+| `general.json` | Price history, page size and vendor blocks |
+
+Coin values come from `config/kami/library/coins.json`.
+
 ## Used by
 
 - [KamiClaims](../KamiClaims/README.md) lists it as an optional companion.
 
 ## Changelog
+
+### Unreleased
+- Config moved to `config/kami/economy/` and split into topic files with comments
+- Reload the config in game with `/kami reload economy`
+- Coin values now come from KamiLibs
+- `maxMovePct` in `categoryBounds` now works per item
 
 ### 0.0.1-alpha-003
 - Rebuilt with the other mods, no changes.
