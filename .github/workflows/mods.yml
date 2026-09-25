@@ -235,7 +235,9 @@ jobs:
           case "$code" in
             200) ;;
             401) fail "MODRINTH_TOKEN is invalid or expired" ;;
-            404) fail "Project '$ID' not found. Check modrinth_id in ${{ matrix.mod }}/gradle.properties and that MODRINTH_TOKEN has the 'Read projects' and 'Read versions' scopes (required for draft/unapproved projects)" ;;
+            404)
+              who=$(curl -sS -H "Authorization: $TOKEN" https://api.modrinth.com/v2/user | jq -r '.username // empty' 2>/dev/null || true)
+              fail "Project '$ID' not found or not visible to MODRINTH_TOKEN (token user: ${who:-unknown, token lacks 'Read user data' scope}). Draft/unapproved projects need a token from a project member with the 'Read projects', 'Read versions' and 'Create versions' scopes. Also check modrinth_id in ${{ matrix.mod }}/gradle.properties" ;;
             *) fail "Modrinth API returned HTTP $code: $(head -c 300 versions.json)" ;;
           esac
           jq -e --arg v "$VERSION" 'any(.[]; .version_number == $v)' versions.json > /dev/null && skip "$VERSION is already on Modrinth"
