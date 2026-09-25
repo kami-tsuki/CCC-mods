@@ -1,5 +1,6 @@
 package kami.claims.net
 
+import kami.libs.chat.Chat
 import kami.claims.*
 import kami.claims.service.Fail
 import kami.claims.service.Service
@@ -169,7 +170,7 @@ object Net {
                     pushTo(p.server.playerList.players)
                     broadcastOpen(p.server, except = p.uuid)
                 }
-                send(p, msg, ok)
+                send(p, Chat.plain(msg), ok)
             }
         }
     }

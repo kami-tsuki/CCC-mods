@@ -26,20 +26,20 @@ object Audit {
 
         val threshold = settings.general.auditThreshold
         val lines = ArrayList<String>()
-        lines += "Audit: $samples areas of ${claimChunks}x$claimChunks chunks within $radius blocks, supply = at least $threshold ore blocks"
+        lines += "Audit of {$samples} areas, {${claimChunks}x$claimChunks} chunks each, within {$radius} blocks. Supply means {$threshold}+ ore blocks."
         ores.forEachIndexed { i, ore ->
             val values = supply.map { it[i] }.sorted()
             val share = values.count { it >= threshold } * 100 / samples
-            lines += "${ore.id}: $share% of areas have supply, median ${short(values[samples / 2])}, top 10% from ${short(values[(samples * 9 / 10).coerceAtMost(samples - 1)])}"
+            lines += "{${ore.id}}  {$share%} have supply, median {${short(values[samples / 2])}}, top 10% from {${short(values[(samples * 9 / 10).coerceAtMost(samples - 1)])}}"
         }
         val counts = supply.map { row -> row.count { it >= threshold } }
-        lines += "Ores per area: average ${"%.1f".format(counts.average())}, none in ${counts.count { it == 0 } * 100 / samples}% of areas"
+        lines += "Ores per area: {${"%.1f".format(counts.average())}} on average, none in {${counts.count { it == 0 } * 100 / samples}%}"
         val index = ores.withIndex().associate { it.value.id to it.index }
         settings.general.chains.forEach { (name, needs) ->
             val slots = needs.mapNotNull { index[it] }
             if (slots.size != needs.size) return@forEach
             val self = supply.count { row -> slots.all { row[it] >= threshold } } * 100 / samples
-            lines += "chain $name (${needs.joinToString("+")}): $self% of areas can supply it alone"
+            lines += "Chain {$name} (${needs.joinToString(" + ")}): {$self%} of areas cover it alone"
         }
         return lines
     }

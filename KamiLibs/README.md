@@ -8,6 +8,7 @@ The shared base for every Kami mod. On its own it adds nothing you can see in ga
 
 - **Networking** helpers, so every mod sends packets the same way
 - **Config system** behind `config/kami/`: commented files split by topic, safe reloads with `/kami reload` and automatic moves from old config paths
+- **Chat theme** so every Kami message looks the same: mod tag, highlighted values, clickable coordinates and buttons
 - **Command system** that puts every mod under `/kami <mod>`, with a short `/<mod>` alias, a `help` list and a `reload` command for free
 - **UI kit** with one theme, scroll lists and line, candle and bar charts
 - **Numismatics bridge** for coins and bank accounts
@@ -49,6 +50,7 @@ Reloading needs operator rights.
 - `/kami reload` reloads configs and tells you exactly which file has an error
 - New command layout: `/kami <mod> <command>`, or `/<mod> <command>` for short, with `help` and `reload` in every mod
 - Coin values moved here, so claims and economy always agree on them
+- One chat style for all Kami mods, with highlighted values and clickable parts
 
 ### 0.0.1-alpha-003
 - Rebuilt with the other mods, no changes.

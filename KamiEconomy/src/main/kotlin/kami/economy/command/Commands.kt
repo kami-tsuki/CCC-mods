@@ -9,7 +9,8 @@ import kami.libs.command.does
 import kami.libs.command.lit
 import kami.libs.command.me
 import kami.libs.command.op
-import kami.libs.command.say
+import kami.libs.command.ok
+import kami.libs.command.warn
 
 object EconomyCommands {
     fun register() = KamiCommands.module("economy", "Server market and auction house") {
@@ -20,7 +21,7 @@ object EconomyCommands {
                 lit("resolve").then(
                     arg("id", LongArgumentType.longArg()).does { ctx ->
                         val id = LongArgumentType.getLong(ctx, "id")
-                        ctx.say(if (Market.data.frozen.remove(id)) "Cleared frozen intent $id." else "No frozen intent $id.")
+                        if (Market.data.frozen.remove(id)) ctx.ok("Frozen trade {$id} cleared.") else ctx.warn("No frozen trade with id {$id}.")
                     }
                 )
             )

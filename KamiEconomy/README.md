@@ -52,6 +52,7 @@ Coin values come from `config/kami/library/coins.json`.
 - `/market` is now `/economy` (or `/economy market`), admin tools moved to `/economy admin`
 - Coin values now come from KamiLibs
 - `maxMovePct` in `categoryBounds` now works per item
+- Messages use the shared Kami chat style
 
 ### 0.0.1-alpha-003
 - Rebuilt with the other mods, no changes.

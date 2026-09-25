@@ -79,7 +79,7 @@ class UpkeepTest {
         assertTrue(Service.claimError(c, Key(dim, 50, 0), "civic")!!.contains("connect"))
         Realm.data.reserves += Reserve(dim, 9, 1, "other", now() + 60_000)
         assertTrue(Service.claimError(c, Key(dim, 9, 1), "civic")!!.contains("reserved"))
-        assertTrue(Service.claimError(c, Key(dim, 9, 0), "civic")!!.contains("Treasury"))
+        assertTrue(Service.claimError(c, Key(dim, 9, 0), "civic")!!.contains("treasury"))
         c.treasury = 1
         assertNull(Service.claimError(c, Key(dim, 9, 0), "civic"))
     }

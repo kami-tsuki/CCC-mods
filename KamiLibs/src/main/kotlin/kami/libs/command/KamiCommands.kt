@@ -1,7 +1,7 @@
 package kami.libs.command
 
 import com.mojang.brigadier.CommandDispatcher
-import com.mojang.brigadier.tree.CommandNode
+import kami.libs.chat.Chat
 import kami.libs.config.Configs
 import kami.libs.config.Jsonc
 import net.minecraft.commands.CommandSourceStack
@@ -26,8 +26,8 @@ object KamiCommands {
             node.build()
         }
         val kami = dispatcher.register(
-            lit("kami").does { overview(it) }
-                .then(lit("help").does { overview(it) })
+            lit("kami").does(::overview)
+                .then(lit("help").does(::overview))
                 .then(lit("reload").requires(op).does { reload(it, null) })
         )
         nodes.forEach {
@@ -37,22 +37,26 @@ object KamiCommands {
     }
 
     private fun overview(ctx: Ctx) {
-        ctx.say("§6Kami mods §7use §f/kami <mod> <command>§7, or §f/<mod> <command>§7 for short.")
-        modules.values.forEach { ctx.say("§f/${it.name} §7${it.title}") }
-        ctx.say("§7Try §f/<mod> help§7 for a mod's commands.")
+        ctx.msg { value("Kami mods"); muted("  /kami <mod> <command>, or /<mod> <command>") }
+        modules.values.forEach { m -> ctx.row { run(m.name, "/${m.name} help", "Show the ${m.name} commands"); muted("  ${m.title}") } }
     }
 
     private fun help(ctx: Ctx, dispatcher: CommandDispatcher<CommandSourceStack>, m: Module) {
-        val node: CommandNode<CommandSourceStack> = dispatcher.root.getChild(m.name) ?: return
-        ctx.say("§6/${m.name} §7${m.title}")
-        dispatcher.getSmartUsage(node, ctx.source).values.filter { it != "help" }.sorted().forEach { ctx.say("§f/${m.name} $it") }
+        val node = dispatcher.root.getChild(m.name) ?: return
+        ctx.msg { value(m.title) }
+        dispatcher.getSmartUsage(node, ctx.source).values.filter { it != "help" }.sorted().forEach { usage ->
+            val name = usage.substringBefore(' ')
+            val rest = usage.substringAfter(' ', "")
+            ctx.row { suggest("/${m.name} $name", "/${m.name} $name ", "Click to type it"); if (rest.isNotEmpty()) muted(" $rest") }
+        }
     }
 
     private fun reload(ctx: Ctx, mod: String?) {
         val results = Configs.reload(mod)
         if (results.isEmpty()) fail("Nothing to reload.")
         results.forEach { (name, result) ->
-            ctx.say(result.fold({ "§a✔ $name §7${it ?: "reloaded"}" }, { "§c✘ $name §7${Jsonc.reason(it)}" }), true)
+            val chat = Chat.of(name)
+            ctx.reply(result.fold({ chat.ok("Config reloaded.${it?.let { d -> " $d" }.orEmpty()}") }, { chat.bad("Reload failed: ${Jsonc.reason(it)}") }), true)
         }
     }
 }

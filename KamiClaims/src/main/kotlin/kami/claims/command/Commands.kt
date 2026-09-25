@@ -9,6 +9,10 @@ import kami.claims.service.Upkeep
 import kami.claims.social.Perms
 import kami.claims.world.Effects
 
+import kami.libs.chat.Theme
+import kami.libs.chat.every
+import kami.libs.chat.plural
+import kami.libs.chat.spur
 import kami.libs.command.*
 import com.mojang.brigadier.arguments.DoubleArgumentType
 import com.mojang.brigadier.arguments.IntegerArgumentType
@@ -25,33 +29,46 @@ private val s get() = Config.s
 private fun player() = arg("player", GameProfileArgument.gameProfile())
 
 private fun Ctx.who() = (GameProfileArgument.getGameProfiles(this, "player").firstOrNull() ?: throw Fail("Unknown player.")).id.toString()
-private fun Ctx.run(name: String, vararg args: String) = say("§a" + Service.act(me(), name, args.toList()))
+private fun Ctx.run(name: String, vararg args: String) = ok(Service.act(me(), name, args.toList()))
 
-private fun status(c: Country, server: MinecraftServer): List<String> {
+private fun color(c: Country?) = c?.color?.takeIf { it != 0 } ?: Theme.ACCENT
+
+private fun Ctx.status(c: Country) {
+    val server = source.server
     val claims = Realm.claims(c.id)
     val sum = Upkeep.summary(c)
-    return listOf(
-        "§6${c.name} §7- president ${c.president()?.let { Names.of(server, it) } ?: "none"}, ${c.members.size} members",
-        "§7Treasury §e${c.treasury} §7| upkeep §c${sum.upkeep}§7/day | taxes §a${sum.income}§7/day | jobs §c${sum.jobs}§7/day | runway §f${sum.runway(c.treasury)}",
-        "§7Chunks ${claims.size} (free ${claims.count { it.free }}, in debt ${claims.count { it.debt > 0 }}) | " + claims.groupingBy { it.type }.eachCount().entries.joinToString { "${it.key} ${it.value}" }
-    )
+    msg {
+        text(c.name, color(c))
+        muted("  led by ")
+        value(c.president()?.let { Names.of(server, it) } ?: "nobody")
+        muted(", ${plural(c.members.size, "member")}")
+    }
+    row { muted("Treasury "); value(spur(c.treasury)); muted("  runway "); value(sum.runway(c.treasury)) }
+    row { muted("Daily  "); good("+${sum.income} taxes"); muted("  "); bad("-${sum.upkeep} upkeep"); muted("  "); bad("-${sum.jobs} wages") }
+    row {
+        muted("Land "); value(plural(claims.size, "chunk")); muted(" (${claims.count { it.free }} free")
+        claims.count { it.debt > 0 }.takeIf { it > 0 }?.let { muted(", "); bad("$it in debt") }
+        muted(")  " + claims.groupingBy { it.type }.eachCount().entries.joinToString("  ") { "${it.key} ${it.value}" })
+    }
 }
 
-private fun map(p: ServerPlayer): List<String> {
+private fun Ctx.map(p: ServerPlayer) {
     val o = Service.here(p)
-    val palette = "abcde6935"
     val legend = linkedSetOf<String>()
-    val rows = (-4..4).map { dz ->
-        (-8..8).joinToString("") { dx ->
-            val cl = Realm.index[Key(o.dim, o.x + dx, o.z + dz)]
-            when {
-                dx == 0 && dz == 0 -> "§f◆"
-                cl == null -> "§8▪"
-                else -> { legend += cl.country; "§${palette[abs(cl.country.hashCode()) % palette.length]}${if (cl.capital) "◈" else "■"}" }
+    msg { value("Map"); muted("  you are at the white diamond") }
+    (-4..4).forEach { dz ->
+        row {
+            (-8..8).forEach { dx ->
+                val cl = Realm.index[Key(o.dim, o.x + dx, o.z + dz)]
+                when {
+                    dx == 0 && dz == 0 -> value("◆")
+                    cl == null -> text("▪", 0x3A3A42)
+                    else -> { legend += cl.country; text(if (cl.capital) "◈" else "■", color(Realm.country(cl.country))) }
+                }
             }
         }
     }
-    return rows + "§7" + legend.joinToString { "§${palette[abs(it.hashCode()) % palette.length]}$it" }
+    if (legend.isNotEmpty()) row { legend.forEachIndexed { i, id -> if (i > 0) muted("  "); text("■ ", color(Realm.country(id))); text(Realm.country(id)?.name ?: id) } }
 }
 
 private fun Node.countryCmd(): Node {
@@ -65,7 +82,7 @@ private fun Node.countryCmd(): Node {
     return requires { Perms.has(it, Perms.USE) }
         .does { ctx ->
             val p = ctx.me()
-            if (!Net.canOpen(p)) status(Service.home(p), ctx.source.server).forEach(ctx::say) else Net.send(p, open = true)
+            if (!Net.canOpen(p)) ctx.status(Service.home(p)) else Net.send(p, open = true)
         }
         .then(lit("gui").does { ctx ->
             val p = ctx.me()
@@ -75,19 +92,26 @@ private fun Node.countryCmd(): Node {
         })
         .then(lit("create").requires { Perms.has(it, Perms.FOUND) }.then(arg("name", StringArgumentType.word()).does { it.run("create", it.text("name")) }))
         .then(lit("disband").then(lit("confirm").does { it.run("disband") }))
-        .then(lit("info").does { ctx -> status(Service.home(ctx.me()), ctx.source.server).forEach(ctx::say) }
+        .then(lit("info").does { ctx -> ctx.status(Service.home(ctx.me())) }
             .then(word("country", countries).does { ctx ->
-                status(Realm.country(ctx.text("country")) ?: throw Fail("Unknown country."), ctx.source.server).forEach(ctx::say)
+                ctx.status(Realm.country(ctx.text("country")) ?: throw Fail("Unknown country {${ctx.text("country")}}."))
             }))
-        .then(lit("list").does { ctx -> Realm.data.countries.values.forEach { ctx.say("§6${it.name} §7${it.members.size} members, ${Realm.claims(it.id).size} chunks") } })
-        .then(lit("map").does { ctx -> map(ctx.me()).forEach(ctx::say) })
-        .then(lit("border").does { ctx -> ctx.say(if (Effects.toggleBorders(ctx.me())) "§aBorder particles on." else "§7Border particles off.") })
+        .then(lit("list").does { ctx ->
+            val all = Realm.data.countries.values.sortedByDescending { Realm.claims(it.id).size }
+            if (all.isEmpty()) return@does ctx.info("No countries yet. Found one with {/claims create <name>}.")
+            ctx.info("{${all.size}} ${if (all.size == 1) "country" else "countries"}")
+            all.forEach { c -> ctx.row { run(c.name, "/claims info ${c.id}", "Show ${c.name}"); muted("  ${plural(c.members.size, "member")}, ${plural(Realm.claims(c.id).size, "chunk")}") } }
+        })
+        .then(lit("map").does { ctx -> ctx.map(ctx.me()) })
+        .then(lit("border").does { ctx -> if (Effects.toggleBorders(ctx.me())) ctx.ok("Border particles {on}.") else ctx.info("Border particles {off}.") })
         .then(target("invite"))
         .then(byCountry("accept"))
         .then(byCountry("join"))
         .then(lit("requests").does { ctx ->
             val c = Service.home(ctx.me())
-            c.requests.keys.forEach { ctx.say("§7${Names.of(ctx.source.server, it)}") }
+            if (c.requests.isEmpty()) return@does ctx.info("No open join requests.")
+            ctx.info("{${c.requests.size}} join ${if (c.requests.size == 1) "request" else "requests"}")
+            c.requests.keys.forEach { id -> Names.of(ctx.source.server, id).let { n -> ctx.row { value(n); muted("  "); button("Approve", "/claims approve $n"); text(" "); button("Deny", "/claims deny $n") } } }
         })
         .then(target("approve"))
         .then(target("deny"))
@@ -118,8 +142,9 @@ private fun Node.countryCmd(): Node {
         .then(lit("job").requires { Perms.has(it, Perms.JOBS) }
             .then(lit("list").does { ctx ->
                 val c = Service.home(ctx.me())
-                s.jobs.keys.forEach { j -> c.job(j)?.let { ctx.say("§6$j §7pay ${it.pay} / quota ${it.quota} / every ${it.period} day(s), type ${s.jobs.getValue(j).type}") } }
-                c.members.forEach { (id, m) -> m.job?.let { ctx.say("§7${Names.of(ctx.source.server, id)}: $it ${m.progress}${if (m.zone.isEmpty()) "" else " [${m.zone.size} zone chunks]"}") } }
+                ctx.info("Jobs of {${c.name}}")
+                s.jobs.keys.forEach { j -> c.job(j)?.let { ctx.row { value(j); muted("  ${spur(it.pay)} for ${it.quota} actions ${every(it.period)}, in ${s.jobs.getValue(j).type} chunks") } } }
+                c.members.forEach { (id, m) -> m.job?.let { ctx.row { text("• ${Names.of(ctx.source.server, id)} "); muted("$it, progress "); value(m.progress); if (m.zone.isNotEmpty()) muted(", ${plural(m.zone.size, "zone chunk")}") } } }
             })
             .then(lit("set").then(word("job", jobs).then(word("field") { listOf("pay", "quota", "period") }
                 .then(arg("value", IntegerArgumentType.integer(0)).does { it.run("job_set", it.text("job"), it.text("field"), IntegerArgumentType.getInteger(it, "value").toString()) }))))
@@ -151,9 +176,12 @@ private fun provinceCmd(countries: () -> Collection<String>): Node {
         .then(lit("independence").does { it.run("province_independence") })
         .then(lit("list").does { ctx ->
             val c = Service.home(ctx.me())
-            c.parent?.let { Realm.country(it) }?.let { par -> ctx.say("§6Province of ${par.name} §7${taxTerm(c)}, debt ${c.provinceDebt}/${s.maxProvinceDebt}") }
-            c.provinces.mapNotNull { Realm.country(it) }.forEach { pr -> ctx.say("§7${pr.name} §f${taxTerm(pr)}, debt ${pr.provinceDebt}/${s.maxProvinceDebt}${if (pr.independenceRequested) " §e(wants independence)" else ""}") }
-            if (c.parent == null && c.provinces.isEmpty()) ctx.say("§7Independent, no provinces.")
+            c.parent?.let { Realm.country(it) }?.let { par -> ctx.info("Province of {${par.name}}, tribute {${taxTerm(c)}}, missed {${c.provinceDebt}}/${s.maxProvinceDebt}") }
+            c.provinces.mapNotNull { Realm.country(it) }.takeIf { it.isNotEmpty() }?.let { list ->
+                ctx.info("{${list.size}} ${if (list.size == 1) "province" else "provinces"}")
+                list.forEach { pr -> ctx.row { value(pr.name); muted("  ${taxTerm(pr)}, missed ${pr.provinceDebt}/${s.maxProvinceDebt}"); if (pr.independenceRequested) text("  wants independence", Theme.WARN) } }
+            }
+            if (c.parent == null && c.provinces.isEmpty()) ctx.info("Independent, no provinces.")
         })
 }
 
@@ -167,31 +195,31 @@ private fun plotCmd(): Node =
             val p = ctx.me()
             val c = Service.home(p)
             val cl = Realm.index[Service.here(p)]?.takeIf { it.country == c.id && it.owner != null } ?: throw Fail("Nobody owns this plot.")
-            ctx.say("§6Plot of ${Names.of(ctx.source.server, cl.owner!!)} §7tax ${if (cl.tax >= 0) cl.tax else c.tax}/day, lapse ${cl.lapse}/${c.shutdown + c.release}")
-            cl.roles.forEach { (id, r) -> ctx.say("§7${Names.of(ctx.source.server, id)}: ${r.name.lowercase()}") }
+            ctx.info("Plot of {${Names.of(ctx.source.server, cl.owner!!)}}, tax {${spur(if (cl.tax >= 0) cl.tax else c.tax)}} a day, unpaid {${cl.lapse}}/${c.shutdown + c.release} days")
+            cl.roles.forEach { (id, r) -> ctx.row { value(Names.of(ctx.source.server, id)); muted("  ${r.name.lowercase()}") } }
         })
 
 private fun adminCmd() = lit("admin").requires { Perms.has(it, Perms.ADMIN) }
     .then(lit("disband").then(word("country") { Realm.data.countries.keys }.does { ctx ->
         Realm.disband(Realm.country(ctx.text("country")) ?: throw Fail("Unknown country."))
-        ctx.say("§aDisbanded.")
+        ctx.ok("Country disbanded.", true)
     }))
     .then(lit("treasury").then(word("country") { Realm.data.countries.keys }.then(arg("amount", LongArgumentType.longArg(0)).does { ctx ->
         val c = Realm.country(ctx.text("country")) ?: throw Fail("Unknown country.")
         c.treasury = LongArgumentType.getLong(ctx, "amount")
         Realm.dirty = true
-        ctx.say("§aTreasury set.")
+        ctx.ok("Treasury of {${c.name}} set to {${spur(c.treasury)}}.", true)
     })))
     .then(lit("unclaim").does { ctx ->
-        Realm.unclaim(Realm.index[Service.here(ctx.me())] ?: throw Fail("Nomansland."), false)
-        ctx.say("§aChunk released.")
+        Realm.unclaim(Realm.index[Service.here(ctx.me())] ?: throw Fail("Nobody owns this chunk."), false)
+        ctx.ok("Chunk released.", true)
     })
     .then(lit("day").does { ctx ->
         Realm.data.day = Realm.data.day.coerceAtLeast(0)
         Upkeep.process(++Realm.data.day)
-        ctx.say("§aProcessed one billing day.")
+        ctx.ok("Billed day {${Realm.data.day}}.", true)
     })
-    .then(lit("save").does { ctx -> Realm.save(true); ctx.say("§aSaved.") })
+    .then(lit("save").does { ctx -> Realm.save(true); ctx.ok("Saved.") })
 
 object ClaimsCommands {
     fun register() = KamiCommands.module("claims", "Countries, claims, plots and provinces") {

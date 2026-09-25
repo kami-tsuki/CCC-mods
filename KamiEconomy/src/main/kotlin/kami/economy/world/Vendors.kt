@@ -3,7 +3,8 @@ package kami.economy.world
 import kami.economy.Config
 import kami.libs.claims.ClaimsApi
 import net.minecraft.core.registries.BuiltInRegistries
-import net.minecraft.network.chat.Component
+import kami.libs.chat.Chat
+import kami.libs.chat.Tone
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent
 
 object Vendors {
@@ -16,7 +17,7 @@ object Vendors {
         val id = BuiltInRegistries.BLOCK.getKey(e.level.getBlockState(e.pos).block).toString()
 
         if (id == CREATIVE_VENDOR && !Config.s.allowCreativeVendors) {
-            deny(e, "Creative vendors are disabled on this server.")
+            deny(e, "Creative vendors are off on this server")
             return
         }
         if (!isVendorLike(id) || !ClaimsApi.present) return
@@ -24,14 +25,14 @@ object Vendors {
         val dim = e.level.dimension().location().toString()
         val info = ClaimsApi.at(dim, e.pos.x shr 4, e.pos.z shr 4)
         if (info == null || info.type != "market") {
-            deny(e, "This can only be used inside a market claim.")
+            deny(e, "Only works inside a market chunk")
             return
         }
-        if (ClaimsApi.isBanished(e.entity.uuid, info.country)) deny(e, "You are banished from ${info.country}.")
+        if (ClaimsApi.isBanished(e.entity.uuid, info.country)) deny(e, "You are banished from {${info.country}}")
     }
 
     private fun deny(e: PlayerInteractEvent.RightClickBlock, msg: String) {
         e.isCanceled = true
-        e.entity.displayClientMessage(Component.literal(msg), true)
+        e.entity.displayClientMessage(Chat.bar(Tone.BAD, msg), true)
     }
 }

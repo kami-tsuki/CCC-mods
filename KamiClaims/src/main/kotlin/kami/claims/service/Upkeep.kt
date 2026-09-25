@@ -3,6 +3,9 @@ package kami.claims.service
 import kami.claims.*
 import kami.claims.economy.Bank
 import kami.claims.social.Mail
+import kami.libs.chat.Tone
+import kami.libs.chat.plural
+import kami.libs.chat.spur
 
 import net.minecraft.server.MinecraftServer
 import java.util.UUID
@@ -61,7 +64,7 @@ object Upkeep {
         if (c.members.values.none { it.rank == Rank.CHANCELLOR }) {
             c.members.entries.filter { it.value !== heir.value && it.value.rank != Rank.BANISHED }.sortedWith(seniority()).firstOrNull()?.value?.rank = Rank.CHANCELLOR
         }
-        Mail.broadcast(c, "§6The president was inactive; the presidency passed on.")
+        Mail.broadcast(c, "The president was inactive, so the presidency passed on.")
     }
 
     private fun expire(c: Country) {
@@ -85,8 +88,8 @@ object Upkeep {
                     cl.owner = null
                     cl.roles.clear()
                     cl.lapse = 0
-                    Mail.direct(owner, "§cYou lost your plot because the tax was not paid.")
-                } else Mail.direct(owner, "§cYour plot tax of $tax spur could not be paid.")
+                    Mail.direct(owner, "You lost your plot, the tax was not paid.", Tone.BAD)
+                } else Mail.direct(owner, "Your plot tax of {${spur(tax)}} could not be paid.", Tone.BAD)
             }
         }
         return income
@@ -105,8 +108,8 @@ object Upkeep {
             (!it.capital && Realm.removable(it)).also { ok -> if (ok) Realm.unclaim(it, true) }
         }
         val indebt = Realm.claims(c.id).count { it.debt > 0 }
-        if (lost > 0) Mail.broadcast(c, "§c$lost chunk(s) were lost to debt and are nomansland now.")
-        if (indebt > 0) Mail.broadcast(c, "§e$indebt chunk(s) are in debt. Deposit spur into the treasury.")
+        if (lost > 0) Mail.broadcast(c, "{${plural(lost, "chunk")}} lost to debt, they are nomansland now.", Tone.BAD)
+        if (indebt > 0) Mail.broadcast(c, "{${plural(indebt, "chunk")}} in debt. Deposit coins into the treasury.", Tone.WARN)
     }
 
     private fun provinceTax(c: Country, income: Long) {
@@ -123,8 +126,8 @@ object Upkeep {
         } else {
             c.provinceDebt++
             val urgent = c.provinceDebt >= s.maxProvinceDebt
-            Mail.officers(c, "§c$owed spur could not be paid to ${parent.name} (debt ${c.provinceDebt}).")
-            Mail.officers(parent, if (urgent) "§c${c.name} has missed tribute ${c.provinceDebt} times. Consider releasing them or forgiving the debt." else "§e${c.name} could not pay their $owed spur tribute (debt ${c.provinceDebt}).")
+            Mail.officers(c, "Could not pay {${spur(owed)}} tribute to {${parent.name}}. Missed payments: {${c.provinceDebt}}.", Tone.BAD)
+            Mail.officers(parent, if (urgent) "{${c.name}} missed tribute {${c.provinceDebt}} times. Release them or forgive the debt." else "{${c.name}} could not pay {${spur(owed)}} tribute. Missed payments: {${c.provinceDebt}}.", Tone.BAD)
         }
     }
 
@@ -141,8 +144,8 @@ object Upkeep {
             if (def.pay <= budget && def.pay <= c.treasury && Bank.give(UUID.fromString(id), def.pay)) {
                 c.treasury -= def.pay
                 budget -= def.pay
-                Mail.direct(id, "§aYou earned ${def.pay} spur for your job as $name.")
-            } else Mail.direct(id, "§cThe country could not pay your $name paycheck.")
+                Mail.direct(id, "Paid {${spur(def.pay)}} for your work as {$name}.", Tone.OK)
+            } else Mail.direct(id, "The treasury could not pay your {$name} wage.", Tone.BAD)
         }
     }
 

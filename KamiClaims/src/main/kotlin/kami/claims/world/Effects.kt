@@ -3,7 +3,8 @@ package kami.claims.world
 import kami.claims.*
 
 import net.minecraft.core.particles.ParticleTypes
-import net.minecraft.network.chat.ClickEvent
+import kami.claims.social.Mail
+import kami.libs.chat.tell
 import net.minecraft.network.chat.Component
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
@@ -21,14 +22,16 @@ object Effects {
     fun founded(p: ServerPlayer, c: Country) {
         p.playNotifySound(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1f, 1f)
         (p.level() as? ServerLevel)?.sendParticles(ParticleTypes.FIREWORK, p.x, p.y + 1, p.z, 40, 0.5, 0.8, 0.5, 0.05)
-        if (Config.s.broadcast) p.server.playerList.broadcastSystemMessage(Component.literal("§6${p.name.string} founded the country §e${c.name}§6."), false)
+        if (Config.s.broadcast) p.server.playerList.broadcastSystemMessage(Mail.chat.info("{${p.name.string}} founded the country {${c.name}}."), false)
     }
 
     fun invite(server: MinecraftServer, id: String, c: Country) {
-        server.playerList.getPlayer(UUID.fromString(id))?.sendSystemMessage(
-            Component.literal("§6You were invited to ${c.name}. ").append(
-                Component.literal("§a[Accept]").withStyle { it.withClickEvent(ClickEvent(ClickEvent.Action.RUN_COMMAND, "/claims accept ${c.id}")) })
-        )
+        server.playerList.getPlayer(UUID.fromString(id))?.tell(Mail.chat.msg {
+            markup("You are invited to {${c.name}}.  ")
+            button("Accept", "/claims accept ${c.id}", "Join ${c.name}")
+            text(" ")
+            button("Info", "/claims info ${c.id}", "About ${c.name}")
+        })
     }
 
     fun toggleBorders(p: ServerPlayer) = if (watching.add(p.uuid)) true else { watching.remove(p.uuid); false }

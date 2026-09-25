@@ -1,10 +1,14 @@
 package kami.geology.item
 
+import kami.geology.command.GeoText
+import kami.geology.command.GeoText.ore
 import kami.geology.map.Heatmap
-import kami.geology.map.MapColors
 import kami.geology.net.MapServer
 import kami.geology.world.Worlds
-import net.minecraft.ChatFormatting
+import kami.libs.chat.Chat
+import kami.libs.chat.Tone
+import kami.libs.chat.bar
+import kami.libs.chat.tell
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionHand
@@ -21,25 +25,22 @@ class ProspectorItem(val tier: Int, props: Properties) : Item(props) {
         if (hand == InteractionHand.MAIN_HAND && player is ServerPlayer) {
             val world = Worlds.of(player.serverLevel())
             when {
-                world == null -> player.displayClientMessage(Component.literal("No geology in this dimension").withStyle(ChatFormatting.GRAY), true)
-                tier == 1 -> player.displayClientMessage(
-                    result(Heatmap.probeColumn(world, player.blockX, player.blockZ, level.minBuildHeight, level.maxBuildHeight - 1)),
-                    false
-                )
+                world == null -> player.bar(Chat.bar(Tone.WARN, "No deposits in this dimension"))
+                tier == 1 -> player.tell(result(player, Heatmap.probeColumn(world, player.blockX, player.blockZ, level.minBuildHeight, level.maxBuildHeight - 1)))
                 else -> MapServer.scan(player, tier)
             }
         }
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide)
     }
 
-    private fun result(found: List<Pair<String, String>>): Component {
-        val message = Component.literal("Prospector: ").withStyle(ChatFormatting.GOLD)
-        if (found.isEmpty()) return message.append(Component.literal("nothing found here").withStyle(ChatFormatting.GRAY))
-        found.forEachIndexed { i, (ore, size) ->
-            if (i > 0) message.append(Component.literal(", ").withStyle(ChatFormatting.DARK_GRAY))
-            message.append(Component.literal(ore.split('_').joinToString(" ") { it.replaceFirstChar(Char::uppercase) }).withColor(MapColors.ore(ore)))
-            message.append(Component.literal(" ($size)").withStyle(ChatFormatting.GRAY))
+    private fun result(player: ServerPlayer, found: List<Pair<String, String>>): Component = GeoText.chat.msg {
+        if (found.isEmpty()) muted("Nothing below you")
+        found.forEachIndexed { i, (id, size) ->
+            if (i > 0) muted(", ")
+            ore(id)
+            muted(" $size")
         }
-        return message
+        muted("  ")
+        pos(player.blockX, player.blockY, player.blockZ, player.level().dimension().location().toString())
     }
 }

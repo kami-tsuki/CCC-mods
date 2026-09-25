@@ -1,5 +1,10 @@
 package kami.claims.world
 
+import kami.libs.chat.Chat
+import kami.libs.chat.Msg
+import kami.libs.chat.Theme
+import kami.libs.chat.Tone
+import kami.libs.chat.bar
 import kami.claims.*
 import kami.claims.social.Perms
 
@@ -90,7 +95,7 @@ object Guard {
         if (allowed(level, pos, who, action, block)) return true
         val p = who as? ServerPlayer ?: return false
         if (Perms.has(p, Perms.BYPASS)) return true
-        p.displayClientMessage(Component.literal("§cYou can't do that here."), true)
+        p.bar(Chat.bar(Tone.BAD, "You can't do that here"))
         return false
     }
 
@@ -221,12 +226,12 @@ object Guard {
         val to = k?.let { Realm.index[it] }
         if (k == null) return
         val name = to?.let { Realm.data.countries[it.country]?.name }
-        val detail = to?.let { "${it.type}${it.owner?.let { o -> " - ${Names.of(p.server, o)}" } ?: ""}" } ?: "nothing can be done here"
+        val detail = to?.let { "${it.type}${it.owner?.let { o -> " - ${Names.of(p.server, o)}" } ?: ""}" } ?: "nothing can be built here"
         if (Config.s.titles && from?.country != to?.country) {
             p.connection.send(ClientboundSetTitlesAnimationPacket(8, 40, 12))
-            p.connection.send(ClientboundSetSubtitleTextPacket(Component.literal("§7$detail")))
-            p.connection.send(ClientboundSetTitleTextPacket(Component.literal(if (name == null) "§7Nomansland" else "§6$name")))
-        } else p.displayClientMessage(Component.literal(if (name == null) "§7Nomansland" else "§a$name §7- $detail"), true)
+            p.connection.send(ClientboundSetSubtitleTextPacket(Component.literal(detail).withColor(Theme.MUTED)))
+            p.connection.send(ClientboundSetTitleTextPacket(Component.literal(name ?: "Nomansland").withColor(if (name == null) Theme.MUTED else Theme.ACCENT)))
+        } else p.bar(Msg().apply { if (name == null) muted("Nomansland") else { text(name, Theme.ACCENT); muted("  $detail") } }.out)
     }
 
     fun forget(p: ServerPlayer) { last.remove(p.stringUUID); Effects.forget(p) }

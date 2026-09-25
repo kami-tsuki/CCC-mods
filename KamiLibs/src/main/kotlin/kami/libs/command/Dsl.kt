@@ -7,6 +7,9 @@ import com.mojang.brigadier.builder.ArgumentBuilder
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.builder.RequiredArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
+import kami.libs.chat.Chat
+import kami.libs.chat.Msg
+import kami.libs.chat.Tone
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.commands.SharedSuggestionProvider
@@ -34,7 +37,7 @@ fun <T : ArgumentBuilder<CommandSourceStack, T>> T.does(action: (Ctx) -> Unit): 
         action(it)
         1
     } catch (e: CommandFail) {
-        it.source.sendFailure(Component.literal(e.message ?: "Failed."))
+        it.source.sendFailure(it.chat.bad(e.message ?: "That did not work."))
         0
     }
 }
@@ -42,4 +45,11 @@ fun <T : ArgumentBuilder<CommandSourceStack, T>> T.does(action: (Ctx) -> Unit): 
 fun Ctx.me(): ServerPlayer = source.player ?: fail("Only players can use this.")
 fun Ctx.text(name: String): String = StringArgumentType.getString(this, name)
 fun Ctx.int(name: String): Int = IntegerArgumentType.getInteger(this, name)
-fun Ctx.say(message: String, broadcast: Boolean = false) = source.sendSuccess({ Component.literal(message) }, broadcast)
+val Ctx.chat: Chat get() = Chat.of(nodes.map { it.node.name }.let { if (it.firstOrNull() == "kami" && it.size > 1) it[1] else it.firstOrNull() ?: "kami" })
+
+fun Ctx.reply(c: Component, broadcast: Boolean = false) = source.sendSuccess({ c }, broadcast)
+fun Ctx.info(markup: String) = reply(chat.info(markup))
+fun Ctx.ok(markup: String, broadcast: Boolean = false) = reply(chat.ok(markup), broadcast)
+fun Ctx.warn(markup: String) = reply(chat.warn(markup))
+fun Ctx.row(build: Msg.() -> Unit) = reply(Chat.row(build))
+fun Ctx.msg(tone: Tone = Tone.INFO, build: Msg.() -> Unit) = reply(chat.msg(tone, build))

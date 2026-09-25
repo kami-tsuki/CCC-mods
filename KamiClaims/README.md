@@ -74,6 +74,8 @@ Coin values come from `config/kami/library/coins.json`.
 - Reload the config in game with `/claims reload`
 - Commands moved: `/country ...` is now `/claims ...`, `/plot` is `/claims plot` and `/countryadmin` is `/claims admin`
 - Coin values now come from KamiLibs
+- Cleaner chat: colored status and map, clickable country list, Accept and Info buttons on invites, Approve and Deny on join requests
+- Mail from while you were offline arrives as one short digest
 
 ### 0.0.1-alpha-003
 - Rebuilt with the other mods, no changes.

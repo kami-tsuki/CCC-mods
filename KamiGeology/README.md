@@ -42,6 +42,8 @@ No other mod needs it. It offers deposit data through the geology API in KamiLib
 ### 0.0.2-alpha
 - Config moved from `config/kami_geology/` to `config/kami/geology/`, existing files move over on their own
 - `/kami_geology` is now `/geology` (or `/kami geology`), and `/geology reload` lists any file it had to skip
+- `/geology find` and `/geology info` show clickable coordinates that teleport you there
+- Wooden prospector results show your position and use the shared Kami chat style
 
 ### 0.0.1-alpha-003
 - Redesigned prospector textures for all 8 tiers
