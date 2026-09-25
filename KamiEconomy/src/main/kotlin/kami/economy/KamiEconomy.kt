@@ -1,6 +1,5 @@
 package kami.economy
 
-import com.mojang.logging.LogUtils
 import kami.economy.client.ClientEconomy
 import kami.economy.command.EconomyCommands
 import kami.economy.economy.Auctions
@@ -12,6 +11,8 @@ import kami.economy.net.Net
 import kami.economy.world.Vendors
 import kami.libs.economy.MarketApi
 import kami.libs.economy.MarketProvider
+import kami.libs.log.Log
+import kami.libs.mc.Registry
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.item.ItemStack
 import net.neoforged.api.distmarker.Dist
@@ -24,14 +25,14 @@ import net.neoforged.neoforge.event.server.ServerStartedEvent
 import net.neoforged.neoforge.event.server.ServerStoppingEvent
 import net.neoforged.neoforge.event.tick.ServerTickEvent
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
-import org.slf4j.Logger
 import thedarkcolour.kotlinforforge.neoforge.forge.FORGE_BUS
 import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 
 @Mod(KamiEconomy.ID)
 object KamiEconomy {
     const val ID = "kami_economy"
-    val LOG: Logger = LogUtils.getLogger()
+    val LOG = Log.of("economy")
+    val registry = Registry(LOG)
 
     init {
         MOD_BUS.addListener<FMLCommonSetupEvent> {
@@ -69,7 +70,7 @@ object KamiEconomy {
                 if (!stack.isEmpty && !p.inventory.add(stack)) p.drop(stack, false)
                 return@forEach
             }
-            val item = kami.libs.mc.Registry(LOG).findItem(d.item) ?: return@forEach
+            val item = registry.findItem(d.item) ?: return@forEach
             var remaining = d.qty
             while (remaining > 0) {
                 val n = remaining.coerceAtMost(item.defaultMaxStackSize)

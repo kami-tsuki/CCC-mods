@@ -51,6 +51,7 @@ Reloading needs operator rights.
 - New command layout: `/kami <mod> <command>`, or `/<mod> <command>` for short, with `help` and `reload` in every mod
 - Coin values moved here, so claims and economy always agree on them
 - One chat style for all Kami mods, with highlighted values and clickable parts
+- Shared logging: every Kami line in the log starts with `[KAMI|MOD|LEVEL]`, so you can filter by mod
 
 ### 0.0.1-alpha-003
 - Rebuilt with the other mods, no changes.

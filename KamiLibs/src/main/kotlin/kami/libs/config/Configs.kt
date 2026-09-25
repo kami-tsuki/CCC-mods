@@ -4,14 +4,12 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
 import net.neoforged.fml.loading.FMLPaths
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import kami.libs.log.Log
 import java.nio.file.Files
 import java.nio.file.Path
 
 @OptIn(ExperimentalSerializationApi::class)
 object Configs {
-    internal val log: Logger = LoggerFactory.getLogger("kami_libs")
     private val reloaders = LinkedHashMap<String, MutableList<() -> String?>>()
 
     var base: Path? = null
@@ -36,7 +34,7 @@ object Configs {
         val from = root.resolveSibling(old)
         if (!Files.isDirectory(from) || Files.exists(root.resolve(mod))) return
         Files.move(from, Files.createDirectories(root).resolve(mod))
-        log.info("Moved config/{} to {}", old, path(mod))
+        Log.of(mod).info("Moved config/{} to {}", old, path(mod))
     }
 
     @Synchronized

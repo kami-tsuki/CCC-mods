@@ -183,7 +183,7 @@ object Net {
                 val result = Ledger.sell(me, item, qty, price)
                 if (result is SellResult.Ok) (if (instant) "Sold $qty x $item instantly." else "Listed $qty x $item at $price each.") to true
                 else {
-                    val resolved = kami.libs.mc.Registry(KamiEconomy.LOG).findItem(item)
+                    val resolved = KamiEconomy.registry.findItem(item)
                     if (resolved != null) {
                         var left = qty
                         while (left > 0) {

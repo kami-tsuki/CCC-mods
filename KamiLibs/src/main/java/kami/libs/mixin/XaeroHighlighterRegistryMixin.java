@@ -14,7 +14,7 @@ public class XaeroHighlighterRegistryMixin {
         try {
             Highlights.INSTANCE.attach(this);
         } catch (Throwable t) {
-            KamiLibs.INSTANCE.getLOG().warn("Could not attach an overlay to Xaero's World Map", t);
+            KamiLibs.LOG.warn("Could not attach an overlay to Xaero's World Map", t);
         }
     }
 }

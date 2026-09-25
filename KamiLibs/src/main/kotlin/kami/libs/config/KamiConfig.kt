@@ -1,5 +1,6 @@
 package kami.libs.config
 
+import kami.libs.log.Log
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.elementNames
 import kotlinx.serialization.json.JsonElement
@@ -24,6 +25,7 @@ class KamiConfig<T : Any>(
     private val sane: (T) -> T = { it },
 ) {
     private val json = Configs.json()
+    private val log = Log.of(mod)
     private val known = serializer.descriptor.elementNames.toSet()
     private val hint = if (reloadable) "Save, then run /$mod reload to apply." else "Changes apply on the next start."
 
@@ -50,10 +52,10 @@ class KamiConfig<T : Any>(
                 .exceptionOrNull()?.let { "${s.file}: ${Jsonc.reason(it)}" }
         }
         if (errors.isNotEmpty()) return fail(errors.joinToString("; "))
-        (merged.keys - known).forEach { Configs.log.warn("Unknown setting '{}' in {}, it will be removed", it, Configs.path(mod, origin.getValue(it))) }
+        (merged.keys - known).forEach { log.warn("Unknown setting '{}' in {}, it will be removed", it, Configs.path(mod, origin.getValue(it))) }
         val decoded = runCatching { json.decodeFromJsonElement(serializer, JsonObject(merged)) }.getOrElse { return fail(Jsonc.reason(it)) }
         val fixed = sane(decoded)
-        if (fixed != decoded) Configs.log.warn("Some values in {} were out of range and got corrected", Configs.path(mod))
+        if (fixed != decoded) log.warn("Some values in {} were out of range and got corrected", Configs.path(mod))
         problem = null
         save(fixed)
         return true
@@ -74,7 +76,7 @@ class KamiConfig<T : Any>(
 
     private fun fail(message: String): Boolean {
         problem = message
-        Configs.log.error("Could not load {}, keeping the current values: {}", Configs.path(mod), message)
+        log.error("Could not load {}, keeping the current values: {}", Configs.path(mod), message)
         return false
     }
 
@@ -82,9 +84,9 @@ class KamiConfig<T : Any>(
         val old = legacy?.let { Configs.root.resolveSibling(it) }?.takeIf { Files.isRegularFile(it) } ?: return
         if (sections.none { Files.exists(dir.resolve(it.file)) }) runCatching {
             Files.writeString(dir.resolve(sections.first().file), encode(json.parseToJsonElement(Files.readString(old)).jsonObject.filterKeys { it in known }))
-        }.onFailure { Configs.log.warn("Could not read config/{}, starting from defaults: {}", legacy, Jsonc.reason(it)) }
+        }.onFailure { log.warn("Could not read config/{}, starting from defaults: {}", legacy, Jsonc.reason(it)) }
         Files.move(old, dir.resolve("$legacy.old"), StandardCopyOption.REPLACE_EXISTING)
-        Configs.log.info("Moved config/{} to {}, a copy is kept as {}.old", legacy, Configs.path(mod), legacy)
+        log.info("Moved config/{} to {}, a copy is kept as {}.old", legacy, Configs.path(mod), legacy)
     }
 
     companion object {

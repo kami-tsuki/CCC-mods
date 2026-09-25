@@ -1,5 +1,6 @@
 package kami.claims
 
+import kami.claims.client.ClientHooks
 import kami.claims.command.ClaimsCommands
 import kami.claims.net.Net
 import kami.claims.service.Upkeep
@@ -7,14 +8,11 @@ import kami.claims.social.Mail
 import kami.claims.social.Perms
 import kami.claims.world.Effects
 import kami.claims.world.Guard
-
-import com.mojang.logging.LogUtils
-import kami.claims.client.ClientHooks
 import kami.libs.claims.ClaimInfo
 import kami.libs.claims.ClaimsApi
 import kami.libs.claims.ClaimsProvider
+import kami.libs.log.Log
 import net.minecraft.server.level.ServerPlayer
-import java.util.UUID
 import net.neoforged.api.distmarker.Dist
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
@@ -32,14 +30,14 @@ import net.neoforged.neoforge.event.server.ServerStoppingEvent
 import net.neoforged.neoforge.event.tick.ServerTickEvent
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
 import net.neoforged.neoforge.server.permission.events.PermissionGatherEvent
-import org.slf4j.Logger
 import thedarkcolour.kotlinforforge.neoforge.forge.FORGE_BUS
 import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
+import java.util.UUID
 
 @Mod(KamiClaims.ID)
 object KamiClaims {
     const val ID = "kami_claims"
-    val LOG: Logger = LogUtils.getLogger()
+    val LOG = Log.of("claims")
 
     init {
         MOD_BUS.addListener<FMLCommonSetupEvent> {

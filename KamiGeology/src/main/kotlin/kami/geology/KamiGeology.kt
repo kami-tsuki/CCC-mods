@@ -1,6 +1,5 @@
 package kami.geology
 
-import com.mojang.logging.LogUtils
 import kami.geology.command.GeologyCommand
 import kami.geology.config.Compat
 import kami.geology.config.ConfigStore
@@ -14,6 +13,7 @@ import kami.geology.world.GeologyFeature
 import kami.geology.world.Worlds
 import kami.libs.config.Configs
 import kami.libs.geology.GeologyApi
+import kami.libs.log.Log
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.item.CreativeModeTabs
@@ -29,7 +29,6 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
 import net.neoforged.neoforge.registries.DeferredHolder
 import net.neoforged.neoforge.registries.DeferredRegister
 import net.neoforged.neoforge.registries.NeoForgeRegistries
-import org.slf4j.Logger
 import thedarkcolour.kotlinforforge.neoforge.forge.FORGE_BUS
 import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 
@@ -37,7 +36,7 @@ import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 object KamiGeology {
     const val ID = "kami_geology"
     private const val STARTER_KIT_TAG = "kami_geology_starter_prospector"
-    val LOG: Logger = LogUtils.getLogger()
+    val LOG = Log.of("geology")
 
     private val features = DeferredRegister.create(BuiltInRegistries.FEATURE, ID)
     private val biomeModifiers = DeferredRegister.create(NeoForgeRegistries.Keys.BIOME_MODIFIER_SERIALIZERS, ID)
