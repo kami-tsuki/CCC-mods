@@ -40,7 +40,7 @@ fun <T : ArgumentBuilder<CommandSourceStack, T>> T.does(action: (Ctx) -> Unit): 
     }
 }
 
-val Ctx.chat: Chat get() = nodes.map { it.node.name }.let { Chat.of(if (it.size > 1 && it[0] == "kami") it[1] else it.firstOrNull() ?: "kami") }
+val Ctx.chat: Chat get() = nodes.map { it.node.name }.let { Chat.of(if (it.size > 1 && it[0] == "kami") it[1] else KamiCommands.owner(it.firstOrNull() ?: "kami")) }
 
 fun Ctx.me(): ServerPlayer = source.player ?: fail("Only players can use this.")
 fun Ctx.text(name: String): String = StringArgumentType.getString(this, name)

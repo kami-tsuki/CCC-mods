@@ -66,6 +66,7 @@ Coin values come from `config/kami/library/coins.json`.
 ## Used by
 
 - [KamiEconomy](../KamiEconomy/README.md) uses claims to decide where vendor blocks may be placed.
+- [KamiEssentials](../KamiEssentials/README.md) shows country tags in chat, the tab list and the sidebar, and runs country chat.
 
 ## Changelog
 
@@ -76,6 +77,7 @@ Coin values come from `config/kami/library/coins.json`.
 - Coin values now come from KamiLibs
 - Cleaner chat: colored status and map, clickable country list, Accept and Info buttons on invites, Approve and Deny on join requests
 - Mail from while you were offline arrives as one short digest
+- Shares each player's country, color and rank, so KamiEssentials can show country tags in chat and the tab list
 
 ### 0.0.1-alpha-003
 - Rebuilt with the other mods, no changes.

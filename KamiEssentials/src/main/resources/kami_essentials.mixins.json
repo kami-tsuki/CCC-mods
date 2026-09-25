@@ -1,0 +1,9 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "kami.essentials.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": ["ChunkMapAccess", "PacketListenerMixin", "PlayerListMixin", "PlayerMixin", "ServerPlayerMixin", "TrackedEntityAccess"],
+  "client": [],
+  "injectors": { "defaultRequire": 0 }
+}

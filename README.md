@@ -8,6 +8,7 @@ A small family of NeoForge mods for Minecraft 1.21.1, written in Kotlin. They ar
 | [KamiGeology](KamiGeology/README.md) | Realistic ore deposits | [kamis-geology](https://modrinth.com/mod/kamis-geology) |
 | [KamiClaims](KamiClaims/README.md) | Countries, chunk claims, taxes and politics | [kamis-claims](https://modrinth.com/mod/kamis-claims) |
 | [KamiEconomy](KamiEconomy/README.md) | Live market and auction house (Create:Numismatics based) | [kamis-economy](https://modrinth.com/mod/kamis-economy) |
+| [KamiEssentials](KamiEssentials/README.md) | Server commands, safe trading, invisible mode, chat, tab list and sidebar | [8EJssQyq](https://modrinth.com/project/8EJssQyq) |
 
 ## Requirements
 
@@ -49,7 +50,7 @@ Every command follows `/kami <mod> <command>`. The same command also works witho
 | `/<mod> help` | List the commands of one mod, only the ones you may use |
 | `/<mod> reload` | Reload one mod's config |
 
-The mods are `library`, `claims`, `economy` and `geology`.
+The mods are `library`, `claims`, `economy`, `geology` and `essentials`. KamiEssentials also adds short root commands like `/msg`, `/trade` and `/invsee`.
 
 ## Configs
 
@@ -60,7 +61,8 @@ config/kami/
 ├── library/   coins.json
 ├── claims/    general, chunk-types, jobs, plots, protection, ranks, messages, client
 ├── economy/   general, market, auctions, starter-items, blocked-items
-└── geology/   general, provinces, ores/<ore>.json
+├── geology/   general, provinces, ores/<ore>.json
+└── essentials/ trade, chat, display
 ```
 
 - Every file is created on first start, with a short comment above each setting.

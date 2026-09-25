@@ -13,6 +13,7 @@ val mods = listOf(
     "KamiGeology",
     "KamiClaims",
     "KamiEconomy",
+    "KamiEssentials",
 )
 
 mods.forEach { include(":$it") }

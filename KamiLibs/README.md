@@ -42,6 +42,7 @@ Reloading needs operator rights.
 - [KamiGeology](../KamiGeology/README.md)
 - [KamiClaims](../KamiClaims/README.md)
 - [KamiEconomy](../KamiEconomy/README.md)
+- [KamiEssentials](../KamiEssentials/README.md)
 
 ## Changelog
 
@@ -52,6 +53,8 @@ Reloading needs operator rights.
 - Coin values moved here, so claims and economy always agree on them
 - One chat style for all Kami mods, with highlighted values and clickable parts
 - Shared logging: every Kami line in the log starts with `[KAMI|MOD|LEVEL]`, so you can filter by mod
+- Mods can add short root commands like `/msg`. When one replaces a vanilla command, the vanilla subcommands keep working for whoever could use them before
+- The claims API now tells other mods a player's country, color, parent and rank
 
 ### 0.0.1-alpha-003
 - Rebuilt with the other mods, no changes.

@@ -71,6 +71,9 @@ jobs:
             KamiEconomy:
               - *libs
               - 'KamiEconomy/**'
+            KamiEssentials:
+              - *libs
+              - 'KamiEssentials/**'
 
       - name: Plan
         id: plan

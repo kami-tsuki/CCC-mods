@@ -8,6 +8,7 @@ import kami.claims.social.Mail
 import kami.claims.social.Perms
 import kami.claims.world.Effects
 import kami.claims.world.Guard
+import kami.libs.claims.Citizenship
 import kami.libs.claims.ClaimInfo
 import kami.libs.claims.ClaimsApi
 import kami.libs.claims.ClaimsProvider
@@ -52,6 +53,10 @@ object KamiClaims {
                     Realm.data.countries[country]?.outsiders?.get(player.toString()) == Rank.BANISHED
 
                 override fun countryOf(player: UUID): String? = Realm.of(player.toString())?.id
+
+                override fun citizenship(player: UUID): Citizenship? = Realm.of(player.toString())?.let { c ->
+                    Citizenship(c.id, c.name, c.color, Realm.country(c.parent)?.name, c.rank(player.toString())?.name ?: Rank.CITIZEN.name)
+                }
             })
         }
         MOD_BUS.addListener<RegisterPayloadHandlersEvent> { Net.register(it) }
