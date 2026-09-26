@@ -28,8 +28,8 @@ import net.minecraft.commands.arguments.GameProfileArgument
 import net.minecraft.server.level.ServerPlayer
 
 object EssentialsCommands {
-    private val own = listOf("invsee", "enderchest", "balance", "invis", "scoreboard", "msg", "r", "trade", "countrychat")
-    private val aliases = mapOf("tell" to "msg", "w" to "msg", "bal" to "balance", "ec" to "enderchest", "cc" to "countrychat")
+    private val own = listOf("invsee", "enderchest", "balance", "invis", "scoreboard", "msg", "r", "trade", "countrychat", "adminchat")
+    private val aliases = mapOf("tell" to "msg", "w" to "msg", "bal" to "balance", "ec" to "enderchest", "cc" to "countrychat", "ac" to "adminchat")
 
     fun register() = KamiCommands.module("essentials", "Everyday server commands", own.associateWith { it } + aliases) {
         then(lit("invsee").requires(Perms.gate(Perms.INVSEE))
@@ -61,6 +61,9 @@ object EssentialsCommands {
         then(lit("countrychat").requires(Perms.gate(Perms.COUNTRYCHAT))
             .does { Talk.toggleCountry(it.me()) }
             .then(arg("message", StringArgumentType.greedyString()).does { Talk.country(it.me(), it.text("message")) }))
+        then(lit("adminchat").requires(Perms.gate(Perms.ADMINCHAT))
+            .does { Talk.toggleAdmin(it.me()) }
+            .then(arg("message", StringArgumentType.greedyString()).does { Talk.admin(it.me(), it.text("message")) }))
         then(lit("inline").requires(Perms.gate(Perms.INLINE_OPEN))
             .then(lit("open").then(arg("id", StringArgumentType.word()).does { InlineFeatures.open(it.me(), it.text("id")) })))
     }

@@ -3,8 +3,10 @@ package kami.essentials.chat
 import kami.essentials.Config
 import kami.essentials.Flag
 import kami.essentials.KamiEssentials
+import kami.essentials.Perms
 import kami.essentials.Store
 import kami.essentials.vanish.Vanish
+import kami.libs.claims.Citizenship
 import kami.libs.chat.Chat
 import kami.libs.chat.Theme
 import kami.libs.chat.tell
@@ -24,16 +26,21 @@ import java.util.concurrent.ConcurrentHashMap
 object Talk {
     val chat = Chat.of("essentials")
     private val partner = ConcurrentHashMap<UUID, UUID>()
+    private const val CH_GLOBAL = "[GC]"
+    private const val CH_COUNTRY = "[CC]"
+    private const val CH_ADMIN = "[AC]"
 
     fun onChat(e: ServerChatEvent) {
         val p = e.player
         val country = Store[Flag.COUNTRY_CHAT, p.uuid]
-        if (!Config.s.chat && !country) return
+        val admin = Store[Flag.ADMIN_CHAT, p.uuid] && Perms.has(p, Perms.ADMINCHAT)
+        if (!Config.s.chat && !country && !admin) return
         e.isCanceled = true
         when {
+            admin -> admin(p, e.rawText)
             country -> country(p, e.rawText)
             Vanish.active(p) -> p.tell(chat.warn("You are invisible, so this was not sent. Use {/invis} to show yourself or {/msg} to whisper."))
-            else -> broadcast(p, line(Names.player(p), e.rawText, p)) { true }
+            else -> broadcast(p, line(channelTag(CH_GLOBAL, Theme.MUTED).append(Names.player(p)), e.rawText, p)) { true }
         }
     }
 
@@ -63,15 +70,34 @@ object Talk {
             Store[Flag.COUNTRY_CHAT, p.uuid] = false
             return p.tell(chat.warn("You are not in a country, so country chat is off now."))
         }
-        val tag = Component.literal("[CC] ").withColor(Names.color(c)).withStyle { it.withHoverEvent(hover("Country chat of ${c.name}")) }
-        broadcast(p, line(tag.append(Names.name(p)), text, p)) { Names.citizenship(it.uuid)?.country == c.country }
+        val root = countryRoot(c)
+        val rootLabel = c.parent ?: c.name
+        val tag = channelTag(CH_COUNTRY, Names.color(c)).withStyle { it.withHoverEvent(hover("Country chat of $rootLabel (includes provinces)")) }
+        broadcast(p, line(tag.append(Names.name(p)), text, p)) { viewer ->
+            Names.citizenship(viewer.uuid)?.let(::countryRoot) == root
+        }
     }
 
     fun toggleCountry(p: ServerPlayer) {
         val c = Names.citizenship(p.uuid) ?: fail("You are not in a country.")
         val on = !Store[Flag.COUNTRY_CHAT, p.uuid]
         Store[Flag.COUNTRY_CHAT, p.uuid] = on
+        if (on && Store[Flag.ADMIN_CHAT, p.uuid]) Store[Flag.ADMIN_CHAT, p.uuid] = false
         p.tell(if (on) chat.ok("Country chat on. Your messages go to {${c.name}} only.") else chat.ok("Country chat off. Your messages go to everyone."))
+    }
+
+    fun admin(p: ServerPlayer, text: String) {
+        if (!Perms.has(p, Perms.ADMINCHAT)) fail("You are not allowed to use admin chat.")
+        val tag = channelTag(CH_ADMIN, Theme.WARN).withStyle { it.withHoverEvent(hover("Admin chat")) }
+        broadcast(p, line(tag.append(Names.name(p)), text, p)) { Perms.has(it, Perms.ADMINCHAT) }
+    }
+
+    fun toggleAdmin(p: ServerPlayer) {
+        if (!Perms.has(p, Perms.ADMINCHAT)) fail("You are not allowed to use admin chat.")
+        val on = !Store[Flag.ADMIN_CHAT, p.uuid]
+        Store[Flag.ADMIN_CHAT, p.uuid] = on
+        if (on && Store[Flag.COUNTRY_CHAT, p.uuid]) Store[Flag.COUNTRY_CHAT, p.uuid] = false
+        p.tell(if (on) chat.ok("Admin chat on. Your messages go to online admins only.") else chat.ok("Admin chat off. Your messages go to everyone."))
     }
 
     private fun broadcast(from: ServerPlayer, line: Component, to: (ServerPlayer) -> Boolean) {
@@ -81,6 +107,10 @@ object Talk {
 
     private fun line(name: Component, text: String, speaker: ServerPlayer): Component =
         Component.empty().append(name).append(Component.literal(Theme.SEP).withColor(Theme.MUTED)).append(body(text, speaker))
+
+    private fun channelTag(code: String, color: Int): MutableComponent = Component.literal("$code ").withColor(color)
+
+    private fun countryRoot(c: Citizenship): String = c.parent?.lowercase() ?: c.country
 
     private fun dm(from: Component, to: Component, text: String, speaker: ServerPlayer?): MutableComponent = Component.empty()
         .append(Component.literal("✉ ").withColor(Theme.LINK))

@@ -11,7 +11,7 @@ import java.nio.file.StandardCopyOption
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-enum class Flag { INVISIBLE, NO_SIDEBAR, COUNTRY_CHAT }
+enum class Flag { INVISIBLE, NO_SIDEBAR, COUNTRY_CHAT, ADMIN_CHAT }
 
 @Serializable
 private class Data(val flags: Map<Flag, List<String>> = emptyMap())

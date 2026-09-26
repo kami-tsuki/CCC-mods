@@ -1,4 +1,3 @@
-# full test cycle: stop client + server, sync the server, build and deploy, wipe kami configs, start both
 param([string]$Instance, [string]$Server, [string]$Prism = "$env:LOCALAPPDATA\Programs\PrismLauncher\prismlauncher.exe", [switch]$NoBuild)
 . (Join-Path $PSScriptRoot "props.ps1")
 if (-not $Instance) { $Instance = $Props.deploy_instance_dir }
@@ -10,7 +9,7 @@ Get-CimInstance Win32_Process | Where-Object {
     ($_.Name -match '^javaw?\.exe$' -and $_.CommandLine -match 'net\.minecraft\.client\.main\.Main|neoforged[\\/]neoforge[\\/].*win_args\.txt') -or
     ($_.Name -eq 'cmd.exe' -and $_.CommandLine -match 'run\.bat')
 } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
-Start-Sleep -Seconds 2   # let file handles on the mods/config folders go
+Start-Sleep -Seconds 2 
 
 Write-Host "Syncing server with the client instance (mods, config, kubejs)..."
 & (Join-Path $PSScriptRoot 'sync-server.ps1') -Instance $Instance -Server $Server | Out-Null

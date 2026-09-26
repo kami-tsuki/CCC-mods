@@ -31,3 +31,4 @@ XaeroZoomout-
 XaeroHeadTracker-
 xaerotrainmap-
 createjeicompat-
+chatplus-

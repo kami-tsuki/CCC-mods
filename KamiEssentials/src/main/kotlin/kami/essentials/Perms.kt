@@ -28,6 +28,7 @@ object Perms {
     val TRADE = node("trade", true)
     val TRADE_ANYWHERE = node("trade.anywhere", false)
     val COUNTRYCHAT = node("countrychat", true)
+    val ADMINCHAT = node("adminchat", false)
 
     fun register(e: PermissionGatherEvent.Nodes) = Permissions.register(e, *all.toTypedArray())
 
