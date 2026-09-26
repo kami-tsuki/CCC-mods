@@ -1,7 +1,7 @@
 package kami.essentials.trade
 
-import kami.essentials.inv.GridMenu
 import kami.libs.chat.Theme
+import kami.libs.menu.GridMenu
 import net.minecraft.network.chat.Component
 import net.minecraft.world.SimpleContainer
 import net.minecraft.world.entity.player.Inventory

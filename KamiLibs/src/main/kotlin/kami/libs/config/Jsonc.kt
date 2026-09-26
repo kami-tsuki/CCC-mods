@@ -23,7 +23,9 @@ object Jsonc {
     }
 
     fun write(path: Path, text: String) {
-        if (!Files.exists(path) || Files.readString(path) != text) Files.writeString(path, text)
+        if (Files.exists(path) && Files.readString(path) == text) return
+        Files.createDirectories(path.parent)
+        Files.writeString(path, text)
     }
 
     fun reason(e: Throwable): String = e.message?.lineSequence()?.firstOrNull { it.isNotBlank() }?.trim() ?: e.javaClass.simpleName

@@ -1,6 +1,7 @@
 package kami.essentials
 
 import kami.essentials.chat.Feed
+import kami.essentials.chat.InlineFeatures
 import kami.essentials.chat.Talk
 import kami.essentials.command.EssentialsCommands
 import kami.essentials.display.Sidebar
@@ -42,6 +43,7 @@ object KamiEssentials {
             if (it.server.tickCount % 20 == 0) {
                 Tab.tick(it.server)
                 Sidebar.tick(it.server)
+                InlineFeatures.prune()
             }
             if (it.server.tickCount % 40 == 0) Vanish.tick(it.server)
         }

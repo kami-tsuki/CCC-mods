@@ -1,4 +1,4 @@
-package kami.essentials.inv
+package kami.libs.menu
 
 import net.minecraft.core.component.DataComponents
 import net.minecraft.network.chat.Component

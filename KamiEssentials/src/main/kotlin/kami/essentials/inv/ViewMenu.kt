@@ -1,5 +1,6 @@
 package kami.essentials.inv
 
+import kami.libs.menu.GridMenu
 import net.minecraft.world.Container
 import net.minecraft.world.entity.player.Inventory
 import net.minecraft.world.entity.player.Player

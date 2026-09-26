@@ -5,6 +5,7 @@ import com.mojang.brigadier.arguments.BoolArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import kami.essentials.Config
 import kami.essentials.Perms
+import kami.essentials.chat.InlineFeatures
 import kami.essentials.chat.Talk
 import kami.essentials.display.Sidebar
 import kami.essentials.inv.Views
@@ -60,6 +61,8 @@ object EssentialsCommands {
         then(lit("countrychat").requires(Perms.gate(Perms.COUNTRYCHAT))
             .does { Talk.toggleCountry(it.me()) }
             .then(arg("message", StringArgumentType.greedyString()).does { Talk.country(it.me(), it.text("message")) }))
+        then(lit("inline").requires(Perms.gate(Perms.INLINE_OPEN))
+            .then(lit("open").then(arg("id", StringArgumentType.word()).does { InlineFeatures.open(it.me(), it.text("id")) })))
     }
 
     private fun Ctx.profile(): GameProfile = GameProfileArgument.getGameProfiles(this, "player").singleOrNull() ?: fail("Pick exactly one player.")

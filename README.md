@@ -30,6 +30,7 @@ Everything lives in one Gradle project. From the repo root:
 Jars end up in `build/<Mod>/libs/`. 
 With deploy enabled, the build also copies each jar into the local test server and client instance set in `gradle.properties`. 
 `scripts/start-server.ps1` syncs the test server with the client instance and starts it.
+`scripts/restart.ps1` does the full cycle: stops the client and server, syncs, builds and deploys, wipes `config/kami` on both sides and starts both again (`-NoBuild` skips the build).
 
 ## Versions
 

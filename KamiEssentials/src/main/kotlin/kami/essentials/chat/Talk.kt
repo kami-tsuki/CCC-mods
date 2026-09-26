@@ -23,7 +23,6 @@ import java.util.concurrent.ConcurrentHashMap
 
 object Talk {
     val chat = Chat.of("essentials")
-    private val url = Regex("""https?://\S+""")
     private val partner = ConcurrentHashMap<UUID, UUID>()
 
     fun onChat(e: ServerChatEvent) {
@@ -34,7 +33,7 @@ object Talk {
         when {
             country -> country(p, e.rawText)
             Vanish.active(p) -> p.tell(chat.warn("You are invisible, so this was not sent. Use {/invis} to show yourself or {/msg} to whisper."))
-            else -> broadcast(p, line(Names.player(p), e.rawText)) { true }
+            else -> broadcast(p, line(Names.player(p), e.rawText, p)) { true }
         }
     }
 
@@ -42,9 +41,9 @@ object Talk {
         if (from === to) fail("Talking to yourself? Try someone else.")
         val sender = from?.let { Names.player(it) } ?: Component.literal("Server").withColor(Theme.ACCENT)
         val you = Component.literal("you").withColor(Theme.MUTED)
-        to.tell(dm(sender, you, text).withStyle { it.withClickEvent(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/r ")).withHoverEvent(hover("Click to reply")) })
+        to.tell(dm(sender, you, text, from).withStyle { it.withClickEvent(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/r ")).withHoverEvent(hover("Click to reply")) })
         to.playNotifySound(SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.4f, 1.6f)
-        from?.tell(dm(you, Names.player(to), text))
+        from?.tell(dm(you, Names.player(to), text, from))
         KamiEssentials.LOG.info("{} -> {}: {}", from?.gameProfile?.name ?: "Server", to.gameProfile.name, text)
         if (from != null) {
             partner[to.uuid] = from.uuid
@@ -65,7 +64,7 @@ object Talk {
             return p.tell(chat.warn("You are not in a country, so country chat is off now."))
         }
         val tag = Component.literal("[CC] ").withColor(Names.color(c)).withStyle { it.withHoverEvent(hover("Country chat of ${c.name}")) }
-        broadcast(p, line(tag.append(Names.name(p)), text)) { Names.citizenship(it.uuid)?.country == c.country }
+        broadcast(p, line(tag.append(Names.name(p)), text, p)) { Names.citizenship(it.uuid)?.country == c.country }
     }
 
     fun toggleCountry(p: ServerPlayer) {
@@ -80,29 +79,18 @@ object Talk {
         from.server.playerList.players.filter { it === from || it.chatVisibility == ChatVisiblity.FULL && to(it) }.forEach { it.tell(line) }
     }
 
-    private fun line(name: Component, text: String): Component =
-        Component.empty().append(name).append(Component.literal(Theme.SEP).withColor(Theme.MUTED)).append(body(text))
+    private fun line(name: Component, text: String, speaker: ServerPlayer): Component =
+        Component.empty().append(name).append(Component.literal(Theme.SEP).withColor(Theme.MUTED)).append(body(text, speaker))
 
-    private fun dm(from: Component, to: Component, text: String): MutableComponent = Component.empty()
+    private fun dm(from: Component, to: Component, text: String, speaker: ServerPlayer?): MutableComponent = Component.empty()
         .append(Component.literal("✉ ").withColor(Theme.LINK))
         .append(from)
         .append(Component.literal(" → ").withColor(Theme.MUTED))
         .append(to)
         .append(Component.literal(Theme.SEP).withColor(Theme.MUTED))
-        .append(body(text))
+        .append(body(text, speaker))
 
-    private fun body(text: String): Component {
-        val out = Component.empty()
-        var from = 0
-        url.findAll(text).forEach {
-            out.append(Component.literal(text.substring(from, it.range.first)).withColor(Theme.TEXT))
-            out.append(Component.literal(it.value).withStyle { s ->
-                s.withColor(Theme.LINK).withUnderlined(true).withClickEvent(ClickEvent(ClickEvent.Action.OPEN_URL, it.value)).withHoverEvent(hover("Open link"))
-            })
-            from = it.range.last + 1
-        }
-        return out.append(Component.literal(text.substring(from)).withColor(Theme.TEXT))
-    }
+    private fun body(text: String, speaker: ServerPlayer?): Component = speaker?.let { InlineFeatures.render(it, text) } ?: Component.literal(text).withColor(Theme.TEXT)
 
     private fun hover(text: String) = HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(text).withColor(Theme.TEXT))
 }

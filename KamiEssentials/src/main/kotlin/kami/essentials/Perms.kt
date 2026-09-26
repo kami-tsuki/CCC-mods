@@ -24,6 +24,7 @@ object Perms {
     val INVIS_SEE = node("invis.see", false)
     val SCOREBOARD = node("scoreboard", true)
     val MSG = node("msg", true)
+    val INLINE_OPEN = node("chat.inline.open", true)
     val TRADE = node("trade", true)
     val TRADE_ANYWHERE = node("trade.anywhere", false)
     val COUNTRYCHAT = node("countrychat", true)
