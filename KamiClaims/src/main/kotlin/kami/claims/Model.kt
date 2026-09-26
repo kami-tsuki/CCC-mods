@@ -51,7 +51,22 @@ class Member(
 class JobDef(var pay: Int, var quota: Int, var period: Int)
 
 @Serializable
-class ProvinceOffer(val until: Long, val mode: TaxMode, val amount: Double)
+class ProvinceOffer(val until: Long, val mode: TaxMode, val amount: Double, val answered: Boolean = false)
+
+@Serializable
+enum class LedgerKind { DEPOSIT, WITHDRAW, CLAIM, UPKEEP, PLOT_TAX, JOB_PAY, TRIBUTE_IN, TRIBUTE_OUT, ADJUST }
+
+@Serializable
+class LedgerEntry(val at: Long, val kind: LedgerKind, val amount: Long, val balance: Long, val actor: String? = null, val note: String = "")
+
+@Serializable
+class DayStat(
+    val day: Long, val at: Long, val treasury: Long, val income: Long, val upkeep: Long, val jobs: Long, val tributeIn: Long, val tributeOut: Long,
+    val deposits: Long, val withdrawals: Long, val chunks: Int, val debtChunks: Int, val members: Int, val plots: Int, val types: Map<String, Int> = emptyMap()
+)
+
+@Serializable
+class Flag(val pattern: Int = 0, val emblem: Int = 0, val secondary: Int = 0xFFFFFF)
 
 @Serializable
 class Claim(
@@ -65,6 +80,8 @@ class Claim(
     var free: Boolean = false,
     var capital: Boolean = false,
     var debt: Int = 0,
+    var upkeepCycles: Int = 0,
+    var unclaimWarned: Boolean = false,
     var owner: String? = null,
     var tax: Int = -1,
     var lapse: Int = 0,
@@ -100,6 +117,10 @@ class Country(
     var taxAmount: Double = 0.0,
     var provinceDebt: Int = 0,
     var independenceRequested: Boolean = false,
+    var independenceDeclinedAt: Long = 0,
+    var flag: Flag = Flag(),
+    val ledger: MutableList<LedgerEntry> = mutableListOf(),
+    val history: MutableList<DayStat> = mutableListOf(),
     val provinces: MutableSet<String> = mutableSetOf(),
     val provinceInvites: MutableMap<String, ProvinceOffer> = mutableMapOf(),
     val provinceRequests: MutableMap<String, Long> = mutableMapOf(),

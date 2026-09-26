@@ -2,6 +2,7 @@ package kami.claims.service
 
 import kami.claims.*
 import kami.claims.economy.Bank
+import kami.claims.economy.Treasury
 import kami.claims.social.Mail
 import kami.libs.chat.Tone
 import kami.libs.chat.plural
@@ -51,6 +52,7 @@ object Upkeep {
         bill(c, day)
         provinceTax(c, income)
         jobs(c, day, income)
+        Treasury.snapshot(c, day)
     }
 
     private fun seniority() = compareByDescending<Map.Entry<String, Member>> { it.value.rank }.thenBy { it.value.since }
@@ -80,7 +82,6 @@ object Upkeep {
             val tax = if (cl.tax >= 0) cl.tax else c.tax
             if (tax <= 0 || Bank.take(UUID.fromString(cl.owner), tax)) {
                 cl.lapse = 0
-                c.treasury += tax
                 income += tax
             } else {
                 val owner = cl.owner!!
@@ -92,18 +93,28 @@ object Upkeep {
                 } else Mail.direct(owner, "Your plot tax of {${spur(tax)}} could not be paid.", Tone.BAD)
             }
         }
+        Treasury.move(c, LedgerKind.PLOT_TAX, income)
         return income
     }
 
     private fun bill(c: Country, day: Long) {
         val claims = Realm.claims(c.id)
-        claims.filter { !it.free && day > it.since && (day - it.since) % Realm.period(it) == 0L }.sortedBy { it.at }.forEach { cl ->
+        var paid = 0L
+        claims.filter { day > it.since && (day - it.since) % Realm.period(it) == 0L }.sortedBy { it.at }.forEach { cl ->
+            if (cl.free) {
+                cl.upkeepCycles++
+                return@forEach
+            }
+
             val cost = Realm.price(cl).toLong() * (1 + cl.debt)
             if (c.treasury >= cost) {
                 c.treasury -= cost
+                paid += cost
                 cl.debt = 0
+                cl.upkeepCycles++
             } else cl.debt++
         }
+        Treasury.record(c, LedgerKind.UPKEEP, -paid)
         val lost = claims.filter { it.debt >= s.maxDebt }.sortedByDescending { it.at }.count {
             (!it.capital && Realm.removable(it)).also { ok -> if (ok) Realm.unclaim(it, true) }
         }
@@ -120,8 +131,8 @@ object Upkeep {
         }.coerceAtLeast(0)
         if (owed == 0L) { c.provinceDebt = 0; return }
         if (c.treasury >= owed) {
-            c.treasury -= owed
-            parent.treasury += owed
+            Treasury.move(c, LedgerKind.TRIBUTE_OUT, -owed, note = parent.name)
+            Treasury.move(parent, LedgerKind.TRIBUTE_IN, owed, note = c.name)
             c.provinceDebt = 0
         } else {
             c.provinceDebt++
@@ -142,7 +153,7 @@ object Upkeep {
             m.start = day
             if (!due) return@forEach
             if (def.pay <= budget && def.pay <= c.treasury && Bank.give(UUID.fromString(id), def.pay)) {
-                c.treasury -= def.pay
+                Treasury.move(c, LedgerKind.JOB_PAY, -def.pay.toLong(), id, name)
                 budget -= def.pay
                 Mail.direct(id, "Paid {${spur(def.pay)}} for your work as {$name}.", Tone.OK)
             } else Mail.direct(id, "The treasury could not pay your {$name} wage.", Tone.BAD)

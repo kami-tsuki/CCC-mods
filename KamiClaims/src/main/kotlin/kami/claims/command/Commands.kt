@@ -3,6 +3,7 @@ package kami.claims.command
 import kami.claims.*
 import kami.claims.net.Net
 import kami.claims.net.Sync
+import kami.claims.service.NeedsConfirm
 import kami.claims.service.Service
 import kami.claims.service.Upkeep
 import kami.claims.social.Perms
@@ -25,7 +26,14 @@ private val s get() = Config.s
 private fun player() = arg("player", GameProfileArgument.gameProfile())
 
 private fun Ctx.who() = (GameProfileArgument.getGameProfiles(this, "player").firstOrNull() ?: fail("Unknown player.")).id.toString()
-private fun Ctx.run(name: String, vararg args: String) = ok(Service.act(me(), name, args.toList()))
+private fun Ctx.run(name: String, vararg args: String) {
+    try {
+        ok(Service.act(me(), name, args.toList()))
+    } catch (e: NeedsConfirm) {
+        e.lines.forEachIndexed { i, line -> if (i == 0) warn(line) else row { markup(line) } }
+        row { button("Confirm", "/${input.removePrefix("/")} confirm", "Run the command again with confirm"); muted("  or ignore this message to cancel") }
+    }
+}
 
 private fun color(c: Country?) = c?.color?.takeIf { it != 0 } ?: Theme.ACCENT
 
@@ -87,7 +95,7 @@ private fun Node.countryCmd(): Node {
             Net.send(p, open = true)
         })
         .then(lit("create").requires { Perms.has(it, Perms.FOUND) }.then(arg("name", StringArgumentType.word()).does { it.run("create", it.text("name")) }))
-        .then(lit("disband").then(lit("confirm").does { it.run("disband") }))
+        .then(lit("disband").does { it.run("disband") }.then(lit("confirm").does { it.run("disband", "confirm") }))
         .then(lit("info").does { ctx -> ctx.status(Service.home(ctx.me())) }
             .then(word("country", countries).does { ctx ->
                 ctx.status(Realm.country(ctx.text("country")) ?: fail("Unknown country {${ctx.text("country")}}."))
@@ -99,7 +107,10 @@ private fun Node.countryCmd(): Node {
             all.forEach { c -> ctx.row { run(c.name, "/claims info ${c.id}", "Show ${c.name}"); muted("  ${plural(c.members.size, "member")}, ${plural(Realm.claims(c.id).size, "chunk")}") } }
         })
         .then(lit("map").does { ctx -> ctx.map(ctx.me()) })
-        .then(lit("border").does { ctx -> if (Effects.toggleBorders(ctx.me())) ctx.ok("Border particles {on}.") else ctx.info("Border particles {off}.") })
+        .then(lit("border").does { ctx ->
+            if (Effects.toggleBorders(ctx.me())) ctx.ok("Border particles {on}.") else ctx.info("Border particles {off}.")
+            if (Net.canOpen(ctx.me())) ctx.info("Tip: press {B} to switch the border display of the Kami Claims client between off, auto and always.")
+        })
         .then(target("invite"))
         .then(byCountry("accept"))
         .then(byCountry("join"))
@@ -117,7 +128,7 @@ private fun Node.countryCmd(): Node {
         .then(target("ally"))
         .then(target("clear"))
         .then(lit("rank").then(player().then(word("rank") { listOf("citizen", "officer", "chancellor") }.does { it.run("rank", it.who(), it.text("rank")) })))
-        .then(target("president"))
+        .then(lit("president").then(player().does { it.run("president", it.who()) }.then(lit("confirm").does { it.run("president", it.who(), "confirm") })))
         .then(lit("claim").requires { Perms.has(it, Perms.CLAIM) }
             .does { it.run("claim", s.defaultType, "0") }
             .then(word("type", types).does { it.run("claim", it.text("type"), "0") }
@@ -162,14 +173,17 @@ private fun provinceCmd(countries: () -> Collection<String>): Node {
     return lit("province").requires { Perms.has(it, Perms.USE) }
         .then(offer("invite", "province_invite"))
         .then(target("request"))
-        .then(target("accept"))
+        .then(lit("accept").then(word("country", countries).does { it.run("province_accept", it.text("country")) }.then(lit("confirm").does { it.run("province_accept", it.text("country"), "confirm") })))
         .then(offer("approve", "province_approve"))
         .then(target("deny"))
         .then(target("release"))
         .then(target("forgive"))
         .then(offer("tax", "province_tax"))
-        .then(lit("give").then(word("country", countries).then(word("newparent", countries).does { it.run("province_give", it.text("country"), it.text("newparent")) })))
-        .then(lit("independence").does { it.run("province_independence") })
+        .then(lit("give").then(word("country", countries).then(word("newparent", countries).does { it.run("province_give", it.text("country"), it.text("newparent")) }
+            .then(lit("confirm").does { it.run("province_give", it.text("country"), it.text("newparent"), "confirm") }))))
+        .then(lit("independence").does { it.run("province_independence") }
+            .then(lit("withdraw").does { it.run("province_withdraw") })
+            .then(lit("decline").then(word("country", countries).does { it.run("province_decline", it.text("country")) })))
         .then(lit("list").does { ctx ->
             val c = Service.home(ctx.me())
             c.parent?.let { Realm.country(it) }?.let { par -> ctx.info("Province of {${par.name}}, tribute {${taxTerm(c)}}, missed {${c.provinceDebt}}/${s.maxProvinceDebt}") }

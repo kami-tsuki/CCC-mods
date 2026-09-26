@@ -60,6 +60,9 @@ data class Settings(
     ),
     val provinceTaxRateBounds: List<Double> = listOf(0.0, 0.5),
     val maxProvinceDebt: Int = 3,
+    val independenceCooldownDays: Int = 3,
+    val ledgerSize: Int = 300,
+    val historyDays: Int = 90,
     val notify: Boolean = true,
     val titles: Boolean = true,
     val broadcast: Boolean = true,
@@ -104,7 +107,10 @@ private fun Settings.sane(): Settings {
         maxRect = maxRect.coerceIn(1, 4096),
         defaultType = defaultType.takeIf { it in valid } ?: valid.keys.first(),
         provinceTaxRateBounds = provinceTaxRateBounds.takeIf { it.size == 2 && it[0] in 0.0..it[1] && it[1] <= 1.0 } ?: listOf(0.0, 0.5),
-        maxProvinceDebt = maxProvinceDebt.coerceAtLeast(1)
+        maxProvinceDebt = maxProvinceDebt.coerceAtLeast(1),
+        independenceCooldownDays = independenceCooldownDays.coerceAtLeast(0),
+        ledgerSize = ledgerSize.coerceIn(20, 5000),
+        historyDays = historyDays.coerceIn(7, 730)
     )
 }
 
@@ -129,6 +135,9 @@ object Config {
                 "nameLength" to "Shortest and longest country name.",
                 "provinceTaxRateBounds" to "Lowest and highest percent tribute a province can pay, 0 to 1.",
                 "maxProvinceDebt" to "Missed tribute payments before the ruling country gets an urgent warning.",
+                "independenceCooldownDays" to "Days a province must wait after a declined independence request before asking again.",
+                "ledgerSize" to "Treasury transactions kept per country for the ledger.",
+                "historyDays" to "Days of statistics kept per country for charts and forecasts.",
                 "guiCooldown" to "Ticks between two GUI actions of one player."
             )
         ),

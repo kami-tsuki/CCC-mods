@@ -3,6 +3,7 @@ package kami.claims.world
 import kami.claims.*
 
 import net.minecraft.core.particles.ParticleTypes
+import net.minecraft.world.level.levelgen.Heightmap
 import kami.claims.social.Mail
 import kami.libs.chat.tell
 import net.minecraft.server.MinecraftServer
@@ -49,10 +50,17 @@ object Effects {
             listOf(1 to 0, -1 to 0, 0 to 1, 0 to -1).forEach { (dx, dz) ->
                 if (owner(x + dx, z + dz) == o) return@forEach
                 val fixed = if (dx != 0) x * 16.0 + (if (dx > 0) 16 else 0) else z * 16.0 + (if (dz > 0) 16 else 0)
-                for (i in 0..15 step 2) {
-                    val px = if (dx != 0) fixed else x * 16.0 + i
-                    val pz = if (dx != 0) z * 16.0 + i else fixed
-                    level.sendParticles(p, if (o == null) ParticleTypes.SMOKE else ParticleTypes.END_ROD, false, px, p.y + 1.2, pz, 1, 0.0, 0.4, 0.0, 0.0)
+                for (i in 0..15) {
+                    val px = if (dx != 0) fixed else x * 16.0 + i + 0.5
+                    val pz = if (dx != 0) z * 16.0 + i + 0.5 else fixed
+                    val ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, px.toInt(), pz.toInt())
+                    val particle = if (o == null) ParticleTypes.SMOKE else ParticleTypes.END_ROD
+                    val top = maxOf(ground + 3, p.blockY + 2)
+                    var y = ground.toDouble()
+                    while (y <= top) {
+                        if (kotlin.math.abs(y - p.y) < 12) level.sendParticles(p, particle, false, px, y + 0.2, pz, 1, 0.0, 0.0, 0.0, 0.0)
+                        y += 1.5
+                    }
                 }
             }
         }

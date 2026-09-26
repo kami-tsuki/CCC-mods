@@ -15,8 +15,12 @@ object View {
     const val FREE = 128
 
     class Entry(val dim: Int, val x: Int, val z: Int, val country: Int, val type: Int, val flags: Int)
-    class CountryView(val name: String, val color: Int, val relation: Int)
-    class Payload(val rev: Int, val dims: List<String>, val types: List<String>, val countries: List<CountryView>, val entries: List<Entry>)
+    class CountryView(val name: String, val color: Int, val relation: Int, val flag: Int = 0, val secondary: Int = 0xFFFFFF) {
+        val pattern get() = flag shr 8
+        val emblem get() = flag and 0xFF
+    }
+    class Reserved(val dim: Int, val x: Int, val z: Int)
+    class Payload(val rev: Int, val dims: List<String>, val types: List<String>, val countries: List<CountryView>, val entries: List<Entry>, val reserved: List<Reserved> = emptyList())
 
     fun color(c: Country) = if (c.color != 0) c.color and 0xFFFFFF else auto(c.id)
 
@@ -36,6 +40,23 @@ object View {
             else -> Triple(v, p, q)
         }
         return ((r * 255).toInt() shl 16) or ((g * 255).toInt() shl 8) or (b * 255).toInt()
+    }
+
+    const val REL_NONE = 0
+    const val REL_MEMBER = 1
+    const val REL_ALLY = 2
+    const val REL_FAMILY = 3
+    const val REL_BANISHED = 4
+
+    fun mapRelation(c: Country, viewer: String): Int {
+        val home = Realm.of(viewer)
+        return when {
+            home?.id == c.id -> REL_MEMBER
+            home != null && (c.parent == home.id || home.parent == c.id || (home.parent != null && home.parent == c.parent)) -> REL_FAMILY
+            c.outsiders[viewer] == Rank.BANISHED -> REL_BANISHED
+            c.outsiders[viewer] == Rank.ALLIED -> REL_ALLY
+            else -> REL_NONE
+        }
     }
 
     fun relation(c: Country, viewer: String) = when (c.rank(viewer)) {
@@ -75,10 +96,11 @@ object View {
             val dim = dims.indexOf(cl.dim)
             val c = Realm.data.countries[cl.country]
             if (dim < 0 || c == null) return@forEach
-            val idx = index.getOrPut(c.id) { countries += CountryView(c.name, color(c), relation(c, viewer)); countries.size - 1 }
+            val idx = index.getOrPut(c.id) { countries += CountryView(c.name, color(c), mapRelation(c, viewer), (c.flag.pattern shl 8) or c.flag.emblem, c.flag.secondary); countries.size - 1 }
             val flags = flags(cl, c, viewer)
             entries += Entry(dim, cl.x, cl.z, idx, if (flags == 0) -1 else types.indexOf(cl.type), flags)
         }
-        return Payload(Realm.rev, dims, types, countries, entries)
+        val reserved = Realm.data.reserves.filter { it.until > kami.claims.now() }.mapNotNull { r -> dims.indexOf(r.dim).takeIf { it >= 0 }?.let { Reserved(it, r.x, r.z) } }
+        return Payload(Realm.rev, dims, types, countries, entries, reserved)
     }
 }

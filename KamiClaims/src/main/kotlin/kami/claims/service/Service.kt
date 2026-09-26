@@ -2,6 +2,7 @@ package kami.claims.service
 
 import kami.claims.*
 import kami.claims.economy.Bank
+import kami.claims.economy.Treasury
 import kami.claims.social.Mail
 import kami.claims.social.Perms
 import kami.libs.chat.Tone
@@ -16,7 +17,9 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-class Fail(msg: String) : kami.libs.command.CommandFail(msg)
+class Fail(msg: String, val reason: String = "", val target: Key? = null) : kami.libs.command.CommandFail(msg)
+
+class NeedsConfirm(val lines: List<String>) : RuntimeException(lines.firstOrNull() ?: "Confirmation needed.")
 
 object Service {
     private val s get() = Config.s
@@ -72,31 +75,27 @@ object Service {
             ?: throw Fail("Unknown player.")
     }
 
+    private fun confirmed(a: List<String>) = a.lastOrNull() == "confirm"
+
     private fun member(c: Country, id: String) = c.members[id] ?: throw Fail("Not a member of your country.")
 
     private fun mine(c: Country, k: Key) = Realm.index[k]?.takeIf { it.country == c.id } ?: throw Fail("That chunk does not belong to your country.")
 
     fun claimError(c: Country, k: Key, type: String): String? {
-        if (k.dim !in s.dimensions) return "You can't claim land in this dimension."
-        val def = s.types[type] ?: return "Unknown chunk type."
-        if (Realm.index[k] != null) return "This chunk is already claimed."
-        Realm.reservedFor(k.dim, k.x, k.z)?.let { if (it != c.id) return "This chunk is reserved for another country." }
-        val touches = listOf(Key(k.dim, k.x + 1, k.z), Key(k.dim, k.x - 1, k.z), Key(k.dim, k.x, k.z + 1), Key(k.dim, k.x, k.z - 1)).any { Realm.index[it]?.country == c.id }
-        if (Realm.claims(c.id).isNotEmpty() && !touches) return "New chunks must connect to your land."
-        if (Realm.claims(c.id).size >= Realm.freeAllowed(c) && c.treasury < def.price) return "The treasury cannot pay the first day, {${spur(def.price)}}."
-        return null
+        val owned = Realm.claims(c.id)
+        return Planner.blockReason(c, k, type, owned.map { it.key }.toHashSet(), c.treasury, owned.size)?.let { "$it." }
     }
 
     fun addClaim(c: Country, k: Key, type: String, capital: Boolean = false) {
         val free = Realm.claims(c.id).size < Realm.freeAllowed(c)
-        if (!free) c.treasury -= s.types.getValue(type).price
+        if (!free) Treasury.move(c, LedgerKind.CLAIM, -s.types.getValue(type).price.toLong(), note = "${k.x}, ${k.z}")
         Realm.add(Claim(c.id, k.dim, k.x, k.z, type, capital = capital, free = free))
     }
 
     private fun dispatch(p: ServerPlayer, name: String, a: List<String>): String {
         val text = when (name) {
             "create" -> create(p, arg(a, 0))
-            "disband" -> need(p, Rank.PRESIDENT).let { Realm.disband(it); Effects.chime(p, false); "Country disbanded." }
+            "disband" -> disband(p, confirmed(a))
             "leave" -> leave(p)
             "invite" -> invite(p, who(p, a, 0))
             "accept" -> accept(p, arg(a, 0))
@@ -108,7 +107,7 @@ object Service {
             "ally" -> ally(p, who(p, a, 0))
             "clear" -> need(p, Cap.MEMBERS).let { it.outsiders.remove(who(p, a, 0)); "Relation cleared." }
             "rank" -> rank(p, who(p, a, 0), parse(Rank.values(), arg(a, 1)))
-            "president" -> president(p, who(p, a, 0))
+            "president" -> president(p, who(p, a, 0), confirmed(a))
             "claim" -> claim(p, arg(a, 0), num(a, 1).coerceIn(0, 8), a.getOrNull(2)?.let { spot(p, a, 2) })
             "unclaim" -> unclaim(p, spot(p, a, 0))
             "type" -> retype(p, arg(a, 0), spot(p, a, 1))
@@ -119,12 +118,30 @@ object Service {
             "plot_tax" -> mine(need(p, Cap.TAX), spot(p, a, 1)).let { it.tax = num(a, 0); "Plot tax updated." }
             "lapse" -> need(p, Cap.TAX).let { it.shutdown = max(0, num(a, 0)); it.release = max(0, num(a, 1)); "Rent timers updated." }
             "rule" -> rule(p, arg(a, 0), arg(a, 1), arg(a, 2))
+            "rules" -> arg(a, 0).split(';').filter { it.isNotBlank() }.let { changes ->
+                changes.forEach { change -> change.split(':').takeIf { it.size == 3 }?.let { (t, f, v) -> rule(p, t, f, v) } ?: throw Fail("Broken rule change.") }
+                "Saved {${plural(changes.size, "rule change")}}."
+            }
+            "plot_law" -> need(p, Cap.TAX).let { c ->
+                c.tax = max(0, num(a, 0)); c.shutdown = max(0, num(a, 1)); c.release = max(0, num(a, 2))
+                "Plot law saved: {${spur(c.tax)}} a day, locked after {${c.shutdown}} days, lost {${c.release}} days later."
+            }
             "job_set" -> jobSet(p, arg(a, 0), arg(a, 1), num(a, 2))
+            "job_edit" -> { jobSet(p, arg(a, 0), "pay", num(a, 1)); jobSet(p, arg(a, 0), "quota", num(a, 2)); jobSet(p, arg(a, 0), "period", num(a, 3)) }
             "job_assign" -> jobAssign(p, who(p, a, 0), arg(a, 1))
             "job_unassign" -> need(p, Cap.JOBS).let { c -> member(c, who(p, a, 0)).let { it.job = null; it.progress = 0; it.zone.clear() }; "Job removed." }
             "zone" -> zone(p, who(p, a, 0), a.getOrNull(1) == "clear")
+            "flag" -> need(p, Cap.RULES).let {
+                fun hex(i: Int) = arg(a, i).removePrefix("#").toIntOrNull(16)?.and(0xFFFFFF) ?: throw Fail("Use a hex color like {ffffff}.")
+                it.color = hex(0)
+                it.flag = Flag(num(a, 1).coerceIn(0, 31), num(a, 2).coerceIn(0, 63), hex(3))
+                "Colour and flag of {${it.name}} updated."
+            }
             "color" -> need(p, Cap.RULES).let { it.color = arg(a, 0).removePrefix("#").toIntOrNull(16)?.and(0xFFFFFF) ?: throw Fail("Use a hex color like {ff8800}."); "Country color updated." }
             "claimrect" -> claimRect(p, arg(a, 0), rect(p, a, 1))
+            "claimcells" -> claimRect(p, arg(a, 0), cells(p, a, 1))
+            "typecells" -> typeRect(p, arg(a, 0), cells(p, a, 1))
+            "unclaimcells" -> unclaimRect(p, cells(p, a, 0))
             "unclaimrect" -> unclaimRect(p, rect(p, a, 0))
             "typerect" -> typeRect(p, arg(a, 0), rect(p, a, 1))
             "plot_claim" -> plotClaim(p, spot(p, a, 0))
@@ -132,16 +149,10 @@ object Service {
             "plot_release" -> plotOwner(p, spot(p, a, 0)).let { cl -> cl.owner = null; cl.roles.clear(); cl.lapse = 0; "Plot released." }
             "plot_trust" -> plotOwner(p, spot(p, a, 2)).let { cl -> who(p, a, 0).let { id -> if (id == cl.owner) throw Fail("That is the plot owner."); cl.roles[id] = parse(Role.values(), arg(a, 1)) }; "Role set." }
             "plot_untrust" -> plotOwner(p, spot(p, a, 1)).let { it.roles.remove(who(p, a, 0)); "Role removed." }
-            "province_invite" -> provinceInvite(p, arg(a, 0), parse(TaxMode.values(), arg(a, 1)), arg(a, 2))
-            "province_request" -> provinceRequest(p, arg(a, 0))
-            "province_accept" -> provinceAccept(p, arg(a, 0))
-            "province_approve" -> provinceApprove(p, arg(a, 0), parse(TaxMode.values(), arg(a, 1)), arg(a, 2))
-            "province_deny" -> provinceDeny(p, arg(a, 0))
-            "province_release" -> provinceRelease(p, arg(a, 0))
-            "province_forgive" -> provinceForgive(p, arg(a, 0))
-            "province_independence" -> provinceIndependence(p)
-            "province_tax" -> provinceTax(p, arg(a, 0), parse(TaxMode.values(), arg(a, 1)), arg(a, 2))
-            "province_give" -> provinceGive(p, arg(a, 0), arg(a, 1))
+            "province_accept" -> provinceAccept(p, arg(a, 0), confirmed(a))
+            "province_invite", "province_request", "province_approve", "province_deny", "province_release", "province_forgive",
+            "province_independence", "province_withdraw", "province_decline", "province_tax" -> province(p, name, a)
+            "province_give" -> provinceGive(p, arg(a, 0), arg(a, 1), confirmed(a))
             else -> throw Fail("Unknown action, is your client up to date?")
         }
         Realm.changed()
@@ -158,7 +169,19 @@ object Service {
         Realm.join(c, p.stringUUID, Rank.PRESIDENT)
         addClaim(c, here(p), s.defaultType, true)
         Effects.founded(p, c)
-        return "{$n} is founded. This chunk is your capital, and {${plural(Realm.freeAllowed(c), "chunk")}} are free."
+        return "{$n} is founded. This chunk is your capital, and {${plural(Realm.freeAllowed(c), "chunk")}} are free. Newly claimed land can only be released after 24h and one upkeep cycle."
+    }
+
+    private fun disband(p: ServerPlayer, confirmed: Boolean): String {
+        val c = need(p, Rank.PRESIDENT)
+        if (!confirmed) throw NeedsConfirm(listOf(
+            "Disband {${c.name}}?",
+            "All {${plural(Realm.claims(c.id).size, "chunk")}} become nomansland and {${plural(c.members.size, "member")}} lose their country.",
+            "The treasury of {${spur(c.treasury)}} is lost. This cannot be undone."
+        ))
+        Realm.disband(c)
+        Effects.chime(p, false)
+        return "Country disbanded."
     }
 
     private fun leave(p: ServerPlayer): String {
@@ -235,11 +258,15 @@ object Service {
         return "Rank updated."
     }
 
-    private fun president(p: ServerPlayer, id: String): String {
+    private fun president(p: ServerPlayer, id: String, confirmed: Boolean): String {
         val c = need(p, Rank.PRESIDENT)
         val m = member(c, id)
         val mine = c.members.getValue(p.stringUUID)
         if (m === mine) throw Fail("You are already president.")
+        if (!confirmed) throw NeedsConfirm(listOf(
+            "Make {${Names.of(p.server, id)}} president of {${c.name}}?",
+            "They get every right in the country, including disbanding it. You become {${(if (m.rank >= Rank.OFFICER) m.rank else Rank.OFFICER).name.lowercase()}} and can't take it back yourself."
+        ))
         mine.rank = if (m.rank >= Rank.OFFICER) m.rank else Rank.OFFICER
         m.rank = Rank.PRESIDENT
         Mail.broadcast(c, "The presidency changed hands.")
@@ -247,19 +274,31 @@ object Service {
     }
 
     private fun claimCells(c: Country, type: String, cells: List<Key>): Int {
-        var count = 0
-        for (pass in 0..min(cells.size, 64)) {
-            var progress = false
-            cells.forEach { if (Realm.index[it] == null && claimError(c, it, type) == null) { addClaim(c, it, type); count++; progress = true } }
-            if (!progress) break
-        }
-        return count
+        val plan = Planner.claim(c, type, cells)
+        plan.ready.forEach { addClaim(c, it.key, type) }
+        return plan.ready.size
     }
 
     private fun claimReport(c: Country, type: String, count: Int, before: Long): String {
         val def = s.types.getValue(type)
         if (count > 0) return "Claimed {${plural(count, "chunk")}} as {$type} for {${spur(before - c.treasury)}}. Upkeep {${spur(def.price)}} ${every(def.period)} each, treasury {${spur(c.treasury)}}."
         return "Nothing claimed. New chunks must touch your land and the treasury must cover the first day."
+    }
+
+    private fun unclaimLockReason(cl: Claim): String? {
+        if (now() - cl.at < s.dayMillis) return "This chunk is newly claimed. Wait 24h before releasing it."
+        if (cl.upkeepCycles < 1) return "This chunk must complete at least one upkeep cycle before it can be released."
+        return null
+    }
+
+    private fun ensureUnclaimUnlocked(cl: Claim) {
+        val reason = unclaimLockReason(cl) ?: return
+        if (!cl.unclaimWarned) {
+            cl.unclaimWarned = true
+            Realm.changed()
+            throw Fail("$reason First release attempt was cancelled intentionally so this rule is visible.")
+        }
+        throw Fail(reason)
     }
 
     private fun claim(p: ServerPlayer, type: String, radius: Int, at: Key?): String {
@@ -270,9 +309,11 @@ object Service {
             .sortedBy { max(abs(it.x - origin.x), abs(it.z - origin.z)) }
         if (radius == 0) claimError(c, origin, type)?.let { throw Fail(it) }
         val before = c.treasury
+        val beforeClaims = Realm.claims(c.id).size
         val count = claimCells(c, type, cells)
         if (count > 0) Effects.chime(p, true)
-        return claimReport(c, type, count, before)
+        val report = claimReport(c, type, count, before)
+        return if (count > 0 && beforeClaims == 0) "$report Warning: newly claimed land can only be released after 24h and one upkeep cycle." else report
     }
 
     private class Rect(val cells: List<Key>)
@@ -287,27 +328,37 @@ object Service {
         return Rect((x1..x2).flatMap { x -> (z1..z2).map { z -> Key(dim, x, z) } })
     }
 
+    private fun cells(p: ServerPlayer, a: List<String>, i: Int): Rect {
+        if (arg(a, i) != "cells") return rect(p, a, i)
+        val dim = here(p).dim
+        val keys = arg(a, i + 1).split(',').mapNotNull { pair ->
+            val parts = pair.split(':')
+            if (parts.size != 2) return@mapNotNull null
+            Key(dim, parts[0].toIntOrNull() ?: return@mapNotNull null, parts[1].toIntOrNull() ?: return@mapNotNull null)
+        }.distinct()
+        if (keys.size > s.maxRect) throw Fail("That selection is too big, the limit is {${plural(s.maxRect, "chunk")}}.")
+        return Rect(keys)
+    }
+
     private fun claimRect(p: ServerPlayer, type: String, r: Rect): String {
         val c = need(p, Cap.CLAIM)
         s.types[type] ?: throw Fail("Unknown chunk type.")
         val before = c.treasury
+        val beforeClaims = Realm.claims(c.id).size
         val count = claimCells(c, type, r.cells)
         if (count > 0) Effects.chime(p, true)
-        return claimReport(c, type, count, before)
+        val report = claimReport(c, type, count, before)
+        return if (count > 0 && beforeClaims == 0) "$report Warning: newly claimed land can only be released after 24h and one upkeep cycle." else report
     }
 
     private fun unclaimRect(p: ServerPlayer, r: Rect): String {
         val c = need(p, Cap.CLAIM)
-        val set = r.cells.toHashSet()
-        var count = 0
-        for (pass in 0 until 6) {
-            val before = count
-            Realm.claims(c.id).filter { it.key in set && !it.capital }.sortedByDescending { it.at }.forEach {
-                if (Realm.removable(it)) { Realm.unclaim(it, false); count++ }
-            }
-            if (count == before) break
-        }
-        return "Released {${plural(count, "chunk")}}."
+        val plan = Planner.unclaim(c, r.cells)
+        plan.ready.forEach { cell -> Realm.index[cell.key]?.let { Realm.unclaim(it, false) } }
+        val blocked = plan.blocked
+        if (plan.ready.isEmpty() && blocked.isNotEmpty()) throw Fail("Nothing released: ${blocked.first().reason}.", "BLOCKED", blocked.first().key)
+        val kept = if (blocked.isEmpty()) "" else " {${plural(blocked.size, "chunk")}} kept: ${blocked.first().reason}."
+        return "Released {${plural(plan.ready.size, "chunk")}}.$kept"
     }
 
     private fun typeRect(p: ServerPlayer, type: String, r: Rect): String {
@@ -327,6 +378,7 @@ object Service {
     private fun unclaim(p: ServerPlayer, k: Key): String {
         val cl = mine(need(p, Cap.CLAIM), k)
         if (cl.capital) throw Fail("Move the capital first.")
+        ensureUnclaimUnlocked(cl)
         if (!Realm.removable(cl)) throw Fail("Unclaiming would split your territory.")
         Realm.unclaim(cl, false)
         return "Chunk released."
@@ -352,19 +404,19 @@ object Service {
 
     private fun deposit(p: ServerPlayer, n: Int): String {
         val c = home(p)
-        if (n < 1) throw Fail("Amount must be positive.")
-        if (!Bank.take(p.uuid, n)) throw Fail("You don't have {${spur(n)}}.")
-        c.treasury += n
+        if (n < 1) throw Fail("Amount must be positive.", "AMOUNT")
+        if (!Bank.take(p.uuid, n)) throw Fail("You don't have {${spur(n)}}.", "FUNDS")
+        Treasury.move(c, LedgerKind.DEPOSIT, n.toLong(), p.stringUUID)
         c.pending += n
         return "Deposited {${spur(n)}}, treasury {${spur(c.treasury)}}."
     }
 
     private fun withdraw(p: ServerPlayer, n: Int): String {
         val c = need(p, Cap.WITHDRAW)
-        if (n < 1) throw Fail("Amount must be positive.")
-        if (c.treasury < n) throw Fail("The treasury only holds {${spur(c.treasury)}}.")
+        if (n < 1) throw Fail("Amount must be positive.", "AMOUNT")
+        if (c.treasury < n) throw Fail("The treasury only holds {${spur(c.treasury)}}.", "FUNDS")
         if (!Bank.give(p.uuid, n)) throw Fail("Could not pay out.")
-        c.treasury -= n
+        Treasury.move(c, LedgerKind.WITHDRAW, -n.toLong(), p.stringUUID)
         return "Withdrew {${spur(n)}}."
     }
 
@@ -433,132 +485,35 @@ object Service {
         return cl
     }
 
-    private fun taxAmount(text: String, mode: TaxMode): Double {
-        val v = text.toDoubleOrNull() ?: throw Fail("Expected a number.")
-        return if (mode == TaxMode.PERCENT) (v / 100).coerceIn(s.provinceTaxRateBounds[0], s.provinceTaxRateBounds[1]) else max(0.0, v)
+    private fun country(name: String) = Realm.country(name) ?: throw Fail("Unknown country.")
+
+    private fun provinceAccept(p: ServerPlayer, name: String, confirmed: Boolean): String {
+        val child = need(p, Cap.PROVINCE)
+        val parent = country(name)
+        val offer = Provinces.offer(child, parent)
+        if (!confirmed) throw NeedsConfirm(Provinces.agreementLines(child, parent, offer))
+        Provinces.accept(child, parent)
+        return "{${child.name}} is now a province of {${parent.name}}."
     }
 
-    internal fun finalizeProvince(child: Country, parent: Country, mode: TaxMode, amount: Double) {
-        child.provinces.forEach { pid -> Realm.country(pid)?.let { it.parent = parent.id }; parent.provinces += pid }
-        child.provinces.clear()
-        child.parent = parent.id
-        child.taxMode = mode
-        child.taxAmount = amount
-        child.provinceDebt = 0
-        child.independenceRequested = false
-        child.provinceInvites.clear()
-        child.provinceRequests.clear()
-        parent.provinces += child.id
-        Realm.syncFamily(parent.id)
-        Mail.broadcast(child, "{${child.name}} is now a province of {${parent.name}}.")
-        Mail.broadcast(parent, "{${child.name}} joined as a province.")
-    }
-
-    private fun provinceInvite(p: ServerPlayer, name: String, mode: TaxMode, amountText: String): String {
-        val c = need(p, Cap.PROVINCE)
-        if (c.parent != null) throw Fail("A province cannot have its own provinces.")
-        val target = Realm.country(name) ?: throw Fail("Unknown country.")
-        if (target.id == c.id) throw Fail("A country cannot be its own province.")
-        if (target.parent == c.id) throw Fail("Already your province.")
-        val amount = taxAmount(amountText, mode)
-        target.provinceInvites[c.id] = ProvinceOffer(now() + s.inviteDays * s.dayMillis, mode, amount)
-        Mail.officers(target, "{${c.name}} invites you to become their province. Answer in the country screen.")
-        return "Invitation sent."
-    }
-
-    private fun provinceAccept(p: ServerPlayer, name: String): String {
-        val c = need(p, Cap.PROVINCE)
-        if (c.parent != null) throw Fail("Already a province.")
-        val parent = Realm.country(name) ?: throw Fail("Unknown country.")
-        val offer = c.provinceInvites[parent.id] ?: throw Fail("No invitation from that country.")
-        if (offer.until < now()) { c.provinceInvites.remove(parent.id); throw Fail("The invitation expired.") }
-        finalizeProvince(c, parent, offer.mode, offer.amount)
-        return "{${c.name}} is now a province of {${parent.name}}."
-    }
-
-    private fun provinceRequest(p: ServerPlayer, name: String): String {
-        val c = need(p, Cap.PROVINCE)
-        if (c.parent != null) throw Fail("Already a province.")
-        val target = Realm.country(name) ?: throw Fail("Unknown country.")
-        if (target.id == c.id) throw Fail("A country cannot be its own province.")
-        target.provinceRequests[c.id] = now() + s.inviteDays * s.dayMillis
-        Mail.officers(target, "{${c.name}} wants to become your province. Answer in the country screen.")
-        return "Request sent."
-    }
-
-    private fun provinceApprove(p: ServerPlayer, name: String, mode: TaxMode, amountText: String): String {
+    private fun provinceGive(p: ServerPlayer, name: String, newParentName: String, confirmed: Boolean): String {
         val parent = need(p, Cap.PROVINCE)
-        if (parent.parent != null) throw Fail("A province cannot have its own provinces.")
-        val child = Realm.country(name) ?: throw Fail("Unknown country.")
-        if ((parent.provinceRequests[child.id] ?: 0) < now()) throw Fail("No valid request from that country.")
-        if (child.parent != null) throw Fail("That country already has a parent.")
-        parent.provinceRequests.remove(child.id)
-        finalizeProvince(child, parent, mode, taxAmount(amountText, mode))
-        return "{${child.name}} is now your province."
-    }
-
-    private fun provinceDeny(p: ServerPlayer, name: String): String {
-        val c = need(p, Cap.PROVINCE)
-        val target = Realm.country(name) ?: throw Fail("Unknown country.")
-        if (c.provinceRequests.remove(target.id) == null) throw Fail("No request from that country.")
-        return "Request denied."
-    }
-
-    private fun provinceRelease(p: ServerPlayer, name: String): String {
-        val parent = need(p, Cap.PROVINCE)
-        val child = Realm.country(name) ?: throw Fail("Unknown country.")
-        if (child.parent != parent.id) throw Fail("That is not your province.")
-        child.parent = null
-        child.provinceDebt = 0
-        child.independenceRequested = false
-        parent.provinces.remove(child.id)
-        Realm.syncFamily(child.id)
-        Realm.syncFamily(parent.id)
-        Mail.broadcast(child, "{${child.name}} is independent again.", Tone.OK)
-        Mail.broadcast(parent, "{${child.name}} is no longer your province.")
-        return "{${child.name}} is now independent."
-    }
-
-    private fun provinceForgive(p: ServerPlayer, name: String): String {
-        val parent = need(p, Cap.PROVINCE)
-        val child = Realm.country(name) ?: throw Fail("Unknown country.")
-        if (child.parent != parent.id) throw Fail("That is not your province.")
-        child.provinceDebt = 0
-        return "Debt forgiven."
-    }
-
-    private fun provinceIndependence(p: ServerPlayer): String {
-        val c = need(p, Cap.PROVINCE)
-        val parent = c.parent?.let { Realm.country(it) } ?: throw Fail("Not a province.")
-        c.independenceRequested = true
-        Mail.officers(parent, "{${c.name}} asks for independence. Answer in the country screen.")
-        return "Independence requested."
-    }
-
-    private fun provinceTax(p: ServerPlayer, name: String, mode: TaxMode, amountText: String): String {
-        val parent = need(p, Cap.PROVINCE)
-        val child = Realm.country(name) ?: throw Fail("Unknown country.")
-        if (child.parent != parent.id) throw Fail("That is not your province.")
-        child.taxMode = mode
-        child.taxAmount = taxAmount(amountText, mode)
-        return "Tax terms updated."
-    }
-
-    private fun provinceGive(p: ServerPlayer, name: String, newParentName: String): String {
-        val parent = need(p, Cap.PROVINCE)
-        val child = Realm.country(name) ?: throw Fail("Unknown country.")
-        if (child.parent != parent.id) throw Fail("That is not your province.")
-        val newParent = Realm.country(newParentName) ?: throw Fail("Unknown country.")
-        if (newParent.id == child.id) throw Fail("A country cannot be its own province.")
-        if (newParent.parent != null) throw Fail("{${newParent.name}} is a province itself and cannot hold one.")
-        parent.provinces.remove(child.id)
-        child.parent = newParent.id
-        child.independenceRequested = false
-        newParent.provinces += child.id
-        Realm.syncFamily(parent.id)
-        Realm.syncFamily(newParent.id)
-        Mail.broadcast(child, "{${child.name}} was given to {${newParent.name}}.")
-        Mail.broadcast(newParent, "{${child.name}} is now your province.")
+        val child = country(name)
+        val newParent = country(newParentName)
+        Provinces.checkGive(parent, child, newParent)
+        if (!confirmed) throw NeedsConfirm(listOf(
+            "Give {${child.name}} to {${newParent.name}}?",
+            "{${newParent.name}} takes over the tribute of {${Provinces.tributeText(child.taxMode, child.taxAmount)}} and the right to manage {${child.name}}. You can't take it back."
+        ))
+        Provinces.give(parent, child, newParent)
         return "{${child.name}} now belongs to {${newParent.name}}."
+    }
+
+    private fun province(p: ServerPlayer, name: String, a: List<String>): String {
+        val c = need(p, Cap.PROVINCE)
+        fun mode() = parse(TaxMode.values(), arg(a, 1))
+        return when (name) {
+            else -> throw Fail("Unknown province action.")
+        }
     }
 }

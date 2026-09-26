@@ -6,6 +6,9 @@ import kami.libs.chat.Theme
 import kami.libs.chat.Tone
 import kami.libs.chat.bar
 import kami.claims.*
+import kami.claims.net.Denied
+import kami.claims.net.Net
+import kami.claims.service.View
 import kami.claims.social.Perms
 
 import net.minecraft.core.BlockPos
@@ -46,6 +49,7 @@ import net.neoforged.neoforge.event.level.PistonEvent
 object Guard {
     private val tags = HashMap<String, TagKey<Block>>()
     private val last = HashMap<String, Key?>()
+    private val lastDenied = HashMap<String, Pair<String, Long>>()
 
     private fun dim(level: LevelAccessor) = (level as? Level)?.dimension()?.location()?.toString()
     private fun key(dim: String, pos: BlockPos) = Key(dim, pos.x shr 4, pos.z shr 4)
@@ -95,8 +99,67 @@ object Guard {
         if (allowed(level, pos, who, action, block)) return true
         val p = who as? ServerPlayer ?: return false
         if (Perms.has(p, Perms.BYPASS)) return true
-        p.bar(Chat.bar(Tone.BAD, "You can't do that here"))
+        explain(p, level, pos, action)
         return false
+    }
+
+    private fun verb(a: Action) = when (a) {
+        Action.BREAK -> "break blocks"
+        Action.PLACE -> "place blocks"
+        Action.INTERACT -> "use things"
+        Action.CONTAINER -> "open containers"
+    }
+
+    private fun who(a: Access, c: Country, cl: Claim) = when (a) {
+        Access.NONE -> "Nobody may"
+        Access.OFFICER -> "Only officers of ${c.name} may"
+        Access.JOB -> "Only ${cl.def?.job?.let { "${it}s" } ?: "workers"} of ${c.name} may"
+        Access.WORKER -> "Only members of ${c.name} with a job may"
+        Access.CITIZEN -> "Only citizens of ${c.name} may"
+        Access.ALLIED -> "Only citizens and allies of ${c.name} may"
+        Access.ANY -> "Everyone may"
+    }
+
+    fun reason(level: LevelAccessor, pos: BlockPos, p: Player, action: Action): String {
+        val dim = dim(level) ?: return "You can't do that here."
+        val cl = Realm.index[key(dim, pos)]
+        val c = cl?.let { Realm.data.countries[it.country] } ?: return "Nobody owns this land, so nobody may ${verb(action)} here."
+        val me = p.stringUUID
+        if (c.outsiders[me] == Rank.BANISHED) return "You are banished from ${c.name}."
+        if (cl.type == "residential" && cl.owner != null) {
+            val owner = Names.of(p.server, cl.owner!!)
+            if (!plotOpen(cl, c)) return "This plot is locked because its tax is ${cl.lapse} days overdue."
+            return "This is $owner's plot. Ask $owner to add you as household."
+        }
+        return "${who(access(c, cl, action), c, cl)} ${verb(action)} in ${cl.type} land."
+    }
+
+    private fun borderDistance(dim: String, pos: BlockPos, standing: BlockPos): Int {
+        val here = Realm.index[key(dim, standing)]?.country
+        val target = Realm.index[key(dim, pos)]?.country
+        if (here == target) return -1
+        val cx = pos.x shr 4
+        val cz = pos.z shr 4
+        val lx = pos.x and 15
+        val lz = pos.z and 15
+        return listOf(
+            Key(dim, cx - 1, cz) to lx + 1, Key(dim, cx + 1, cz) to 16 - lx,
+            Key(dim, cx, cz - 1) to lz + 1, Key(dim, cx, cz + 1) to 16 - lz
+        ).filter { (k, _) -> Realm.index[k]?.country == here }.minOfOrNull { it.second } ?: -1
+    }
+
+    private fun explain(p: ServerPlayer, level: LevelAccessor, pos: BlockPos, action: Action) {
+        val dim = dim(level) ?: return
+        val text = reason(level, pos, p, action)
+        val now = System.currentTimeMillis()
+        val previous = lastDenied[p.stringUUID]
+        if (previous != null && previous.first == text && now - previous.second < 2000) return
+        lastDenied[p.stringUUID] = text to now
+        val cl = Realm.index[key(dim, pos)]
+        val c = cl?.let { Realm.data.countries[it.country] }
+        val distance = borderDistance(dim, pos, p.blockPosition())
+        if (Net.canOpen(p)) Net.deny(p, Denied(action.name.lowercase(), pos.x, pos.y, pos.z, c?.name ?: "", c?.let { View.color(it) } ?: -1, cl?.type ?: "", text, distance))
+        else p.bar(Chat.bar(Tone.BAD, if (distance > 0) "$text {$distance} block${if (distance == 1) "" else "s"} past the border." else text))
     }
 
     private fun matches(state: BlockState, spec: String) =
@@ -224,7 +287,7 @@ object Guard {
         val before = last.put(id, k)
         val from = before?.let { Realm.index[it] }
         val to = k?.let { Realm.index[it] }
-        if (k == null) return
+        if (k == null || Net.canOpen(p)) return
         val name = to?.let { Realm.data.countries[it.country]?.name }
         val detail = to?.let { "${it.type}${it.owner?.let { o -> " - ${Names.of(p.server, o)}" } ?: ""}" } ?: "nothing can be built here"
         if (Config.s.titles && from?.country != to?.country) {
@@ -234,5 +297,5 @@ object Guard {
         } else p.bar(Msg().apply { if (name == null) muted("Nomansland") else { text(name, Theme.ACCENT); muted("  $detail") } }.out)
     }
 
-    fun forget(p: ServerPlayer) { last.remove(p.stringUUID); Effects.forget(p) }
+    fun forget(p: ServerPlayer) { last.remove(p.stringUUID); lastDenied.remove(p.stringUUID); Effects.forget(p) }
 }

@@ -1,5 +1,6 @@
 package kami.claims
 
+import kami.claims.service.Provinces
 import kami.claims.service.Service
 import kami.claims.service.Upkeep
 import kotlin.test.Test
@@ -23,7 +24,7 @@ class ProvinceTest {
     @Test
     fun percentTaxTransfersFromIncomeToParentTreasury() {
         val (parent, child) = setup()
-        Service.finalizeProvince(child, parent, TaxMode.PERCENT, 0.5)
+        Provinces.finalize(child, parent, TaxMode.PERCENT, 0.5)
         child.treasury = 100
         child.pending = 40
         Upkeep.process(1)
@@ -35,7 +36,7 @@ class ProvinceTest {
     @Test
     fun flatTaxTransfersFixedAmount() {
         val (parent, child) = setup()
-        Service.finalizeProvince(child, parent, TaxMode.FLAT, 15.0)
+        Provinces.finalize(child, parent, TaxMode.FLAT, 15.0)
         child.treasury = 50
         Upkeep.process(1)
         assertEquals(35L, child.treasury)
@@ -45,7 +46,7 @@ class ProvinceTest {
     @Test
     fun missedProvinceTaxAccumulatesDebtWithoutAutoRelease() {
         val (parent, child) = setup()
-        Service.finalizeProvince(child, parent, TaxMode.FLAT, 15.0)
+        Provinces.finalize(child, parent, TaxMode.FLAT, 15.0)
         child.treasury = 0
         repeat(5) { Upkeep.process((it + 1).toLong()) }
         assertEquals(5, child.provinceDebt)
@@ -59,11 +60,11 @@ class ProvinceTest {
         val grand = country("grand")
         val middle = country("middle")
         val leaf = country("leaf")
-        Service.finalizeProvince(leaf, middle, TaxMode.FLAT, 5.0)
+        Provinces.finalize(leaf, middle, TaxMode.FLAT, 5.0)
         assertEquals(middle.id, leaf.parent)
         assertTrue(middle.provinces.contains(leaf.id))
 
-        Service.finalizeProvince(middle, grand, TaxMode.PERCENT, 0.1)
+        Provinces.finalize(middle, grand, TaxMode.PERCENT, 0.1)
         assertEquals(grand.id, middle.parent)
         assertEquals(grand.id, leaf.parent)
         assertTrue(middle.provinces.isEmpty())
@@ -73,7 +74,7 @@ class ProvinceTest {
     @Test
     fun disbandingAParentReleasesItsProvinces() {
         val (parent, child) = setup()
-        Service.finalizeProvince(child, parent, TaxMode.FLAT, 5.0)
+        Provinces.finalize(child, parent, TaxMode.FLAT, 5.0)
         Realm.disband(parent)
         assertNull(child.parent)
         assertEquals(0, child.provinceDebt)
@@ -82,7 +83,7 @@ class ProvinceTest {
     @Test
     fun disbandingAProvinceRemovesItFromParent() {
         val (parent, child) = setup()
-        Service.finalizeProvince(child, parent, TaxMode.FLAT, 5.0)
+        Provinces.finalize(child, parent, TaxMode.FLAT, 5.0)
         Realm.disband(child)
         assertTrue(child.id !in parent.provinces)
     }
@@ -90,7 +91,7 @@ class ProvinceTest {
     @Test
     fun formingAProvinceAutoAlliesMembersAcrossTheFamily() {
         val (parent, child) = setup()
-        Service.finalizeProvince(child, parent, TaxMode.FLAT, 5.0)
+        Provinces.finalize(child, parent, TaxMode.FLAT, 5.0)
         assertEquals(Rank.ALLIED, parent.outsiders["childland_p"])
         assertEquals(Rank.ALLIED, child.outsiders["parentland_p"])
         assertTrue("childland_p" in parent.autoAllies)
@@ -99,7 +100,7 @@ class ProvinceTest {
     @Test
     fun releasingAProvinceRevertsAutoAlliesToNoRole() {
         val (parent, child) = setup()
-        Service.finalizeProvince(child, parent, TaxMode.FLAT, 5.0)
+        Provinces.finalize(child, parent, TaxMode.FLAT, 5.0)
         child.parent = null
         parent.provinces.remove(child.id)
         Realm.syncFamily(child.id)
@@ -114,7 +115,7 @@ class ProvinceTest {
     fun explicitBanIsNotOverriddenByAutoAlly() {
         val (parent, child) = setup()
         parent.outsiders["childland_p"] = Rank.BANISHED
-        Service.finalizeProvince(child, parent, TaxMode.FLAT, 5.0)
+        Provinces.finalize(child, parent, TaxMode.FLAT, 5.0)
         assertEquals(Rank.BANISHED, parent.outsiders["childland_p"])
         assertTrue("childland_p" !in parent.autoAllies)
     }
