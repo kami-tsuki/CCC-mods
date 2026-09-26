@@ -15,16 +15,20 @@ import java.util.UUID
 
 object Feed {
     private val vanilla = setOf("multiplayer.player.joined", "multiplayer.player.joined.renamed", "multiplayer.player.left")
+    private val advancement = "chat.type.advancement."
 
     fun intercept(message: Component): Boolean {
         val contents = message.contents as? TranslatableContents ?: return false
         val joinLeave = contents.key in vanilla
-        if (!joinLeave && !contents.key.startsWith("death.")) return false
+        val death = contents.key.startsWith("death.")
+        val achieved = contents.key.startsWith(advancement)
+        if (!joinLeave && !death && !achieved) return false
         val id = (contents.args.firstOrNull() as? Component)?.style?.hoverEvent?.getValue(HoverEvent.Action.SHOW_ENTITY)?.id
         val hidden = id != null && id in Store.ids(Flag.INVISIBLE)
         return when {
             joinLeave -> Config.s.joinLeave || hidden
-            Config.s.deaths || hidden -> death(message, id)
+            death && (Config.s.deaths || hidden) -> death(message, id)
+            achieved && (Config.s.achievements || hidden) -> achievement(message, id, contents.key)
             else -> false
         }
     }
@@ -40,6 +44,17 @@ object Feed {
     private fun death(message: Component, id: UUID?): Boolean {
         val p = id?.let { ServerLifecycleHooks.getCurrentServer()?.playerList?.getPlayer(it) } ?: return false
         send(p, Component.empty().append(Component.literal("[☠] ").withColor(Theme.MUTED)).append(message.copy().withColor(Theme.TEXT)), null)
+        return true
+    }
+
+    private fun achievement(message: Component, id: UUID?, key: String): Boolean {
+        val p = id?.let { ServerLifecycleHooks.getCurrentServer()?.playerList?.getPlayer(it) } ?: return false
+        val (icon, color) = when {
+            key.endsWith("challenge") -> "[✪]" to Theme.WARN
+            key.endsWith("goal") -> "[◎]" to Theme.ACCENT
+            else -> "[✦]" to Theme.OK
+        }
+        send(p, Component.empty().append(Component.literal("$icon ").withColor(color).withStyle(ChatFormatting.BOLD)).append(message.copy().withColor(Theme.TEXT)), null)
         return true
     }
 

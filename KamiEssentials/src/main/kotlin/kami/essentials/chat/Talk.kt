@@ -18,6 +18,7 @@ import net.minecraft.network.chat.MutableComponent
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
+import net.minecraft.ChatFormatting
 import net.minecraft.world.entity.player.ChatVisiblity
 import net.neoforged.neoforge.event.ServerChatEvent
 import java.util.UUID
@@ -26,9 +27,6 @@ import java.util.concurrent.ConcurrentHashMap
 object Talk {
     val chat = Chat.of("essentials")
     private val partner = ConcurrentHashMap<UUID, UUID>()
-    private const val CH_GLOBAL = "[GC]"
-    private const val CH_COUNTRY = "[CC]"
-    private const val CH_ADMIN = "[AC]"
 
     fun onChat(e: ServerChatEvent) {
         val p = e.player
@@ -40,7 +38,7 @@ object Talk {
             admin -> admin(p, e.rawText)
             country -> country(p, e.rawText)
             Vanish.active(p) -> p.tell(chat.warn("You are invisible, so this was not sent. Use {/invis} to show yourself or {/msg} to whisper."))
-            else -> broadcast(p, line(channelTag(CH_GLOBAL, Theme.MUTED).append(Names.player(p)), e.rawText, p)) { true }
+            else -> broadcast(p, line(channelTag(Config.s.channels.globalIcon, Config.s.channels.globalColor).append(Names.playerGlobal(p)), e.rawText, p)) { true }
         }
     }
 
@@ -72,8 +70,8 @@ object Talk {
         }
         val root = countryRoot(c)
         val rootLabel = c.parent ?: c.name
-        val tag = channelTag(CH_COUNTRY, Names.color(c)).withStyle { it.withHoverEvent(hover("Country chat of $rootLabel (includes provinces)")) }
-        broadcast(p, line(tag.append(Names.name(p)), text, p)) { viewer ->
+        val tag = channelTag(Config.s.channels.countryIcon, Config.s.channels.countryColor).withStyle { it.withHoverEvent(hover("Country chat of $rootLabel (includes provinces)")) }
+        broadcast(p, line(tag.append(Names.playerCountry(p)), text, p)) { viewer ->
             Names.citizenship(viewer.uuid)?.let(::countryRoot) == root
         }
     }
@@ -88,7 +86,7 @@ object Talk {
 
     fun admin(p: ServerPlayer, text: String) {
         if (!Perms.has(p, Perms.ADMINCHAT)) fail("You are not allowed to use admin chat.")
-        val tag = channelTag(CH_ADMIN, Theme.WARN).withStyle { it.withHoverEvent(hover("Admin chat")) }
+        val tag = channelTag(Config.s.channels.adminIcon, Config.s.channels.adminColor).withStyle { it.withHoverEvent(hover("Admin chat")) }
         broadcast(p, line(tag.append(Names.name(p)), text, p)) { Perms.has(it, Perms.ADMINCHAT) }
     }
 
@@ -108,7 +106,10 @@ object Talk {
     private fun line(name: Component, text: String, speaker: ServerPlayer): Component =
         Component.empty().append(name).append(Component.literal(Theme.SEP).withColor(Theme.MUTED)).append(body(text, speaker))
 
-    private fun channelTag(code: String, color: Int): MutableComponent = Component.literal("$code ").withColor(color)
+    private fun channelTag(icon: String, color: Int): MutableComponent = Component.empty()
+        .append(Component.literal("[").withColor(color).withStyle(ChatFormatting.BOLD))
+        .append(Component.literal(icon).withColor(color).withStyle(ChatFormatting.BOLD))
+        .append(Component.literal("] ").withColor(color).withStyle(ChatFormatting.BOLD))
 
     private fun countryRoot(c: Citizenship): String = c.parent?.lowercase() ?: c.country
 

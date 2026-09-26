@@ -30,6 +30,18 @@ object Names {
         return out.append(name(p, hover))
     }
 
+    fun playerGlobal(p: ServerPlayer, hover: Boolean = true): MutableComponent {
+        val out = Component.empty()
+        citizenship(p.uuid)?.let { out.append(countryTag(it, hover)).append(" ") }
+        return out.append(name(p, hover))
+    }
+
+    fun playerCountry(p: ServerPlayer, hover: Boolean = true): MutableComponent {
+        val out = Component.empty()
+        citizenship(p.uuid)?.let { out.append(rankTag(it, hover)).append(" ") }
+        return out.append(name(p, hover))
+    }
+
     fun name(p: ServerPlayer, hover: Boolean = true): MutableComponent {
         val name = Component.literal(p.gameProfile.name).withColor(Theme.VALUE)
         if (!hover) return name
@@ -37,16 +49,32 @@ object Names {
         return name.withStyle { it.withHoverEvent(HoverEvent(HoverEvent.Action.SHOW_TEXT, card)).withClickEvent(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/msg ${p.gameProfile.name} ")) }
     }
 
-    fun tag(c: Citizenship, hover: Boolean = true): MutableComponent {
-        val tag = Component.literal("[${c.name}]").withColor(color(c))
+    fun tag(c: Citizenship, hover: Boolean = true): MutableComponent = countryTag(c, hover)
+
+    fun countryTag(c: Citizenship, hover: Boolean = true): MutableComponent {
+        val label = c.parent ?: c.name
+        val tag = Component.literal("[$label]").withColor(color(c))
         if (!hover) return tag
         val card = lines(
-            c.name to color(c),
-            (c.parent?.let { "Province of $it" } ?: "Independent country") to Theme.TEXT,
+            label to color(c),
+            (c.parent?.let { "Province ${c.name} of $it" } ?: "Independent country") to Theme.TEXT,
             title(c.rank) to Theme.TEXT,
             "Click for country info" to Theme.MUTED
         )
-        return tag.withStyle { it.withHoverEvent(HoverEvent(HoverEvent.Action.SHOW_TEXT, card)).withClickEvent(ClickEvent(ClickEvent.Action.RUN_COMMAND, "/claims info ${c.name}")) }
+        return tag.withStyle { it.withHoverEvent(HoverEvent(HoverEvent.Action.SHOW_TEXT, card)).withClickEvent(ClickEvent(ClickEvent.Action.RUN_COMMAND, "/claims info $label")) }
+    }
+
+    fun rankTag(c: Citizenship, hover: Boolean = true): MutableComponent {
+        val label = title(c.rank)
+        val tag = Component.literal("[$label]").withColor(color(c))
+        if (!hover) return tag
+        val card = lines(
+            label to color(c),
+            (c.parent?.let { "Province rank in ${c.name}" } ?: "Country rank") to Theme.TEXT,
+            "Click for country info" to Theme.MUTED
+        )
+        val target = c.parent ?: c.name
+        return tag.withStyle { it.withHoverEvent(HoverEvent(HoverEvent.Action.SHOW_TEXT, card)).withClickEvent(ClickEvent(ClickEvent.Action.RUN_COMMAND, "/claims info $target")) }
     }
 
     private fun lines(vararg parts: Pair<String, Int>): Component =

@@ -51,6 +51,16 @@ data class InlineStyle(
 )
 
 @Serializable
+data class ChatChannelStyle(
+    val globalIcon: String = "🌐",
+    val countryIcon: String = "🗺",
+    val adminIcon: String = "⏻",
+    val globalColor: Int = Theme.MUTED,
+    val countryColor: Int = Theme.OK,
+    val adminColor: Int = Theme.WARN,
+)
+
+@Serializable
 data class Settings(
     val tradeDistance: Int = 16,
     val tradeConfirmSeconds: Int = 3,
@@ -58,6 +68,7 @@ data class Settings(
     val chat: Boolean = true,
     val joinLeave: Boolean = true,
     val deaths: Boolean = true,
+    val achievements: Boolean = true,
     val tab: Boolean = true,
     val tabTitle: String = "Kami",
     val sidebar: Boolean = true,
@@ -66,6 +77,7 @@ data class Settings(
     val inlineGeneral: InlineGeneral = InlineGeneral(),
     val inlineTokens: InlineTokens = InlineTokens(),
     val inlineStyle: InlineStyle = InlineStyle(),
+    val channels: ChatChannelStyle = ChatChannelStyle(),
 )
 
 private val tokenAlias = Regex("""[a-z0-9_:-]{1,24}""")
@@ -90,6 +102,15 @@ private fun InlineTokens.sane() = copy(
     tps = aliases(tps, InlineTokens().tps),
 )
 
+private fun icon(text: String, fallback: String): String =
+    text.trim().take(4).ifBlank { fallback }
+
+private fun ChatChannelStyle.sane() = copy(
+    globalIcon = icon(globalIcon, ChatChannelStyle().globalIcon),
+    countryIcon = icon(countryIcon, ChatChannelStyle().countryIcon),
+    adminIcon = icon(adminIcon, ChatChannelStyle().adminIcon),
+)
+
 private fun Settings.sane() = copy(
     tradeDistance = tradeDistance.coerceAtLeast(-2),
     tradeConfirmSeconds = tradeConfirmSeconds.coerceIn(0, 30),
@@ -100,6 +121,7 @@ private fun Settings.sane() = copy(
         maxTokensPerMessage = inlineGeneral.maxTokensPerMessage.coerceIn(1, 64)
     ),
     inlineTokens = inlineTokens.sane(),
+    channels = channels.sane(),
 )
 
 object Config {
@@ -117,7 +139,15 @@ object Config {
             mapOf(
                 "chat" to "Show chat with country tags and hover info.",
                 "joinLeave" to "Replace the join and leave messages.",
-                "deaths" to "Replace the death messages."
+                "deaths" to "Replace the death messages.",
+                "achievements" to "Replace advancement and achievement announcements.",
+                "channels" to "Chat channel badge style.",
+                "channels.globalIcon" to "Icon shown in the global chat badge.",
+                "channels.countryIcon" to "Icon shown in the country chat badge.",
+                "channels.adminIcon" to "Icon shown in the admin chat badge.",
+                "channels.globalColor" to "Color of global chat badge.",
+                "channels.countryColor" to "Color of country chat badge.",
+                "channels.adminColor" to "Color of admin chat badge."
             )
         ),
         Section(

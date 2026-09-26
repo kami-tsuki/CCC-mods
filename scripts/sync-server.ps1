@@ -14,7 +14,14 @@ Get-ChildItem (Join-Path $Instance 'mods') -Filter *.jar |
     Copy-Item -Destination $mods
 
 foreach ($folder in 'config', 'defaultconfigs', 'kubejs') {
+    if ($folder -eq 'config') {
+        # Chat Plus config is synced separately so edits on either side are not clobbered.
+        robocopy (Join-Path $Instance $folder) (Join-Path $Server $folder) /MIR /XD chatplus /NFL /NDL /NJH /NJS /NP | Out-Null
+        continue
+    }
     robocopy (Join-Path $Instance $folder) (Join-Path $Server $folder) /MIR /NFL /NDL /NJH /NJS /NP | Out-Null
 }
+
+& (Join-Path $PSScriptRoot 'sync-chatplus.ps1') -Instance $Instance -Server $Server | Out-Null
 
 (Get-ChildItem $mods -Filter *.jar).Count

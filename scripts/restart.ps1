@@ -11,7 +11,7 @@ Get-CimInstance Win32_Process | Where-Object {
 } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 Start-Sleep -Seconds 2 
 
-Write-Host "Syncing server with the client instance (mods, config, kubejs)..."
+Write-Host "Syncing server with the client instance (mods, config, kubejs, chatplus)..."
 & (Join-Path $PSScriptRoot 'sync-server.ps1') -Instance $Instance -Server $Server | Out-Null
 
 if (-not $NoBuild) {
