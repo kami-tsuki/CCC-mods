@@ -1,5 +1,7 @@
 package kami.claims.client.world
 
+import kami.libs.ui.text.trn
+import kami.libs.ui.text.trJson
 import com.mojang.blaze3d.platform.InputConstants
 import kami.claims.client.ClientClaims
 import kami.claims.net.Denied
@@ -76,15 +78,15 @@ object BlockHint {
         Borders.pulse(d.x, d.z)
         val msg = Component.empty()
             .append(Glyphs.component(Glyphs.Glyph.CROSS).withColor(0xF2555A))
-            .append(Component.literal(" ${d.reason}").withColor(0xF4A3A3))
-        if (d.borderDistance > 0) msg.append(Component.literal("  ·  ${d.borderDistance} block${if (d.borderDistance == 1) "" else "s"} past your border").withColor(0xF5A524))
+            .append(Component.literal(" " + trJson(d.reason)).withColor(0xF4A3A3))
+        if (d.borderDistance > 0) msg.append(Component.literal("  ·  ").append(Component.translatable("kami_claims.hud.past_border", trn("kami_claims.unit.block", d.borderDistance))).withColor(0xF5A524))
         mc.gui.setOverlayMessage(msg, false)
         mc.player?.playSound(SoundEvents.NOTE_BLOCK_BASS.value(), 0.4f, 0.6f)
         val prefs = ClientClaims.prefs
         if (prefs.denialTips < 3) {
             prefs.denialTips++
             ClientClaims.savePrefs()
-            mc.player?.displayClientMessage(Component.literal("Tip: borders show up in red when something is blocked. Press B to always show them, or K to open your country screen.").withColor(0xAEB5C1), false)
+            mc.player?.displayClientMessage(Component.translatable("kami_claims.hud.denied_tip", "B", "K").withColor(0xAEB5C1), false)
         }
     }
 }

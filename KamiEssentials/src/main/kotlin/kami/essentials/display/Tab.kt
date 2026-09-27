@@ -1,5 +1,6 @@
 package kami.essentials.display
 
+import kami.libs.text.Text
 import kami.essentials.Config
 import kami.essentials.chat.Names
 import kami.essentials.vanish.Vanish
@@ -35,13 +36,13 @@ object Tab {
     private fun header(): Component = Component.literal("\n  ${Config.s.tabTitle}  \n").withColor(Theme.ACCENT).withStyle(ChatFormatting.BOLD)
 
     private fun footer(server: MinecraftServer, p: ServerPlayer): Component = Component.literal("\n")
-        .append(pair("Online", online(server, p).toString()))
+        .append(pair("kami_essentials.sidebar.online", online(server, p).toString()))
         .append(Component.literal("   ·   ").withColor(Theme.MUTED))
-        .append(pair("Ping", "${p.connection.latency()} ms"))
+        .append(pair("kami_essentials.sidebar.ping", "${p.connection.latency()} ms"))
         .append(Component.literal("   ·   ").withColor(Theme.MUTED))
-        .append(pair("TPS", "%.1f".format(tps(server))))
+        .append(pair("kami_essentials.sidebar.tps", "%.1f".format(tps(server))))
         .append("\n")
 
-    private fun pair(label: String, value: String) =
-        Component.literal("$label ").withColor(Theme.MUTED).append(Component.literal(value).withColor(Theme.VALUE))
+    private fun pair(key: String, value: String) =
+        Component.empty().append(Text.msg(key).withColor(Theme.MUTED)).append(" ").append(Component.literal(value).withColor(Theme.VALUE))
 }

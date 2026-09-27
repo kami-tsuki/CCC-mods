@@ -1,5 +1,6 @@
 package kami.libs.ui.widget
 
+import kami.libs.ui.text.tr
 import kami.libs.ui.core.Cursor
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Tip
@@ -14,6 +15,7 @@ import kami.libs.ui.style.Severity
 import kami.libs.ui.style.Sprites
 import kami.libs.ui.style.TextStyle
 import net.minecraft.client.Minecraft
+import net.minecraft.world.item.ItemStack
 import kotlin.math.max
 import kotlin.math.min
 
@@ -32,7 +34,7 @@ fun Ui.property(r: Rect, label: String, value: String, color: Int = Palette.text
         val c = Rect(r.right - 12, r.y - 1, 12, 12)
         if (hovering(c)) cursor = Cursor.HAND
         Draw.tintedIcon(g, Icons.COPY, c.x - 2, c.y - 2, 16, if (hovering(c)) Palette.text else Palette.textMuted)
-        tooltip("$key:copy", c, "Copy")
+        tooltip("$key:copy", c, tr("kami_libs.common.copy"))
         if (pressed(c) != null) Minecraft.getInstance().keyboardHandler.clipboard = value
     }
     if (shown != value || tip != null) tooltip(key, r, tip ?: value)
@@ -48,25 +50,24 @@ fun Ui.statTile(
     val hover = hover(key, r)
     Draw.sprite(g, if (hover) Sprites.CARD_HOVER else Sprites.CARD, r)
     flashValue?.let { v -> flash(key, v).takeIf { it != 0 }?.let { Draw.fill(g, r.inset(1), it) } }
-    var x = r.x + 6
-    icon?.let { Draw.icon(g, it, x - 1, r.y + 4); x += 16 }
-    Draw.text(g, Draw.fit(label.uppercase(), r.right - x - 4), x, r.y + 8, Palette.textMuted)
-    val big = r.h >= 44
-    val valueY = r.y + 21
-    if (big && Draw.width(value, TextStyle.DISPLAY) <= r.w - 12) Draw.text(g, value, r.x + 6, valueY, TextStyle.DISPLAY, color)
-    else Draw.text(g, Draw.fit(value, r.w - 12), r.x + 6, valueY + 4, TextStyle.HEADING, color)
-    var infoY = valueY + if (big) 20 else 14
+    var x = r.x + 5
+    icon?.let { x += Draw.leadIcon(g, it, x, r.y + 9) }
+    Draw.text(g, Draw.fit(label.uppercase(), r.right - x - 4), x, r.y + 5, Palette.textMuted)
+    val valueY = r.y + if (r.h >= 44) 19 else 17
+    val sparkW = if ((spark?.size ?: 0) >= 2) 46 else 0
+    Draw.text(g, Draw.fit(value, r.w - 10 - sparkW, TextStyle.HEADING), r.x + 5, valueY, TextStyle.HEADING, color)
+    var infoY = valueY + 12
     trend?.let { t ->
         val up = t.delta > 0
         val good = if (t.delta == 0L) null else up == t.goodWhenUp
         val c = when (good) { true -> Palette.success; false -> Palette.danger; null -> Palette.textMuted }
         val glyph = if (t.delta > 0) Glyphs.Glyph.UP else if (t.delta < 0) Glyphs.Glyph.DOWN else Glyphs.Glyph.FLAT
-        val tx = Draw.component(g, Glyphs.component(glyph), r.x + 6, infoY, c)
+        val tx = Draw.component(g, Glyphs.component(glyph), r.x + 5, infoY, c)
         Draw.text(g, Draw.fit(t.label, r.right - tx - 8), tx + 3, infoY, c)
         infoY += 10
     }
-    sub?.let { if (infoY + 8 <= r.bottom - 3) Draw.text(g, Draw.fit(it, r.w - 12), r.x + 6, infoY, Palette.textMuted) }
-    spark?.takeIf { it.size >= 2 }?.let { sparkline(Rect(r.right - 46, r.y + 20, 40, 14), it, color) }
+    sub?.let { if (infoY + 8 <= r.bottom - 3) Draw.text(g, Draw.fit(it, r.w - 10), r.x + 5, infoY, Palette.textMuted) }
+    spark?.takeIf { it.size >= 2 }?.let { sparkline(Rect(r.right - 45, valueY - 2, 40, 12), it, color) }
     tip?.let { t -> tooltip(key, r) { t } }
     if (hover && tip != null) cursor = Cursor.HAND
     return pressed(r) != null
@@ -90,17 +91,19 @@ fun Ui.meter(r: Rect, value: Int, max: Int, severityAt: (Int) -> Severity, label
 }
 
 fun Ui.chip(x: Int, y: Int, label: String, color: Int = Palette.textSecondary, icon: Icon? = null, selected: Boolean = false, removable: Boolean = false, tip: String? = null, key: Any = "chip:$label"): Pair<Int, Boolean> {
-    val w = Draw.width(label) + 10 + (if (icon != null) 12 else 0) + (if (removable) 10 else 0)
+    val w = Draw.width(label) + 10 + (if (icon != null) Draw.ICON_SLOT - 1 else 0) + (if (removable) 10 else 0)
     val r = Rect(x, y, w, 13)
-    Draw.tinted(g, Sprites.CHIP, r, if (selected) Palette.alpha(color, 0x70) else Palette.alpha(color, 0x38))
+    Draw.tinted(g, Sprites.CHIP, r, if (selected) Palette.alpha(color, 0x50) else Palette.alpha(color, 0x24))
+    if (selected) Draw.outline(g, r, Palette.alpha(color, 0x90))
     var tx = x + 5
-    icon?.let { Draw.icon(g, it, tx - 2, y + 1, 10); tx += 12 }
+    icon?.let { tx += Draw.leadIcon(g, it, tx - 1, r.centerY) - 1 }
     Draw.text(g, label, tx, y + 3, if (selected) Palette.text else color)
     var removed = false
     if (removable) {
         val cr = Rect(r.right - 11, y + 2, 9, 9)
         if (hovering(cr)) cursor = Cursor.HAND
         Draw.text(g, "×", cr.x + 1, y + 2, if (hovering(cr)) Palette.text else Palette.textMuted)
+        tooltip("$key:remove", cr, tr("kami_libs.chip.remove.tooltip"))
         removed = pressed(cr) != null
     }
     tooltip(key, r, tip)
@@ -147,7 +150,7 @@ fun Ui.banner(r: Rect, severity: Severity, title: String, body: String? = null, 
         Draw.text(g, Draw.fit(title, textW), r.x + 25, r.y + (r.h - 18) / 2, TextStyle.HEADING, severity.color)
         Draw.text(g, Draw.fit(body, textW), r.x + 25, r.y + (r.h - 18) / 2 + 10, Palette.textSecondary)
     }
-    return action != null && button(Rect(r.right - actionW - 4, r.y + (r.h - 18) / 2, actionW, 18), action, key = "$key:action")
+    return action != null && button(Rect(r.right - actionW - 4, r.y + (r.h - SMALL_H) / 2, actionW, SMALL_H), action, key = "$key:action")
 }
 
 fun Ui.callout(r: Rect, severity: Severity, text: String): Int {
@@ -160,13 +163,12 @@ fun Ui.callout(r: Rect, severity: Severity, text: String): Int {
     return h
 }
 
-fun calloutHeight(width: Int, text: String) = Draw.paragraphHeight(text, width - 24) + 8
-
 fun iconFor(severity: Severity) = when (severity) {
     Severity.SUCCESS -> Icons.CHECK
     Severity.WARNING -> Icons.WARNING
     Severity.DANGER -> Icons.DANGER
-    else -> Icons.INFO
+    Severity.INFO -> Icons.INFO
+    Severity.NEUTRAL -> Icons.HELP
 }
 
 class Step(val label: String, val detail: String, val state: StepState)
@@ -219,9 +221,8 @@ fun Ui.avatar(id: String, x: Int, y: Int, size: Int = 12, online: Boolean? = nul
 
 fun Ui.attention(r: Rect, active: Boolean) {
     if (!active) return
-    val a = (0x40 + 0xBF * pulse()).toInt()
+    val a = (0x50 + 0x8F * pulse()).toInt()
     Draw.outline(g, r.grow(1), Palette.alpha(Palette.warning, a))
-    Draw.outline(g, r.grow(2), Palette.alpha(Palette.warning, a / 3))
 }
 
 fun Ui.legendItem(x: Int, y: Int, color: Int, label: String, hatched: Boolean = false): Int {
@@ -244,4 +245,18 @@ fun Ui.bars(r: Rect, values: List<Pair<String, Double>>, color: (Int) -> Int, fo
         Draw.fill(g, track.withWidth((track.w * (v / top)).toInt().coerceAtLeast(if (v > 0) 1 else 0)), color(i))
         Draw.textRight(g, valueText, r.right, y + 1, Palette.textMuted)
     }
+}
+
+fun Ui.itemSlot(r: Rect, stack: ItemStack, count: String? = null, selected: Boolean = false, enabled: Boolean = true, key: Any = "slot:${r.x}:${r.y}"): Boolean {
+    val hover = hover(key, r)
+    panel(r, sunken = true)
+    if (hover && enabled) Draw.fill(g, r.inset(1), Palette.alpha(0xFFFFFF, 0x1C))
+    if (selected) Draw.outline(g, r, Palette.brass)
+    val x = r.x + (r.w - 16) / 2
+    val y = r.y + (r.h - 16) / 2
+    g.renderItem(stack, x, y)
+    g.renderItemDecorations(Draw.font, stack, x, y, count)
+    if (hover && !stack.isEmpty) overlay(5) { g.renderTooltip(Draw.font, stack, mouseX, mouseY) }
+    if (hover && enabled) cursor = Cursor.HAND
+    return enabled && pressed(r) != null
 }

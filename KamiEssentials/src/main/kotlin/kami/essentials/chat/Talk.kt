@@ -1,5 +1,7 @@
 package kami.essentials.chat
 
+import kami.libs.text.Text
+import kami.libs.text.Phrase
 import kami.essentials.Config
 import kami.essentials.Flag
 import kami.essentials.KamiEssentials
@@ -37,16 +39,16 @@ object Talk {
         when {
             admin -> admin(p, e.rawText)
             country -> country(p, e.rawText)
-            Vanish.active(p) -> p.tell(chat.warn("You are invisible, so this was not sent. Use {/invis} to show yourself or {/msg} to whisper."))
+            Vanish.active(p) -> p.tell(chat.warn(Phrase.of("kami_essentials.talk.invisible", Phrase.value("/invis"), Phrase.value("/msg"))))
             else -> broadcast(p, line(channelTag(Config.s.channels.globalIcon, Config.s.channels.globalColor).append(Names.playerGlobal(p)), e.rawText, p)) { true }
         }
     }
 
     fun direct(from: ServerPlayer?, to: ServerPlayer, text: String) {
-        if (from === to) fail("Talking to yourself? Try someone else.")
-        val sender = from?.let { Names.player(it) } ?: Component.literal("Server").withColor(Theme.ACCENT)
-        val you = Component.literal("you").withColor(Theme.MUTED)
-        to.tell(dm(sender, you, text, from).withStyle { it.withClickEvent(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/r ")).withHoverEvent(hover("Click to reply")) })
+        if (from === to) fail(Phrase.of("kami_essentials.talk.self"))
+        val sender = from?.let { Names.player(it) } ?: Text.msg("kami_essentials.talk.server").withColor(Theme.ACCENT)
+        val you = Text.msg("kami_essentials.talk.you").withColor(Theme.MUTED)
+        to.tell(dm(sender, you, text, from).withStyle { it.withClickEvent(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/r ")).withHoverEvent(hover(Phrase.of("kami_essentials.talk.reply"))) })
         to.playNotifySound(SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.4f, 1.6f)
         from?.tell(dm(you, Names.player(to), text, from))
         KamiEssentials.LOG.info("{} -> {}: {}", from?.gameProfile?.name ?: "Server", to.gameProfile.name, text)
@@ -58,7 +60,7 @@ object Talk {
 
     fun reply(from: ServerPlayer, text: String) {
         val to = partner[from.uuid]?.let(from.server.playerList::getPlayer)?.takeUnless { Vanish.hides(it, from) }
-            ?: fail("Nobody to reply to. Use {/msg <player> <text>} first.")
+            ?: fail(Phrase.of("kami_essentials.talk.no_partner", Phrase.value("/msg <player> <text>")))
         direct(from, to, text)
     }
 
@@ -66,36 +68,36 @@ object Talk {
         val c = Names.citizenship(p.uuid)
         if (c == null) {
             Store[Flag.COUNTRY_CHAT, p.uuid] = false
-            return p.tell(chat.warn("You are not in a country, so country chat is off now."))
+            return p.tell(chat.warn(Phrase.of("kami_essentials.talk.country.lost")))
         }
         val root = countryRoot(c)
         val rootLabel = c.parent ?: c.name
-        val tag = channelTag(Config.s.channels.countryIcon, Config.s.channels.countryColor).withStyle { it.withHoverEvent(hover("Country chat of $rootLabel (includes provinces)")) }
+        val tag = channelTag(Config.s.channels.countryIcon, Config.s.channels.countryColor).withStyle { it.withHoverEvent(hover(Phrase.of("kami_essentials.talk.country.tooltip", rootLabel))) }
         broadcast(p, line(tag.append(Names.playerCountry(p)), text, p)) { viewer ->
             Names.citizenship(viewer.uuid)?.let(::countryRoot) == root
         }
     }
 
     fun toggleCountry(p: ServerPlayer) {
-        val c = Names.citizenship(p.uuid) ?: fail("You are not in a country.")
+        val c = Names.citizenship(p.uuid) ?: fail(Phrase.of("kami_essentials.talk.no_country"))
         val on = !Store[Flag.COUNTRY_CHAT, p.uuid]
         Store[Flag.COUNTRY_CHAT, p.uuid] = on
         if (on && Store[Flag.ADMIN_CHAT, p.uuid]) Store[Flag.ADMIN_CHAT, p.uuid] = false
-        p.tell(if (on) chat.ok("Country chat on. Your messages go to {${c.name}} only.") else chat.ok("Country chat off. Your messages go to everyone."))
+        p.tell(if (on) chat.ok(Phrase.of("kami_essentials.talk.country.on", Phrase.value(c.name))) else chat.ok(Phrase.of("kami_essentials.talk.country.off")))
     }
 
     fun admin(p: ServerPlayer, text: String) {
-        if (!Perms.has(p, Perms.ADMINCHAT)) fail("You are not allowed to use admin chat.")
-        val tag = channelTag(Config.s.channels.adminIcon, Config.s.channels.adminColor).withStyle { it.withHoverEvent(hover("Admin chat")) }
+        if (!Perms.has(p, Perms.ADMINCHAT)) fail(Phrase.of("kami_essentials.talk.admin.denied"))
+        val tag = channelTag(Config.s.channels.adminIcon, Config.s.channels.adminColor).withStyle { it.withHoverEvent(hover(Phrase.of("kami_essentials.talk.admin.tooltip"))) }
         broadcast(p, line(tag.append(Names.name(p)), text, p)) { Perms.has(it, Perms.ADMINCHAT) }
     }
 
     fun toggleAdmin(p: ServerPlayer) {
-        if (!Perms.has(p, Perms.ADMINCHAT)) fail("You are not allowed to use admin chat.")
+        if (!Perms.has(p, Perms.ADMINCHAT)) fail(Phrase.of("kami_essentials.talk.admin.denied"))
         val on = !Store[Flag.ADMIN_CHAT, p.uuid]
         Store[Flag.ADMIN_CHAT, p.uuid] = on
         if (on && Store[Flag.COUNTRY_CHAT, p.uuid]) Store[Flag.COUNTRY_CHAT, p.uuid] = false
-        p.tell(if (on) chat.ok("Admin chat on. Your messages go to online admins only.") else chat.ok("Admin chat off. Your messages go to everyone."))
+        p.tell(if (on) chat.ok(Phrase.of("kami_essentials.talk.admin.on")) else chat.ok(Phrase.of("kami_essentials.talk.admin.off")))
     }
 
     private fun broadcast(from: ServerPlayer, line: Component, to: (ServerPlayer) -> Boolean) {
@@ -123,5 +125,5 @@ object Talk {
 
     private fun body(text: String, speaker: ServerPlayer?): Component = speaker?.let { InlineFeatures.render(it, text) } ?: Component.literal(text).withColor(Theme.TEXT)
 
-    private fun hover(text: String) = HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(text).withColor(Theme.TEXT))
+    private fun hover(text: Phrase) = HoverEvent(HoverEvent.Action.SHOW_TEXT, text.component().withColor(Theme.TEXT))
 }

@@ -76,10 +76,10 @@ class UpkeepTest {
     @Test
     fun claimsMustConnectAndRespectReservations() {
         val c = setup(0, 0)
-        assertTrue(Service.claimError(c, Key(dim, 50, 0), "civic")!!.contains("connect"))
+        assertEquals("kami_claims.block.not_connected", Service.claimError(c, Key(dim, 50, 0), "civic")!!.key)
         Realm.data.reserves += Reserve(dim, 9, 1, "other", now() + 60_000)
-        assertTrue(Service.claimError(c, Key(dim, 9, 1), "civic")!!.contains("reserved"))
-        assertTrue(Service.claimError(c, Key(dim, 9, 0), "civic")!!.contains("treasury"))
+        assertEquals("kami_claims.block.reserved", Service.claimError(c, Key(dim, 9, 1), "civic")!!.key)
+        assertEquals("kami_claims.block.treasury", Service.claimError(c, Key(dim, 9, 0), "civic")!!.key)
         c.treasury = 1
         assertNull(Service.claimError(c, Key(dim, 9, 0), "civic"))
     }
@@ -89,8 +89,8 @@ class UpkeepTest {
         val c = setup(10, 40)
         val sum = Upkeep.summary(c)
         assertEquals(10L, sum.upkeep)
-        assertEquals("4 days", sum.runway(c.treasury))
-        assertEquals("stable", Upkeep.Summary(1, 1, 0).runway(5))
+        assertEquals("4", sum.runway(c.treasury).args.single().text)
+        assertEquals("kami_claims.runway.stable", Upkeep.Summary(1, 1, 0).runway(5).key)
     }
 
     @Test

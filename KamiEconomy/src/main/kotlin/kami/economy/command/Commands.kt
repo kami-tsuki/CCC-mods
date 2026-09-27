@@ -1,5 +1,6 @@
 package kami.economy.command
 
+import kami.libs.text.Phrase
 import com.mojang.brigadier.arguments.LongArgumentType
 import kami.economy.Market
 import kami.economy.net.Net
@@ -21,7 +22,7 @@ object EconomyCommands {
                 lit("resolve").then(
                     arg("id", LongArgumentType.longArg()).does { ctx ->
                         val id = LongArgumentType.getLong(ctx, "id")
-                        if (Market.data.frozen.remove(id)) ctx.ok("Frozen trade {$id} cleared.") else ctx.warn("No frozen trade with id {$id}.")
+                        if (Market.data.frozen.remove(id)) ctx.ok(Phrase.of("kami_economy.command.frozen.cleared", Phrase.value(id))) else ctx.warn(Phrase.of("kami_economy.command.frozen.unknown", Phrase.value(id)))
                     }
                 )
             )

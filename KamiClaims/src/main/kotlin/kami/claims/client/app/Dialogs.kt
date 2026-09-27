@@ -1,9 +1,9 @@
 package kami.claims.client.app
 
+import kami.libs.ui.text.tr
 import kami.claims.client.store.ClaimsStore
 import kami.libs.ui.app.Dialog
 import kami.libs.ui.app.DialogKind
-import kami.libs.ui.app.DialogScope
 import kami.libs.ui.app.dialogButtons
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Ui
@@ -13,12 +13,10 @@ import kami.libs.ui.style.Icon
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
-import kami.libs.ui.style.TextStyle
 import kami.libs.ui.widget.CONTROL_H
 import kami.libs.ui.widget.NumberState
 import kami.libs.ui.widget.TextState
 import kami.libs.ui.widget.button
-import kami.libs.ui.widget.callout
 import kami.libs.ui.widget.fieldHelp
 import kami.libs.ui.widget.fieldLabel
 import kami.libs.ui.widget.numberField
@@ -37,8 +35,8 @@ fun Ui.consequences(x: Int, y: Int, w: Int, items: List<Consequence>): Int {
             Severity.SUCCESS -> Icons.CHECK
             else -> Icons.CHEVRON_RIGHT
         }
-        Draw.icon(g, bullet, x, cy - 3, 12)
-        cy += Draw.paragraph(g, c.text, x + 16, cy, w - 16, color) + 3
+        val indent = Draw.leadIcon(g, bullet, x, cy + Draw.LINE / 2 - 1) + 2
+        cy += Draw.paragraph(g, c.text, x + indent, cy, w - indent, color) + 3
     }
     return cy - y
 }
@@ -53,14 +51,14 @@ object Dialogs {
             var y = s.body.y
             y += consequences(s.body.x, y, s.body.w, items) + 4
             if (typed != null) {
-                fieldLabel(Rect(s.body.x, y, s.body.w, 9), "Type $typed")
+                fieldLabel(Rect(s.body.x, y, s.body.w, 9), tr("kami_claims.dialog.type_to_confirm", typed))
                 y += 11
                 textField(Rect(s.body.x, y, s.body.w, CONTROL_H), typedState, typed, key = "typed-confirm", autoFocus = true)
                 y += CONTROL_H + 4
             }
             s.used = y - s.body.y
             val ready = typed == null || typedState.text.equals(typed, true)
-            dialogButtons(s, primary, ready, "Type required", hold = hold, primaryStyle = if (danger) kami.libs.ui.widget.ButtonStyle.DANGER else kami.libs.ui.widget.ButtonStyle.PRIMARY) {
+            dialogButtons(s, primary, ready, tr("kami_claims.dialog.type_required", typed ?: ""), hold = hold, primaryStyle = if (danger) kami.libs.ui.widget.ButtonStyle.DANGER else kami.libs.ui.widget.ButtonStyle.PRIMARY) {
                 ClaimsStore.send(name, *args, key = name)
                 after()
                 s.close()
@@ -70,34 +68,34 @@ object Dialogs {
 
     fun money(app: ClaimsApp, deposit: Boolean, suggested: Long = 10) {
         val amount = NumberState(suggested.coerceAtLeast(1))
-        app.open(Dialog(if (deposit) "Deposit" else "Withdraw", "Treasury", if (deposit) Icons.DEPOSIT else Icons.WITHDRAW) { s ->
+        app.open(Dialog(tr(if (deposit) "kami_claims.money.deposit" else "kami_claims.money.withdraw"), tr("kami_claims.kpi.treasury"), if (deposit) Icons.DEPOSIT else Icons.WITHDRAW) { s ->
             val snap = ClaimsStore.snap ?: return@Dialog
             val info = snap.info ?: return@Dialog
             val max = if (deposit) snap.funds else info.treasury
             var y = s.body.y
-            property(Rect(s.body.x, y, s.body.w, 11), "Treasury", Format.money(info.treasury), Palette.money); y += 12
-            property(Rect(s.body.x, y, s.body.w, 11), "You carry", Format.money(snap.funds), Palette.money); y += 16
-            fieldLabel(Rect(s.body.x, y, s.body.w, 9), "Amount"); y += 11
+            property(Rect(s.body.x, y, s.body.w, 11), tr("kami_claims.kpi.treasury"), Format.money(info.treasury), Palette.money); y += 12
+            property(Rect(s.body.x, y, s.body.w, 11), tr("kami_claims.kpi.funds"), Format.money(snap.funds), Palette.money); y += 16
+            fieldLabel(Rect(s.body.x, y, s.body.w, 9), tr("kami_claims.money.amount")); y += 11
             numberField(Rect(s.body.x, y, s.body.w - 96, CONTROL_H), amount, 1, max.coerceAtLeast(1), unit = "◎", key = "amount")
             val quick = Rect(s.body.right - 92, y, 92, CONTROL_H).columns(3, 2)
-            listOf(10L, 100L).forEachIndexed { i, v -> if (button(quick[i], v.toString(), key = "q$v")) amount.commit(v.coerceAtMost(max)) }
-            if (button(quick[2], "Max", key = "qmax")) amount.commit(max.coerceAtLeast(1))
+            listOf(10L, 100L).forEachIndexed { i, v -> if (button(quick[i], Format.number(v), key = "q$v")) amount.commit(v.coerceAtMost(max)) }
+            if (button(quick[2], tr("kami_libs.field.max"), key = "qmax")) amount.commit(max.coerceAtLeast(1))
             y += CONTROL_H + 2
-            val runway = if (deposit && info.upkeep + info.jobs > info.income) " Runway ${(info.treasury + amount.value) / (info.upkeep + info.jobs - info.income)}d." else ""
-            fieldHelp(Rect(s.body.x, y, s.body.w, 9), amount.text, if (deposit) "Source: bank then inventory.$runway" else "Logged in treasury ledger.")
+            val spend = info.upkeep + info.jobs - info.income
+            val help = when {
+                !deposit -> tr("kami_claims.money.withdraw.desc")
+                spend > 0 -> tr("kami_claims.money.deposit.desc_runway", Format.days((info.treasury + amount.value) / spend))
+                else -> tr("kami_claims.money.deposit.desc")
+            }
+            fieldHelp(Rect(s.body.x, y, s.body.w, 9), amount.text, help)
             y += 14
-            if (!deposit) y += callout(Rect(s.body.x, y, s.body.w, 0), Severity.INFO, "Destination: bank or inventory.") + 4
             s.used = y - s.body.y
             val valid = amount.text.error == null && amount.value in 1..max
-            dialogButtons(s, if (deposit) "Deposit ${Format.money(amount.value)}" else "Withdraw ${Format.money(amount.value)}", valid, if (max <= 0) (if (deposit) "No coins available" else "Treasury is empty") else "Use 1-${Format.number(max)}") {
+            val reason = if (max <= 0) tr(if (deposit) "kami_claims.money.disabled.no_coins" else "kami_claims.money.disabled.empty") else tr("kami_claims.money.disabled.range", Format.number(max))
+            dialogButtons(s, tr(if (deposit) "kami_claims.money.deposit.action" else "kami_claims.money.withdraw.action", Format.money(amount.value)), valid, reason) {
                 ClaimsStore.send(if (deposit) "deposit" else "withdraw", amount.value.toString())
                 s.close()
             }
         })
-    }
-
-    fun heading(ui: Ui, s: DialogScope, y: Int, text: String, color: Int = Palette.text): Int {
-        Draw.text(ui.g, text, s.body.x, y, TextStyle.HEADING, color)
-        return 12
     }
 }

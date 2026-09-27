@@ -5,8 +5,11 @@ import kami.claims.economy.Bank
 import kami.claims.economy.Treasury
 import kami.claims.social.Mail
 import kami.libs.chat.Tone
-import kami.libs.chat.plural
-import kami.libs.chat.spur
+import kami.claims.service.Words.chunks
+import kami.claims.service.Words.money
+import kami.claims.service.Words.num
+import kami.claims.service.Words.v
+import kami.libs.text.Phrase
 
 import net.minecraft.server.MinecraftServer
 import java.util.UUID
@@ -66,7 +69,7 @@ object Upkeep {
         if (c.members.values.none { it.rank == Rank.CHANCELLOR }) {
             c.members.entries.filter { it.value !== heir.value && it.value.rank != Rank.BANISHED }.sortedWith(seniority()).firstOrNull()?.value?.rank = Rank.CHANCELLOR
         }
-        Mail.broadcast(c, "The president was inactive, so the presidency passed on.")
+        Mail.broadcast(c, Phrase.of("kami_claims.mail.succession"))
     }
 
     private fun expire(c: Country) {
@@ -89,8 +92,8 @@ object Upkeep {
                     cl.owner = null
                     cl.roles.clear()
                     cl.lapse = 0
-                    Mail.direct(owner, "You lost your plot, the tax was not paid.", Tone.BAD)
-                } else Mail.direct(owner, "Your plot tax of {${spur(tax)}} could not be paid.", Tone.BAD)
+                    Mail.direct(owner, Phrase.of("kami_claims.mail.plot_lost"), Tone.BAD)
+                } else Mail.direct(owner, Phrase.of("kami_claims.mail.plot_tax_unpaid", money(tax)), Tone.BAD)
             }
         }
         Treasury.move(c, LedgerKind.PLOT_TAX, income)
@@ -119,8 +122,8 @@ object Upkeep {
             (!it.capital && Realm.removable(it)).also { ok -> if (ok) Realm.unclaim(it, true) }
         }
         val indebt = Realm.claims(c.id).count { it.debt > 0 }
-        if (lost > 0) Mail.broadcast(c, "{${plural(lost, "chunk")}} lost to debt, they are nomansland now.", Tone.BAD)
-        if (indebt > 0) Mail.broadcast(c, "{${plural(indebt, "chunk")}} in debt. Deposit coins into the treasury.", Tone.WARN)
+        if (lost > 0) Mail.broadcast(c, Phrase.of("kami_claims.mail.debt_lost", chunks(lost)), Tone.BAD)
+        if (indebt > 0) Mail.broadcast(c, Phrase.of("kami_claims.mail.debt", chunks(indebt)), Tone.WARN)
     }
 
     private fun provinceTax(c: Country, income: Long) {
@@ -137,8 +140,8 @@ object Upkeep {
         } else {
             c.provinceDebt++
             val urgent = c.provinceDebt >= s.maxProvinceDebt
-            Mail.officers(c, "Could not pay {${spur(owed)}} tribute to {${parent.name}}. Missed payments: {${c.provinceDebt}}.", Tone.BAD)
-            Mail.officers(parent, if (urgent) "{${c.name}} missed tribute {${c.provinceDebt}} times. Release them or forgive the debt." else "{${c.name}} could not pay {${spur(owed)}} tribute. Missed payments: {${c.provinceDebt}}.", Tone.BAD)
+            Mail.officers(c, Phrase.of("kami_claims.mail.tribute_unpaid", money(owed), v(parent.name), num(c.provinceDebt)), Tone.BAD)
+            Mail.officers(parent, if (urgent) Phrase.of("kami_claims.mail.tribute_urgent", v(c.name), num(c.provinceDebt)) else Phrase.of("kami_claims.mail.tribute_missed", v(c.name), money(owed), num(c.provinceDebt)), Tone.BAD)
         }
     }
 
@@ -155,14 +158,14 @@ object Upkeep {
             if (def.pay <= budget && def.pay <= c.treasury && Bank.give(UUID.fromString(id), def.pay)) {
                 Treasury.move(c, LedgerKind.JOB_PAY, -def.pay.toLong(), id, name)
                 budget -= def.pay
-                Mail.direct(id, "Paid {${spur(def.pay)}} for your work as {$name}.", Tone.OK)
-            } else Mail.direct(id, "The treasury could not pay your {$name} wage.", Tone.BAD)
+                Mail.direct(id, Phrase.of("kami_claims.mail.wage_paid", money(def.pay), Words.job(name)), Tone.OK)
+            } else Mail.direct(id, Phrase.of("kami_claims.mail.wage_unpaid", Words.job(name)), Tone.BAD)
         }
     }
 
     class Summary(val upkeep: Long, val income: Long, val jobs: Long) {
         private val net get() = upkeep + jobs - income
-        fun runway(treasury: Long) = if (net <= 0) "stable" else "${treasury / net} days"
+        fun runway(treasury: Long): Phrase = if (net <= 0) Phrase.of("kami_claims.runway.stable") else Words.days(treasury / net)
     }
 
     fun summary(c: Country): Summary {

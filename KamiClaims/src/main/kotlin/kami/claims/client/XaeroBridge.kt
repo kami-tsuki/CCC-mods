@@ -1,5 +1,6 @@
 package kami.claims.client
 
+import kami.claims.client.app.Vocabulary
 import kami.claims.service.View
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceKey
@@ -29,7 +30,11 @@ class KamiHighlighter : ChunkHighlighter(true) {
     private fun describe(e: View.Entry): Component {
         val country = ClientClaims.country(e)?.name ?: "?"
         val type = ClientClaims.typeName(e)
-        return Component.literal("§6$country" + (type?.let { " §7- $it" } ?: "") + if (e.flags and View.CLAIMABLE != 0) " §a(free plot)" else if (e.flags and View.MINE != 0) " §e(your plot)" else "")
+        val out = Component.literal(country).withColor(0xFFAA00)
+        type?.let { out.append(Component.literal(" - " + Vocabulary.type(it).label).withColor(0xAAAAAA)) }
+        if (e.flags and View.CLAIMABLE != 0) out.append(Component.literal(" (").append(Component.translatable("kami_claims.map.chunk.claimable")).append(")").withColor(0x55FF55))
+        else if (e.flags and View.MINE != 0) out.append(Component.literal(" (").append(Component.translatable("kami_claims.map.chunk.mine")).append(")").withColor(0xFFFF55))
+        return out
     }
 
     override fun regionHasHighlights(dim: ResourceKey<Level>, regionX: Int, regionZ: Int) = on() && ClientClaims.regionHash(name(dim), regionX, regionZ) != 0

@@ -1,5 +1,7 @@
 package kami.libs.ui.widget
 
+import kami.libs.ui.style.Format
+import kami.libs.ui.text.tr
 import kami.libs.ui.core.Cursor
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Tip
@@ -13,16 +15,16 @@ import kami.libs.ui.style.TextStyle
 import kami.libs.ui.style.UiSound
 
 enum class ButtonStyle(val look: Sprites.Look, val text: () -> Int) {
-    PRIMARY(Sprites.Look.PRIMARY, { Palette.textInverse }),
+    PRIMARY(Sprites.Look.PRIMARY, { Palette.text }),
     SECONDARY(Sprites.Look.SECONDARY, { Palette.text }),
     DANGER(Sprites.Look.DANGER, { Palette.text }),
     GHOST(Sprites.Look.GHOST, { Palette.textSecondary })
 }
 
-const val CONTROL_H = 20
+const val CONTROL_H = 18
 const val SMALL_H = 16
 
-fun buttonWidth(label: String, icon: Icon? = null) = Draw.width(label) + (if (icon != null) 20 else 0) + 16
+fun buttonWidth(label: String, icon: Icon? = null) = Draw.width(label) + (if (icon != null) Draw.ICON_SLOT else 0) + 14
 
 fun Ui.button(
     r: Rect, label: String, icon: Icon? = null, style: ButtonStyle = ButtonStyle.SECONDARY, enabled: Boolean = true,
@@ -36,16 +38,15 @@ fun Ui.button(
     if (usable && pressed(r) != null) active = id
     Draw.sprite(g, style.look.of(hover && usable, pressedNow, usable), r)
     val color = if (usable) style.text() else Palette.textDisabled
-    val iconSize = if (r.h <= CONTROL_H) 14 else 16
-    val iconSlot = if (icon != null || pending) (iconSize + 2) else 0
+    val iconSlot = if (icon != null || pending) (if (label.isEmpty()) Draw.ICON - 4 else Draw.ICON_SLOT) else 0
     val content = iconSlot + Draw.width(label)
-    var x = r.x + (r.w - content) / 2
-    val shift = if (pressedNow) 1 else 0
-    if (pending) spinner(x, r.centerY - 4 + shift, color)
-    else if (icon != null) Draw.icon(g, icon, x, r.y + (r.h - iconSize) / 2 + shift, iconSize)
-    if (icon != null || pending) x += iconSlot
-    if (label.isNotEmpty()) Draw.text(g, Draw.fit(label, r.w - 8 - (x - r.x)), x, r.y + (r.h - 8) / 2 + shift, TextStyle.BODY, color)
-    if (!enabled && disabledReason != null) tooltip(key, r) { Tip.disabled(disabledReason) } else tooltip(key, r, tip)
+    var x = r.x + maxOf(2, (r.w - content) / 2)
+    if (pending) spinner(x, r.centerY - 4, color)
+    else if (icon != null) Draw.leadIcon(g, icon, x, r.centerY, if (usable) null else Palette.alpha(0xFFFFFF, 0x60))
+    x += iconSlot
+    val shown = Draw.fit(label, r.w - 6 - (x - r.x))
+    if (label.isNotEmpty()) Draw.text(g, shown, x, r.y + (r.h - 8) / 2, TextStyle.BODY, color)
+    controlTip(key, r, enabled, disabledReason, tip ?: label.takeIf { it != shown })
     focusRing(key, r)
     val released = active == id && released() != null
     if (released) active = null
@@ -61,10 +62,11 @@ fun Ui.iconButton(r: Rect, icon: Icon, tip: String, enabled: Boolean = true, sel
     if (enabled && pressed(r) != null) active = id
     val look = if (selected) Sprites.Look.SECONDARY else Sprites.Look.GHOST
     Draw.sprite(g, look.of(hover && enabled, active == id && isDown(), enabled), r)
-    if (selected) Draw.fill(g, r.bottom(2).inset(3, 0), Palette.brass)
-    val size = if (r.h <= CONTROL_H) 14 else 16
-    if (enabled) Draw.icon(g, icon, r, size) else Draw.tintedIcon(g, icon, r.x + (r.w - size) / 2, r.y + (r.h - size) / 2, size, Palette.alpha(0xFFFFFF, 0x60))
-    if (!enabled && disabledReason != null) tooltip(key, r) { Tip.disabled(disabledReason) } else tooltip(key, r, tip)
+    if (selected) Draw.hline(g, r.x + 2, r.bottom - 1, r.w - 4, Palette.brass)
+    val x = r.x + (r.w - Draw.ICON) / 2
+    val y = r.y + (r.h - Draw.ICON) / 2
+    if (enabled) Draw.icon(g, icon, x, y) else Draw.tintedIcon(g, icon, x, y, Draw.ICON, Palette.alpha(0xFFFFFF, 0x60))
+    controlTip(key, r, enabled, disabledReason, tip)
     focusRing(key, r)
     val released = active == id && released() != null
     if (released) active = null
@@ -83,11 +85,10 @@ fun Ui.holdButton(r: Rect, label: String, holdMs: Long = 1500, enabled: Boolean 
     if (!holding) state[0] = 0L
     val progress = if (state[0] == 0L) 0f else ((now - state[0]).toFloat() / holdMs).coerceIn(0f, 1f)
     Draw.sprite(g, Sprites.Look.DANGER.of(hover && enabled, holding, enabled), r)
-    if (progress > 0f) Draw.fill(g, Rect(r.x + 2, r.y + 2, ((r.w - 4) * progress).toInt(), r.h - 4), Palette.alpha(0xFFFFFF, 0x40))
-    val text = if (holding) "Keep holding…" else label
+    if (progress > 0f) Draw.fill(g, Rect(r.x + 1, r.y + 1, ((r.w - 2) * progress).toInt(), r.h - 2), Palette.alpha(0xFFFFFF, 0x28))
+    val text = if (holding) tr("kami_libs.common.keep_holding") else label
     Draw.textCentered(g, Draw.fit(text, r.w - 8), r, if (enabled) Palette.text else Palette.textDisabled)
-    if (!enabled && disabledReason != null) tooltip(key, r) { Tip.disabled(disabledReason) }
-    else tooltip(key, r) { Tip("Hold to confirm", listOf("Press and hold for ${holdMs / 1000.0}s. Release early to cancel." to Palette.textSecondary)) }
+    controlTip(key, r, enabled, disabledReason, tr("kami_libs.common.hold_to_confirm.tooltip", Format.decimal(holdMs / 1000.0)))
     if (released() != null && active == id) active = null
     if (progress >= 1f) {
         state[0] = 0L
@@ -120,9 +121,24 @@ fun Ui.spinner(x: Int, y: Int, color: Int = Palette.text) {
 
 fun Ui.keycap(x: Int, y: Int, label: String): Int {
     val w = Draw.width(label) + 6
-    Draw.sprite(g, Sprites.KEYCAP, Rect(x, y, w, 12))
-    Draw.text(g, label, x + 3, y + 2, Palette.text)
+    Draw.sprite(g, Sprites.KEYCAP, Rect(x, y, w, 11))
+    Draw.text(g, label, x + 3, y + 2, Palette.textSecondary)
     return w
 }
 
-fun Ui.closeButton(r: Rect, key: Any = "close") = iconButton(r, Icons.CLOSE, "Close  [Esc]", key = key)
+fun Ui.closeButton(r: Rect, key: Any = "close") = iconButton(r, Icons.CLOSE, tr("kami_libs.common.close.tooltip"), key = key)
+
+fun Ui.controlTip(key: Any, r: Rect, enabled: Boolean, disabledReason: String?, tip: String?) {
+    if (!enabled && disabledReason != null) tooltip(key, r) { Tip.disabled(disabledReason) }
+    else if (!tip.isNullOrEmpty()) tooltip(key, r, tip)
+}
+
+fun Ui.pager(r: Rect, page: Int, pages: Int, key: Any = "pager"): Int? {
+    val prev = r.left(r.h)
+    val next = r.right(r.h)
+    var result: Int? = null
+    if (iconButton(prev, Icons.BACK, tr("kami_libs.pager.prev.tooltip"), enabled = page > 0, key = "$key:prev")) result = page - 1
+    if (iconButton(next, Icons.FORWARD, tr("kami_libs.pager.next.tooltip"), enabled = page < pages - 1, key = "$key:next")) result = page + 1
+    Draw.textCentered(g, tr("kami_libs.pager.label", page + 1, pages.coerceAtLeast(1)), Rect(prev.right, r.y, next.x - prev.right, r.h), Palette.textSecondary)
+    return result
+}

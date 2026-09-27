@@ -1,5 +1,6 @@
 package kami.libs.ui.app
 
+import kami.libs.ui.text.tr
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
@@ -54,10 +55,10 @@ class Dialog(
 
     fun draw(ui: Ui, screen: Rect) {
         staleReason = stale()
-        val headerH = if (subtitle != null) 32 else 22
+        val headerH = if (subtitle != null) 30 else 20
         val stepsH = if (steps.size > 1) 16 else 0
-        val hazardH = if (kind == DialogKind.DESTRUCTIVE) 6 else 0
-        val footerH = CONTROL_H + 12
+        val hazardH = if (kind == DialogKind.DESTRUCTIVE) 3 else 0
+        val footerH = CONTROL_H + 10
         val staleH = if (staleReason != null) 26 else 0
         val maxBody = (screen.h - 40 - headerH - stepsH - hazardH - footerH - staleH).coerceAtLeast(48)
         val w = min(width, screen.w - 16)
@@ -65,15 +66,15 @@ class Dialog(
         val box = screen.centered(w, h)
         ui.block(screen)
         Draw.fill(ui.g, screen, Palette.backdrop)
-        Draw.shadow(ui.g, box, 3)
+        Draw.shadow(ui.g, box, 2)
         Draw.sprite(ui.g, if (kind == DialogKind.DESTRUCTIVE) Sprites.MODAL_DANGER else Sprites.MODAL, box)
         var y = box.y + 1
         if (hazardH > 0) { Draw.sprite(ui.g, Sprites.HAZARD, Rect(box.x + 1, y, box.w - 2, hazardH)); y += hazardH }
         var tx = box.x + 8
-        icon?.let { Draw.icon(ui.g, it, tx, y + 4); tx += 20 }
-        Draw.text(ui.g, Draw.fit(title, box.right - tx - 24), tx, y + 8, TextStyle.TITLE, if (kind == DialogKind.DESTRUCTIVE) Palette.danger else Palette.text)
-        subtitle?.let { Draw.text(ui.g, Draw.fit(it, box.right - tx - 10), tx, y + 20, Palette.textSecondary) }
-        if (ui.closeButton(Rect(box.right - 20, y + 3, 16, 16), "dialog-close")) close()
+        icon?.let { tx += Draw.leadIcon(ui.g, it, tx, y + 10) }
+        Draw.text(ui.g, Draw.fit(title, box.right - tx - 24), tx, y + 7, TextStyle.HEADING, if (kind == DialogKind.DESTRUCTIVE) Palette.danger else Palette.text)
+        subtitle?.let { Draw.text(ui.g, Draw.fit(it, box.right - tx - 10), tx, y + 18, Palette.textSecondary) }
+        if (ui.closeButton(Rect(box.right - 19, y + 2, 16, 16), "dialog-close")) close()
         y += headerH
         Draw.hline(ui.g, box.x + 1, y - 1, box.w - 2, Palette.borderSubtle)
         if (stepsH > 0) {
@@ -91,7 +92,7 @@ class Dialog(
             y += stepsH
         }
         staleReason?.let {
-            ui.banner(Rect(box.x + 8, y + 2, box.w - 16, 22), Severity.WARNING, "This changed while you were looking", it, key = "stale")
+            ui.banner(Rect(box.x + 8, y + 2, box.w - 16, 22), Severity.WARNING, tr("kami_libs.dialog.stale"), it, key = "stale")
             y += staleH
         }
         val bodyArea = Rect(box.x + 8, y + 6, box.w - 16, min(bodyHeight, maxBody))
@@ -107,7 +108,7 @@ class Dialog(
     }
 }
 
-fun Ui.dialogButtons(scope: DialogScope, primary: String, enabled: Boolean = true, disabledReason: String? = null, cancel: String = "Cancel", hold: Boolean = false, primaryStyle: ButtonStyle = ButtonStyle.PRIMARY, onPrimary: () -> Unit) {
+fun Ui.dialogButtons(scope: DialogScope, primary: String, enabled: Boolean = true, disabledReason: String? = null, cancel: String = tr("kami_libs.common.cancel"), hold: Boolean = false, primaryStyle: ButtonStyle = ButtonStyle.PRIMARY, onPrimary: () -> Unit) {
     overlay {
         val f = scope.footer
         val usable = enabled && scope.stale == null
@@ -126,11 +127,14 @@ fun Ui.wizardButtons(scope: DialogScope, finish: String, canNext: Boolean = true
     overlay {
         val last = scope.step >= scope.dialog.steps.lastIndex
         val f = scope.footer
-        if (scope.step > 0) {
-            if (button(Rect(f.x, f.y, 70, CONTROL_H), "Back", key = "wizard-back")) scope.back()
-        } else if (button(Rect(f.x, f.y, 70, CONTROL_H), "Cancel", key = "wizard-cancel")) scope.close()
+        val left = tr(if (scope.step > 0) "kami_libs.common.back" else "kami_libs.common.cancel")
+        if (button(Rect(f.x, f.y, max(70, buttonWidth(left)), CONTROL_H), left, key = if (scope.step > 0) "wizard-back" else "wizard-cancel")) {
+            if (scope.step > 0) scope.back() else scope.close()
+        }
         if (!last) {
-            if (button(Rect(f.right - 90, f.y, 90, CONTROL_H), "Next", style = ButtonStyle.PRIMARY, enabled = canNext, disabledReason = nextReason, key = "wizard-next")) scope.next()
+            val next = tr("kami_libs.common.next")
+            val nw = max(90, buttonWidth(next))
+            if (button(Rect(f.right - nw, f.y, nw, CONTROL_H), next, style = ButtonStyle.PRIMARY, enabled = canNext, disabledReason = nextReason, key = "wizard-next")) scope.next()
             return@overlay
         }
         val w = max(120, buttonWidth(finish))

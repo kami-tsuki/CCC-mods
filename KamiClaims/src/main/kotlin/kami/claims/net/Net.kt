@@ -1,6 +1,6 @@
 package kami.claims.net
 
-import kami.libs.chat.Chat
+import kami.libs.text.Phrase
 import kami.claims.*
 import kami.claims.service.Fail
 import kami.claims.service.NeedsConfirm
@@ -69,9 +69,9 @@ class Denied(val action: String, val x: Int, val y: Int, val z: Int, val owner: 
         val CODEC = codec<Denied>(
             { b, v ->
                 b.writeUtf(v.action, 16); b.writeInt(v.x); b.writeInt(v.y); b.writeInt(v.z)
-                b.writeUtf(v.owner, 64); b.writeInt(v.color); b.writeUtf(v.type, 32); b.writeUtf(v.reason, 256); b.writeVarInt(v.borderDistance)
+                b.writeUtf(v.owner, 64); b.writeInt(v.color); b.writeUtf(v.type, 32); b.writeUtf(v.reason, 4096); b.writeVarInt(v.borderDistance)
             },
-            { b -> Denied(b.readUtf(16), b.readInt(), b.readInt(), b.readInt(), b.readUtf(64), b.readInt(), b.readUtf(32), b.readUtf(256), b.readVarInt()) }
+            { b -> Denied(b.readUtf(16), b.readInt(), b.readInt(), b.readInt(), b.readUtf(64), b.readInt(), b.readUtf(32), b.readUtf(4096), b.readVarInt()) }
         )
     }
 }
@@ -224,17 +224,17 @@ object Net {
 
     private fun perform(p: ServerPlayer, a: Act) {
         val tick = p.server.tickCount
-        if (tick - (lastAct[p.uuid] ?: -100) < Config.s.guiCooldown) return send(p, Reply("Slow down a little.", false, a.rid, "COOLDOWN"))
+        if (tick - (lastAct[p.uuid] ?: -100) < Config.s.guiCooldown) return send(p, Reply(Phrase.of("kami_claims.error.rate_limited").json(), false, a.rid, "COOLDOWN"))
         lastAct[p.uuid] = tick
         val reply = try {
-            Reply(Chat.plain(Service.act(p, a.name, a.args, a.asCountry)), true, a.rid)
+            Reply(Service.act(p, a.name, a.args, a.asCountry).json(), true, a.rid)
         } catch (e: Fail) {
-            Reply(Chat.plain(e.message ?: "Failed."), false, a.rid, e.reason, e.target)
+            Reply(e.phrase.json(), false, a.rid, e.reason, e.target)
         } catch (e: NeedsConfirm) {
-            Reply(Chat.plain(e.lines.first()), false, a.rid, "CONFIRM")
+            Reply(e.lines.first().json(), false, a.rid, "CONFIRM")
         } catch (e: Exception) {
             KamiClaims.LOG.error("Action ${a.name} failed", e)
-            Reply("Something went wrong on the server.", false, a.rid, "ERROR")
+            Reply(Phrase.of("kami_claims.error.server").json(), false, a.rid, "ERROR")
         }
         if (reply.ok) {
             Effects.chime(p, true)

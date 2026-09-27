@@ -1,5 +1,7 @@
 package kami.libs.ui.app
 
+import kami.libs.ui.style.Format
+import kami.libs.ui.text.tr
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
@@ -35,9 +37,9 @@ class Tour(val steps: List<Callout>, val onFinish: () -> Unit) {
         Draw.text(ui.g, "${index + 1} / ${steps.size}", box.right - 34, box.y + 7, Palette.textMuted)
         Draw.text(ui.g, Draw.fit(step.title, w - 50), box.x + 8, box.y + 7, TextStyle.HEADING, Palette.brass)
         Draw.paragraph(ui.g, step.text, box.x + 8, box.y + 21, w - 16)
-        if (ui.link(box.x + 8, box.bottom - 18, "Skip tour", key = "tour-skip")) finish()
+        if (ui.link(box.x + 8, box.bottom - 18, tr("kami_libs.tour.skip"), key = "tour-skip")) finish()
         val last = index == steps.lastIndex
-        if (ui.button(Rect(box.right - 70, box.bottom - 24, 62, 18), if (last) "Done" else "Next", style = ButtonStyle.PRIMARY, key = "tour-next")) {
+        if (ui.button(Rect(box.right - 70, box.bottom - 24, 62, 18), if (last) tr("kami_libs.common.done") else tr("kami_libs.common.next"), style = ButtonStyle.PRIMARY, key = "tour-next")) {
             if (last) finish() else index++
         }
         ui.onEscape(90) { finish() }
@@ -86,7 +88,7 @@ class HelpOverlay(val callouts: List<Callout>) {
             Draw.textCentered(ui.g, "${i + 1}", marker, Palette.textInverse)
         }
         Draw.sprite(ui.g, Sprites.POPOVER, list)
-        Draw.text(ui.g, "HOW THIS PAGE WORKS", list.x + 8, list.y + 8, TextStyle.TITLE, Palette.brass)
+        Draw.text(ui.g, tr("kami_libs.guide.title").uppercase(Format.locale), list.x + 8, list.y + 8, TextStyle.TITLE, Palette.brass)
         var y = list.y + 24
         callouts.forEachIndexed { i, c ->
             Draw.text(ui.g, "${i + 1}", list.x + 8, y, TextStyle.HEADING, Palette.brass)
@@ -94,7 +96,7 @@ class HelpOverlay(val callouts: List<Callout>) {
             y += 11
             y += Draw.paragraph(ui.g, c.text, list.x + 20, y, list.w - 28) + 6
         }
-        if (ui.button(Rect(list.x + 8, list.bottom - 26, list.w - 16, 18), "Got it", style = ButtonStyle.PRIMARY, key = "help-close")) close()
+        if (ui.button(Rect(list.x + 8, list.bottom - 26, list.w - 16, 18), tr("kami_libs.guide.close"), style = ButtonStyle.PRIMARY, key = "help-close")) close()
         ui.onEscape(80, close)
         if (ui.input.presses.any { !list.contains(it.x, it.y) }) close()
     }

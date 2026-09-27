@@ -4,7 +4,6 @@ import kami.claims.client.BorderMode
 import kami.claims.client.ClientClaims
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.RenderType
-import net.minecraft.core.BlockPos
 import net.minecraft.core.particles.DustParticleOptions
 import net.minecraft.network.chat.Component
 import net.minecraft.world.level.levelgen.Heightmap
@@ -14,7 +13,6 @@ import net.neoforged.neoforge.client.event.RenderLevelStageEvent
 import org.joml.Vector3f
 import kotlin.math.abs
 import kotlin.math.max
-import kotlin.math.min
 
 object Borders {
     class Edge(val x0: Int, val z0: Int, val x1: Int, val z1: Int, val outside: Int, val inside: Int, val color: Int, val blocked: Boolean)
@@ -36,13 +34,8 @@ object Borders {
         val p = ClientClaims.prefs
         p.borderMode = BorderMode.entries[(p.borderMode.ordinal + 1) % BorderMode.entries.size]
         ClientClaims.savePrefs()
-        val text = when (p.borderMode) {
-            BorderMode.OFF -> "Borders: off (still shown when something is blocked)"
-            BorderMode.AUTO -> "Borders: auto (near borders)"
-            BorderMode.ALWAYS -> "Borders: always"
-            BorderMode.BUILDER -> "Borders: builder walls"
-        }
-        Minecraft.getInstance().gui.setOverlayMessage(Component.literal(text), false)
+        val mode = p.borderMode.name.lowercase()
+        Minecraft.getInstance().gui.setOverlayMessage(Component.translatable("kami_claims.border_mode.toast", Component.translatable("kami_claims.border_mode.$mode"), Component.translatable("kami_claims.border_mode.$mode.desc")), false)
     }
 
     private fun dim() = Minecraft.getInstance().level?.dimension()?.location()?.toString() ?: ""
@@ -223,7 +216,4 @@ object Borders {
         buffers.endBatch(RenderType.debugQuads())
         pose.popPose()
     }
-
-    fun chunkOf(pos: BlockPos) = (pos.x shr 4) to (pos.z shr 4)
-    fun clampY(y: Double) = min(320.0, max(-64.0, y))
 }

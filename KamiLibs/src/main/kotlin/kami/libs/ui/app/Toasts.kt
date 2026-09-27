@@ -1,5 +1,6 @@
 package kami.libs.ui.app
 
+import kami.libs.ui.text.tr
 import kami.libs.ui.core.Cursor
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Ui
@@ -48,15 +49,16 @@ class Toasts {
             val slide = ui.animate("toast:${t.created}", 0f, 10f, start = 200f)
             val box = r.offset(slide.toInt(), 0)
             ui.block(box)
-            Draw.shadow(ui.g, box, 2)
+            Draw.shadow(ui.g, box, 1)
             Draw.sprite(ui.g, Sprites.TOAST, box)
-            Draw.fill(ui.g, Rect(box.x + 1, box.y + 1, 2, box.h - 2), t.severity.color)
+            Draw.vline(ui.g, box.x, box.y, box.h, t.severity.color)
             Draw.icon(ui.g, iconFor(t.severity), box.x + 5, box.y + 3)
             Draw.text(ui.g, Draw.fit(t.title, w - 44), box.x + 24, box.y + 7, TextStyle.HEADING, t.severity.color)
             bodyLines.forEachIndexed { li, line -> ui.g.drawString(Draw.font, line, box.x + 24, box.y + 18 + li * Draw.LINE, Palette.textSecondary, false) }
             val closeR = Rect(box.right - 13, box.y + 4, 9, 9)
             if (ui.hovering(closeR)) ui.cursor = Cursor.HAND
             Draw.text(ui.g, "×", closeR.x + 1, closeR.y, if (ui.hovering(closeR)) Palette.text else Palette.textMuted)
+            ui.tooltip("toast-close:${t.created}", closeR, tr("kami_libs.toast.dismiss.tooltip"))
             if (ui.pressed(closeR) != null) t.dismissed = true
             t.action?.let { label ->
                 if (ui.link(box.x + 24, box.y + 18 + bodyLines.size * Draw.LINE, label, key = "toast-action:${t.created}")) { t.onAction?.invoke(); t.dismissed = true }

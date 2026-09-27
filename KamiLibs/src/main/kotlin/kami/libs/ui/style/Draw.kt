@@ -77,8 +77,8 @@ object Sprites {
 }
 
 enum class TextStyle(val color: () -> Int, val bold: Boolean = false, val upper: Boolean = false, val scale: Int = 1, val shadow: Boolean = false) {
-    DISPLAY({ Palette.text }, scale = 2, shadow = true),
-    TITLE({ Palette.text }, bold = true, upper = true),
+    DISPLAY({ Palette.text }, scale = 2),
+    TITLE({ Palette.text }, bold = true),
     HEADING({ Palette.text }, bold = true),
     BODY({ Palette.textSecondary }),
     LABEL({ Palette.textMuted }, upper = true),
@@ -89,28 +89,55 @@ enum class TextStyle(val color: () -> Int, val bold: Boolean = false, val upper:
 
 object Draw {
     val font: Font get() = Minecraft.getInstance().font
-    const val LINE = 11
+    const val LINE = 10
+    const val ICON = 16
+    const val ICON_SLOT = 14
 
     fun fill(g: GuiGraphics, r: Rect, color: Int) { if (!r.isEmpty) g.fill(r.x, r.y, r.right, r.bottom, color) }
     fun hline(g: GuiGraphics, x: Int, y: Int, w: Int, color: Int) = g.fill(x, y, x + w, y + 1, color)
     fun vline(g: GuiGraphics, x: Int, y: Int, h: Int, color: Int) = g.fill(x, y, x + 1, y + h, color)
     fun outline(g: GuiGraphics, r: Rect, color: Int) { if (!r.isEmpty) g.renderOutline(r.x, r.y, r.w, r.h, color) }
 
-    fun sprite(g: GuiGraphics, id: ResourceLocation, r: Rect) { if (!r.isEmpty) g.blitSprite(id, r.x, r.y, r.w, r.h) }
+    fun box(g: GuiGraphics, r: Rect, fill: Int, border: Int) {
+        if (r.isEmpty) return
+        if (fill ushr 24 != 0) fill(g, r, fill)
+        if (border ushr 24 != 0) outline(g, r, border)
+    }
+
+    fun sprite(g: GuiGraphics, id: ResourceLocation, r: Rect) { if (!r.isEmpty && !Skin.paint(g, id, r)) g.blitSprite(id, r.x, r.y, r.w, r.h) }
 
     fun tinted(g: GuiGraphics, id: ResourceLocation, r: Rect, color: Int) {
+        if (r.isEmpty || Skin.paintTinted(g, id, r, color)) return
         RenderSystem.enableBlend()
         RenderSystem.setShaderColor(((color shr 16) and 0xFF) / 255f, ((color shr 8) and 0xFF) / 255f, (color and 0xFF) / 255f, ((color ushr 24) and 0xFF) / 255f)
         sprite(g, id, r)
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
     }
 
-    fun icon(g: GuiGraphics, icon: Icon, x: Int, y: Int, size: Int = 16) = g.blitSprite(icon.sprite, x, y, size, size)
-    fun icon(g: GuiGraphics, icon: Icon, r: Rect, size: Int = 16) = icon(g, icon, r.x + (r.w - size) / 2, r.y + (r.h - size) / 2, size)
-    fun tintedIcon(g: GuiGraphics, icon: Icon, x: Int, y: Int, size: Int, color: Int) = tinted(g, icon.sprite, Rect(x, y, size, size), color)
+    private fun native(size: Int) = if (size % ICON == 0 && size > 0) size else ICON
+
+    fun icon(g: GuiGraphics, icon: Icon, x: Int, y: Int, size: Int = ICON) {
+        val s = native(size)
+        g.blitSprite(icon.sprite, x + (size - s) / 2, y + (size - s) / 2, s, s)
+    }
+    fun icon(g: GuiGraphics, icon: Icon, r: Rect, size: Int = ICON) = icon(g, icon, r.x + (r.w - size) / 2, r.y + (r.h - size) / 2, size)
+    fun tintedIcon(g: GuiGraphics, icon: Icon, x: Int, y: Int, size: Int, color: Int) {
+        val s = native(size)
+        tinted(g, icon.sprite, Rect(x + (size - s) / 2, y + (size - s) / 2, s, s), color)
+    }
+
+    fun leadIcon(g: GuiGraphics, icon: Icon, x: Int, centerY: Int, color: Int? = null): Int {
+        if (color == null) icon(g, icon, x - 2, centerY - ICON / 2) else tintedIcon(g, icon, x - 2, centerY - ICON / 2, ICON, color)
+        return ICON_SLOT
+    }
+
+    fun marker(g: GuiGraphics, icon: Icon, centerX: Int, centerY: Int) {
+        box(g, Rect(centerX - 6, centerY - 6, 12, 12), Palette.alpha(Palette.sunken, 0xB3), Palette.alpha(Palette.borderStrong, 0xB3))
+        icon(g, icon, centerX - ICON / 2, centerY - ICON / 2)
+    }
 
     fun shadow(g: GuiGraphics, r: Rect, depth: Int) {
-        for (i in 1..depth) g.fill(r.x + i, r.y + i, r.right + i, r.bottom + i, Palette.alpha(0, 0x50 / i))
+        for (i in 1..depth.coerceAtMost(2)) g.fill(r.x + i, r.y + i, r.right + i, r.bottom + i, Palette.alpha(0, 0x30 / i))
     }
 
     fun styled(text: String, style: TextStyle): Component {

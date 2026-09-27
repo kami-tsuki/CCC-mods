@@ -1,5 +1,6 @@
 package kami.economy.world
 
+import kami.libs.text.Phrase
 import kami.economy.Config
 import kami.libs.claims.ClaimsApi
 import net.minecraft.core.registries.BuiltInRegistries
@@ -17,7 +18,7 @@ object Vendors {
         val id = BuiltInRegistries.BLOCK.getKey(e.level.getBlockState(e.pos).block).toString()
 
         if (id == CREATIVE_VENDOR && !Config.s.allowCreativeVendors) {
-            deny(e, "Creative vendors are off on this server")
+            deny(e, Phrase.of("kami_economy.vendor.creative_off"))
             return
         }
         if (!isVendorLike(id) || !ClaimsApi.present) return
@@ -25,13 +26,13 @@ object Vendors {
         val dim = e.level.dimension().location().toString()
         val info = ClaimsApi.at(dim, e.pos.x shr 4, e.pos.z shr 4)
         if (info == null || info.type != "market") {
-            deny(e, "Only works inside a market chunk")
+            deny(e, Phrase.of("kami_economy.vendor.market_only"))
             return
         }
-        if (ClaimsApi.isBanished(e.entity.uuid, info.country)) deny(e, "You are banished from {${info.country}}")
+        if (ClaimsApi.isBanished(e.entity.uuid, info.country)) deny(e, Phrase.of("kami_economy.vendor.banished", Phrase.value(info.country)))
     }
 
-    private fun deny(e: PlayerInteractEvent.RightClickBlock, msg: String) {
+    private fun deny(e: PlayerInteractEvent.RightClickBlock, msg: Phrase) {
         e.isCanceled = true
         e.entity.displayClientMessage(Chat.bar(Tone.BAD, msg), true)
     }

@@ -4,34 +4,42 @@ import kami.claims.*
 import kami.claims.net.Net
 import kami.claims.net.Sync
 import kami.claims.service.NeedsConfirm
+import kami.claims.service.Words
+import kami.claims.service.Words.chunks
+import kami.claims.service.Words.count
+import kami.claims.service.Words.money
+import kami.claims.service.Words.num
 import kami.claims.service.Service
 import kami.claims.service.Upkeep
 import kami.claims.social.Perms
 import kami.claims.world.Effects
-
 import kami.libs.chat.Theme
-import kami.libs.chat.every
-import kami.libs.chat.plural
-import kami.libs.chat.spur
 import kami.libs.command.*
+import kami.libs.text.Phrase
+import kami.libs.text.Text
 import com.mojang.brigadier.arguments.DoubleArgumentType
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.LongArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import net.minecraft.commands.arguments.GameProfileArgument
+import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerPlayer
 
 private val s get() = Config.s
 
 private fun player() = arg("player", GameProfileArgument.gameProfile())
 
-private fun Ctx.who() = (GameProfileArgument.getGameProfiles(this, "player").firstOrNull() ?: fail("Unknown player.")).id.toString()
+private fun Ctx.who() = (GameProfileArgument.getGameProfiles(this, "player").firstOrNull() ?: fail(Phrase.of("kami_claims.error.unknown_player"))).id.toString()
 private fun Ctx.run(name: String, vararg args: String) {
     try {
         ok(Service.act(me(), name, args.toList()))
     } catch (e: NeedsConfirm) {
-        e.lines.forEachIndexed { i, line -> if (i == 0) warn(line) else row { markup(line) } }
-        row { button("Confirm", "/${input.removePrefix("/")} confirm", "Run the command again with confirm"); muted("  or ignore this message to cancel") }
+        e.lines.forEachIndexed { i, line -> if (i == 0) warn(line) else row { add(line) } }
+        row {
+            button(Phrase.of("kami_claims.chat.confirm"), "/${input.removePrefix("/")} confirm", Phrase.of("kami_claims.chat.confirm.tooltip"))
+            muted("  ")
+            add(Phrase.of("kami_claims.chat.confirm.hint"), Theme.MUTED)
+        }
     }
 }
 
@@ -41,25 +49,30 @@ private fun Ctx.status(c: Country) {
     val server = source.server
     val claims = Realm.claims(c.id)
     val sum = Upkeep.summary(c)
+    val leader = c.president()?.let { Phrase.value(Names.of(server, it)) } ?: Phrase.value(Phrase.of("kami_claims.status.nobody"))
     msg {
         text(c.name, color(c))
-        muted("  led by ")
-        value(c.president()?.let { Names.of(server, it) } ?: "nobody")
-        muted(", ${plural(c.members.size, "member")}")
+        muted("  ")
+        add(Phrase.of("kami_claims.status.led_by", leader, count("kami_claims.unit.member", c.members.size)), Theme.MUTED)
     }
-    row { muted("Treasury "); value(spur(c.treasury)); muted("  runway "); value(sum.runway(c.treasury)) }
-    row { muted("Daily  "); good("+${sum.income} taxes"); muted("  "); bad("-${sum.upkeep} upkeep"); muted("  "); bad("-${sum.jobs} wages") }
+    row { add(Phrase.of("kami_claims.status.treasury", money(c.treasury), Phrase.value(sum.runway(c.treasury))), Theme.MUTED) }
     row {
-        muted("Land "); value(plural(claims.size, "chunk")); muted(" (${claims.count { it.free }} free")
-        claims.count { it.debt > 0 }.takeIf { it > 0 }?.let { muted(", "); bad("$it in debt") }
-        muted(")  " + claims.groupingBy { it.type }.eachCount().entries.joinToString("  ") { "${it.key} ${it.value}" })
+        add(Text.msg("kami_claims.status.daily",
+            Component.literal("+${sum.income}").withColor(Theme.OK),
+            Component.literal("-${sum.upkeep}").withColor(Theme.BAD),
+            Component.literal("-${sum.jobs}").withColor(Theme.BAD)), Theme.MUTED)
+    }
+    row {
+        add(Phrase.of("kami_claims.status.land", chunks(claims.size), num(claims.count { it.free })), Theme.MUTED)
+        claims.count { it.debt > 0 }.takeIf { it > 0 }?.let { muted(" · "); add(Phrase.of("kami_claims.status.in_debt", it), Theme.BAD) }
+        claims.groupingBy { it.type }.eachCount().forEach { (type, n) -> muted("  "); add(Words.type(type), Theme.MUTED); muted(" $n") }
     }
 }
 
 private fun Ctx.map(p: ServerPlayer) {
     val o = Service.here(p)
     val legend = linkedSetOf<String>()
-    msg { value("Map"); muted("  you are at the white diamond") }
+    msg { add(Phrase.of("kami_claims.status.map.title"), Theme.VALUE); muted("  "); add(Phrase.of("kami_claims.status.map.hint"), Theme.MUTED) }
     (-4..4).forEach { dz ->
         row {
             (-8..8).forEach { dx ->
@@ -90,7 +103,7 @@ private fun Node.countryCmd(): Node {
         }
         .then(lit("gui").does { ctx ->
             val p = ctx.me()
-            if (!Net.canOpen(p)) fail("The Kami Claims mod is not installed on your client.")
+            if (!Net.canOpen(p)) fail(Phrase.of("kami_claims.error.no_client"))
             Sync.focus(p, Service.here(p).x, Service.here(p).z)
             Net.send(p, open = true)
         })
@@ -98,27 +111,43 @@ private fun Node.countryCmd(): Node {
         .then(lit("disband").does { it.run("disband") }.then(lit("confirm").does { it.run("disband", "confirm") }))
         .then(lit("info").does { ctx -> ctx.status(Service.home(ctx.me())) }
             .then(word("country", countries).does { ctx ->
-                ctx.status(Realm.country(ctx.text("country")) ?: fail("Unknown country {${ctx.text("country")}}."))
+                ctx.status(Realm.country(ctx.text("country")) ?: fail(Phrase.of("kami_claims.error.unknown_country_named", Phrase.value(ctx.text("country")))))
             }))
         .then(lit("list").does { ctx ->
             val all = Realm.data.countries.values.sortedByDescending { Realm.claims(it.id).size }
-            if (all.isEmpty()) return@does ctx.info("No countries yet. Found one with {/claims create <name>}.")
-            ctx.info("{${plural(all.size, "country", "countries")}}")
-            all.forEach { c -> ctx.row { run(c.name, "/claims info ${c.id}", "Show ${c.name}"); muted("  ${plural(c.members.size, "member")}, ${plural(Realm.claims(c.id).size, "chunk")}") } }
+            if (all.isEmpty()) return@does ctx.info(Phrase.of("kami_claims.list.empty", Phrase.value("/claims create <name>")))
+            ctx.info(count("kami_claims.unit.country", all.size))
+            all.forEach { c ->
+                ctx.row {
+                    run(Component.literal(c.name), "/claims info ${c.id}", Phrase.of("kami_claims.chat.info.tooltip", c.name).component())
+                    muted("  ")
+                    add(Phrase.of("kami_claims.list.row", count("kami_claims.unit.member", c.members.size), chunks(Realm.claims(c.id).size)), Theme.MUTED)
+                }
+            }
         })
         .then(lit("map").does { ctx -> ctx.map(ctx.me()) })
         .then(lit("border").does { ctx ->
-            if (Effects.toggleBorders(ctx.me())) ctx.ok("Border particles {on}.") else ctx.info("Border particles {off}.")
-            if (Net.canOpen(ctx.me())) ctx.info("Tip: press {B} to switch the border display of the Kami Claims client between off, auto and always.")
+            if (Effects.toggleBorders(ctx.me())) ctx.ok(Phrase.of("kami_claims.border.on")) else ctx.info(Phrase.of("kami_claims.border.off"))
+            if (Net.canOpen(ctx.me())) ctx.info(Phrase.of("kami_claims.border.tip", Phrase.value("B")))
         })
         .then(target("invite"))
         .then(byCountry("accept"))
         .then(byCountry("join"))
         .then(lit("requests").does { ctx ->
             val c = Service.home(ctx.me())
-            if (c.requests.isEmpty()) return@does ctx.info("No open join requests.")
-            ctx.info("{${plural(c.requests.size, "join request")}}")
-            c.requests.keys.forEach { id -> Names.of(ctx.source.server, id).let { n -> ctx.row { value(n); muted("  "); button("Approve", "/claims approve $n"); text(" "); button("Deny", "/claims deny $n") } } }
+            if (c.requests.isEmpty()) return@does ctx.info(Phrase.of("kami_claims.requests.empty"))
+            ctx.info(count("kami_claims.unit.request", c.requests.size))
+            c.requests.keys.forEach { id ->
+                Names.of(ctx.source.server, id).let { n ->
+                    ctx.row {
+                        value(n)
+                        muted("  ")
+                        button(Phrase.of("kami_claims.chat.approve"), "/claims approve $n", Phrase.of("kami_claims.chat.approve.tooltip", n))
+                        text(" ")
+                        button(Phrase.of("kami_claims.chat.deny"), "/claims deny $n", Phrase.of("kami_claims.chat.deny.tooltip", n))
+                    }
+                }
+            }
         })
         .then(target("approve"))
         .then(target("deny"))
@@ -149,9 +178,25 @@ private fun Node.countryCmd(): Node {
         .then(lit("job").requires { Perms.has(it, Perms.JOBS) }
             .then(lit("list").does { ctx ->
                 val c = Service.home(ctx.me())
-                ctx.info("Jobs of {${c.name}}")
-                s.jobs.keys.forEach { j -> c.job(j)?.let { ctx.row { value(j); muted("  ${spur(it.pay)} for ${it.quota} actions ${every(it.period)}, in ${s.jobs.getValue(j).type} chunks") } } }
-                c.members.forEach { (id, m) -> m.job?.let { ctx.row { text("• ${Names.of(ctx.source.server, id)} "); muted("$it, progress "); value(m.progress); if (m.zone.isNotEmpty()) muted(", ${plural(m.zone.size, "zone chunk")}") } } }
+                ctx.info(Phrase.of("kami_claims.jobs.title", Phrase.value(c.name)))
+                s.jobs.keys.forEach { j ->
+                    c.job(j)?.let { def ->
+                        ctx.row {
+                            add(Words.job(j))
+                            muted("  ")
+                            add(Phrase.of("kami_claims.jobs.row", money(def.pay), num(def.quota), Words.days(def.period), Words.type(s.jobs.getValue(j).type)), Theme.MUTED)
+                        }
+                    }
+                }
+                c.members.forEach { (id, m) ->
+                    m.job?.let { job ->
+                        ctx.row {
+                            text("• ${Names.of(ctx.source.server, id)} ")
+                            add(Phrase.of("kami_claims.jobs.member", Words.job(job), num(m.progress)), Theme.MUTED)
+                            if (m.zone.isNotEmpty()) { muted(" · "); add(Phrase.of("kami_claims.jobs.zone", chunks(m.zone.size)), Theme.MUTED) }
+                        }
+                    }
+                }
             })
             .then(lit("set").then(word("job", jobs).then(word("field") { listOf("pay", "quota", "period") }
                 .then(arg("value", IntegerArgumentType.integer(0)).does { it.run("job_set", it.text("job"), it.text("field"), IntegerArgumentType.getInteger(it, "value").toString()) }))))
@@ -160,8 +205,6 @@ private fun Node.countryCmd(): Node {
             .then(lit("zone").then(lit("add").then(player().does { it.run("zone", it.who(), "add") })).then(lit("clear").then(player().does { it.run("zone", it.who(), "clear") }))))
         .then(provinceCmd(countries))
 }
-
-private fun taxTerm(c: Country) = if (c.taxMode == TaxMode.PERCENT) "${(c.taxAmount * 100).toInt()}%" else "${c.taxAmount.toInt()} spur/day"
 
 private fun provinceCmd(countries: () -> Collection<String>): Node {
     fun offer(name: String, action: String) = lit(name).then(word("country", countries).then(word("mode") { listOf("percent", "flat") }
@@ -186,12 +229,21 @@ private fun provinceCmd(countries: () -> Collection<String>): Node {
             .then(lit("decline").then(word("country", countries).does { it.run("province_decline", it.text("country")) })))
         .then(lit("list").does { ctx ->
             val c = Service.home(ctx.me())
-            c.parent?.let { Realm.country(it) }?.let { par -> ctx.info("Province of {${par.name}}, tribute {${taxTerm(c)}}, missed {${c.provinceDebt}}/${s.maxProvinceDebt}") }
-            c.provinces.mapNotNull { Realm.country(it) }.takeIf { it.isNotEmpty() }?.let { list ->
-                ctx.info("{${plural(list.size, "province")}}")
-                list.forEach { pr -> ctx.row { value(pr.name); muted("  ${taxTerm(pr)}, missed ${pr.provinceDebt}/${s.maxProvinceDebt}"); if (pr.independenceRequested) text("  wants independence", Theme.WARN) } }
+            c.parent?.let { Realm.country(it) }?.let { par ->
+                ctx.info(Phrase.of("kami_claims.province.status", Phrase.value(par.name), Words.tribute(c.taxMode, c.taxAmount), num(c.provinceDebt), num(s.maxProvinceDebt)))
             }
-            if (c.parent == null && c.provinces.isEmpty()) ctx.info("Independent, no provinces.")
+            c.provinces.mapNotNull { Realm.country(it) }.takeIf { it.isNotEmpty() }?.let { list ->
+                ctx.info(count("kami_claims.unit.province", list.size))
+                list.forEach { pr ->
+                    ctx.row {
+                        value(pr.name)
+                        muted("  ")
+                        add(Phrase.of("kami_claims.province.row", Words.tribute(pr.taxMode, pr.taxAmount), num(pr.provinceDebt), num(s.maxProvinceDebt)), Theme.MUTED)
+                        if (pr.independenceRequested) { muted("  "); add(Phrase.of("kami_claims.province.wants_independence"), Theme.WARN) }
+                    }
+                }
+            }
+            if (c.parent == null && c.provinces.isEmpty()) ctx.info(Phrase.of("kami_claims.province.none"))
         })
 }
 
@@ -204,35 +256,36 @@ private fun plotCmd(): Node =
         .then(lit("info").does { ctx ->
             val p = ctx.me()
             val c = Service.home(p)
-            val cl = Realm.index[Service.here(p)]?.takeIf { it.country == c.id && it.owner != null } ?: fail("Nobody owns this plot.")
-            ctx.info("Plot of {${Names.of(ctx.source.server, cl.owner!!)}}, tax {${spur(if (cl.tax >= 0) cl.tax else c.tax)}} a day, unpaid {${cl.lapse}}/${c.shutdown + c.release} days")
-            cl.roles.forEach { (id, r) -> ctx.row { value(Names.of(ctx.source.server, id)); muted("  ${r.name.lowercase()}") } }
+            val cl = Realm.index[Service.here(p)]?.takeIf { it.country == c.id && it.owner != null } ?: fail(Phrase.of("kami_claims.error.plot_free"))
+            ctx.info(Phrase.of("kami_claims.plot.info", Phrase.value(Names.of(ctx.source.server, cl.owner!!)), Words.rate(if (cl.tax >= 0) cl.tax else c.tax, 1),
+                num(cl.lapse), Words.days(c.shutdown + c.release)))
+            cl.roles.forEach { (id, r) -> ctx.row { value(Names.of(ctx.source.server, id)); muted("  "); add(Phrase.of("kami_claims.role.${r.name.lowercase()}"), Theme.MUTED) } }
         })
 
 private fun adminCmd() = lit("admin").requires { Perms.has(it, Perms.ADMIN) }
     .then(lit("disband").then(word("country") { Realm.data.countries.keys }.does { ctx ->
-        Realm.disband(Realm.country(ctx.text("country")) ?: fail("Unknown country."))
-        ctx.ok("Country disbanded.", true)
+        Realm.disband(Realm.country(ctx.text("country")) ?: fail(Phrase.of("kami_claims.error.unknown_country")))
+        ctx.ok(Phrase.of("kami_claims.done.disbanded"), true)
     }))
     .then(lit("treasury").then(word("country") { Realm.data.countries.keys }.then(arg("amount", LongArgumentType.longArg(0)).does { ctx ->
-        val c = Realm.country(ctx.text("country")) ?: fail("Unknown country.")
+        val c = Realm.country(ctx.text("country")) ?: fail(Phrase.of("kami_claims.error.unknown_country"))
         c.treasury = LongArgumentType.getLong(ctx, "amount")
         Realm.dirty = true
-        ctx.ok("Treasury of {${c.name}} set to {${spur(c.treasury)}}.", true)
+        ctx.ok(Phrase.of("kami_claims.admin.treasury", Phrase.value(c.name), money(c.treasury)), true)
     })))
     .then(lit("unclaim").does { ctx ->
-        Realm.unclaim(Realm.index[Service.here(ctx.me())] ?: fail("Nobody owns this chunk."), false)
-        ctx.ok("Chunk released.", true)
+        Realm.unclaim(Realm.index[Service.here(ctx.me())] ?: fail(Phrase.of("kami_claims.error.chunk_free")), false)
+        ctx.ok(Phrase.of("kami_claims.done.chunk_released"), true)
     })
     .then(lit("day").does { ctx ->
         Realm.data.day = Realm.data.day.coerceAtLeast(0)
         Upkeep.process(++Realm.data.day)
-        ctx.ok("Billed day {${Realm.data.day}}.", true)
+        ctx.ok(Phrase.of("kami_claims.admin.day", num(Realm.data.day)), true)
     })
-    .then(lit("save").does { ctx -> Realm.save(true); ctx.ok("Saved.") })
+    .then(lit("save").does { ctx -> Realm.save(true); ctx.ok(Phrase.of("kami_claims.admin.saved")) })
 
 object ClaimsCommands {
-    fun register() = KamiCommands.module("claims", "Countries, claims, plots and provinces") {
+    fun register() = KamiCommands.module("claims", "Countries, land, plots and provinces") {
         countryCmd().then(plotCmd()).then(adminCmd())
     }
 }

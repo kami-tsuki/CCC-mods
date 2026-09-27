@@ -1,5 +1,6 @@
 package kami.libs.ui.widget
 
+import kami.libs.ui.text.tr
 import kami.libs.ui.core.Cursor
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Ui
@@ -9,6 +10,10 @@ import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
 import net.minecraft.client.gui.GuiGraphics
 import org.lwjgl.glfw.GLFW
+
+const val TABLE_ROW_H = 14
+const val TABLE_HEADER_H = 14
+private const val CELL_PAD = 6
 
 enum class Align { LEFT, RIGHT, CENTER }
 
@@ -23,7 +28,9 @@ class Column<T>(
     companion object {
         fun <T> text(title: String, width: Int, align: Align = Align.LEFT, sortable: Boolean = true, tip: String? = null, color: (T) -> Int = { Palette.text }, value: (T) -> String) =
             Column(title, width, align, if (sortable) compareBy<T> { value(it).lowercase() } else null, tip) { _, r, row ->
-                val s = Draw.fit(value(row), r.w)
+                val full = value(row)
+                val s = Draw.fit(full, r.w)
+                if (s != full) tooltip("cell:${r.x},${r.y}", r, full)
                 val x = when (align) {
                     Align.LEFT -> r.x
                     Align.RIGHT -> r.right - Draw.width(s)
@@ -55,44 +62,46 @@ class TableEvents<T>(val opened: T?, val contextOn: T?, val selectionChanged: Bo
 
 fun <T> Ui.table(
     r: Rect, columns: List<Column<T>>, rows: List<T>, state: TableState<T>, keyOf: (T) -> Any,
-    multi: Boolean = false, rowHeight: Int = 16, severity: (T) -> Severity? = { null }, emptyText: String = "Nothing here yet.",
+    multi: Boolean = false, rowHeight: Int = TABLE_ROW_H, severity: (T) -> Severity? = { null }, emptyText: String = tr("kami_libs.table.empty"),
     highlight: (T) -> Boolean = { false }, key: Any = "table"
 ): TableEvents<T> {
-    val header = r.top(16)
-    val body = r.dropTop(16)
-    val checkW = if (multi) 16 else 0
+    val header = r.top(TABLE_HEADER_H)
+    val body = r.dropTop(TABLE_HEADER_H)
+    val checkW = if (multi) 12 else 0
     val sorted = state.sortColumn.takeIf { it in columns.indices }?.let { c ->
         columns[c].sort?.let { cmp -> rows.sortedWith(if (state.descending) cmp.reversed() else cmp) }
     } ?: rows
     val flexible = columns.count { it.width < 0 }
-    val fixed = columns.filter { it.width >= 0 }.sumOf { it.width } + checkW + (columns.size + 1) * 6 + 6
+    val fixed = columns.filter { it.width >= 0 }.sumOf { it.width } + checkW + (columns.size + 1) * CELL_PAD + 4
     val flexW = if (flexible > 0) (r.w - fixed).coerceAtLeast(20) / flexible else 0
     val widths = columns.map { if (it.width < 0) flexW else it.width }
     Draw.fill(g, header, Palette.raised)
     Draw.hline(g, header.x, header.bottom - 1, header.w, Palette.border)
-    var x = header.x + 6
+    var x = header.x + CELL_PAD
     if (multi) {
         val all = rows.isNotEmpty() && rows.all { keyOf(it) in state.selected }
         val some = rows.any { keyOf(it) in state.selected }
-        checkbox(Rect(x, header.y, 12, 16), "", if (all) true else if (some) null else false, key = "$key:all")?.let { v ->
+        checkbox(Rect(x, header.y, 10, header.h), "", if (all) true else if (some) null else false, key = "$key:all")?.let { v ->
             if (v) rows.forEach { state.selected += keyOf(it) as Any } else state.clear()
         }
-        x += checkW + 6
+        x += checkW + CELL_PAD
     }
     columns.forEachIndexed { i, c ->
         val cell = Rect(x, header.y, widths[i], header.h)
+        if (i > 0) Draw.vline(g, x - CELL_PAD / 2 - 1, header.y + 3, header.h - 6, Palette.borderSubtle)
         val sortable = c.sort != null
         val over = hovering(cell) && sortable
         if (over) { Draw.fill(g, cell, Palette.hover); cursor = Cursor.HAND }
-        val title = Draw.fit(c.title.uppercase(), cell.w - (if (i == state.sortColumn) 12 else 0))
-        val tx = if (c.align == Align.RIGHT) cell.right - Draw.width(title) - (if (i == state.sortColumn) 12 else 0) else cell.x
-        Draw.text(g, title, tx, cell.y + 4, if (i == state.sortColumn) Palette.text else Palette.textMuted)
-        if (i == state.sortColumn) Draw.icon(g, if (state.descending) Icons.SORT_DOWN else Icons.SORT_UP, tx + Draw.width(title), cell.y + 2, 12)
-        c.tip?.let { tip -> tooltip("$key:h$i", cell, tip) }
+        val sortW = if (i == state.sortColumn) 10 else 0
+        val title = Draw.fit(c.title.uppercase(), cell.w - sortW)
+        val tx = if (c.align == Align.RIGHT) cell.right - Draw.width(title) - sortW else cell.x
+        Draw.text(g, title, tx, cell.y + (cell.h - 8) / 2, if (i == state.sortColumn) Palette.text else Palette.textMuted)
+        if (i == state.sortColumn) Draw.tintedIcon(g, if (state.descending) Icons.SORT_DOWN else Icons.SORT_UP, tx + Draw.width(title) - 3, cell.centerY - Draw.ICON / 2, Draw.ICON, Palette.textSecondary)
+        (c.tip ?: c.title.uppercase().takeIf { it != title }?.let { c.title })?.let { tip -> tooltip("$key:h$i", cell, tip) }
         if (sortable && pressed(cell) != null) {
             if (state.sortColumn == i) state.descending = !state.descending else { state.sortColumn = i; state.descending = false }
         }
-        x += widths[i] + 6
+        x += widths[i] + CELL_PAD
     }
     var opened: T? = null
     var context: T? = null
@@ -127,21 +136,22 @@ fun <T> Ui.table(
             Draw.fill(g, rr, when {
                 chosen -> Palette.selected
                 over -> Palette.hover
-                index % 2 == 1 -> Palette.alpha(0xFFFFFF, 0x06)
+                index % 2 == 1 -> Palette.alpha(0xFFFFFF, 0x04)
                 else -> 0
             })
+            Draw.hline(g, rr.x, rr.bottom - 1, rr.w, Palette.alpha(Palette.borderSubtle, 0xA0))
             if (chosen) Draw.fill(g, rr.left(2), Palette.brass)
             severity(row)?.let { Draw.fill(g, Rect(rr.x, rr.y + 2, 2, rr.h - 4), it.color) }
             if (highlight(row)) attention(rr, true)
-            var cx = rr.x + 6
+            var cx = rr.x + CELL_PAD
             if (multi) {
-                checkbox(Rect(cx, rr.y, 12, rr.h), "", chosen, key = "$key:c:$k")?.let { v -> if (v) state.selected += k as Any else state.selected -= k as Any; changed = true }
-                cx += checkW + 6
+                checkbox(Rect(cx, rr.y, 10, rr.h), "", chosen, key = "$key:c:$k")?.let { v -> if (v) state.selected += k as Any else state.selected -= k as Any; changed = true }
+                cx += checkW + CELL_PAD
             }
             columns.forEachIndexed { i, c ->
                 val cell = Rect(cx, rr.y, widths[i], rr.h)
                 c.cell(this@table, g, cell, row)
-                cx += widths[i] + 6
+                cx += widths[i] + CELL_PAD
             }
             if (over) cursor = Cursor.HAND
             pressed(rr)?.let {

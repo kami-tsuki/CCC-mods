@@ -1,5 +1,6 @@
 package kami.essentials.vanish
 
+import kami.libs.text.Phrase
 import kami.essentials.Flag
 import kami.essentials.Perms
 import kami.essentials.Store
@@ -38,12 +39,12 @@ object Vanish {
             it.connection.send(if (on) ClientboundPlayerInfoRemovePacket(listOf(p.uuid)) else ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(listOf(p)))
         }
         retrack(p)
-        if (on) Feed.leave(p, "now invisible") else Feed.join(p, "visible again")
-        p.tell(if (on) Talk.chat.ok("You are invisible. Others saw you leave.") else Talk.chat.ok("You are visible again. Others saw you join."))
-        if (by != null && by !== p) by.tell(Talk.chat.ok("{${p.gameProfile.name}} is ${if (on) "invisible" else "visible"} now."))
+        if (on) Feed.leave(p, Phrase.of("kami_essentials.vanish.now_invisible")) else Feed.join(p, Phrase.of("kami_essentials.vanish.visible_again"))
+        p.tell(Talk.chat.ok(Phrase.of(if (on) "kami_essentials.vanish.on" else "kami_essentials.vanish.off")))
+        if (by != null && by !== p) by.tell(Talk.chat.ok(Phrase.of(if (on) "kami_essentials.vanish.other.on" else "kami_essentials.vanish.other.off", Phrase.value(p.gameProfile.name))))
     }
 
-    fun tick(server: MinecraftServer) = server.playerList.players.filter(::active).forEach { it.bar(Chat.bar(Tone.INFO, "You are {invisible}")) }
+    fun tick(server: MinecraftServer) = server.playerList.players.filter(::active).forEach { it.bar(Chat.bar(Tone.INFO, Phrase.of("kami_essentials.vanish.bar"))) }
 
     private fun retrack(p: ServerPlayer) {
         val level = p.serverLevel()

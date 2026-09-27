@@ -9,6 +9,7 @@ import kami.claims.*
 import kami.claims.net.Denied
 import kami.claims.net.Net
 import kami.claims.service.View
+import kami.libs.text.Phrase
 import kami.claims.social.Perms
 
 import net.minecraft.core.BlockPos
@@ -103,35 +104,20 @@ object Guard {
         return false
     }
 
-    private fun verb(a: Action) = when (a) {
-        Action.BREAK -> "break blocks"
-        Action.PLACE -> "place blocks"
-        Action.INTERACT -> "use things"
-        Action.CONTAINER -> "open containers"
-    }
+    private fun verb(a: Action) = Phrase.of("kami_claims.guard.verb.${a.name.lowercase()}")
 
-    private fun who(a: Access, c: Country, cl: Claim) = when (a) {
-        Access.NONE -> "Nobody may"
-        Access.OFFICER -> "Only officers of ${c.name} may"
-        Access.JOB -> "Only ${cl.def?.job?.let { "${it}s" } ?: "workers"} of ${c.name} may"
-        Access.WORKER -> "Only members of ${c.name} with a job may"
-        Access.CITIZEN -> "Only citizens of ${c.name} may"
-        Access.ALLIED -> "Only citizens and allies of ${c.name} may"
-        Access.ANY -> "Everyone may"
-    }
-
-    fun reason(level: LevelAccessor, pos: BlockPos, p: Player, action: Action): String {
-        val dim = dim(level) ?: return "You can't do that here."
+    fun reason(level: LevelAccessor, pos: BlockPos, p: Player, action: Action): Phrase {
+        val dim = dim(level) ?: return Phrase.of("kami_claims.guard.denied.here")
         val cl = Realm.index[key(dim, pos)]
-        val c = cl?.let { Realm.data.countries[it.country] } ?: return "Nobody owns this land, so nobody may ${verb(action)} here."
+        val c = cl?.let { Realm.data.countries[it.country] } ?: return Phrase.of("kami_claims.guard.denied.nomansland", verb(action))
         val me = p.stringUUID
-        if (c.outsiders[me] == Rank.BANISHED) return "You are banished from ${c.name}."
+        if (c.outsiders[me] == Rank.BANISHED) return Phrase.of("kami_claims.error.you_banished", c.name)
         if (cl.type == "residential" && cl.owner != null) {
-            val owner = Names.of(p.server, cl.owner!!)
-            if (!plotOpen(cl, c)) return "This plot is locked because its tax is ${cl.lapse} days overdue."
-            return "This is $owner's plot. Ask $owner to add you as household."
+            if (!plotOpen(cl, c)) return Phrase.of("kami_claims.guard.denied.plot_locked", Phrase.plural("kami_claims.unit.day", cl.lapse.toLong()))
+            return Phrase.of("kami_claims.guard.denied.plot", Names.of(p.server, cl.owner!!))
         }
-        return "${who(access(c, cl, action), c, cl)} ${verb(action)} in ${cl.type} land."
+        val type = Phrase.or("kami_claims.chunk_type.${cl.type}", cl.type)
+        return Phrase.of("kami_claims.guard.denied.access.${access(c, cl, action).name.lowercase()}", c.name, verb(action), type)
     }
 
     private fun borderDistance(dim: String, pos: BlockPos, standing: BlockPos): Int {
@@ -153,13 +139,13 @@ object Guard {
         val text = reason(level, pos, p, action)
         val now = System.currentTimeMillis()
         val previous = lastDenied[p.stringUUID]
-        if (previous != null && previous.first == text && now - previous.second < 2000) return
-        lastDenied[p.stringUUID] = text to now
+        if (previous != null && previous.first == text.json() && now - previous.second < 2000) return
+        lastDenied[p.stringUUID] = text.json() to now
         val cl = Realm.index[key(dim, pos)]
         val c = cl?.let { Realm.data.countries[it.country] }
         val distance = borderDistance(dim, pos, p.blockPosition())
-        if (Net.canOpen(p)) Net.deny(p, Denied(action.name.lowercase(), pos.x, pos.y, pos.z, c?.name ?: "", c?.let { View.color(it) } ?: -1, cl?.type ?: "", text, distance))
-        else p.bar(Chat.bar(Tone.BAD, if (distance > 0) "$text {$distance} block${if (distance == 1) "" else "s"} past the border." else text))
+        if (Net.canOpen(p)) Net.deny(p, Denied(action.name.lowercase(), pos.x, pos.y, pos.z, c?.name ?: "", c?.let { View.color(it) } ?: -1, cl?.type ?: "", text.json(), distance))
+        else p.bar(Chat.bar(Tone.BAD, (if (distance > 0) Phrase.of("kami_claims.guard.denied.border", text, Phrase.plural("kami_claims.unit.block", distance.toLong())) else text).component()))
     }
 
     private fun matches(state: BlockState, spec: String) =
@@ -289,12 +275,16 @@ object Guard {
         val to = k?.let { Realm.index[it] }
         if (k == null || Net.canOpen(p)) return
         val name = to?.let { Realm.data.countries[it.country]?.name }
-        val detail = to?.let { "${it.type}${it.owner?.let { o -> " - ${Names.of(p.server, o)}" } ?: ""}" } ?: "nothing can be built here"
+        val detail = to?.let { cl ->
+            val type = Phrase.or("kami_claims.chunk_type.${cl.type}", cl.type)
+            cl.owner?.let { o -> Phrase.of("kami_claims.guard.plot_of", type, Names.of(p.server, o)) } ?: type
+        }?.component() ?: Phrase.of("kami_claims.guard.no_building").component()
+        val nomansland = Phrase.of("kami_claims.world.nomansland").component()
         if (Config.s.titles && from?.country != to?.country) {
             p.connection.send(ClientboundSetTitlesAnimationPacket(8, 40, 12))
-            p.connection.send(ClientboundSetSubtitleTextPacket(Component.literal(detail).withColor(Theme.MUTED)))
-            p.connection.send(ClientboundSetTitleTextPacket(Component.literal(name ?: "Nomansland").withColor(if (name == null) Theme.MUTED else Theme.ACCENT)))
-        } else p.bar(Msg().apply { if (name == null) muted("Nomansland") else { text(name, Theme.ACCENT); muted("  $detail") } }.out)
+            p.connection.send(ClientboundSetSubtitleTextPacket(detail.copy().withColor(Theme.MUTED)))
+            p.connection.send(ClientboundSetTitleTextPacket((name?.let { Component.literal(it) } ?: nomansland).withColor(if (name == null) Theme.MUTED else Theme.ACCENT)))
+        } else p.bar(Msg().apply { if (name == null) add(nomansland, Theme.MUTED) else { text(name, Theme.ACCENT); muted("  "); add(detail, Theme.MUTED) } }.out)
     }
 
     fun forget(p: ServerPlayer) { last.remove(p.stringUUID); lastDenied.remove(p.stringUUID); Effects.forget(p) }

@@ -1,5 +1,6 @@
 package kami.libs.ui.graph
 
+import kami.libs.ui.text.tr
 import kami.libs.ui.Theme
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
@@ -40,7 +41,7 @@ object PriceChart {
         }
     }
 
-    fun draw(g: GuiGraphics, x: Int, y: Int, w: Int, h: Int, rawData: List<Ohlc>, style: ChartStyle, mouseX: Int, mouseY: Int): Ohlc? {
+    fun draw(g: GuiGraphics, x: Int, y: Int, w: Int, h: Int, rawData: List<Ohlc>, style: ChartStyle, mouseX: Int, mouseY: Int, readout: Boolean = true): Ohlc? {
         g.fill(x, y, x + w, y + h, Theme.ROW)
 
         val plotW = (w - AXIS_W).coerceAtLeast(10)
@@ -52,7 +53,7 @@ object PriceChart {
 
         val data = downsample(rawData, MAX_POINTS)
         if (data.isEmpty()) {
-            g.drawCenteredString(font, "No trade history yet.", x + plotW / 2, (y + priceBottom) / 2 - 4, Theme.DIM)
+            g.drawCenteredString(font, tr("kami_libs.chart.no_trades"), x + plotW / 2, (y + priceBottom) / 2 - 4, Theme.DIM)
             return null
         }
 
@@ -71,7 +72,7 @@ object PriceChart {
         val stepX = plotW.toDouble() / data.size
         val hovered = if (mouseX in x until x + plotW && mouseY in y..plotBottom + volumeH) {
             val idx = ((mouseX - x) / stepX).toInt().coerceIn(0, data.size - 1)
-            drawCrosshair(g, x, y, plotW, priceBottom, volumeTop + volumeH, data, idx, stepX, ::py)
+            drawCrosshair(g, x, y, plotW, priceBottom, volumeTop + volumeH, data, idx, stepX, readout, ::py)
             data[idx]
         } else null
 
@@ -179,9 +180,15 @@ object PriceChart {
         }
     }
 
+    fun readout(c: Ohlc) = listOf(
+        tr("kami_libs.chart.candle.open_high", Theme.fmt(c.open.roundToInt()), Theme.fmt(c.high.roundToInt())),
+        tr("kami_libs.chart.candle.low_close", Theme.fmt(c.low.roundToInt()), Theme.fmt(c.close.roundToInt())),
+        tr("kami_libs.chart.candle.volume", Theme.fmt(c.volume.roundToInt())) + if (c.at > 0) "  ·  ${Theme.ago(c.at)}" else ""
+    )
+
     private fun drawCrosshair(
         g: GuiGraphics, x: Int, y: Int, plotW: Int, priceBottom: Int, bottom: Int,
-        data: List<Ohlc>, idx: Int, stepX: Double, py: (Double) -> Int
+        data: List<Ohlc>, idx: Int, stepX: Double, showReadout: Boolean, py: (Double) -> Int
     ) {
         val c = data[idx]
         val cx = (x + (idx + 0.5) * stepX).toInt().coerceIn(x, x + plotW)
@@ -195,11 +202,8 @@ object PriceChart {
         g.fill(x + plotW, ply - 1, x + plotW + plw, ply + 9, Theme.ACCENT)
         g.drawString(font, priceLabel, x + plotW + 2, ply, 0xFF101014.toInt(), false)
 
-        val tooltip = listOf(
-            "O ${Theme.fmt(c.open.roundToInt())}  H ${Theme.fmt(c.high.roundToInt())}",
-            "L ${Theme.fmt(c.low.roundToInt())}  C ${Theme.fmt(c.close.roundToInt())}",
-            "Vol ${Theme.fmt(c.volume.roundToInt())}" + if (c.at > 0) "  ·  ${Theme.ago(c.at)}" else ""
-        )
+        if (!showReadout) return
+        val tooltip = readout(c)
         val tw = tooltip.maxOf { font.width(it) } + 8
         val th = tooltip.size * 10 + 4
         var tx = cx + 6

@@ -2,12 +2,22 @@ package kami.libs.ui
 
 import kami.libs.ui.core.Flow
 import kami.libs.ui.core.Rect
+import kami.libs.text.LangAudit
 import kami.libs.ui.style.Format
+import kami.libs.ui.text.Translations
 import kami.libs.ui.widget.TextState
+import kami.libs.ui.widget.gradientAt
+import kami.libs.ui.map.Viewport
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class UiLogicTest {
+    init {
+        val english = LangAudit.load(Path.of("src/main/resources/assets/kami_libs/lang/en_us.json"))
+        Translations.lookup = english::get
+    }
+
     @Test
     fun columnsFillTheWholeWidth() {
         val cols = Rect(0, 0, 101, 10).columns(3, 4)
@@ -74,5 +84,34 @@ class UiLogicTest {
         val t = TextState("abc")
         assertEquals(false, t.insert("defg", 5) { true })
         assertEquals("abc", t.text)
+    }
+
+    @Test
+    fun viewportMapsWorldAndScreenBothWays() {
+        val v = Viewport(2.0).apply { view = Rect(100, 50, 200, 100); cx = 10.0; cz = -5.0 }
+        assertEquals(10.0, v.worldX(200.0))
+        assertEquals(-5.0, v.worldZ(100.0))
+        assertEquals(250.0, v.screenX(v.worldX(250.0)))
+        assertEquals(60.0, v.screenY(v.worldZ(60.0)))
+    }
+
+    @Test
+    fun viewportZoomKeepsCursorPointAndClamps() {
+        val v = Viewport(1.0, 0.5, 4.0).apply { view = Rect(0, 0, 100, 100) }
+        val before = v.worldX(80.0) to v.worldZ(20.0)
+        v.zoomAt(1.5, 80.0, 20.0)
+        assertEquals(before.first, v.worldX(80.0), 1e-9)
+        assertEquals(before.second, v.worldZ(20.0), 1e-9)
+        v.zoomAt(100.0)
+        assertEquals(4.0, v.unitsPerPx)
+        v.locked = true
+        assertEquals(false, v.zoomAt(0.5) || v.pan(5.0, 5.0))
+    }
+
+    @Test
+    fun gradientInterpolatesStops() {
+        assertEquals(0xFF000000.toInt(), gradientAt(listOf(0xFF000000.toInt(), 0xFFFFFFFF.toInt()), -1.0))
+        assertEquals(0xFFFFFFFF.toInt(), gradientAt(listOf(0xFF000000.toInt(), 0xFF808080.toInt(), 0xFFFFFFFF.toInt()), 1.0))
+        assertEquals(0xFF808080.toInt(), gradientAt(listOf(0xFF000000.toInt(), 0xFF808080.toInt(), 0xFFFFFFFF.toInt()), 0.5))
     }
 }

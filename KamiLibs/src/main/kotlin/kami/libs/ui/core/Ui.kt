@@ -5,12 +5,11 @@ import kami.libs.ui.style.Icon
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
 import kami.libs.ui.style.UiSound
+import kotlin.math.exp
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.screens.Screen
 import org.lwjgl.glfw.GLFW
-import kotlin.math.exp
-import kotlin.math.max
 
 enum class Cursor(val shape: Int) { ARROW(GLFW.GLFW_ARROW_CURSOR), HAND(GLFW.GLFW_HAND_CURSOR), TEXT(GLFW.GLFW_IBEAM_CURSOR), MOVE(GLFW.GLFW_CROSSHAIR_CURSOR) }
 
@@ -49,7 +48,7 @@ class Ui {
         private set
     var keyboardMode = false
     var reduceMotion = false
-    var tooltipDelay = 400L
+    var tooltipDelay = 500L
     var cursor = Cursor.ARROW
     var typing = false
         private set
@@ -173,8 +172,6 @@ class Ui {
     fun pressed(r: Rect, button: Int = 0): Click? =
         input.presses.firstOrNull { !it.consumed && it.button == button && r.contains(it.x, it.y) && canHit(it.x, it.y) }?.also { it.consumed = true }
 
-    fun pressedOutside(r: Rect): Boolean = input.presses.any { !r.contains(it.x, it.y) }
-
     fun released(button: Int = 0): Click? = input.releases.firstOrNull { it.button == button }
 
     fun isDown(button: Int = 0) = input.isDown(button)
@@ -220,9 +217,9 @@ class Ui {
         }
     }
 
-    fun tooltip(key: Any, r: Rect, build: () -> Tip?) {
+    fun tooltip(key: Any, r: Rect, delay: Long = tooltipDelay, build: () -> Tip?) {
         if (!hover("tip:$key", r) && !(keyboardMode && focused(key))) return
-        if (hoverTime("tip:$key") < tooltipDelay && !(keyboardMode && focused(key))) return
+        if (hoverTime("tip:$key") < delay && !(keyboardMode && focused(key))) return
         val t = build() ?: return
         tip = t
         tipKey = id(key)
@@ -283,6 +280,4 @@ class Ui {
         input.reset()
         active = null
     }
-
-    fun textWidth(s: String) = Draw.font.width(s)
 }

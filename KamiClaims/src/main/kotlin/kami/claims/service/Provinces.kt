@@ -8,26 +8,19 @@ import kami.claims.TaxMode
 import kami.claims.now
 import kami.claims.social.Mail
 import kami.libs.chat.Tone
-import kami.libs.chat.spur
+import kami.claims.service.Words.v
+import kami.libs.text.Phrase
 import kotlin.math.max
 
 object Provinces {
     private val s get() = Config.s
 
-    val delegatedRights = listOf(
-        "claim, unclaim and change the type of your land",
-        "move your capital",
-        "set your plot tax and plot lapse timers",
-        "change your protection rules and your colour",
-        "create and change your jobs"
-    )
+    val delegatedRights = listOf("land", "capital", "tax", "laws", "jobs").map { "kami_claims.province.right.delegated.$it" }
 
-    val keptRights = listOf("your treasury, they can't withdraw from it", "your members, ranks and invitations", "your name")
-
-    fun tributeText(mode: TaxMode, amount: Double) = if (mode == TaxMode.PERCENT) "${(amount * 100).toInt()}% of your daily plot tax" else "${spur(amount.toLong())} every day"
+    val keptRights = listOf("treasury", "members", "name").map { "kami_claims.province.right.kept.$it" }
 
     fun tribute(text: String, mode: TaxMode): Double {
-        val v = text.toDoubleOrNull() ?: throw Fail("Expected a number.")
+        val v = text.toDoubleOrNull() ?: throw Fail("kami_claims.error.number")
         return if (mode == TaxMode.PERCENT) (v / 100).coerceIn(s.provinceTaxRateBounds[0], s.provinceTaxRateBounds[1]) else max(0.0, v)
     }
 
@@ -35,35 +28,38 @@ object Provinces {
 
     private fun expiry() = now() + s.inviteDays * s.dayMillis
 
-    private fun ownProvince(parent: Country, child: Country) { if (child.parent != parent.id) throw Fail("That is not your province.") }
+    private fun ownProvince(parent: Country, child: Country) { if (child.parent != parent.id) throw Fail("kami_claims.error.not_province") }
 
-    private fun canHold(parent: Country) { if (parent.parent != null) throw Fail("A province cannot have its own provinces.") }
+    private fun canHold(parent: Country) { if (parent.parent != null) throw Fail("kami_claims.error.province_nested") }
 
-    fun agreementLines(child: Country, parent: Country, offer: ProvinceOffer) =
-        listOf("Become a province of {${parent.name}}? {${child.name}} gives up authority over its land.", "Tribute: {${tributeText(offer.mode, offer.amount)}}.") +
-            delegatedRights.map { "{${parent.name}} may $it." } + keptRights.map { "You keep $it." } +
-            listOf("You can't leave on your own. Only {${parent.name}} can release you or grant independence.")
+    fun agreementLines(child: Country, parent: Country, offer: ProvinceOffer): List<Phrase> =
+        listOf(
+            Phrase.of("kami_claims.confirm.province.title", v(parent.name)),
+            Phrase.of("kami_claims.confirm.province.authority", v(child.name)),
+            Phrase.of("kami_claims.confirm.province.tribute", Words.tribute(offer.mode, offer.amount)),
+            Phrase.of("kami_claims.confirm.province.bound", v(parent.name))
+        )
 
     fun invite(parent: Country, target: Country, mode: TaxMode, amount: Double) {
         canHold(parent)
-        if (target.id == parent.id) throw Fail("A country cannot be its own province.")
-        if (target.parent == parent.id) throw Fail("Already your province.")
+        if (target.id == parent.id) throw Fail("kami_claims.error.province_self")
+        if (target.parent == parent.id) throw Fail("kami_claims.error.already_yours")
         target.provinceInvites[parent.id] = ProvinceOffer(expiry(), mode, amount)
-        Mail.officers(target, "{${parent.name}} invites you to become their province. Read the terms in the country screen.")
+        Mail.officers(target, Phrase.of("kami_claims.mail.province_invite", v(parent.name)))
     }
 
     fun request(child: Country, target: Country) {
-        if (child.parent != null) throw Fail("Already a province.")
-        if (target.id == child.id) throw Fail("A country cannot be its own province.")
-        if (target.parent != null) throw Fail("{${target.name}} is a province itself and cannot hold one.")
+        if (child.parent != null) throw Fail("kami_claims.error.already_province")
+        if (target.id == child.id) throw Fail("kami_claims.error.province_self")
+        if (target.parent != null) throw Fail("kami_claims.error.province_holder", v(target.name))
         target.provinceRequests[child.id] = expiry()
-        Mail.officers(target, "{${child.name}} wants to become your province. Answer in the country screen.")
+        Mail.officers(target, Phrase.of("kami_claims.mail.province_request", v(child.name)))
     }
 
     fun offer(child: Country, parent: Country): ProvinceOffer {
-        if (child.parent != null) throw Fail("Already a province.")
-        val offer = child.provinceInvites[parent.id] ?: throw Fail("No invitation from that country.")
-        if (offer.until < now()) { child.provinceInvites.remove(parent.id); throw Fail("The invitation expired.") }
+        if (child.parent != null) throw Fail("kami_claims.error.already_province")
+        val offer = child.provinceInvites[parent.id] ?: throw Fail("kami_claims.error.no_province_invite")
+        if (offer.until < now()) { child.provinceInvites.remove(parent.id); throw Fail("kami_claims.error.invite_expired") }
         return offer
     }
 
@@ -75,17 +71,17 @@ object Provinces {
 
     fun approve(parent: Country, child: Country, mode: TaxMode, amount: Double): ProvinceOffer {
         canHold(parent)
-        if ((parent.provinceRequests[child.id] ?: 0) < now()) throw Fail("No valid request from that country.")
-        if (child.parent != null) throw Fail("That country already has a parent.")
+        if ((parent.provinceRequests[child.id] ?: 0) < now()) throw Fail("kami_claims.error.no_province_request")
+        if (child.parent != null) throw Fail("kami_claims.error.has_overlord")
         parent.provinceRequests.remove(child.id)
         val offer = ProvinceOffer(expiry(), mode, amount, answered = true)
         child.provinceInvites[parent.id] = offer
-        Mail.officers(child, "{${parent.name}} accepted your request with a tribute of {${tributeText(offer.mode, offer.amount)}}. Review and sign it in the country screen.")
+        Mail.officers(child, Phrase.of("kami_claims.mail.province_approved", v(parent.name), Words.tribute(offer.mode, offer.amount)))
         return offer
     }
 
     fun deny(parent: Country, child: Country) {
-        if (parent.provinceRequests.remove(child.id) == null) throw Fail("No request from that country.")
+        if (parent.provinceRequests.remove(child.id) == null) throw Fail("kami_claims.error.no_province_request")
     }
 
     fun finalize(child: Country, parent: Country, mode: TaxMode, amount: Double) {
@@ -100,8 +96,8 @@ object Provinces {
         child.provinceRequests.clear()
         parent.provinces += child.id
         Realm.syncFamily(parent.id)
-        Mail.broadcast(child, "{${child.name}} is now a province of {${parent.name}}, paying {${tributeText(mode, amount)}}.")
-        Mail.broadcast(parent, "{${child.name}} joined as a province.")
+        Mail.broadcast(child, Phrase.of("kami_claims.mail.province_joined", v(child.name), v(parent.name), Words.tribute(mode, amount)))
+        Mail.broadcast(parent, Phrase.of("kami_claims.mail.province_added", v(child.name)))
     }
 
     fun release(parent: Country, child: Country) {
@@ -112,8 +108,8 @@ object Provinces {
         parent.provinces.remove(child.id)
         Realm.syncFamily(child.id)
         Realm.syncFamily(parent.id)
-        Mail.broadcast(child, "{${child.name}} is independent again.", Tone.OK)
-        Mail.broadcast(parent, "{${child.name}} is no longer your province.")
+        Mail.broadcast(child, Phrase.of("kami_claims.mail.independent", v(child.name)), Tone.OK)
+        Mail.broadcast(parent, Phrase.of("kami_claims.mail.province_released", v(child.name)))
     }
 
     fun forgive(parent: Country, child: Country) {
@@ -122,39 +118,39 @@ object Provinces {
     }
 
     fun askIndependence(child: Country) {
-        val parent = child.parent?.let { Realm.country(it) } ?: throw Fail("Not a province.")
-        if (child.independenceRequested) throw Fail("You already asked. {${parent.name}} has to answer first.")
+        val parent = child.parent?.let { Realm.country(it) } ?: throw Fail("kami_claims.error.not_a_province")
+        if (child.independenceRequested) throw Fail("kami_claims.error.already_asked", v(parent.name))
         val wait = cooldown(child)
-        if (wait > 0) throw Fail("{${parent.name}} declined recently. You can ask again in {${wait / 3_600_000 + 1}h}.", "COOLDOWN")
+        if (wait > 0) throw Fail(Phrase.of("kami_claims.error.independence_cooldown", v(parent.name), v(Phrase.of("kami_libs.unit.hour.short", (wait / 3_600_000 + 1).toString()))), "COOLDOWN")
         child.independenceRequested = true
-        Mail.officers(parent, "{${child.name}} asks for independence. Answer in the country screen.")
+        Mail.officers(parent, Phrase.of("kami_claims.mail.independence_request", v(child.name)))
     }
 
     fun withdrawIndependence(child: Country) {
-        if (!child.independenceRequested) throw Fail("No independence request to withdraw.")
+        if (!child.independenceRequested) throw Fail("kami_claims.error.no_independence_request")
         child.independenceRequested = false
     }
 
     fun decline(parent: Country, child: Country) {
         ownProvince(parent, child)
-        if (!child.independenceRequested) throw Fail("{${child.name}} did not ask for independence.")
+        if (!child.independenceRequested) throw Fail("kami_claims.error.no_independence_ask", v(child.name))
         child.independenceRequested = false
         child.independenceDeclinedAt = now()
-        Mail.officers(child, "{${parent.name}} declined your independence request.", Tone.WARN)
+        Mail.officers(child, Phrase.of("kami_claims.mail.independence_declined", v(parent.name)), Tone.WARN)
     }
 
     fun setTribute(parent: Country, child: Country, mode: TaxMode, amount: Double) {
         ownProvince(parent, child)
         child.taxMode = mode
         child.taxAmount = amount
-        Mail.officers(child, "{${parent.name}} changed your tribute to {${tributeText(mode, amount)}}.")
+        Mail.officers(child, Phrase.of("kami_claims.mail.tribute_changed", v(parent.name), Words.tribute(mode, amount)))
     }
 
     fun checkGive(parent: Country, child: Country, newParent: Country) {
         ownProvince(parent, child)
-        if (newParent.id == child.id) throw Fail("A country cannot be its own province.")
-        if (newParent.id == parent.id) throw Fail("{${child.name}} already belongs to you.")
-        if (newParent.parent != null) throw Fail("{${newParent.name}} is a province itself and cannot hold one.")
+        if (newParent.id == child.id) throw Fail("kami_claims.error.province_self")
+        if (newParent.id == parent.id) throw Fail("kami_claims.error.already_yours_named", v(child.name))
+        if (newParent.parent != null) throw Fail("kami_claims.error.province_holder", v(newParent.name))
     }
 
     fun give(parent: Country, child: Country, newParent: Country) {
@@ -165,7 +161,7 @@ object Provinces {
         newParent.provinces += child.id
         Realm.syncFamily(parent.id)
         Realm.syncFamily(newParent.id)
-        Mail.broadcast(child, "{${child.name}} was given to {${newParent.name}}.")
-        Mail.broadcast(newParent, "{${child.name}} is now your province.")
+        Mail.broadcast(child, Phrase.of("kami_claims.mail.province_given", v(child.name), v(newParent.name)))
+        Mail.broadcast(newParent, Phrase.of("kami_claims.mail.province_received", v(child.name)))
     }
 }

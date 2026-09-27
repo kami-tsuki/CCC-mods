@@ -1,5 +1,7 @@
 package kami.essentials.chat
 
+import kami.libs.text.Text
+import kami.libs.text.Phrase
 import kami.essentials.Config
 import kami.essentials.Flag
 import kami.essentials.Store
@@ -33,12 +35,12 @@ object Feed {
         }
     }
 
-    fun join(p: ServerPlayer, toggle: String? = null) {
-        if (Config.s.joinLeave || toggle != null) send(p, line(p, "[+]", Theme.OK, " joined"), toggle)
+    fun join(p: ServerPlayer, toggle: Phrase? = null) {
+        if (Config.s.joinLeave || toggle != null) send(p, line(p, "[+]", Theme.OK, "kami_essentials.feed.joined"), toggle)
     }
 
-    fun leave(p: ServerPlayer, toggle: String? = null) {
-        if (Config.s.joinLeave || toggle != null) send(p, line(p, "[-]", Theme.BAD, " left"), toggle)
+    fun leave(p: ServerPlayer, toggle: Phrase? = null) {
+        if (Config.s.joinLeave || toggle != null) send(p, line(p, "[-]", Theme.BAD, "kami_essentials.feed.left"), toggle)
     }
 
     private fun death(message: Component, id: UUID?): Boolean {
@@ -58,15 +60,15 @@ object Feed {
         return true
     }
 
-    private fun line(p: ServerPlayer, mark: String, color: Int, verb: String): Component = Component.empty()
+    private fun line(p: ServerPlayer, mark: String, color: Int, key: String): Component = Component.empty()
         .append(Component.literal(mark).withColor(color).withStyle(ChatFormatting.BOLD))
         .append(" ")
-        .append(Names.player(p))
-        .append(Component.literal(verb).withColor(Theme.MUTED))
+        .append(Text.msg(key, Names.player(p)).withColor(Theme.MUTED))
 
-    private fun send(subject: ServerPlayer, line: Component, toggle: String?) {
+    private fun send(subject: ServerPlayer, line: Component, toggle: Phrase?) {
         val hidden = toggle == null && Vanish.active(subject)
-        val note = Component.empty().append(line).append(Component.literal(" (${toggle ?: "invisible"})").withColor(Theme.MUTED))
+        val reason = (toggle ?: Phrase.of("kami_essentials.feed.invisible")).component()
+        val note = Component.empty().append(line).append(Component.literal(" (").append(reason).append(")").withColor(Theme.MUTED))
         subject.server.sendSystemMessage(if (hidden || toggle != null) note else line)
         subject.server.playerList.players.forEach { v ->
             val seer = v === subject || Vanish.sees(v)

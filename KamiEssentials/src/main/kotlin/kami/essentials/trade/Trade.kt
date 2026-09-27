@@ -3,7 +3,8 @@ package kami.essentials.trade
 import kami.essentials.Config
 import kami.essentials.chat.Talk
 import kami.libs.chat.tell
-import net.minecraft.network.chat.Component
+import kami.libs.text.Phrase
+import kami.libs.text.Text
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.SimpleContainer
 import net.minecraft.world.SimpleMenuProvider
@@ -27,8 +28,8 @@ class Trade(val players: List<ServerPlayer>) {
 
     fun start() {
         players.forEachIndexed { side, p ->
-            val menu = p.openMenu(SimpleMenuProvider({ id, inv, _ -> TradeMenu(id, inv, this, side) }, Component.literal("Trade with ${name(1 - side)}")))
-            if (menu.isEmpty) return cancel(null, "the trade window did not open")
+            val menu = p.openMenu(SimpleMenuProvider({ id, inv, _ -> TradeMenu(id, inv, this, side) }, Text.msg("kami_essentials.trade.window", name(1 - side))))
+            if (menu.isEmpty) return cancel(null, Phrase.of("kami_essentials.trade.reason.window"))
         }
     }
 
@@ -42,24 +43,24 @@ class Trade(val players: List<ServerPlayer>) {
     fun tick() {
         if (!open) return
         when {
-            players.any { it.hasDisconnected() || !it.isAlive } -> cancel(null, "a player left")
-            !Trades.inRange(players[0], players[1]) -> cancel(null, "you are too far apart")
+            players.any { it.hasDisconnected() || !it.isAlive } -> cancel(null, Phrase.of("kami_essentials.trade.reason.player_left"))
+            !Trades.inRange(players[0], players[1]) -> cancel(null, Phrase.of("kami_essentials.trade.reason.distance"))
             countdown > 0 && --countdown == 0 -> finish()
         }
     }
 
-    fun closed(side: Int) = cancel(players[side], "closed the trade")
+    fun closed(side: Int) = cancel(players[side])
 
-    fun cancel(by: ServerPlayer?, why: String) {
+    fun cancel(by: ServerPlayer?, why: Phrase? = null) {
         if (!open) return
         open = false
         players.forEachIndexed { side, p -> give(p, offers[side].removeAllItems()) }
         end()
         players.forEach { p ->
             p.tell(Talk.chat.warn(when {
-                by == null -> "Trade cancelled, $why. Your items are back."
-                by === p -> "Trade cancelled. Your items are back."
-                else -> "{${by.gameProfile.name}} $why. Your items are back."
+                by == null && why != null -> Phrase.of("kami_essentials.trade.cancelled.reason", why)
+                by == null || by === p -> Phrase.of("kami_essentials.trade.cancelled")
+                else -> Phrase.of("kami_essentials.trade.cancelled.by", Phrase.value(by.gameProfile.name))
             }))
         }
     }
@@ -74,14 +75,14 @@ class Trade(val players: List<ServerPlayer>) {
         val full = players.indices.firstOrNull { side -> !fits(players[side], offers[1 - side].items) }
         if (full != null) {
             changed()
-            return players.forEach { it.tell(Talk.chat.warn("{${name(full)}} has no room for everything. Nothing was traded, make space and accept again.")) }
+            return players.forEach { it.tell(Talk.chat.warn(Phrase.of("kami_essentials.trade.no_room", Phrase.value(name(full))))) }
         }
         open = false
         val items = offers.map { it.removeAllItems() }
         players.forEachIndexed { side, p -> give(p, items[1 - side]) }
         end()
         players.forEachIndexed { side, p ->
-            p.tell(Talk.chat.ok("Trade with {${name(1 - side)}} done. You got {${items[1 - side].sumOf { it.count }}} items and gave {${items[side].sumOf { it.count }}}."))
+            p.tell(Talk.chat.ok(Phrase.of("kami_essentials.trade.done", Phrase.value(name(1 - side)), Phrase.value(items[1 - side].sumOf { it.count }), Phrase.value(items[side].sumOf { it.count }))))
         }
     }
 

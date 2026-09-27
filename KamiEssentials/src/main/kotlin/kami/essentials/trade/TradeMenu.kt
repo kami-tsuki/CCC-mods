@@ -1,5 +1,6 @@
 package kami.essentials.trade
 
+import kami.libs.text.Text
 import kami.libs.chat.Theme
 import kami.libs.menu.GridMenu
 import net.minecraft.network.chat.Component
@@ -33,7 +34,7 @@ class TradeMenu(id: Int, inv: Inventory, private val trade: Trade, private val s
         when {
             !trade.open -> return
             slot == ACCEPT -> trade.toggle(side)
-            slot == CANCEL -> trade.cancel(trade.players[side], "cancelled the trade")
+            slot == CANCEL -> trade.cancel(trade.players[side])
             else -> super.clicked(slot, button, type, player)
         }
     }
@@ -57,23 +58,23 @@ class TradeMenu(id: Int, inv: Inventory, private val trade: Trade, private val s
         val seconds = (trade.countdown + 19) / 20
         display.setItem(
             ACCEPT,
-            if (trade.accepted(side)) icon(Items.LIME_CONCRETE, text("Accepted", Theme.OK), text("Click to take it back"))
-            else icon(Items.YELLOW_CONCRETE, text("Accept", Theme.WARN), text("Click when both offers look right"), text("Any change resets both sides"))
+            if (trade.accepted(side)) icon(Items.LIME_CONCRETE, text("kami_essentials.trade.menu.accepted", color = Theme.OK), text("kami_essentials.trade.menu.accepted.tooltip"))
+            else icon(Items.YELLOW_CONCRETE, text("kami_essentials.trade.menu.accept", color = Theme.WARN), text("kami_essentials.trade.menu.accept.tooltip"), text("kami_essentials.trade.menu.accept.reset"))
         )
-        display.setItem(CANCEL, icon(Items.BARRIER, text("Cancel", Theme.BAD), text("Close the trade, your items come back")))
+        display.setItem(CANCEL, icon(Items.BARRIER, text("kami_essentials.trade.menu.cancel", color = Theme.BAD), text("kami_essentials.trade.menu.cancel.tooltip")))
         display.setItem(
             STATUS,
-            if (seconds > 0) icon(Items.CLOCK, text("Trading in $seconds...", Theme.OK), text("Change anything to stop"), count = seconds)
-            else icon(Items.PAPER, text("Your offer is on the left", Theme.VALUE), text("$other's offer is on the right"), text("Both of you must accept"))
+            if (seconds > 0) icon(Items.CLOCK, text("kami_essentials.trade.menu.countdown", seconds, color = Theme.OK), text("kami_essentials.trade.menu.countdown.tooltip"), count = seconds)
+            else icon(Items.PAPER, text("kami_essentials.trade.menu.yours", color = Theme.VALUE), text("kami_essentials.trade.menu.theirs", other), text("kami_essentials.trade.menu.both"))
         )
         display.setItem(
             THEIRS,
-            if (trade.accepted(1 - side)) icon(Items.LIME_DYE, text("$other accepted", Theme.OK))
-            else icon(Items.GRAY_DYE, text("Waiting for $other", Theme.MUTED))
+            if (trade.accepted(1 - side)) icon(Items.LIME_DYE, text("kami_essentials.trade.menu.other_accepted", other, color = Theme.OK))
+            else icon(Items.GRAY_DYE, text("kami_essentials.trade.menu.waiting", other, color = Theme.MUTED))
         )
     }
 
-    private fun text(s: String, color: Int = Theme.TEXT): Component = Component.literal(s).withColor(color)
+    private fun text(key: String, vararg args: Any, color: Int = Theme.TEXT): Component = Text.msg(key, *args).withColor(color)
 
     companion object {
         private const val ACCEPT = 45

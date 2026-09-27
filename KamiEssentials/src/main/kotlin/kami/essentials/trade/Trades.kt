@@ -1,5 +1,6 @@
 package kami.essentials.trade
 
+import kami.libs.text.Phrase
 import kami.essentials.Config
 import kami.essentials.Perms
 import kami.essentials.chat.Talk
@@ -33,37 +34,38 @@ object Trades {
         }
         val seconds = Config.s.tradeRequestSeconds
         requests[from.uuid] = Request(to.uuid, now() + seconds * 1000L)
-        from.tell(Talk.chat.ok("Trade request sent to {${to.gameProfile.name}}. It runs out in {$seconds} seconds."))
+        from.tell(Talk.chat.ok(Phrase.of("kami_essentials.trade.request.sent", Phrase.value(to.gameProfile.name), Phrase.value(seconds))))
         to.tell(Talk.chat.msg {
-            markup("{${from.gameProfile.name}} wants to trade.  ")
-            button("Accept", "/trade accept ${from.gameProfile.name}", "Open the trade window")
+            add(Phrase.of("kami_essentials.trade.request.received", Phrase.value(from.gameProfile.name)))
+            text("  ")
+            button(Phrase.of("kami_essentials.trade.request.accept"), "/trade accept ${from.gameProfile.name}", Phrase.of("kami_essentials.trade.request.accept.tooltip"))
             text(" ")
-            button("Deny", "/trade deny ${from.gameProfile.name}", "Say no")
+            button(Phrase.of("kami_essentials.trade.request.deny"), "/trade deny ${from.gameProfile.name}", Phrase.of("kami_essentials.trade.request.deny.tooltip"))
         })
     }
 
     fun accept(me: ServerPlayer, from: ServerPlayer) {
-        requests[from.uuid]?.takeIf { it.to == me.uuid && it.until > now() } ?: fail("No open trade request from {${from.gameProfile.name}}.")
+        requests[from.uuid]?.takeIf { it.to == me.uuid && it.until > now() } ?: fail(Phrase.of("kami_essentials.trade.no_request", Phrase.value(from.gameProfile.name)))
         check(me, from)
         requests.remove(from.uuid)
         start(from, me)
     }
 
     fun deny(me: ServerPlayer, from: ServerPlayer) {
-        if (requests[from.uuid]?.to != me.uuid) fail("No open trade request from {${from.gameProfile.name}}.")
+        if (requests[from.uuid]?.to != me.uuid) fail(Phrase.of("kami_essentials.trade.no_request", Phrase.value(from.gameProfile.name)))
         requests.remove(from.uuid)
-        me.tell(Talk.chat.ok("Declined the trade with {${from.gameProfile.name}}."))
-        from.tell(Talk.chat.warn("{${me.gameProfile.name}} declined your trade."))
+        me.tell(Talk.chat.ok(Phrase.of("kami_essentials.trade.declined", Phrase.value(from.gameProfile.name))))
+        from.tell(Talk.chat.warn(Phrase.of("kami_essentials.trade.declined.by", Phrase.value(me.gameProfile.name))))
     }
 
     fun cancel(me: ServerPlayer) {
         val trade = active[me.uuid]
-        if (trade != null) return trade.cancel(me, "cancelled the trade")
-        if (requests.remove(me.uuid) == null) fail("You have no trade or request open.")
-        me.tell(Talk.chat.ok("Trade request withdrawn."))
+        if (trade != null) return trade.cancel(me)
+        if (requests.remove(me.uuid) == null) fail(Phrase.of("kami_essentials.trade.nothing_open"))
+        me.tell(Talk.chat.ok(Phrase.of("kami_essentials.trade.withdrawn")))
     }
 
-    fun drop(p: ServerPlayer, why: String) {
+    fun drop(p: ServerPlayer, why: Phrase) {
         requests.remove(p.uuid)
         active[p.uuid]?.cancel(null, why)
     }
@@ -75,16 +77,16 @@ object Trades {
         requests.values.removeIf { it.until < now() }
     }
 
-    fun stop() = active.values.toSet().forEach { it.cancel(null, "the server is stopping") }
+    fun stop() = active.values.toSet().forEach { it.cancel(null, Phrase.of("kami_essentials.trade.reason.stopping")) }
 
     private fun check(me: ServerPlayer, other: ServerPlayer) {
         val name = other.gameProfile.name
-        if (me === other) fail("You can't trade with yourself.")
-        if (busy(me)) fail("Finish your current trade first.")
-        if (busy(other)) fail("{$name} is already trading.")
+        if (me === other) fail(Phrase.of("kami_essentials.trade.self"))
+        if (busy(me)) fail(Phrase.of("kami_essentials.trade.busy"))
+        if (busy(other)) fail(Phrase.of("kami_essentials.trade.other_busy", Phrase.value(name)))
         if (!inRange(me, other)) fail(
-            if (Config.s.tradeDistance == -2) "You need to be in the same dimension as {$name}."
-            else "You need to be within {${Config.s.tradeDistance}} blocks of {$name}."
+            if (Config.s.tradeDistance == -2) Phrase.of("kami_essentials.trade.same_dimension", Phrase.value(name))
+            else Phrase.of("kami_essentials.trade.distance", Phrase.value(Config.s.tradeDistance), Phrase.value(name))
         )
     }
 

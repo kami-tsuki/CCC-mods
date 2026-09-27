@@ -6,12 +6,13 @@ import kami.claims.Country
 import kami.claims.Key
 import kami.claims.Realm
 import kami.claims.now
+import kami.libs.text.Phrase
 import kotlin.math.max
 import kotlin.math.min
 
 enum class Outcome { CLAIM, FREE, RETYPE, UNCLAIM, BLOCKED, SKIP }
 
-class PlannedCell(val key: Key, val outcome: Outcome, val reason: String? = null, val price: Int = 0, val period: Int = 1)
+class PlannedCell(val key: Key, val outcome: Outcome, val reason: Phrase? = null, val price: Int = 0, val period: Int = 1)
 
 class Plan(val cells: List<PlannedCell>, val costNow: Long, val upkeepPerDay: Double) {
     val ready get() = cells.filter { it.outcome != Outcome.BLOCKED && it.outcome != Outcome.SKIP }
@@ -23,13 +24,13 @@ object Planner {
 
     private fun neighbours(k: Key) = listOf(Key(k.dim, k.x + 1, k.z), Key(k.dim, k.x - 1, k.z), Key(k.dim, k.x, k.z + 1), Key(k.dim, k.x, k.z - 1))
 
-    fun blockReason(c: Country, k: Key, type: String, owned: Set<Key>, treasury: Long, count: Int): String? {
-        if (k.dim !in s.dimensionSet) return "Claims are off in this dimension"
-        val def = s.types[type] ?: return "Unknown chunk type"
-        Realm.index[k]?.let { cl -> return if (cl.country == c.id) "Already yours" else "Owned by ${Realm.data.countries[cl.country]?.name ?: cl.country}" }
-        Realm.reservedFor(k.dim, k.x, k.z)?.let { if (it != c.id) return "This land is reserved for ${Realm.data.countries[it]?.name ?: it} after they lost it" }
-        if (owned.isNotEmpty() && neighbours(k).none { it in owned }) return "Not connected to your land"
-        if (count >= Realm.freeAllowed(c) && treasury < def.price) return "The treasury can't pay the first day (${def.price} spur)"
+    fun blockReason(c: Country, k: Key, type: String, owned: Set<Key>, treasury: Long, count: Int): Phrase? {
+        if (k.dim !in s.dimensionSet) return Phrase.of("kami_claims.block.dimension")
+        val def = s.types[type] ?: return Phrase.of("kami_claims.block.unknown_type")
+        Realm.index[k]?.let { cl -> return if (cl.country == c.id) Phrase.of("kami_claims.block.yours") else Phrase.of("kami_claims.block.owned", Realm.data.countries[cl.country]?.name ?: cl.country) }
+        Realm.reservedFor(k.dim, k.x, k.z)?.let { if (it != c.id) return Phrase.of("kami_claims.block.reserved", Realm.data.countries[it]?.name ?: it) }
+        if (owned.isNotEmpty() && neighbours(k).none { it in owned }) return Phrase.of("kami_claims.block.not_connected")
+        if (count >= Realm.freeAllowed(c) && treasury < def.price) return Phrase.of("kami_claims.block.treasury", Phrase.of("kami_libs.unit.money", def.price.toString()))
         return null
     }
 
@@ -62,10 +63,10 @@ object Planner {
         return Plan(ordered, c.treasury - treasury, ordered.filter { it.outcome == Outcome.CLAIM || it.outcome == Outcome.FREE }.sumOf { if (it.outcome == Outcome.FREE) 0.0 else it.price.toDouble() / it.period })
     }
 
-    fun unclaimLock(cl: Claim): String? {
+    fun unclaimLock(cl: Claim): Phrase? {
         val age = now() - cl.at
-        if (age < s.dayMillis) return "Newly claimed, can be released in ${(s.dayMillis - age) / 3_600_000 + 1}h"
-        if (cl.upkeepCycles < 1) return "Must go through one upkeep day first"
+        if (age < s.dayMillis) return Phrase.of("kami_claims.block.new", Phrase.of("kami_libs.unit.hour.short", ((s.dayMillis - age) / 3_600_000 + 1).toString()))
+        if (cl.upkeepCycles < 1) return Phrase.of("kami_claims.block.upkeep_day")
         return null
     }
 
@@ -76,7 +77,7 @@ object Planner {
         val candidates = remaining.values.filter { it.key in set }.sortedByDescending { it.at }
         candidates.forEach { cl ->
             when {
-                cl.capital -> decided[cl.key] = PlannedCell(cl.key, Outcome.BLOCKED, "The capital can't be released, move it first")
+                cl.capital -> decided[cl.key] = PlannedCell(cl.key, Outcome.BLOCKED, Phrase.of("kami_claims.block.capital"))
                 unclaimLock(cl) != null -> decided[cl.key] = PlannedCell(cl.key, Outcome.BLOCKED, unclaimLock(cl))
             }
         }
@@ -91,8 +92,8 @@ object Planner {
             }
             if (!progress) break
         }
-        candidates.filter { it.key !in decided }.forEach { decided[it.key] = PlannedCell(it.key, Outcome.BLOCKED, "Would split your land in two") }
-        keys.filter { it !in decided }.forEach { k -> decided[k] = PlannedCell(k, Outcome.SKIP, "Not yours") }
+        candidates.filter { it.key !in decided }.forEach { decided[it.key] = PlannedCell(it.key, Outcome.BLOCKED, Phrase.of("kami_claims.block.split")) }
+        keys.filter { it !in decided }.forEach { k -> decided[k] = PlannedCell(k, Outcome.SKIP, Phrase.of("kami_claims.block.not_yours")) }
         val ordered = keys.distinct().mapNotNull { decided[it] }
         val saved = ordered.filter { it.outcome == Outcome.UNCLAIM }.sumOf { k -> Realm.index[k.key]?.takeIf { !it.free }?.let { it.def?.price?.toDouble()?.div(Realm.period(it)) } ?: 0.0 }
         return Plan(ordered, 0, -saved)
@@ -103,9 +104,9 @@ object Planner {
         val cells = keys.distinct().map { k ->
             val cl = Realm.index[k]
             when {
-                cl == null || cl.country != c.id -> PlannedCell(k, Outcome.SKIP, "Not yours")
-                cl.type == type -> PlannedCell(k, Outcome.SKIP, "Already $type")
-                else -> PlannedCell(k, Outcome.RETYPE, if (cl.owner != null && type != "residential") "The plot owner loses this plot" else null, def?.price ?: 0, max(1, def?.period ?: 1))
+                cl == null || cl.country != c.id -> PlannedCell(k, Outcome.SKIP, Phrase.of("kami_claims.block.not_yours"))
+                cl.type == type -> PlannedCell(k, Outcome.SKIP, Phrase.of("kami_claims.block.same_type"))
+                else -> PlannedCell(k, Outcome.RETYPE, if (cl.owner != null && type != "residential") Phrase.of("kami_claims.block.tenant_loses") else null, def?.price ?: 0, max(1, def?.period ?: 1))
             }
         }
         val delta = cells.filter { it.outcome == Outcome.RETYPE }.sumOf { cell ->

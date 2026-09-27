@@ -2,6 +2,7 @@ package kami.essentials.chat
 
 import kami.libs.chat.Theme
 import kami.libs.chat.duration
+import kami.libs.text.Phrase
 import kami.libs.claims.Citizenship
 import kami.libs.claims.ClaimsApi
 import net.minecraft.network.chat.ClickEvent
@@ -18,7 +19,7 @@ object Names {
 
     fun color(c: Citizenship) = c.color.takeIf { it != 0 } ?: Theme.ACCENT
 
-    fun title(rank: String) = rank.lowercase().replaceFirstChar(Char::uppercase)
+    fun title(rank: String): MutableComponent = Phrase.or("kami_claims.rank.${rank.lowercase()}", rank.lowercase().replaceFirstChar(Char::uppercase)).component()
 
     fun stat(p: ServerPlayer, stat: ResourceLocation) = p.stats.getValue(Stats.CUSTOM.get(stat))
 
@@ -45,7 +46,7 @@ object Names {
     fun name(p: ServerPlayer, hover: Boolean = true): MutableComponent {
         val name = Component.literal(p.gameProfile.name).withColor(Theme.VALUE)
         if (!hover) return name
-        val card = lines(p.gameProfile.name to Theme.VALUE, "Playtime ${playtime(p)}" to Theme.TEXT, "Click to message" to Theme.MUTED)
+        val card = lines(Phrase.literal(p.gameProfile.name) to Theme.VALUE, Phrase.of("kami_essentials.names.playtime", playtime(p)) to Theme.TEXT, Phrase.of("kami_essentials.names.message") to Theme.MUTED)
         return name.withStyle { it.withHoverEvent(HoverEvent(HoverEvent.Action.SHOW_TEXT, card)).withClickEvent(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/msg ${p.gameProfile.name} ")) }
     }
 
@@ -56,27 +57,27 @@ object Names {
         val tag = Component.literal("[$label]").withColor(color(c))
         if (!hover) return tag
         val card = lines(
-            label to color(c),
-            (c.parent?.let { "Province ${c.name} of $it" } ?: "Independent country") to Theme.TEXT,
-            title(c.rank) to Theme.TEXT,
-            "Click for country info" to Theme.MUTED
+            Phrase.literal(label) to color(c),
+            (c.parent?.let { Phrase.of("kami_essentials.names.province", c.name, it) } ?: Phrase.of("kami_essentials.names.independent")) to Theme.TEXT,
+            Phrase.or("kami_claims.rank.${c.rank.lowercase()}", c.rank) to Theme.TEXT,
+            Phrase.of("kami_essentials.names.country_info") to Theme.MUTED
         )
         return tag.withStyle { it.withHoverEvent(HoverEvent(HoverEvent.Action.SHOW_TEXT, card)).withClickEvent(ClickEvent(ClickEvent.Action.RUN_COMMAND, "/claims info $label")) }
     }
 
     fun rankTag(c: Citizenship, hover: Boolean = true): MutableComponent {
-        val label = title(c.rank)
-        val tag = Component.literal("[$label]").withColor(color(c))
+        val label = Phrase.or("kami_claims.rank.${c.rank.lowercase()}", c.rank.lowercase().replaceFirstChar(Char::uppercase))
+        val tag = Component.literal("[").append(label.component()).append("]").withColor(color(c))
         if (!hover) return tag
         val card = lines(
             label to color(c),
-            (c.parent?.let { "Province rank in ${c.name}" } ?: "Country rank") to Theme.TEXT,
-            "Click for country info" to Theme.MUTED
+            (c.parent?.let { Phrase.of("kami_essentials.names.province_rank", c.name) } ?: Phrase.of("kami_essentials.names.country_rank")) to Theme.TEXT,
+            Phrase.of("kami_essentials.names.country_info") to Theme.MUTED
         )
         val target = c.parent ?: c.name
         return tag.withStyle { it.withHoverEvent(HoverEvent(HoverEvent.Action.SHOW_TEXT, card)).withClickEvent(ClickEvent(ClickEvent.Action.RUN_COMMAND, "/claims info $target")) }
     }
 
-    private fun lines(vararg parts: Pair<String, Int>): Component =
-        parts.foldIndexed(Component.empty()) { i, out, (text, color) -> out.append(Component.literal(if (i == 0) text else "\n$text").withColor(color)) }
+    private fun lines(vararg parts: Pair<Phrase, Int>): Component =
+        parts.foldIndexed(Component.empty()) { i, out, (text, color) -> out.append(Component.literal(if (i == 0) "" else "\n").append(text.component()).withColor(color)) }
 }

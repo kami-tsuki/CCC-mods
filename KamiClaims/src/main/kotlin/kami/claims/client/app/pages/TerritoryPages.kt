@@ -1,5 +1,8 @@
 package kami.claims.client.app.pages
 
+import kami.libs.ui.text.trJson
+import kami.libs.ui.text.trn
+import kami.libs.ui.text.tr
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ClaimsPage
 import kami.claims.client.app.Consequence
@@ -33,11 +36,11 @@ import kotlin.math.max
 private fun cellsArg(rows: Collection<ClaimLine>) = rows.joinToString(",") { "${it.x}:${it.z}" }
 
 class ChunksPage(app: ClaimsApp) : ClaimsPage(app) {
-    override val title = "Chunks"
-    override val help = listOf(
-        Callout("chunks:filters", "Filters", "Search coords/owners and filter by type/state."),
-        Callout("chunks:table", "Your land", "Click to select, Ctrl/Shift for multi, double-click to open on map."),
-        Callout("chunks:bulk", "Bulk actions", "Retype selected chunks or release them.")
+    override val title get() = tr("kami_claims.nav.chunks")
+    override val help get() = listOf(
+        Callout("chunks:filters", tr("kami_claims.ledger.help.filter"), tr("kami_claims.chunks.help.filter.desc")),
+        Callout("chunks:table", tr("kami_claims.chunks.help.table"), tr("kami_claims.table.hint")),
+        Callout("chunks:bulk", tr("kami_claims.chunks.help.bulk"), tr("kami_claims.chunks.help.bulk.desc"))
     )
     private val search = TextState()
     private var type = "all"
@@ -50,19 +53,19 @@ class ChunksPage(app: ClaimsApp) : ClaimsPage(app) {
     }
 
     private fun status(c: ClaimLine) = when {
-        c.debt > 0 -> "Debt ${c.debt}/${limits?.maxDebt ?: 3}"
-        c.free -> "Free"
-        c.locked.isNotEmpty() -> "New"
-        else -> "Paid"
+        c.debt > 0 -> tr("kami_claims.chunks.status.debt", c.debt, limits?.maxDebt ?: 3)
+        c.free -> tr("kami_claims.chunks.status.free")
+        c.locked.isNotEmpty() -> tr("kami_claims.chunks.status.new")
+        else -> tr("kami_claims.chunks.status.paid")
     }
 
     override fun draw(ui: Ui, r: Rect) {
         val info = info ?: return
-        val bar = Row(r.top(20), 6)
-        ui.anchor("chunks:filters", r.top(20))
-        ui.searchField(bar.take(150), search, "Search coord or owner", key = "chunk-search")
-        ui.select(bar.take(130), listOf(Option("all", "All types", Icons.LAYERS)) + snap.types.map { Option(it.name, Vocabulary.type(it.name).label, Vocabulary.type(it.name).icon, null, Vocabulary.type(it.name).color) }, type, key = "chunk-type")?.let { type = it }
-        ui.segmented(bar.take(200), listOf(Option("all", "All"), Option("debt", "In debt", Icons.DEBT), Option("plots", "Plots", Icons.HOUSE), Option("free", "Free")), state, key = "chunk-state")?.let { state = it }
+        val bar = Row(r.top(CONTROL_H), 6)
+        ui.anchor("chunks:filters", r.top(CONTROL_H))
+        ui.searchField(bar.take(150), search, tr("kami_claims.chunks.search"), key = "chunk-search")
+        ui.select(bar.take(130), listOf(Option("all", tr("kami_claims.chunks.filter.all_types"), Icons.LAYERS)) + snap.types.map { Option(it.name, Vocabulary.type(it.name).label, Vocabulary.type(it.name).icon, null, Vocabulary.type(it.name).color) }, type, key = "chunk-type")?.let { type = it }
+        ui.segmented(bar.take(200), listOf(Option("all", tr("kami_claims.chunks.filter.all")), Option("debt", tr("kami_claims.stats.in_debt"), Icons.DEBT), Option("plots", tr("kami_claims.nav.plots"), Icons.HOUSE), Option("free", tr("kami_claims.chunks.status.free"))), state, key = "chunk-state")?.let { state = it }
         val rows = info.claimList.filter { c ->
             (type == "all" || c.type == type) && when (state) {
                 "debt" -> c.debt > 0
@@ -71,35 +74,35 @@ class ChunksPage(app: ClaimsApp) : ClaimsPage(app) {
                 else -> true
             } && (search.text.isBlank() || "${c.x}, ${c.z} ${c.x},${c.z} ${c.owner} ${c.type}".contains(search.text.trim(), true))
         }
-        val summary = "${rows.size}/${info.chunks} · ${info.free} free · ${info.claimList.count { it.debt > 0 }} debt · ${info.upkeep} ◎/day"
-        Draw.textRight(ui.g, Draw.fit(summary, bar.rest.w), r.right, r.y + 6, Palette.textMuted)
+        val summary = tr("kami_claims.chunks.summary", Format.number(rows.size), Format.number(info.chunks), Format.number(info.free), Format.number(info.claimList.count { it.debt > 0 }), Format.perDay(Format.money(info.upkeep)))
+        Draw.textRight(ui.g, Draw.fit(summary, bar.rest.w), r.right, r.y + 5, Palette.textMuted)
         val selected = rows.filter { "${it.x}:${it.z}" in table.selected }
-        val tableArea = if (selected.isNotEmpty()) r.dropTop(24).dropBottom(26, 4) else r.dropTop(24)
+        val tableArea = if (selected.isNotEmpty()) r.dropTop(CONTROL_H + 6).dropBottom(BULK_H, 4) else r.dropTop(CONTROL_H + 6)
         ui.anchor("chunks:table", tableArea)
         if (info.claimList.isEmpty()) {
-            if (ui.emptyState(tableArea, "No land yet", "Claim chunks on the map with a cost preview before commit.", Illustrations.FOUND, "Open map", Icons.MAP)) app.navigate(Route("map"))
+            if (ui.emptyState(tableArea, tr("kami_claims.chunks.empty.title"), tr("kami_claims.chunks.empty.desc"), Illustrations.FOUND, tr("kami_claims.alert.open.map"), Icons.MAP)) app.navigate(Route("map"))
             return
         }
         val events = ui.table(tableArea, listOf(
-            Column<ClaimLine>("Chunk", 80, sort = compareBy({ it.x }, { it.z })) { _, c, row ->
-                Draw.text(g, "${row.x}, ${row.z}", c.x, c.y + 4, Palette.text)
-                if (row.capital) Draw.icon(g, Icons.CROWN, c.right - 12, c.y + 2, 12)
+            Column<ClaimLine>(tr("kami_claims.wizard.chunk"), 80, sort = compareBy({ it.x }, { it.z })) { _, c, row ->
+                Draw.text(g, "${row.x}, ${row.z}", c.x, c.y + 3, Palette.text)
+                if (row.capital) Draw.leadIcon(g, Icons.CROWN, c.right - Draw.ICON_SLOT, c.centerY)
             },
-            Column<ClaimLine>("Type", 100, sort = compareBy { it.type }) { _, c, row ->
+            Column<ClaimLine>(tr("kami_claims.chunks.col.type"), 100, sort = compareBy { it.type }) { _, c, row ->
                 val look = Vocabulary.type(row.type)
-                Draw.icon(g, look.icon, c.x - 1, c.y + 1, 14)
-                Draw.text(g, Draw.fit(look.label, c.w - 15), c.x + 14, c.y + 4, look.color)
+                val x = c.x + Draw.leadIcon(g, look.icon, c.x, c.centerY) + 2
+                Draw.text(g, Draw.fit(look.label, c.right - x), x, c.y + 3, look.color)
             },
-            Column<ClaimLine>("Upkeep", 56, Align.RIGHT, compareBy { price(it) }) { _, c, row -> Draw.textRight(g, if (row.free) "free" else "%.1f ◎".format(price(row)), c.right, c.y + 4, Palette.textSecondary) },
-            Column<ClaimLine>("State", 76, sort = compareBy { -it.debt }) { _, c, row ->
+            Column<ClaimLine>(tr("kami_claims.ledger.upkeep"), 56, Align.RIGHT, compareBy { price(it) }) { _, c, row -> Draw.textRight(g, if (row.free) tr("kami_claims.chunks.status.free") else tr("kami_libs.unit.money", Format.decimal(price(row))), c.right, c.y + 3, Palette.textSecondary) },
+            Column<ClaimLine>(tr("kami_claims.chunks.col.state"), 76, sort = compareBy { -it.debt }) { _, c, row ->
                 val sev = when { row.debt > 0 -> Severity.DANGER; row.free -> Severity.SUCCESS; row.locked.isNotEmpty() -> Severity.INFO; else -> Severity.NEUTRAL }
-                statusPill(c.x, c.y + 1, status(row), sev, row.locked.ifEmpty { null }, key = "st:${row.x}:${row.z}")
+                statusPill(c.x, c.y, status(row), sev, row.locked.ifEmpty { null }?.let(::trJson), key = "st:${row.x}:${row.z}")
             },
-            Column.text<ClaimLine>("Plot owner", -1, color = { if (it.lapse > 0) Palette.danger else Palette.textSecondary }) { row -> row.owner.ifEmpty { "—" } + if (row.lapse > 0) "  (${row.lapse}d unpaid)" else "" },
-            Column<ClaimLine>("Claimed", 64, Align.RIGHT, compareBy { it.at }) { _, c, row -> Draw.textRight(g, if (row.at > 0) Format.ago(row.at) else "", c.right, c.y + 4, Palette.textMuted) }
-        ), rows, table, { "${it.x}:${it.z}" }, multi = can("claim"), severity = { if (it.debt > 0) Severity.DANGER else null }, emptyText = "No chunks match these filters.")
+            Column.text<ClaimLine>(tr("kami_claims.chunks.col.tenant"), -1, color = { if (it.lapse > 0) Palette.danger else Palette.textSecondary }) { row -> row.owner + if (row.lapse > 0) "  (${tr("kami_claims.plot.unpaid", Format.days(row.lapse.toLong()))})" else "" },
+            Column<ClaimLine>(tr("kami_claims.chunks.col.claimed"), 64, Align.RIGHT, compareBy { it.at }) { _, c, row -> Draw.textRight(g, if (row.at > 0) Format.ago(row.at) else "", c.right, c.y + 3, Palette.textMuted) }
+        ), rows, table, { "${it.x}:${it.z}" }, multi = can("claim"), severity = { if (it.debt > 0) Severity.DANGER else null }, emptyText = tr("kami_claims.chunks.empty.filtered"))
         events.opened?.let { app.openMapAt(it.x, it.z) }
-        if (selected.isNotEmpty()) bulk(ui, r.bottom(24), selected)
+        if (selected.isNotEmpty()) bulk(ui, r.bottom(BULK_H), selected)
     }
 
     private fun price(c: ClaimLine): Double {
@@ -111,42 +114,47 @@ class ChunksPage(app: ClaimsApp) : ClaimsPage(app) {
         ui.anchor("chunks:bulk", r)
         Draw.fill(ui.g, r, Palette.selected)
         Draw.fill(ui.g, r.left(2), Palette.brass)
-        Draw.text(ui.g, "${Format.plural(selected.size, "chunk")} selected", r.x + 8, r.y + 8, TextStyle.HEADING)
+        val count = tr("kami_claims.chunks.selected", trn("kami_claims.unit.chunk", selected.size))
+        Draw.text(ui.g, count, r.x + 8, r.y + (r.h - 8) / 2, TextStyle.HEADING)
         val row = Row(r.inset(4, 2), 4)
-        row.take(Draw.width("${Format.plural(selected.size, "chunk")} selected", TextStyle.HEADING) + 10)
-        if (ui.button(row.takeFromRight(buttonWidth("Release…", Icons.REMOVE)), "Release…", Icons.REMOVE, ButtonStyle.DANGER, can("claim"), lock("claim"), key = "bulk-release")) {
+        row.take(Draw.width(count, TextStyle.HEADING) + 10)
+        val release = tr("kami_claims.chunks.release")
+        if (ui.button(row.takeFromRight(buttonWidth(release, Icons.REMOVE)), release, Icons.REMOVE, ButtonStyle.DANGER, can("claim"), lock("claim"), key = "bulk-release")) {
             val saved = selected.filter { !it.free }.sumOf { price(it) }
             val blocked = selected.filter { it.capital || it.locked.isNotEmpty() }
-            Dialogs.confirm(app, "Release ${Format.plural(selected.size, "chunk")}", "to nomansland", Icons.REMOVE, listOfNotNull(
-                Consequence("Upkeep saved: ${"%.1f".format(saved)} ◎/day.", Severity.SUCCESS),
-                Consequence("Other countries can claim immediately.", Severity.DANGER),
-                if (blocked.isNotEmpty()) Consequence("${blocked.size} blocked: capital or <24h chunk.", Severity.WARNING) else null,
-                Consequence("Splitting chunks are kept.")
-            ), "Release land", "unclaimcells", arrayOf("cells", cellsArg(selected)), danger = true, hold = true) { table.clear() }
+            Dialogs.confirm(app, tr("kami_claims.chunks.release.confirm.title", trn("kami_claims.unit.chunk", selected.size)), tr("kami_claims.chunks.release.confirm.subtitle"), Icons.REMOVE, listOfNotNull(
+                Consequence(tr("kami_claims.chunks.release.open"), Severity.DANGER),
+                if (blocked.isNotEmpty()) Consequence(tr("kami_claims.chunks.release.blocked", trn("kami_claims.unit.chunk", blocked.size)), Severity.WARNING) else null,
+                Consequence(tr("kami_claims.chunks.release.split")),
+                Consequence(tr("kami_claims.chunks.release.saved", Format.perDay(tr("kami_libs.unit.money", Format.decimal(saved)))), Severity.SUCCESS)
+            ), tr("kami_claims.chunks.release.action"), "unclaimcells", arrayOf("cells", cellsArg(selected)), danger = true, hold = true) { table.clear() }
         }
         if (bulkType.isEmpty()) bulkType = snap.types.firstOrNull()?.name ?: ""
-        val apply = row.takeFromRight(buttonWidth("Set type"))
+        val retype = tr("kami_claims.chunks.retype")
+        val apply = row.takeFromRight(buttonWidth(retype))
         val typeRect = row.takeFromRight(120)
         ui.select(typeRect, snap.types.map { Option(it.name, Vocabulary.type(it.name).label, Vocabulary.type(it.name).icon, null, Vocabulary.type(it.name).color) }, bulkType, key = "bulk-type")?.let { bulkType = it }
-        if (ui.button(apply, "Set type", enabled = can("claim"), disabledReason = lock("claim"), key = "bulk-type-go")) {
+        if (ui.button(apply, retype, enabled = can("claim"), disabledReason = lock("claim"), key = "bulk-type-go")) {
             val t = snap.types.firstOrNull { it.name == bulkType }
             val delta = selected.filter { !it.free }.sumOf { (t?.let { it.price.toDouble() / max(1, it.period) } ?: 0.0) - price(it) }
             val losingPlots = selected.count { it.owner.isNotEmpty() && bulkType != "residential" }
-            Dialogs.confirm(app, "Retype ${Format.plural(selected.size, "chunk")} to ${Vocabulary.type(bulkType).label}", null, Icons.EDIT, listOfNotNull(
-                Consequence("Upkeep delta: ${"%+.1f".format(delta)} ◎/day.", if (delta > 0) Severity.WARNING else Severity.SUCCESS),
-                if (losingPlots > 0) Consequence("$losingPlots plot owners lose plots.", Severity.DANGER) else null,
-                Consequence("${Vocabulary.type(bulkType).label} rules apply immediately.")
-            ), "Retype", "typecells", arrayOf(bulkType, "cells", cellsArg(selected))) { table.clear() }
+            val sign = if (delta > 0) "+" else ""
+            Dialogs.confirm(app, tr("kami_claims.chunks.retype.confirm.title", trn("kami_claims.unit.chunk", selected.size), Vocabulary.type(bulkType).label), null, Icons.EDIT, listOfNotNull(
+                if (losingPlots > 0) Consequence(tr("kami_claims.chunks.retype.plots", Format.number(losingPlots)), Severity.DANGER) else null,
+                Consequence(tr("kami_claims.chunks.retype.delta", Format.perDay(tr("kami_libs.unit.money", sign + Format.decimal(delta)))), if (delta > 0) Severity.WARNING else Severity.SUCCESS),
+                Consequence(tr("kami_claims.chunks.retype.rules", Vocabulary.type(bulkType).label))
+            ), tr("kami_claims.chunks.retype.action"), "typecells", arrayOf(bulkType, "cells", cellsArg(selected))) { table.clear() }
         }
-        if (ui.button(row.takeFromRight(buttonWidth("Show on map", Icons.MAP)), "Show on map", Icons.MAP, key = "bulk-map")) selected.firstOrNull()?.let { app.openMapAt(it.x, it.z) }
+        val showOnMap = tr("kami_claims.toast.show_on_map")
+        if (ui.button(row.takeFromRight(buttonWidth(showOnMap, Icons.MAP)), showOnMap, Icons.MAP, key = "bulk-map")) selected.firstOrNull()?.let { app.openMapAt(it.x, it.z) }
     }
 }
 
 class PlotsPage(app: ClaimsApp) : ClaimsPage(app) {
-    override val title = "Plots"
-    override val help = listOf(
-        Callout("plots:tabs", "Plots", "My plots, free plots, and all plots for leaders."),
-        Callout("plots:list", "Plot cards", "Tax, payment state, and access at a glance.")
+    override val title get() = tr("kami_claims.nav.plots")
+    override val help get() = listOf(
+        Callout("plots:tabs", tr("kami_claims.nav.plots"), tr("kami_claims.plots.help.tabs.desc")),
+        Callout("plots:list", tr("kami_claims.plots.help.list"), tr("kami_claims.plots.help.list.desc"))
     )
     private var tab = 0
     private val tableFree = TableState<ClaimLine>()
@@ -166,15 +174,15 @@ class PlotsPage(app: ClaimsApp) : ClaimsPage(app) {
         val mine = info.claimList.filter { it.ownerId == snap.me }
         val free = info.claimList.filter { it.type == "residential" && it.owner.isEmpty() }
         val taken = info.claimList.filter { it.owner.isNotEmpty() }
-        val tabsRect = r.top(20)
+        val tabsRect = r.top(CONTROL_H)
         ui.anchor("plots:tabs", tabsRect)
         ui.subTabs(tabsRect, listOf(
-            TabItem("My plots", Icons.HOUSE, mine.size, Severity.INFO),
-            TabItem("Free to rent", Icons.ADD, free.size, Severity.SUCCESS),
-            TabItem("All plots", Icons.LEDGER, taken.count { it.lapse > 0 }, Severity.WARNING, lock("details"))
+            TabItem(tr("kami_claims.plots.tab.mine"), Icons.HOUSE, mine.size, Severity.INFO),
+            TabItem(tr("kami_claims.plots.tab.free"), Icons.ADD, free.size, Severity.SUCCESS),
+            TabItem(tr("kami_claims.plots.tab.all"), Icons.LEDGER, taken.count { it.lapse > 0 }, Severity.WARNING, lock("details"))
         ), tab, "plot-tabs")?.let { tab = it }
-        Draw.textRight(ui.g, "Rented: ${mine.size}/${snap.maxPlots}", r.right, r.y + 6, Palette.textMuted)
-        val body = r.dropTop(26)
+        Draw.textRight(ui.g, tr("kami_claims.plots.rented", Format.number(mine.size), Format.number(snap.maxPlots)), r.right, r.y + 5, Palette.textMuted)
+        val body = r.dropTop(CONTROL_H + 6)
         ui.anchor("plots:list", body)
         when (tab) {
             0 -> mine(ui, body, mine)
@@ -193,142 +201,150 @@ class PlotsPage(app: ClaimsApp) : ClaimsPage(app) {
             else -> StepState.PENDING
         }
         return listOf(
-            Step("Paid", if (c.lapse == 0) "today" else "no", if (c.lapse == 0) StepState.DONE else StepState.DANGER),
-            Step("Locked", "after ${shut}d", st(shut)),
-            Step("Lost", "after ${total}d", st(total))
+            Step(tr("kami_claims.chunks.status.paid"), tr(if (c.lapse == 0) "kami_claims.plots.step.today" else "kami_claims.plots.step.overdue"), if (c.lapse == 0) StepState.DONE else StepState.DANGER),
+            Step(tr("kami_claims.plots.step.locked"), tr("kami_claims.plots.step.after", Format.days(shut.toLong())), st(shut)),
+            Step(tr("kami_claims.plots.step.lost"), tr("kami_claims.plots.step.after", Format.days(total.toLong())), st(total))
         )
     }
 
     private fun mine(ui: Ui, r: Rect, plots: List<ClaimLine>) {
         if (plots.isEmpty()) {
-            if (ui.emptyState(r, "No rented plots", "Rent residential chunks as plots. You pay daily tax and control access.", Illustrations.CITIZENS, "See free plots", Icons.HOUSE)) tab = 1
+            if (ui.emptyState(r, tr("kami_claims.plots.empty.mine.title"), tr("kami_claims.plots.empty.mine.desc"), Illustrations.CITIZENS, tr("kami_claims.plots.empty.mine.action"), Icons.HOUSE)) tab = 1
             return
         }
         val focus = focusPlot?.takeIf { f -> plots.any { it.x == f.first && it.z == f.second } } ?: (plots.first().x to plots.first().z).also { focusPlot = it }
         val (list, detail) = r.columns(listOf(1f, 1.3f), 8)
-        ui.scroll("my-plots", list, plots.size * 64) { area ->
+        ui.scroll("my-plots", list, plots.size * (PLOT_CARD_H + 4)) { area ->
             plots.forEachIndexed { i, c ->
-                val card = Rect(area.x, area.y + i * 64, area.w, 60)
+                val card = Rect(area.x, area.y + i * (PLOT_CARD_H + 4), area.w, PLOT_CARD_H)
                 val chosen = focus == c.x to c.z
                 Draw.sprite(ui.g, if (chosen) Sprites.CARD_HOVER else Sprites.CARD, card)
                 if (chosen) Draw.fill(ui.g, card.left(2), Palette.brass)
                 ui.attention(card, app.isFocus("${c.x}:${c.z}"))
-                Draw.text(ui.g, "Plot ${c.x}, ${c.z}", card.x + 8, card.y + 6, TextStyle.HEADING)
-                Draw.textRight(ui.g, "${c.tax} ◎/day", card.right - 6, card.y + 6, Palette.money)
-                ui.timeline(Rect(card.x + 10, card.y + 20, card.w - 20, 34), lapseSteps(c))
+                Draw.text(ui.g, tr("kami_claims.plot.at", c.x, c.z), card.x + 6, card.y + 5, TextStyle.HEADING)
+                Draw.textRight(ui.g, Format.perDay(Format.money(c.tax.toLong())), card.right - 6, card.y + 5, Palette.money)
+                ui.timeline(Rect(card.x + 8, card.y + 17, card.w - 16, 34), lapseSteps(c))
                 if (ui.pressed(card) != null) { focusPlot = c.x to c.z; ClaimsStore.quiet("chunk", c.x.toString(), c.z.toString()) }
             }
         }
         val c = plots.first { it.x == focus.first && it.z == focus.second }
-        val body = ui.card(detail, "Plot ${c.x}, ${c.z}", Icons.HOUSE, if (c.lapse > 0) Severity.WARNING else null)
+        val body = ui.card(detail, tr("kami_claims.plot.at", c.x, c.z), Icons.HOUSE, if (c.lapse > 0) Severity.WARNING else null)
         val f = Flow(body, 4)
         val top = f.take(80)
         MiniMap.draw(ui, top.left(80), c.x, c.z, 2, "plot", listOf(c.x to c.z))
         val props = Flow(top.dropLeft(88), 2)
-        ui.property(props.take(11), "Tax", "${c.tax} ◎ per day")
-        ui.property(props.take(11), "Unpaid", if (c.lapse == 0) "no" else "${c.lapse} days", if (c.lapse > 0) Palette.danger else Palette.success)
-        ui.property(props.take(11), "Trusted players", "${c.roles}")
-        if (ui.link(props.rest.x, props.rest.y + 4, "Show on map", key = "plot-map")) app.openMapAt(c.x, c.z)
+        ui.property(props.take(11), tr("kami_claims.plots.tax"), Format.perDay(Format.money(c.tax.toLong())))
+        ui.property(props.take(11), tr("kami_claims.plots.unpaid"), if (c.lapse == 0) tr("kami_claims.plots.unpaid.none") else trn("kami_claims.unit.day", c.lapse), if (c.lapse > 0) Palette.danger else Palette.success)
+        ui.property(props.take(11), tr("kami_claims.plots.trusted"), Format.number(c.roles))
+        if (ui.link(props.rest.x, props.rest.y + 4, tr("kami_claims.toast.show_on_map"), key = "plot-map")) app.openMapAt(c.x, c.z)
         val d = snap.detail?.takeIf { it.x == c.x && it.z == c.z }
-        ui.section(f.take(14), "Plot access")
+        ui.section(f.take(14), tr("kami_claims.plots.access"))
         if (d == null) ClaimsStore.quiet("chunk", c.x.toString(), c.z.toString())
         val roles = d?.roles ?: emptyList()
-        if (roles.isEmpty()) f.take(12).let { Draw.text(ui.g, "Only you. Add players below.", it.x, it.y, Palette.textMuted) }
+        if (roles.isEmpty()) f.take(12).let { Draw.text(ui.g, tr("kami_claims.plots.access.empty"), it.x, it.y, Palette.textMuted) }
         roles.forEach { line ->
             val row = f.take(14)
             val name = line.substringBefore(":")
             val role = line.substringAfter(": ")
             Draw.text(ui.g, name, row.x, row.y + 3, Palette.text)
-            ui.chip(row.x + 100, row.y, role, Vocabulary.rank(if (role == "household") "citizen" else role).color)
-            if (ui.iconButton(Rect(row.right - 16, row.y - 1, 16, 16), Icons.REMOVE, "Remove $name", key = "untrust:$name")) act("plot_untrust", name, c.x.toString(), c.z.toString(), key = "plot_untrust")
+            ui.chip(row.x + 100, row.y, tr("kami_claims.role.$role"), Vocabulary.rank(if (role == "household") "citizen" else role).color)
+            if (ui.iconButton(Rect(row.right - 16, row.y - 1, 16, 16), Icons.REMOVE, tr("kami_claims.plots.access.remove.tooltip", name), key = "untrust:$name")) act("plot_untrust", name, c.x.toString(), c.z.toString(), key = "plot_untrust")
         }
         f.skip(4)
-        ui.section(f.take(14), "Add a player")
+        ui.section(f.take(14), tr("kami_claims.plots.access.add"))
         val roles2 = listOf(
-            Option("household", "Household", Icons.HOUSE, "Full build/use access like owner."),
-            Option("allied", "Guest", Icons.HANDSHAKE, "Can use doors/buttons, no build."),
-            Option("banished", "Banned", Icons.BAN, "No entry.")
+            Option("household", tr("kami_claims.role.household"), Icons.HOUSE, tr("kami_claims.role.household.desc")),
+            Option("allied", tr("kami_claims.role.allied"), Icons.HANDSHAKE, tr("kami_claims.role.allied.desc")),
+            Option("banished", tr("kami_claims.role.banished"), Icons.BAN, tr("kami_claims.role.banished.desc"))
         )
         val entry = f.take(CONTROL_H)
-        ui.textField(entry.left(entry.w - 90), trustName, "Player name", Icons.PERSON, maxLength = 16, key = "trust-name")
-        if (ui.button(entry.right(86), "Add", Icons.ADD, ButtonStyle.PRIMARY, trustName.text.length >= 3, "Enter a player name", pending = pending("plot_trust"), key = "trust-go")) {
+        ui.textField(entry.left(entry.w - 90), trustName, tr("kami_claims.field.player"), Icons.PERSON, maxLength = 16, key = "trust-name")
+        if (ui.button(entry.right(86), tr("kami_claims.plots.access.add.action"), Icons.ADD, ButtonStyle.PRIMARY, trustName.text.length >= 3, tr("kami_claims.field.player.disabled"), pending = pending("plot_trust"), key = "trust-go")) {
             act("plot_trust", trustName.text, trustRole, c.x.toString(), c.z.toString(), key = "plot_trust")
             trustName.set("")
         }
         ui.radioGroup(f.take(radioGroupHeight(roles2, body.w)), roles2, trustRole, key = "trust-role")?.let { trustRole = it }
         val bottom = f.rest
-        if (ui.button(Rect(bottom.x, bottom.bottom - CONTROL_H, bottom.w, CONTROL_H), "Give up this plot", Icons.REMOVE, ButtonStyle.DANGER, key = "plot-release")) {
-            Dialogs.confirm(app, "Give up plot ${c.x}, ${c.z}", null, Icons.HOUSE, listOf(
-                Consequence("You stop paying its tax."),
-                Consequence("Everyone you trusted loses access.", Severity.WARNING),
-                Consequence("Anyone in your country may rent it afterwards.", Severity.WARNING)
-            ), "Give up plot", "plot_release", arrayOf(c.x.toString(), c.z.toString()), danger = true, hold = true)
+        if (ui.button(Rect(bottom.x, bottom.bottom - CONTROL_H, bottom.w, CONTROL_H), tr("kami_claims.plots.release"), Icons.REMOVE, ButtonStyle.DANGER, key = "plot-release")) {
+            Dialogs.confirm(app, tr("kami_claims.plots.release.confirm.title", c.x, c.z), null, Icons.HOUSE, listOf(
+                Consequence(tr("kami_claims.plots.release.access"), Severity.WARNING),
+                Consequence(tr("kami_claims.plots.release.open"), Severity.WARNING),
+                Consequence(tr("kami_claims.plots.release.tax"))
+            ), tr("kami_claims.plots.release.action"), "plot_release", arrayOf(c.x.toString(), c.z.toString()), danger = true, hold = true)
         }
     }
 
     private fun free(ui: Ui, r: Rect, plots: List<ClaimLine>) {
         if (plots.isEmpty()) {
-            ui.emptyState(r, "No free plots", "Leaders must mark chunks as residential before renting.", Illustrations.CITIZENS)
+            ui.emptyState(r, tr("kami_claims.plots.empty.free.title"), tr("kami_claims.plots.empty.free.desc"), Illustrations.CITIZENS)
             return
         }
         val events = ui.table(r.dropBottom(26, 4), listOf(
-            Column<ClaimLine>("Plot", 80, sort = compareBy({ it.x }, { it.z })) { _, c, row -> Draw.text(g, "${row.x}, ${row.z}", c.x, c.y + 4, Palette.text) },
-            Column.number<ClaimLine>("Tax / day", 70) { (if (it.tax >= 0) it.tax else info?.tax ?: 0).toLong() },
-            Column.number<ClaimLine>("Distance", 70, format = { "$it chunks" }) { (abs(it.x - snap.px) + abs(it.z - snap.pz)).toLong() },
+            Column<ClaimLine>(tr("kami_claims.plots.col.plot"), 80, sort = compareBy({ it.x }, { it.z })) { _, c, row -> Draw.text(g, "${row.x}, ${row.z}", c.x, c.y + 3, Palette.text) },
+            Column.number<ClaimLine>(tr("kami_claims.plots.col.tax"), 70) { (if (it.tax >= 0) it.tax else info?.tax ?: 0).toLong() },
+            Column.number<ClaimLine>(tr("kami_claims.plots.col.distance"), 70, format = { trn("kami_claims.unit.chunk", it) }) { (abs(it.x - snap.px) + abs(it.z - snap.pz)).toLong() },
             Column.text<ClaimLine>("", -1, sortable = false) { "" }
         ), plots, tableFree, { "${it.x}:${it.z}" })
         events.opened?.let { app.openMapAt(it.x, it.z) }
         val chosen = plots.firstOrNull { "${it.x}:${it.z}" in tableFree.selected }
         val bar = r.bottom(22)
-        val lockReason = lock("plot") ?: if ((info?.plots ?: 0) >= snap.maxPlots) "Plot limit reached (${snap.maxPlots})" else null
-        val w = buttonWidth("Rent selected plot", Icons.HOUSE)
-        if (ui.button(Rect(bar.right - w, bar.y, w, CONTROL_H), "Rent selected plot", Icons.HOUSE, ButtonStyle.PRIMARY, chosen != null && lockReason == null, lockReason ?: "Select a plot first", key = "rent")) chosen?.let { c ->
-            val tax = if (c.tax >= 0) c.tax else info?.tax ?: 0
-            Dialogs.confirm(app, "Rent plot ${c.x}, ${c.z}", "Residential plot", Icons.HOUSE, listOf(
-                Consequence("Tax: $tax ◎/day from your bank."),
-                Consequence("No payment: lock after ${info?.shutdown}d, release after ${info?.release}d.", Severity.WARNING),
-                Consequence("You control plot access.", Severity.SUCCESS)
-            ), "Rent for $tax ◎ / day", "plot_claim", arrayOf(c.x.toString(), c.z.toString()))
+        val lockReason = lock("plot") ?: if ((info?.plots ?: 0) >= snap.maxPlots) tr("kami_claims.plots.limit", Format.number(snap.maxPlots)) else null
+        val rent = tr("kami_claims.plots.rent")
+        val w = buttonWidth(rent, Icons.HOUSE)
+        if (ui.button(Rect(bar.right - w, bar.y, w, CONTROL_H), rent, Icons.HOUSE, ButtonStyle.PRIMARY, chosen != null && lockReason == null, lockReason ?: tr("kami_claims.plots.select_first"), key = "rent")) chosen?.let { c ->
+            val tax = Format.perDay(Format.money((if (c.tax >= 0) c.tax else info?.tax ?: 0).toLong()))
+            Dialogs.confirm(app, tr("kami_claims.plots.rent.confirm.title", c.x, c.z), tr("kami_claims.chunk_type.residential"), Icons.HOUSE, listOf(
+                Consequence(tr("kami_claims.plots.rent.tax", tax)),
+                Consequence(tr("kami_claims.plots.rent.lapse", Format.days((info?.shutdown ?: 0).toLong()), Format.days((info?.release ?: 0).toLong())), Severity.WARNING),
+                Consequence(tr("kami_claims.plots.rent.access"), Severity.SUCCESS)
+            ), tr("kami_claims.plots.rent.action", tax), "plot_claim", arrayOf(c.x.toString(), c.z.toString()))
         }
-        if (ui.button(Rect(bar.right - w - 90, bar.y, 86, CONTROL_H), "Show on map", Icons.MAP, enabled = chosen != null, disabledReason = "Select a plot first", key = "free-map")) chosen?.let { app.openMapAt(it.x, it.z) }
+        val showOnMap = tr("kami_claims.toast.show_on_map")
+        val mapW = buttonWidth(showOnMap, Icons.MAP)
+        if (ui.button(Rect(bar.right - w - mapW - 4, bar.y, mapW, CONTROL_H), showOnMap, Icons.MAP, enabled = chosen != null, disabledReason = tr("kami_claims.plots.select_first"), key = "free-map")) chosen?.let { app.openMapAt(it.x, it.z) }
     }
 
     private fun all(ui: Ui, r: Rect, plots: List<ClaimLine>) {
         val events = ui.table(r.dropBottom(26, 4), listOf(
-            Column<ClaimLine>("Plot", 70, sort = compareBy({ it.x }, { it.z })) { _, c, row -> Draw.text(g, "${row.x}, ${row.z}", c.x, c.y + 4, Palette.text) },
-            Column.text<ClaimLine>("Owner", -1) { it.owner },
-            Column.number<ClaimLine>("Tax / day", 64) { it.tax.toLong() },
-            Column<ClaimLine>("Unpaid", 80, sort = compareBy { it.lapse }) { _, c, row ->
-                if (row.lapse == 0) statusPill(c.x, c.y + 1, "Paid", Severity.SUCCESS, key = "p:${row.x}:${row.z}")
-                else statusPill(c.x, c.y + 1, "${row.lapse}d", if (row.lapse >= (info?.shutdown ?: 3)) Severity.DANGER else Severity.WARNING, key = "p:${row.x}:${row.z}")
+            Column<ClaimLine>(tr("kami_claims.plots.col.plot"), 70, sort = compareBy({ it.x }, { it.z })) { _, c, row -> Draw.text(g, "${row.x}, ${row.z}", c.x, c.y + 3, Palette.text) },
+            Column.text<ClaimLine>(tr("kami_claims.chunks.col.tenant"), -1) { it.owner },
+            Column.number<ClaimLine>(tr("kami_claims.plots.col.tax"), 64) { it.tax.toLong() },
+            Column<ClaimLine>(tr("kami_claims.plots.col.unpaid"), 80, sort = compareBy { it.lapse }) { _, c, row ->
+                if (row.lapse == 0) statusPill(c.x, c.y, tr("kami_claims.chunks.status.paid"), Severity.SUCCESS, key = "p:${row.x}:${row.z}")
+                else statusPill(c.x, c.y, Format.days(row.lapse.toLong()), if (row.lapse >= (info?.shutdown ?: 3)) Severity.DANGER else Severity.WARNING, key = "p:${row.x}:${row.z}")
             },
-            Column.number<ClaimLine>("Trusted", 50) { it.roles.toLong() }
-        ), plots, tableAll, { "${it.x}:${it.z}" }, severity = { if (it.lapse > 0) Severity.WARNING else null }, emptyText = "No rented plots yet.")
+            Column.number<ClaimLine>(tr("kami_claims.plots.col.trusted"), 50) { it.roles.toLong() }
+        ), plots, tableAll, { "${it.x}:${it.z}" }, severity = { if (it.lapse > 0) Severity.WARNING else null }, emptyText = tr("kami_claims.plots.empty.all"))
         events.opened?.let { app.openMapAt(it.x, it.z) }
         val chosen = plots.firstOrNull { "${it.x}:${it.z}" in tableAll.selected }
         val bar = Row(r.bottom(22), 6)
-        if (ui.button(bar.takeFromRight(buttonWidth("Evict owner…", Icons.BAN)), "Evict owner…", Icons.BAN, ButtonStyle.DANGER, chosen != null && can("claim"), lock("claim") ?: "Select a plot first", key = "evict")) chosen?.let { c ->
-            Dialogs.confirm(app, "Evict ${c.owner}", "from plot ${c.x}, ${c.z}", Icons.BAN, listOf(
-                Consequence("${c.owner} loses the plot and everyone they trusted loses access.", Severity.DANGER),
-                Consequence("Their builds stay, but they can't change them anymore.", Severity.WARNING)
-            ), "Evict", "plot_evict", arrayOf(c.x.toString(), c.z.toString()), danger = true, hold = true)
+        val evict = tr("kami_claims.plots.evict")
+        if (ui.button(bar.takeFromRight(buttonWidth(evict, Icons.BAN)), evict, Icons.BAN, ButtonStyle.DANGER, chosen != null && can("claim"), lock("claim") ?: tr("kami_claims.plots.select_first"), key = "evict")) chosen?.let { c ->
+            Dialogs.confirm(app, tr("kami_claims.plots.evict.confirm.title", c.owner), tr("kami_claims.plot.at", c.x, c.z), Icons.BAN, listOf(
+                Consequence(tr("kami_claims.plots.evict.loses", c.owner), Severity.DANGER),
+                Consequence(tr("kami_claims.plots.evict.builds"), Severity.WARNING)
+            ), tr("kami_claims.plots.evict.action"), "plot_evict", arrayOf(c.x.toString(), c.z.toString()), danger = true, hold = true)
         }
-        if (ui.button(bar.takeFromRight(buttonWidth("Set tax…", Icons.TAX)), "Set tax…", Icons.TAX, enabled = chosen != null && can("tax"), disabledReason = lock("tax") ?: "Select a plot first", key = "plot-tax")) chosen?.let { taxDialog(it) }
+        val setTax = tr("kami_claims.plots.set_tax")
+        if (ui.button(bar.takeFromRight(buttonWidth(setTax, Icons.TAX)), setTax, Icons.TAX, enabled = chosen != null && can("tax"), disabledReason = lock("tax") ?: tr("kami_claims.plots.select_first"), key = "plot-tax")) chosen?.let { taxDialog(it) }
     }
 
     private fun taxDialog(c: ClaimLine) {
         val amount = NumberState(c.tax.toLong().coerceAtLeast(0))
-        app.open(Dialog("Tax for plot ${c.x}, ${c.z}", "Rented by ${c.owner}", Icons.TAX, DialogKind.CONFIRM, 280) { s ->
+        app.open(Dialog(tr("kami_claims.plots.tax_dialog.title", c.x, c.z), tr("kami_claims.plots.tax_dialog.subtitle", c.owner), Icons.TAX, DialogKind.CONFIRM, 280) { s ->
             var y = s.body.y
-            fieldLabel(Rect(s.body.x, y, s.body.w, 9), "Tax per day"); y += 11
+            fieldLabel(Rect(s.body.x, y, s.body.w, 9), tr("kami_claims.plots.tax_dialog.field")); y += 11
             numberField(Rect(s.body.x, y, s.body.w, CONTROL_H), amount, 0, 10_000, unit = "◎", key = "tax")
             y += CONTROL_H + 6
-            y += consequences(s.body.x, y, s.body.w, listOf(Consequence("Overrides the country plot tax for this plot only."), Consequence("${c.owner} pays it from the next billing on."))) + 2
+            y += consequences(s.body.x, y, s.body.w, listOf(Consequence(tr("kami_claims.plots.tax_dialog.override")), Consequence(tr("kami_claims.plots.tax_dialog.from", c.owner)))) + 2
             s.used = y - s.body.y
-            dialogButtons(s, "Save tax", amount.text.error == null) {
+            dialogButtons(s, tr("kami_claims.plots.tax_dialog.action"), amount.text.error == null) {
                 ClaimsStore.send("plot_tax", amount.value.toString(), c.x.toString(), c.z.toString(), key = "plot_tax")
                 s.close()
             }
         })
     }
 }
+
+private const val BULK_H = 22
+private const val PLOT_CARD_H = 54

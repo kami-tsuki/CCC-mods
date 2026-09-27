@@ -1,5 +1,6 @@
 package kami.economy.net
 
+import kami.libs.text.Phrase
 import kami.economy.Config
 import kami.economy.KamiEconomy
 import kami.economy.economy.Blacklist
@@ -154,24 +155,24 @@ object Net {
                     act(p, a.name, a.args)
                 } catch (e: Exception) {
                     KamiEconomy.LOG.error("Action ${a.name} failed", e)
-                    "Internal error." to false
+                    Phrase.of("kami_economy.action.error") to false
                 }
-                send(p, msg, ok)
+                send(p, msg.json(), ok)
                 if (ok) broadcastOpen(p.server, except = p.uuid)
             }
         }
     }
 
-    private fun act(p: ServerPlayer, name: String, args: List<String>): Pair<String, Boolean> {
+    private fun act(p: ServerPlayer, name: String, args: List<String>): Pair<Phrase, Boolean> {
         val me = p.stringUUID
         return when (name) {
             "sell" -> {
-                val item = args.getOrNull(0) ?: return "Invalid item." to false
-                val qty = args.getOrNull(1)?.toIntOrNull() ?: return "Invalid quantity." to false
-                val price = args.getOrNull(2)?.toIntOrNull() ?: return "Invalid price." to false
-                if (qty <= 0 || price <= 0) return "Invalid sell request." to false
+                val item = args.getOrNull(0) ?: return Phrase.of("kami_economy.action.invalid_item") to false
+                val qty = args.getOrNull(1)?.toIntOrNull() ?: return Phrase.of("kami_economy.action.invalid_quantity") to false
+                val price = args.getOrNull(2)?.toIntOrNull() ?: return Phrase.of("kami_economy.action.invalid_price") to false
+                if (qty <= 0 || price <= 0) return Phrase.of("kami_economy.action.invalid_sell") to false
                 val matching = p.inventory.items.filter { !it.isEmpty && Blacklist.itemId(it) == item && Blacklist.classify(it) == Classification.ALLOWED }
-                if (matching.sumOf { it.count } < qty) return "You don't have $qty to sell." to false
+                if (matching.sumOf { it.count } < qty) return Phrase.of("kami_economy.action.not_enough_items", qty) to false
                 val instant = Config.s.endlessByItem.containsKey(item) && Config.s.sellInfiniteEnabled
                 var remaining = qty
                 for (stack in matching) {
@@ -181,7 +182,7 @@ object Net {
                     remaining -= take
                 }
                 val result = Ledger.sell(me, item, qty, price)
-                if (result is SellResult.Ok) (if (instant) "Sold $qty x $item instantly." else "Listed $qty x $item at $price each.") to true
+                if (result is SellResult.Ok) (if (instant) Phrase.of("kami_economy.action.sold", qty, item) else Phrase.of("kami_economy.action.listed", qty, item, Phrase.money(price.toLong()))) to true
                 else {
                     val resolved = KamiEconomy.registry.findItem(item)
                     if (resolved != null) {
@@ -193,75 +194,75 @@ object Net {
                             left -= n
                         }
                     }
-                    "Sell failed." to false
+                    Phrase.of("kami_economy.action.sell_failed") to false
                 }
             }
             "auction_list" -> {
-                val stack = p.inventory.items.getOrNull(args.getOrNull(0)?.toIntOrNull() ?: -1) ?: return "Invalid item." to false
-                val startPrice = args.getOrNull(1)?.toIntOrNull() ?: return "Invalid price." to false
+                val stack = p.inventory.items.getOrNull(args.getOrNull(0)?.toIntOrNull() ?: -1) ?: return Phrase.of("kami_economy.action.invalid_item") to false
+                val startPrice = args.getOrNull(1)?.toIntOrNull() ?: return Phrase.of("kami_economy.action.invalid_price") to false
                 val buyNow = args.getOrNull(2)?.toIntOrNull()?.takeIf { it > 0 }
-                if (stack.isEmpty || startPrice <= 0) return "Invalid auction listing." to false
-                if (Blacklist.classify(stack) == Classification.BLOCKED) return "That item cannot be traded." to false
+                if (stack.isEmpty || startPrice <= 0) return Phrase.of("kami_economy.action.invalid_listing") to false
+                if (Blacklist.classify(stack) == Classification.BLOCKED) return Phrase.of("kami_economy.action.blocked") to false
                 val taken = stack.copy()
                 stack.shrink(stack.count)
                 val listed = runCatching { Ledger.auctionList(me, taken, startPrice, buyNow, p.server.registryAccess()) }
                 if (listed.isFailure) {
                     KamiEconomy.LOG.error("auction_list failed for ${taken.item}", listed.exceptionOrNull())
                     if (!p.inventory.add(taken)) p.drop(taken, false)
-                    return "Failed to list for auction, item returned." to false
+                    return Phrase.of("kami_economy.action.auction_failed") to false
                 }
-                "Listed ${taken.hoverName.string} for auction." to true
+                Phrase.of("kami_economy.action.auction_listed", taken.hoverName.string) to true
             }
             "auction_bid" -> {
-                val id = args.getOrNull(0)?.toLongOrNull() ?: return "Invalid auction." to false
-                val amount = args.getOrNull(1)?.toIntOrNull() ?: return "Invalid bid." to false
+                val id = args.getOrNull(0)?.toLongOrNull() ?: return Phrase.of("kami_economy.action.invalid_auction") to false
+                val amount = args.getOrNull(1)?.toIntOrNull() ?: return Phrase.of("kami_economy.action.invalid_bid") to false
                 when (Ledger.auctionBid(me, id, amount)) {
-                    BidResult.Ok -> "Bid placed." to true
-                    BidResult.TooLow -> "Bid too low." to false
-                    BidResult.InsufficientFunds -> "Not enough funds." to false
-                    BidResult.NotFound -> "Auction not found." to false
+                    BidResult.Ok -> Phrase.of("kami_economy.action.bid_placed") to true
+                    BidResult.TooLow -> Phrase.of("kami_economy.action.bid_low") to false
+                    BidResult.InsufficientFunds -> Phrase.of("kami_economy.action.no_funds") to false
+                    BidResult.NotFound -> Phrase.of("kami_economy.action.auction_missing") to false
                 }
             }
             "auction_buy" -> {
-                val id = args.getOrNull(0)?.toLongOrNull() ?: return "Invalid auction." to false
+                val id = args.getOrNull(0)?.toLongOrNull() ?: return Phrase.of("kami_economy.action.invalid_auction") to false
                 when (Ledger.auctionBuyNow(me, id)) {
-                    BuyNowResult.Ok -> { KamiEconomy.deliver(p); "Purchased." to true }
-                    BuyNowResult.InsufficientFunds -> "Not enough funds." to false
-                    BuyNowResult.NotAvailable -> "Not available for buyout." to false
+                    BuyNowResult.Ok -> { KamiEconomy.deliver(p); Phrase.of("kami_economy.action.purchased") to true }
+                    BuyNowResult.InsufficientFunds -> Phrase.of("kami_economy.action.no_funds") to false
+                    BuyNowResult.NotAvailable -> Phrase.of("kami_economy.action.no_buyout") to false
                 }
             }
             "auction_cancel" -> {
-                val id = args.getOrNull(0)?.toLongOrNull() ?: return "Invalid auction." to false
-                if (Ledger.auctionCancel(me, id)) { KamiEconomy.deliver(p); "Auction cancelled." to true } else "Cannot cancel that auction." to false
+                val id = args.getOrNull(0)?.toLongOrNull() ?: return Phrase.of("kami_economy.action.invalid_auction") to false
+                if (Ledger.auctionCancel(me, id)) { KamiEconomy.deliver(p); Phrase.of("kami_economy.action.auction_cancelled") to true } else Phrase.of("kami_economy.action.auction_cancel_denied") to false
             }
             "buy" -> {
-                val item = args.getOrNull(0) ?: return "Invalid item." to false
-                val qty = args.getOrNull(1)?.toIntOrNull() ?: return "Invalid quantity." to false
+                val item = args.getOrNull(0) ?: return Phrase.of("kami_economy.action.invalid_item") to false
+                val qty = args.getOrNull(1)?.toIntOrNull() ?: return Phrase.of("kami_economy.action.invalid_quantity") to false
                 when (val result = Ledger.buy(me, item, qty)) {
                     is BuyResult.Ok -> {
                         KamiEconomy.deliver(p)
-                        "Bought ${result.filled} x $item for ${result.spent} spurs." to true
+                        Phrase.of("kami_economy.action.bought", result.filled, item, Phrase.money(result.spent.toLong())) to true
                     }
-                    BuyResult.InsufficientFunds -> "Not enough funds." to false
-                    BuyResult.NothingAvailable -> "Nothing available to buy." to false
+                    BuyResult.InsufficientFunds -> Phrase.of("kami_economy.action.no_funds") to false
+                    BuyResult.NothingAvailable -> Phrase.of("kami_economy.action.nothing_available") to false
                 }
             }
             "cancel" -> {
-                val item = args.getOrNull(0) ?: return "Invalid item." to false
+                val item = args.getOrNull(0) ?: return Phrase.of("kami_economy.action.invalid_item") to false
                 val amount = Ledger.cancelAll(me, item)
                 KamiEconomy.deliver(p)
-                if (amount > 0) "Listing cancelled, $amount item(s) and their payment reclaimed." to true else "No listing found." to false
+                if (amount > 0) Phrase.plural("kami_economy.action.listing_cancelled", amount.toLong()) to true else Phrase.of("kami_economy.action.no_listing") to false
             }
             "reprice" -> {
-                val item = args.getOrNull(0) ?: return "Invalid item." to false
-                val newPrice = args.getOrNull(1)?.toIntOrNull() ?: return "Invalid price." to false
-                if (Ledger.repriceAll(me, item, newPrice)) "Price updated to $newPrice each." to true else "No listing found." to false
+                val item = args.getOrNull(0) ?: return Phrase.of("kami_economy.action.invalid_item") to false
+                val newPrice = args.getOrNull(1)?.toIntOrNull() ?: return Phrase.of("kami_economy.action.invalid_price") to false
+                if (Ledger.repriceAll(me, item, newPrice)) Phrase.of("kami_economy.action.repriced", Phrase.money(newPrice.toLong())) to true else Phrase.of("kami_economy.action.no_listing") to false
             }
             "claim" -> {
                 KamiEconomy.deliver(p)
-                "Claimed pending items." to true
+                Phrase.of("kami_economy.action.claimed") to true
             }
-            else -> "Unknown action." to false
+            else -> Phrase.of("kami_economy.action.unknown") to false
         }
     }
 }

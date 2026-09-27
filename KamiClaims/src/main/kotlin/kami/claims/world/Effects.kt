@@ -6,6 +6,7 @@ import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.world.level.levelgen.Heightmap
 import kami.claims.social.Mail
 import kami.libs.chat.tell
+import kami.libs.text.Phrase
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
@@ -22,15 +23,16 @@ object Effects {
     fun founded(p: ServerPlayer, c: Country) {
         p.playNotifySound(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1f, 1f)
         (p.level() as? ServerLevel)?.sendParticles(ParticleTypes.FIREWORK, p.x, p.y + 1, p.z, 40, 0.5, 0.8, 0.5, 0.05)
-        if (Config.s.broadcast) p.server.playerList.broadcastSystemMessage(Mail.chat.info("{${p.name.string}} founded the country {${c.name}}."), false)
+        if (Config.s.broadcast) p.server.playerList.broadcastSystemMessage(Mail.chat.info(Phrase.of("kami_claims.mail.founded", Phrase.value(p.name.string), Phrase.value(c.name)).component()), false)
     }
 
     fun invite(server: MinecraftServer, id: String, c: Country) {
         server.playerList.getPlayer(UUID.fromString(id))?.tell(Mail.chat.msg {
-            markup("You are invited to {${c.name}}.  ")
-            button("Accept", "/claims accept ${c.id}", "Join ${c.name}")
+            add(Phrase.of("kami_claims.mail.invited", Phrase.value(c.name)).component())
+            text("  ")
+            button(Phrase.of("kami_claims.chat.accept").component(), "/claims accept ${c.id}", Phrase.of("kami_claims.chat.accept.tooltip", c.name).component())
             text(" ")
-            button("Info", "/claims info ${c.id}", "About ${c.name}")
+            button(Phrase.of("kami_claims.chat.info").component(), "/claims info ${c.id}", Phrase.of("kami_claims.chat.info.tooltip", c.name).component())
         })
     }
 

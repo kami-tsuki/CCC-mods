@@ -1,5 +1,6 @@
 package kami.essentials.display
 
+import kami.libs.text.Text
 import kami.essentials.Config
 import kami.essentials.Flag
 import kami.essentials.Store
@@ -30,9 +31,9 @@ object Sidebar {
 
     val LINES: Map<String, (ServerPlayer) -> Component> = linkedMapOf(
         "country" to { p -> Names.citizenship(p.uuid)?.let { Component.literal(it.name).withColor(Names.color(it)) } ?: none() },
-        "rank" to { p -> Names.citizenship(p.uuid)?.let { value(Names.title(it.rank)) } ?: none() },
+        "rank" to { p -> Names.citizenship(p.uuid)?.let { Names.title(it.rank).withColor(Theme.VALUE) } ?: none() },
         "balance" to { p -> value(Coins.compact(Numismatics.balance(p.uuid))) },
-        "playtime" to { p -> value(Names.playtime(p)) },
+        "playtime" to { p -> Names.playtime(p).component().withColor(Theme.VALUE) },
         "kills" to { p -> value("%,d".format(Names.stat(p, Stats.PLAYER_KILLS))) },
         "deaths" to { p -> value("%,d".format(Names.stat(p, Stats.DEATHS))) },
         "online" to { p -> value(Tab.online(p.server, p).toString()) },
@@ -90,9 +91,9 @@ object Sidebar {
     )
 
     private fun line(key: String, value: Component): Component =
-        Component.literal("${if (key == "tps") "TPS" else key.replaceFirstChar(Char::uppercase)} ").withColor(Theme.MUTED).append(value)
+        Component.empty().append(Text.msg("kami_essentials.sidebar.$key").withColor(Theme.MUTED)).append(" ").append(value)
 
     private fun value(text: String): Component = Component.literal(text).withColor(Theme.VALUE)
 
-    private fun none(): Component = Component.literal("none").withColor(Theme.MUTED)
+    private fun none(): Component = Text.msg("kami_essentials.sidebar.none").withColor(Theme.MUTED)
 }

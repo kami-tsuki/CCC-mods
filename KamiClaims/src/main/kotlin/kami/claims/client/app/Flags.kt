@@ -7,7 +7,7 @@ import kami.libs.ui.style.Palette
 import net.minecraft.client.gui.GuiGraphics
 
 object Flags {
-    val patterns = listOf("Plain", "Stripes", "Columns", "Nordic cross", "Diagonal", "Border", "Quarters", "Top half", "Left half", "Saltire", "Chevron", "Disc")
+    val patterns = listOf("plain", "stripes", "columns", "nordic_cross", "diagonal", "border", "quarters", "top_half", "left_half", "saltire", "chevron", "disc")
     val emblems = listOf(null, Icons.CROWN, Icons.STAR, Icons.SHIELD, Icons.TREE, Icons.PICKAXE, Icons.WHEAT, Icons.GEAR, Icons.SCALES, Icons.HOUSE, Icons.FIRE, Icons.WATER, Icons.GLOBE, Icons.SCROLL, Icons.HANDSHAKE, Icons.TOWN)
 
     fun draw(g: GuiGraphics, r: Rect, color: Int, pattern: Int, emblem: Int, secondary: Int) {
@@ -39,8 +39,10 @@ object Flags {
             }
         }
         emblems.getOrNull(emblem)?.let { icon ->
-            val size = if (h >= 24) 14 else if (h >= 12) 8 else 0
-            if (size > 0) Draw.icon(g, icon, x + (w - size) / 2, y + (h - size) / 2, size)
+            when {
+                h >= 24 -> Draw.icon(g, icon, x + (w - Draw.ICON) / 2, y + (h - Draw.ICON) / 2)
+                h >= 12 -> Draw.marker(g, icon, x + w / 2, y + h / 2)
+            }
         }
         Draw.outline(g, r, Palette.alpha(0, 0xA0))
     }

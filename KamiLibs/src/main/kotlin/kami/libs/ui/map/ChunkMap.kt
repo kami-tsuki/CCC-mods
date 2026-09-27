@@ -5,7 +5,6 @@ import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Palette
-import kami.libs.ui.style.Sprites
 import org.lwjgl.glfw.GLFW
 import kotlin.math.abs
 import kotlin.math.floor
@@ -67,8 +66,7 @@ class ChunkMap(var zoom: Float = 12f) {
     fun drawBase(ui: Ui, r: Rect, dim: String, terrain: Boolean, grid: Boolean) {
         view = r
         update(ui)
-        Draw.sprite(ui.g, Sprites.PARCHMENT, r)
-        Draw.fill(ui.g, r, Palette.alpha(0x2A2418, 0x38))
+        Draw.fill(ui.g, r, Palette.sunken)
         if (!terrain) {
             Draw.fill(ui.g, r, Palette.alpha(Palette.surface, 0xE8))
             return
@@ -82,7 +80,7 @@ class ChunkMap(var zoom: Float = 12f) {
             ui.g.blit(tile.bind(), dest.x, dest.y, dest.w, dest.h, 0f, 0f, tiles * 16, tiles * 16, tiles * 16, tiles * 16)
         }
         if (grid && zoom >= 8) ui.g.drawManaged {
-            val line = Palette.alpha(0x000000, 0x22)
+            val line = Palette.alpha(0x000000, 0x1A)
             for (x in xs) Draw.vline(ui.g, sx(x.toDouble()), r.y, r.h, line)
             for (z in zs) Draw.hline(ui.g, r.x, sz(z.toDouble()), r.w, line)
         }

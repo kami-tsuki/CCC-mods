@@ -1,5 +1,6 @@
 package kami.essentials.inv
 
+import kami.libs.text.Phrase
 import kami.essentials.KamiEssentials
 import kami.libs.command.fail
 import net.minecraft.Util
@@ -84,7 +85,7 @@ class Offline private constructor(val id: UUID, private val server: MinecraftSer
             if (!Files.exists(server.getWorldPath(LevelResource.PLAYER_DATA_DIR).resolve("$id.dat"))) return null
             runCatching { Offline(id, server) }
                 .onFailure { KamiEssentials.LOG.error("Could not read the saved data of {}", id, it) }
-                .getOrElse { fail("Could not read that player's saved data, see the log.") }
+                .getOrElse { fail(Phrase.of("kami_essentials.views.read_failed")) }
                 .also { open[id] = it }
         }
 

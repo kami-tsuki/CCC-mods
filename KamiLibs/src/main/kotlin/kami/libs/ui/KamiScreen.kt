@@ -1,54 +1,62 @@
 package kami.libs.ui
 
+import kami.libs.ui.core.Rect
+import kami.libs.ui.core.Ui
 import net.minecraft.client.gui.GuiGraphics
-import net.minecraft.client.gui.components.Button
-import net.minecraft.client.gui.components.EditBox
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
+import org.lwjgl.glfw.GLFW
 
 abstract class KamiScreen(title: Component) : Screen(title) {
     protected open val dimColor: Int = 0xB0000000.toInt()
+    val ui = Ui()
+
+    protected abstract fun draw(ui: Ui, r: Rect)
 
     override fun renderBackground(g: GuiGraphics, mx: Int, my: Int, delta: Float) {
         if (dimColor != 0) g.fill(0, 0, width, height, dimColor)
     }
 
-    override fun isPauseScreen() = false
-
-    private fun stepAmount(): Int = when {
-        hasShiftDown() && hasControlDown() -> 1000
-        hasControlDown() -> 100
-        hasShiftDown() -> 10
-        else -> 1
+    override fun render(g: GuiGraphics, mx: Int, my: Int, delta: Float) {
+        renderBackground(g, mx, my, delta)
+        ui.frame(g, mx, my, width, height) { draw(ui, ui.screen) }
     }
 
-    protected fun numberField(x: Int, y: Int, w: Int, h: Int, value: Int, min: Int, max: () -> Int, onChange: (Int) -> Unit) {
-        val btn = 16
-        val wide = 26
-        val gap = 2
-        val fieldW = (w - btn * 2 - wide * 2 - gap * 4).coerceAtLeast(30)
+    override fun isPauseScreen() = false
 
-        fun clamp(v: Int) = v.coerceIn(min, max().coerceAtLeast(min))
+    override fun mouseClicked(mx: Double, my: Double, button: Int): Boolean {
+        ui.input.press(mx.toInt(), my.toInt(), button)
+        return true
+    }
 
-        val field = EditBox(font, x, y, fieldW, h, Component.literal("value"))
-        field.value = clamp(value).toString()
-        field.setFilter { it.isEmpty() || it.all(Char::isDigit) }
-        field.setResponder { s -> s.toIntOrNull()?.let { onChange(clamp(it)) } }
-        addRenderableWidget(field)
+    override fun mouseReleased(mx: Double, my: Double, button: Int): Boolean {
+        ui.input.release(mx.toInt(), my.toInt(), button)
+        return true
+    }
 
-        fun set(v: Int) {
-            val clamped = clamp(v)
-            field.value = clamped.toString()
-            onChange(clamped)
+    override fun mouseDragged(mx: Double, my: Double, button: Int, dx: Double, dy: Double) = true
+
+    override fun mouseScrolled(mx: Double, my: Double, sx: Double, sy: Double): Boolean {
+        ui.input.scroll(sy)
+        return true
+    }
+
+    override fun keyPressed(key: Int, scan: Int, mods: Int): Boolean {
+        if (key == GLFW.GLFW_KEY_ESCAPE) {
+            if (!ui.escape()) onClose()
+            return true
         }
+        ui.input.key(key, mods)
+        return true
+    }
 
-        var bx = x + fieldW + gap
-        addRenderableWidget(Button.builder(Component.literal("-")) { set((field.value.toIntOrNull() ?: value) - stepAmount()) }.bounds(bx, y, btn, h).build())
-        bx += btn + gap
-        addRenderableWidget(Button.builder(Component.literal("+")) { set((field.value.toIntOrNull() ?: value) + stepAmount()) }.bounds(bx, y, btn, h).build())
-        bx += btn + gap
-        addRenderableWidget(Button.builder(Component.literal("Min")) { set(min) }.bounds(bx, y, wide, h).build())
-        bx += wide + gap
-        addRenderableWidget(Button.builder(Component.literal("Max")) { set(max()) }.bounds(bx, y, wide, h).build())
+    override fun charTyped(c: Char, mods: Int): Boolean {
+        ui.input.char(c)
+        return true
+    }
+
+    override fun removed() {
+        ui.close()
+        super.removed()
     }
 }

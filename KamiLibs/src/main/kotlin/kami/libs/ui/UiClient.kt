@@ -2,6 +2,7 @@ package kami.libs.ui
 
 import kami.libs.ui.gallery.Gallery
 import kami.libs.ui.map.TerrainScanner
+import kami.libs.ui.style.Format
 import kami.libs.ui.style.Palette
 import net.minecraft.client.Minecraft
 import net.minecraft.commands.Commands
@@ -15,7 +16,10 @@ object UiClient {
     fun init() {
         TerrainScanner.init()
         MOD_BUS.addListener<RegisterClientReloadListenersEvent> { e ->
-            e.registerReloadListener(ResourceManagerReloadListener { Palette.load(it) })
+            e.registerReloadListener(ResourceManagerReloadListener {
+                Palette.load(it)
+                Format.locale = Format.localeOf(Minecraft.getInstance().languageManager.selected)
+            })
         }
         FORGE_BUS.addListener<RegisterClientCommandsEvent> { e ->
             e.dispatcher.register(Commands.literal("kamiui").then(Commands.literal("gallery").executes {

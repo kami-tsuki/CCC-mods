@@ -22,7 +22,6 @@ object UiSound {
     fun success() = play(SoundEvents.NOTE_BLOCK_CHIME, 1.3f)
     fun warning() = play(SoundEvents.NOTE_BLOCK_BIT, 0.8f)
     fun danger() = play(SoundEvents.NOTE_BLOCK_BASS, 0.6f)
-    fun moneyIn() = play(SoundEvents.EXPERIENCE_ORB_PICKUP, 1.4f, 0.4f)
     fun confirm() = play(SoundEvents.ANVIL_USE, 1.5f, 0.3f)
 
     fun of(severity: Severity) = when (severity) {

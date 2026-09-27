@@ -1,5 +1,6 @@
 package kami.claims.client.map
 
+import kami.libs.ui.text.tr
 import kami.claims.client.ClientClaims
 import kami.claims.client.app.Flags
 import kami.claims.client.app.Vocabulary
@@ -14,14 +15,17 @@ import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kotlin.math.max
 
-enum class MapMode(val key: String, val label: String, val icon: Icon, val description: String) {
-    POLITICAL("political", "Political", Icons.FLAG, "Every country in its own colour."),
-    RELATIONS("relations", "Relations", Icons.HANDSHAKE, "Your country, your family of provinces, allies, strangers and countries that banished you."),
-    LANDUSE("landuse", "Land use", Icons.LAYERS, "What each chunk is used for: mining, farming, housing and more."),
-    ECONOMY("economy", "Economy", Icons.COIN, "Daily upkeep of each chunk, from cheap (green) to expensive (red)."),
-    RISK("risk", "Risk", Icons.WARNING, "Chunks in debt, reserved land and plots behind on tax."),
-    PLOTS("plots", "Plots", Icons.HOUSE, "Residential plots: yours, free to rent and taken."),
-    TERRAIN("terrain", "Terrain", Icons.MAP, "Only the land itself, with thin borders.");
+enum class MapMode(val key: String, val icon: Icon) {
+    POLITICAL("political", Icons.FLAG),
+    RELATIONS("relations", Icons.HANDSHAKE),
+    LANDUSE("landuse", Icons.LAYERS),
+    ECONOMY("economy", Icons.COIN),
+    RISK("risk", Icons.WARNING),
+    PLOTS("plots", Icons.HOUSE),
+    TERRAIN("terrain", Icons.MAP);
+
+    val label get() = tr("kami_claims.map.mode.$key")
+    val description get() = tr("kami_claims.map.mode.$key.desc")
 
     companion object {
         fun of(key: String) = entries.firstOrNull { it.key == key } ?: POLITICAL
@@ -134,7 +138,6 @@ object ClaimsLayer {
     }
 
     private fun markers(ui: Ui, map: ChunkMap, dim: String, xs: IntRange, zs: IntRange) {
-        val size = if (map.zoom >= 20) 16 else 8
         for (x in xs) for (z in zs) {
             val e = ClientClaims.at(dim, x, z) ?: continue
             val r = map.cell(x, z)
@@ -144,7 +147,7 @@ object ClaimsLayer {
                 e.flags and View.CLAIMABLE != 0 && ClientClaims.prefs.claimable && map.zoom >= 16 -> Icons.ADD
                 else -> null
             } ?: continue
-            Draw.icon(ui.g, icon, r.x + (r.w - size) / 2, r.y + (r.h - size) / 2, size)
+            Draw.marker(ui.g, icon, r.centerX, r.centerY)
         }
     }
 

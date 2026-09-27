@@ -1,5 +1,6 @@
 package kami.essentials.command
 
+import kami.libs.text.Phrase
 import com.mojang.authlib.GameProfile
 import com.mojang.brigadier.arguments.BoolArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
@@ -11,7 +12,6 @@ import kami.essentials.display.Sidebar
 import kami.essentials.inv.Views
 import kami.essentials.trade.Trades
 import kami.essentials.vanish.Vanish
-import kami.libs.chat.spur
 import kami.libs.command.Ctx
 import kami.libs.command.KamiCommands
 import kami.libs.command.arg
@@ -68,25 +68,25 @@ object EssentialsCommands {
             .then(lit("open").then(arg("id", StringArgumentType.word()).does { InlineFeatures.open(it.me(), it.text("id")) })))
     }
 
-    private fun Ctx.profile(): GameProfile = GameProfileArgument.getGameProfiles(this, "player").singleOrNull() ?: fail("Pick exactly one player.")
+    private fun Ctx.profile(): GameProfile = GameProfileArgument.getGameProfiles(this, "player").singleOrNull() ?: fail(Phrase.of("kami_essentials.command.one_player"))
 
     private fun Ctx.target(name: String = "player"): ServerPlayer {
         val p = EntityArgument.getPlayer(this, name)
         val viewer = source.player
-        if (viewer != null && Vanish.hides(p, viewer)) fail("No player named {${p.gameProfile.name}} is online.")
+        if (viewer != null && Vanish.hides(p, viewer)) fail(Phrase.of("kami_essentials.command.not_online", Phrase.value(p.gameProfile.name)))
         return p
     }
 
     private fun balance(ctx: Ctx, who: GameProfile) {
-        val amount = spur(Numismatics.balance(who.id))
-        if (who.id == ctx.source.player?.uuid) ctx.info("Your balance is {$amount}.") else ctx.info("{${who.name}} has {$amount}.")
+        val amount = Phrase.money(Numismatics.balance(who.id).toLong())
+        if (who.id == ctx.source.player?.uuid) ctx.info(Phrase.of("kami_essentials.command.balance.self", amount)) else ctx.info(Phrase.of("kami_essentials.command.balance.other", Phrase.value(who.name), amount))
     }
 
     private fun sidebar(ctx: Ctx, show: Boolean?) {
         val p = ctx.me()
-        if (!Config.s.sidebar) fail("The sidebar is turned off on this server.")
+        if (!Config.s.sidebar) fail(Phrase.of("kami_essentials.command.sidebar.disabled"))
         val next = show ?: !Sidebar.enabled(p)
         Sidebar.set(p, next)
-        ctx.ok(if (next) "Sidebar shown." else "Sidebar hidden.")
+        ctx.ok(Phrase.of(if (next) "kami_essentials.command.sidebar.shown" else "kami_essentials.command.sidebar.hidden"))
     }
 }

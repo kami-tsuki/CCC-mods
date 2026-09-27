@@ -1,5 +1,7 @@
 package kami.claims.client.hud
 
+import kami.libs.ui.text.trJson
+import kami.libs.ui.text.tr
 import kami.claims.client.ClientClaims
 import kami.claims.client.app.Flags
 import kami.claims.client.app.Vocabulary
@@ -12,6 +14,7 @@ import kami.claims.service.AlertLine
 import kami.claims.service.View
 import kami.libs.ui.core.Rect
 import kami.libs.ui.style.Draw
+import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
 import kami.libs.ui.style.Sprites
@@ -59,11 +62,11 @@ object Hud {
             lastDim = dim
         }
         val country = e?.let { ClientClaims.country(it) }
-        val name = country?.name ?: "Nomansland"
+        val name = country?.name ?: tr("kami_claims.world.nomansland")
         val type = e?.let { ClientClaims.typeName(it) }?.let { Vocabulary.type(it) }
         val extra = when {
-            e == null -> "no building"
-            e.flags and View.MINE != 0 -> "your plot"
+            e == null -> tr("kami_claims.guard.no_building")
+            e.flags and View.MINE != 0 -> tr("kami_claims.map.chunk.mine")
             else -> type?.label ?: ""
         }
         val near = if (ClientClaims.prefs.hudBorderDistance) Borders.nearest(8) else null
@@ -100,11 +103,11 @@ object Hud {
     private fun enterBanner(dim: String, e: View.Entry?, now: Long): Banner {
         val bx = Minecraft.getInstance().player?.blockX ?: 0
         val bz = Minecraft.getInstance().player?.blockZ ?: 0
-        if (e == null) return Banner("Nomansland", "Nothing can be built or broken here", Palette.textMuted, now)
+        if (e == null) return Banner(tr("kami_claims.world.nomansland"), tr("kami_claims.guard.no_building"), Palette.textMuted, now)
         val c = ClientClaims.country(e)
         val relation = c?.relation ?: 0
-        val may = AccessGuess.actions.zip(listOf("break", "build", "use", "open")).filter { (a, _) -> AccessGuess.allowed(dim, bx, bz, a) }.map { it.second }
-        val body = if (may.isEmpty()) "You may not touch anything here" else "You may ${may.joinToString(", ")}"
+        val may = AccessGuess.actions.filter { AccessGuess.allowed(dim, bx, bz, it) }.map { tr("kami_claims.action.$it") }
+        val body = if (may.isEmpty()) tr("kami_claims.hud.allowed.none") else tr("kami_claims.hud.allowed", may.joinToString(", "))
         return Banner("${c?.name ?: "?"} · ${Vocabulary.relationLabel(relation)}", body, Vocabulary.relationColor(relation), now)
     }
 
@@ -114,13 +117,12 @@ object Hud {
         val hint = BlockHint.hint(pos)
         val cx = g.guiWidth() / 2
         val cy = g.guiHeight() / 2
-        if (hint == Hint.BLOCKED) Draw.icon(g, kami.libs.ui.style.Icons.LOCK, cx + 6, cy + 4, 8)
+        if (hint == Hint.BLOCKED) Draw.marker(g, Icons.LOCK, cx + 12, cy + 12)
         if (!BlockHint.showDetails()) return
         val e = ClientClaims.at(dim, pos.x shr 4, pos.z shr 4)
-        val title = e?.let { ClientClaims.country(it)?.name } ?: "Nomansland"
+        val title = e?.let { ClientClaims.country(it)?.name } ?: tr("kami_claims.world.nomansland")
         val type = e?.let { ClientClaims.typeName(it) }?.let { Vocabulary.type(it).label } ?: ""
-        val labels = listOf("Break", "Place", "Use", "Open")
-        val parts = AccessGuess.actions.mapIndexed { i, a -> labels[i] to AccessGuess.allowed(dim, pos.x, pos.z, a) }
+        val parts = AccessGuess.actions.map { a -> tr("kami_claims.action.$a") to AccessGuess.allowed(dim, pos.x, pos.z, a) }
         val w = 140
         val box = Rect(cx + 12, cy + 12, w, 34)
         Draw.sprite(g, Sprites.TOOLTIP, box)
@@ -142,9 +144,9 @@ object Hud {
             val r = Rect(g.guiWidth() - w - 4, y, w, 26)
             Draw.sprite(g, Sprites.TOAST, r)
             Draw.fill(g, Rect(r.x + 1, r.y + 1, 2, r.h - 2), sev.color)
-            Draw.icon(g, iconFor(sev), r.x + 5, r.y + 5)
-            Draw.text(g, Draw.fit(t.alert.title, w - 30), r.x + 24, r.y + 5, sev.color)
-            Draw.text(g, "Press K to open your country", r.x + 24, r.y + 15, Palette.textMuted)
+            Draw.leadIcon(g, iconFor(sev), r.x + 6, r.centerY)
+            Draw.text(g, Draw.fit(trJson(t.alert.title), w - 30), r.x + 24, r.y + 5, sev.color)
+            Draw.text(g, tr("kami_claims.hud.open_hint", "K"), r.x + 24, r.y + 15, Palette.textMuted)
             y += 30
         }
     }

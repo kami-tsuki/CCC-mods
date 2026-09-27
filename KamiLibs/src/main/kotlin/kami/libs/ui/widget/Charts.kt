@@ -1,11 +1,16 @@
 package kami.libs.ui.widget
 
+import kami.libs.ui.text.tr
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
 import kami.libs.ui.style.Palette
+import kami.libs.ui.graph.ChartStyle
+import kami.libs.ui.graph.Ohlc
+import kami.libs.ui.graph.PriceChart
+import kotlin.math.roundToInt
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.ceil
@@ -48,7 +53,7 @@ fun Ui.lineChart(r: Rect, series: List<Series>, labels: List<String>, format: (L
     val count = series.maxOfOrNull { it.values.size } ?: 0
     Draw.fill(g, r, Palette.sunken)
     if (count < 2 || all.isEmpty()) {
-        Draw.textCentered(g, "Not enough history yet", r, Palette.textMuted)
+        Draw.textCentered(g, tr("kami_libs.chart.no_history"), r, Palette.textMuted)
         return
     }
     var lo = min(all.min(), if (zeroLine) 0 else all.min()).toDouble()
@@ -99,7 +104,7 @@ fun Ui.lineChart(r: Rect, series: List<Series>, labels: List<String>, format: (L
             Draw.vline(g, x, plot.y, plot.h, Palette.alpha(Palette.text, 0x60))
             series.forEach { s -> s.values.getOrNull(i)?.let { v -> Draw.fill(g, Rect(x - 1, py(v.toDouble()) - 1, 3, 3), s.color) } }
             tooltip(key, plot) {
-                Tip(labels.getOrNull(i), series.mapNotNull { s -> s.values.getOrNull(i)?.let { "${s.label}: ${format(it)}${if (i > s.dashedFrom) " (forecast)" else ""}" to s.color } })
+                Tip(labels.getOrNull(i), series.mapNotNull { s -> s.values.getOrNull(i)?.let { tr(if (i > s.dashedFrom) "kami_libs.chart.point.forecast" else "kami_libs.chart.point", s.label, format(it)) to s.color } })
             }
         }
     }
@@ -108,7 +113,7 @@ fun Ui.lineChart(r: Rect, series: List<Series>, labels: List<String>, format: (L
 fun Ui.barChart(r: Rect, positive: List<Long>, negative: List<Long>, labels: List<String>, format: (Long) -> String = { Format.compact(it) }, key: Any = "bars") {
     val count = max(positive.size, negative.size)
     Draw.fill(g, r, Palette.sunken)
-    if (count == 0) { Draw.textCentered(g, "No data yet", r, Palette.textMuted); return }
+    if (count == 0) { Draw.textCentered(g, tr("kami_libs.chart.no_data"), r, Palette.textMuted); return }
     val top = max(1L, max(positive.maxOrNull() ?: 0, negative.maxOrNull() ?: 0))
     val plot = r.inset(6, 4, 6, 4)
     val mid = plot.centerY
@@ -124,7 +129,7 @@ fun Ui.barChart(r: Rect, positive: List<Long>, negative: List<Long>, labels: Lis
         Draw.fill(g, Rect(x, mid - uh, barW, uh), Palette.success)
         Draw.fill(g, Rect(x, mid + 1, barW, dh), Palette.danger)
         val cell = Rect(plot.x + (i * slot).toInt(), plot.y, max(1, slot.toInt()), plot.h)
-        tooltip("$key:$i", cell) { Tip(labels.getOrNull(i), listOf("In: +${format(up)}" to Palette.success, "Out: -${format(down)}" to Palette.danger, "Net: ${format(up - down)}" to Palette.text)) }
+        tooltip("$key:$i", cell) { Tip(labels.getOrNull(i), listOf(tr("kami_libs.chart.in", "+" + format(up)) to Palette.success, tr("kami_libs.chart.out", "-" + format(down)) to Palette.danger, tr("kami_libs.chart.net", format(up - down)) to Palette.text)) }
     }
 }
 
@@ -135,7 +140,7 @@ fun Ui.stackedBar(r: Rect, slices: List<Slice>, key: Any = "stack") {
         val w = if (i == slices.lastIndex) r.right - x else (r.w * s.value / total).toInt()
         val cell = Rect(x, r.y, w, r.h)
         Draw.fill(g, cell, s.color)
-        tooltip("$key:$i", cell) { Tip.text("${Format.number(s.value)} (${Format.percent(s.value.toDouble() / total)})", s.label) }
+        tooltip("$key:$i", cell) { Tip.text(tr("kami_libs.chart.share", Format.number(s.value), Format.percent(s.value.toDouble() / total)), s.label) }
         x += w
     }
 }
@@ -172,7 +177,7 @@ fun Ui.donut(r: Rect, slices: List<Slice>, center: String? = null, key: Any = "d
     center?.let { Draw.textCentered(g, it, Rect(r.x, r.y, size, size), Palette.text) }
     if (hovered >= 0) {
         val s = slices[hovered]
-        tooltip(key, r) { Tip.text("${Format.number(s.value)} (${Format.percent(s.value / total)})", s.label) }
+        tooltip(key, r) { Tip.text(tr("kami_libs.chart.share", Format.number(s.value.toLong()), Format.percent(s.value / total)), s.label) }
     }
 }
 
@@ -190,3 +195,38 @@ fun Ui.legend(x: Int, y: Int, width: Int, entries: List<Pair<Int, String>>): Int
 
 fun forecast(start: Long, perDay: Long, days: Int): List<Long> = List(days) { start + perDay * (it + 1) }
 
+
+fun Ui.gradientLegend(
+    r: Rect, colors: List<Int>, min: Double, max: Double, format: (Double) -> String = { Format.compact(it.toLong()) },
+    ticks: List<Double> = listOf(min, max), title: String? = null, key: Any = "gradient"
+) {
+    var y = r.y
+    title?.let { Draw.text(g, Draw.fit(it, r.w), r.x, y, Palette.textMuted); y += Draw.LINE }
+    val bar = Rect(r.x, y, r.w, 6)
+    val span = (max - min).takeIf { it > 0 } ?: 1.0
+    val last = (bar.w - 1).coerceAtLeast(1)
+    for (px in 0 until bar.w) Draw.fill(g, Rect(bar.x + px, bar.y, 1, bar.h), Palette.opaque(gradientAt(colors, px.toDouble() / last)))
+    Draw.outline(g, bar.grow(1), Palette.border)
+    for (v in ticks) {
+        val px = bar.x + ((v - min) / span * last).roundToInt().coerceIn(0, last)
+        Draw.vline(g, px, bar.bottom + 1, 2, Palette.textSecondary)
+        val label = format(v)
+        val lw = Draw.width(label)
+        Draw.text(g, label, (px - lw / 2).coerceIn(r.x, (r.right - lw).coerceAtLeast(r.x)), bar.bottom + 4, Palette.textMuted)
+    }
+    tooltip(key, bar.grow(2), delay = 0) { Tip.text(format(min + ((mouseX - bar.x).toDouble() / last).coerceIn(0.0, 1.0) * span)) }
+}
+
+fun gradientAt(colors: List<Int>, fraction: Double): Int {
+    if (colors.size < 2) return colors.firstOrNull() ?: 0
+    val p = fraction.coerceIn(0.0, 1.0) * (colors.size - 1)
+    val i = floor(p).toInt().coerceAtMost(colors.size - 2)
+    return Palette.mix(colors[i], colors[i + 1], (p - i).toFloat())
+}
+
+fun Ui.priceChart(r: Rect, data: List<Ohlc>, style: ChartStyle, key: Any = "price"): Ohlc? {
+    val over = hover(key, r)
+    val hovered = PriceChart.draw(g, r.x, r.y, r.w, r.h, data, style, if (over) mouseX else Int.MIN_VALUE, if (over) mouseY else Int.MIN_VALUE, readout = false)
+    if (hovered != null) tooltip(key, r, delay = 0) { Tip(null, PriceChart.readout(hovered).map { it to Palette.textSecondary }) }
+    return hovered
+}

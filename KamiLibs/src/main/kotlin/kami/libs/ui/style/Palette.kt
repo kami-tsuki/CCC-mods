@@ -16,40 +16,40 @@ object Palette {
 
     private fun token(name: String, rgb: Int, alpha: Int = 0xFF) = Token(name).also { defaults[name] = (alpha shl 24) or (rgb and 0xFFFFFF) }
 
-    val backdrop by token("bg.backdrop", 0x000000, 0x99)
-    val canvas by token("bg.canvas", 0x111318)
-    val surface by token("bg.surface", 0x181B21)
-    val raised by token("bg.raised", 0x20242C)
-    val sunken by token("bg.sunken", 0x0C0E12)
-    val hover by token("bg.hover", 0x272C36)
-    val selected by token("bg.selected", 0x2C3A52)
-    val overlay by token("bg.overlay", 0x1C2028, 0xF5)
+    val backdrop by token("bg.backdrop", 0x000000, 0x88)
+    val canvas by token("bg.canvas", 0x14161A)
+    val surface by token("bg.surface", 0x1A1D22)
+    val raised by token("bg.raised", 0x21252B)
+    val sunken by token("bg.sunken", 0x101216)
+    val hover by token("bg.hover", 0x272B32)
+    val selected by token("bg.selected", 0x233246)
+    val overlay by token("bg.overlay", 0x1D2026, 0xF8)
 
-    val borderSubtle by token("border.subtle", 0x262B34)
-    val border by token("border.default", 0x353B47)
-    val borderStrong by token("border.strong", 0x4A5262)
-    val brass by token("border.brass", 0xB08D57)
+    val borderSubtle by token("border.subtle", 0x24282E)
+    val border by token("border.default", 0x30353D)
+    val borderStrong by token("border.strong", 0x444A54)
+    val brass by token("border.brass", 0x4C7BBF)
 
-    val text by token("text.primary", 0xECEEF2)
-    val textSecondary by token("text.secondary", 0xAEB5C1)
-    val textMuted by token("text.muted", 0x737B8A)
-    val textDisabled by token("text.disabled", 0x4E5562)
-    val textInverse by token("text.inverse", 0x111318)
-    val link by token("text.link", 0x7FB2FF)
+    val text by token("text.primary", 0xE2E5E9)
+    val textSecondary by token("text.secondary", 0xA4ABB5)
+    val textMuted by token("text.muted", 0x6F7682)
+    val textDisabled by token("text.disabled", 0x4A505A)
+    val textInverse by token("text.inverse", 0x101216)
+    val link by token("text.link", 0x7DA4DA)
 
-    val info by token("sem.info", 0x56B6F7)
-    val success by token("sem.success", 0x4CC38A)
-    val warning by token("sem.warning", 0xF5A524)
-    val danger by token("sem.danger", 0xF2555A)
-    val money by token("sem.money", 0xF2C94C)
-    val focus by token("sem.focus", 0x7FB2FF)
+    val info by token("sem.info", 0x5E9CCF)
+    val success by token("sem.success", 0x55A57C)
+    val warning by token("sem.warning", 0xD1A04A)
+    val danger by token("sem.danger", 0xD0585C)
+    val money by token("sem.money", 0xCDB263)
+    val focus by token("sem.focus", 0x7DA4DA)
 
-    val geoProvince by token("geo.province", 0xA78BFA)
-    val geoAlly by token("geo.ally", 0x38BDF8)
-    val geoNeutral by token("geo.neutral", 0x9AA3B2)
-    val geoHostile by token("geo.banished", 0xF2555A)
-    val geoUnclaimed by token("geo.nomansland", 0x6B6453)
-    val geoReserved by token("geo.reserved", 0x8C7A5B)
+    val geoProvince by token("geo.province", 0x8E80C8)
+    val geoAlly by token("geo.ally", 0x539CC0)
+    val geoNeutral by token("geo.neutral", 0x8A919C)
+    val geoHostile by token("geo.banished", 0xD0585C)
+    val geoUnclaimed by token("geo.nomansland", 0x5C5950)
+    val geoReserved by token("geo.reserved", 0x847658)
 
     val chart = intArrayOf(0xFFE69F00.toInt(), 0xFF56B4E9.toInt(), 0xFF009E73.toInt(), 0xFFF0E442.toInt(), 0xFF0072B2.toInt(), 0xFFD55E00.toInt(), 0xFFCC79A7.toInt(), 0xFF999999.toInt())
 
@@ -104,15 +104,15 @@ object Palette {
 }
 
 enum class Severity(private val pick: () -> Int, val icon: String) {
-    NEUTRAL({ Palette.textSecondary }, "info"),
+    NEUTRAL({ Palette.textSecondary }, "help"),
     INFO({ Palette.info }, "info"),
     SUCCESS({ Palette.success }, "check"),
     WARNING({ Palette.warning }, "warning"),
     DANGER({ Palette.danger }, "danger");
 
     val color get() = pick()
-    val tint get() = Palette.alpha(color, 0x2E)
-    val edge get() = Palette.alpha(color, 0x99)
+    val tint get() = Palette.alpha(color, 0x1F)
+    val edge get() = Palette.alpha(color, 0x70)
 
     companion object {
         fun of(name: String) = entries.firstOrNull { it.name.equals(name, true) } ?: NEUTRAL

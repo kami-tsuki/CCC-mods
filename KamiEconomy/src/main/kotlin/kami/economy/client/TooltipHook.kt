@@ -1,5 +1,6 @@
 package kami.economy.client
 
+import kami.libs.ui.text.tr
 import kami.libs.economy.Coins
 import kami.libs.ui.Theme
 import net.minecraft.core.registries.BuiltInRegistries
@@ -17,7 +18,7 @@ object TooltipHook {
         }
         val amount = Coins.compactParts(info.price)
         e.toolTip.add(
-            Component.literal("Market: ").withStyle { it.withColor(Theme.DIM) }
+            Component.literal(tr("kami_economy.tooltip.market") + " ").withStyle { it.withColor(Theme.DIM) }
                 .append(Component.literal(amount.amount).withStyle { it.withColor(Theme.TEXT) })
                 .append(Component.literal(amount.glyph.toString()).withStyle { it.withColor(0xFFFFFF) })
                 .append(Component.literal(" ${arrow.first}").withStyle { it.withColor(arrow.second) })

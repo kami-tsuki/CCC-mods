@@ -1,5 +1,6 @@
 package kami.libs.ui.widget
 
+import kami.libs.ui.text.tr
 import kami.libs.ui.core.Cursor
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Tip
@@ -104,7 +105,7 @@ fun Ui.textField(
     val invalid = state.touched && state.error != null
     Draw.sprite(g, Sprites.input(focused, invalid, enabled, hover), r)
     var left = r.x + 5
-    icon?.let { Draw.icon(g, it, r.x + 2, r.y + (r.h - 16) / 2); left = r.x + 20 }
+    icon?.let { left = r.x + 4 + Draw.leadIcon(g, it, r.x + 4, r.centerY, Palette.textMuted) }
     val showClear = clearable && state.text.isNotEmpty() && enabled
     val suffixW = suffix?.let { Draw.width(it) + 6 } ?: 0
     val right = r.right - 5 - suffixW - (if (showClear) 14 else 0)
@@ -153,6 +154,7 @@ fun Ui.textField(
         val c = Rect(r.right - 18, r.y + (r.h - 12) / 2, 12, 12)
         if (hovering(c)) cursor = Cursor.HAND
         Draw.tintedIcon(g, Icons.CLOSE, c.x - 2, c.y - 2, 16, if (hovering(c)) Palette.text else Palette.textMuted)
+        tooltip("$key:clear", c, tr("kami_libs.field.clear.tooltip"))
         if (pressed(c) != null) { state.set(""); changed = true }
     }
     if (invalid) tooltip(key, r) { Tip.disabled(state.error!!) }
@@ -220,19 +222,19 @@ fun Ui.numberField(
     val res = textField(field, state.text, "", enabled = enabled, maxLength = 16, allow = { it.isDigit() || it in ",._kKmM-" }, key = "$key:text", suffix = unit)
     val parsed = Format.parseAmount(state.text.text)
     state.text.error = when {
-        parsed == null -> "Enter a number"
-        parsed < min -> "At least ${Format.number(min)}"
-        parsed > max -> "At most ${Format.number(max)}"
+        parsed == null -> tr("kami_libs.field.number.error.invalid")
+        parsed < min -> tr("kami_libs.field.number.error.min", Format.number(min))
+        parsed > max -> tr("kami_libs.field.number.error.max", Format.number(max))
         else -> null
     }
     if ((res.submitted || res.blurred) && parsed != null && state.text.error == null && parsed != state.value) apply(parsed)
-    tooltip("$key:tip", r) { if (enabled) Tip(null, listOf("Scroll · Shift x10 · Ctrl x100" to Palette.textMuted)) else null }
+    tooltip("$key:tip", r) { if (enabled) Tip(null, listOf(tr("kami_libs.field.number.tooltip") to Palette.textMuted)) else null }
     return result
 }
 
-fun Ui.slider(r: Rect, value: Double, min: Double, max: Double, step: Double, enabled: Boolean = true, format: (Double) -> String = { "%.0f".format(it) }, key: Any = "slider"): Double? {
+fun Ui.slider(r: Rect, value: Double, min: Double, max: Double, step: Double, enabled: Boolean = true, format: (Double) -> String = { "%.0f".format(it) }, tip: String? = null, key: Any = "slider"): Double? {
     val id = focusable(key)
-    val track = Rect(r.x + 4, r.centerY - 3, r.w - 8, 6)
+    val track = Rect(r.x + 4, r.centerY - 2, r.w - 8, 4)
     val hover = hover(key, r)
     if (enabled && hover) cursor = Cursor.HAND
     if (enabled && pressed(r) != null) active = id
@@ -254,7 +256,7 @@ fun Ui.slider(r: Rect, value: Double, min: Double, max: Double, step: Double, en
     val f = if (max > min) ((shown - min) / (max - min)).toFloat() else 0f
     Draw.sprite(g, Sprites.TRACK, track)
     Draw.tinted(g, Sprites.FILL, track.withWidth(max(2, (track.w * f).toInt())), if (enabled) Palette.brass else Palette.textDisabled)
-    val knob = Rect(track.x + (track.w * f).toInt() - 4, r.centerY - 7, 8, 14)
+    val knob = Rect(track.x + (track.w * f).toInt() - 3, r.centerY - 6, 6, 12)
     Draw.sprite(g, Sprites.Look.SECONDARY.of(hover, dragging, enabled), knob)
     if (dragging || hover) {
         val label = format(shown)
@@ -262,10 +264,11 @@ fun Ui.slider(r: Rect, value: Double, min: Double, max: Double, step: Double, en
         overlay { Draw.sprite(g, Sprites.TOOLTIP, Rect(knob.centerX - bw / 2, knob.y - 15, bw, 13)); Draw.text(g, label, knob.centerX - bw / 2 + 4, knob.y - 12, Palette.text) }
     }
     focusRing(key, r)
+    controlTip(key, r, enabled, null, tip)
     return result
 }
 
-fun Ui.searchField(r: Rect, state: TextState, placeholder: String = "Search…", key: Any = "search"): Boolean {
+fun Ui.searchField(r: Rect, state: TextState, placeholder: String = tr("kami_libs.common.search"), key: Any = "search"): Boolean {
     if (input.takeKey(GLFW.GLFW_KEY_F) { it.ctrl } != null) focus = id(key)
     return textField(r, state, placeholder, Icons.SEARCH, key = key, clearable = true).changed
 }

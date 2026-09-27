@@ -12,6 +12,7 @@ import kami.claims.service.StepLine
 import kami.claims.service.Upkeep
 import kami.claims.service.View
 import kami.claims.world.Guard
+import kami.libs.text.Phrase
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -48,7 +49,8 @@ import java.util.UUID
 @Serializable class Detail(
     val x: Int, val z: Int, val country: String, val relation: Int, val type: String, val owner: String, val roles: List<String>,
     val debt: Int, val tax: Int, val lapse: Int, val price: Int, val period: Int, val free: Boolean, val capital: Boolean, val note: String,
-    val access: Map<String, Boolean> = emptyMap(), val reserved: String = "", val at: Long = 0, val ownerId: String = "", val locked: String = ""
+    val access: Map<String, Boolean> = emptyMap(), val reserved: String = "", val at: Long = 0, val ownerId: String = "", val locked: String = "",
+    val blocked: Boolean = false
 )
 @Serializable class Info(
     val name: String, val rank: String, val treasury: Long, val upkeep: Long, val income: Long, val jobs: Long, val runway: String, val tax: Int,
@@ -97,7 +99,7 @@ object Sync {
     fun forget(p: ServerPlayer) { focus.remove(p.uuid); viewing.remove(p.uuid); watching.remove(p.uuid); previews.remove(p.uuid) }
 
     fun preview(p: ServerPlayer, kind: String, type: String, plan: Plan, key: String) {
-        previews[p.uuid] = PreviewLine(kind, type, plan.cells.map { PreviewCell(it.key.x, it.key.z, it.outcome.name, it.reason ?: "") }, plan.costNow, plan.upkeepPerDay, key)
+        previews[p.uuid] = PreviewLine(kind, type, plan.cells.map { PreviewCell(it.key.x, it.key.z, it.outcome.name, it.reason?.json() ?: "") }, plan.costNow, plan.upkeepPerDay, key)
     }
 
     private fun online(p: ServerPlayer, id: String) = runCatching { p.server.playerList.getPlayer(UUID.fromString(id)) != null }.getOrDefault(false)
@@ -142,15 +144,16 @@ object Sync {
         val access = access(p, k)
         if (cl == null || c == null) {
             val reserved = Realm.reservedFor(k.dim, k.x, k.z)?.let { Realm.data.countries[it]?.name }
+            val problem = mine?.let { Service.claimError(it, k, Config.s.defaultType) }
             val note = when {
-                reserved != null -> "Reserved for $reserved after they lost it."
-                mine == null -> "Nobody owns this land. Nothing can be built here."
-                else -> Service.claimError(mine, k, Config.s.defaultType) ?: "Free to claim."
+                reserved != null -> Phrase.of("kami_claims.detail.reserved", reserved)
+                mine == null -> Phrase.of("kami_claims.detail.nomansland")
+                else -> problem ?: Phrase.of("kami_claims.detail.free")
             }
-            return Detail(k.x, k.z, "", 0, "", "", emptyList(), 0, -1, 0, 0, 0, false, false, note, access, reserved ?: "")
+            return Detail(k.x, k.z, "", 0, "", "", emptyList(), 0, -1, 0, 0, 0, false, false, note.json(), access, reserved ?: "", blocked = reserved != null || problem != null)
         }
         val rel = View.relation(c, me)
-        if (rel == 0) return Detail(k.x, k.z, c.name, 0, "", "", emptyList(), 0, -1, 0, 0, 0, false, false, "Claimed by ${c.name}.", access)
+        if (rel == 0) return Detail(k.x, k.z, c.name, 0, "", "", emptyList(), 0, -1, 0, 0, 0, false, false, Phrase.of("kami_claims.detail.claimed_by", c.name).json(), access)
         val priv = View.privileged(c, me)
         val own = priv || cl.owner == me
         return Detail(
@@ -158,7 +161,7 @@ object Sync {
             if (own) cl.roles.map { (id, r) -> "${Names.of(p.server, id)}: ${r.name.lowercase()}" } else emptyList(),
             if (priv) cl.debt else 0, if (own) (if (cl.tax >= 0) cl.tax else c.tax) else -1, if (own) cl.lapse else 0,
             Realm.price(cl), Realm.period(cl), priv && cl.free, cl.capital, "", access, "", cl.at, cl.owner ?: "",
-            if (priv) Planner.unclaimLock(cl) ?: "" else ""
+            if (priv) Planner.unclaimLock(cl)?.json() ?: "" else ""
         )
     }
 
@@ -178,7 +181,7 @@ object Sync {
         val rank = if (delegated) Service.rankOf(own!!, p) else Service.rankOf(c, p)
         return Info(
             c.name, rank.name.lowercase(), c.treasury, sum.upkeep, sum.income, sum.jobs,
-            sum.runway(c.treasury), c.tax, claims.size, claims.count { it.free }, c.shutdown, c.release, View.color(c),
+            sum.runway(c.treasury).json(), c.tax, claims.size, claims.count { it.free }, c.shutdown, c.release, View.color(c),
             (today() + 1) * s.dayMillis - now(), priv,
             c.members.map { (id, m) -> mem(p, id, m.rank.name.lowercase(), m, c) }.sortedByDescending { Rank.valueOf(it.rank.uppercase()) },
             if (staff) c.requests.filterValues { it > now() }.keys.map { mem(p, it, "") } else emptyList(),
@@ -191,7 +194,7 @@ object Sync {
                 ClaimLine(
                     cl.x, cl.z, cl.type, cl.capital, cl.free && priv, if (priv) cl.debt else 0, cl.owner?.let { o -> Names.of(p.server, o) } ?: "",
                     if (mine) (if (cl.tax >= 0) cl.tax else c.tax) else -1, if (mine) cl.lapse else 0, if (mine) cl.roles.size else 0,
-                    cl.at, cl.owner ?: "", if (priv) Planner.unclaimLock(cl) ?: "" else ""
+                    cl.at, cl.owner ?: "", if (priv) Planner.unclaimLock(cl)?.json() ?: "" else ""
                 )
             },
             claims.filter { !it.free }.groupBy { it.type }.map { (t, list) -> Break(t, list.size, list.sumOf { Realm.price(it).toDouble() / Realm.period(it) }) },

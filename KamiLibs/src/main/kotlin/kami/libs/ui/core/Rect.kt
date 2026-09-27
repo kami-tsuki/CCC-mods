@@ -45,8 +45,6 @@ data class Rect(val x: Int, val y: Int, val w: Int, val h: Int) {
     fun rows(weights: List<Float>, gap: Int = 0): List<Rect> = split(weights, gap, horizontal = false)
 
     fun columnsFixed(vararg widths: Int, gap: Int = 0): List<Rect> = fixed(widths.toList(), gap, horizontal = true)
-    fun rowsFixed(vararg heights: Int, gap: Int = 0): List<Rect> = fixed(heights.toList(), gap, horizontal = false)
-
     fun grid(columns: Int, rowHeight: Int, count: Int, gap: Int = 0): List<Rect> {
         val cellW = (w - gap * (columns - 1)) / max(1, columns)
         return List(count) { i -> Rect(x + (i % columns) * (cellW + gap), y + (i / columns) * (rowHeight + gap), cellW, rowHeight) }
@@ -88,7 +86,6 @@ class Flow(private var area: Rect, private val gap: Int = 4) {
     val rest get() = area
 
     fun take(height: Int): Rect = area.top(height).also { area = area.dropTop(height, gap) }
-    fun takeFromBottom(height: Int): Rect = area.bottom(height).also { area = area.dropBottom(height, gap) }
     fun skip(height: Int) { area = area.dropTop(height) }
     fun remaining(): Rect = area.also { area = Rect(area.x, area.bottom, area.w, 0) }
 }

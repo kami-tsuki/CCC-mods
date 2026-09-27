@@ -1,5 +1,6 @@
 package kami.essentials
 
+import kami.libs.text.Phrase
 import kami.essentials.chat.Feed
 import kami.essentials.chat.InlineFeatures
 import kami.essentials.chat.Talk
@@ -51,17 +52,17 @@ object KamiEssentials {
             val p = e.entity as? ServerPlayer ?: return@addListener
             Offline.joined(p)
             Feed.join(p)
-            if (Vanish.active(p)) p.tell(Talk.chat.info("You joined {invisible}. Use {/invis} to show yourself."))
+            if (Vanish.active(p)) p.tell(Talk.chat.info(Phrase.of("kami_essentials.vanish.joined", Phrase.value("/invis"))))
         }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { e ->
             val p = e.entity as? ServerPlayer ?: return@addListener
-            Trades.drop(p, "${p.gameProfile.name} left")
+            Trades.drop(p, Phrase.of("kami_essentials.trade.reason.left", p.gameProfile.name))
             Sidebar.forget(p)
             Feed.leave(p)
         }
         FORGE_BUS.addListener<PlayerEvent.TabListNameFormat>(Tab::onName)
         FORGE_BUS.addListener<ServerChatEvent>(Talk::onChat)
-        FORGE_BUS.addListener<LivingDeathEvent> { e -> (e.entity as? ServerPlayer)?.let { Trades.drop(it, "${it.gameProfile.name} died") } }
+        FORGE_BUS.addListener<LivingDeathEvent> { e -> (e.entity as? ServerPlayer)?.let { Trades.drop(it, Phrase.of("kami_essentials.trade.reason.died", it.gameProfile.name)) } }
         FORGE_BUS.addListener<LivingChangeTargetEvent> { e -> if ((e.newAboutToBeSetTarget as? ServerPlayer)?.let(Vanish::active) == true) e.isCanceled = true }
         FORGE_BUS.addListener<ItemEntityPickupEvent.Pre> { e -> if (Trades.busy(e.player)) e.setCanPickup(TriState.FALSE) }
     }

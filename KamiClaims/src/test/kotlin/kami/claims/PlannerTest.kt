@@ -34,7 +34,7 @@ class PlannerTest {
         val c = country(2, 100)
         val plan = Planner.claim(c, "civic", listOf(Key(dim, 40, 40)))
         assertEquals(Outcome.BLOCKED, plan.cells.single().outcome)
-        assertTrue(plan.cells.single().reason!!.contains("connected"))
+        assertEquals("kami_claims.block.not_connected", plan.cells.single().reason!!.key)
     }
 
     @Test

@@ -1,5 +1,7 @@
 package kami.geology.item
 
+import kami.libs.chat.Theme
+import kami.libs.text.Phrase
 import kami.geology.command.GeoText
 import kami.geology.command.GeoText.ore
 import kami.geology.map.Heatmap
@@ -32,7 +34,7 @@ class ProspectorItem(val tier: Int, props: Properties) : Item(props) {
 
             val world = Worlds.of(player.serverLevel())
             when {
-                world == null -> player.bar(Chat.bar(Tone.WARN, "No deposits in this dimension"))
+                world == null -> player.bar(Chat.bar(Tone.WARN, Phrase.of("kami_geology.prospector.no_deposits").component()))
                 tier == 1 -> {
                     val found = Heatmap.probeColumn(world, player.blockX, player.blockZ, level.minBuildHeight, level.maxBuildHeight - 1)
                     player.bar(result(player, found))
@@ -49,11 +51,12 @@ class ProspectorItem(val tier: Int, props: Properties) : Item(props) {
     }
 
     private fun result(player: ServerPlayer, found: List<Pair<String, String>>): Component = GeoText.chat.msg {
-        if (found.isEmpty()) muted("Nothing below you")
+        if (found.isEmpty()) add(Phrase.of("kami_geology.prospector.nothing"), Theme.MUTED)
         found.forEachIndexed { i, (id, size) ->
             if (i > 0) muted(", ")
             ore(id)
-            muted(" $size")
+            muted(" ")
+            add(GeoText.tier(size), Theme.MUTED)
         }
         muted("  ")
         pos(player.blockX, player.blockY, player.blockZ, player.level().dimension().location().toString())
