@@ -14,7 +14,7 @@ import kotlin.math.max
 enum class Rank { BANISHED, ALLIED, CITIZEN, OFFICER, CHANCELLOR, PRESIDENT }
 
 @Serializable
-enum class Cap { CLAIM, CAPITAL, TAX, RULES, WITHDRAW, INVITE, MEMBERS, RANK, JOBS, PLOT, DETAILS, PROVINCE }
+enum class Cap { CLAIM, CAPITAL, TAX, RULES, WITHDRAW, INVITE, MEMBERS, RANK, JOBS, PLOT, DETAILS, PROVINCE, TRADE }
 
 @Serializable
 enum class TaxMode { PERCENT, FLAT }
@@ -54,7 +54,7 @@ class JobDef(var pay: Int, var quota: Int, var period: Int)
 class ProvinceOffer(val until: Long, val mode: TaxMode, val amount: Double, val answered: Boolean = false)
 
 @Serializable
-enum class LedgerKind { DEPOSIT, WITHDRAW, CLAIM, UPKEEP, PLOT_TAX, JOB_PAY, TRIBUTE_IN, TRIBUTE_OUT, ADJUST }
+enum class LedgerKind { DEPOSIT, WITHDRAW, CLAIM, UPKEEP, PLOT_TAX, JOB_PAY, TRIBUTE_IN, TRIBUTE_OUT, ADJUST, TARIFF }
 
 @Serializable
 class LedgerEntry(val at: Long, val kind: LedgerKind, val amount: Long, val balance: Long, val actor: String? = null, val note: String = "")
@@ -64,6 +64,9 @@ class DayStat(
     val day: Long, val at: Long, val treasury: Long, val income: Long, val upkeep: Long, val jobs: Long, val tributeIn: Long, val tributeOut: Long,
     val deposits: Long, val withdrawals: Long, val chunks: Int, val debtChunks: Int, val members: Int, val plots: Int, val types: Map<String, Int> = emptyMap()
 )
+
+@Serializable
+class TradePolicy(val tariffPct: Int = 0, val embargo: Boolean = false)
 
 @Serializable
 class Flag(val pattern: Int = 0, val emblem: Int = 0, val secondary: Int = 0xFFFFFF)
@@ -124,7 +127,10 @@ class Country(
     val provinces: MutableSet<String> = mutableSetOf(),
     val provinceInvites: MutableMap<String, ProvinceOffer> = mutableMapOf(),
     val provinceRequests: MutableMap<String, Long> = mutableMapOf(),
-    val autoAllies: MutableSet<String> = mutableSetOf()
+    val autoAllies: MutableSet<String> = mutableSetOf(),
+    val alliances: MutableSet<String> = mutableSetOf(),
+    val allianceOffers: MutableMap<String, Long> = mutableMapOf(),
+    val tradePolicy: MutableMap<String, TradePolicy> = mutableMapOf()
 ) {
     val id get() = name.lowercase()
     fun rank(id: String) = members[id]?.rank ?: outsiders[id]
@@ -188,7 +194,12 @@ object Realm {
         data.countries.values.forEach { c -> c.members.keys.forEach { home[it] = c.id } }
         data.countries.values.forEach { c -> if (c.parent != null && country(c.parent) == null) { c.parent = null; c.provinceDebt = 0; c.independenceRequested = false } }
         data.countries.values.forEach { c -> c.provinces.removeAll { it !in data.countries || country(it)?.parent != c.id } }
-        data.countries.values.filter { it.parent == null }.forEach { syncFamily(it.id) }
+        data.countries.values.forEach { c ->
+            c.alliances.removeAll { country(it)?.alliances?.contains(c.id) != true }
+            c.allianceOffers.keys.removeAll { it !in data.countries }
+            c.tradePolicy.keys.removeAll { it !in data.countries }
+        }
+        syncAllies()
     }
 
     fun country(name: String?) = name?.let { data.countries[it.lowercase()] }
@@ -224,7 +235,7 @@ object Realm {
         c.invites.remove(id)
         c.requests.remove(id)
         home[id] = c.id
-        syncFamily(c.id)
+        syncAllies()
         changed()
     }
 
@@ -234,20 +245,18 @@ object Realm {
         claims(c.id).filter { it.owner == id || it.roles.containsKey(id) }.forEach {
             if (it.owner == id) { it.owner = null; it.roles.clear(); it.lapse = 0 } else it.roles.remove(id)
         }
-        syncFamily(c.id)
+        syncAllies()
         changed()
     }
 
     fun disband(c: Country) {
         claims(c.id).forEach { unclaim(it, false) }
         c.members.keys.forEach { home.remove(it) }
-        val parentId = c.parent
-        val formerProvinces = c.provinces.toList()
         c.parent?.let { country(it)?.provinces?.remove(c.id) }
         c.provinces.forEach { pid -> country(pid)?.let { it.parent = null; it.provinceDebt = 0; it.independenceRequested = false } }
         data.countries.remove(c.id)
-        parentId?.let { syncFamily(it) }
-        formerProvinces.forEach { syncFamily(it) }
+        data.countries.values.forEach { it.alliances.remove(c.id); it.allianceOffers.remove(c.id); it.tradePolicy.remove(c.id) }
+        syncAllies()
         changed()
     }
 
@@ -257,19 +266,13 @@ object Realm {
         return listOf(top) + top.provinces.mapNotNull { country(it) }
     }
 
-    fun syncFamily(id: String) {
-        val fam = family(id)
-        if (fam.size <= 1) {
-            val c = country(id) ?: return
-            c.autoAllies.toList().forEach { pid -> if (c.outsiders[pid] == Rank.ALLIED) c.outsiders.remove(pid); c.autoAllies.remove(pid) }
-            return
-        }
-        val allMembers = fam.flatMap { it.members.keys }.toSet()
-        fam.forEach { c ->
-            val others = allMembers - c.members.keys
-            others.forEach { pid -> if (c.outsiders[pid] == null) { c.outsiders[pid] = Rank.ALLIED; c.autoAllies += pid } }
-            (c.autoAllies - others).forEach { pid -> if (c.outsiders[pid] == Rank.ALLIED) c.outsiders.remove(pid); c.autoAllies.remove(pid) }
-        }
+    fun partners(c: Country): Set<String> =
+        (family(c.id) + c.alliances.mapNotNull { country(it) }).filter { it.id != c.id }.flatMap { it.members.keys }.toSet() - c.members.keys
+
+    fun syncAllies() = data.countries.values.forEach { c ->
+        val others = partners(c)
+        others.forEach { pid -> if (c.outsiders[pid] == null) { c.outsiders[pid] = Rank.ALLIED; c.autoAllies += pid } }
+        (c.autoAllies - others).forEach { pid -> if (c.outsiders[pid] == Rank.ALLIED) c.outsiders.remove(pid); c.autoAllies.remove(pid) }
     }
 
     fun neighbors(c: Claim) = listOf(Key(c.dim, c.x + 1, c.z), Key(c.dim, c.x - 1, c.z), Key(c.dim, c.x, c.z + 1), Key(c.dim, c.x, c.z - 1))

@@ -3,6 +3,7 @@ package kami.claims.net
 import kami.claims.*
 import kami.claims.economy.Bank
 import kami.claims.service.AlertLine
+import kami.claims.service.Diplomacy
 import kami.claims.service.Alerts
 import kami.claims.service.Plan
 import kami.claims.service.Planner
@@ -23,7 +24,8 @@ import java.util.UUID
 @Serializable class FlagLine(val pattern: Int = 0, val emblem: Int = 0, val secondary: Int = 0xFFFFFF)
 @Serializable class Line(
     val name: String, val members: Int, val chunks: Int, val color: Int = 0, val flag: FlagLine = FlagLine(), val parent: String = "",
-    val provinces: Int = 0, val president: String = "", val founded: Long = 0, val relation: String = "", val capitalX: Int = 0, val capitalZ: Int = 0, val income: Long = 0
+    val provinces: Int = 0, val president: String = "", val founded: Long = 0, val relation: String = "", val capitalX: Int = 0, val capitalZ: Int = 0, val income: Long = 0,
+    val trade: String = "neutral", val alliance: String = "", val tariff: Int = 0, val theirTariff: Int = 0, val embargo: Boolean = false
 )
 @Serializable class Mem(
     val id: String, val name: String, val rank: String, val job: String = "", val progress: Int = 0, val seen: Long = 0,
@@ -235,7 +237,11 @@ object Sync {
             val capital = Realm.claims(x.id).firstOrNull { it.capital }
             Line(
                 x.name, x.members.size, Realm.claims(x.id).size, View.color(x), flag(x), Realm.country(x.parent)?.name ?: "", x.provinces.size,
-                x.president()?.let { Names.of(p.server, it) } ?: "", x.created, relationLabel(x, me, own), capital?.x ?: 0, capital?.z ?: 0
+                x.president()?.let { Names.of(p.server, it) } ?: "", x.created, relationLabel(x, me, own), capital?.x ?: 0, capital?.z ?: 0,
+                trade = own?.let { Diplomacy.relation(it, x) } ?: "neutral",
+                alliance = own?.let { o -> when { Diplomacy.allied(o, x) -> "allied"; x.id in o.allianceOffers -> "offer_in"; o.id in x.allianceOffers -> "offer_out"; else -> "" } } ?: "",
+                tariff = own?.let { Diplomacy.policy(it, x).tariffPct } ?: 0, theirTariff = own?.let { Diplomacy.policy(x, it).tariffPct } ?: 0,
+                embargo = own?.let { Diplomacy.policy(it, x).embargo } ?: false
             )
         } else emptyList()
         val players = if (world) Realm.home.keys.map { id -> PlayerLine(id, Names.of(p.server, id), citizenships(id), online(p, id)) }.sortedBy { it.name } else emptyList()

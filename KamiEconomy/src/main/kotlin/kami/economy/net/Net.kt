@@ -10,6 +10,7 @@ import kami.economy.economy.Classification
 import kami.economy.economy.Ledger
 import kami.economy.economy.SellResult
 import kami.economy.economy.BuyResult
+import kami.economy.economy.OrderResult
 import kami.economy.client.ClientHooks
 import kami.libs.net.Packets
 import net.minecraft.network.FriendlyByteBuf
@@ -83,7 +84,7 @@ object Net {
     }
 
     private fun allPrices(): List<PriceEntry> {
-        val items = (kami.economy.Market.data.books.keys + Config.s.endlessByItem.keys).distinct()
+        val items = (kami.economy.Market.data.books.keys + kami.economy.economy.Stocks.items()).distinct()
         return items.mapNotNull { item ->
             val price = kami.economy.economy.Matching.effectiveSellPrice(item) ?: return@mapNotNull null
             PriceEntry(item, price)
@@ -140,7 +141,7 @@ object Net {
                 send(p)
             }
             "quote" -> {
-                Sync.quote(p, a.args.getOrNull(0) ?: "", a.args.getOrNull(1)?.toIntOrNull() ?: 0)
+                Sync.quote(p, a.args.getOrNull(0) ?: "", a.args.getOrNull(1)?.toIntOrNull() ?: 0, a.args.getOrNull(2) == "market")
                 send(p)
             }
             "auctions" -> {
@@ -163,17 +164,22 @@ object Net {
         }
     }
 
+    private fun outOfRange() = Phrase.of("kami_economy.action.out_of_range", Config.s.maxAmount, Phrase.money(Config.s.maxPrice.toLong())) to false
+
+    private fun notClean(step: Int) = Phrase.of("kami_economy.action.not_clean", step) to false
+
     private fun act(p: ServerPlayer, name: String, args: List<String>): Pair<Phrase, Boolean> {
         val me = p.stringUUID
         return when (name) {
-            "sell" -> {
+            "sell", "sell_market" -> {
+                val market = name == "sell_market"
                 val item = args.getOrNull(0) ?: return Phrase.of("kami_economy.action.invalid_item") to false
                 val qty = args.getOrNull(1)?.toIntOrNull() ?: return Phrase.of("kami_economy.action.invalid_quantity") to false
-                val price = args.getOrNull(2)?.toIntOrNull() ?: return Phrase.of("kami_economy.action.invalid_price") to false
+                val price = if (market) 1 else args.getOrNull(2)?.toIntOrNull() ?: return Phrase.of("kami_economy.action.invalid_price") to false
                 if (qty <= 0 || price <= 0) return Phrase.of("kami_economy.action.invalid_sell") to false
+                if (!Config.s.validAmount(qty) || !Config.s.validPrice(price)) return outOfRange()
                 val matching = p.inventory.items.filter { !it.isEmpty && Blacklist.itemId(it) == item && Blacklist.classify(it) == Classification.ALLOWED }
                 if (matching.sumOf { it.count } < qty) return Phrase.of("kami_economy.action.not_enough_items", qty) to false
-                val instant = Config.s.endlessByItem.containsKey(item) && Config.s.sellInfiniteEnabled
                 var remaining = qty
                 for (stack in matching) {
                     if (remaining <= 0) break
@@ -181,27 +187,67 @@ object Net {
                     stack.shrink(take)
                     remaining -= take
                 }
-                val result = Ledger.sell(me, item, qty, price)
-                if (result is SellResult.Ok) (if (instant) Phrase.of("kami_economy.action.sold", qty, item) else Phrase.of("kami_economy.action.listed", qty, item, Phrase.money(price.toLong()))) to true
-                else {
-                    val resolved = KamiEconomy.registry.findItem(item)
-                    if (resolved != null) {
-                        var left = qty
-                        while (left > 0) {
-                            val n = left.coerceAtMost(resolved.defaultMaxStackSize)
-                            val restore = net.minecraft.world.item.ItemStack(resolved, n)
-                            if (!p.inventory.add(restore)) p.drop(restore, false)
-                            left -= n
+                val result = if (market) Ledger.sellNow(me, item, qty) else Ledger.sell(me, item, qty, price)
+                fun restore(count: Int) {
+                    val resolved = KamiEconomy.registry.findItem(item) ?: return
+                    var left = count
+                    while (left > 0) {
+                        val n = left.coerceAtMost(resolved.defaultMaxStackSize)
+                        val restore = net.minecraft.world.item.ItemStack(resolved, n)
+                        if (!p.inventory.add(restore)) p.drop(restore, false)
+                        left -= n
+                    }
+                }
+                when (result) {
+                    is SellResult.Sold -> {
+                        restore(qty - result.filled)
+                        KamiEconomy.deliver(p)
+                        Phrase.of("kami_economy.action.sold", result.filled, item) to true
+                    }
+                    is SellResult.Ok -> {
+                        KamiEconomy.deliver(p)
+                        when {
+                            result.filled <= 0 -> Phrase.of("kami_economy.action.listed", qty, item, Phrase.money(price.toLong())) to true
+                            result.filled >= qty -> Phrase.of("kami_economy.action.sold", qty, item) to true
+                            else -> Phrase.of("kami_economy.action.listed_part", result.filled, item, qty - result.filled, Phrase.money(price.toLong())) to true
                         }
                     }
-                    Phrase.of("kami_economy.action.sell_failed") to false
+                    else -> {
+                        restore(qty)
+                        when (result) {
+                            is SellResult.NotClean -> notClean(result.step)
+                            SellResult.Full -> Phrase.of("kami_economy.market.stock.full") to false
+                            SellResult.NoBuyers -> Phrase.of("kami_economy.action.no_buyers") to false
+                            else -> Phrase.of("kami_economy.action.sell_failed") to false
+                        }
+                    }
                 }
+            }
+            "bid" -> {
+                val item = args.getOrNull(0) ?: return Phrase.of("kami_economy.action.invalid_item") to false
+                val qty = args.getOrNull(1)?.toIntOrNull() ?: return Phrase.of("kami_economy.action.invalid_quantity") to false
+                val price = args.getOrNull(2)?.toIntOrNull() ?: return Phrase.of("kami_economy.action.invalid_price") to false
+                if (item !in kami.economy.Market.data.books && kami.economy.economy.Stocks.good(item) == null) return Phrase.of("kami_economy.action.invalid_item") to false
+                when (val result = Ledger.bid(me, item, qty, price)) {
+                    is OrderResult.Ok -> Phrase.of("kami_economy.action.bid_order", qty, item, Phrase.money(price.toLong())) to true
+                    OrderResult.OutOfRange -> outOfRange()
+                    is OrderResult.NotClean -> notClean(result.step)
+                    OrderResult.InsufficientFunds -> Phrase.of("kami_economy.action.no_funds") to false
+                    OrderResult.Crosses -> Phrase.of("kami_economy.action.bid_crosses") to false
+                    OrderResult.Exists -> Phrase.of("kami_economy.action.bid_exists") to false
+                }
+            }
+            "cancel_bid" -> {
+                val item = args.getOrNull(0) ?: return Phrase.of("kami_economy.action.invalid_item") to false
+                val refund = Ledger.cancelBid(me, item) ?: return Phrase.of("kami_economy.action.no_bid") to false
+                Phrase.of("kami_economy.action.bid_cancelled", Phrase.money(refund)) to true
             }
             "auction_list" -> {
                 val stack = p.inventory.items.getOrNull(args.getOrNull(0)?.toIntOrNull() ?: -1) ?: return Phrase.of("kami_economy.action.invalid_item") to false
                 val startPrice = args.getOrNull(1)?.toIntOrNull() ?: return Phrase.of("kami_economy.action.invalid_price") to false
                 val buyNow = args.getOrNull(2)?.toIntOrNull()?.takeIf { it > 0 }
                 if (stack.isEmpty || startPrice <= 0) return Phrase.of("kami_economy.action.invalid_listing") to false
+                if (!Config.s.validPrice(startPrice) || (buyNow != null && !Config.s.validPrice(buyNow))) return outOfRange()
                 if (Blacklist.classify(stack) == Classification.BLOCKED) return Phrase.of("kami_economy.action.blocked") to false
                 val taken = stack.copy()
                 stack.shrink(stack.count)
@@ -216,6 +262,7 @@ object Net {
             "auction_bid" -> {
                 val id = args.getOrNull(0)?.toLongOrNull() ?: return Phrase.of("kami_economy.action.invalid_auction") to false
                 val amount = args.getOrNull(1)?.toIntOrNull() ?: return Phrase.of("kami_economy.action.invalid_bid") to false
+                if (amount > Config.s.maxPrice) return outOfRange()
                 when (Ledger.auctionBid(me, id, amount)) {
                     BidResult.Ok -> Phrase.of("kami_economy.action.bid_placed") to true
                     BidResult.TooLow -> Phrase.of("kami_economy.action.bid_low") to false
@@ -245,6 +292,8 @@ object Net {
                     }
                     BuyResult.InsufficientFunds -> Phrase.of("kami_economy.action.no_funds") to false
                     BuyResult.NothingAvailable -> Phrase.of("kami_economy.action.nothing_available") to false
+                    BuyResult.OutOfRange -> outOfRange()
+                    is BuyResult.NotClean -> notClean(result.step)
                 }
             }
             "cancel" -> {
@@ -256,6 +305,8 @@ object Net {
             "reprice" -> {
                 val item = args.getOrNull(0) ?: return Phrase.of("kami_economy.action.invalid_item") to false
                 val newPrice = args.getOrNull(1)?.toIntOrNull() ?: return Phrase.of("kami_economy.action.invalid_price") to false
+                if (!Config.s.validPrice(newPrice)) return outOfRange()
+                Ledger.repriceStep(me, item, newPrice)?.let { return notClean(it) }
                 if (Ledger.repriceAll(me, item, newPrice)) Phrase.of("kami_economy.action.repriced", Phrase.money(newPrice.toLong())) to true else Phrase.of("kami_economy.action.no_listing") to false
             }
             "claim" -> {

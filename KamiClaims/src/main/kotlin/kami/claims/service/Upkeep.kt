@@ -46,6 +46,7 @@ object Upkeep {
         c.requests.values.removeAll { it < t }
         c.provinceInvites.values.removeAll { it.until < t }
         c.provinceRequests.values.removeAll { it < t }
+        c.allianceOffers.values.removeAll { it < t }
         if (c.members.isEmpty()) return Realm.disband(c)
         succession(c)
         expire(c)

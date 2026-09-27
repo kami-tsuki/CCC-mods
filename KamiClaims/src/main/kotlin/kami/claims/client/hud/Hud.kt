@@ -3,7 +3,7 @@ package kami.claims.client.hud
 import kami.libs.ui.text.trJson
 import kami.libs.ui.text.tr
 import kami.claims.client.ClientClaims
-import kami.claims.client.app.Flags
+import kami.libs.ui.widget.Flags
 import kami.claims.client.app.Vocabulary
 import kami.claims.client.store.ClaimsStore
 import kami.claims.client.world.AccessGuess

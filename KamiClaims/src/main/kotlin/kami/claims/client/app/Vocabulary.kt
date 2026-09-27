@@ -92,7 +92,8 @@ object Vocabulary {
         cap("jobs", Icons.TOOL),
         cap("plot", Icons.HOUSE),
         cap("details", Icons.LEDGER),
-        cap("province", Icons.CHAIN)
+        cap("province", Icons.CHAIN),
+        cap("trade", Icons.SCALES)
     )
 
     private fun entry(id: String, icon: Icon) = id to Look("kami_claims.ledger.$id", 0, icon)
@@ -106,7 +107,8 @@ object Vocabulary {
         entry("job_pay", Icons.TOOL),
         entry("tribute_in", Icons.CHAIN),
         entry("tribute_out", Icons.CHAIN),
-        entry("adjust", Icons.EDIT)
+        entry("adjust", Icons.EDIT),
+        entry("tariff", Icons.SCALES)
     )
 
     fun ledger(kind: String) = ledger[kind] ?: Look("kami_claims.ledger.$kind", 0, Icons.GENERIC, kind)

@@ -12,6 +12,12 @@ import kami.libs.claims.Citizenship
 import kami.libs.claims.ClaimInfo
 import kami.libs.claims.ClaimsApi
 import kami.libs.claims.ClaimsProvider
+import kami.libs.claims.CountryInfo
+import kami.libs.claims.FlagInfo
+import kami.libs.claims.Relation
+import kami.libs.claims.TreasuryKind
+import kami.claims.service.Diplomacy
+import kami.claims.service.View
 import kami.libs.log.Log
 import net.minecraft.server.level.ServerPlayer
 import net.neoforged.api.distmarker.Dist
@@ -56,6 +62,26 @@ object KamiClaims {
 
                 override fun citizenship(player: UUID): Citizenship? = Realm.of(player.toString())?.let { c ->
                     Citizenship(c.id, c.name, c.color, Realm.country(c.parent)?.name, c.rank(player.toString())?.name ?: Rank.CITIZEN.name)
+                }
+
+                override fun country(id: String): CountryInfo? = Realm.country(id)?.let { CountryInfo(it.id, it.name, View.color(it), FlagInfo(it.flag.pattern, it.flag.emblem, it.flag.secondary)) }
+
+                override fun relation(a: String, b: String): Relation {
+                    val x = Realm.country(a) ?: return Relation.NEUTRAL
+                    val y = Realm.country(b) ?: return Relation.NEUTRAL
+                    return Relation.valueOf(Diplomacy.relation(x, y).uppercase())
+                }
+
+                override fun tariff(buyerCountry: String, sellerCountry: String): Int {
+                    val x = Realm.country(buyerCountry) ?: return 0
+                    val y = Realm.country(sellerCountry) ?: return 0
+                    return Diplomacy.tariff(x, y)
+                }
+
+                override fun credit(country: String, amount: Long, kind: TreasuryKind): Boolean {
+                    val c = Realm.country(country) ?: return false
+                    Diplomacy.credit(c, amount, LedgerKind.valueOf(kind.name))
+                    return true
                 }
             })
         }

@@ -6,7 +6,7 @@ import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ClaimsPage
 import kami.claims.client.app.Consequence
 import kami.claims.client.app.Dialogs
-import kami.claims.client.app.Flags
+import kami.libs.ui.widget.Flags
 import kami.claims.client.app.Illustrations
 import kami.claims.client.app.Vocabulary
 import kami.claims.client.map.MiniMap
@@ -34,10 +34,120 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
         Callout("relations:lists", tr("kami_claims.nav.relations"), tr("kami_claims.relations.help.lists.desc")),
         Callout("relations:add", tr("kami_claims.relations.help.add"), tr("kami_claims.relations.help.add.desc"))
     )
+    override val sections = listOf("world")
     private val name = TextState()
     private val table = TableState<Mem>()
+    private val countries = TableState<Line>()
+    private val tariff = NumberState(0)
+    private var tariffFor = ""
+    private var tab = 0
+
+    override fun opened(route: Route) {
+        route.focus?.takeIf { it.startsWith("country:") }?.let { countries.selected.clear(); countries.selected += it.substringAfter(":"); tab = 1 }
+    }
 
     override fun draw(ui: Ui, r: Rect) {
+        val info = info ?: return
+        val rows = snap.countries.filter { it.name != info.name }
+        val offers = rows.count { it.alliance == "offer_in" }
+        val tabs = r.top(CONTROL_H)
+        ui.subTabs(tabs, listOf(
+            TabItem(tr("kami_claims.world.players"), Icons.PEOPLE, info.relations.size, Severity.NEUTRAL),
+            TabItem(tr("kami_claims.help.countries"), Icons.FLAG, rows.size, if (offers > 0) Severity.WARNING else Severity.NEUTRAL)
+        ), tab, "rel-tabs")?.let { tab = it }
+        val body = r.dropTop(CONTROL_H + 6)
+        if (tab == 0) players(ui, body) else trade(ui, body, rows)
+    }
+
+    private fun trade(ui: Ui, r: Rect, rows: List<Line>) {
+        val detailW = if (app.compact) 0 else (r.w * 0.45).toInt().coerceIn(170, 240)
+        ui.table(r.dropRight(detailW, if (detailW > 0) 8 else 0), listOf(
+            Column<Line>(tr("kami_claims.world.col.country"), -1, sort = compareBy { it.name.lowercase() }) { _, c, l ->
+                Flags.draw(g, Rect(c.x, c.y + 2, 14, 10), l.color, l.flag.pattern, l.flag.emblem, l.flag.secondary)
+                Draw.text(g, Draw.fit(l.name, c.w - 18), c.x + 18, c.y + 3, Palette.text)
+            },
+            Column.text<Line>(tr("kami_claims.trade.col.status"), 80, color = { tradeColor(it) }) { tradeLabel(it) },
+            Column.text<Line>(tr("kami_claims.trade.tariff"), 50) { if (it.tariff > 0) "${it.tariff}%" else "-" }
+        ), rows, countries, { it.name }, emptyText = tr("kami_claims.world.empty.countries"))
+        if (detailW > 0) (rows.firstOrNull { it.name in countries.selected } ?: rows.firstOrNull())?.let { tradeDetail(ui, r.right(detailW), it) }
+    }
+
+    private fun tradeLabel(l: Line) = tr(when {
+        l.trade == "family" -> "kami_claims.relation.3"
+        l.trade == "embargo" -> "kami_claims.trade.embargo"
+        l.alliance == "allied" -> "kami_claims.relation.2"
+        l.alliance == "offer_in" -> "kami_claims.trade.offer_in"
+        l.alliance == "offer_out" -> "kami_claims.trade.offer_out"
+        else -> "kami_claims.relation.0"
+    })
+
+    private fun tradeColor(l: Line) = when {
+        l.trade == "family" -> Palette.geoProvince
+        l.trade == "embargo" -> Palette.danger
+        l.alliance == "allied" -> Palette.geoAlly
+        l.alliance == "offer_in" -> Palette.warning
+        else -> Palette.textMuted
+    }
+
+    private fun tradeDetail(ui: Ui, r: Rect, l: Line) {
+        if (tariffFor != l.name) { tariffFor = l.name; tariff.commit(l.tariff.toLong()) }
+        Draw.sprite(ui.g, Sprites.PANEL, r)
+        val f = Flow(r.inset(8), 4)
+        val head = f.take(30)
+        Flags.draw(ui.g, Rect(head.x, head.y + 2, 36, 26), l.color, l.flag.pattern, l.flag.emblem, l.flag.secondary)
+        Draw.text(ui.g, Draw.fit(l.name, head.w - 44), head.x + 44, head.y + 4, TextStyle.HEADING)
+        Draw.text(ui.g, tradeLabel(l), head.x + 44, head.y + 16, tradeColor(l))
+        ui.property(f.take(11), tr("kami_claims.trade.rate"), tr(if (l.trade == "family" || l.alliance == "allied") "kami_claims.trade.rate.ally" else "kami_claims.trade.rate.normal"))
+        ui.property(f.take(11), tr("kami_claims.trade.their_tariff"), if (l.theirTariff > 0) "${l.theirTariff}%" else "-")
+        val reason = lock("trade") ?: if (l.trade == "family") tr("kami_claims.trade.family") else null
+        ui.section(f.take(14), tr("kami_claims.trade.alliance"))
+        val row = Row(f.take(CONTROL_H), 4)
+        when (l.alliance) {
+            "allied" -> if (ui.button(row.rest, tr("kami_claims.trade.alliance.end"), Icons.REMOVE, ButtonStyle.DANGER, reason == null, reason, key = "alliance-end")) {
+                Dialogs.confirm(app, tr("kami_claims.trade.alliance.end.title", l.name), null, Icons.REMOVE, listOf(
+                    Consequence(tr("kami_claims.trade.alliance.end.rank", l.name), Severity.WARNING),
+                    Consequence(tr("kami_claims.trade.alliance.end.rate"))
+                ), tr("kami_claims.trade.alliance.end"), "alliance", arrayOf("end", l.name), danger = true)
+            }
+            "offer_in" -> {
+                val half = row.rest.w / 2 - 2
+                if (ui.button(row.take(half), tr("kami_claims.trade.alliance.accept"), Icons.HANDSHAKE, ButtonStyle.PRIMARY, reason == null, reason, pending = pending("alliance"), key = "alliance-accept")) act("alliance", "accept", l.name, key = "alliance")
+                if (ui.button(row.rest, tr("kami_claims.trade.alliance.decline"), Icons.REMOVE, enabled = reason == null, disabledReason = reason, key = "alliance-decline")) act("alliance", "decline", l.name, key = "alliance")
+            }
+            else -> {
+                val why = reason ?: when {
+                    l.alliance == "offer_out" -> tr("kami_claims.trade.offer_out")
+                    l.trade == "embargo" -> tr("kami_claims.trade.alliance.embargo")
+                    else -> null
+                }
+                if (ui.button(row.rest, tr("kami_claims.trade.alliance.propose"), Icons.HANDSHAKE, ButtonStyle.PRIMARY, why == null, why, pending = pending("alliance"), key = "alliance-propose")) {
+                    Dialogs.confirm(app, tr("kami_claims.trade.alliance.propose.title", l.name), null, Icons.HANDSHAKE, listOf(
+                        Consequence(tr("kami_claims.trade.alliance.propose.rank", l.name)),
+                        Consequence(tr("kami_claims.trade.alliance.propose.rate"))
+                    ), tr("kami_claims.trade.alliance.propose"), "alliance", arrayOf("propose", l.name))
+                }
+            }
+        }
+        ui.section(f.take(14), tr("kami_claims.trade.tariff"))
+        val trow = Row(f.take(CONTROL_H), 4)
+        val apply = tr("kami_claims.trade.tariff.apply")
+        ui.numberField(trow.take(trow.rest.w - buttonWidth(apply, Icons.SCALES) - 4), tariff, 0, 50, 5, "%", enabled = reason == null, key = "tariff")
+        val same = tariff.value.toInt() == l.tariff
+        if (ui.button(trow.rest, apply, Icons.SCALES, enabled = reason == null && !same, disabledReason = reason ?: tr("kami_claims.trade.tariff.same"), pending = pending("tariff"), key = "tariff-apply")) act("tariff", l.name, tariff.value.toString())
+        f.take(11).let { Draw.text(ui.g, Draw.fit(tr("kami_claims.trade.tariff.hint"), it.w), it.x, it.y, Palette.textMuted) }
+        ui.section(f.take(14), tr("kami_claims.trade.embargo"))
+        val erow = f.take(CONTROL_H)
+        val allied = l.alliance == "allied"
+        ui.toggle(erow, l.embargo, tr("kami_claims.trade.embargo.toggle"), reason == null && !(allied && !l.embargo), reason ?: tr("kami_claims.trade.embargo.ally"), tr("kami_claims.trade.embargo.tooltip"), key = "embargo")?.let { on ->
+            if (on) Dialogs.confirm(app, tr("kami_claims.trade.embargo.title", l.name), null, Icons.BAN, listOf(
+                Consequence(tr("kami_claims.trade.embargo.market", l.name), Severity.WARNING),
+                Consequence(tr("kami_claims.trade.embargo.vendors", l.name), Severity.WARNING)
+            ), tr("kami_claims.trade.embargo.toggle"), "embargo", arrayOf(l.name, "on"), danger = true)
+            else act("embargo", l.name, "off")
+        }
+    }
+
+    private fun players(ui: Ui, r: Rect) {
         val info = info ?: return
         val staff = lock("members")
         val add = r.top(CONTROL_H)

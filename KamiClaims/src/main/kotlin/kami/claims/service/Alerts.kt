@@ -97,6 +97,10 @@ object Alerts {
             if (requests > 0) out += alert("requests", "INFO", t("kami_claims.alert.requests.title", requests.toString()), t("kami_claims.alert.requests.body"),
                 t("kami_claims.alert.review"), page = "citizens", focus = "requests")
         }
+        if (!delegated && can(Cap.TRADE)) c.allianceOffers.filterValues { it > now() }.keys.mapNotNull { Realm.country(it) }.forEach { from ->
+            out += alert("alliance:${from.id}", "INFO", t("kami_claims.alert.alliance.title", from.name), t("kami_claims.alert.alliance.body"),
+                t("kami_claims.alert.review"), page = "relations", focus = "country:${from.name}")
+        }
         if (!delegated && can(Cap.PROVINCE)) {
             c.provinceInvites.filterValues { it.until > now() }.forEach { (pid, offer) ->
                 val parent = Realm.country(pid) ?: return@forEach

@@ -44,11 +44,10 @@ class MatchingTest {
     }
 
     @Test
-    fun cancelOnlyRemovesOwnedNonSyntheticOrder() {
+    fun cancelOnlyRemovesOwnedOrder() {
         reset()
         Matching.insertSell("test:item", Order(1, "a", 5, 4))
-        Matching.insertSell("test:item", Order(2, "b", 5, 4, synthetic = true))
-        assertNull(Matching.cancelOrder("test:item", 2, "b"))
+        Matching.insertSell("test:item", Order(2, "b", 5, 4))
         assertNull(Matching.cancelOrder("test:item", 1, "someoneelse"))
         val cancelled = Matching.cancelOrder("test:item", 1, "a")
         assertEquals(1L, cancelled?.id)
@@ -67,15 +66,4 @@ class MatchingTest {
         assertEquals(0, Matching.maxAffordable("test:item", 0))
     }
 
-    @Test
-    fun infiniteOnlyWhenNoRealSupply() {
-        reset()
-        Matching.insertSell("test:item", Order(1, "", 6, Int.MAX_VALUE, synthetic = true))
-        assertTrue(Matching.isInfinite("test:item"))
-        assertEquals(0, Matching.available("test:item"))
-
-        Matching.insertSell("test:item", Order(2, "a", 5, 10))
-        assertFalse(Matching.isInfinite("test:item"))
-        assertEquals(10, Matching.available("test:item"))
-    }
 }

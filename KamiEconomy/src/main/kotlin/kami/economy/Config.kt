@@ -3,12 +3,15 @@ package kami.economy
 import kami.libs.config.KamiConfig
 import kami.libs.config.Section
 import kotlinx.serialization.Serializable
+import kotlin.math.roundToInt
 
 @Serializable
 data class CategoryBounds(val floor: Int? = null, val ceiling: Int? = null, val maxMovePct: Double? = null)
 
 @Serializable
-data class EndlessItem(val item: String, val floorPrice: Int, val synthPremiumFactor: Double = 1.25)
+data class StarterGood(val item: String, val base: Int, val lot: Int = 64, val target: Int = 64, val depth: Int = 32, val dailyCap: Int? = null)
+
+private fun starters(base: Int, vararg items: String) = items.map { StarterGood(it, base) }
 
 @Serializable
 data class Settings(
@@ -20,17 +23,22 @@ data class Settings(
     val categoryBounds: Map<String, CategoryBounds> = emptyMap(),
 
     val sellTaxPct: Double = 0.10,
+    val allyTaxRate: Double = 0.08,
+    val maxPrice: Int = 1_000_000,
+    val maxAmount: Int = 10_000,
+    val lots: Map<String, Int> = emptyMap(),
     val auctionFeePct: Double = 0.05,
     val auctionDurationMillis: Long = 3 * 24 * 60 * 60 * 1000L,
     val auctionCheckIntervalTicks: Int = 20 * 60,
 
-    val endlessSupply: List<EndlessItem> = listOf(
-        EndlessItem("minecraft:oak_log", 6),
-        EndlessItem("minecraft:wheat", 2),
-        EndlessItem("minecraft:cobblestone", 1)
-    ),
-    val buyInfiniteEnabled: Boolean = false,
-    val sellInfiniteEnabled: Boolean = true,
+    val starterGoods: List<StarterGood> = starters(20, "#minecraft:logs", "minecraft:baked_potato", "minecraft:apple") +
+        starters(10, "minecraft:carrot", "minecraft:potato", "minecraft:beetroot", "minecraft:pumpkin", "minecraft:sugar_cane", "minecraft:cocoa_beans") +
+        starters(15, "minecraft:bread") +
+        starters(5, "minecraft:wheat", "minecraft:melon_slice", "minecraft:sweet_berries"),
+    val dailySellLots: Int = 3,
+    val resetHour: Int = 6,
+    val recoveryPct: Int = 5,
+    val band: List<Double> = listOf(0.5, 2.0),
 
     val creativeItemIds: List<String> = listOf(
         "minecraft:barrier", "minecraft:command_block", "minecraft:chain_command_block", "minecraft:repeating_command_block",
@@ -48,17 +56,34 @@ data class Settings(
 
     val allowCreativeVendors: Boolean = false
 ) {
-    val endlessByItem: Map<String, EndlessItem> by lazy { endlessSupply.associateBy { it.item } }
     val storageItemSet: Set<String> by lazy { storageItemIds.toHashSet() }
     val creativeItemSet: Set<String> by lazy { creativeItemIds.toHashSet() }
+
+    val taxPct: Int get() = (sellTaxPct * 100).roundToInt()
+    val allyTaxPct: Int get() = (allyTaxRate * 100).roundToInt()
+
+    val bandLow: Double get() = band.getOrNull(0)?.takeIf { it in 0.01..1.0 } ?: 0.5
+    val bandHigh: Double get() = band.getOrNull(1)?.takeIf { it in 1.0..100.0 } ?: 2.0
+
+    fun lotOf(item: String): Int = (lots[item] ?: kami.economy.economy.Stocks.good(item)?.lot)?.takeIf { it in 1..maxAmount } ?: 1
+
+    fun validPrice(price: Int) = price in 1..maxPrice
+    fun validAmount(amount: Int) = amount in 1..maxAmount
 }
 
 private fun Settings.sane(): Settings = copy(
     marketTickInterval = marketTickInterval.coerceAtLeast(20),
     sellTaxPct = sellTaxPct.coerceIn(0.0, 0.9),
+    allyTaxRate = allyTaxRate.coerceIn(0.0, 0.9),
     auctionFeePct = auctionFeePct.coerceIn(0.0, 0.9),
     maxPriceMovePct = maxPriceMovePct.coerceIn(0.001, 1.0),
-    pageSize = pageSize.coerceIn(5, 100)
+    pageSize = pageSize.coerceIn(5, 100),
+    maxPrice = maxPrice.coerceIn(1, 100_000_000),
+    maxAmount = maxAmount.coerceIn(1, 1_000_000),
+    dailySellLots = dailySellLots.coerceAtLeast(0),
+    resetHour = resetHour.coerceIn(0, 23),
+    recoveryPct = recoveryPct.coerceIn(0, 100),
+    starterGoods = starterGoods.filter { it.base > 0 && it.lot > 0 && it.target >= 0 && it.depth > 0 }
 )
 
 object Config {
@@ -72,7 +97,11 @@ object Config {
                 "defaultFloor" to "Lowest price of any item.",
                 "defaultCeiling" to "Highest price of any item, or null for no limit.",
                 "categoryBounds" to "Own floor, ceiling and maxMovePct per item id. Leave a value null to use the default.",
-                "sellTaxPct" to "Tax taken from every market sale, 0 to 0.9."
+                "sellTaxPct" to "Tax taken from every market sale, 0 to 0.9.",
+                "allyTaxRate" to "Tax on player trades between allied countries or one country family, 0 to 0.9.",
+                "maxPrice" to "Highest price per lot a player may ask or bid.",
+                "maxAmount" to "Most items one player may buy or sell in one trade.",
+                "lots" to "Items per lot by item id, default 1. Prices are per lot and trades move whole lots."
             )
         ),
         Section(
@@ -84,12 +113,13 @@ object Config {
             )
         ),
         Section(
-            "starter-items.json", "Basic items the server always buys, so new players can earn their first coins.",
+            "starter-items.json", "Basic goods the market buys and sells from its own stock, so new players can earn their first coins.",
             mapOf(
-                "endlessSupply" to "Items with endless demand. floorPrice is the least the server pays.",
-                "endlessSupply.synthPremiumFactor" to "Markup when the server also sells this item, based on the market price.",
-                "buyInfiniteEnabled" to "The server also sells these items without limit.",
-                "sellInfiniteEnabled" to "Players can always sell these items to the server."
+                "starterGoods" to "Item id or #tag, base price per lot, lot size, target stock and depth in lots, optional own daily cap.",
+                "dailySellLots" to "Lots per player and day the market buys at the full base price.",
+                "resetHour" to "Server hour, 0 to 23, when the daily cap resets.",
+                "recoveryPct" to "Share of the gap to the target stock that closes each day, 0 to 100.",
+                "band" to "Lowest and highest price as a factor of the base price."
             )
         ),
         Section(

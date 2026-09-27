@@ -32,18 +32,6 @@ object Pricing {
         if (book.midPrice < floor) book.midPrice = floor.toDouble()
         if (ceiling != null && book.midPrice > ceiling) book.midPrice = ceiling.toDouble()
 
-        val endless = Config.s.endlessByItem[book.item]
-        if (endless != null) {
-            val synth = book.sells.firstOrNull { it.synthetic }
-            if (synth != null) {
-                var price = if (book.midPrice > 0.0) book.midPrice * endless.synthPremiumFactor else endless.floorPrice.toDouble()
-                if (price < endless.floorPrice) price = endless.floorPrice.toDouble()
-                if (ceiling != null && price > ceiling) price = ceiling.toDouble()
-                synth.price = price.toInt().coerceAtLeast(1)
-                synth.amount = Int.MAX_VALUE
-            }
-        }
-
         if (fills.isNotEmpty()) {
             val close = book.midPrice
             val high = max(fills.maxOf { it.price }.toDouble(), max(open, close))

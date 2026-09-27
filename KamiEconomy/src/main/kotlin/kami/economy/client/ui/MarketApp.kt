@@ -143,7 +143,6 @@ private class BrowsePage(val app: MarketApp) : Page() {
     }
 
     private fun stock(row: Row) = when {
-        row.infinite -> "∞"
         row.available < 1000 -> row.available.toString()
         else -> "${row.available / 1000}k"
     }

@@ -201,8 +201,15 @@ fun Ui.numberField(
     val inc = Rect(r.right - buttons, by, buttons, buttons)
     val field = if (compact) r else Rect(r.x + buttons + gap, r.y, fieldW, r.h)
     var result: Long? = null
+    fun snap(v: Long): Long {
+        if (step <= 1) return v.coerceIn(min, max)
+        val lo = -Math.floorDiv(-min, step) * step
+        val hi = Math.floorDiv(max, step) * step
+        if (hi < lo) return v.coerceIn(min, max)
+        return (Math.floorDiv(v + step / 2, step) * step).coerceIn(lo, hi)
+    }
     fun apply(v: Long) {
-        val clamped = v.coerceIn(min, max)
+        val clamped = snap(v)
         state.commit(clamped)
         state.text.error = null
         result = clamped
@@ -227,7 +234,7 @@ fun Ui.numberField(
         parsed > max -> tr("kami_libs.field.number.error.max", Format.number(max))
         else -> null
     }
-    if ((res.submitted || res.blurred) && parsed != null && state.text.error == null && parsed != state.value) apply(parsed)
+    if ((res.submitted || res.blurred) && parsed != null && state.text.error == null && (parsed != state.value || snap(parsed) != parsed)) apply(parsed)
     tooltip("$key:tip", r) { if (enabled) Tip(null, listOf(tr("kami_libs.field.number.tooltip") to Palette.textMuted)) else null }
     return result
 }

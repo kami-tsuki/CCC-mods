@@ -6,9 +6,12 @@ import kami.economy.economy.Auctions
 import kami.economy.economy.History
 import kami.economy.economy.Matching
 import kami.economy.economy.Pricing
+import kami.economy.economy.Stocks
 import kami.economy.economy.StackCodec
 import kami.economy.net.Net
 import kami.economy.world.Vendors
+import kami.economy.world.VendorRegistry
+import net.neoforged.neoforge.event.level.BlockEvent
 import kami.libs.economy.MarketApi
 import kami.libs.economy.MarketProvider
 import kami.libs.log.Log
@@ -50,17 +53,21 @@ object KamiEconomy {
         FORGE_BUS.addListener<ServerTickEvent.Post> {
             val server = it.server
             val t = server.tickCount
+            VendorRegistry.drain()
             if (t % Config.s.marketTickInterval == 0) {
+                Stocks.rollover()
                 Pricing.tick()
                 Net.pushPrices(server)
                 Net.broadcastOpen(server)
             }
             if (t % Config.s.auctionCheckIntervalTicks == 0) Auctions.sweep()
-            if (t % 6000 == 0) { Market.save(); History.save() }
+            if (t % 6000 == 0) { VendorRegistry.recheck(server); Market.save(); History.save() }
         }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { (it.entity as? ServerPlayer)?.let { p -> deliver(p); Net.sendFullPrices(p) } }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { (it.entity as? ServerPlayer)?.let { p -> Net.forget(p) } }
-        FORGE_BUS.addListener<PlayerInteractEvent.RightClickBlock> { Vendors.onUse(it) }
+        FORGE_BUS.addListener<PlayerInteractEvent.RightClickBlock> { Vendors.onUse(it); if (!it.isCanceled) VendorRegistry.touch(it.level, it.pos) }
+        FORGE_BUS.addListener<BlockEvent.EntityPlaceEvent> { VendorRegistry.touch(it.level, it.pos) }
+        FORGE_BUS.addListener<BlockEvent.BreakEvent> { VendorRegistry.touch(it.level, it.pos) }
     }
 
     fun deliver(p: ServerPlayer) {

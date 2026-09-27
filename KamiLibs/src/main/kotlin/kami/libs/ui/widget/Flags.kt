@@ -1,4 +1,4 @@
-package kami.claims.client.app
+package kami.libs.ui.widget
 
 import kami.libs.ui.core.Rect
 import kami.libs.ui.style.Draw

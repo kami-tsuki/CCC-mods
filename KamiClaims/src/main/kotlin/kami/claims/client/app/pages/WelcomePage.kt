@@ -7,7 +7,7 @@ import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ClaimsPage
 import kami.claims.client.app.Consequence
 import kami.claims.client.app.Dialogs
-import kami.claims.client.app.Flags
+import kami.libs.ui.widget.Flags
 import kami.claims.client.app.Illustrations
 import kami.claims.client.app.consequences
 import kami.claims.client.map.MiniMap

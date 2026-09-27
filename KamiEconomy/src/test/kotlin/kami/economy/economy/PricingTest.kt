@@ -2,7 +2,6 @@ package kami.economy.economy
 
 import kami.economy.Book
 import kami.economy.Config
-import kami.economy.EndlessItem
 import kami.economy.Fill
 import kami.economy.Market
 import kami.economy.Settings
@@ -38,17 +37,6 @@ class PricingTest {
         assertEquals(42.0, book.midPrice, 0.001)
     }
 
-    @Test
-    fun synthPriceStaysAboveRealMidPrice() {
-        reset()
-        Config.s = Settings(endlessSupply = listOf(EndlessItem("test:wood", 6, 1.25)))
-        val book = Market.book("test:wood")
-        book.sells += kami.economy.Order(1, "", 6, Int.MAX_VALUE, synthetic = true)
-        book.midPrice = 20.0
-        Pricing.tick()
-        val synth = book.sells.first { it.synthetic }
-        assertEquals(25, synth.price)
-    }
 
     @Test
     fun noCandleRecordedWhenNothingTradedThisTick() {
@@ -73,14 +61,4 @@ class PricingTest {
         assertFalse(book.recentFills.isNotEmpty())
     }
 
-    @Test
-    fun synthPriceNeverBelowFloor() {
-        reset()
-        Config.s = Settings(endlessSupply = listOf(EndlessItem("test:wood", 6, 1.25)))
-        val book = Market.book("test:wood")
-        book.sells += kami.economy.Order(1, "", 6, Int.MAX_VALUE, synthetic = true)
-        Pricing.tick()
-        val synth = book.sells.first { it.synthetic }
-        assertTrue(synth.price >= 6)
-    }
 }

@@ -103,8 +103,7 @@ class ProvinceTest {
         Provinces.finalize(child, parent, TaxMode.FLAT, 5.0)
         child.parent = null
         parent.provinces.remove(child.id)
-        Realm.syncFamily(child.id)
-        Realm.syncFamily(parent.id)
+        Realm.syncAllies()
         assertNull(parent.outsiders["childland_p"])
         assertNull(child.outsiders["parentland_p"])
         assertTrue(parent.autoAllies.isEmpty())

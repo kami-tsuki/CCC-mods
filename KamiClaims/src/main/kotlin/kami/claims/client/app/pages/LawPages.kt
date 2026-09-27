@@ -2,7 +2,7 @@ package kami.claims.client.app.pages
 
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ClaimsPage
-import kami.claims.client.app.Flags
+import kami.libs.ui.widget.Flags
 import kami.claims.client.app.Vocabulary
 import kami.claims.client.map.MiniMap
 import kami.claims.net.TypeLine

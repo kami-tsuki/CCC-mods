@@ -1,5 +1,6 @@
 package kami.claims.client.app
 
+import kami.libs.ui.widget.Flags
 import kami.libs.ui.text.trJson
 import kami.libs.ui.text.trn
 import kami.libs.ui.text.tr
@@ -144,7 +145,11 @@ class ClaimsApp : KamiApp() {
             lastRoute = route.page
             (page(route.page) as? ClaimsPage)?.let { ClaimsStore.watch(it.sections) }
         }
-        if (tour == null && !ClientClaims.prefs.tourDone && ClaimsStore.info != null) startTour()
+        if (tour == null && !ClientClaims.prefs.tourDone && ClaimsStore.info != null) {
+            ClientClaims.prefs.tourDone = true
+            ClientClaims.savePrefs()
+            startTour()
+        }
     }
 
     fun startTour() {

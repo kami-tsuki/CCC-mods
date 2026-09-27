@@ -95,7 +95,7 @@ object Provinces {
         child.provinceInvites.clear()
         child.provinceRequests.clear()
         parent.provinces += child.id
-        Realm.syncFamily(parent.id)
+        Realm.syncAllies()
         Mail.broadcast(child, Phrase.of("kami_claims.mail.province_joined", v(child.name), v(parent.name), Words.tribute(mode, amount)))
         Mail.broadcast(parent, Phrase.of("kami_claims.mail.province_added", v(child.name)))
     }
@@ -106,8 +106,7 @@ object Provinces {
         child.provinceDebt = 0
         child.independenceRequested = false
         parent.provinces.remove(child.id)
-        Realm.syncFamily(child.id)
-        Realm.syncFamily(parent.id)
+        Realm.syncAllies()
         Mail.broadcast(child, Phrase.of("kami_claims.mail.independent", v(child.name)), Tone.OK)
         Mail.broadcast(parent, Phrase.of("kami_claims.mail.province_released", v(child.name)))
     }
@@ -159,8 +158,7 @@ object Provinces {
         child.parent = newParent.id
         child.independenceRequested = false
         newParent.provinces += child.id
-        Realm.syncFamily(parent.id)
-        Realm.syncFamily(newParent.id)
+        Realm.syncAllies()
         Mail.broadcast(child, Phrase.of("kami_claims.mail.province_given", v(child.name), v(newParent.name)))
         Mail.broadcast(newParent, Phrase.of("kami_claims.mail.province_received", v(child.name)))
     }

@@ -164,6 +164,9 @@ object Service {
             "province_invite", "province_request", "province_approve", "province_deny", "province_release", "province_forgive",
             "province_independence", "province_withdraw", "province_decline", "province_tax" -> province(p, name, a)
             "province_give" -> provinceGive(p, arg(a, 0), arg(a, 1), confirmed(a))
+            "alliance" -> alliance(p, arg(a, 0), country(arg(a, 1)))
+            "tariff" -> Diplomacy.setTariff(need(p, Cap.TRADE), country(arg(a, 0)), num(a, 1))
+            "embargo" -> Diplomacy.setEmbargo(need(p, Cap.TRADE), country(arg(a, 0)), arg(a, 1) == "on")
             else -> throw Fail("kami_claims.error.unknown_action")
         }
         Realm.changed()
@@ -492,6 +495,17 @@ object Service {
     }
 
     private fun country(name: String) = Realm.country(name) ?: throw Fail("kami_claims.error.unknown_country")
+
+    private fun alliance(p: ServerPlayer, step: String, other: Country): Phrase {
+        val c = need(p, Cap.TRADE)
+        return when (step) {
+            "propose" -> Diplomacy.propose(c, other)
+            "accept" -> Diplomacy.accept(c, other)
+            "decline" -> Diplomacy.decline(c, other)
+            "end" -> Diplomacy.end(c, other)
+            else -> throw Fail("kami_claims.error.choice", v("propose, accept, decline, end"))
+        }
+    }
 
     private fun provinceAccept(p: ServerPlayer, name: String, confirmed: Boolean): Phrase {
         val child = need(p, Cap.PROVINCE)

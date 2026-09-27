@@ -29,7 +29,9 @@ object Vendors {
             deny(e, Phrase.of("kami_economy.vendor.market_only"))
             return
         }
-        if (ClaimsApi.isBanished(e.entity.uuid, info.country)) deny(e, Phrase.of("kami_economy.vendor.banished", Phrase.value(info.country)))
+        if (ClaimsApi.isBanished(e.entity.uuid, info.country)) return deny(e, Phrase.of("kami_economy.vendor.banished", Phrase.value(info.country)))
+        val home = ClaimsApi.countryOf(e.entity.uuid) ?: return
+        if (!ClaimsApi.canTrade(home, info.country)) deny(e, Phrase.of("kami_economy.vendor.embargo", Phrase.value(ClaimsApi.country(info.country)?.name ?: info.country)))
     }
 
     private fun deny(e: PlayerInteractEvent.RightClickBlock, msg: Phrase) {
