@@ -25,13 +25,16 @@ object Upkeep {
             c.lastActive = t
             c.members[p.stringUUID]?.seen = t
         }
-        val today = today()
+        catchUp(today())
+    }
+
+    internal fun catchUp(today: Long) {
         if (Realm.data.day < 0) Realm.data.day = today
         var d = Realm.data.day
         var n = 0
         while (d < today && n++ < s.maxCatchUp) process(++d)
-        if (Realm.data.day != today) Realm.dirty = true
-        Realm.data.day = today
+        if (d != Realm.data.day) Realm.dirty = true
+        Realm.data.day = d
     }
 
     fun process(day: Long) {

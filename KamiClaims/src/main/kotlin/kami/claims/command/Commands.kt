@@ -88,49 +88,47 @@ private fun Ctx.map(p: ServerPlayer) {
     if (legend.isNotEmpty()) row { legend.forEachIndexed { i, id -> if (i > 0) muted("  "); text("■ ", color(Realm.country(id))); text(Realm.country(id)?.name ?: id) } }
 }
 
-private fun Node.countryCmd(): Node {
-    val countries = { Realm.data.countries.values.map { it.id } }
-    val types = { s.types.keys }
-    val jobs = { s.jobs.keys }
+private fun Node.countryCore(countries: () -> Collection<String>): Node =
+    does { ctx ->
+        val p = ctx.me()
+        if (!Net.canOpen(p)) ctx.status(Service.home(p)) else Net.send(p, open = true)
+    }
+    .then(lit("gui").does { ctx ->
+        val p = ctx.me()
+        if (!Net.canOpen(p)) fail(Phrase.of("kami_claims.error.no_client"))
+        Sync.focus(p, Service.here(p).x, Service.here(p).z)
+        Net.send(p, open = true)
+    })
+    .then(lit("create").requires { Perms.has(it, Perms.FOUND) }.then(arg("name", StringArgumentType.word()).does { it.run("create", it.text("name")) }))
+    .then(lit("disband").does { it.run("disband") }.then(lit("confirm").does { it.run("disband", "confirm") }))
+    .then(lit("info").does { ctx -> ctx.status(Service.home(ctx.me())) }
+        .then(word("country", countries).does { ctx ->
+            ctx.status(Realm.country(ctx.text("country")) ?: fail(Phrase.of("kami_claims.error.unknown_country_named", Phrase.value(ctx.text("country")))))
+        }))
+    .then(lit("list").does { ctx ->
+        val all = Realm.data.countries.values.sortedByDescending { Realm.claims(it.id).size }
+        if (all.isEmpty()) return@does ctx.info(Phrase.of("kami_claims.list.empty", Phrase.value("/claims create <name>")))
+        ctx.info(count("kami_claims.unit.country", all.size))
+        all.forEach { c ->
+            ctx.row {
+                run(Component.literal(c.name), "/claims info ${c.id}", Phrase.of("kami_claims.chat.info.tooltip", c.name).component())
+                muted("  ")
+                add(Phrase.of("kami_claims.list.row", count("kami_claims.unit.member", c.members.size), chunks(Realm.claims(c.id).size)), Theme.MUTED)
+            }
+        }
+    })
+    .then(lit("map").does { ctx -> ctx.map(ctx.me()) })
+    .then(lit("border").does { ctx ->
+        if (Effects.toggleBorders(ctx.me())) ctx.ok(Phrase.of("kami_claims.border.on")) else ctx.info(Phrase.of("kami_claims.border.off"))
+        if (Net.canOpen(ctx.me())) ctx.info(Phrase.of("kami_claims.border.tip", Phrase.value("B")))
+    })
+
+private fun Node.countryMembership(countries: () -> Collection<String>): Node {
     fun simple(name: String, action: String = name) = lit(name).does { it.run(action) }
     fun target(name: String, action: String = name) = lit(name).then(player().does { it.run(action, it.who()) })
     fun byCountry(name: String, action: String = name) = lit(name).then(word("country", countries).does { it.run(action, it.text("country")) })
 
-    return requires { Perms.has(it, Perms.USE) }
-        .does { ctx ->
-            val p = ctx.me()
-            if (!Net.canOpen(p)) ctx.status(Service.home(p)) else Net.send(p, open = true)
-        }
-        .then(lit("gui").does { ctx ->
-            val p = ctx.me()
-            if (!Net.canOpen(p)) fail(Phrase.of("kami_claims.error.no_client"))
-            Sync.focus(p, Service.here(p).x, Service.here(p).z)
-            Net.send(p, open = true)
-        })
-        .then(lit("create").requires { Perms.has(it, Perms.FOUND) }.then(arg("name", StringArgumentType.word()).does { it.run("create", it.text("name")) }))
-        .then(lit("disband").does { it.run("disband") }.then(lit("confirm").does { it.run("disband", "confirm") }))
-        .then(lit("info").does { ctx -> ctx.status(Service.home(ctx.me())) }
-            .then(word("country", countries).does { ctx ->
-                ctx.status(Realm.country(ctx.text("country")) ?: fail(Phrase.of("kami_claims.error.unknown_country_named", Phrase.value(ctx.text("country")))))
-            }))
-        .then(lit("list").does { ctx ->
-            val all = Realm.data.countries.values.sortedByDescending { Realm.claims(it.id).size }
-            if (all.isEmpty()) return@does ctx.info(Phrase.of("kami_claims.list.empty", Phrase.value("/claims create <name>")))
-            ctx.info(count("kami_claims.unit.country", all.size))
-            all.forEach { c ->
-                ctx.row {
-                    run(Component.literal(c.name), "/claims info ${c.id}", Phrase.of("kami_claims.chat.info.tooltip", c.name).component())
-                    muted("  ")
-                    add(Phrase.of("kami_claims.list.row", count("kami_claims.unit.member", c.members.size), chunks(Realm.claims(c.id).size)), Theme.MUTED)
-                }
-            }
-        })
-        .then(lit("map").does { ctx -> ctx.map(ctx.me()) })
-        .then(lit("border").does { ctx ->
-            if (Effects.toggleBorders(ctx.me())) ctx.ok(Phrase.of("kami_claims.border.on")) else ctx.info(Phrase.of("kami_claims.border.off"))
-            if (Net.canOpen(ctx.me())) ctx.info(Phrase.of("kami_claims.border.tip", Phrase.value("B")))
-        })
-        .then(target("invite"))
+    return then(target("invite"))
         .then(byCountry("accept"))
         .then(byCountry("join"))
         .then(lit("requests").does { ctx ->
@@ -158,51 +156,70 @@ private fun Node.countryCmd(): Node {
         .then(target("clear"))
         .then(lit("rank").then(player().then(word("rank") { listOf("citizen", "officer", "chancellor") }.does { it.run("rank", it.who(), it.text("rank")) })))
         .then(lit("president").then(player().does { it.run("president", it.who()) }.then(lit("confirm").does { it.run("president", it.who(), "confirm") })))
-        .then(lit("claim").requires { Perms.has(it, Perms.CLAIM) }
-            .does { it.run("claim", s.defaultType, "0") }
-            .then(word("type", types).does { it.run("claim", it.text("type"), "0") }
-                .then(arg("radius", IntegerArgumentType.integer(0, 8)).does { it.run("claim", it.text("type"), IntegerArgumentType.getInteger(it, "radius").toString()) })))
-        .then(lit("unclaim").requires { Perms.has(it, Perms.CLAIM) }.does { it.run("unclaim") })
-        .then(lit("type").requires { Perms.has(it, Perms.CLAIM) }.then(word("type", types).does { it.run("type", it.text("type")) }))
-        .then(lit("capital").requires { Perms.has(it, Perms.CLAIM) }.does { it.run("capital") })
-        .then(lit("deposit").then(arg("amount", IntegerArgumentType.integer(1)).does { it.run("deposit", IntegerArgumentType.getInteger(it, "amount").toString()) }))
-        .then(lit("withdraw").then(arg("amount", IntegerArgumentType.integer(1)).does { it.run("withdraw", IntegerArgumentType.getInteger(it, "amount").toString()) }))
-        .then(lit("tax")
-            .then(lit("residential").then(arg("amount", IntegerArgumentType.integer(0)).does { it.run("tax", IntegerArgumentType.getInteger(it, "amount").toString()) }))
-            .then(lit("here").then(arg("amount", IntegerArgumentType.integer(-1)).does { it.run("plot_tax", IntegerArgumentType.getInteger(it, "amount").toString()) })))
-        .then(lit("lapse").then(arg("shutdown", IntegerArgumentType.integer(0)).then(arg("release", IntegerArgumentType.integer(0)).does {
-            it.run("lapse", IntegerArgumentType.getInteger(it, "shutdown").toString(), IntegerArgumentType.getInteger(it, "release").toString())
-        })))
-        .then(lit("rule").requires { Perms.has(it, Perms.CLAIM) }.then(word("type", types).then(word("field") { Action.values().map { it.name.lowercase() } + listOf("machines", "fire", "fluid") }
-            .then(word("value") { Access.values().map { it.name.lowercase() } + listOf("true", "false") }.does { it.run("rule", it.text("type"), it.text("field"), it.text("value")) }))))
-        .then(lit("job").requires { Perms.has(it, Perms.JOBS) }
-            .then(lit("list").does { ctx ->
-                val c = Service.home(ctx.me())
-                ctx.info(Phrase.of("kami_claims.jobs.title", Phrase.value(c.name)))
-                s.jobs.keys.forEach { j ->
-                    c.job(j)?.let { def ->
-                        ctx.row {
-                            add(Words.job(j))
-                            muted("  ")
-                            add(Phrase.of("kami_claims.jobs.row", money(def.pay), num(def.quota), Words.days(def.period), Words.type(s.jobs.getValue(j).type)), Theme.MUTED)
-                        }
+}
+
+private fun Node.countryLand(types: () -> Collection<String>): Node =
+    then(lit("claim").requires { Perms.has(it, Perms.CLAIM) }
+        .does { it.run("claim", s.defaultType, "0") }
+        .then(word("type", types).does { it.run("claim", it.text("type"), "0") }
+            .then(arg("radius", IntegerArgumentType.integer(0, 8)).does { it.run("claim", it.text("type"), IntegerArgumentType.getInteger(it, "radius").toString()) })))
+    .then(lit("unclaim").requires { Perms.has(it, Perms.CLAIM) }.does { it.run("unclaim") })
+    .then(lit("type").requires { Perms.has(it, Perms.CLAIM) }.then(word("type", types).does { it.run("type", it.text("type")) }))
+    .then(lit("capital").requires { Perms.has(it, Perms.CLAIM) }.does { it.run("capital") })
+
+private fun Node.countryTreasury(types: () -> Collection<String>): Node =
+    then(lit("deposit").then(arg("amount", IntegerArgumentType.integer(1)).does { it.run("deposit", IntegerArgumentType.getInteger(it, "amount").toString()) }))
+    .then(lit("withdraw").then(arg("amount", IntegerArgumentType.integer(1)).does { it.run("withdraw", IntegerArgumentType.getInteger(it, "amount").toString()) }))
+    .then(lit("tax")
+        .then(lit("residential").then(arg("amount", IntegerArgumentType.integer(0)).does { it.run("tax", IntegerArgumentType.getInteger(it, "amount").toString()) }))
+        .then(lit("here").then(arg("amount", IntegerArgumentType.integer(-1)).does { it.run("plot_tax", IntegerArgumentType.getInteger(it, "amount").toString()) })))
+    .then(lit("lapse").then(arg("shutdown", IntegerArgumentType.integer(0)).then(arg("release", IntegerArgumentType.integer(0)).does {
+        it.run("lapse", IntegerArgumentType.getInteger(it, "shutdown").toString(), IntegerArgumentType.getInteger(it, "release").toString())
+    })))
+    .then(lit("rule").requires { Perms.has(it, Perms.CLAIM) }.then(word("type", types).then(word("field") { Action.values().map { it.name.lowercase() } + listOf("machines", "fire", "fluid") }
+        .then(word("value") { Access.values().map { it.name.lowercase() } + listOf("true", "false") }.does { it.run("rule", it.text("type"), it.text("field"), it.text("value")) }))))
+
+private fun Node.countryJobs(jobs: () -> Collection<String>): Node =
+    then(lit("job").requires { Perms.has(it, Perms.JOBS) }
+        .then(lit("list").does { ctx ->
+            val c = Service.home(ctx.me())
+            ctx.info(Phrase.of("kami_claims.jobs.title", Phrase.value(c.name)))
+            s.jobs.keys.forEach { j ->
+                c.job(j)?.let { def ->
+                    ctx.row {
+                        add(Words.job(j))
+                        muted("  ")
+                        add(Phrase.of("kami_claims.jobs.row", money(def.pay), num(def.quota), Words.days(def.period), Words.type(s.jobs.getValue(j).type)), Theme.MUTED)
                     }
                 }
-                c.members.forEach { (id, m) ->
-                    m.job?.let { job ->
-                        ctx.row {
-                            text("• ${Names.of(ctx.source.server, id)} ")
-                            add(Phrase.of("kami_claims.jobs.member", Words.job(job), num(m.progress)), Theme.MUTED)
-                            if (m.zone.isNotEmpty()) { muted(" · "); add(Phrase.of("kami_claims.jobs.zone", chunks(m.zone.size)), Theme.MUTED) }
-                        }
+            }
+            c.members.forEach { (id, m) ->
+                m.job?.let { job ->
+                    ctx.row {
+                        text("• ${Names.of(ctx.source.server, id)} ")
+                        add(Phrase.of("kami_claims.jobs.member", Words.job(job), num(m.progress)), Theme.MUTED)
+                        if (m.zone.isNotEmpty()) { muted(" · "); add(Phrase.of("kami_claims.jobs.zone", chunks(m.zone.size)), Theme.MUTED) }
                     }
                 }
-            })
-            .then(lit("set").then(word("job", jobs).then(word("field") { listOf("pay", "quota", "period") }
-                .then(arg("value", IntegerArgumentType.integer(0)).does { it.run("job_set", it.text("job"), it.text("field"), IntegerArgumentType.getInteger(it, "value").toString()) }))))
-            .then(lit("assign").then(player().then(word("job", jobs).does { it.run("job_assign", it.who(), it.text("job")) })))
-            .then(lit("unassign").then(player().does { it.run("job_unassign", it.who()) }))
-            .then(lit("zone").then(lit("add").then(player().does { it.run("zone", it.who(), "add") })).then(lit("clear").then(player().does { it.run("zone", it.who(), "clear") }))))
+            }
+        })
+        .then(lit("set").then(word("job", jobs).then(word("field") { listOf("pay", "quota", "period") }
+            .then(arg("value", IntegerArgumentType.integer(0)).does { it.run("job_set", it.text("job"), it.text("field"), IntegerArgumentType.getInteger(it, "value").toString()) }))))
+        .then(lit("assign").then(player().then(word("job", jobs).does { it.run("job_assign", it.who(), it.text("job")) })))
+        .then(lit("unassign").then(player().does { it.run("job_unassign", it.who()) }))
+        .then(lit("zone").then(lit("add").then(player().does { it.run("zone", it.who(), "add") })).then(lit("clear").then(player().does { it.run("zone", it.who(), "clear") }))))
+
+private fun Node.countryCmd(): Node {
+    val countries = { Realm.data.countries.values.map { it.id } }
+    val types = { s.types.keys }
+    val jobs = { s.jobs.keys }
+
+    return requires { Perms.has(it, Perms.USE) }
+        .countryCore(countries)
+        .countryMembership(countries)
+        .countryLand(types)
+        .countryTreasury(types)
+        .countryJobs(jobs)
         .then(provinceCmd(countries))
 }
 

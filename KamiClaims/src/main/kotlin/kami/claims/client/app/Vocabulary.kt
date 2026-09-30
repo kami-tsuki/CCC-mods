@@ -130,6 +130,25 @@ object Vocabulary {
 
     fun relationLabel(relation: Int) = tr("kami_claims.relation.${relation.coerceIn(0, 4)}")
 
+    fun relation(key: String) = when (key) {
+        "own" -> Palette.success to tr("kami_claims.relation.1")
+        "family" -> Palette.geoProvince to tr("kami_claims.relation.3")
+        "ally" -> Palette.geoAlly to tr("kami_claims.relation.2")
+        "banished" -> Palette.danger to tr("kami_claims.relation.4")
+        else -> Palette.textMuted to tr("kami_claims.relation.0")
+    }
+
+    fun trade(trade: String, alliance: String) = when {
+        trade == "family" -> Palette.geoProvince to tr("kami_claims.relation.3")
+        trade == "embargo" -> Palette.danger to tr("kami_claims.trade.embargo")
+        alliance == "allied" -> Palette.geoAlly to tr("kami_claims.relation.2")
+        alliance == "offer_in" -> Palette.warning to tr("kami_claims.trade.offer_in")
+        alliance == "offer_out" -> Palette.textMuted to tr("kami_claims.trade.offer_out")
+        else -> Palette.textMuted to tr("kami_claims.relation.0")
+    }
+
+    fun perDay(amount: Double, period: Int = 1) = amount / period.coerceAtLeast(1)
+
     fun tribute(mode: String, amount: Double) =
         if (mode == "percent") tr("kami_claims.tribute.percent", Format.number((amount * 100).toLong())) else tr("kami_claims.tribute.flat", Format.number(amount.toLong()))
 }

@@ -94,6 +94,22 @@ class UpkeepTest {
     }
 
     @Test
+    fun catchUpWorksOffBacklogAcrossSeveralTicks() {
+        setup(0, 0)
+        Realm.data.day = 0
+        val backlog = (Config.s.maxCatchUp * 2 + 3).toLong()
+        val seen = mutableListOf<Long>()
+        while (Realm.data.day < backlog) {
+            val before = Realm.data.day
+            Upkeep.catchUp(backlog)
+            (before + 1..Realm.data.day).forEach { seen += it }
+            assertTrue(Realm.data.day > before)
+        }
+        assertEquals(backlog, Realm.data.day)
+        assertEquals((1L..backlog).toList(), seen)
+    }
+
+    @Test
     fun resetDropsOrphanClaims() {
         val c = setup(2, 0)
         val data = Realm.data

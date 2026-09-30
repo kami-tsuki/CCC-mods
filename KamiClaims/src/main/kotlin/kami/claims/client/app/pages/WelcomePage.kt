@@ -3,13 +3,14 @@ package kami.claims.client.app.pages
 import kami.libs.ui.text.trJson
 import kami.libs.ui.text.trn
 import kami.libs.ui.text.tr
+import kami.claims.client.ClientClaims
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ClaimsPage
-import kami.claims.client.app.Consequence
+import kami.libs.ui.app.Consequence
 import kami.claims.client.app.Dialogs
 import kami.libs.ui.widget.Flags
 import kami.claims.client.app.Illustrations
-import kami.claims.client.app.consequences
+import kami.libs.ui.app.consequences
 import kami.claims.client.map.MiniMap
 import kami.claims.client.store.ClaimsStore
 import kami.libs.ui.app.Callout
@@ -28,6 +29,7 @@ import kami.libs.ui.style.Severity
 import kami.libs.ui.style.Sprites
 import kami.libs.ui.style.TextStyle
 import kami.libs.ui.widget.*
+import net.minecraft.resources.ResourceLocation
 
 class WelcomePage(app: ClaimsApp) : ClaimsPage(app) {
     override val title get() = tr("kami_claims.nav.welcome")
@@ -72,8 +74,7 @@ class WelcomePage(app: ClaimsApp) : ClaimsPage(app) {
                 Draw.text(ui.g, if (it.parent.isNotEmpty()) tr("kami_claims.welcome.invite.row_province", size[0], size[1], it.parent) else tr("kami_claims.welcome.invite.row", size[0], size[1]), row.x + 28, row.y + 13, Palette.textMuted)
             }
             val join = tr("kami_claims.join.confirm.action")
-            val joinW = buttonWidth(join)
-            if (ui.button(Rect(row.right - joinW - 4, row.y + 3, joinW, CONTROL_H), join, style = ButtonStyle.PRIMARY, pending = pending("accept"), key = "join:$name")) {
+            if (ui.edgeButton(Rect(row.x, row.y + 3, row.w - 4, CONTROL_H), join, style = ButtonStyle.PRIMARY, pending = pending("accept"), key = "join:$name")) {
                 Dialogs.confirm(app, tr("kami_claims.join.confirm.title", name), tr("kami_claims.join.confirm.subtitle"), Icons.PEOPLE, listOf(
                     Consequence(tr("kami_claims.join.confirm.single")),
                     Consequence(tr("kami_claims.join.confirm.laws")),
@@ -85,7 +86,7 @@ class WelcomePage(app: ClaimsApp) : ClaimsPage(app) {
         }
     }
 
-    private fun choice(ui: Ui, r: Rect, art: net.minecraft.resources.ResourceLocation, title: String, facts: List<String>, action: String, key: String, onClick: () -> Unit) {
+    private fun choice(ui: Ui, r: Rect, art: ResourceLocation, title: String, facts: List<String>, action: String, key: String, onClick: () -> Unit) {
         Draw.sprite(ui.g, Sprites.CARD, r)
         Draw.sprite(ui.g, art, Rect(r.x + 8, r.y + 8, 32, 32))
         val textX = r.x + 48
@@ -97,8 +98,7 @@ class WelcomePage(app: ClaimsApp) : ClaimsPage(app) {
             Draw.text(ui.g, shown, x, rowY + 3, Palette.textSecondary)
             if (shown != f) ui.tooltip("$key:fact:$i", Rect(textX, rowY, r.right - textX, TABLE_ROW_H), f)
         }
-        val w = buttonWidth(action, Icons.FORWARD)
-        if (ui.button(Rect(r.right - w - 8, r.bottom - CONTROL_H - 8, w, CONTROL_H), action, Icons.FORWARD, ButtonStyle.PRIMARY, key = key)) onClick()
+        if (ui.edgeButton(Rect(r.x, r.bottom - CONTROL_H - 8, r.w - 8, CONTROL_H), action, Icons.FORWARD, ButtonStyle.PRIMARY, key = key)) onClick()
     }
 
     private fun openWizard() {
@@ -177,8 +177,8 @@ class WelcomePage(app: ClaimsApp) : ClaimsPage(app) {
             }
             wizardButtons(s, if (name.text.isEmpty()) tr("kami_claims.wizard.finish.default") else tr("kami_claims.wizard.finish", name.text), reason == null, reason) {
                 ClaimsStore.send("create", name.text, key = "create")
-                kami.claims.client.ClientClaims.prefs.tourDone = !tour
-                kami.claims.client.ClientClaims.savePrefs()
+                ClientClaims.prefs.tourDone = !tour
+                ClientClaims.savePrefs()
                 s.close()
             }
         })

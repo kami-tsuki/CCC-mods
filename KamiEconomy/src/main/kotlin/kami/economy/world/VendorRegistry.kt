@@ -1,6 +1,6 @@
 package kami.economy.world
 
-import kami.economy.KamiEconomy
+import kami.economy.LOG
 import kami.economy.Market
 import kami.economy.Vendor
 import kami.economy.now
@@ -21,7 +21,7 @@ object VendorRegistry {
     private val BLOCKS = setOf("numismatics:vendor", "numismatics:creative_vendor")
     private val pending = LinkedHashSet<Pair<ServerLevel, BlockPos>>()
     private val type = runCatching { Class.forName("dev.ithundxr.createnumismatics.content.vendor.VendorBlockEntity") }
-        .onFailure { KamiEconomy.LOG.warn("Numismatics vendor class not found, vendor registry is off") }.getOrNull()
+        .onFailure { LOG.warn("Numismatics vendor class not found, vendor registry is off") }.getOrNull()
     private val ownerField = type?.let { t -> runCatching { t.getDeclaredField("owner").apply { isAccessible = true } }.getOrNull() }
 
     private fun call(be: BlockEntity, name: String, vararg args: Any): Any? =
@@ -62,7 +62,7 @@ object VendorRegistry {
             return
         }
         val v = known ?: Vendor(dim(level), pos.x, pos.y, pos.z).also { Market.data.vendors += it }
-        runCatching { read(be, v, claim.country) }.onFailure { KamiEconomy.LOG.warn("Could not read vendor at {}: {}", pos, it.message) }
+        runCatching { read(be, v, claim.country) }.onFailure { LOG.warn("Could not read vendor at {}: {}", pos, it.message) }
         Market.dirty = true
     }
 

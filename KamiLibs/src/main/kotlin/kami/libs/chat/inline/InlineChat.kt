@@ -40,19 +40,7 @@ object InlineChat {
         hover: HoverEvent? = null,
         click: ClickEvent? = null,
         underlined: Boolean = false,
-    ): MutableComponent {
-        val out = Component.empty()
-        val style = Component.literal(label).withStyle {
-            var next = it.withColor(textColor).withUnderlined(underlined)
-            if (hover != null) next = next.withHoverEvent(hover)
-            if (click != null) next = next.withClickEvent(click)
-            next
-        }
-        out.append(Component.literal("[").withColor(bracketColor))
-        out.append(style)
-        out.append(Component.literal("]").withColor(bracketColor))
-        return out
-    }
+    ): MutableComponent = pill(Component.literal(label).withColor(textColor), bracketColor, hover, click, underlined)
 
     fun pill(
         content: Component,

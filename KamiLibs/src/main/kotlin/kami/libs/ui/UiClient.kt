@@ -22,7 +22,7 @@ object UiClient {
             })
         }
         FORGE_BUS.addListener<RegisterClientCommandsEvent> { e ->
-            e.dispatcher.register(Commands.literal("kamiui").then(Commands.literal("gallery").executes {
+            e.dispatcher.register(Commands.literal("kamiui").requires { it.hasPermission(2) }.then(Commands.literal("gallery").executes {
                 Minecraft.getInstance().tell { Gallery.open() }
                 1
             }))

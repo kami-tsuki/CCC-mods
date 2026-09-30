@@ -21,7 +21,8 @@ class BuyPlan(val fills: List<FillLinePlan>, val filled: Int, val totalSpurs: Lo
 class SellPlan(val fills: List<FillLinePlan>, val filled: Int, val capLots: Int, val after: Int) {
     val gross: Long get() = fills.sumOf { it.gross }
     val tax: Long get() = fills.sumOf { it.tax }
-    val net: Long get() = gross - tax
+    val tariff: Long get() = fills.sumOf { it.tariff }
+    val net: Long get() = gross - tax - tariff
 }
 
 object Matching {
@@ -33,8 +34,8 @@ object Matching {
             if (t.blocked) return
             val lot = order.lot.coerceAtLeast(1)
             val orderLots = order.amount / lot
-            val wanted = remaining / lot
-            val lots = if (wanted >= orderLots) orderLots else wanted - wanted % CleanStep.step(order.price.toLong(), t.rates)
+            val cap = minOf(remaining / lot, orderLots)
+            val lots = if (cap == orderLots) orderLots else cap - cap % CleanStep.step(order.price.toLong(), t.rates)
             if (lots <= 0) return
             val gross = lots.toLong() * order.price
             fills += FillLinePlan(order.id, order.owner, lots * lot, order.price, lot, gross, CleanStep.charge(gross, t.taxPct), CleanStep.charge(gross, t.tariffPct))
@@ -58,7 +59,7 @@ object Matching {
     fun sellPlan(seller: String, item: String, qty: Int, minPrice: Int? = null): SellPlan {
         val stockBid = if (minPrice == null) Stocks.bid(seller, item) else null
         val (good, poor) = bids(item).filter { minPrice == null || it.price >= minPrice }.partition { stockBid == null || it.price >= stockBid }
-        val t = Taker(qty) { Trade.terms(it, seller).withoutTariff() }
+        val t = Taker(qty) { Trade.terms(it, seller) }
         good.forEach(t::take)
         var capLots = 0
         var after = 0

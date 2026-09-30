@@ -17,7 +17,13 @@ import kami.libs.ui.style.TextStyle
 import net.minecraft.client.Minecraft
 import net.minecraft.world.item.ItemStack
 import kotlin.math.max
-import kotlin.math.min
+
+fun Ui.filterBar(r: Rect, key: String, content: (Rect) -> Unit): Rect {
+    val bar = r.top(CONTROL_H)
+    anchor(key, bar)
+    content(bar)
+    return r.dropTop(CONTROL_H + 6)
+}
 
 fun Ui.property(r: Rect, label: String, value: String, color: Int = Palette.text, copy: Boolean = false, tip: String? = null, key: Any = "prop:$label"): Rect {
     Draw.text(g, label.uppercase(), r.x, r.y + 1, Palette.textMuted)
@@ -73,6 +79,18 @@ fun Ui.statTile(
     return pressed(r) != null
 }
 
+class KpiTile(
+    val label: String, val value: String, val icon: Icon? = null, val color: Int = Palette.text, val sub: String? = null,
+    val trend: Trend? = null, val spark: List<Long>? = null, val flashValue: Long? = null, val tip: Tip? = null, val onClick: (() -> Unit)? = null
+)
+
+fun Ui.kpiRow(r: Rect, tiles: List<KpiTile>, gap: Int = 6, key: Any = "kpi") {
+    val cells = r.columns(tiles.size, gap)
+    tiles.forEachIndexed { i, t ->
+        if (statTile(cells[i], t.label, t.value, t.icon, t.color, t.sub, t.trend, t.spark, t.flashValue, t.tip, key = "$key:${t.label}")) t.onClick?.invoke()
+    }
+}
+
 fun Ui.progress(r: Rect, fraction: Double, color: Int = Palette.brass, label: String? = null) {
     Draw.sprite(g, Sprites.TRACK, r)
     val f = fraction.coerceIn(0.0, 1.0)
@@ -90,24 +108,15 @@ fun Ui.meter(r: Rect, value: Int, max: Int, severityAt: (Int) -> Severity, label
     label?.let { Draw.textRight(g, it, r.right, r.y - 10, Palette.textMuted) }
 }
 
-fun Ui.chip(x: Int, y: Int, label: String, color: Int = Palette.textSecondary, icon: Icon? = null, selected: Boolean = false, removable: Boolean = false, tip: String? = null, key: Any = "chip:$label"): Pair<Int, Boolean> {
-    val w = Draw.width(label) + 10 + (if (icon != null) Draw.ICON_SLOT - 1 else 0) + (if (removable) 10 else 0)
+fun Ui.chip(x: Int, y: Int, label: String, color: Int = Palette.textSecondary, icon: Icon? = null, tip: String? = null, key: Any = "chip:$label"): Int {
+    val w = Draw.width(label) + 10 + (if (icon != null) Draw.ICON_SLOT - 1 else 0)
     val r = Rect(x, y, w, 13)
-    Draw.tinted(g, Sprites.CHIP, r, if (selected) Palette.alpha(color, 0x50) else Palette.alpha(color, 0x24))
-    if (selected) Draw.outline(g, r, Palette.alpha(color, 0x90))
+    Draw.tinted(g, Sprites.CHIP, r, Palette.alpha(color, 0x24))
     var tx = x + 5
     icon?.let { tx += Draw.leadIcon(g, it, tx - 1, r.centerY) - 1 }
-    Draw.text(g, label, tx, y + 3, if (selected) Palette.text else color)
-    var removed = false
-    if (removable) {
-        val cr = Rect(r.right - 11, y + 2, 9, 9)
-        if (hovering(cr)) cursor = Cursor.HAND
-        Draw.text(g, "×", cr.x + 1, y + 2, if (hovering(cr)) Palette.text else Palette.textMuted)
-        tooltip("$key:remove", cr, tr("kami_libs.chip.remove.tooltip"))
-        removed = pressed(cr) != null
-    }
+    Draw.text(g, label, tx, y + 3, color)
     tooltip(key, r, tip)
-    return w to removed
+    return w
 }
 
 fun Ui.statusPill(x: Int, y: Int, label: String, severity: Severity, tip: String? = null, key: Any = "pill:$label"): Int {
@@ -201,17 +210,16 @@ fun Ui.timeline(r: Rect, steps: List<Step>) {
     }
 }
 
-fun Ui.keyHints(x: Int, y: Int, hints: List<Pair<String, String>>, color: Int = Palette.textMuted): Int {
+fun Ui.keyHints(x: Int, y: Int, hints: List<Pair<String, String>>) {
     var cx = x
     hints.forEach { (keys, action) ->
         keys.split("+").forEachIndexed { i, k ->
-            if (i > 0) { Draw.text(g, "+", cx, y + 2, color); cx += 7 }
+            if (i > 0) { Draw.text(g, "+", cx, y + 2, Palette.textMuted); cx += 7 }
             cx += keycap(cx, y, k) + 1
         }
-        cx += 2 + Draw.text(g, action, cx + 2, y + 2, color) - cx
+        cx += 2 + Draw.text(g, action, cx + 2, y + 2, Palette.textMuted) - cx
         cx += 10
     }
-    return cx - x
 }
 
 fun Ui.avatar(id: String, x: Int, y: Int, size: Int = 12, online: Boolean? = null) {
@@ -229,22 +237,6 @@ fun Ui.legendItem(x: Int, y: Int, color: Int, label: String, hatched: Boolean = 
     Draw.fill(g, Rect(x, y + 1, 7, 7), color)
     if (hatched) Draw.hatch(g, Rect(x, y + 1, 7, 7), Palette.alpha(0, 0x90), 3)
     return Draw.text(g, label, x + 10, y, Palette.textSecondary) - x + 10
-}
-
-fun Ui.bars(r: Rect, values: List<Pair<String, Double>>, color: (Int) -> Int, format: (Double) -> String) {
-    val top = values.maxOfOrNull { it.second }?.takeIf { it > 0 } ?: 1.0
-    val labelW = min(90, values.maxOfOrNull { Draw.width(it.first) + 6 } ?: 0)
-    values.forEachIndexed { i, (label, v) ->
-        val y = r.y + i * 13
-        if (y + 10 > r.bottom) return
-        Draw.text(g, Draw.fit(label, labelW - 4), r.x, y + 1, Palette.textSecondary)
-        val valueText = format(v)
-        val vw = Draw.width(valueText)
-        val track = Rect(r.x + labelW, y + 2, r.w - labelW - vw - 6, 5)
-        Draw.fill(g, track, Palette.alpha(Palette.border, 0x80))
-        Draw.fill(g, track.withWidth((track.w * (v / top)).toInt().coerceAtLeast(if (v > 0) 1 else 0)), color(i))
-        Draw.textRight(g, valueText, r.right, y + 1, Palette.textMuted)
-    }
 }
 
 fun Ui.itemSlot(r: Rect, stack: ItemStack, count: String? = null, selected: Boolean = false, enabled: Boolean = true, key: Any = "slot:${r.x}:${r.y}"): Boolean {

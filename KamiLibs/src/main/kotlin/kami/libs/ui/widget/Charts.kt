@@ -78,7 +78,7 @@ fun Ui.lineChart(r: Rect, series: List<Series>, labels: List<String>, format: (L
         ls.forEachIndexed { i, l -> if (i % every == 0 && i < count) Draw.text(g, l, (px(i) - Draw.width(l) / 2).coerceIn(plot.x, plot.right - Draw.width(l)), plot.bottom + 4, Palette.textMuted) }
     }
     series.forEach { s ->
-        if (s.area) g.drawManaged {
+        if (s.area) {
             for (i in 1 until s.values.size) {
                 val x0 = px(i - 1)
                 val x1 = px(i)
@@ -90,6 +90,7 @@ fun Ui.lineChart(r: Rect, series: List<Series>, labels: List<String>, format: (L
                     g.fill(x, min(y, base), x + 1, max(y, base), Palette.alpha(s.color, 0x30))
                 }
             }
+            g.flush()
         }
         for (i in 1 until s.values.size) {
             val x0 = px(i - 1); val y0 = py(s.values[i - 1].toDouble())
@@ -158,26 +159,25 @@ fun Ui.donut(r: Rect, slices: List<Slice>, center: String? = null, key: Any = "d
         var acc = 0.0
         slices.indexOfFirst { acc += it.value / total * 2 * PI; hoverAngle < acc }
     } else -1
-    g.drawManaged {
-        for (py in 0 until size) for (px in 0 until size) {
-            val dx = px + 0.5 - size / 2.0
-            val dy = py + 0.5 - size / 2.0
-            val d = sqrt(dx * dx + dy * dy)
-            if (d > outer || d < inner) continue
-            val color = if (total <= 0) Palette.border else {
-                val a = (atan2(dy, dx) + PI / 2 + 2 * PI) % (2 * PI)
-                var acc = 0.0
-                var idx = slices.lastIndex
-                for ((i, s) in slices.withIndex()) { acc += s.value / total * 2 * PI; if (a < acc) { idx = i; break } }
-                if (idx == hovered) Palette.lighten(slices[idx].color, 0.25f) else slices[idx].color
-            }
-            g.fill(r.x + px, r.y + py, r.x + px + 1, r.y + py + 1, color)
+    for (py in 0 until size) for (px in 0 until size) {
+        val dx = px + 0.5 - size / 2.0
+        val dy = py + 0.5 - size / 2.0
+        val d = sqrt(dx * dx + dy * dy)
+        if (d > outer || d < inner) continue
+        val color = if (total <= 0) Palette.border else {
+            val a = (atan2(dy, dx) + PI / 2 + 2 * PI) % (2 * PI)
+            var acc = 0.0
+            var idx = slices.lastIndex
+            for ((i, s) in slices.withIndex()) { acc += s.value / total * 2 * PI; if (a < acc) { idx = i; break } }
+            if (idx == hovered) Palette.lighten(slices[idx].color, 0.25f) else slices[idx].color
         }
+        g.fill(r.x + px, r.y + py, r.x + px + 1, r.y + py + 1, color)
     }
+    g.flush()
     center?.let { Draw.textCentered(g, it, Rect(r.x, r.y, size, size), Palette.text) }
     if (hovered >= 0) {
         val s = slices[hovered]
-        tooltip(key, r) { Tip.text(tr("kami_libs.chart.share", Format.number(s.value.toLong()), Format.percent(s.value / total)), s.label) }
+        tooltip(key, r) { Tip.text(tr("kami_libs.chart.share", Format.number(s.value), Format.percent(s.value / total)), s.label) }
     }
 }
 

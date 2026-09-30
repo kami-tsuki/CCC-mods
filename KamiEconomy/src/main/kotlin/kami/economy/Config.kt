@@ -1,6 +1,6 @@
 package kami.economy
 
-import kami.libs.config.KamiConfig
+import kami.libs.config.ConfigModule
 import kami.libs.config.Section
 import kotlinx.serialization.Serializable
 import kotlin.math.roundToInt
@@ -83,70 +83,64 @@ private fun Settings.sane(): Settings = copy(
     dailySellLots = dailySellLots.coerceAtLeast(0),
     resetHour = resetHour.coerceIn(0, 23),
     recoveryPct = recoveryPct.coerceIn(0, 100),
+    priceDeltaThresholdPct = priceDeltaThresholdPct.coerceAtLeast(0.0),
+    auctionCheckIntervalTicks = auctionCheckIntervalTicks.coerceAtLeast(20),
     starterGoods = starterGoods.filter { it.base > 0 && it.lot > 0 && it.target >= 0 && it.depth > 0 }
 )
 
-object Config {
-    private val sections = listOf(
-        Section(
-            "market.json", "Market prices and the sales tax. Prices are in spurs.",
-            mapOf(
-                "marketTickInterval" to "Ticks between two price updates. 1200 is one minute.",
-                "priceDeltaThresholdPct" to "Smallest price change, 0 to 1, that gets sent to players right away.",
-                "maxPriceMovePct" to "Most a price may move in one update, 0 to 1.",
-                "defaultFloor" to "Lowest price of any item.",
-                "defaultCeiling" to "Highest price of any item, or null for no limit.",
-                "categoryBounds" to "Own floor, ceiling and maxMovePct per item id. Leave a value null to use the default.",
-                "sellTaxPct" to "Tax taken from every market sale, 0 to 0.9.",
-                "allyTaxRate" to "Tax on player trades between allied countries or one country family, 0 to 0.9.",
-                "maxPrice" to "Highest price per lot a player may ask or bid.",
-                "maxAmount" to "Most items one player may buy or sell in one trade.",
-                "lots" to "Items per lot by item id, default 1. Prices are per lot and trades move whole lots."
-            )
-        ),
-        Section(
-            "auctions.json", "The auction house for unique items.",
-            mapOf(
-                "auctionFeePct" to "Fee taken from a finished auction, 0 to 0.9.",
-                "auctionDurationMillis" to "How long an auction runs in milliseconds. 259200000 is three days.",
-                "auctionCheckIntervalTicks" to "Ticks between two checks for finished auctions."
-            )
-        ),
-        Section(
-            "starter-items.json", "Basic goods the market buys and sells from its own stock, so new players can earn their first coins.",
-            mapOf(
-                "starterGoods" to "Item id or #tag, base price per lot, lot size, target stock and depth in lots, optional own daily cap.",
-                "dailySellLots" to "Lots per player and day the market buys at the full base price.",
-                "resetHour" to "Server hour, 0 to 23, when the daily cap resets.",
-                "recoveryPct" to "Share of the gap to the target stock that closes each day, 0 to 100.",
-                "band" to "Lowest and highest price as a factor of the base price."
-            )
-        ),
-        Section(
-            "blocked-items.json", "Items kept out of the market. Coins from library/coins.json are always blocked.",
-            mapOf(
-                "creativeItemIds" to "Items that can never be traded.",
-                "storageItemIds" to "Containers that may only be sold at the auction house."
-            )
-        ),
-        Section(
-            "general.json", "Price history, GUI and vendor settings.",
-            mapOf(
-                "historyRawRetention" to "Price points kept at full detail per item.",
-                "historyHourlyRetention" to "Hourly price points kept per item. 720 is 30 days.",
-                "historyDailyRetention" to "Daily price points kept per item.",
-                "pageSize" to "Items per market page, 5 to 100.",
-                "guiCooldown" to "Ticks between two GUI actions of one player.",
-                "allowCreativeVendors" to "Allow the creative vendor block from Numismatics."
-            )
+private val sections = listOf(
+    Section(
+        "market.json", "Market prices and the sales tax. Prices are in spurs.",
+        mapOf(
+            "marketTickInterval" to "Ticks between two price updates. 1200 is one minute.",
+            "priceDeltaThresholdPct" to "Smallest price change, 0 to 1, that gets sent to players right away.",
+            "maxPriceMovePct" to "Most a price may move in one update, 0 to 1.",
+            "defaultFloor" to "Lowest price of any item.",
+            "defaultCeiling" to "Highest price of any item, or null for no limit.",
+            "categoryBounds" to "Own floor, ceiling and maxMovePct per item id. Leave a value null to use the default.",
+            "sellTaxPct" to "Tax taken from every market sale, 0 to 0.9.",
+            "allyTaxRate" to "Tax on player trades between allied countries or one country family, 0 to 0.9.",
+            "maxPrice" to "Highest price per lot a player may ask or bid.",
+            "maxAmount" to "Most items one player may buy or sell in one trade.",
+            "lots" to "Items per lot by item id, default 1. Prices are per lot and trades move whole lots."
+        )
+    ),
+    Section(
+        "auctions.json", "The auction house for unique items.",
+        mapOf(
+            "auctionFeePct" to "Fee taken from a finished auction, 0 to 0.9.",
+            "auctionDurationMillis" to "How long an auction runs in milliseconds. 259200000 is three days.",
+            "auctionCheckIntervalTicks" to "Ticks between two checks for finished auctions."
+        )
+    ),
+    Section(
+        "starter-items.json", "Basic goods the market buys and sells from its own stock, so new players can earn their first coins.",
+        mapOf(
+            "starterGoods" to "Item id or #tag, base price per lot, lot size, target stock and depth in lots, optional own daily cap.",
+            "dailySellLots" to "Lots per player and day the market buys at the full base price.",
+            "resetHour" to "Server hour, 0 to 23, when the daily cap resets.",
+            "recoveryPct" to "Share of the gap to the target stock that closes each day, 0 to 100.",
+            "band" to "Lowest and highest price as a factor of the base price."
+        )
+    ),
+    Section(
+        "blocked-items.json", "Items kept out of the market. Coins from library/coins.json are always blocked.",
+        mapOf(
+            "creativeItemIds" to "Items that can never be traded.",
+            "storageItemIds" to "Containers that may only be sold at the auction house."
+        )
+    ),
+    Section(
+        "general.json", "Price history, GUI and vendor settings.",
+        mapOf(
+            "historyRawRetention" to "Price points kept at full detail per item.",
+            "historyHourlyRetention" to "Hourly price points kept per item. 720 is 30 days.",
+            "historyDailyRetention" to "Daily price points kept per item.",
+            "pageSize" to "Items per market page, 5 to 100.",
+            "guiCooldown" to "Ticks between two GUI actions of one player.",
+            "allowCreativeVendors" to "Allow the creative vendor block from Numismatics."
         )
     )
+)
 
-    private val file = KamiConfig("economy", Settings(), sections, legacy = "kami_economy.json", sane = { it.sane() })
-
-    var s: Settings
-        get() = file.value
-        set(value) { file.value = value }
-
-    fun load() = file.load()
-}
+object Config : ConfigModule<Settings>("economy", Settings.serializer(), Settings(), sections, "kami_economy.json", { it.sane() })

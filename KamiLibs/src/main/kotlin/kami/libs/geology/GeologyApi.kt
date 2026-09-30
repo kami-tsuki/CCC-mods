@@ -14,9 +14,4 @@ object GeologyApi {
     }
 
     val present get() = provider != null
-
-    fun probeAsync(level: ServerLevel, x: Int, z: Int, y0: Int, y1: Int, callback: (List<String>) -> Unit) {
-        val p = provider
-        if (p == null) callback(emptyList()) else p.probe(level, x, z, y0, y1, callback)
-    }
 }

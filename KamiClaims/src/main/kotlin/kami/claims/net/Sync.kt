@@ -172,6 +172,22 @@ object Sync {
         s.nameLength[0], s.nameLength[1], s.freeBonusMembers, s.freeBonusCap, s.inactiveDays, s.successionDays, s.independenceCooldownDays, s.dayMillis, s.maxProvinceDebt
     )
 
+    private fun pendingMembers(p: ServerPlayer, map: Map<String, Long>): List<Mem> =
+        map.filterValues { it > now() }.keys.map { mem(p, it, "") }
+
+    private fun claimLines(p: ServerPlayer, claims: List<Claim>, c: Country, me: String, priv: Boolean): List<ClaimLine> =
+        claims.sortedWith(compareBy({ it.type }, { it.x }, { it.z })).map { cl ->
+            val mine = priv || cl.owner == me
+            ClaimLine(
+                cl.x, cl.z, cl.type, cl.capital, cl.free && priv, if (priv) cl.debt else 0, cl.owner?.let { o -> Names.of(p.server, o) } ?: "",
+                if (mine) (if (cl.tax >= 0) cl.tax else c.tax) else -1, if (mine) cl.lapse else 0, if (mine) cl.roles.size else 0,
+                cl.at, cl.owner ?: "", if (priv) Planner.unclaimLock(cl)?.json() ?: "" else ""
+            )
+        }
+
+    private fun invitedCountries(me: String): List<String> =
+        Realm.data.countries.values.filter { (it.invites[me] ?: 0) > now() }.map { it.name }
+
     private fun info(p: ServerPlayer, c: Country, own: Country?, delegated: Boolean): Info {
         val s = Config.s
         val me = p.stringUUID
@@ -186,19 +202,12 @@ object Sync {
             sum.runway(c.treasury).json(), c.tax, claims.size, claims.count { it.free }, c.shutdown, c.release, View.color(c),
             (today() + 1) * s.dayMillis - now(), priv,
             c.members.map { (id, m) -> mem(p, id, m.rank.name.lowercase(), m, c) }.sortedByDescending { Rank.valueOf(it.rank.uppercase()) },
-            if (staff) c.requests.filterValues { it > now() }.keys.map { mem(p, it, "") } else emptyList(),
+            if (staff) pendingMembers(p, c.requests) else emptyList(),
             if (staff) c.outsiders.map { (id, r) -> mem(p, id, r.name.lowercase(), c = c) } else emptyList(),
             s.jobs.keys.mapNotNull { j ->
                 c.job(j)?.let { d -> val cfg = s.jobs.getValue(j); JobLine(j, cfg.type, d.pay, d.quota, d.period, cfg.actions.map { it.name.lowercase() }, cfg.blocks) }
             },
-            claims.sortedWith(compareBy({ it.type }, { it.x }, { it.z })).map { cl ->
-                val mine = priv || cl.owner == me
-                ClaimLine(
-                    cl.x, cl.z, cl.type, cl.capital, cl.free && priv, if (priv) cl.debt else 0, cl.owner?.let { o -> Names.of(p.server, o) } ?: "",
-                    if (mine) (if (cl.tax >= 0) cl.tax else c.tax) else -1, if (mine) cl.lapse else 0, if (mine) cl.roles.size else 0,
-                    cl.at, cl.owner ?: "", if (priv) Planner.unclaimLock(cl)?.json() ?: "" else ""
-                )
-            },
+            claimLines(p, claims, c, me, priv),
             claims.filter { !it.free }.groupBy { it.type }.map { (t, list) -> Break(t, list.size, list.sumOf { Realm.price(it).toDouble() / Realm.period(it) }) },
             claims.count { it.owner == me },
             c.parent?.let { Realm.country(it)?.name } ?: "", c.taxMode.name.lowercase(), c.taxAmount, c.provinceDebt, c.independenceRequested,
@@ -210,7 +219,7 @@ object Sync {
                 Realm.country(pid)?.let { pr -> ProvinceLine(pr.name, pr.taxMode.name.lowercase(), pr.taxAmount, pr.provinceDebt, pr.independenceRequested, View.color(pr), pr.members.size, Realm.claims(pr.id).size, Upkeep.summary(pr).income, flag(pr)) }
             },
             delegated, flag(c), Realm.country(c.parent)?.let { View.color(it) } ?: 0, Provinces.cooldown(c), Alerts.nextBill(c), Realm.freeAllowed(c),
-            c.created, c.moved, if (staff) c.invites.filterValues { it > now() }.keys.map { mem(p, it, "") } else emptyList(), c.pending
+            c.created, c.moved, if (staff) pendingMembers(p, c.invites) else emptyList(), c.pending
         )
     }
 
@@ -253,7 +262,7 @@ object Sync {
         } else emptyList()
         val snap = Snap(
             c?.let { info(p, it, own, delegated) }, countries,
-            Realm.data.countries.values.filter { (it.invites[me] ?: 0) > now() }.map { it.name },
+            invitedCountries(me),
             types, s.jobs.keys.toList(), s.caps.mapKeys { it.key.name.lowercase() }.mapValues { it.value.name.lowercase() },
             focus[p.uuid]?.let { detail(p, it) }, Bank.funds(p.uuid), s.freeChunks, (s.jobShare * 100).toInt(), s.maxPlots, s.maxProvinceDebt,
             players, reply.msg, reply.ok, open, here.x, here.z,

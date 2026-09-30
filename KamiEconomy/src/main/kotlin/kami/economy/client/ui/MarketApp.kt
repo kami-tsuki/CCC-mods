@@ -48,7 +48,6 @@ class MarketApp(snap: Snap) : KamiApp() {
     var snap = snap
         private set
     override val home = Route("browse")
-    private val pages = HashMap<String, Page>()
     private val stacks = HashMap<String, ItemStack>()
 
     fun stack(id: String): ItemStack = stacks.getOrPut(id) { marketStack(id) }
@@ -67,15 +66,19 @@ class MarketApp(snap: Snap) : KamiApp() {
         NavItem("auctions", tr("kami_economy.market.tab.auctions"), Icons.SCALES)
     )))
 
-    override fun page(id: String): Page = pages.getOrPut(id) {
-        when (id) {
-            "sell" -> SellPage(this)
-            "orders" -> OrdersPage(this)
-            "auctions" -> AuctionsPage(this)
-            "item" -> ItemPage(this)
-            "list" -> ListAuctionPage(this)
-            else -> BrowsePage(this)
-        }
+    override fun create(id: String): Page = when (id) {
+        "sell" -> SellPage(this)
+        "orders" -> OrdersPage(this)
+        "auctions" -> AuctionsPage(this)
+        "item" -> ItemPage(this)
+        "list" -> ListAuctionPage(this)
+        else -> BrowsePage(this)
+    }
+
+    override fun banner(ui: Ui, r: Rect): Int {
+        if (snap.citizen) return 0
+        ui.banner(r.top(22), Severity.WARNING, tr("kami_libs.economy.no_country"))
+        return 22
     }
 
     override fun topBar(ui: Ui, r: Rect) {
@@ -87,7 +90,7 @@ class MarketApp(snap: Snap) : KamiApp() {
     fun openItem(item: String, mode: String, qty: Int = 1) = navigate(Route("item", mapOf("item" to item, "mode" to mode, "qty" to qty.toString())))
 
     fun openSell(e: SellEntry) =
-        if (e.cls == Classification.AUCTION_ONLY) navigate(Route("list", mapOf("item" to e.item, "slot" to e.slot.toString()))) else openItem(e.item, "sell")
+        if (e.cls == Classification.AUCTION_ONLY) navigate(Route("list", mapOf("item" to e.item, "qty" to e.count.toString()))) else openItem(e.item, "sell")
 
     fun closeDetail() { if (route.page in DETAILS) back() }
 
@@ -183,7 +186,7 @@ private class SellPage(val app: MarketApp) : Page() {
     override fun actions(ui: Ui, r: Rect) {
         val selected = entries().firstOrNull { it.slot in table.selected }
         val label = tr("kami_economy.market.sell.open")
-        if (ui.button(r.right(buttonWidth(label)), label, style = ButtonStyle.PRIMARY, enabled = selected != null, disabledReason = tr("kami_economy.market.sell.open.none")))
+        if (ui.edgeButton(r, label, style = ButtonStyle.PRIMARY, enabled = app.snap.citizen && selected != null, disabledReason = if (!app.snap.citizen) tr("kami_libs.economy.no_country") else tr("kami_economy.market.sell.open.none")))
             selected?.let(app::openSell)
     }
 

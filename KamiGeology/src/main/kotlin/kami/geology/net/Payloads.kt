@@ -5,10 +5,10 @@ import kami.libs.net.Packets
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 
-private fun id(path: String) = Packets.id(KamiGeology.ID, path)
-
+private val packets = Packets.forMod(KamiGeology.ID)
+private fun id(path: String) = packets.id(path)
 private fun <T : CustomPacketPayload> codec(write: (FriendlyByteBuf, T) -> Unit, read: (FriendlyByteBuf) -> T) =
-    Packets.codec(write, read)
+    packets.codec(write, read)
 
 class OreInfo(
     val id: String,

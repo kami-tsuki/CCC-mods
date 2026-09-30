@@ -73,10 +73,7 @@ class Viewport(var unitsPerPx: Double = 1.0, val minUnitsPerPx: Double = 0.05, v
     private fun keyboard(ui: Ui, zoomStep: Double): Boolean {
         val step = if (ui.input.shift) 240.0 else 60.0
         var changed = false
-        listOf(GLFW.GLFW_KEY_LEFT to (step to 0.0), GLFW.GLFW_KEY_RIGHT to (-step to 0.0), GLFW.GLFW_KEY_UP to (0.0 to step), GLFW.GLFW_KEY_DOWN to (0.0 to -step),
-            GLFW.GLFW_KEY_A to (step to 0.0), GLFW.GLFW_KEY_D to (-step to 0.0), GLFW.GLFW_KEY_W to (0.0 to step), GLFW.GLFW_KEY_S to (0.0 to -step)).forEach { (k, d) ->
-            if (ui.input.takeKey(k) { !it.ctrl } != null) changed = pan(d.first, d.second) || changed
-        }
+        CameraInput.panKeys(ui, step) { dx, dz -> changed = pan(-dx, -dz) || changed }
         if (ui.input.takeKey(GLFW.GLFW_KEY_EQUAL) != null || ui.input.takeKey(GLFW.GLFW_KEY_KP_ADD) != null) changed = zoomAt(1 / zoomStep) || changed
         if (ui.input.takeKey(GLFW.GLFW_KEY_MINUS) != null || ui.input.takeKey(GLFW.GLFW_KEY_KP_SUBTRACT) != null) changed = zoomAt(zoomStep) || changed
         return changed

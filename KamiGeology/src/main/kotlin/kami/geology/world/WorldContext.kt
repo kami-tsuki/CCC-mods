@@ -95,11 +95,12 @@ class WorldContext(val level: ServerLevel, val settings: Settings) {
     }
 
     private fun derived(ore: Ore, parent: Site): Site? = cached(Hash.of(ore.salt, parent.id, 1L)) {
-        val anchor = ore.deposit!!.anchor!!
+        val deposit = ore.deposit!!
+        val anchor = deposit.anchor!!
         if (anchor.tiers.isNotEmpty() && parent.tier.name !in anchor.tiers) return@cached null
         val rng = Rng(Hash.of(seed, ore.salt, parent.id))
         if (!rng.chance(anchor.chance)) return@cached null
-        val y = if (anchor.absoluteY) rng.pick(ore.deposit!!.height).toDouble() else parent.y + rng.pick(anchor.offsetY)
+        val y = if (anchor.absoluteY) rng.pick(deposit.height).toDouble() else parent.y + rng.pick(anchor.offsetY)
         if (y < level.minBuildHeight + 2 || y > level.maxBuildHeight - 2) return@cached null
         build(ore, rng, parent.x + rng.pick(anchor.offsetX), y, parent.z + rng.pick(anchor.offsetZ))
     }

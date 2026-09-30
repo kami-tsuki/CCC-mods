@@ -81,7 +81,13 @@ object Planner {
                 unclaimLock(cl) != null -> decided[cl.key] = PlannedCell(cl.key, Outcome.BLOCKED, unclaimLock(cl))
             }
         }
-        for (pass in 0 until 6) {
+        val undecided = candidates.filter { it.key !in decided }
+        if (undecided.isNotEmpty() && undecided.groupBy { it.dim }.all { (dim, cells) -> Realm.removableBatch(c.id, dim, cells.map { it.key }.toSet()) }) {
+            undecided.forEach { cl ->
+                remaining.remove(cl.key)
+                decided[cl.key] = PlannedCell(cl.key, Outcome.UNCLAIM, null, Realm.price(cl), Realm.period(cl))
+            }
+        } else for (pass in 0 until 6) {
             var progress = false
             candidates.filter { it.key !in decided }.forEach { cl ->
                 if (connectedWithout(remaining, cl)) {

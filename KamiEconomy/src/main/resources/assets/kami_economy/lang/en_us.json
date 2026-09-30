@@ -6,7 +6,6 @@
   "kami_economy.action.auction_missing": "Auction not found.",
   "kami_economy.action.bid_low": "Bid too low.",
   "kami_economy.action.bid_placed": "Bid placed.",
-  "kami_economy.action.blocked": "This item can't be traded.",
   "kami_economy.action.bought": "Bought %1$s × %2$s for %3$s.",
   "kami_economy.action.claimed": "Pending items collected.",
   "kami_economy.action.error": "Server error. Try again later.",

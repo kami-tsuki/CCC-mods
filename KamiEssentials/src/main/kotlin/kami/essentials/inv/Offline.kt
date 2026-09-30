@@ -29,6 +29,7 @@ class Offline private constructor(val id: UUID, private val server: MinecraftSer
     val viewers = mutableSetOf<ServerPlayer>()
     var live = true
         private set
+    private var dirty = false
 
     init {
         val raw = NbtIo.readCompressed(file, NbtAccounter.unlimitedHeap())
@@ -38,12 +39,13 @@ class Offline private constructor(val id: UUID, private val server: MinecraftSer
             slot(item.getByte("Slot").toInt() and 255)?.let { inventory.setItem(it, ItemStack.parseOptional(server.registryAccess(), item)) }
         }
         enderchest.fromTag(tag.getList("EnderItems", Tag.TAG_COMPOUND.toInt()), server.registryAccess())
-        inventory.addListener { save() }
-        enderchest.addListener { save() }
+        inventory.addListener { dirty = true }
+        enderchest.addListener { dirty = true }
     }
 
-    private fun save() {
-        if (!live) return
+    fun flush() {
+        if (!live || !dirty) return
+        dirty = false
         runCatching {
             val items = ListTag()
             for (i in 0 until inventory.containerSize) {
@@ -60,6 +62,7 @@ class Offline private constructor(val id: UUID, private val server: MinecraftSer
     }
 
     private fun close() {
+        flush()
         live = false
         viewers.toList().forEach { it.closeContainer() }
         open.remove(id)
@@ -91,9 +94,12 @@ class Offline private constructor(val id: UUID, private val server: MinecraftSer
 
         fun release(data: Offline, viewer: ServerPlayer) {
             data.viewers.remove(viewer)
+            data.flush()
             if (data.viewers.isEmpty() && data.live) open.remove(data.id)
         }
 
         fun joined(p: ServerPlayer) = open[p.uuid]?.close()
+
+        fun tick() = open.values.forEach { it.flush() }
     }
 }

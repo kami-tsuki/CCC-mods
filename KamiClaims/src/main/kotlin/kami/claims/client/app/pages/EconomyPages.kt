@@ -10,9 +10,11 @@ import kami.libs.ui.app.Callout
 import kami.libs.ui.app.Route
 import kami.libs.ui.core.Flow
 import kami.libs.ui.core.Rect
+import kami.libs.ui.core.Row
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
+import kami.libs.ui.style.Icon
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
@@ -37,12 +39,9 @@ class BudgetPage(app: ClaimsApp) : ClaimsPage(app) {
     override fun actionsWidth() = buttonWidth(tr("kami_claims.money.deposit"), Icons.DEPOSIT) + buttonWidth(tr("kami_claims.money.withdraw"), Icons.WITHDRAW) + 4
 
     override fun actions(ui: Ui, r: Rect) {
-        val deposit = tr("kami_claims.money.deposit")
-        val withdraw = tr("kami_claims.money.withdraw")
-        val dw = buttonWidth(deposit, Icons.DEPOSIT)
-        val ww = buttonWidth(withdraw, Icons.WITHDRAW)
-        if (ui.button(Rect(r.right - dw, r.y, dw, r.h), deposit, Icons.DEPOSIT, ButtonStyle.PRIMARY, key = "b-dep")) Dialogs.money(app, true)
-        if (ui.button(Rect(r.right - dw - ww - 4, r.y, ww, r.h), withdraw, Icons.WITHDRAW, enabled = can("withdraw"), disabledReason = lock("withdraw"), key = "b-wd")) Dialogs.money(app, false)
+        val row = Row(r)
+        if (ui.edgeButton(row, tr("kami_claims.money.deposit"), Icons.DEPOSIT, ButtonStyle.PRIMARY, key = "b-dep")) Dialogs.money(app, true)
+        if (ui.edgeButton(row, tr("kami_claims.money.withdraw"), Icons.WITHDRAW, enabled = can("withdraw"), disabledReason = lock("withdraw"), key = "b-wd")) Dialogs.money(app, false)
     }
 
     override fun draw(ui: Ui, r: Rect) {
@@ -52,11 +51,12 @@ class BudgetPage(app: ClaimsApp) : ClaimsPage(app) {
         val income = info.income + tributeIn
         val spending = info.upkeep + info.jobs + tributeOut
         val net = income - spending
-        val tiles = r.top(44).columns(4, 6)
-        ui.statTile(tiles[0], tr("kami_claims.budget.income_day"), Format.number(income), Icons.INCOME, Palette.success)
-        ui.statTile(tiles[1], tr("kami_claims.budget.spending_day"), Format.number(spending), Icons.EXPENSE, Palette.danger)
-        ui.statTile(tiles[2], tr("kami_claims.kpi.net"), Format.signed(net), Icons.SCALES, if (net >= 0) Palette.success else Palette.danger)
-        ui.statTile(tiles[3], tr("kami_claims.kpi.runway"), app.runwayText(info.treasury, net), Icons.CLOCK, app.runwayColor(info.treasury, net))
+        ui.kpiRow(r.top(44), listOf(
+            KpiTile(tr("kami_claims.budget.income_day"), Format.number(income), Icons.INCOME, Palette.success),
+            KpiTile(tr("kami_claims.budget.spending_day"), Format.number(spending), Icons.EXPENSE, Palette.danger),
+            KpiTile(tr("kami_claims.kpi.net"), Format.signed(net), Icons.SCALES, if (net >= 0) Palette.success else Palette.danger),
+            KpiTile(tr("kami_claims.kpi.runway"), app.runwayText(info.treasury, net), Icons.CLOCK, app.runwayColor(info.treasury, net))
+        ), key = "budget-kpi")
         val rest = r.dropTop(50)
         val (left, right) = rest.columns(2, 6)
         val lf = Flow(left, 6)
@@ -102,7 +102,7 @@ class BudgetPage(app: ClaimsApp) : ClaimsPage(app) {
         ui.barChart(flowBody, days.map { it.income + it.tributeIn + it.deposits }, days.map { it.upkeep + it.jobs + it.tributeOut + it.withdrawals }, days.map { tr("kami_claims.chart.day", Format.number(it.day)) })
     }
 
-    private fun line(ui: Ui, r: Rect, icon: kami.libs.ui.style.Icon, label: String, detail: String, amount: Long, color: Int) {
+    private fun line(ui: Ui, r: Rect, icon: Icon, label: String, detail: String, amount: Long, color: Int) {
         val x = r.x + Draw.leadIcon(ui.g, icon, r.x, r.centerY) + 2
         val y = r.y + 3
         val labelW = Draw.width(label, TextStyle.HEADING)
@@ -116,6 +116,7 @@ class BudgetPage(app: ClaimsApp) : ClaimsPage(app) {
         Draw.text(ui.g, Draw.fit("$label  ·  $detail", r.w - 86), r.x + 16, r.y, Palette.textSecondary)
         Draw.textRight(ui.g, Format.number(amount), r.right, r.y, Palette.textMuted)
     }
+
 }
 
 class LedgerPage(app: ClaimsApp) : ClaimsPage(app) {
@@ -129,21 +130,21 @@ class LedgerPage(app: ClaimsApp) : ClaimsPage(app) {
     private var kind = "all"
 
     override fun draw(ui: Ui, r: Rect) {
-        val rows = snap.ledger.filter { kind == "all" || it.kind == kind }
-        val bar = r.top(CONTROL_H)
-        ui.anchor("ledger:filters", bar)
-        val options = listOf(Option("all", tr("kami_claims.ledger.all"), Icons.LEDGER)) + Vocabulary.ledger.map { (k, look) -> Option(k, look.label, look.icon, look.description) }
-        ui.select(bar.left(160), options, kind, key = "ledger-kind")?.let { kind = it }
-        val totalIn = rows.filter { it.amount > 0 }.sumOf { it.amount }
-        val totalOut = rows.filter { it.amount < 0 }.sumOf { it.amount }
-        Draw.text(ui.g, trn("kami_claims.unit.entry", rows.size), bar.x + 168, bar.y + 5, Palette.textMuted)
-        ui.moneyRight(bar.right - 130, bar.y + 5, totalIn, signed = true)
-        ui.moneyRight(bar.right - 40, bar.y + 5, totalOut, signed = true)
-        if (ui.iconButton(Rect(bar.right - CONTROL_H, bar.y, CONTROL_H, CONTROL_H), Icons.COPY, tr("kami_claims.ledger.copy.tooltip"), key = "ledger-copy")) {
-            Minecraft.getInstance().keyboardHandler.clipboard = rows.joinToString("\n") { "${Format.exact(it.at)}\t${Vocabulary.ledger(it.kind).label}\t${it.amount}\t${it.balance}\t${it.actor}\t${it.note}" }
-            app.toast(Severity.SUCCESS, tr("kami_claims.ledger.copied"), trn("kami_claims.unit.line", rows.size))
+        var rows: List<LedgerLine> = emptyList()
+        val tableRect = ui.filterBar(r, "ledger:filters") { bar ->
+            rows = ui.filtered("ledger-filtered", listOf(kind, snap.ledger)) { snap.ledger.filter { kind == "all" || it.kind == kind } }
+            val options = listOf(Option("all", tr("kami_claims.ledger.all"), Icons.LEDGER)) + Vocabulary.ledger.map { (k, look) -> Option(k, look.label, look.icon, look.description) }
+            ui.select(bar.left(160), options, kind, key = "ledger-kind")?.let { kind = it }
+            val totalIn = rows.filter { it.amount > 0 }.sumOf { it.amount }
+            val totalOut = rows.filter { it.amount < 0 }.sumOf { it.amount }
+            Draw.text(ui.g, trn("kami_claims.unit.entry", rows.size), bar.x + 168, bar.y + 5, Palette.textMuted)
+            ui.moneyRight(bar.right - 130, bar.y + 5, totalIn, signed = true)
+            ui.moneyRight(bar.right - 40, bar.y + 5, totalOut, signed = true)
+            if (ui.iconButton(Rect(bar.right - CONTROL_H, bar.y, CONTROL_H, CONTROL_H), Icons.COPY, tr("kami_claims.ledger.copy.tooltip"), key = "ledger-copy")) {
+                Minecraft.getInstance().keyboardHandler.clipboard = rows.joinToString("\n") { "${Format.exact(it.at)}\t${Vocabulary.ledger(it.kind).label}\t${it.amount}\t${it.balance}\t${it.actor}\t${it.note}" }
+                app.toast(Severity.SUCCESS, tr("kami_claims.ledger.copied"), trn("kami_claims.unit.line", rows.size))
+            }
         }
-        val tableRect = r.dropTop(CONTROL_H + 6)
         ui.anchor("ledger:table", tableRect)
         if (snap.ledger.isEmpty()) {
             ui.emptyState(tableRect, tr("kami_claims.ledger.empty.title"), tr("kami_claims.ledger.empty.desc"), Illustrations.TREASURY)

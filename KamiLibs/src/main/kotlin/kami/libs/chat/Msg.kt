@@ -17,8 +17,6 @@ class Msg(val tone: Tone = Tone.INFO) {
     fun add(p: Phrase, color: Int = tone.body) = add(p.component(), color)
     fun muted(s: String) = text(s, Theme.MUTED)
     fun value(v: Any) = text(v.toString(), Theme.VALUE)
-    fun good(v: Any) = text(v.toString(), Theme.OK)
-    fun bad(v: Any) = text(v.toString(), Theme.BAD)
 
     fun markup(s: String) = apply {
         var from = 0
@@ -38,7 +36,6 @@ class Msg(val tone: Tone = Tone.INFO) {
     fun button(label: String, command: String, hover: String = command) = run("[$label]", command, hover)
     fun button(label: Component, command: String, hover: Component) = run(Component.literal("[").append(label).append("]"), command, hover)
     fun button(label: Phrase, command: String, hover: Phrase) = button(label.component(), command, hover.component())
-    fun suggest(label: String, command: String, hover: String) = link(Component.literal(label), ClickEvent.Action.SUGGEST_COMMAND, command, Component.literal(hover))
     fun suggest(label: String, command: String, hover: Component) = link(Component.literal(label), ClickEvent.Action.SUGGEST_COMMAND, command, hover)
 
     private fun link(label: Component, action: ClickEvent.Action, command: String, hover: Component) = apply {

@@ -13,6 +13,7 @@ import kami.libs.ui.core.Ui
 import kami.libs.ui.map.TerrainCache
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
+import kami.libs.ui.style.Icon
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
@@ -25,7 +26,7 @@ class HelpPage(app: ClaimsApp) : ClaimsPage(app) {
     override val needsCountry = false
     private var chapter = 0
 
-    private class Chapter(val id: String, val icon: kami.libs.ui.style.Icon, val page: String?) {
+    private class Chapter(val id: String, val icon: Icon, val page: String?) {
         val title get() = tr("kami_claims.help.$id")
         val paragraphs get() = listOf(tr("kami_claims.help.$id.p1"), tr("kami_claims.help.$id.p2"))
     }
@@ -43,7 +44,7 @@ class HelpPage(app: ClaimsApp) : ClaimsPage(app) {
     private val glossary = listOf("upkeep", "runway", "debt", "reserved", "plot", "lapse", "tribute", "nomansland")
 
     override fun draw(ui: Ui, r: Rect) {
-        val (nav, body) = r.columnsFixed(150, -1, gap = 10)
+        val (nav, body) = r.columnsFixed(150, Rect.FILL, gap = 10)
         chapters.forEachIndexed { i, c ->
             val row = Rect(nav.x, nav.y + i * (NAV_ROW_H + 2), nav.w, NAV_ROW_H)
             if (i == chapter) { Draw.fill(ui.g, row, Palette.selected); Draw.fill(ui.g, row.left(2), Palette.brass) }

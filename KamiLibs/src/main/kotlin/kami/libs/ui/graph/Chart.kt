@@ -1,7 +1,10 @@
 package kami.libs.ui.graph
 
+import kami.libs.ui.core.Rect
+import kami.libs.ui.style.Draw
+import kami.libs.ui.style.Format
+import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr
-import kami.libs.ui.Theme
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import kotlin.math.abs
@@ -23,6 +26,10 @@ object PriceChart {
 
     private val font get() = Minecraft.getInstance().font
 
+    private var lastData: List<Ohlc>? = null
+    private var lastMax = -1
+    private var lastResult: List<Ohlc> = emptyList()
+
     private fun bounds(data: List<Ohlc>): Pair<Double, Double> {
         if (data.isEmpty()) return 0.0 to 1.0
         val lo = data.minOf { it.low }
@@ -31,18 +38,24 @@ object PriceChart {
     }
 
     private fun downsample(data: List<Ohlc>, max: Int): List<Ohlc> {
-        if (data.size <= max) return data
-        val groupSize = ceil(data.size / max.toDouble()).toInt()
-        return data.chunked(groupSize).map { chunk ->
-            Ohlc(
-                chunk.first().open, chunk.maxOf { it.high }, chunk.minOf { it.low },
-                chunk.last().close, chunk.sumOf { it.volume }, chunk.last().at
-            )
+        if (data === lastData && max == lastMax) return lastResult
+        val result = if (data.size <= max) data else {
+            val groupSize = ceil(data.size / max.toDouble()).toInt()
+            data.chunked(groupSize).map { chunk ->
+                Ohlc(
+                    chunk.first().open, chunk.maxOf { it.high }, chunk.minOf { it.low },
+                    chunk.last().close, chunk.sumOf { it.volume }, chunk.last().at
+                )
+            }
         }
+        lastData = data
+        lastMax = max
+        lastResult = result
+        return result
     }
 
     fun draw(g: GuiGraphics, x: Int, y: Int, w: Int, h: Int, rawData: List<Ohlc>, style: ChartStyle, mouseX: Int, mouseY: Int, readout: Boolean = true): Ohlc? {
-        g.fill(x, y, x + w, y + h, Theme.ROW)
+        g.fill(x, y, x + w, y + h, Palette.sunken)
 
         val plotW = (w - AXIS_W).coerceAtLeast(10)
         val plotBottom = y + h - TIME_AXIS_H
@@ -53,7 +66,7 @@ object PriceChart {
 
         val data = downsample(rawData, MAX_POINTS)
         if (data.isEmpty()) {
-            g.drawCenteredString(font, tr("kami_libs.chart.no_trades"), x + plotW / 2, (y + priceBottom) / 2 - 4, Theme.DIM)
+            g.drawCenteredString(font, tr("kami_libs.chart.no_trades"), x + plotW / 2, (y + priceBottom) / 2 - 4, Palette.textSecondary)
             return null
         }
 
@@ -61,7 +74,7 @@ object PriceChart {
         fun py(v: Double) = y + (priceBottom - y) - ((v - lo) / (hi - lo) * (priceBottom - y)).toInt()
 
         drawPriceGrid(g, x, y, plotW, priceBottom, lo, hi)
-        g.fill(x, priceBottom, x + plotW, priceBottom + 1, Theme.BORDER)
+        g.fill(x, priceBottom, x + plotW, priceBottom + 1, Palette.border)
         when (style) {
             ChartStyle.LINE -> drawArea(g, x, y, plotW, priceBottom, data, ::py)
             ChartStyle.CANDLE -> drawCandles(g, x, y, plotW, priceBottom, data, ::py)
@@ -79,21 +92,16 @@ object PriceChart {
         return hovered
     }
 
-    private fun frame(g: GuiGraphics, x: Int, y: Int, w: Int, h: Int) {
-        g.fill(x - 1, y - 1, x + w + 1, y, Theme.BORDER)
-        g.fill(x - 1, y + h, x + w + 1, y + h + 1, Theme.BORDER)
-        g.fill(x - 1, y - 1, x, y + h + 1, Theme.BORDER)
-        g.fill(x + w, y - 1, x + w + 1, y + h + 1, Theme.BORDER)
-    }
+    private fun frame(g: GuiGraphics, x: Int, y: Int, w: Int, h: Int) = Draw.outline(g, Rect(x - 1, y - 1, w + 2, h + 2), Palette.border)
 
     private fun drawPriceGrid(g: GuiGraphics, x: Int, y: Int, plotW: Int, priceBottom: Int, lo: Double, hi: Double) {
         for (i in 0..GRID_LINES) {
             val frac = i.toDouble() / GRID_LINES
             val gy = y + ((priceBottom - y) * frac).toInt()
-            if (i in 1 until GRID_LINES) dottedH(g, x, x + plotW, gy, Theme.LINE)
+            if (i in 1 until GRID_LINES) dottedH(g, x, x + plotW, gy, Palette.borderSubtle)
             val value = hi - (hi - lo) * frac
-            val label = Theme.fmt(value.roundToInt())
-            g.drawString(font, label, x + plotW + 4, (gy - 4).coerceIn(y, priceBottom - 8), Theme.DIM, true)
+            val label = Format.number(value.roundToInt())
+            g.drawString(font, label, x + plotW + 4, (gy - 4).coerceIn(y, priceBottom - 8), Palette.textSecondary, true)
         }
     }
 
@@ -101,17 +109,17 @@ object PriceChart {
         val labelY = plotBottom + 2
         val first = data.first()
         val last = data.last()
-        if (first.at > 0) g.drawString(font, Theme.ago(first.at), x, labelY, Theme.DIM, true)
+        if (first.at > 0) g.drawString(font, Format.ago(first.at), x, labelY, Palette.textSecondary, true)
         if (last.at > 0) {
-            val text = Theme.ago(last.at)
-            g.drawString(font, text, x + plotW - font.width(text), labelY, Theme.DIM, true)
+            val text = Format.ago(last.at)
+            g.drawString(font, text, x + plotW - font.width(text), labelY, Palette.textSecondary, true)
         }
     }
 
     private fun drawArea(g: GuiGraphics, x: Int, y: Int, plotW: Int, priceBottom: Int, data: List<Ohlc>, py: (Double) -> Int) {
         if (data.size < 2) {
             val cy = py(data.first().close).coerceIn(y, priceBottom)
-            g.fill(x, cy - 1, x + plotW, cy + 2, Theme.ACCENT)
+            g.fill(x, cy - 1, x + plotW, cy + 2, Palette.brass)
             return
         }
         val stepX = plotW.toDouble() / (data.size - 1)
@@ -120,14 +128,14 @@ object PriceChart {
             val x1 = x + ((i + 1) * stepX).toInt()
             val y0 = py(data[i].close).coerceIn(y, priceBottom)
             val y1 = py(data[i + 1].close).coerceIn(y, priceBottom)
-            fillSlope(g, x0, y0, x1, y1, priceBottom, Theme.alpha(Theme.ACCENT, 0x30))
+            fillSlope(g, x0, y0, x1, y1, priceBottom, Palette.alpha(Palette.brass, 0x30))
         }
         for (i in 0 until data.size - 1) {
             val x0 = x + (i * stepX).toInt()
             val x1 = x + ((i + 1) * stepX).toInt()
             val y0 = py(data[i].close).coerceIn(y, priceBottom)
             val y1 = py(data[i + 1].close).coerceIn(y, priceBottom)
-            thickLine(g, x0, y0, x1, y1, Theme.ACCENT)
+            thickLine(g, x0, y0, x1, y1, Palette.brass)
         }
     }
 
@@ -158,7 +166,7 @@ object PriceChart {
         val inset = ((cw - bodyW) / 2).toInt()
         data.forEachIndexed { i, c ->
             val cx = x + (i * cw).toInt() + inset
-            val color = if (c.close >= c.open) Theme.GOOD else Theme.BAD
+            val color = if (c.close >= c.open) Palette.success else Palette.danger
             val bodyTop = py(max(c.open, c.close)).coerceIn(y, priceBottom)
             val bodyBot = py(min(c.open, c.close)).coerceIn(y, priceBottom)
             val wickX = cx + bodyW / 2
@@ -175,15 +183,15 @@ object PriceChart {
         data.forEachIndexed { i, c ->
             val bh = ((c.volume / maxV) * volumeH).toInt()
             val cx = x + (i * cw).toInt() + inset
-            val color = if (c.close >= c.open) Theme.GOOD else Theme.BAD
-            g.fill(cx, volumeTop + volumeH - bh, cx + barW, volumeTop + volumeH, Theme.alpha(color, 0x90))
+            val color = if (c.close >= c.open) Palette.success else Palette.danger
+            g.fill(cx, volumeTop + volumeH - bh, cx + barW, volumeTop + volumeH, Palette.alpha(color, 0x90))
         }
     }
 
     fun readout(c: Ohlc) = listOf(
-        tr("kami_libs.chart.candle.open_high", Theme.fmt(c.open.roundToInt()), Theme.fmt(c.high.roundToInt())),
-        tr("kami_libs.chart.candle.low_close", Theme.fmt(c.low.roundToInt()), Theme.fmt(c.close.roundToInt())),
-        tr("kami_libs.chart.candle.volume", Theme.fmt(c.volume.roundToInt())) + if (c.at > 0) "  ·  ${Theme.ago(c.at)}" else ""
+        tr("kami_libs.chart.candle.open_high", Format.number(c.open.roundToInt()), Format.number(c.high.roundToInt())),
+        tr("kami_libs.chart.candle.low_close", Format.number(c.low.roundToInt()), Format.number(c.close.roundToInt())),
+        tr("kami_libs.chart.candle.volume", Format.number(c.volume.roundToInt())) + if (c.at > 0) "  ·  ${Format.ago(c.at)}" else ""
     )
 
     private fun drawCrosshair(
@@ -193,13 +201,13 @@ object PriceChart {
         val c = data[idx]
         val cx = (x + (idx + 0.5) * stepX).toInt().coerceIn(x, x + plotW)
         val cy = py(c.close).coerceIn(y, priceBottom)
-        dottedV(g, cx, y, bottom, Theme.TEXT)
-        dottedH(g, x, x + plotW, cy, Theme.TEXT)
+        dottedV(g, cx, y, bottom, Palette.text)
+        dottedH(g, x, x + plotW, cy, Palette.text)
 
-        val priceLabel = Theme.fmt(c.close.roundToInt())
+        val priceLabel = Format.number(c.close.roundToInt())
         val plw = font.width(priceLabel) + 5
         val ply = (cy - 4).coerceIn(y, priceBottom - 8)
-        g.fill(x + plotW, ply - 1, x + plotW + plw, ply + 9, Theme.ACCENT)
+        g.fill(x + plotW, ply - 1, x + plotW + plw, ply + 9, Palette.brass)
         g.drawString(font, priceLabel, x + plotW + 2, ply, 0xFF101014.toInt(), false)
 
         if (!showReadout) return
@@ -211,7 +219,7 @@ object PriceChart {
         val ty = y + 2
         g.fill(tx, ty, tx + tw, ty + th, 0xF0101014.toInt())
         frame(g, tx, ty, tw, th)
-        tooltip.forEachIndexed { i, line -> g.drawString(font, line, tx + 4, ty + 3 + i * 10, Theme.TEXT, true) }
+        tooltip.forEachIndexed { i, line -> g.drawString(font, line, tx + 4, ty + 3 + i * 10, Palette.text, true) }
     }
 
     private fun dottedV(g: GuiGraphics, x: Int, y0: Int, y1: Int, color: Int) {

@@ -87,18 +87,17 @@ object ClaimsLayer {
         val zs = map.visibleZ()
         val zoom = map.zoom
         val phase = if (ui.reduceMotion) 0 else (ui.now / 120 % 64).toInt()
-        g.drawManaged {
-            for (x in xs) for (z in zs) {
-                val e = ClientClaims.at(dim, x, z)
-                val r = map.cell(x, z)
-                if (e == null) {
-                    if (ClientClaims.reserved(dim, x, z) && (mode == MapMode.RISK || mode == MapMode.POLITICAL)) Draw.fill(g, r, Palette.alpha(Palette.geoReserved, 0x50))
-                    continue
-                }
-                val color = fill(mode, e)
-                if (color != 0) Draw.fill(g, r, color)
+        for (x in xs) for (z in zs) {
+            val e = ClientClaims.at(dim, x, z)
+            val r = map.cell(x, z)
+            if (e == null) {
+                if (ClientClaims.reserved(dim, x, z) && (mode == MapMode.RISK || mode == MapMode.POLITICAL)) Draw.fill(g, r, Palette.alpha(Palette.geoReserved, 0x50))
+                continue
             }
+            val color = fill(mode, e)
+            if (color != 0) Draw.fill(g, r, color)
         }
+        g.flush()
         if (mode == MapMode.RISK || mode == MapMode.POLITICAL) for (x in xs) for (z in zs) {
             val e = ClientClaims.at(dim, x, z) ?: continue
             if (e.flags and View.DEBT == 0 || zoom < 6) continue
@@ -122,19 +121,18 @@ object ClaimsLayer {
     private fun borders(ui: Ui, map: ChunkMap, dim: String, xs: IntRange, zs: IntRange) {
         val g = ui.g
         val thick = if (map.zoom >= 12) 2 else 1
-        g.drawManaged {
-            for (x in xs) for (z in zs) {
-                val e = ClientClaims.at(dim, x, z) ?: continue
-                val r = map.cell(x, z)
-                val color = Palette.opaque(ClientClaims.country(e)?.color ?: 0x888888)
-                val dark = Palette.alpha(0x0C0E12, 0xB0)
-                fun other(dx: Int, dz: Int) = ClientClaims.at(dim, x + dx, z + dz)?.country != e.country
-                if (other(0, -1)) { Draw.fill(g, Rect(r.x, r.y, r.w, thick), color); Draw.fill(g, Rect(r.x, r.y - 1, r.w, 1), dark) }
-                if (other(0, 1)) { Draw.fill(g, Rect(r.x, r.bottom - thick, r.w, thick), color); Draw.fill(g, Rect(r.x, r.bottom, r.w, 1), dark) }
-                if (other(-1, 0)) { Draw.fill(g, Rect(r.x, r.y, thick, r.h), color); Draw.fill(g, Rect(r.x - 1, r.y, 1, r.h), dark) }
-                if (other(1, 0)) { Draw.fill(g, Rect(r.right - thick, r.y, thick, r.h), color); Draw.fill(g, Rect(r.right, r.y, 1, r.h), dark) }
-            }
+        for (x in xs) for (z in zs) {
+            val e = ClientClaims.at(dim, x, z) ?: continue
+            val r = map.cell(x, z)
+            val color = Palette.opaque(ClientClaims.country(e)?.color ?: 0x888888)
+            val dark = Palette.alpha(0x0C0E12, 0xB0)
+            fun other(dx: Int, dz: Int) = ClientClaims.at(dim, x + dx, z + dz)?.country != e.country
+            if (other(0, -1)) { Draw.fill(g, Rect(r.x, r.y, r.w, thick), color); Draw.fill(g, Rect(r.x, r.y - 1, r.w, 1), dark) }
+            if (other(0, 1)) { Draw.fill(g, Rect(r.x, r.bottom - thick, r.w, thick), color); Draw.fill(g, Rect(r.x, r.bottom, r.w, 1), dark) }
+            if (other(-1, 0)) { Draw.fill(g, Rect(r.x, r.y, thick, r.h), color); Draw.fill(g, Rect(r.x - 1, r.y, 1, r.h), dark) }
+            if (other(1, 0)) { Draw.fill(g, Rect(r.right - thick, r.y, thick, r.h), color); Draw.fill(g, Rect(r.right, r.y, 1, r.h), dark) }
         }
+        g.flush()
     }
 
     private fun markers(ui: Ui, map: ChunkMap, dim: String, xs: IntRange, zs: IntRange) {

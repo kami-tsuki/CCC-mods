@@ -7,7 +7,6 @@
   "item.kami_geology.prospector_t6": "Netherit-Gold-Schürfgerät",
   "item.kami_geology.prospector_t7": "Netherit-Smaragd-Schürfgerät",
   "item.kami_geology.prospector_t8": "Netherit-Diamant-Schürfgerät",
-  "itemGroup.kami_geology": "Kami Geology",
   "kami_geology.audit.chain": "Kette %1$s (%2$s): %3$s der Bereiche decken sie allein",
   "kami_geology.audit.failed": "Prüfung fehlgeschlagen: %s",
   "kami_geology.audit.header": "Prüfung von %1$s Bereichen, je %2$s×%2$s Chunks, im Umkreis von %3$s Blöcken. Vorrat: ab %4$s Erzblöcken.",

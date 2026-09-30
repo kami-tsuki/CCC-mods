@@ -6,7 +6,6 @@
   "kami_economy.action.auction_missing": "Auktion nicht gefunden.",
   "kami_economy.action.bid_low": "Gebot zu niedrig.",
   "kami_economy.action.bid_placed": "Gebot abgegeben.",
-  "kami_economy.action.blocked": "Dieser Gegenstand kann nicht gehandelt werden.",
   "kami_economy.action.bought": "%1$s × %2$s für %3$s gekauft.",
   "kami_economy.action.claimed": "Ausstehende Gegenstände abgeholt.",
   "kami_economy.action.error": "Serverfehler. Versuche es später erneut.",

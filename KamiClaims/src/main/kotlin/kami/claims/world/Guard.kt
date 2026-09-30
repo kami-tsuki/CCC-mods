@@ -30,6 +30,8 @@ import net.minecraft.world.entity.decoration.ArmorStand
 import net.minecraft.world.entity.decoration.HangingEntity
 import net.minecraft.world.entity.vehicle.VehicleEntity
 import net.minecraft.world.item.BucketItem
+import net.minecraft.world.item.FireChargeItem
+import net.minecraft.world.item.FlintAndSteelItem
 import net.minecraft.world.item.SolidBucketItem
 import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.entity.player.Player
@@ -184,7 +186,8 @@ object Guard {
         if (!check(level, e.pos, e.entity, action, level.getBlockState(e.pos).block)) return run { e.isCanceled = true }
         val item = e.itemStack.item
         val empty = item is BucketItem && item.content == Fluids.EMPTY
-        if (item !is BucketItem && item !is SolidBucketItem) return
+        val ignites = item is FlintAndSteelItem || item is FireChargeItem
+        if (item !is BucketItem && item !is SolidBucketItem && !ignites) return
         val at = if (empty) e.pos else e.pos.relative(e.face ?: Direction.UP)
         if (!check(level, at, e.entity, if (empty) Action.BREAK else Action.PLACE, null)) e.isCanceled = true
     }

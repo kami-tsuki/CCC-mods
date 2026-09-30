@@ -30,7 +30,13 @@ object LangAudit {
     fun load(file: Path): Map<String, String> =
         Json.parseToJsonElement(file.readText()).jsonObject.mapValues { it.value.jsonPrimitive.content }
 
-    fun audit(langDir: Path, sourceDir: Path, shared: Map<String, String> = emptyMap()): Report {
+    fun referencedKeys(sourceDir: Path): Set<String> {
+        if (!Files.exists(sourceDir)) return emptySet()
+        val sources = Files.walk(sourceDir).use { s -> s.filter { it.extension == "kt" }.map { it.readText() }.toList() }.joinToString("\n")
+        return keyLiteral.findAll(sources).map { it.groupValues[1] }.filterNot { fileName.containsMatchIn(it) }.toSet()
+    }
+
+    fun audit(langDir: Path, sourceDir: Path, shared: Map<String, String> = emptyMap(), extraUsedKeys: Set<String> = emptySet()): Report {
         val en = load(langDir.resolve("en_us.json"))
         val de = load(langDir.resolve("de_de.json"))
         val problems = ArrayList<String>()
@@ -44,7 +50,7 @@ object LangAudit {
         val referenced = keyLiteral.findAll(sources).map { it.groupValues[1] }.filterNot { fileName.containsMatchIn(it) }.toSet()
         referenced.filter { it !in known && !(("$it.one" in known) && ("$it.other" in known)) }.forEach { problems += "unknown key: $it" }
         pluralCall.findAll(sources).map { it.groupValues[1] }.filter { "$it.one" !in known || "$it.other" !in known }.forEach { problems += "plural forms missing: $it" }
-        val used = referenced.flatMap { listOf(it, "$it.one", "$it.other", "$it.desc", "$it.tooltip") }.toSet()
+        val used = referenced.flatMap { listOf(it, "$it.one", "$it.other", "$it.desc", "$it.tooltip") }.toSet() + extraUsedKeys
         val prefixes = Regex(""""(kami_[a-z]+\.[a-z0-9_.]*\.)\$""").findAll(sources).map { it.groupValues[1] }.toSet()
         val unused = en.keys.filter { key -> !key.startsWith("key.") && key !in used && prefixes.none { key.startsWith(it) } }
         return Report(problems, unused)

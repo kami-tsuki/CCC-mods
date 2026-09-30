@@ -79,10 +79,11 @@ class ChunkMap(var zoom: Float = 12f) {
             val dest = area(rx * tiles, rz * tiles, rx * tiles + tiles - 1, rz * tiles + tiles - 1)
             ui.g.blit(tile.bind(), dest.x, dest.y, dest.w, dest.h, 0f, 0f, tiles * 16, tiles * 16, tiles * 16, tiles * 16)
         }
-        if (grid && zoom >= 8) ui.g.drawManaged {
+        if (grid && zoom >= 8) {
             val line = Palette.alpha(0x000000, 0x1A)
             for (x in xs) Draw.vline(ui.g, sx(x.toDouble()), r.y, r.h, line)
             for (z in zs) Draw.hline(ui.g, r.x, sz(z.toDouble()), r.w, line)
+            ui.g.flush()
         }
     }
 
@@ -149,10 +150,7 @@ class ChunkMap(var zoom: Float = 12f) {
     private fun keyboard(ui: Ui) {
         if (ui.typing) return
         val step = (if (ui.input.shift) 8.0 else 2.0) * 12 / zoom
-        listOf(GLFW.GLFW_KEY_LEFT to (-step to 0.0), GLFW.GLFW_KEY_RIGHT to (step to 0.0), GLFW.GLFW_KEY_UP to (0.0 to -step), GLFW.GLFW_KEY_DOWN to (0.0 to step),
-            GLFW.GLFW_KEY_A to (-step to 0.0), GLFW.GLFW_KEY_D to (step to 0.0), GLFW.GLFW_KEY_W to (0.0 to -step), GLFW.GLFW_KEY_S to (0.0 to step)).forEach { (k, d) ->
-            if (ui.input.takeKey(k) { !it.ctrl } != null) { cx += d.first; cz += d.second }
-        }
+        CameraInput.panKeys(ui, step) { dx, dz -> cx += dx; cz += dz }
         if (ui.input.takeKey(GLFW.GLFW_KEY_EQUAL) != null || ui.input.takeKey(GLFW.GLFW_KEY_KP_ADD) != null) zoomBy(1)
         if (ui.input.takeKey(GLFW.GLFW_KEY_MINUS) != null || ui.input.takeKey(GLFW.GLFW_KEY_KP_SUBTRACT) != null) zoomBy(-1)
     }

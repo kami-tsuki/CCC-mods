@@ -4,6 +4,7 @@ import kami.libs.ui.style.Format
 import kami.libs.ui.text.tr
 import kami.libs.ui.core.Cursor
 import kami.libs.ui.core.Rect
+import kami.libs.ui.core.Row
 import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
@@ -25,6 +26,16 @@ const val CONTROL_H = 18
 const val SMALL_H = 16
 
 fun buttonWidth(label: String, icon: Icon? = null) = Draw.width(label) + (if (icon != null) Draw.ICON_SLOT else 0) + 14
+
+fun Ui.edgeButton(
+    r: Rect, label: String, icon: Icon? = null, style: ButtonStyle = ButtonStyle.SECONDARY, enabled: Boolean = true,
+    disabledReason: String? = null, tip: String? = null, pending: Boolean = false, left: Boolean = false, key: Any = label
+) = button(if (left) r.left(buttonWidth(label, icon)) else r.right(buttonWidth(label, icon)), label, icon, style, enabled, disabledReason, tip, pending, key)
+
+fun Ui.edgeButton(
+    row: Row, label: String, icon: Icon? = null, style: ButtonStyle = ButtonStyle.SECONDARY, enabled: Boolean = true,
+    disabledReason: String? = null, tip: String? = null, pending: Boolean = false, left: Boolean = false, key: Any = label
+) = button(if (left) row.take(buttonWidth(label, icon)) else row.takeFromRight(buttonWidth(label, icon)), label, icon, style, enabled, disabledReason, tip, pending, key)
 
 fun Ui.button(
     r: Rect, label: String, icon: Icon? = null, style: ButtonStyle = ButtonStyle.SECONDARY, enabled: Boolean = true,

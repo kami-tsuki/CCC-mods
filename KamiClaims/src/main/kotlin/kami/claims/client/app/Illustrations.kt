@@ -11,12 +11,9 @@ object Illustrations {
     val TREASURY = of("treasury")
     val CITIZENS = of("citizens")
     val JOBS = of("jobs")
-    val LAW = of("law")
     val DIPLOMACY = of("diplomacy")
     val PROVINCE = of("province")
-    val INDEPENDENCE = of("independence")
     val FOG = of("fog")
     val DEBT = of("debt")
     val SUCCESS = of("success")
-    val LOCKED = of("locked")
 }

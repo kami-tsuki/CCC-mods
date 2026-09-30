@@ -48,7 +48,6 @@ object Palette {
     val geoAlly by token("geo.ally", 0x539CC0)
     val geoNeutral by token("geo.neutral", 0x8A919C)
     val geoHostile by token("geo.banished", 0xD0585C)
-    val geoUnclaimed by token("geo.nomansland", 0x5C5950)
     val geoReserved by token("geo.reserved", 0x847658)
 
     val chart = intArrayOf(0xFFE69F00.toInt(), 0xFF56B4E9.toInt(), 0xFF009E73.toInt(), 0xFFF0E442.toInt(), 0xFF0072B2.toInt(), 0xFFD55E00.toInt(), 0xFFCC79A7.toInt(), 0xFF999999.toInt())

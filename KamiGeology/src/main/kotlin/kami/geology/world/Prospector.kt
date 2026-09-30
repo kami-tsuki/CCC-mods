@@ -1,8 +1,6 @@
 package kami.geology.world
 
 object Prospector {
-    /** Region a given tool tier reveals, in block coordinates. Tiers 1-3 are block-radius scans centered on the
-     *  player; tiers 4-8 snap to whole chunks so the result never depends on where in the chunk the player stands. */
     data class Region(val x0: Int, val z0: Int, val w: Int, val h: Int)
 
     private val BLOCK_SIZE = mapOf(1 to 1, 2 to 3, 3 to 5)

@@ -34,8 +34,7 @@ private fun Ui.itemCell(c: Rect, stack: ItemStack, name: String, key: String, co
     return clicked
 }
 
-private fun Ui.actionButton(r: Rect, label: String, enabled: Boolean = true, reason: String? = null) =
-    button(r.right(buttonWidth(label)), label, style = ButtonStyle.PRIMARY, enabled = enabled, disabledReason = reason)
+private fun noCountry() = tr("kami_libs.economy.no_country")
 
 private fun ownedAllowed(item: String): Int = Minecraft.getInstance().player?.inventory?.items
     ?.filter { !it.isEmpty && Blacklist.itemId(it) == item && Blacklist.classify(it) == Classification.ALLOWED }?.sumOf { it.count } ?: 0
@@ -104,7 +103,7 @@ internal class AuctionsPage(val app: MarketApp) : Page() {
             return
         }
         if (a.mine) {
-            if (ui.button(row.left(buttonWidth(tr("kami_economy.market.auction.cancel"))), tr("kami_economy.market.auction.cancel"),
+            if (ui.edgeButton(row, tr("kami_economy.market.auction.cancel"), left = true,
                     enabled = a.currentBidder.isEmpty(), disabledReason = tr("kami_economy.market.auction.cancel.bid"))) {
                 app.request("auction_cancel", a.id.toString())
                 table.clear()
@@ -116,10 +115,10 @@ internal class AuctionsPage(val app: MarketApp) : Page() {
         ui.numberField(row.left(110), bid, min, a.buyNowPrice.toLong().takeIf { it > 0 } ?: (min * 10), key = "bid")
         val bidLabel = tr("kami_economy.market.auction.bid")
         val bidR = Rect(row.x + 116, row.y, buttonWidth(bidLabel), row.h)
-        if (ui.button(bidR, bidLabel, style = ButtonStyle.PRIMARY)) app.request("auction_bid", a.id.toString(), bid.value.toString())
+        if (ui.button(bidR, bidLabel, style = ButtonStyle.PRIMARY, enabled = snap.citizen, disabledReason = noCountry())) app.request("auction_bid", a.id.toString(), bid.value.toString())
         if (a.buyNowPrice > 0) {
             val label = tr("kami_economy.market.auction.buy_now", Format.money(a.buyNowPrice.toLong()))
-            if (ui.button(Rect(bidR.right + 6, row.y, buttonWidth(label), row.h), label)) {
+            if (ui.button(Rect(bidR.right + 6, row.y, buttonWidth(label), row.h), label, enabled = snap.citizen, disabledReason = noCountry())) {
                 app.request("auction_buy", a.id.toString())
                 table.clear()
             }
@@ -200,7 +199,7 @@ internal class ItemPage(val app: MarketApp) : Page() {
             return
         }
         val form = r.bottom(FORM_H)
-        val history = d?.history.orEmpty().map { Ohlc(it.open.toDouble(), it.high.toDouble(), it.low.toDouble(), it.close.toDouble(), it.volume.toDouble(), it.at) }
+        val history = ui.filtered("chart:history", d?.history ?: emptyList<Any>()) { d?.history.orEmpty().map { Ohlc(it.open.toDouble(), it.high.toDouble(), it.low.toDouble(), it.close.toDouble(), it.volume.toDouble(), it.at) } }
         val body = Rect(r.x, tools.bottom + 6, r.w, form.y - tools.bottom - 14)
         ui.priceChart(body.dropRight(BOOK_W + 10), history, style)
         orderBook(ui, body.right(BOOK_W), d)
@@ -292,10 +291,10 @@ internal class ItemPage(val app: MarketApp) : Page() {
             }
             ui.numberField(first.bottom(16), qty, step, max.toLong().coerceAtLeast(step), step = step, key = "qty")?.let { if (quoted()) quote() }
         }
-        val priceSlot = if (mode == "edit") first else second
-        if (mode == "edit" || mode == "sell" && !locked(d) || mode == "bid" && !hasBid(d)) {
+        val priceSlot = if (mode == "edit" || mode == "bid" && hasBid(d)) first else second
+        if (mode == "edit" || mode == "sell" && !locked(d) || mode == "bid") {
             val label = when {
-                mode == "edit" -> tr("kami_economy.market.edit.new_price")
+                mode == "edit" || mode == "bid" && hasBid(d) -> tr("kami_economy.market.edit.new_price")
                 lot > 1 -> tr("kami_economy.market.price_lot", lot)
                 else -> tr("kami_economy.market.price")
             }
@@ -321,7 +320,7 @@ internal class ItemPage(val app: MarketApp) : Page() {
                         lines += tr("kami_economy.market.quote.tax_seller", if (q.taxPct > 0) q.taxPct else app.snap.taxPct, Format.money(q.tax - q.buyerTax)) + rate to Palette.textMuted
                     }
                     if (q.tariff > 0) lines += tr("kami_economy.market.quote.tariff", q.tariffPct, Format.money(q.tariff)) to Palette.textMuted
-                    lines += tr("kami_economy.market.total", Format.money(q.total.toLong()), Format.money(q.avg.toLong())) to (if (q.total <= app.snap.funds) Palette.success else Palette.danger)
+                    lines += tr("kami_economy.market.total", Format.money(q.total), Format.money(q.avg.toLong())) to (if (q.total <= app.snap.funds) Palette.success else Palette.danger)
                     lines += tr("kami_economy.market.funds", Format.money(app.snap.funds)) to Palette.textMuted
                 }
             }
@@ -330,9 +329,9 @@ internal class ItemPage(val app: MarketApp) : Page() {
                 val gross = unit.toLong() * (n / lot)
                 val tax = CleanStep.charge(gross, app.snap.taxPct)
                 if (locked(d)) lines += tr("kami_economy.market.price.existing", Format.money(unit.toLong())) to Palette.success
-                lines += tr("kami_economy.market.gross", Format.money(gross.toLong())) to Palette.text
-                lines += tr("kami_economy.market.tax", app.snap.taxPct, Format.money(tax.toLong())) to Palette.danger
-                lines += tr("kami_economy.market.net", Format.money((gross - tax).toLong())) to Palette.success
+                lines += tr("kami_economy.market.gross", Format.money(gross)) to Palette.text
+                lines += tr("kami_economy.market.tax", app.snap.taxPct, Format.money(tax)) to Palette.danger
+                lines += tr("kami_economy.market.net", Format.money(gross - tax)) to Palette.success
             }
             "market" -> {
                 val q = app.snap.quote?.takeIf { it.item == item && it.qty == n && it.market }
@@ -371,7 +370,11 @@ internal class ItemPage(val app: MarketApp) : Page() {
         else -> "kami_economy.market.update_price"
     })
 
-    override fun actionsWidth() = if (mode == "vendors") 0 else buttonWidth(actionLabel(detail()))
+    override fun actionsWidth() = when {
+        mode == "vendors" -> 0
+        mode == "bid" && hasBid(detail()) -> buttonWidth(actionLabel(detail())) + buttonWidth(tr("kami_economy.market.update_price")) + 6
+        else -> buttonWidth(actionLabel(detail()))
+    }
 
     override fun actions(ui: Ui, r: Rect) {
         val d = detail()
@@ -383,15 +386,16 @@ internal class ItemPage(val app: MarketApp) : Page() {
             "buy" -> {
                 val q = app.snap.quote?.takeIf { it.item == item && it.qty == n }
                 val reason = when {
+                    !app.snap.citizen -> noCountry()
                     q == null -> tr("kami_economy.market.buy.pending")
                     q.filled <= 0 -> tr("kami_economy.market.buy.none")
                     q.total > app.snap.funds -> tr("kami_economy.market.buy.funds")
                     else -> null
                 }
-                if (ui.actionButton(r, label, reason == null, reason)) { app.request("buy", item, n.toString()); app.closeDetail() }
+                if (ui.edgeButton(r, label, style = ButtonStyle.PRIMARY, enabled = reason == null, disabledReason = reason)) { app.request("buy", item, n.toString()); app.closeDetail() }
             }
             "sell" -> {
-                if (ui.actionButton(r, label, n in 1..ownedAllowed(item), tr("kami_economy.market.sell.none"))) {
+                if (ui.edgeButton(r, label, style = ButtonStyle.PRIMARY, enabled = app.snap.citizen && n in 1..ownedAllowed(item), disabledReason = if (!app.snap.citizen) noCountry() else tr("kami_economy.market.sell.none"))) {
                     app.request("sell", item, n.toString(), sellPrice(d).toString())
                     app.closeDetail()
                 }
@@ -399,32 +403,39 @@ internal class ItemPage(val app: MarketApp) : Page() {
             "market" -> {
                 val q = app.snap.quote?.takeIf { it.item == item && it.qty == n && it.market }
                 val reason = when {
+                    !app.snap.citizen -> noCountry()
                     n !in 1..ownedAllowed(item) -> tr("kami_economy.market.sell.none")
                     q == null -> tr("kami_economy.market.buy.pending")
                     q.filled <= 0 -> tr(if (d?.stock?.let { it.room <= 0 } == true) "kami_economy.market.stock.full" else "kami_economy.action.no_buyers")
                     q.total <= 0 -> tr("kami_economy.market.stock.worthless")
                     else -> null
                 }
-                if (ui.actionButton(r, label, reason == null, reason)) {
+                if (ui.edgeButton(r, label, style = ButtonStyle.PRIMARY, enabled = reason == null, disabledReason = reason)) {
                     app.request("sell_market", item, n.toString())
                     app.closeDetail()
                 }
             }
             "bid" -> if (hasBid(d)) {
-                if (ui.actionButton(r, label)) app.request("cancel_bid", item)
+                val (cancelR, repriceR) = r.columns(2, 6)
+                if (ui.edgeButton(cancelR, label, style = ButtonStyle.PRIMARY)) app.request("cancel_bid", item)
+                if (ui.edgeButton(repriceR, tr("kami_economy.market.update_price"), style = ButtonStyle.PRIMARY, enabled = app.snap.citizen, disabledReason = noCountry())) {
+                    app.request("reprice_bid", item, price.value.coerceAtLeast(1).toString())
+                    app.closeDetail()
+                }
             } else {
                 val reason = when {
+                    !app.snap.citizen -> noCountry()
                     n <= 0 -> tr("kami_economy.action.invalid_quantity")
                     crosses(d) -> tr("kami_economy.market.bid.crosses")
                     escrow(d) > app.snap.funds -> tr("kami_economy.market.buy.funds")
                     else -> null
                 }
-                if (ui.actionButton(r, label, reason == null, reason)) {
+                if (ui.edgeButton(r, label, style = ButtonStyle.PRIMARY, enabled = reason == null, disabledReason = reason)) {
                     app.request("bid", item, n.toString(), bidPrice(d).toString())
                     app.closeDetail()
                 }
             }
-            else -> if (ui.actionButton(r, label)) {
+            else -> if (ui.edgeButton(r, label, style = ButtonStyle.PRIMARY, enabled = app.snap.citizen, disabledReason = noCountry())) {
                 app.request("reprice", item, price.value.coerceAtLeast(1).toString())
                 app.closeDetail()
             }
@@ -440,18 +451,19 @@ internal class ItemPage(val app: MarketApp) : Page() {
 
 internal class ListAuctionPage(val app: MarketApp) : Page() {
     private var item = ""
-    private var slot = -1
+    private var qty = 0
     private val start = NumberState(1)
     private val buyNow = NumberState(0)
 
     override val title get() = tr("kami_economy.market.auction.list")
     override val subtitle get() = stack().hoverName.string
 
-    private fun stack(): ItemStack = Minecraft.getInstance().player?.inventory?.getItem(slot)?.takeIf { slot >= 0 } ?: ItemStack.EMPTY
+    private fun stack(): ItemStack = Minecraft.getInstance().player?.inventory?.items
+        ?.firstOrNull { !it.isEmpty && Blacklist.itemId(it) == item && Blacklist.classify(it) != Classification.BLOCKED } ?: ItemStack.EMPTY
 
     override fun opened(route: Route) {
         item = route.param("item") ?: return
-        slot = route.int("slot") ?: -1
+        qty = route.int("qty") ?: 0
         start.commit(1)
         buyNow.commit(0)
         app.request("detail", item)
@@ -478,8 +490,8 @@ internal class ListAuctionPage(val app: MarketApp) : Page() {
 
     override fun actions(ui: Ui, r: Rect) {
         val invalid = buyNow.value in 1..start.value
-        if (ui.actionButton(r, tr("kami_economy.market.auction.list"), !invalid, tr("kami_economy.market.auction.buy_now.invalid"))) {
-            app.request("auction_list", slot.toString(), start.value.toString(), buyNow.value.takeIf { it > start.value }?.toString() ?: "0")
+        if (ui.edgeButton(r, tr("kami_economy.market.auction.list"), style = ButtonStyle.PRIMARY, enabled = app.snap.citizen && !invalid, disabledReason = if (!app.snap.citizen) noCountry() else tr("kami_economy.market.auction.buy_now.invalid"))) {
+            app.request("auction_list", item, qty.toString(), start.value.toString(), buyNow.value.takeIf { it > start.value }?.toString() ?: "0")
             app.closeDetail()
         }
     }

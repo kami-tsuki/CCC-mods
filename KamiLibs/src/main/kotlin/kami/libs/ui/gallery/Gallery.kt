@@ -39,7 +39,7 @@ class Gallery : KamiApp() {
         NavGroup("Layers", listOf(NavItem("overlays", "Overlays", Icons.LAYERS), NavItem("locked", "Locked page", Icons.LOCK, lock = { "Example of a page you cannot open yet" })))
     )
 
-    override fun page(id: String): Page = pages[id] ?: pages.getValue("buttons")
+    override fun create(id: String): Page = pages[id] ?: pages.getValue("buttons")
 
     override fun topBar(ui: Ui, r: Rect) {
         Draw.icon(ui.g, Icons.LAYERS, r.x + 6, r.y + 3)
@@ -148,7 +148,7 @@ private class DisplayPage : Page() {
         ui.meter(f.take(6), 2, 3, { if (it >= 3) Severity.DANGER else Severity.WARNING }, "debt 2/3")
         f.skip(6)
         var cx = body.x
-        cx += ui.chip(cx, f.take(13).y, "Mining", Palette.chart[0], Icons.PICKAXE).first + 4
+        cx += ui.chip(cx, f.take(13).y, "Mining", Palette.chart[0], Icons.PICKAXE) + 4
         ui.statusPill(cx, f.rest.y - 17, "In debt", Severity.DANGER)
         f.skip(4)
         ui.timeline(f.take(34), listOf(Step("Billed", "today", StepState.DONE), Step("Debt 1", "1d", StepState.DONE), Step("Debt 2", "2d", StepState.CURRENT), Step("Lost", "in 1d", StepState.PENDING)))

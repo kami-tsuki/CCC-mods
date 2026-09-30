@@ -2,6 +2,7 @@ package kami.geology.item
 
 import kami.libs.chat.Theme
 import kami.libs.text.Phrase
+import kami.geology.KamiGeology
 import kami.geology.command.GeoText
 import kami.geology.command.GeoText.ore
 import kami.geology.map.Heatmap
@@ -24,7 +25,7 @@ import net.minecraft.world.level.Level
 
 class ProspectorItem(val tier: Int, props: Properties) : Item(props) {
     private companion object {
-        const val COOLDOWN_TICKS = 20 // 1 second
+        const val COOLDOWN_TICKS_ONE_SECOND = 20
     }
 
     override fun use(level: Level, player: Player, hand: InteractionHand): InteractionResultHolder<ItemStack> {
@@ -45,7 +46,7 @@ class ProspectorItem(val tier: Int, props: Properties) : Item(props) {
                 else -> MapServer.scan(player, tier)
             }
 
-            player.cooldowns.addCooldown(this, COOLDOWN_TICKS)
+            KamiGeology.PROSPECTORS_BY_TIER.forEach { player.cooldowns.addCooldown(it.get(), COOLDOWN_TICKS_ONE_SECOND) }
         }
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide)
     }

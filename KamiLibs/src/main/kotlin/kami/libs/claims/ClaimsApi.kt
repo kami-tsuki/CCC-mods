@@ -38,6 +38,7 @@ object ClaimsApi {
     fun isBanished(player: UUID, country: String): Boolean = provider?.isBanished(player, country) ?: false
     fun countryOf(player: UUID): String? = provider?.countryOf(player)
     fun citizenship(player: UUID): Citizenship? = provider?.citizenship(player)
+    fun isCitizen(player: UUID): Boolean = !present || countryOf(player) != null
     fun country(id: String): CountryInfo? = provider?.country(id)
     fun relation(a: String, b: String): Relation = provider?.relation(a, b) ?: Relation.NEUTRAL
     fun tariff(buyerCountry: String, sellerCountry: String): Int = provider?.tariff(buyerCountry, sellerCountry) ?: 0

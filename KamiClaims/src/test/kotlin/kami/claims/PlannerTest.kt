@@ -65,6 +65,25 @@ class PlannerTest {
     }
 
     @Test
+    fun unclaimBatchUsesConnectivityForWholeSet() {
+        val c = country(5, 0)
+        Realm.claims(c.id).forEach { it.upkeepCycles = 1 }
+        val plan = Planner.unclaim(c, listOf(Key(dim, 4, 0), Key(dim, 3, 0), Key(dim, 2, 0)))
+        assertEquals(3, plan.ready.size)
+        assertTrue(plan.cells.all { it.outcome == Outcome.UNCLAIM })
+    }
+
+    @Test
+    fun unclaimBatchFallsBackWhenWholeSetWouldSplit() {
+        val c = country(5, 0)
+        Realm.claims(c.id).forEach { it.upkeepCycles = 1 }
+        val plan = Planner.unclaim(c, listOf(Key(dim, 2, 0), Key(dim, 4, 0)))
+        val byX = plan.cells.associateBy { it.key.x }
+        assertEquals(Outcome.BLOCKED, byX.getValue(2).outcome)
+        assertEquals(Outcome.UNCLAIM, byX.getValue(4).outcome)
+    }
+
+    @Test
     fun retypeShowsUpkeepDelta() {
         val c = country(Config.s.freeChunks + 1, 0)
         val paid = Realm.claims(c.id).first { !it.free }

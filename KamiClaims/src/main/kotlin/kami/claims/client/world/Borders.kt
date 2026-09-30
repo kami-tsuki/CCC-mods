@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.particles.DustParticleOptions
 import net.minecraft.network.chat.Component
+import net.minecraft.world.level.LightLayer
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.HitResult
@@ -118,7 +119,7 @@ object Borders {
         val budget = ClientClaims.prefs.borderDensity / 4
         var spent = 0
         val eye = player.eyeY
-        val underground = level.getBrightness(net.minecraft.world.level.LightLayer.SKY, player.blockPosition()) == 0
+        val underground = level.getBrightness(LightLayer.SKY, player.blockPosition()) == 0
         if (radius > 0 && !(ClientClaims.prefs.borderLines && ClientClaims.prefs.borderMode != BorderMode.OFF)) {
             edges(radius).sortedBy { distance(it, player.blockX, player.blockZ) }.forEach { e ->
                 if (spent >= budget) return@forEach

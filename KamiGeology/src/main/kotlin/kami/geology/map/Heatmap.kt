@@ -14,7 +14,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 object Heatmap {
-    const val UNIT_MAX = 16384.0
+    private const val UNIT_MAX = 16384.0
     const val MAX_ORES = 63
 
     const val ANALYTIC_CELL = 8
@@ -175,7 +175,6 @@ object Heatmap {
         return lines
     }
 
-    /** Single-column check for every ore, used by the tier 1 prospector (scans just the block the player stands on). */
     fun probeColumn(world: WorldContext, x: Int, z: Int, y0: Int, y1: Int): List<Pair<String, String>> =
         world.settings.ores.mapNotNull { ore ->
             world.sitesIn(ore, x, z, x, z).firstOrNull { site ->

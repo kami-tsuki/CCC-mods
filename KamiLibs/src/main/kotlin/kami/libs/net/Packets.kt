@@ -7,11 +7,20 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.resources.ResourceLocation
 
 object Packets {
-    fun id(modId: String, path: String): ResourceLocation = ResourceLocation.fromNamespaceAndPath(modId, path)
+    private fun id(modId: String, path: String): ResourceLocation = ResourceLocation.fromNamespaceAndPath(modId, path)
 
     fun <T : CustomPacketPayload> codec(
         write: (FriendlyByteBuf, T) -> Unit,
         read: (FriendlyByteBuf) -> T
     ): StreamCodec<RegistryFriendlyByteBuf, T> =
         StreamCodec.of<RegistryFriendlyByteBuf, T>({ buf, v -> write(buf, v) }, { buf -> read(buf) })
+
+    fun forMod(modId: String) = ModPackets(modId)
+
+    class ModPackets(val modId: String) {
+        fun id(path: String) = Packets.id(modId, path)
+
+        fun <T : CustomPacketPayload> codec(write: (FriendlyByteBuf, T) -> Unit, read: (FriendlyByteBuf) -> T) =
+            Packets.codec(write, read)
+    }
 }

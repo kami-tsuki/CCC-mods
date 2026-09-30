@@ -2,7 +2,6 @@ package kami.libs.ui.map
 
 import net.minecraft.client.Minecraft
 import net.minecraft.world.level.ChunkPos
-import net.minecraft.world.level.chunk.LevelChunk
 import net.neoforged.neoforge.client.event.ClientTickEvent
 import net.neoforged.neoforge.event.level.ChunkEvent
 import net.neoforged.neoforge.event.level.LevelEvent
@@ -37,7 +36,7 @@ object TerrainScanner {
         while (budget > 0 && iterator.hasNext()) {
             val pos = ChunkPos(iterator.next())
             iterator.remove()
-            val chunk = level.chunkSource.getChunk(pos.x, pos.z, false) as? LevelChunk ?: continue
+            val chunk = level.chunkSource.getChunk(pos.x, pos.z, false) ?: continue
             if (chunk.isEmpty) continue
             TerrainCache.put(dim, pos.x, pos.z, TerrainSampler.sample(level, chunk))
             budget--

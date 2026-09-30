@@ -12,12 +12,14 @@ import kami.economy.net.Net
 import kami.economy.world.Vendors
 import kami.economy.world.VendorRegistry
 import net.neoforged.neoforge.event.level.BlockEvent
+import net.neoforged.neoforge.event.level.LevelEvent
 import kami.libs.economy.MarketApi
 import kami.libs.economy.MarketProvider
 import kami.libs.log.Log
 import kami.libs.mc.Registry
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.item.ItemStack
+import net.minecraft.world.level.Level
 import net.neoforged.api.distmarker.Dist
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
@@ -31,10 +33,11 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
 import thedarkcolour.kotlinforforge.neoforge.forge.FORGE_BUS
 import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 
+val LOG = Log.of("economy")
+
 @Mod(KamiEconomy.ID)
 object KamiEconomy {
     const val ID = "kami_economy"
-    val LOG = Log.of("economy")
     val registry = Registry(LOG)
 
     init {
@@ -50,6 +53,7 @@ object KamiEconomy {
         EconomyCommands.register()
         FORGE_BUS.addListener<ServerStartedEvent> { Market.load(it.server); History.load(it.server) }
         FORGE_BUS.addListener<ServerStoppingEvent> { Market.save(true); History.save(true) }
+        FORGE_BUS.addListener<LevelEvent.Save> { if ((it.level as? Level)?.dimension() == Level.OVERWORLD) { Market.save(); History.save() } }
         FORGE_BUS.addListener<ServerTickEvent.Post> {
             val server = it.server
             val t = server.tickCount

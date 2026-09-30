@@ -32,8 +32,6 @@ object Sprites {
     val MODAL_DANGER = lib("panel/modal_danger")
     val TOAST = lib("panel/toast")
     val HAZARD = lib("pattern/hazard")
-    val PARCHMENT = lib("pattern/parchment")
-    val HATCH = lib("pattern/hatch")
 
     enum class Look(private val base: String) {
         SECONDARY("widget/button"), PRIMARY("widget/button_primary"), DANGER("widget/button_danger"), GHOST("widget/button_ghost");
@@ -140,7 +138,7 @@ object Draw {
         for (i in 1..depth.coerceAtMost(2)) g.fill(r.x + i, r.y + i, r.right + i, r.bottom + i, Palette.alpha(0, 0x30 / i))
     }
 
-    fun styled(text: String, style: TextStyle): Component {
+    private fun styled(text: String, style: TextStyle): Component {
         val body = if (style.upper) text.uppercase() else text
         return Component.literal(body).withStyle(Style.EMPTY.withBold(style.bold))
     }
@@ -190,56 +188,52 @@ object Draw {
         val dy = y1 - y0
         val steps = max(abs(dx), abs(dy))
         if (steps == 0) return g.fill(x0, y0, x0 + thickness, y0 + thickness, color)
-        g.drawManaged {
-            for (i in 0..steps) {
-                val x = x0 + dx * i / steps
-                val y = y0 + dy * i / steps
-                g.fill(x, y, x + thickness, y + thickness, color)
-            }
+        for (i in 0..steps) {
+            val x = x0 + dx * i / steps
+            val y = y0 + dy * i / steps
+            g.fill(x, y, x + thickness, y + thickness, color)
         }
+        g.flush()
     }
 
     fun dashed(g: GuiGraphics, x0: Int, y0: Int, x1: Int, y1: Int, color: Int, dash: Int = 3) {
         val steps = max(abs(x1 - x0), abs(y1 - y0))
         if (steps == 0) return
-        g.drawManaged {
-            for (i in 0..steps) if ((i / dash) % 2 == 0) {
-                val x = x0 + (x1 - x0) * i / steps
-                val y = y0 + (y1 - y0) * i / steps
-                g.fill(x, y, x + 1, y + 1, color)
-            }
+        for (i in 0..steps) if ((i / dash) % 2 == 0) {
+            val x = x0 + (x1 - x0) * i / steps
+            val y = y0 + (y1 - y0) * i / steps
+            g.fill(x, y, x + 1, y + 1, color)
         }
+        g.flush()
     }
 
     fun marching(g: GuiGraphics, r: Rect, color: Int, phase: Int) {
-        g.drawManaged {
-            val perimeter = 2 * (r.w + r.h)
-            for (i in 0 until perimeter) {
-                if (((i + phase) / 3) % 2 != 0) continue
-                val (x, y) = when {
-                    i < r.w -> r.x + i to r.y
-                    i < r.w + r.h -> r.right - 1 to r.y + (i - r.w)
-                    i < 2 * r.w + r.h -> r.right - 1 - (i - r.w - r.h) to r.bottom - 1
-                    else -> r.x to r.bottom - 1 - (i - 2 * r.w - r.h)
-                }
-                g.fill(x, y, x + 1, y + 1, color)
+        val perimeter = 2 * (r.w + r.h)
+        for (i in 0 until perimeter) {
+            if (((i + phase) / 3) % 2 != 0) continue
+            val (x, y) = when {
+                i < r.w -> r.x + i to r.y
+                i < r.w + r.h -> r.right - 1 to r.y + (i - r.w)
+                i < 2 * r.w + r.h -> r.right - 1 - (i - r.w - r.h) to r.bottom - 1
+                else -> r.x to r.bottom - 1 - (i - 2 * r.w - r.h)
             }
+            g.fill(x, y, x + 1, y + 1, color)
         }
+        g.flush()
     }
 
     fun hatch(g: GuiGraphics, r: Rect, color: Int, spacing: Int = 4, phase: Int = 0) {
         if (r.isEmpty) return
         g.enableScissor(r.x, r.y, r.right, r.bottom)
-        g.drawManaged {
-            var k = -r.h + (phase % spacing)
-            while (k < r.w) {
-                for (i in 0 until r.h) {
-                    val x = r.x + k + i
-                    if (x >= r.x && x < r.right) g.fill(x, r.bottom - 1 - i, x + 1, r.bottom - i, color)
-                }
-                k += spacing
+        var k = -r.h + (phase % spacing)
+        while (k < r.w) {
+            for (i in 0 until r.h) {
+                val x = r.x + k + i
+                if (x >= r.x && x < r.right) g.fill(x, r.bottom - 1 - i, x + 1, r.bottom - i, color)
             }
+            k += spacing
         }
+        g.flush()
         g.disableScissor()
     }
 

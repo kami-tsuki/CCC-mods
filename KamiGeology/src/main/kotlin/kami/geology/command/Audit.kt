@@ -19,13 +19,12 @@ object Audit {
         val cells = size / CELL
         val mask = (0 until min(ores.size, Heatmap.MAX_ORES)).fold(0L) { m, i -> m or (1L shl i) }
         val random = SplittableRandom(world.seed xor origin.asLong())
-        val supply = Array(samples) { FloatArray(ores.size) }
-        for (s in 0 until samples) {
+        val supply = Array(samples) { FloatArray(ores.size).also { row ->
             val x = Math.floorDiv(origin.x + random.nextInt(-radius, radius + 1), CELL) * CELL
             val z = Math.floorDiv(origin.z + random.nextInt(-radius, radius + 1), CELL) * CELL
             val query = Heatmap.Query(x, z, CELL, cells, cells, world.level.minBuildHeight, world.level.maxBuildHeight - 1)
-            Heatmap.totals(world, query, mask)?.copyInto(supply[s])
-        }
+            Heatmap.totals(world, query, mask)?.copyInto(row)
+        } }
 
         val threshold = settings.general.auditThreshold
         val lines = ArrayList<Phrase>()

@@ -3,7 +3,7 @@ package kami.claims.client.app.pages
 import kami.claims.client.ClientClaims
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ClaimsPage
-import kami.claims.client.app.Consequence
+import kami.libs.ui.app.Consequence
 import kami.claims.client.app.Dialogs
 import kami.libs.ui.widget.Flags
 import kami.claims.client.app.Vocabulary
@@ -22,9 +22,11 @@ import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Ui
 import kami.libs.ui.map.ChunkMap
+import kami.libs.ui.map.ChunkPoint
 import kami.libs.ui.map.TerrainCache
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
+import kami.libs.ui.style.Icon
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
@@ -175,26 +177,21 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
 
     private fun layerPopover(ui: Ui, anchor: Rect) {
         ui.onEscape(55) { layersOpen = false }
-        ui.overlay {
-            val items = listOf("borders", "labels", "markers", "grid").map { it to tr("kami_claims.map.layer.$it") }
-            val box = Rect(anchor.x, anchor.bottom + 2, 170, items.size * 16 + 38)
-            ui.block(box)
-            Draw.shadow(ui.g, box, 2)
-            Draw.sprite(ui.g, Sprites.POPOVER, box)
+        val items = listOf("borders", "labels", "markers", "grid").map { it to tr("kami_claims.map.layer.$it") }
+        ui.popover(anchor, 170, items.size * 16 + 38, onOutside = { layersOpen = false }) { box ->
             var y = box.y + 5
             items.forEach { (k, label) ->
-                ui.toggle(Rect(box.x + 6, y, box.w - 12, 14), k in ClientClaims.prefs.mapLayers, label, key = "layer:$k")?.let { on ->
+                toggle(Rect(box.x + 6, y, box.w - 12, 14), k in ClientClaims.prefs.mapLayers, label, key = "layer:$k")?.let { on ->
                     if (on) ClientClaims.prefs.mapLayers += k else ClientClaims.prefs.mapLayers -= k
                     ClientClaims.savePrefs()
                 }
                 y += 16
             }
-            ui.toggle(Rect(box.x + 6, y, box.w - 12, 14), ClientClaims.prefs.terrain, tr("kami_claims.map.mode.terrain"), tip = tr("kami_claims.map.layer.terrain.tooltip"), key = "layer:terrain")?.let {
+            toggle(Rect(box.x + 6, y, box.w - 12, 14), ClientClaims.prefs.terrain, tr("kami_claims.map.mode.terrain"), tip = tr("kami_claims.map.layer.terrain.tooltip"), key = "layer:terrain")?.let {
                 ClientClaims.prefs.terrain = it; TerrainCache.enabled = it; ClientClaims.savePrefs()
             }
             y += 16
-            ui.toggle(Rect(box.x + 6, y, box.w - 12, 14), ClientClaims.prefs.overlay, tr("kami_claims.map.layer.xaero"), key = "layer:xaero")?.let { ClientClaims.prefs.overlay = it; ClientClaims.savePrefs() }
-            if (ui.input.presses.any { !it.consumed && !box.contains(it.x, it.y) && !anchor.contains(it.x, it.y) }) layersOpen = false
+            toggle(Rect(box.x + 6, y, box.w - 12, 14), ClientClaims.prefs.overlay, tr("kami_claims.map.layer.xaero"), key = "layer:xaero")?.let { ClientClaims.prefs.overlay = it; ClientClaims.savePrefs() }
         }
     }
 
@@ -290,7 +287,7 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
         statusLine(ui, status, hover?.let { it.x to it.z })
     }
 
-    private fun overlays(ui: Ui, dragStart: kami.libs.ui.map.ChunkPoint?, dragging: kami.libs.ui.map.ChunkPoint?) {
+    private fun overlays(ui: Ui, dragStart: ChunkPoint?, dragging: ChunkPoint?) {
         val g = ui.g
         val preview = previewFor()
         val outcomes = preview?.cells?.associateBy { key(it.x, it.z) } ?: emptyMap()
@@ -340,10 +337,9 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
 
     private fun compass(ui: Ui, r: Rect) {
         val c = Rect(r.right - 26, r.y + 4, 22, 22)
-        Draw.fill(ui.g, c, Palette.alpha(0, 0x80))
-        Draw.text(ui.g, "N", c.centerX - 2, c.y + 2, Palette.danger)
-        Draw.text(ui.g, "S", c.centerX - 2, c.bottom - 9, Palette.textMuted)
-        Draw.vline(ui.g, c.centerX, c.y + 10, 3, Palette.textMuted)
+        ui.keycap(c.centerX - 5, c.y, "N")
+        ui.keycap(c.centerX - 5, c.bottom - 11, "S")
+        Draw.vline(ui.g, c.centerX, c.y + 12, 3, Palette.textMuted)
     }
 
     private fun zoomControls(ui: Ui, r: Rect) {
@@ -417,8 +413,7 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
     }
 
     private fun side(ui: Ui, r: Rect) {
-        Draw.sprite(ui.g, Sprites.PANEL, r)
-        val inner = r.inset(6)
+        val inner = ui.sidePanel(r, inset = 6).rest
         when {
             selection.isEmpty() -> overview(ui, inner)
             selection.size == 1 && !planning -> single(ui, inner)
@@ -512,7 +507,7 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
         f.skip(4)
         val rest = f.rest
         var y = rest.bottom - CONTROL_H
-        fun place(label: String, icon: kami.libs.ui.style.Icon, style: ButtonStyle, enabled: Boolean, reason: String?, key: String, action: () -> Unit) {
+        fun place(label: String, icon: Icon, style: ButtonStyle, enabled: Boolean, reason: String?, key: String, action: () -> Unit) {
             val cell = Rect(rest.x, y, rest.w, CONTROL_H)
             if (ui.button(cell, label, icon, style, enabled, reason, pending = pending(key), key = "chunk-$key")) action()
             y -= CONTROL_H + 3
@@ -624,7 +619,7 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
 
     private fun perDayDelta(v: Double) = Format.perDay(tr("kami_libs.unit.money", (if (v > 0) "+" else "") + Format.decimal(v)))
 
-    private fun outcomeRow(ui: Ui, r: Rect, color: Int, text: String, icon: kami.libs.ui.style.Icon) {
+    private fun outcomeRow(ui: Ui, r: Rect, color: Int, text: String, icon: Icon) {
         val x = r.x + Draw.leadIcon(ui.g, icon, r.x, r.centerY) + 2
         Draw.text(ui.g, Draw.fit(text, r.right - x), x, r.y + 3, color)
     }

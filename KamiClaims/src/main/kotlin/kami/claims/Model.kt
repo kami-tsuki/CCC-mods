@@ -1,13 +1,9 @@
 package kami.claims
 
+import kami.libs.config.WorldStore
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.storage.LevelResource
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 import kotlin.math.max
 
 @Serializable
@@ -150,38 +146,29 @@ class Data(
 )
 
 object Realm {
-    private val json = Json { prettyPrint = true; encodeDefaults = true; ignoreUnknownKeys = true }
-    private var file: Path? = null
+    private val store = WorldStore(Data.serializer(), ::Data)
     var data = Data()
     val index = HashMap<Key, Claim>()
     private val byCountry = HashMap<String, MutableList<Claim>>()
     val home = HashMap<String, String>()
-    var dirty = false
+    var dirty
+        get() = store.dirty
+        set(v) { store.dirty = v }
     var rev = 0
 
     fun changed() {
         rev++
-        dirty = true
+        store.changed()
     }
 
     fun load(server: MinecraftServer) {
         val path = server.getWorldPath(LevelResource.ROOT).resolve("kami_claims.json")
-        file = path
-        reset(if (Files.exists(path)) runCatching { json.decodeFromString<Data>(Files.readString(path)) }.getOrElse {
-            KamiClaims.LOG.error("Unreadable claims data, kept as .bad", it)
-            Files.move(path, path.resolveSibling("kami_claims.json.bad"), StandardCopyOption.REPLACE_EXISTING)
-            Data()
-        } else Data())
+        reset(store.load(path) { KamiClaims.LOG.error("Unreadable claims data, kept as .bad", it) })
     }
 
     fun save(force: Boolean = false) {
-        val path = file ?: return
-        if (!dirty && !force) return
-        val tmp = path.resolveSibling("kami_claims.json.tmp")
-        Files.writeString(tmp, json.encodeToString(data))
-        if (Files.exists(path)) Files.copy(path, path.resolveSibling("kami_claims.json.bak"), StandardCopyOption.REPLACE_EXISTING)
-        Files.move(tmp, path, StandardCopyOption.REPLACE_EXISTING)
-        dirty = false
+        store.data = data
+        store.save(force)
     }
 
     fun reset(next: Data) {
@@ -276,17 +263,20 @@ object Realm {
     }
 
     fun neighbors(c: Claim) = listOf(Key(c.dim, c.x + 1, c.z), Key(c.dim, c.x - 1, c.z), Key(c.dim, c.x, c.z + 1), Key(c.dim, c.x, c.z - 1))
+    private fun neighbors(k: Key) = listOf(Key(k.dim, k.x + 1, k.z), Key(k.dim, k.x - 1, k.z), Key(k.dim, k.x, k.z + 1), Key(k.dim, k.x, k.z - 1))
 
-    fun removable(target: Claim): Boolean {
-        val rest = claims(target.country).filter { it !== target && it.dim == target.dim }.associateBy { it.key }
-        val start = rest.values.firstOrNull() ?: return true
-        val seen = hashSetOf(start.key)
+    private fun connected(rest: Map<Key, Claim>): Boolean {
+        val start = rest.keys.firstOrNull() ?: return true
+        val seen = hashSetOf(start)
         val queue = ArrayDeque(listOf(start))
-        while (queue.isNotEmpty()) neighbors(queue.removeFirst()).forEach { k ->
-            rest[k]?.let { if (seen.add(k)) queue.addLast(it) }
-        }
+        while (queue.isNotEmpty()) neighbors(queue.removeFirst()).forEach { k -> if (k in rest && seen.add(k)) queue.addLast(k) }
         return seen.size == rest.size
     }
+
+    fun removable(target: Claim) = removableBatch(target.country, target.dim, setOf(target.key))
+
+    fun removableBatch(country: String, dim: String, keys: Set<Key>): Boolean =
+        connected(claims(country).filter { it.dim == dim && it.key !in keys }.associateBy { it.key })
 
     fun freeAllowed(c: Country): Int {
         if (now() - c.lastActive > Config.s.inactiveDays * Config.s.dayMillis) return 0

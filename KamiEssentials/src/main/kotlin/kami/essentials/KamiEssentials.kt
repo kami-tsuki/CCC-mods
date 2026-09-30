@@ -41,6 +41,7 @@ object KamiEssentials {
         FORGE_BUS.addListener<ServerStoppingEvent> { Trades.stop() }
         FORGE_BUS.addListener<ServerTickEvent.Post> {
             Trades.tick()
+            Offline.tick()
             if (it.server.tickCount % 20 == 0) {
                 Tab.tick(it.server)
                 Sidebar.tick(it.server)

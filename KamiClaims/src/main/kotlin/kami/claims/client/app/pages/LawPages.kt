@@ -11,6 +11,7 @@ import kami.libs.ui.app.Route
 import kami.libs.ui.core.Cursor
 import kami.libs.ui.core.Flow
 import kami.libs.ui.core.Rect
+import kami.libs.ui.core.Row
 import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
@@ -31,15 +32,13 @@ private fun Ui.applyBar(r: Rect, changes: Int, summary: String, enabled: Boolean
     Draw.fill(g, Rect(r.x + 6, r.centerY - 2, 4, 4), Palette.brass)
     Draw.text(g, trn("kami_claims.unit.unsaved", changes), r.x + 14, r.y + 5, TextStyle.HEADING, Palette.brass)
     Draw.text(g, Draw.fit(summary, r.w - 220), r.x + 14, r.y + 15, Palette.textSecondary)
-    val applyLabel = tr("kami_libs.common.apply")
-    val applyW = buttonWidth(applyLabel, Icons.SAVE)
-    val apply = Rect(r.right - applyW - 4, r.y + 4, applyW, CONTROL_H)
-    if (button(apply, applyLabel, Icons.SAVE, ButtonStyle.PRIMARY, enabled, reason, pending = pending, key = "$key:apply")) onApply()
-    val discard = tr("kami_libs.common.discard")
-    val discardW = buttonWidth(discard, Icons.UNDO)
-    if (button(Rect(apply.x - discardW - 4, r.y + 4, discardW, CONTROL_H), discard, Icons.UNDO, key = "$key:discard")) onDiscard()
+    val row = Row(Rect(r.x, r.y + 4, r.w - 4, CONTROL_H))
+    if (edgeButton(row, tr("kami_libs.common.apply"), Icons.SAVE, ButtonStyle.PRIMARY, enabled, reason, pending = pending, key = "$key:apply")) onApply()
+    if (edgeButton(row, tr("kami_libs.common.discard"), Icons.UNDO, key = "$key:discard")) onDiscard()
     if (input.takeKey(GLFW.GLFW_KEY_S) { it.ctrl } != null && enabled) onApply()
 }
+
+private val ACTIONS = listOf("break", "place", "interact", "container")
 
 class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
     override val title get() = tr("kami_claims.nav.protection")
@@ -53,18 +52,14 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
     private var focusCell: Pair<String, String>? = null
 
     private fun key(type: String, field: String) = "$type:$field"
-    private fun current(t: TypeLine, field: String): String = staged[key(t.name, field)] ?: when (field) {
+    private fun raw(t: TypeLine, field: String): String = when (field) {
         "machines" -> t.machines.toString()
         "fire" -> t.fire.toString()
         "fluid" -> t.fluid.toString()
-        else -> t.access[listOf("break", "place", "interact", "container").indexOf(field)]
+        else -> t.access[ACTIONS.indexOf(field)]
     }
-    private fun original(t: TypeLine, field: String): String = when (field) {
-        "machines" -> t.machines.toString()
-        "fire" -> t.fire.toString()
-        "fluid" -> t.fluid.toString()
-        else -> t.access[listOf("break", "place", "interact", "container").indexOf(field)]
-    }
+    private fun current(t: TypeLine, field: String) = staged[key(t.name, field)] ?: raw(t, field)
+    private fun original(t: TypeLine, field: String) = raw(t, field)
 
     override fun leaving(next: Route): Boolean {
         if (staged.isEmpty()) return true
@@ -89,7 +84,7 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
             "public" -> listOf("citizen", "citizen", "any", "any")
             else -> t.defaults
         }
-        listOf("break", "place", "interact", "container").forEachIndexed { i, f -> stage(t, f, values[i]) }
+        ACTIONS.forEachIndexed { i, f -> stage(t, f, values[i]) }
     }
 
     private fun stage(t: TypeLine, field: String, value: String) {
@@ -101,7 +96,7 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
         val bottom = r.bottom(EXPLAIN_H + if (staged.isEmpty()) 0 else 28)
         val grid = r.dropBottom(bottom.h, 6)
         ui.anchor("protect:grid", grid)
-        val actions = listOf("break", "place", "interact", "container")
+        val actions = ACTIONS
         val flags = listOf("machines", "fire", "fluid")
         val labelW = (grid.w * 0.24).toInt().coerceIn(96, 150)
         val actionW = (grid.w - labelW - flags.size * 34) / actions.size
@@ -287,14 +282,11 @@ class IdentityPage(app: ClaimsApp) : ClaimsPage(app) {
         }
         val dirty = color != info.color || pattern != info.flag.pattern || emblem != info.flag.emblem || secondary != info.flag.secondary
         if (dirty) {
-            val bar = f.take(CONTROL_H)
-            val saveLabel = tr("kami_claims.identity.save")
-            val discard = tr("kami_libs.common.discard")
-            val save = bar.right(buttonWidth(saveLabel, Icons.SAVE))
-            if (ui.button(save, saveLabel, Icons.SAVE, ButtonStyle.PRIMARY, editable, lock("rules"), pending = pending("flag"), key = "save-flag")) {
+            val row = Row(f.take(CONTROL_H))
+            if (ui.edgeButton(row, tr("kami_claims.identity.save"), Icons.SAVE, ButtonStyle.PRIMARY, editable, lock("rules"), pending = pending("flag"), key = "save-flag")) {
                 act("flag", "%06x".format(color and 0xFFFFFF), pattern.toString(), emblem.toString(), "%06x".format(secondary and 0xFFFFFF), key = "flag")
             }
-            if (ui.button(Rect(save.x - buttonWidth(discard, Icons.UNDO) - 4, bar.y, buttonWidth(discard, Icons.UNDO), CONTROL_H), discard, Icons.UNDO, key = "discard-flag")) color = -1
+            if (ui.edgeButton(row, tr("kami_libs.common.discard"), Icons.UNDO, key = "discard-flag")) color = -1
         }
     }
 

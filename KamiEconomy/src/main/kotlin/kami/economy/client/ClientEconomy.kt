@@ -1,7 +1,7 @@
 package kami.economy.client
 
 import com.mojang.blaze3d.platform.InputConstants
-import kami.economy.net.Act
+import kami.economy.net.Net
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
 import net.neoforged.neoforge.client.event.ClientTickEvent
@@ -18,7 +18,7 @@ object ClientEconomy {
     fun init() {
         MOD_BUS.addListener<RegisterKeyMappingsEvent> { it.register(open) }
         FORGE_BUS.addListener<ClientTickEvent.Post> {
-            while (open.consumeClick()) if (Minecraft.getInstance().screen == null) PacketDistributor.sendToServer(Act("open", emptyList()))
+            while (open.consumeClick()) if (Minecraft.getInstance().screen == null) PacketDistributor.sendToServer(Net.act("open"))
         }
         FORGE_BUS.addListener<ItemTooltipEvent> { TooltipHook.onTooltip(it) }
     }

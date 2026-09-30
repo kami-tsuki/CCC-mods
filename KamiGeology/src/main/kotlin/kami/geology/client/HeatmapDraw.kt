@@ -20,10 +20,7 @@ internal object HeatmapDraw {
 
     fun abgr(rgb: Int) = 0xFF shl 24 or ((rgb and 0xFF) shl 16) or (rgb and 0xFF00) or ((rgb shr 16) and 0xFF)
 
-    fun blend(base: Int, top: Int, t: Double): Int {
-        fun mix(shift: Int) = (((base shr shift) and 0xFF) * (1 - t) + ((top shr shift) and 0xFF) * t).roundToInt().coerceIn(0, 255)
-        return 0xFF000000.toInt() or (mix(16) shl 16) or (mix(8) shl 8) or mix(0)
-    }
+    fun blend(base: Int, top: Int, t: Double): Int = Palette.mix(base, top, t.toFloat()) and 0xFFFFFF or (0xFF shl 24)
 
     fun heatColor(t: Double): Int {
         val scaled = t.coerceIn(0.0, 1.0) * (ramp.size - 1)

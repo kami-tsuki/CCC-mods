@@ -4,7 +4,7 @@ import kami.libs.ui.text.trn
 import kami.libs.ui.text.tr
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ClaimsPage
-import kami.claims.client.app.Consequence
+import kami.libs.ui.app.Consequence
 import kami.claims.client.app.Dialogs
 import kami.libs.ui.widget.Flags
 import kami.claims.client.app.Illustrations
@@ -72,27 +72,12 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
         if (detailW > 0) (rows.firstOrNull { it.name in countries.selected } ?: rows.firstOrNull())?.let { tradeDetail(ui, r.right(detailW), it) }
     }
 
-    private fun tradeLabel(l: Line) = tr(when {
-        l.trade == "family" -> "kami_claims.relation.3"
-        l.trade == "embargo" -> "kami_claims.trade.embargo"
-        l.alliance == "allied" -> "kami_claims.relation.2"
-        l.alliance == "offer_in" -> "kami_claims.trade.offer_in"
-        l.alliance == "offer_out" -> "kami_claims.trade.offer_out"
-        else -> "kami_claims.relation.0"
-    })
-
-    private fun tradeColor(l: Line) = when {
-        l.trade == "family" -> Palette.geoProvince
-        l.trade == "embargo" -> Palette.danger
-        l.alliance == "allied" -> Palette.geoAlly
-        l.alliance == "offer_in" -> Palette.warning
-        else -> Palette.textMuted
-    }
+    private fun tradeLabel(l: Line) = Vocabulary.trade(l.trade, l.alliance).second
+    private fun tradeColor(l: Line) = Vocabulary.trade(l.trade, l.alliance).first
 
     private fun tradeDetail(ui: Ui, r: Rect, l: Line) {
         if (tariffFor != l.name) { tariffFor = l.name; tariff.commit(l.tariff.toLong()) }
-        Draw.sprite(ui.g, Sprites.PANEL, r)
-        val f = Flow(r.inset(8), 4)
+        val f = ui.sidePanel(r, 4, 8)
         val head = f.take(30)
         Flags.draw(ui.g, Rect(head.x, head.y + 2, 36, 26), l.color, l.flag.pattern, l.flag.emblem, l.flag.secondary)
         Draw.text(ui.g, Draw.fit(l.name, head.w - 44), head.x + 44, head.y + 4, TextStyle.HEADING)
@@ -158,13 +143,13 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
         val ally = tr("kami_claims.relations.ally")
         val banish = tr("kami_claims.citizens.banish")
         val needName = tr("kami_claims.field.player.disabled")
-        if (ui.button(row.take(buttonWidth(ally, Icons.HANDSHAKE)), ally, Icons.HANDSHAKE, ButtonStyle.PRIMARY, staff == null && ready, staff ?: needName, key = "ally")) {
+        if (ui.edgeButton(row, ally, Icons.HANDSHAKE, ButtonStyle.PRIMARY, staff == null && ready, staff ?: needName, left = true, key = "ally")) {
             Dialogs.confirm(app, tr("kami_claims.relations.ally.confirm.title", name.text), null, Icons.HANDSHAKE, listOf(
                 Consequence(tr("kami_claims.relations.ally.rights", name.text)),
                 Consequence(tr("kami_claims.relations.ally.stays"))
             ), ally, "ally", arrayOf(name.text)) { name.set("") }
         }
-        if (ui.button(row.take(buttonWidth(banish, Icons.BAN)), banish, Icons.BAN, ButtonStyle.DANGER, staff == null && ready, staff ?: needName, key = "banish")) {
+        if (ui.edgeButton(row, banish, Icons.BAN, ButtonStyle.DANGER, staff == null && ready, staff ?: needName, left = true, key = "banish")) {
             Dialogs.confirm(app, tr("kami_claims.citizens.banish.confirm.title", name.text), null, Icons.BAN, listOf(
                 Consequence(tr("kami_claims.relations.banish.locked", name.text), Severity.DANGER),
                 Consequence(tr("kami_claims.relations.banish.member"), Severity.WARNING)
@@ -187,13 +172,12 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
         val chosen = info.relations.firstOrNull { it.id in table.selected }
         val bar = r.bottom(22)
         val remove = tr("kami_claims.relations.remove")
-        val w = buttonWidth(remove, Icons.REMOVE)
         val reason = staff ?: when {
             chosen == null -> tr("kami_claims.relations.select_first")
             chosen.auto -> tr("kami_claims.relations.remove.disabled.bloc")
             else -> null
         }
-        if (ui.button(Rect(bar.right - w, bar.y, w, CONTROL_H), remove, Icons.REMOVE, enabled = reason == null, disabledReason = reason, key = "clear-rel")) chosen?.let {
+        if (ui.edgeButton(Rect(bar.x, bar.y, bar.w, CONTROL_H), remove, Icons.REMOVE, enabled = reason == null, disabledReason = reason, key = "clear-rel")) chosen?.let {
             Dialogs.confirm(app, tr("kami_claims.relations.remove.confirm.title", it.name), null, Icons.REMOVE, listOf(Consequence(tr("kami_claims.relations.remove.stranger", it.name))), remove, "clear", arrayOf(it.id))
         }
     }
@@ -217,11 +201,10 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
     }
 
     override fun draw(ui: Ui, r: Rect) {
-        val tabs = r.top(CONTROL_H)
-        ui.anchor("world:tabs", tabs)
-        ui.subTabs(tabs.dropRight(160), listOf(TabItem(tr("kami_claims.help.countries"), Icons.FLAG, snap.countries.size, Severity.NEUTRAL), TabItem(tr("kami_claims.world.players"), Icons.PEOPLE, snap.players.size, Severity.NEUTRAL)), tab, "world-tabs")?.let { tab = it }
-        ui.searchField(tabs.right(154), search, tr(if (tab == 0) "kami_claims.world.search.countries" else "kami_claims.world.search.players"), key = "world-search")
-        val body = r.dropTop(CONTROL_H + 6)
+        val body = ui.filterBar(r, "world:tabs") { tabs ->
+            ui.subTabs(tabs.dropRight(160), listOf(TabItem(tr("kami_claims.help.countries"), Icons.FLAG, snap.countries.size, Severity.NEUTRAL), TabItem(tr("kami_claims.world.players"), Icons.PEOPLE, snap.players.size, Severity.NEUTRAL)), tab, "world-tabs")?.let { tab = it }
+            ui.searchField(tabs.right(154), search, tr(if (tab == 0) "kami_claims.world.search.countries" else "kami_claims.world.search.players"), key = "world-search")
+        }
         val detailW = if (app.compact) 0 else (body.w * 0.4).toInt().coerceIn(160, 230)
         val list = body.dropRight(detailW, if (detailW > 0) 8 else 0)
         val detail = body.right(detailW)
@@ -248,25 +231,11 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
         }
     }
 
-    private fun relationColor(r: String) = when (r) {
-        "own" -> Palette.success
-        "family" -> Palette.geoProvince
-        "ally" -> Palette.geoAlly
-        "banished" -> Palette.danger
-        else -> Palette.textMuted
-    }
-
-    private fun relationLabel(r: String) = tr(when (r) {
-        "own" -> "kami_claims.relation.1"
-        "family" -> "kami_claims.relation.3"
-        "ally" -> "kami_claims.relation.2"
-        "banished" -> "kami_claims.relation.4"
-        else -> "kami_claims.relation.0"
-    })
+    private fun relationColor(r: String) = Vocabulary.relation(r).first
+    private fun relationLabel(r: String) = Vocabulary.relation(r).second
 
     private fun country(ui: Ui, r: Rect, l: Line) {
-        Draw.sprite(ui.g, Sprites.PANEL, r)
-        val f = Flow(r.inset(8), 4)
+        val f = ui.sidePanel(r, 4, 8)
         val head = f.take(30)
         Flags.draw(ui.g, Rect(head.x, head.y + 2, 36, 26), l.color, l.flag.pattern, l.flag.emblem, l.flag.secondary)
         Draw.text(ui.g, Draw.fit(l.name, head.w - 44), head.x + 44, head.y + 4, TextStyle.HEADING)
@@ -293,8 +262,7 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
     }
 
     private fun player(ui: Ui, r: Rect, p: PlayerLine) {
-        Draw.sprite(ui.g, Sprites.PANEL, r)
-        val f = Flow(r.inset(8), 4)
+        val f = ui.sidePanel(r, 4, 8)
         val head = f.take(28)
         ui.avatar(p.id, head.x, head.y, 24, p.online)
         Draw.text(ui.g, p.name, head.x + 30, head.y + 4, TextStyle.HEADING)

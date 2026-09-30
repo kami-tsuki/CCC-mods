@@ -7,7 +7,6 @@
   "item.kami_geology.prospector_t6": "Netherite-Gold Prospector",
   "item.kami_geology.prospector_t7": "Netherite-Emerald Prospector",
   "item.kami_geology.prospector_t8": "Netherite-Diamond Prospector",
-  "itemGroup.kami_geology": "Kami Geology",
   "kami_geology.audit.chain": "Chain %1$s (%2$s): %3$s of areas cover it alone",
   "kami_geology.audit.failed": "Audit failed: %s",
   "kami_geology.audit.header": "Audit of %1$s areas, %2$s×%2$s chunks each, within %3$s blocks. Supply: %4$s+ ore blocks.",

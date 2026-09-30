@@ -8,13 +8,13 @@ import kami.claims.client.world.BlockHint
 import kami.claims.client.world.Borders
 import kami.claims.net.Denied
 import kami.claims.net.Snap
-import kami.claims.net.Snapshot
+import kami.libs.net.SnapshotPayload
+import kami.libs.net.decode
 import kami.claims.service.View
 import kami.libs.ui.app.AppScreen
 import kami.libs.ui.map.TerrainCache
 import kami.libs.ui.style.Palette
 import kami.libs.xaero.Highlights
-import kotlinx.serialization.json.Json
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
 import net.minecraft.resources.ResourceLocation
@@ -29,7 +29,6 @@ import thedarkcolour.kotlinforforge.neoforge.forge.FORGE_BUS
 import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 
 object ClientHooks {
-    private val json = Json { ignoreUnknownKeys = true }
     private val open = KeyMapping("key.kami_claims.open", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_K, "key.categories.kami_claims")
     private val borders = KeyMapping("key.kami_claims.borders", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_B, "key.categories.kami_claims")
     private var ticks = 0
@@ -68,8 +67,8 @@ object ClientHooks {
 
     fun request(name: String, vararg args: String) = ClaimsStore.quiet(name, *args)
 
-    fun snapshot(s: Snapshot) {
-        val snap = runCatching { json.decodeFromString<Snap>(s.json) }.getOrNull() ?: return
+    fun snapshot(s: SnapshotPayload) {
+        val snap = s.decode<Snap>() ?: return
         ClaimsStore.receive(snap)
         Hud.alertsChanged()
         val mc = Minecraft.getInstance()

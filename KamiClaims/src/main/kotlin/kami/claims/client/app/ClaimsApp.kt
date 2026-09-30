@@ -12,6 +12,7 @@ import kami.claims.client.store.Outcome
 import kami.claims.service.AlertLine
 import kami.libs.ui.app.AppScreen
 import kami.libs.ui.app.Callout
+import kami.libs.ui.app.Consequence
 import kami.libs.ui.app.KamiApp
 import kami.libs.ui.app.NavBadge
 import kami.libs.ui.app.NavGroup
@@ -38,8 +39,11 @@ import kami.libs.ui.widget.badge
 import kami.libs.ui.widget.SMALL_H
 import kami.libs.ui.widget.button
 import kami.libs.ui.widget.buttonWidth
+import kami.libs.ui.widget.edgeButton
 import kami.libs.ui.widget.iconButton
 import kami.libs.ui.widget.iconFor
+import kami.libs.ui.widget.PopoverAlign
+import kami.libs.ui.widget.popover
 import kami.libs.ui.widget.scroll
 import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.Component
@@ -47,7 +51,6 @@ import org.lwjgl.glfw.GLFW
 
 class ClaimsApp : KamiApp() {
     override val home get() = if (ClaimsStore.info == null) Route("welcome") else Route("dashboard")
-    private val pages = HashMap<String, Page>()
     private var bellOpen = false
     private var lastRoute = ""
 
@@ -55,7 +58,7 @@ class ClaimsApp : KamiApp() {
         ClaimsStore.onOutcome(::outcome)
     }
 
-    private fun create(id: String): Page = when (id) {
+    override fun create(id: String): Page = when (id) {
         "welcome" -> WelcomePage(this)
         "dashboard" -> DashboardPage(this)
         "statistics" -> StatisticsPage(this)
@@ -77,8 +80,6 @@ class ClaimsApp : KamiApp() {
         "settings" -> SettingsPage(this)
         else -> DashboardPage(this)
     }
-
-    override fun page(id: String): Page = pages.getOrPut(id) { create(id) }
 
     fun lock(cap: String): String? {
         val info = ClaimsStore.info ?: return tr("kami_claims.lock.no_country")
@@ -188,7 +189,7 @@ class ClaimsApp : KamiApp() {
         val bell = row.takeFromRight(SMALL_H)
         bell(ui, bell.centered(SMALL_H, SMALL_H))
         if (info == null) {
-            kpi(ui, row.takeFromRight(110), Icons.COIN, tr("kami_claims.kpi.funds"), Format.money(snap.funds, compact = true), Palette.money, Tip.text(tr("kami_claims.kpi.funds.tooltip"), tr("kami_claims.kpi.funds")), null)
+            kpi(ui, row.takeFromRight(110), Icons.COIN, tr("kami_claims.kpi.funds"), Format.money(snap.funds, compact = true), Palette.money, { Tip.text(tr("kami_claims.kpi.funds.tooltip"), tr("kami_claims.kpi.funds")) }, null)
             return
         }
         val kpis = row.rest
@@ -198,29 +199,29 @@ class ClaimsApp : KamiApp() {
         val weekAgo = history.getOrNull(history.size - 8)?.treasury
         val trend = weekAgo?.let { info.treasury - it }
         kpi(ui, cells[0], Icons.TREASURY, tr("kami_claims.kpi.treasury"), Format.money(info.treasury, compact = true), Palette.money,
-            Tip(tr("kami_claims.kpi.treasury"), listOf(tr("kami_claims.kpi.treasury.balance", Format.money(info.treasury)) to Palette.money,
-                (trend?.let { tr("kami_claims.kpi.treasury.week", Format.signedMoney(it)) } ?: tr("kami_claims.kpi.treasury.no_history")) to Palette.textSecondary), keys = tr("kami_claims.kpi.open_budget")), "budget", info.treasury)
+            { Tip(tr("kami_claims.kpi.treasury"), listOf(tr("kami_claims.kpi.treasury.balance", Format.money(info.treasury)) to Palette.money,
+                (trend?.let { tr("kami_claims.kpi.treasury.week", Format.signedMoney(it)) } ?: tr("kami_claims.kpi.treasury.no_history")) to Palette.textSecondary), keys = tr("kami_claims.kpi.open_budget")) }, "budget", info.treasury)
         kpi(ui, cells[1], if (net >= 0) Icons.INCOME else Icons.EXPENSE, tr("kami_claims.kpi.net"), Format.signedMoney(net), if (net >= 0) Palette.success else Palette.danger,
-            Tip(tr("kami_claims.kpi.net.title"), listOf(tr("kami_claims.kpi.net.tax", Format.signedMoney(info.income)) to Palette.success,
-                tr("kami_claims.kpi.net.upkeep", Format.signedMoney(-info.upkeep)) to Palette.danger, tr("kami_claims.kpi.net.wages", Format.signedMoney(-info.jobs)) to Palette.danger), keys = tr("kami_claims.kpi.open_budget")), "budget")
+            { Tip(tr("kami_claims.kpi.net.title"), listOf(tr("kami_claims.kpi.net.tax", Format.signedMoney(info.income)) to Palette.success,
+                tr("kami_claims.kpi.net.upkeep", Format.signedMoney(-info.upkeep)) to Palette.danger, tr("kami_claims.kpi.net.wages", Format.signedMoney(-info.jobs)) to Palette.danger), keys = tr("kami_claims.kpi.open_budget")) }, "budget")
         if (!compact) {
             val runwayColor = runwayColor(info.treasury, net)
             kpi(ui, cells[2], Icons.CLOCK, tr("kami_claims.kpi.runway"), runwayText(info.treasury, net), runwayColor,
-                Tip(tr("kami_claims.kpi.runway"), listOf((if (net >= 0) tr("kami_claims.kpi.runway.positive") else tr("kami_claims.kpi.runway.negative", Format.perDay(Format.money(-net)), Format.days(info.treasury / -net))) to Palette.textSecondary,
-                    tr("kami_claims.kpi.runway.next_bill", Format.duration(info.nextBilling), Format.money(info.nextBill)) to Palette.textMuted)), "budget")
+                { Tip(tr("kami_claims.kpi.runway"), listOf((if (net >= 0) tr("kami_claims.kpi.runway.positive") else tr("kami_claims.kpi.runway.negative", Format.perDay(Format.money(-net)), Format.days(info.treasury / -net))) to Palette.textSecondary,
+                    tr("kami_claims.kpi.runway.next_bill", Format.duration(info.nextBilling), Format.money(info.nextBill)) to Palette.textMuted)) }, "budget")
         }
         val debt = info.claimList.count { it.debt > 0 }
         kpi(ui, cells[if (compact) 2 else 3], Icons.AREA, tr("kami_claims.kpi.land"), Format.number(info.chunks), if (debt > 0) Palette.danger else Palette.text,
-            Tip(tr("kami_claims.kpi.land"), listOf(tr("kami_claims.kpi.land.chunks", trn("kami_claims.unit.chunk", info.chunks), Format.number(info.free), Format.number(info.freeAllowed)) to Palette.textSecondary,
-                (if (debt > 0) tr("kami_claims.kpi.land.debt", Format.number(debt)) else tr("kami_claims.kpi.land.no_debt")) to (if (debt > 0) Palette.danger else Palette.success))), "chunks")
+            { Tip(tr("kami_claims.kpi.land"), listOf(tr("kami_claims.kpi.land.chunks", trn("kami_claims.unit.chunk", info.chunks), Format.number(info.free), Format.number(info.freeAllowed)) to Palette.textSecondary,
+                (if (debt > 0) tr("kami_claims.kpi.land.debt", Format.number(debt)) else tr("kami_claims.kpi.land.no_debt")) to (if (debt > 0) Palette.danger else Palette.success))) }, "chunks")
         if (!compact) {
             val online = info.members.count { it.online }
             kpi(ui, cells[4], Icons.PEOPLE, tr("kami_claims.kpi.citizens"), "$online/${info.members.size}", Palette.text,
-                Tip.text(tr("kami_claims.kpi.citizens.tooltip", Format.number(online), Format.number(info.members.size)), tr("kami_claims.kpi.citizens")), "citizens")
+                { Tip.text(tr("kami_claims.kpi.citizens.tooltip", Format.number(online), Format.number(info.members.size)), tr("kami_claims.kpi.citizens")) }, "citizens")
         }
     }
 
-    private fun kpi(ui: Ui, r: Rect, icon: Icon, label: String, value: String, color: Int, tip: Tip?, page: String?, flashValue: Long? = null) {
+    private fun kpi(ui: Ui, r: Rect, icon: Icon, label: String, value: String, color: Int, tip: (() -> Tip?)?, page: String?, flashValue: Long? = null) {
         val hover = ui.hover("kpi:$label", r)
         ui.anchor("kpi:$label", r)
         if (hover && page != null) { Draw.fill(ui.g, r.inset(0, 2), Palette.hover); ui.cursor = Cursor.HAND }
@@ -228,7 +229,7 @@ class ClaimsApp : KamiApp() {
         val textX = r.x + 4 + Draw.leadIcon(ui.g, icon, r.x + 4, r.centerY) + 2
         Draw.text(ui.g, Draw.fit(label.uppercase(Format.locale), r.right - textX), textX, r.y + 3, Palette.textMuted)
         Draw.text(ui.g, Draw.fit(value, r.right - textX), textX, r.y + 13, color)
-        tip?.let { t -> ui.tooltip("kpi:$label", r) { t } }
+        tip?.let { build -> ui.tooltip("kpi:$label", r) { build() } }
         if (page != null && ui.pressed(r) != null) { UiSound.click(); navigate(Route(page)) }
     }
 
@@ -250,20 +251,15 @@ class ClaimsApp : KamiApp() {
         }
         if (!bellOpen) return
         ui.onEscape(60) { bellOpen = false }
-        ui.overlay {
-            val w = 250
-            val itemsH = alerts.sumOf { alertHeight(it, w - 12) }
-            val panel = Rect(r.right - w, r.bottom + 4, w, (itemsH + 28).coerceIn(50, 300))
-            ui.block(panel)
-            Draw.shadow(ui.g, panel, 2)
-            Draw.sprite(ui.g, Sprites.POPOVER, panel)
-            Draw.text(ui.g, tr("kami_claims.alerts.title").uppercase(Format.locale), panel.x + 8, panel.y + 8, TextStyle.TITLE)
-            if (alerts.isEmpty()) Draw.text(ui.g, tr("kami_claims.alerts.none"), panel.x + 8, panel.y + 26, Palette.textMuted)
-            ui.scroll("bell-list", panel.inset(4, 22, 4, 4), itemsH) { area ->
+        val w = 250
+        val itemsH = alerts.sumOf { alertHeight(it, w - 12) }
+        ui.popover(r, w, (itemsH + 28).coerceIn(50, 300), align = PopoverAlign.END, onOutside = { bellOpen = false }) { panel ->
+            Draw.text(g, tr("kami_claims.alerts.title").uppercase(Format.locale), panel.x + 8, panel.y + 8, TextStyle.TITLE)
+            if (alerts.isEmpty()) Draw.text(g, tr("kami_claims.alerts.none"), panel.x + 8, panel.y + 26, Palette.textMuted)
+            scroll("bell-list", panel.inset(4, 22, 4, 4), itemsH) { area ->
                 var y = area.y
                 alerts.forEach { a -> y += alertCard(ui, Rect(area.x, y, area.w, alertHeight(a, area.w)), a, compactCard = true) }
             }
-            if (ui.input.presses.any { !it.consumed && !panel.contains(it.x, it.y) && !r.contains(it.x, it.y) }) bellOpen = false
         }
     }
 
@@ -310,7 +306,7 @@ class ClaimsApp : KamiApp() {
         val exit = tr("kami_claims.delegated.exit")
         val exitW = buttonWidth(exit, Icons.CLOSE)
         Draw.text(ui.g, Draw.fit(tr("kami_claims.delegated.banner", info.name), box.w - exitW - 32), box.x + 22, box.y + 6, Palette.warning)
-        if (ui.button(Rect(box.right - exitW - 2, box.y + 2, exitW, SMALL_H), exit, Icons.CLOSE, key = "exit-province")) ClaimsStore.send("view", "")
+        if (ui.edgeButton(Rect(box.x, box.y + 2, box.w - 2, SMALL_H), exit, Icons.CLOSE, key = "exit-province")) ClaimsStore.send("view", "")
         return 20
     }
 

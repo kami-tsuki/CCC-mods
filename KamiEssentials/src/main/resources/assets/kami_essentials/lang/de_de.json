@@ -93,6 +93,7 @@
   "kami_essentials.trade.no_room": "%s hat keinen Platz für die Gegenstände. Handel gestoppt.",
   "kami_essentials.trade.nothing_open": "Du hast keine offene Handelsanfrage.",
   "kami_essentials.trade.other_busy": "%s handelt bereits.",
+  "kami_essentials.trade.other_no_country": "%s hat kein Land und kann nicht handeln.",
   "kami_essentials.trade.reason.died": "%s ist gestorben.",
   "kami_essentials.trade.reason.distance": "Ihr seid zu weit voneinander entfernt.",
   "kami_essentials.trade.reason.left": "%s hat das Spiel verlassen.",

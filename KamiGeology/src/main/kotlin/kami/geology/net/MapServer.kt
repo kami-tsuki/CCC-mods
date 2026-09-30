@@ -26,7 +26,12 @@ object MapServer {
     private class ScanLock(val dimension: ResourceLocation, val x0: Int, val z0: Int, val w: Int, val h: Int)
     private val scans = ConcurrentHashMap<UUID, ScanLock>()
 
-    /** Survival prospector: opens a heatmap locked to the tool tier's region, no OP needed. Tier 1 is handled separately (see Heatmap.probeColumn). */
+    fun forget(player: ServerPlayer) {
+        latestMap.remove(player.uuid)
+        latestProbe.remove(player.uuid)
+        scans.remove(player.uuid)
+    }
+
     fun scan(player: ServerPlayer, tier: Int) {
         val level = player.serverLevel()
         val world = Worlds.of(level) ?: return
@@ -86,17 +91,20 @@ object MapServer {
 
     private fun map(player: ServerPlayer, r: MapRequest) {
         val world = Worlds.of(player.serverLevel()) ?: return
+        val level = player.serverLevel()
+        val y0 = r.y0.coerceAtLeast(level.minBuildHeight)
+        val y1 = r.y1.coerceAtMost(level.maxBuildHeight - 1)
         if (allowed(player)) {
-            if (r.cell !in 1..256 || r.w < 1 || r.h < 1 || r.w.toLong() * r.h > MAX_CELLS || r.y0 > r.y1) return
+            if (r.cell !in 1..256 || r.w < 1 || r.h < 1 || r.w.toLong() * r.h > MAX_CELLS || y0 > y1) return
         } else {
             val lock = scans[player.uuid] ?: return
-            if (lock.dimension != player.serverLevel().dimension().location()) return
-            if (r.cell != 1 || r.w != lock.w || r.h != lock.h || r.x0 != lock.x0 || r.z0 != lock.z0 || r.y0 > r.y1) return
+            if (lock.dimension != level.dimension().location()) return
+            if (r.cell != 1 || r.w != lock.w || r.h != lock.h || r.x0 != lock.x0 || r.z0 != lock.z0 || y0 > y1) return
         }
         val ores = world.settings.ores
         latestMap[player.uuid] = r.seq
         val server = player.server
-        val query = Heatmap.Query(r.x0, r.z0, r.cell, r.w, r.h, r.y0, r.y1)
+        val query = Heatmap.Query(r.x0, r.z0, r.cell, r.w, r.h, y0, y1)
         val timing = Heatmap.Timing()
         val started = System.nanoTime()
         val remaining = AtomicInteger(ores.size + 1)
@@ -132,13 +140,17 @@ object MapServer {
 
     private fun probe(player: ServerPlayer, r: ProbeRequest) {
         if (!allowed(player)) return
-        val world = Worlds.of(player.serverLevel()) ?: return
+        val level = player.serverLevel()
+        val world = Worlds.of(level) ?: return
+        val y0 = r.y0.coerceAtLeast(level.minBuildHeight)
+        val y1 = r.y1.coerceAtMost(level.maxBuildHeight - 1)
+        if (y0 > y1) return
         latestProbe[player.uuid] = r.seq
         val server = player.server
         Workers.pool.execute {
             if (latestProbe[player.uuid] != r.seq) return@execute
             val lines = try {
-                Heatmap.probe(world, r.x, r.z, r.y0, r.y1)
+                Heatmap.probe(world, r.x, r.z, y0, y1)
             } catch (e: Exception) {
                 KamiGeology.LOG.error("Probe failed", e)
                 return@execute

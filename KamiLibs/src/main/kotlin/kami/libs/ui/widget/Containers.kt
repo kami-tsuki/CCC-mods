@@ -1,6 +1,7 @@
 package kami.libs.ui.widget
 
 import kami.libs.ui.core.Cursor
+import kami.libs.ui.core.Flow
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Ui
@@ -60,6 +61,11 @@ fun Ui.scroll(key: Any, r: Rect, contentHeight: Int, draw: (Rect) -> Unit): Scro
 const val CARD_HEADER_H = 16
 
 fun Ui.panel(r: Rect, sunken: Boolean = false) = Draw.sprite(g, if (sunken) Sprites.SUNKEN else Sprites.PANEL, r)
+
+fun Ui.sidePanel(r: Rect, gap: Int = 4, inset: Int = 8): Flow {
+    Draw.sprite(g, Sprites.PANEL, r)
+    return Flow(r.inset(inset), gap)
+}
 
 fun Ui.card(r: Rect, title: String? = null, icon: Icon? = null, severity: Severity? = null, help: String? = null, trailing: String? = null, key: Any = title ?: "card"): Rect {
     Draw.sprite(g, Sprites.CARD, r)

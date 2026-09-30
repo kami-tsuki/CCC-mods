@@ -82,7 +82,7 @@ fun <T> Ui.table(
         val all = rows.isNotEmpty() && rows.all { keyOf(it) in state.selected }
         val some = rows.any { keyOf(it) in state.selected }
         checkbox(Rect(x, header.y, 10, header.h), "", if (all) true else if (some) null else false, key = "$key:all")?.let { v ->
-            if (v) rows.forEach { state.selected += keyOf(it) as Any } else state.clear()
+            if (v) rows.forEach { state.selected += keyOf(it) } else state.clear()
         }
         x += checkW + CELL_PAD
     }
@@ -118,7 +118,7 @@ fun <T> Ui.table(
         if (step != 0) {
             val next = sorted[(focusIndex + step).coerceIn(0, sorted.lastIndex)]
             state.focusKey = keyOf(next)
-            if (!multi) { state.selected.clear(); state.selected += keyOf(next) as Any; changed = true }
+            if (!multi) { state.selected.clear(); state.selected += keyOf(next); changed = true }
             remember("scroll:$key:rows") { ScrollState() }.scrollTo(sorted.indexOf(next) * rowHeight)
         }
         if (input.takeKey(GLFW.GLFW_KEY_ENTER) != null && focusIndex >= 0) opened = sorted[focusIndex]
@@ -145,7 +145,7 @@ fun <T> Ui.table(
             if (highlight(row)) attention(rr, true)
             var cx = rr.x + CELL_PAD
             if (multi) {
-                checkbox(Rect(cx, rr.y, 10, rr.h), "", chosen, key = "$key:c:$k")?.let { v -> if (v) state.selected += k as Any else state.selected -= k as Any; changed = true }
+                checkbox(Rect(cx, rr.y, 10, rr.h), "", chosen, key = "$key:c:$k")?.let { v -> if (v) state.selected += k else state.selected -= k; changed = true }
                 cx += checkW + CELL_PAD
             }
             columns.forEachIndexed { i, c ->
@@ -162,16 +162,16 @@ fun <T> Ui.table(
                 focus = id(key)
                 if (double) opened = row
                 when {
-                    multi && input.ctrl -> if (!state.selected.remove(k)) state.selected += k as Any
+                    multi && input.ctrl -> if (!state.selected.remove(k)) state.selected += k
                     multi && input.shift && state.selected.isNotEmpty() -> {
                         val anchor = sorted.indexOfFirst { keyOf(it) in state.selected }
-                        (minOf(anchor, index)..maxOf(anchor, index)).forEach { j -> state.selected += keyOf(sorted[j]) as Any }
+                        (minOf(anchor, index)..maxOf(anchor, index)).forEach { j -> state.selected += keyOf(sorted[j]) }
                     }
-                    else -> { state.selected.clear(); state.selected += k as Any }
+                    else -> { state.selected.clear(); state.selected += k }
                 }
                 changed = true
             }
-            pressed(rr, 1)?.let { context = row; if (k !in state.selected) { state.selected.clear(); state.selected += k as Any; changed = true } }
+            pressed(rr, 1)?.let { context = row; if (k !in state.selected) { state.selected.clear(); state.selected += k; changed = true } }
         }
     }
     return TableEvents(opened, context, changed)

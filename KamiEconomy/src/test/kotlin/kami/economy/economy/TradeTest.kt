@@ -122,4 +122,41 @@ class TradeTest {
         setup()
         assertEquals(Config.s.taxPct, Trade.terms(buyer.toString(), "").taxPct)
     }
+
+    @Test
+    fun sellingIntoABidPaysTariffToTheBuyersCountry() {
+        val claims = setup()
+        Matching.insertBid(item, Order(1, buyer.toString(), 7, 100))
+        val purse = Purse(0).also { Ledger.wallet = it }
+        val result = Ledger.sellNow(taxed.toString(), item, 30)
+        assertEquals(SellResult.Sold(20, 105), result)
+        assertEquals(105L, purse.deposits[taxed])
+        assertEquals(listOf(Triple("aurelia", 21L, TreasuryKind.TARIFF)), claims.credits)
+    }
+
+    @Test
+    fun sellPlanFillsNeverLoseASpurForAnyRateCombination() {
+        setup()
+        Matching.insertBid(item, Order(1, ally.toString(), 6, 90))
+        val allyPlan = Matching.sellPlan(buyer.toString(), item, 90)
+        assertEquals(90, allyPlan.filled)
+        assertEquals(allyPlan.gross, allyPlan.net + allyPlan.tax + allyPlan.tariff)
+
+        Market.data = kami.economy.Data()
+        Matching.insertBid(item, Order(2, buyer.toString(), 7, 90))
+        val taxedPlan = Matching.sellPlan(taxed.toString(), item, 90)
+        assertEquals(90, taxedPlan.filled)
+        assertEquals(taxedPlan.gross, taxedPlan.net + taxedPlan.tax + taxedPlan.tariff)
+    }
+
+    @Test
+    fun sellPlanFullyFillsAnOrderWithANonCleanRemainder() {
+        setup()
+        Matching.insertBid(item, Order(1, ally.toString(), 6, 90))
+        val plan = Matching.sellPlan(buyer.toString(), item, 90)
+        assertEquals(90, plan.filled)
+        val fill = plan.fills.single()
+        assertEquals(90, fill.qty)
+        assertEquals(plan.gross, plan.net + plan.tax + plan.tariff)
+    }
 }

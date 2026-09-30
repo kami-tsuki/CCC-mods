@@ -7,8 +7,12 @@ import kotlin.test.assertEquals
 class LangTest {
     @Test
     fun langFilesAreConsistent() {
-        val report = LangAudit.audit(Path.of("src/main/resources/assets/kami_libs/lang"), Path.of("src/main/kotlin"))
-        report.unused.forEach { println("unused key: $it") }
+        val extraUsedKeys = listOf("KamiClaims", "KamiEconomy", "KamiEssentials", "KamiGeology")
+            .flatMap { LangAudit.referencedKeys(Path.of("../$it/src/main/kotlin")) }
+            .filter { it.startsWith("kami_libs.") }
+            .toSet()
+        val report = LangAudit.audit(Path.of("src/main/resources/assets/kami_libs/lang"), Path.of("src/main/kotlin"), extraUsedKeys = extraUsedKeys)
         assertEquals(emptyList(), report.problems)
+        assertEquals(emptyList(), report.unused)
     }
 }

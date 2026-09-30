@@ -17,8 +17,7 @@ import kotlin.math.min
 class Callout(val anchor: String, val title: String, val text: String, val route: Route? = null)
 
 class Tour(val steps: List<Callout>, val onFinish: () -> Unit) {
-    var index = 0
-        private set
+    private var index = 0
     var done = false
         private set
 

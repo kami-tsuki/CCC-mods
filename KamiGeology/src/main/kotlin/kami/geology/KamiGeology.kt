@@ -43,8 +43,7 @@ object KamiGeology {
     private val lootModifiers = DeferredRegister.create(NeoForgeRegistries.Keys.GLOBAL_LOOT_MODIFIER_SERIALIZERS, ID)
     private val items = DeferredRegister.create(BuiltInRegistries.ITEM, ID)
 
-    /** Index 0 = tier 1 (free, 1 block) ... index 7 = tier 8 (netherite-diamond, 9x9 chunks). */
-    val PROSPECTORS: List<DeferredHolder<Item, ProspectorItem>> = (1..8).map { tier ->
+    val PROSPECTORS_BY_TIER: List<DeferredHolder<Item, ProspectorItem>> = (1..8).map { tier ->
         items.register("prospector_t$tier") { -> ProspectorItem(tier, Item.Properties().stacksTo(1)) }
     }
 
@@ -66,7 +65,7 @@ object KamiGeology {
             }
         }
         MOD_BUS.addListener<BuildCreativeModeTabContentsEvent> { event ->
-            if (event.tabKey == CreativeModeTabs.TOOLS_AND_UTILITIES) PROSPECTORS.forEach { event.accept(it.get()) }
+            if (event.tabKey == CreativeModeTabs.TOOLS_AND_UTILITIES) PROSPECTORS_BY_TIER.forEach { event.accept(it.get()) }
         }
         GeologyCommand.register()
         FORGE_BUS.addListener<TagsUpdatedEvent> {
@@ -75,13 +74,14 @@ object KamiGeology {
                 ConfigStore.load()
             }
         }
-        FORGE_BUS.addListener<ServerStoppedEvent> { Worlds.clear() }
+        FORGE_BUS.addListener<ServerStoppedEvent> { Worlds.clear(); Workers.shutdown() }
+        FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { (it.entity as? ServerPlayer)?.let { p -> MapServer.forget(p) } }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { event ->
             val player = event.entity as? ServerPlayer ?: return@addListener
             val tag = player.persistentData
             if (!tag.getBoolean(STARTER_KIT_TAG)) {
                 tag.putBoolean(STARTER_KIT_TAG, true)
-                player.addItem(ItemStack(PROSPECTORS[0].get()))
+                player.addItem(ItemStack(PROSPECTORS_BY_TIER[0].get()))
             }
         }
     }

@@ -34,9 +34,7 @@ class DashboardPage(app: ClaimsApp) : ClaimsPage(app) {
     override fun actionsWidth() = buttonWidth(tr("kami_claims.money.deposit"), Icons.DEPOSIT)
 
     override fun actions(ui: Ui, r: Rect) {
-        val label = tr("kami_claims.money.deposit")
-        val w = buttonWidth(label, Icons.DEPOSIT)
-        if (ui.button(Rect(r.right - w, r.y, w, r.h), label, Icons.DEPOSIT, ButtonStyle.PRIMARY, key = "dash-deposit")) Dialogs.money(app, true)
+        if (ui.edgeButton(r, tr("kami_claims.money.deposit"), Icons.DEPOSIT, ButtonStyle.PRIMARY, key = "dash-deposit")) Dialogs.money(app, true)
     }
 
     override fun draw(ui: Ui, r: Rect) {
@@ -44,22 +42,23 @@ class DashboardPage(app: ClaimsApp) : ClaimsPage(app) {
         val net = info.income - info.upkeep - info.jobs
         val history = snap.history
         val balances = history.map { it.treasury }
-        val tiles = r.top(TILE_H).columns(4, 6)
         ui.anchor("dashboard:tiles", r.top(TILE_H))
         val weekAgo = history.getOrNull(history.size - 8)?.treasury
-        if (ui.statTile(tiles[0], tr("kami_claims.kpi.treasury"), Format.number(info.treasury), Icons.TREASURY, Palette.money,
-            trend = weekAgo?.let { Trend(info.treasury - it, tr("kami_claims.kpi.treasury.week", Format.signed(info.treasury - it))) }, sub = if (weekAgo == null) tr("kami_claims.kpi.treasury.no_history") else null,
-            spark = balances.takeLast(14), flashValue = info.treasury, tip = Tip.text(tr("kami_claims.kpi.open_budget"), tr("kami_claims.kpi.treasury")))) app.navigate(Route("budget"))
-        if (ui.statTile(tiles[1], tr("kami_claims.kpi.net"), Format.signed(net), if (net >= 0) Icons.INCOME else Icons.EXPENSE, if (net >= 0) Palette.success else Palette.danger,
-            sub = tr("kami_claims.dashboard.net.sub", Format.number(info.income), Format.number(info.upkeep + info.jobs)),
-            tip = Tip(tr("kami_claims.kpi.net.title"), listOf(tr("kami_claims.kpi.net.tax", Format.signedMoney(info.income)) to Palette.success,
-                tr("kami_claims.kpi.net.upkeep", Format.signedMoney(-info.upkeep)) to Palette.danger, tr("kami_claims.kpi.net.wages", Format.signedMoney(-info.jobs)) to Palette.danger)))) app.navigate(Route("budget"))
-        if (ui.statTile(tiles[2], tr("kami_claims.kpi.runway"), app.runwayText(info.treasury, net), Icons.CLOCK, app.runwayColor(info.treasury, net),
-            sub = tr("kami_claims.dashboard.runway.sub", Format.duration(info.nextBilling)), tip = Tip.text(tr("kami_claims.kpi.runway.tooltip"), tr("kami_claims.kpi.runway")))) app.navigate(Route("budget"))
         val debt = info.claimList.count { it.debt > 0 }
-        if (ui.statTile(tiles[3], tr("kami_claims.kpi.land"), Format.number(info.chunks), Icons.AREA, if (debt > 0) Palette.danger else Palette.text,
-            sub = if (debt > 0) tr("kami_claims.kpi.land.debt", Format.number(debt)) else tr("kami_claims.dashboard.land.free", Format.number(info.free), Format.number(info.freeAllowed)),
-            tip = Tip.text(tr("kami_claims.dashboard.land.tooltip"), tr("kami_claims.kpi.land")))) app.navigate(Route("chunks"))
+        ui.kpiRow(r.top(TILE_H), listOf(
+            KpiTile(tr("kami_claims.kpi.treasury"), Format.number(info.treasury), Icons.TREASURY, Palette.money,
+                trend = weekAgo?.let { Trend(info.treasury - it, tr("kami_claims.kpi.treasury.week", Format.signed(info.treasury - it))) }, sub = if (weekAgo == null) tr("kami_claims.kpi.treasury.no_history") else null,
+                spark = balances.takeLast(14), flashValue = info.treasury, tip = Tip.text(tr("kami_claims.kpi.open_budget"), tr("kami_claims.kpi.treasury")), onClick = { app.navigate(Route("budget")) }),
+            KpiTile(tr("kami_claims.kpi.net"), Format.signed(net), if (net >= 0) Icons.INCOME else Icons.EXPENSE, if (net >= 0) Palette.success else Palette.danger,
+                sub = tr("kami_claims.dashboard.net.sub", Format.number(info.income), Format.number(info.upkeep + info.jobs)),
+                tip = Tip(tr("kami_claims.kpi.net.title"), listOf(tr("kami_claims.kpi.net.tax", Format.signedMoney(info.income)) to Palette.success,
+                    tr("kami_claims.kpi.net.upkeep", Format.signedMoney(-info.upkeep)) to Palette.danger, tr("kami_claims.kpi.net.wages", Format.signedMoney(-info.jobs)) to Palette.danger)), onClick = { app.navigate(Route("budget")) }),
+            KpiTile(tr("kami_claims.kpi.runway"), app.runwayText(info.treasury, net), Icons.CLOCK, app.runwayColor(info.treasury, net),
+                sub = tr("kami_claims.dashboard.runway.sub", Format.duration(info.nextBilling)), tip = Tip.text(tr("kami_claims.kpi.runway.tooltip"), tr("kami_claims.kpi.runway")), onClick = { app.navigate(Route("budget")) }),
+            KpiTile(tr("kami_claims.kpi.land"), Format.number(info.chunks), Icons.AREA, if (debt > 0) Palette.danger else Palette.text,
+                sub = if (debt > 0) tr("kami_claims.kpi.land.debt", Format.number(debt)) else tr("kami_claims.dashboard.land.free", Format.number(info.free), Format.number(info.freeAllowed)),
+                tip = Tip.text(tr("kami_claims.dashboard.land.tooltip"), tr("kami_claims.kpi.land")), onClick = { app.navigate(Route("chunks")) })
+        ), key = "dashboard-kpi")
         val (left, right) = r.dropTop(TILE_H + 6).columns(listOf(1.35f, 1f), 6)
         val lf = Flow(left, 6)
         val alerts = app.visibleAlerts()

@@ -8,7 +8,6 @@ import java.util.UUID
 class Terms(val taxPct: Int, val tariffPct: Int, val relation: Relation) {
     val blocked get() = relation == Relation.EMBARGO
     val rates get() = if (tariffPct > 0) listOf(taxPct, tariffPct) else listOf(taxPct)
-    fun withoutTariff() = Terms(taxPct, 0, relation)
 }
 
 object Trade {

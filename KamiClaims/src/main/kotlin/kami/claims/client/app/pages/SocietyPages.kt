@@ -5,7 +5,7 @@ import kami.libs.ui.text.tr
 import kami.claims.Rank
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ClaimsPage
-import kami.claims.client.app.Consequence
+import kami.libs.ui.app.Consequence
 import kami.claims.client.app.Dialogs
 import kami.claims.client.app.Illustrations
 import kami.claims.client.app.Vocabulary
@@ -65,18 +65,19 @@ class CitizensPage(app: ClaimsApp) : ClaimsPage(app) {
         val info = info ?: return
         val profileW = if (app.compact) 0 else (r.w * 0.42).toInt().coerceIn(170, 240)
         val left = r.dropRight(profileW, if (profileW > 0) 8 else 0)
-        val bar = Row(left.top(CONTROL_H), 6)
-        ui.searchField(bar.take(140), search, tr("kami_claims.citizens.search"), key = "mem-search")
-        val inviteLabel = tr("kami_claims.citizens.invite")
-        val iw = buttonWidth(inviteLabel, Icons.INVITE)
-        val inviteBtn = bar.takeFromRight(iw)
-        ui.textField(bar.takeFromRight(120), invite, tr("kami_claims.field.player"), Icons.PERSON, maxLength = 16, key = "invite-name")
-        if (ui.button(inviteBtn, inviteLabel, Icons.INVITE, ButtonStyle.PRIMARY, can("invite") && invite.text.length >= 3, lock("invite") ?: tr("kami_claims.field.player.disabled"), pending = pending("invite"), key = "invite-go")) {
-            act("invite", invite.text, key = "invite")
-            invite.set("")
+        var rows: List<Mem> = emptyList()
+        val tableRect = ui.filterBar(left, "citizens:filters") { barRect ->
+            val bar = Row(barRect, 6)
+            ui.searchField(bar.take(140), search, tr("kami_claims.citizens.search"), key = "mem-search")
+            val inviteLabel = tr("kami_claims.citizens.invite")
+            val invited = ui.edgeButton(bar, inviteLabel, Icons.INVITE, ButtonStyle.PRIMARY, can("invite") && invite.text.length >= 3, lock("invite") ?: tr("kami_claims.field.player.disabled"), pending = pending("invite"), key = "invite-go")
+            ui.textField(bar.takeFromRight(120), invite, tr("kami_claims.field.player"), Icons.PERSON, maxLength = 16, key = "invite-name")
+            if (invited) {
+                act("invite", invite.text, key = "invite")
+                invite.set("")
+            }
+            rows = ui.filtered("citizens-filtered", listOf(search.text, info.members)) { info.members.filter { search.text.isBlank() || it.name.contains(search.text, true) } }
         }
-        val rows = info.members.filter { search.text.isBlank() || it.name.contains(search.text, true) }
-        val tableRect = left.dropTop(CONTROL_H + 6)
         ui.anchor("citizens:table", tableRect)
         ui.table(tableRect, listOf(
             Column<Mem>(tr("kami_claims.citizens.col.name"), -1, sort = compareBy { it.name.lowercase() }) { _, c, m ->
@@ -105,8 +106,7 @@ class CitizensPage(app: ClaimsApp) : ClaimsPage(app) {
         ui.anchor("citizens:profile", r)
         if (m == null) return
         val info = info ?: return
-        Draw.sprite(ui.g, Sprites.PANEL, r)
-        val f = Flow(r.inset(8), 4)
+        val f = ui.sidePanel(r, 4, 8)
         val head = f.take(26)
         header(ui, m, head)
         val rank = Rank.entries.firstOrNull { it.name.equals(m.rank, true) } ?: Rank.CITIZEN
@@ -227,8 +227,9 @@ class CitizensPage(app: ClaimsApp) : ClaimsPage(app) {
                 val citizenship = snap.players.firstOrNull { it.id == m.id }?.citizenships?.firstOrNull { it.via.isEmpty() }
                 Draw.text(ui.g, Draw.fit(citizenship?.let { tr("kami_claims.citizens.member_of", it.country) } ?: tr("kami_claims.topbar.no_country"), textW), row.x + 26, row.y + 15, Palette.textMuted)
                 val staff = lock("invite")
-                if (ui.button(Rect(row.right - 6 - dw - 4 - aw, row.y + 4, aw, CONTROL_H), approve, Icons.CHECK, ButtonStyle.PRIMARY, staff == null, staff, pending = pending("approve:${m.id}"), key = "approve:${m.id}")) act("approve", m.id, key = "approve:${m.id}")
-                if (ui.button(Rect(row.right - 6 - dw, row.y + 4, dw, CONTROL_H), deny, enabled = staff == null, disabledReason = staff, key = "deny:${m.id}")) act("deny", m.id, key = "deny:${m.id}")
+                val actions = Row(Rect(row.x, row.y + 4, row.w - 6, CONTROL_H))
+                if (ui.edgeButton(actions, deny, enabled = staff == null, disabledReason = staff, key = "deny:${m.id}")) act("deny", m.id, key = "deny:${m.id}")
+                if (ui.edgeButton(actions, approve, Icons.CHECK, ButtonStyle.PRIMARY, staff == null, staff, pending = pending("approve:${m.id}"), key = "approve:${m.id}")) act("approve", m.id, key = "approve:${m.id}")
             }
         }
     }
@@ -308,12 +309,10 @@ class JobsPage(app: ClaimsApp) : ClaimsPage(app) {
         if (dirty) {
             val saveLabel = tr("kami_claims.common.save")
             val undoLabel = tr("kami_claims.common.undo")
-            val saveW = buttonWidth(saveLabel, Icons.SAVE)
-            val save = Rect(body.right - saveW, body.bottom - 16, saveW, 16)
-            if (ui.button(save, saveLabel, Icons.SAVE, ButtonStyle.PRIMARY, pending = pending("job_set:${j.name}"), key = "save:${j.name}")) {
-                act("job_edit", j.name, state.first.value.toString(), state.second.value.toString(), state.third.value.toString(), key = "job_set:${j.name}")
-            }
-            if (ui.button(Rect(save.x - buttonWidth(undoLabel) - 4, save.y, buttonWidth(undoLabel), 16), undoLabel, key = "undo:${j.name}")) edits.remove(j.name)
+            val actions = Row(Rect(body.x, body.bottom - 16, body.w, 16))
+            val saved = ui.edgeButton(actions, saveLabel, Icons.SAVE, ButtonStyle.PRIMARY, pending = pending("job_set:${j.name}"), key = "save:${j.name}")
+            if (ui.edgeButton(actions, undoLabel, key = "undo:${j.name}")) edits.remove(j.name)
+            if (saved) act("job_edit", j.name, state.first.value.toString(), state.second.value.toString(), state.third.value.toString(), key = "job_set:${j.name}")
             Draw.fill(ui.g, Rect(r.right - 4, r.y + 2, 2, 2), Palette.brass)
         }
     }

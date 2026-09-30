@@ -20,6 +20,22 @@ class Option<T>(
     val color: Int? = null, val disabledReason: String? = null
 )
 
+enum class PopoverAlign { START, END }
+
+fun Ui.popover(anchor: Rect, w: Int, h: Int, align: PopoverAlign = PopoverAlign.START, shadow: Int = 2, onOutside: () -> Unit = {}, content: Ui.(Rect) -> Unit) {
+    val below = anchor.bottom + 2 + h <= screen.bottom - 4
+    val x = when (align) {
+        PopoverAlign.START -> min(anchor.x, screen.right - w - 4)
+        PopoverAlign.END -> anchor.right - w
+    }
+    val box = Rect(x, if (below) anchor.bottom + 2 else anchor.y - 2 - h, w, h)
+    block(box)
+    Draw.shadow(g, box, shadow)
+    Draw.sprite(g, Sprites.POPOVER, box)
+    content(box)
+    if (input.presses.any { !it.consumed && !box.contains(it.x, it.y) && !anchor.contains(it.x, it.y) }) onOutside()
+}
+
 private fun Ui.clickable(key: Any, r: Rect, enabled: Boolean): Boolean {
     focusable(key)
     val hover = hover(key, r)
@@ -139,44 +155,40 @@ fun <T> Ui.select(
         val visible = options.filter { filter.text.isBlank() || it.label.contains(filter.text, true) }
         val rowH = if (visible.any { it.description != null }) 22 else 14
         val searchH = if (searchable) 20 else 0
-        val height = min(visible.size * rowH + 6 + searchH, 220)
-        val below = r.bottom + 2 + height <= screen.bottom - 4
-        val menu = Rect(min(r.x, screen.right - menuWidth - 4), if (below) r.bottom + 2 else r.y - 2 - height, menuWidth, max(height, 22))
-        block(menu)
-        Draw.shadow(g, menu, 1)
-        Draw.sprite(g, Sprites.POPOVER, menu)
-        var area = menu.inset(2)
-        if (searchable) {
-            textField(area.top(16), filter, tr("kami_libs.common.filter"), Icons.SEARCH, key = "filterField:$key", autoFocus = true)
-            area = area.dropTop(16, 2)
-        }
-        scroll("menu:$key", area, visible.size * rowH) { content ->
-            visible.forEachIndexed { i, o ->
-                val row = Rect(content.x, content.y + i * rowH, content.w, rowH)
-                val usable = o.disabledReason == null
-                val over = hovering(row) && usable
-                if (over) { Draw.fill(g, row, Palette.hover); cursor = Cursor.HAND }
-                if (o.value == selected) Draw.fill(g, row.left(2), Palette.brass)
-                var x = row.x + 5
-                o.color?.let { Draw.fill(g, Rect(x, row.y + 4, 6, 6), it); x += 10 }
-                o.icon?.let { x += Draw.leadIcon(g, it, x, row.y + 7) }
-                Draw.text(g, Draw.fit(o.label, row.right - x - 4), x, row.y + 3, if (usable) Palette.text else Palette.textDisabled)
-                o.description?.let { Draw.text(g, Draw.fit(it, row.right - x - 4), x, row.y + 12, Palette.textMuted) }
-                o.disabledReason?.let { reason -> tooltip("opt:$key:$i", row) { Tip.disabled(reason) } }
-                if (usable && pressed(row) != null) {
-                    pick.put(o.value)
-                    state[0] = false
-                    UiSound.click()
+        val height = max(min(visible.size * rowH + 6 + searchH, 220), 22)
+        popover(r, menuWidth, height, shadow = 1, onOutside = { state[0] = false }) { menu ->
+            var area = menu.inset(2)
+            if (searchable) {
+                textField(area.top(16), filter, tr("kami_libs.common.filter"), Icons.SEARCH, key = "filterField:$key", autoFocus = true)
+                area = area.dropTop(16, 2)
+            }
+            scroll("menu:$key", area, visible.size * rowH) { content ->
+                visible.forEachIndexed { i, o ->
+                    val row = Rect(content.x, content.y + i * rowH, content.w, rowH)
+                    val usable = o.disabledReason == null
+                    val over = hovering(row) && usable
+                    if (over) { Draw.fill(g, row, Palette.hover); cursor = Cursor.HAND }
+                    if (o.value == selected) Draw.fill(g, row.left(2), Palette.brass)
+                    var x = row.x + 5
+                    o.color?.let { Draw.fill(g, Rect(x, row.y + 4, 6, 6), it); x += 10 }
+                    o.icon?.let { x += Draw.leadIcon(g, it, x, row.y + 7) }
+                    Draw.text(g, Draw.fit(o.label, row.right - x - 4), x, row.y + 3, if (usable) Palette.text else Palette.textDisabled)
+                    o.description?.let { Draw.text(g, Draw.fit(it, row.right - x - 4), x, row.y + 12, Palette.textMuted) }
+                    o.disabledReason?.let { reason -> tooltip("opt:$key:$i", row) { Tip.disabled(reason) } }
+                    if (usable && pressed(row) != null) {
+                        pick.put(o.value)
+                        state[0] = false
+                        UiSound.click()
+                    }
                 }
             }
+            if (input.takeKey(GLFW.GLFW_KEY_ENTER) != null && visible.size == 1) { pick.put(visible[0].value); state[0] = false }
         }
-        if (input.presses.any { !it.consumed && !menu.contains(it.x, it.y) && !r.contains(it.x, it.y) }) state[0] = false
-        if (input.takeKey(GLFW.GLFW_KEY_ENTER) != null && visible.size == 1) { pick.put(visible[0].value); state[0] = false }
     }
     return deferred
 }
 
-class Picked {
+private class Picked {
     var has = false
         private set
     var value: Any? = null

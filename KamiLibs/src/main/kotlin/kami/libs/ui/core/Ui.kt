@@ -89,6 +89,14 @@ class Ui {
     @Suppress("UNCHECKED_CAST")
     fun <T : Any> remember(key: Any, init: () -> T): T = states.getOrPut(id(key), init) as T
 
+    class FilterCache<T>(var inputs: Any? = null, var result: List<T> = emptyList())
+
+    fun <T> filtered(key: Any, inputs: Any, compute: () -> List<T>): List<T> {
+        val cache = remember(key) { FilterCache<T>() }
+        if (cache.inputs != inputs) { cache.inputs = inputs; cache.result = compute() }
+        return cache.result
+    }
+
     fun forget(prefix: String) { states.keys.removeIf { it.startsWith(prefix) } }
 
     fun frame(graphics: GuiGraphics, mx: Int, my: Int, width: Int, height: Int, draw: () -> Unit) {

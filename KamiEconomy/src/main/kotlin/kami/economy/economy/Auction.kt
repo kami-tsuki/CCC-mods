@@ -19,7 +19,7 @@ enum class AuctionState { OPEN, SOLD, EXPIRED, CANCELLED }
 class Auction(
     val id: Long, val seller: String, val stackData: String, val label: String,
     val startPrice: Int, val buyNowPrice: Int?, var currentBid: Int, var currentBidder: String,
-    val createdAt: Long, val expiresAt: Long, var state: AuctionState
+    val expiresAt: Long, var state: AuctionState
 )
 
 object StackCodec {
@@ -47,7 +47,7 @@ object Auctions {
 
     fun insert(id: Long, seller: String, stackData: String, label: String, startPrice: Int, buyNowPrice: Int?) {
         if (Market.data.auctions.any { it.id == id }) return
-        Market.data.auctions += Auction(id, seller, stackData, label, startPrice, buyNowPrice, 0, "", now(), now() + Config.s.auctionDurationMillis, AuctionState.OPEN)
+        Market.data.auctions += Auction(id, seller, stackData, label, startPrice, buyNowPrice, 0, "", now() + Config.s.auctionDurationMillis, AuctionState.OPEN)
         Market.dirty = true
     }
 

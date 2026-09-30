@@ -1,16 +1,11 @@
 package kami.essentials
 
-import kami.libs.perm.Permissions
+import kami.libs.perm.PermissionSet
 import net.minecraft.commands.CommandSourceStack
-import net.minecraft.server.level.ServerPlayer
-import net.neoforged.neoforge.server.permission.events.PermissionGatherEvent
 import net.neoforged.neoforge.server.permission.nodes.PermissionNode
 
-object Perms {
-    private val all = mutableListOf<PermissionNode<Boolean>>()
-
-    private fun node(path: String, everyone: Boolean) =
-        Permissions.node(KamiEssentials.ID, path) { p -> everyone || p?.hasPermissions(2) ?: true }.also { all += it }
+object Perms : PermissionSet(KamiEssentials.ID) {
+    private fun node(path: String, everyone: Boolean) = node(path) { p -> everyone || p?.hasPermissions(2) ?: true }
 
     val INVSEE = node("invsee", false)
     val INVSEE_EDIT = node("invsee.edit", false)
@@ -30,9 +25,5 @@ object Perms {
     val COUNTRYCHAT = node("countrychat", true)
     val ADMINCHAT = node("adminchat", false)
 
-    fun register(e: PermissionGatherEvent.Nodes) = Permissions.register(e, *all.toTypedArray())
-
-    fun has(p: ServerPlayer, n: PermissionNode<Boolean>) = Permissions.has(p, n)
-    fun has(s: CommandSourceStack, n: PermissionNode<Boolean>) = Permissions.has(s, n)
     fun gate(n: PermissionNode<Boolean>): (CommandSourceStack) -> Boolean = { has(it, n) }
 }

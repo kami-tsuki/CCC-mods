@@ -142,16 +142,9 @@ object Service {
                 it.flag = Flag(num(a, 1).coerceIn(0, 31), num(a, 2).coerceIn(0, 63), hex(3))
                 Phrase.of("kami_claims.done.flag", v(it.name))
             }
-            "color" -> need(p, Cap.RULES).let {
-                it.color = arg(a, 0).removePrefix("#").toIntOrNull(16)?.and(0xFFFFFF) ?: throw Fail("kami_claims.error.hex", v("ff8800"))
-                Phrase.of("kami_claims.done.color")
-            }
-            "claimrect" -> claimRect(p, arg(a, 0), rect(p, a, 1))
             "claimcells" -> claimRect(p, arg(a, 0), cells(p, a, 1))
             "typecells" -> typeRect(p, arg(a, 0), cells(p, a, 1))
             "unclaimcells" -> unclaimRect(p, cells(p, a, 0))
-            "unclaimrect" -> unclaimRect(p, rect(p, a, 0))
-            "typerect" -> typeRect(p, arg(a, 0), rect(p, a, 1))
             "plot_claim" -> plotClaim(p, spot(p, a, 0))
             "plot_evict" -> mine(need(p, Cap.CLAIM), spot(p, a, 0)).let { cl -> cl.owner = null; cl.roles.clear(); cl.lapse = 0; Phrase.of("kami_claims.done.plot_evicted") }
             "plot_release" -> plotOwner(p, spot(p, a, 0)).let { cl -> cl.owner = null; cl.roles.clear(); cl.lapse = 0; Phrase.of("kami_claims.done.plot_released") }
@@ -531,8 +524,21 @@ object Service {
 
     private fun province(p: ServerPlayer, name: String, a: List<String>): Phrase {
         val c = need(p, Cap.PROVINCE)
-        fun mode() = parse(TaxMode.values(), arg(a, 1))
+        val t by lazy { country(arg(a, 0)) }
+        val m by lazy { parse(TaxMode.values(), arg(a, 1)) }
+        val amount by lazy { Provinces.tribute(arg(a, 2), m) }
+        fun done(key: String) = Phrase.of("kami_claims.done.$key", v(t.name))
         return when (name) {
+            "province_invite" -> Provinces.invite(c, t, m, amount).let { done("province_invited") }
+            "province_request" -> Provinces.request(c, t).let { done("province_requested") }
+            "province_approve" -> Provinces.approve(c, t, m, amount).let { done("province_approved") }
+            "province_deny" -> Provinces.deny(c, t).let { done("province_denied") }
+            "province_release" -> Provinces.release(c, t).let { done("province_released") }
+            "province_forgive" -> Provinces.forgive(c, t).let { done("province_forgiven") }
+            "province_decline" -> Provinces.decline(c, t).let { done("independence_declined") }
+            "province_tax" -> Provinces.setTribute(c, t, m, amount).let { done("tribute_changed") }
+            "province_independence" -> Provinces.askIndependence(c).let { Phrase.of("kami_claims.done.independence_requested") }
+            "province_withdraw" -> Provinces.withdrawIndependence(c).let { Phrase.of("kami_claims.done.independence_withdrawn") }
             else -> throw Fail("kami_claims.error.unknown_province_action")
         }
     }

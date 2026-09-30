@@ -14,7 +14,7 @@ class GeologyFeature : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguratio
         val world = Worlds.of(level.level) ?: return false
         val chunk = level.getChunk(context.origin())
         val chunkPos = chunk.pos
-        for (ore in world.settings.ores) {
+        world.settings.ores.forEach { ore ->
             try {
                 if (ore.deposit != null) {
                     world.sitesIn(ore, chunkPos.minBlockX, chunkPos.minBlockZ, chunkPos.maxBlockX, chunkPos.maxBlockZ).forEach { site ->

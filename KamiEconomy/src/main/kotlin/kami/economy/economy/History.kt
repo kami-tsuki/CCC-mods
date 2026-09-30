@@ -1,15 +1,11 @@
 package kami.economy.economy
 
+import kami.economy.LOG
 import kami.economy.Config
-import kami.economy.KamiEconomy
+import kami.libs.config.WorldStore
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.storage.LevelResource
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 import java.util.ArrayDeque
 import java.util.concurrent.TimeUnit
 import kotlin.math.max
@@ -51,19 +47,13 @@ private class Track {
 }
 
 object History {
-    private val json = Json { encodeDefaults = true }
-    private var file: Path? = null
+    private val store = WorldStore(HistoryData.serializer(), ::HistoryData)
     private val tracks = HashMap<String, Track>()
     private var dirty = false
 
     fun load(server: MinecraftServer) {
         val path = server.getWorldPath(LevelResource.ROOT).resolve("kami_economy_history.json")
-        file = path
-        val data = if (Files.exists(path)) runCatching { json.decodeFromString<HistoryData>(Files.readString(path)) }.getOrElse {
-            KamiEconomy.LOG.error("Unreadable price history, kept as .bad", it)
-            Files.move(path, path.resolveSibling("kami_economy_history.json.bad"), StandardCopyOption.REPLACE_EXISTING)
-            HistoryData()
-        } else HistoryData()
+        val data = store.load(path) { LOG.error("Unreadable price history, kept as .bad", it) }
         tracks.clear()
         data.items.forEach { (item, h) ->
             val t = Track()
@@ -79,15 +69,12 @@ object History {
     }
 
     fun save(force: Boolean = false) {
-        val path = file ?: return
         if (!dirty && !force) return
-        val data = HistoryData(tracks.mapValuesTo(LinkedHashMap()) { (_, t) ->
+        store.data = HistoryData(tracks.mapValuesTo(LinkedHashMap()) { (_, t) ->
             ItemHistory(t.raw.toMutableList(), t.hourly.toMutableList(), t.daily.toMutableList(), t.hourAcc, t.hourStart, t.dayAcc, t.dayStart)
         })
-        val tmp = path.resolveSibling("kami_economy_history.json.tmp")
-        Files.writeString(tmp, json.encodeToString(data))
-        if (Files.exists(path)) Files.copy(path, path.resolveSibling("kami_economy_history.json.bak"), StandardCopyOption.REPLACE_EXISTING)
-        Files.move(tmp, path, StandardCopyOption.REPLACE_EXISTING)
+        store.changed()
+        store.save(force)
         dirty = false
     }
 

@@ -30,7 +30,7 @@ object Vendors {
             return
         }
         if (ClaimsApi.isBanished(e.entity.uuid, info.country)) return deny(e, Phrase.of("kami_economy.vendor.banished", Phrase.value(info.country)))
-        val home = ClaimsApi.countryOf(e.entity.uuid) ?: return
+        val home = ClaimsApi.countryOf(e.entity.uuid) ?: return deny(e, Phrase.of("kami_libs.economy.no_country"))
         if (!ClaimsApi.canTrade(home, info.country)) deny(e, Phrase.of("kami_economy.vendor.embargo", Phrase.value(ClaimsApi.country(info.country)?.name ?: info.country)))
     }
 

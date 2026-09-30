@@ -50,7 +50,7 @@ import kotlin.math.roundToInt
     val funds: Long, val rows: List<Row>, val orders: List<OrderLine>, val query: String, val sort: String,
     val page: Int, val pages: Int, val taxPct: Int, val auctionFeePct: Int, val detail: Detail?, val quote: QuoteLine?,
     val auctions: List<AuctionLine>, val auctionPage: Int, val auctionPages: Int,
-    val msg: String, val ok: Boolean, val open: Boolean
+    val msg: String, val ok: Boolean, val open: Boolean, val citizen: Boolean = true
 )
 
 private class State {
@@ -188,7 +188,7 @@ object Sync {
         val snap = Snap(
             funds, rowList, myOrders(p.stringUUID), s.text, s.sort, s.page, pages,
             Config.s.taxPct, (Config.s.auctionFeePct * 100).roundToInt(),
-            detail(s, p.stringUUID, funds), s.quote, auctionList, auctionPage, auctionPages, msg, ok, open
+            detail(s, p.stringUUID, funds), s.quote, auctionList, auctionPage, auctionPages, msg, ok, open, ClaimsApi.isCitizen(p.uuid)
         )
         return json.encodeToString(snap)
     }

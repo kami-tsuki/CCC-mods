@@ -18,3 +18,15 @@ object Permissions {
 
     fun has(s: CommandSourceStack, n: PermissionNode<Boolean>): Boolean = s.player?.let { has(it, n) } ?: true
 }
+
+open class PermissionSet(private val modId: String) {
+    private val all = mutableListOf<PermissionNode<Boolean>>()
+
+    protected fun node(path: String, default: (ServerPlayer?) -> Boolean): PermissionNode<Boolean> =
+        Permissions.node(modId, path, default).also { all += it }
+
+    fun register(e: PermissionGatherEvent.Nodes) = Permissions.register(e, *all.toTypedArray())
+
+    fun has(p: ServerPlayer, n: PermissionNode<Boolean>) = Permissions.has(p, n)
+    fun has(s: CommandSourceStack, n: PermissionNode<Boolean>) = Permissions.has(s, n)
+}

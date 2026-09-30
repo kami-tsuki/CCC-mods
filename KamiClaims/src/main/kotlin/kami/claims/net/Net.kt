@@ -11,6 +11,9 @@ import kami.claims.world.Effects
 import kami.libs.net.Packets
 
 import kami.claims.client.ClientHooks
+import kami.libs.net.ActPayload
+import kami.libs.net.SnapshotPayload
+import kami.libs.net.TickCooldown
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.server.MinecraftServer
@@ -21,45 +24,15 @@ import java.util.UUID
 import kotlin.math.max
 import kotlin.math.min
 
-private fun id(path: String) = Packets.id(KamiClaims.ID, path)
-
+private val net = Packets.forMod(KamiClaims.ID)
+private fun id(path: String) = net.id(path)
 private fun <T : CustomPacketPayload> codec(write: (FriendlyByteBuf, T) -> Unit, read: (FriendlyByteBuf) -> T) =
-    Packets.codec(write, read)
+    net.codec(write, read)
 
 private fun FriendlyByteBuf.count(max: Int) = readVarInt().also { require(it in 0..max) { "list too long" } }
 
-class Act(val name: String, val args: List<String>, val asCountry: String = "", val rid: Int = 0) : CustomPacketPayload {
-    override fun type() = TYPE
-
-    companion object {
-        const val MAX_ARGS = 8
-        const val MAX_ARG = 4096
-        val TYPE = CustomPacketPayload.Type<Act>(id("act"))
-        val CODEC = codec<Act>(
-            { b, v ->
-                b.writeUtf(v.name, 32)
-                b.writeVarInt(v.args.size)
-                v.args.forEach { b.writeUtf(it, MAX_ARG) }
-                b.writeUtf(v.asCountry, 24)
-                b.writeVarInt(v.rid)
-            },
-            { b ->
-                val name = b.readUtf(32)
-                val args = List(b.count(MAX_ARGS)) { b.readUtf(MAX_ARG) }
-                Act(name, args, b.readUtf(24), b.readVarInt())
-            }
-        )
-    }
-}
-
-class Snapshot(val json: String) : CustomPacketPayload {
-    override fun type() = TYPE
-
-    companion object {
-        val TYPE = CustomPacketPayload.Type<Snapshot>(id("snapshot"))
-        val CODEC = codec<Snapshot>({ b, v -> b.writeUtf(v.json, 1_048_576) }, { b -> Snapshot(b.readUtf(1_048_576)) })
-    }
-}
+val Act = ActPayload.channel(net, maxArgs = 8, maxArg = 4096, withCountry = true)
+val Snapshot = SnapshotPayload.channel(net, maxBytes = 1_048_576)
 
 class Denied(val action: String, val x: Int, val y: Int, val z: Int, val owner: String, val color: Int, val type: String, val reason: String, val borderDistance: Int) : CustomPacketPayload {
     override fun type() = TYPE
@@ -110,21 +83,21 @@ class ClaimsPacket(val data: View.Payload) : CustomPacketPayload {
 }
 
 object Net {
-    private val lastAct = HashMap<UUID, Int>()
-    private val lastPreview = HashMap<UUID, Int>()
+    private val lastAct = TickCooldown(0)
+    private val lastPreview = TickCooldown(2)
     private val sent = HashMap<UUID, Int>()
     private var lastPush = 0
     private val openPlayers = HashSet<UUID>()
 
     fun register(e: RegisterPayloadHandlersEvent) {
         val r = e.registrar("2").optional()
-        r.playToServer(Act.TYPE, Act.CODEC) { a, ctx -> (ctx.player() as? ServerPlayer)?.let { handle(it, a) } }
-        r.playToClient(Snapshot.TYPE, Snapshot.CODEC) { s, _ -> ClientHooks.snapshot(s) }
+        r.playToServer(Act.type, Act.codec) { a, ctx -> (ctx.player() as? ServerPlayer)?.let { handle(it, a) } }
+        r.playToClient(Snapshot.type, Snapshot.codec) { s, _ -> ClientHooks.snapshot(s) }
         r.playToClient(ClaimsPacket.TYPE, ClaimsPacket.CODEC) { c, _ -> ClientHooks.claims(c.data) }
         r.playToClient(Denied.TYPE, Denied.CODEC) { d, _ -> ClientHooks.denied(d) }
     }
 
-    fun canOpen(p: ServerPlayer) = p.connection.hasChannel(Snapshot.TYPE)
+    fun canOpen(p: ServerPlayer) = p.connection.hasChannel(Snapshot.type)
 
     fun send(p: ServerPlayer, msg: String = "", ok: Boolean = true, open: Boolean = false) = send(p, Reply(msg, ok), open)
 
@@ -158,8 +131,8 @@ object Net {
     }
 
     fun forget(p: ServerPlayer) {
-        lastAct.remove(p.uuid)
-        lastPreview.remove(p.uuid)
+        lastAct.forget(p.uuid)
+        lastPreview.forget(p.uuid)
         sent.remove(p.uuid)
         openPlayers.remove(p.uuid)
         Sync.forget(p)
@@ -179,10 +152,9 @@ object Net {
         return (x1..x2).flatMap { x -> (z1..z2).map { z -> Key(dim, x, z) } }
     }
 
-    private fun preview(p: ServerPlayer, a: Act) {
+    private fun preview(p: ServerPlayer, a: ActPayload) {
         val tick = p.server.tickCount
-        if (tick - (lastPreview[p.uuid] ?: -100) < 2) return
-        lastPreview[p.uuid] = tick
+        if (!lastPreview.ready(p.uuid, tick)) return
         val own = Realm.of(p.stringUUID) ?: return send(p, Reply(rid = a.rid))
         val target = a.asCountry.takeIf { it.isNotBlank() }?.let { Realm.country(it) }?.takeIf { it.parent == own.id } ?: own
         val kind = a.name.removePrefix("preview_")
@@ -197,7 +169,7 @@ object Net {
         send(p, Reply(rid = a.rid))
     }
 
-    private fun handle(p: ServerPlayer, a: Act) {
+    private fun handle(p: ServerPlayer, a: ActPayload) {
         when (a.name) {
             "open" -> {
                 openPlayers += p.uuid
@@ -222,10 +194,9 @@ object Net {
         }
     }
 
-    private fun perform(p: ServerPlayer, a: Act) {
+    private fun perform(p: ServerPlayer, a: ActPayload) {
         val tick = p.server.tickCount
-        if (tick - (lastAct[p.uuid] ?: -100) < Config.s.guiCooldown) return send(p, Reply(Phrase.of("kami_claims.error.rate_limited").json(), false, a.rid, "COOLDOWN"))
-        lastAct[p.uuid] = tick
+        if (!lastAct.ready(p.uuid, tick, Config.s.guiCooldown)) return send(p, Reply(Phrase.of("kami_claims.error.rate_limited").json(), false, a.rid, "COOLDOWN"))
         val reply = try {
             Reply(Service.act(p, a.name, a.args, a.asCountry).json(), true, a.rid)
         } catch (e: Fail) {

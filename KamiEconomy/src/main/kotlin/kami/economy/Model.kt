@@ -1,18 +1,14 @@
 package kami.economy
 
 import kami.economy.economy.Ledger
+import kami.libs.config.WorldStore
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.tags.TagKey
 import net.minecraft.world.level.storage.LevelResource
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 
 fun now() = System.currentTimeMillis()
 
@@ -53,7 +49,7 @@ class Vendor(
 }
 
 @Serializable
-class Delivery(val item: String = "", val qty: Int = 0, val stackData: String = "")
+class Delivery(val item: String = "", val qty: Int = 0, val stackData: String = "", val id: String = "")
 
 @Serializable
 class Data(
@@ -69,19 +65,17 @@ class Data(
 )
 
 object Market {
-    private val json = Json { prettyPrint = true; encodeDefaults = true; ignoreUnknownKeys = true }
-    private var file: Path? = null
-    var data = Data()
-    var dirty = false
+    private val store = WorldStore(Data.serializer(), ::Data)
+    var data: Data
+        get() = store.data
+        set(value) { store.data = value }
+    var dirty: Boolean
+        get() = store.dirty
+        set(value) { if (value) store.changed() else store.dirty = false }
 
     fun load(server: MinecraftServer) {
         val path = server.getWorldPath(LevelResource.ROOT).resolve("kami_economy.json")
-        file = path
-        data = if (Files.exists(path)) runCatching { json.decodeFromString<Data>(Files.readString(path)) }.getOrElse {
-            KamiEconomy.LOG.error("Unreadable market data, kept as .bad", it)
-            Files.move(path, path.resolveSibling("kami_economy.json.bad"), StandardCopyOption.REPLACE_EXISTING)
-            Data()
-        } else Data()
+        store.load(path) { LOG.error("Unreadable market data, kept as .bad", it) }
         Ledger.attach(path.resolveSibling("kami_economy.wal"))
         Ledger.recover()
         data.books.values.forEach { if (it.sells.removeAll { o -> o.synthetic }) dirty = true }
@@ -91,14 +85,9 @@ object Market {
     }
 
     fun save(force: Boolean = false) {
-        val path = file ?: return
-        if (!dirty && !force) return
-        val tmp = path.resolveSibling("kami_economy.json.tmp")
-        Files.writeString(tmp, json.encodeToString(data))
-        if (Files.exists(path)) Files.copy(path, path.resolveSibling("kami_economy.json.bak"), StandardCopyOption.REPLACE_EXISTING)
-        Files.move(tmp, path, StandardCopyOption.REPLACE_EXISTING)
-        dirty = false
-        runCatching { Ledger.compact() }.onFailure { KamiEconomy.LOG.error("Could not compact the ledger", it) }
+        val wasDirty = dirty || force
+        store.save(force)
+        if (wasDirty) runCatching { Ledger.compact() }.onFailure { LOG.error("Could not compact the ledger", it) }
     }
 
     fun book(item: String): Book = data.books.getOrPut(item) { Book(item) }
@@ -111,13 +100,24 @@ object Market {
         return list
     }
 
-    fun queueDelivery(uuid: String, item: String, qty: Int) {
-        data.pendingDelivery.getOrPut(uuid) { mutableListOf() } += Delivery(item = item, qty = qty)
+    fun queueDelivery(uuid: String, item: String, qty: Int, id: String = "") {
+        val list = data.pendingDelivery.getOrPut(uuid) { mutableListOf() }
+        if (id.isNotEmpty() && list.any { it.id == id }) return
+        list += Delivery(item = item, qty = qty, id = id)
         dirty = true
     }
 
-    fun queueStackDelivery(uuid: String, stackData: String) {
-        data.pendingDelivery.getOrPut(uuid) { mutableListOf() } += Delivery(stackData = stackData)
+    fun queueStackDelivery(uuid: String, stackData: String, id: String = "") {
+        val list = data.pendingDelivery.getOrPut(uuid) { mutableListOf() }
+        if (id.isNotEmpty() && list.any { it.id == id }) return
+        list += Delivery(stackData = stackData, id = id)
         dirty = true
+    }
+
+    fun freeze(id: Long) {
+        if (id !in data.frozen) {
+            data.frozen += id
+            dirty = true
+        }
     }
 }

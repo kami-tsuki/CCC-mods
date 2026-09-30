@@ -93,6 +93,7 @@
   "kami_essentials.trade.no_room": "%s has no room for the items. Trade stopped.",
   "kami_essentials.trade.nothing_open": "You have no open trade request.",
   "kami_essentials.trade.other_busy": "%s is already trading.",
+  "kami_essentials.trade.other_no_country": "%s has no country and cannot trade.",
   "kami_essentials.trade.reason.died": "%s died.",
   "kami_essentials.trade.reason.distance": "You moved too far apart.",
   "kami_essentials.trade.reason.left": "%s left the game.",

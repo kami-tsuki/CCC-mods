@@ -19,6 +19,4 @@ class Registry(private val log: Log, private val loaded: (String) -> Boolean = {
     fun missing(id: String, context: String) {
         if (loaded(id)) log.warn("Unknown '{}' in {}", id, context) else log.debug("Skipping '{}' in {}: mod not installed", id, context)
     }
-
-    fun name(block: Block): String = BuiltInRegistries.BLOCK.getKey(block).toString()
 }

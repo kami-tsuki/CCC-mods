@@ -9,15 +9,9 @@ import net.minecraft.client.Minecraft
 object ClientHooks {
     fun open(payload: OpenMap) = Minecraft.getInstance().setScreen(HeatmapScreen(payload))
 
-    fun layer(payload: MapLayer) {
-        (Minecraft.getInstance().screen as? HeatmapScreen)?.onLayer(payload)
-    }
+    fun layer(payload: MapLayer) = (Minecraft.getInstance().screen as? HeatmapScreen)?.onLayer(payload)
 
-    fun done(payload: MapDone) {
-        (Minecraft.getInstance().screen as? HeatmapScreen)?.onDone(payload)
-    }
+    fun done(payload: MapDone) = (Minecraft.getInstance().screen as? HeatmapScreen)?.onDone(payload)
 
-    fun probe(payload: ProbeResponse) {
-        (Minecraft.getInstance().screen as? HeatmapScreen)?.onProbe(payload)
-    }
+    fun probe(payload: ProbeResponse) = (Minecraft.getInstance().screen as? HeatmapScreen)?.onProbe(payload)
 }

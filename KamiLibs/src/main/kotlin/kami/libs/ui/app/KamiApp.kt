@@ -41,13 +41,14 @@ abstract class Page {
     open fun leaving(next: Route): Boolean = true
 }
 
-const val TOPBAR_H = 24
+private const val TOPBAR_H = 24
 const val CRUMBS_H = 16
 const val NAV_ROW_H = 16
 
 abstract class KamiApp {
     val ui = Ui()
     val toasts = Toasts()
+    private val pages = HashMap<String, Page>()
     private val dialogs = ArrayList<Dialog>()
     private val history = ArrayDeque<Route>()
     private val future = ArrayDeque<Route>()
@@ -64,7 +65,8 @@ abstract class KamiApp {
     private var focusSince = 0L
 
     abstract fun nav(): List<NavGroup>
-    abstract fun page(id: String): Page
+    abstract fun create(id: String): Page
+    fun page(id: String): Page = pages.getOrPut(id) { create(id) }
     abstract fun topBar(ui: Ui, r: Rect)
     open fun banner(ui: Ui, r: Rect): Int = 0
     open fun shortcut(key: Key): Boolean = false

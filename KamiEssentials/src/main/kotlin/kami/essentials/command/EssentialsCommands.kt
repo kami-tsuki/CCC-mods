@@ -78,7 +78,7 @@ object EssentialsCommands {
     }
 
     private fun balance(ctx: Ctx, who: GameProfile) {
-        val amount = Phrase.money(Numismatics.balance(who.id).toLong())
+        val amount = Phrase.money(Numismatics.balance(who.id))
         if (who.id == ctx.source.player?.uuid) ctx.info(Phrase.of("kami_essentials.command.balance.self", amount)) else ctx.info(Phrase.of("kami_essentials.command.balance.other", Phrase.value(who.name), amount))
     }
 

@@ -93,12 +93,12 @@ class StocksTest {
     @Test
     fun buyTakesCheaperSourceFirstAndPaysMarketTax() {
         setup()
-        Matching.insertSell(item, Order(1, UUID.randomUUID().toString(), 15, 64, lot = 64))
+        Matching.insertSell(item, Order(1, UUID.randomUUID().toString(), 20, 64, lot = 64))
         val plan = Matching.plan(item, 3 * 64)
         assertEquals(1L, plan.fills.first().orderId)
         val market = plan.fills.single { it.market }
         assertEquals(2 * 64, market.qty)
-        assertEquals(15 + market.gross + market.tax, plan.totalSpurs)
+        assertEquals(20 + market.gross + market.tax, plan.totalSpurs)
         assertEquals((market.gross + 9) / 10, market.tax)
         assertTrue(Ledger.buy(player.toString(), item, 3 * 64) is BuyResult.Ok)
         assertEquals(62, stock().lots)

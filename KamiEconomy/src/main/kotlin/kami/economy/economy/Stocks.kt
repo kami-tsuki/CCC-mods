@@ -63,19 +63,15 @@ object Stocks {
 
     fun basePrice(item: String): Int = (stock(item)?.base ?: 0.0).roundToInt().coerceAtLeast(1)
 
-    /** Stock trades round to whole spurs (not the P1 clean step), so any lot count is fine. */
     fun step(item: String): Int = 1
 
-    /** Stock level at which the curve price hits the band floor; the market buys nothing past it. */
     fun limit(item: String): Int {
         val g = goods[item] ?: return 0
         return ceil(g.target - g.depth * ln(Config.s.bandLow) - 1e-9).toInt().coerceAtLeast(g.target)
     }
 
-    /** Lots the market still takes before it is full. */
     fun room(item: String): Int = stock(item)?.let { (limit(item) - it.lots).coerceAtLeast(0) } ?: 0
 
-    /** Market tax on a stock trade: ceil(gross x taxPct), whole spurs. */
     fun tax(gross: Long): Long = (gross * Config.s.taxPct.coerceIn(0, 100) + 99) / 100
 
     fun ask(item: String): Int? = stock(item)?.takeIf { it.lots > 0 }?.let { (price(item) * (100 + Config.s.taxPct) / 100).roundToInt().coerceAtLeast(1) }

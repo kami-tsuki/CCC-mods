@@ -2,12 +2,12 @@ package kami.claims.client.app.pages
 
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ClaimsPage
-import kami.claims.client.app.Consequence
+import kami.libs.ui.app.Consequence
 import kami.claims.client.app.Dialogs
 import kami.libs.ui.widget.Flags
 import kami.claims.client.app.Illustrations
 import kami.claims.client.app.Vocabulary
-import kami.claims.client.app.consequences
+import kami.libs.ui.app.consequences
 import kami.claims.client.store.ClaimsStore
 import kami.claims.net.Line
 import kami.claims.net.ProvinceLine
@@ -20,9 +20,11 @@ import kami.libs.ui.app.dialogButtons
 import kami.libs.ui.app.wizardButtons
 import kami.libs.ui.core.Flow
 import kami.libs.ui.core.Rect
+import kami.libs.ui.core.Row
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
+import kami.libs.ui.style.Icon
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
@@ -44,7 +46,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
     private var tab = 0
     private var selected: String? = null
 
-    override fun opened(route: kami.libs.ui.app.Route) {
+    override fun opened(route: Route) {
         val focus = route.focus ?: return
         when {
             focus.startsWith("offer:") || focus.startsWith("request:") -> tab = 1
@@ -106,7 +108,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
 
     private fun countryOption(c: Line) = Option(c.name, c.name, null, tr("kami_claims.welcome.invite.row", trn("kami_claims.unit.citizen", c.members), trn("kami_claims.unit.chunk", c.chunks)), c.color)
 
-    private fun estimate(mode: String, amount: Double, income: Long) = if (mode == "percent") (income * amount).toLong() else amount.toLong()
+    private fun estimate(mode: String, amount: Double, income: Long) = Vocabulary.perDay(if (mode == "percent") income * amount else amount).toLong()
 
     private fun provinceDetail(ui: Ui, r: Rect, p: ProvinceLine) {
         val body = ui.card(r, p.name, Icons.CHAIN, if (p.wantsIndependence) Severity.WARNING else null, key = "province-card")
@@ -123,7 +125,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
         }
         val g = Flow(cols[1], 3)
         val staff = lock("province")
-        fun action(label: String, icon: kami.libs.ui.style.Icon, style: ButtonStyle = ButtonStyle.SECONDARY, key: String, run: () -> Unit) {
+        fun action(label: String, icon: Icon, style: ButtonStyle = ButtonStyle.SECONDARY, key: String, run: () -> Unit) {
             if (ui.button(g.take(CONTROL_H), label, icon, style, staff == null, staff, pending = pending(key), key = "prov-$key:${p.name}")) run()
         }
         if (p.wantsIndependence) {
@@ -196,15 +198,12 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
         when {
             info.independenceRequested -> {
                 ui.statusPill(row.x, row.y + 4, tr("kami_claims.provinces.independence.pending", info.parent), Severity.WARNING)
-                val withdraw = tr("kami_claims.provinces.independence.withdraw")
-                val w = buttonWidth(withdraw)
-                if (ui.button(Rect(row.right - w, row.y, w, CONTROL_H), withdraw, enabled = staff == null, disabledReason = staff, pending = pending("province_withdraw"), key = "withdraw-indep")) act("province_withdraw")
+                if (ui.edgeButton(Rect(row.x, row.y, row.w, CONTROL_H), tr("kami_claims.provinces.independence.withdraw"), enabled = staff == null, disabledReason = staff, pending = pending("province_withdraw"), key = "withdraw-indep")) act("province_withdraw")
             }
             info.independenceCooldown > 0 -> ui.statusPill(row.x, row.y + 4, tr("kami_claims.provinces.independence.cooldown", Format.duration(info.independenceCooldown)), Severity.DANGER)
             else -> {
                 val request = tr("kami_claims.provinces.independence.request")
-                val w = buttonWidth(request, Icons.BROKEN_CHAIN)
-                if (ui.button(Rect(row.x, row.y, w, CONTROL_H), request, Icons.BROKEN_CHAIN, ButtonStyle.PRIMARY, staff == null, staff, pending = pending("province_independence"), key = "req-indep")) {
+                if (ui.edgeButton(Rect(row.x, row.y, row.w, CONTROL_H), request, Icons.BROKEN_CHAIN, ButtonStyle.PRIMARY, staff == null, staff, pending = pending("province_independence"), left = true, key = "req-indep")) {
                     Dialogs.confirm(app, tr("kami_claims.provinces.independence.confirm.title", info.parent), tr("kami_claims.provinces.independence.confirm.subtitle"), Icons.BROKEN_CHAIN, listOf(
                         Consequence(tr("kami_claims.provinces.independence.decides", info.parent)),
                         Consequence(tr("kami_claims.provinces.independence.wait", trn("kami_claims.unit.day", limits?.independenceCooldownDays ?: 3)), Severity.WARNING)
@@ -214,7 +213,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
         }
     }
 
-    private fun rightsList(ui: Ui, r: Rect, title: String, items: List<String>, color: Int, icon: kami.libs.ui.style.Icon) {
+    private fun rightsList(ui: Ui, r: Rect, title: String, items: List<String>, color: Int, icon: Icon) {
         Draw.fill(ui.g, r, Palette.alpha(color, 0x14))
         Draw.text(ui.g, title.uppercase(Format.locale), r.x + 5, r.y + 4, color)
         var y = r.y + 16
@@ -238,8 +237,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
             Draw.text(ui.g, tr(if (o.answered) "kami_claims.alert.offer.answered" else "kami_claims.alert.offer.title", o.name), row.x + 36, row.y + 5, TextStyle.HEADING)
             Draw.text(ui.g, tr("kami_claims.provinces.offer.row", Vocabulary.tribute(o.mode, o.amount), trn("kami_claims.unit.citizen", o.members), Format.until(o.until)), row.x + 36, row.y + 17, Palette.textMuted)
             val review = tr("kami_claims.alert.offer.action")
-            val w = buttonWidth(review, Icons.SCROLL)
-            if (ui.button(Rect(row.right - w - 6, row.y + (OFFER_H - CONTROL_H) / 2, w, CONTROL_H), review, Icons.SCROLL, ButtonStyle.PRIMARY, lock("province") == null, lock("province"), key = "review:${o.name}")) agreement(o)
+            if (ui.edgeButton(Rect(row.x, row.y + (OFFER_H - CONTROL_H) / 2, row.w - 6, CONTROL_H), review, Icons.SCROLL, ButtonStyle.PRIMARY, lock("province") == null, lock("province"), key = "review:${o.name}")) agreement(o)
         }
         f.skip(6)
         ui.section(f.take(14), tr("kami_claims.provinces.offers.requests"), Format.number(info.provinceRequests.size))
@@ -259,9 +257,9 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
             val textW = row.w - 36 - tw - dw - 20
             Draw.text(ui.g, Draw.fit(name, textW, TextStyle.HEADING), row.x + 36, row.y + 5, TextStyle.HEADING)
             Draw.text(ui.g, Draw.fit(line?.let { countryOption(it).description } ?: "", textW), row.x + 36, row.y + 17, Palette.textMuted)
-            val by = row.y + (OFFER_H - CONTROL_H) / 2
-            if (ui.button(Rect(row.right - 6 - dw - 4 - tw, by, tw, CONTROL_H), terms, Icons.PERCENT, ButtonStyle.PRIMARY, staff == null, staff, key = "terms:$name")) termsDialog(tr("kami_claims.provinces.terms.title", name), "province_approve", name, "percent", 0.1, line?.income ?: 0)
-            if (ui.button(Rect(row.right - 6 - dw, by, dw, CONTROL_H), deny, enabled = staff == null, disabledReason = staff, key = "deny:$name")) act("province_deny", name)
+            val actions = Row(Rect(row.x, row.y + (OFFER_H - CONTROL_H) / 2, row.w - 6, CONTROL_H))
+            if (ui.edgeButton(actions, deny, enabled = staff == null, disabledReason = staff, key = "deny:$name")) act("province_deny", name)
+            if (ui.edgeButton(actions, terms, Icons.PERCENT, ButtonStyle.PRIMARY, staff == null, staff, key = "terms:$name")) termsDialog(tr("kami_claims.provinces.terms.title", name), "province_approve", name, "percent", 0.1, line?.income ?: 0)
         }
     }
 
@@ -388,8 +386,9 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
             s.used = y - s.body.y
             dialogButtons(s, tr("kami_claims.provinces.invite.action"), target != null, tr("kami_claims.provinces.choose_country.first")) {
                 s.close()
-                val line = snap.countries.firstOrNull { it.name == target }
-                termsDialog(tr("kami_claims.provinces.terms.title", target!!), "province_invite", target!!, "percent", 0.1, line?.income ?: 0)
+                val name = target ?: return@dialogButtons
+                val line = snap.countries.firstOrNull { it.name == name }
+                termsDialog(tr("kami_claims.provinces.terms.title", name), "province_invite", name, "percent", 0.1, line?.income ?: 0)
             }
         })
     }
