@@ -103,4 +103,14 @@ class TechLayoutTest {
         assertTrue(cells[1].row > cells[2].row)
         assertEquals(cells[1].row, cells[4].row)
     }
+
+    @Test
+    fun groupsStayInSeparateLanes() {
+        val parents = listOf(emptyList(), listOf(0), emptyList(), listOf(2, 0), listOf(1))
+        val placement = TechLayout.place(parents, groups = listOf(0, 0, 1, 1, 0))
+        val lanes = placement.lanes
+        assertEquals(2, lanes.size)
+        assertTrue(lanes[0].firstRow + lanes[0].rows < lanes[1].firstRow)
+        assertTrue(placement.cells[3].row >= lanes[1].firstRow)
+    }
 }

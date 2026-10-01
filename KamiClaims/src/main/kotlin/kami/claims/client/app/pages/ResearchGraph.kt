@@ -12,14 +12,17 @@ import kami.libs.ui.graph.Cell
 import kami.libs.ui.style.Format
 import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr
+import kami.libs.text.Phrase
 import kami.libs.ui.widget.TechBands
 import kami.libs.ui.widget.TechNode
 
 object ResearchGraph {
     fun nodes(tree: TreeView, matches: Set<String>, category: String?, ticking: Boolean): List<TechNode> {
-        val groups = tree.categories.withIndex().associate { (i, c) -> c.id to i }
+        val groups = tree.categories.sortedBy { it.order }.withIndex().associate { (i, c) -> c.id to i }
         return tree.nodes.map { techNode(it, groups[it.category] ?: 0, it.key in matches, category != null && it.category != category, ticking) }
     }
+
+    fun lanes(tree: TreeView) = tree.categories.sortedBy { it.order }.withIndex().associate { (i, c) -> i to Phrase.or("kami_claims.research.category.${c.id}", c.title).resolve() }
 
     fun bands(tree: TreeView) = TechBands(tree.nodes.map { it.level.coerceAtLeast(1) }.distinct().associateWith { tr("kami_libs.lock.ui.level", it) }, ClientResearch.state.level)
 

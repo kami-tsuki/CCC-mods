@@ -73,7 +73,7 @@ object ConfigStore {
         } else emptyList()
 
         val resolved = (parsed + found).mapIndexedNotNull { index, (id, config) ->
-            config?.let { resolve(id, index, it, provinceMap.keys, replaceable, deepslate) }
+            config?.let { resolve(id, index, it, provinceMap.keys, replaceable, deepslate, fixed.ring) }
         }
 
         return Settings(fixed, Provinces(provinceMap, fixed.fallbackProvince), link(resolved), ++version)
@@ -94,7 +94,7 @@ object ConfigStore {
         }.onEach { ore -> ore.anchor = ore.deposit?.anchor?.let { byId[it.ore] } }
     }
 
-    private fun resolve(id: String, index: Int, config: OreConfig, provinces: Set<String>, replaceable: BlockRule, deepslate: BlockRule): Ore? {
+    private fun resolve(id: String, index: Int, config: OreConfig, provinces: Set<String>, replaceable: BlockRule, deepslate: BlockRule, ring: Ring): Ore? {
         if (!config.enabled) return null
         val context = "ore '$id'"
         return try {
@@ -116,7 +116,8 @@ object ConfigStore {
                 BlockRule(config.outcrop?.replace.orEmpty(), context),
                 deepslate,
                 strip,
-                config.scatter?.provinces?.toSet()
+                config.scatter?.provinces?.toSet(),
+                config.ring ?: ring
             )
         } catch (e: MissingMod) {
             KamiGeology.LOG.info("Ore '{}' skipped: {}", id, e.message)

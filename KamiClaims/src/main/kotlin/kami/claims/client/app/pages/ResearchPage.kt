@@ -29,6 +29,7 @@ class ResearchPage(app: ClaimsApp) : ClaimsPage(app) {
     private val views = HashMap<String, TechTreeState>()
     private val cache = HashMap<String, List<TechNode>>()
     private val bands = HashMap<String, TechBands>()
+    private val lanes = HashMap<String, Map<Int, String>>()
     private val chips = HashMap<String, CategoryChips>()
     private var tabs: List<TabItem>? = null
     private val selectedIndex = Memo()
@@ -59,6 +60,7 @@ class ResearchPage(app: ClaimsApp) : ClaimsPage(app) {
 
     private fun invalidate() {
         bands.clear()
+        lanes.clear()
         cache.clear()
         chips.clear()
         tabs = null
@@ -87,7 +89,7 @@ class ResearchPage(app: ClaimsApp) : ClaimsPage(app) {
         val nodes = cache.getOrPut(tree.id) { ResearchGraph.nodes(tree, matches.toSet(), category, ticking) }
         val state = views.getOrPut(tree.id) { TechTreeState() }
         val index = nodeIndex(selectedIndex, tree, selected)
-        ui.techTree(main, nodes, state, index.takeIf { it >= 0 }, "research-tree", bands.getOrPut(tree.id) { ResearchGraph.bands(tree) })?.let { selected = tree.nodes[it].key; drawerOpen = true }
+        ui.techTree(main, nodes, state, index.takeIf { it >= 0 }, "research-tree", bands.getOrPut(tree.id) { ResearchGraph.bands(tree) }, lanes.getOrPut(tree.id) { ResearchGraph.lanes(tree) })?.let { selected = tree.nodes[it].key; drawerOpen = true }
         if (state.takeClear()) { selected = null; drawerOpen = false }
         celebrate(tree, state)
         val node = selected?.let { ClientResearch.node(it) }

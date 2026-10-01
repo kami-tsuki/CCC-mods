@@ -12,6 +12,7 @@ import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Ui
 import kami.libs.ui.graph.Band
 import kami.libs.ui.graph.Cell
+import kami.libs.ui.graph.Lane
 import kami.libs.ui.graph.TechLayout
 import kami.libs.ui.map.Viewport
 import kami.libs.ui.style.Draw
@@ -35,6 +36,9 @@ private const val BAND_LABEL_Y = 4
 private const val BAND_LABEL_PAD = 5
 private const val BAND_LOCK_Y = 8
 private const val FIT_FILL = 0.94
+private const val LANE_ALPHA = 0x0C
+private const val LANE_LABEL_PAD = 6
+private const val LANE_LABEL_LIFT = 3
 private const val LOD_ZOOM = 0.6
 private const val MOTION_SPEED = 16f
 private const val BURST_SECONDS = 0.6f
@@ -103,6 +107,8 @@ class TechTreeState {
     var bands: List<Band> = emptyList()
         private set
     var cells: List<Cell> = emptyList()
+        private set
+    var lanes: List<Lane> = emptyList()
         private set
     private var signature = 0
     private var lastNodes: List<TechNode>? = null
@@ -212,6 +218,7 @@ class TechTreeState {
                 val placement = TechLayout.place(parents, nodes.map { it.pinned }, nodes.map { it.band }, hidden, nodes.map { it.group })
                 cells = placement.cells
                 bands = placement.bands
+                lanes = placement.lanes
                 primary = TechLayout.primaries(parents, hidden, nodes.map { it.group }, nodes.map { it.band })
                 fitted = false
             }
@@ -307,7 +314,7 @@ private fun worldX(cell: Cell) = cell.col * (TECH_NODE_W + GAP_X)
 private fun worldY(cell: Cell) = cell.row * (TECH_NODE_H + GAP_Y)
 private fun bandEdge(col: Int) = col * (TECH_NODE_W + GAP_X) - GAP_X / 2.0
 
-fun Ui.techTree(r: Rect, nodes: List<TechNode>, state: TechTreeState, selected: Int?, key: Any = "tree", bands: TechBands? = null): Int? {
+fun Ui.techTree(r: Rect, nodes: List<TechNode>, state: TechTreeState, selected: Int?, key: Any = "tree", bands: TechBands? = null, lanes: Map<Int, String> = emptyMap()): Int? {
     panel(r, sunken = true)
     val cells = state.layout(nodes)
     val first = state.fitIfNeeded(r)
@@ -347,6 +354,7 @@ fun Ui.techTree(r: Rect, nodes: List<TechNode>, state: TechTreeState, selected: 
     val gapX = (GAP_X * zoom).toInt() / 4
     val gapY = (GAP_Y * zoom).toInt() / 2
     clip(r) {
+        drawLanes(r, state, lanes, zoom)
         if (bands != null) drawBands(r, state, bands)
         for (pass in 0..1) for (i in nodes.indices) {
             val parents = nodes[i].parents
@@ -472,6 +480,23 @@ private fun Ui.drawNode(node: TechNode, index: Int, x: Int, y: Int, zoom: Double
     }
     g.pose().popPose()
     if (overview && !node.locked) node.status?.let { Draw.tintedIcon(g, it, x + (TECH_NODE_W * zoom).toInt() - Draw.ICON, y + (TECH_NODE_H * zoom).toInt() / 2 - Draw.ICON / 2, Draw.ICON, node.accent) }
+}
+
+private fun Ui.drawLanes(r: Rect, state: TechTreeState, labels: Map<Int, String>, zoom: Double) {
+    val vp = state.viewport
+    val list = state.lanes
+    val gap = ((TECH_NODE_H + GAP_Y) * zoom).toInt()
+    for (i in list.indices) {
+        val lane = list[i]
+        val top = vp.screenY(worldY(Cell(0, lane.firstRow)) - GAP_Y / 2.0).toInt()
+        val bottom = vp.screenY(worldY(Cell(0, lane.firstRow + lane.rows)) - GAP_Y / 2.0).toInt()
+        if (bottom < r.y || top - gap > r.bottom) continue
+        if (i % 2 == 1) g.fill(r.x, max(top, r.y), r.right, minOf(bottom, r.bottom), Palette.alpha(Palette.text, LANE_ALPHA))
+        if (i > 0 && top - gap / 2 in r.y..r.bottom) g.fill(r.x, top - gap / 2, r.right, top - gap / 2 + 1, Palette.border)
+        val label = labels[lane.id] ?: continue
+        val y = top - Draw.LINE - LANE_LABEL_LIFT
+        if (gap / 2 >= Draw.LINE && y >= r.y && y < r.bottom) Draw.text(g, label, r.x + LANE_LABEL_PAD, y, Palette.textSecondary)
+    }
 }
 
 private fun Ui.drawBands(r: Rect, state: TechTreeState, bands: TechBands) {

@@ -8,6 +8,7 @@ import kami.geology.map.MapColors
 import kami.geology.map.Sparse
 import kami.geology.map.Workers
 import kami.geology.world.Discovery
+import kami.geology.world.Hardness
 import kami.geology.world.Prospector
 import kami.geology.world.WorldContext
 import kami.geology.world.Worlds
@@ -74,6 +75,7 @@ object MapServer {
         registrar.playToClient(MapLayer.TYPE, MapLayer.CODEC) { payload, _ -> ClientHooks.layer(payload) }
         registrar.playToClient(MapDone.TYPE, MapDone.CODEC) { payload, _ -> ClientHooks.done(payload) }
         registrar.playToClient(ProbeResponse.TYPE, ProbeResponse.CODEC) { payload, _ -> ClientHooks.probe(payload) }
+        registrar.playToClient(HardnessSync.TYPE, HardnessSync.CODEC) { payload, _ -> Hardness.apply(payload.factors) }
         registrar.playToServer(MapRequest.TYPE, MapRequest.CODEC) { payload, context -> (context.player() as? ServerPlayer)?.let { map(it, payload) } }
         registrar.playToServer(ProbeRequest.TYPE, ProbeRequest.CODEC) { payload, context -> (context.player() as? ServerPlayer)?.let { probe(it, payload) } }
     }

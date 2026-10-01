@@ -102,12 +102,16 @@ class Ore(
     val outcropRule: BlockRule,
     val deepslateRule: BlockRule,
     val strip: Set<Block>,
-    val scatterProvinces: Set<String>?
+    val scatterProvinces: Set<String>?,
+    ring: Ring
 ) {
     val salt = Hash.mix(id.hashCode().toLong())
     val deposit = config.deposit
     val scatter = config.scatter
     val haloScale = if (halo != null) config.halo!!.scale.coerceAtLeast(1.0) else 1.0
+    val ringScale = ring.scale.coerceAtLeast(1.0)
+    val ringDensity = if (ringScale > 1.0) ring.density.coerceIn(0.0, 1.0) else 0.0
+    val outerScale = max(haloScale, if (ringDensity > 0.0) ringScale else 1.0)
     val maxWeight = config.provinces.values.maxOrNull() ?: 0.0
     val tiers = deposit?.tiers.orEmpty()
     var anchor: Ore? = null
@@ -115,7 +119,7 @@ class Ore(
     val reach: Double = deposit?.let { dep ->
         val half = tiers.maxOf { max(it.length[1], max(it.width[1], it.thickness[1])) } / 2.0
         val shape = dep.shape
-        half * haloScale * (1.0 + shape.warp + shape.lean + if (shape.kind == Kind.PODS) 0.6 else 0.0) + 6.0
+        half * outerScale * (1.0 + shape.warp + shape.lean + if (shape.kind == Kind.PODS) 0.6 else 0.0) + 6.0
     } ?: 0.0
 
     fun stateFor(host: BlockState): BlockState = hosts[host.block] ?: if (deepslateRule.test(host)) deepslate else stone

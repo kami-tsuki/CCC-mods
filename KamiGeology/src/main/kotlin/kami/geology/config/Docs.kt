@@ -17,7 +17,13 @@ object Docs {
         "scanBlocks" to "Prospector tier to scan width in blocks, centered on you.",
         "scanChunks" to "Prospector tier to scan width in chunks, centered on your chunk.",
         "richness" to "Deposit grades: drop and ore density multipliers.",
-        "richness.grades.weight" to "Relative chance of a grade."
+        "richness.grades.weight" to "Relative chance of a grade.",
+        "ring" to "Sparse outer ring of ore around every deposit. Ore files can override it.",
+        "ring.scale" to "Outer edge of the ring relative to the deposit size, 1 for none.",
+        "ring.density" to "Ore chance at the inner edge of the ring, fading to 0 at the outer edge.",
+        "mining" to "Ore hardness multipliers. Affects players, Create drills and every machine that reads block hardness.",
+        "mining.stone" to "Multiplier for ores in normal rock and core blocks. 32.5 makes a Netherite-Diamond pickaxe with Efficiency V as slow as a vanilla wooden pickaxe.",
+        "mining.deepslate" to "Multiplier for ores in deepslate."
     )
 
     val ore = mapOf(
@@ -75,6 +81,9 @@ object Docs {
         "outcrop.maxDepth" to "Deepest deposit that still shows on the surface.",
         "outcrop.density" to "Chance per surface block.",
         "outcrop.oreShare" to "Share of outcrop blocks that are the ore itself.",
-        "outcrop.replace" to "Surface blocks that may be replaced."
+        "outcrop.replace" to "Surface blocks that may be replaced.",
+        "ring" to "Override the general ring for this ore.",
+        "ring.scale" to "Outer edge of the ring relative to the deposit size, 1 for none.",
+        "ring.density" to "Ore chance at the inner edge of the ring."
     )
 }

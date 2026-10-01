@@ -36,8 +36,16 @@ data class GeneralConfig(
     ),
     val richness: Richness = Richness(),
     val scanBlocks: Map<String, Int> = linkedMapOf("1" to 1, "2" to 3, "3" to 5),
-    val scanChunks: Map<String, Int> = linkedMapOf("4" to 1, "5" to 3, "6" to 5, "7" to 7, "8" to 9)
+    val scanChunks: Map<String, Int> = linkedMapOf("4" to 1, "5" to 3, "6" to 5, "7" to 7, "8" to 9),
+    val ring: Ring = Ring(),
+    val mining: Mining = Mining()
 )
+
+@Serializable
+data class Ring(val scale: Double = 2.0, val density: Double = 0.04)
+
+@Serializable
+data class Mining(val enabled: Boolean = true, val stone: Double = 32.5, val deepslate: Double = 40.0)
 
 @Serializable
 data class Richness(
@@ -61,7 +69,8 @@ data class OreConfig(
     val scatter: ScatterConfig? = null,
     val core: CoreConfig? = null,
     val halo: HaloConfig? = null,
-    val outcrop: OutcropConfig? = null
+    val outcrop: OutcropConfig? = null,
+    val ring: Ring? = null
 )
 
 @Serializable

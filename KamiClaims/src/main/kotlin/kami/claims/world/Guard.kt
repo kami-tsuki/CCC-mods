@@ -288,6 +288,10 @@ object Guard {
         return c.fire[cl.type] ?: cl.def?.rule?.fire == true
     }
 
+    fun igniteAllowed(level: LevelAccessor, pos: BlockPos, owner: Entity?): Boolean =
+        if (owner is ServerPlayer && owner !is FakePlayer) allowed(level, pos, owner, Action.PLACE) || Perms.has(owner, Perms.BYPASS)
+        else fireAllowed(level, pos)
+
     fun fluidAllowed(level: LevelAccessor, from: BlockPos, to: BlockPos): Boolean {
         val dim = dim(level)?.takeIf { it in Config.s.dimensionSet } ?: return true
         return Housing.fluidFlows(Realm.index[key(dim, from)], Realm.index[key(dim, to)], Config.s.nomanslandFluid)

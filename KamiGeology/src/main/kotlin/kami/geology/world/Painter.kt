@@ -31,17 +31,20 @@ object Painter {
         if (x0 > x1 || z0 > z1 || y0 > y1) return
 
         val haloScale = ore.haloScale
+        val ringScale = ore.ringScale
+        val outer = ore.outerScale
         val halo = ore.halo
         val haloDensity = ore.config.halo?.density ?: 0.0
         val coreRadius = if (site.hasCore) ore.config.core?.radius ?: 0.0 else 0.0
         val coreDiscard = ore.config.core?.airDiscard ?: 0.0
         val body = config.bodyRadius
         val density = (config.density * site.grade.density).coerceAtMost(1.0)
+        val ringDensity = ore.ringDensity * site.grade.density
         val pos = BlockPos.MutableBlockPos()
 
         for (x in x0..x1) for (z in z0..z1) for (y in y0..y1) {
             val r = site.radius(x + 0.5, y + 0.5, z + 0.5, noise)
-            if (r >= haloScale) continue
+            if (r >= outer) continue
             pos.set(x, y, z)
             val host = chunk.getBlockState(pos)
             val hash = Hash.at(site.id, x, y, z)
@@ -53,7 +56,10 @@ object Painter {
                 val discard = if (core) coreDiscard else config.airDiscard
                 if (discard > 0.0 && Hash.unit(Hash.mix(hash)) < discard && exposed(level, chunk, x, y, z)) continue
                 chunk.setBlockState(pos, if (core) ore.core ?: ore.stateFor(host) else ore.stateFor(host), false)
-            } else if (halo != null) {
+            } else if (r < ringScale && Hash.unit(Hash.mix(hash xor RING_SALT)) < ringDensity * (1.0 - (r - 1.0) / (ringScale - 1.0)) && ore.replaceable.test(host)) {
+                if (config.airDiscard > 0.0 && Hash.unit(Hash.mix(hash + RING_SALT)) < config.airDiscard && exposed(level, chunk, x, y, z)) continue
+                chunk.setBlockState(pos, ore.stateFor(host), false)
+            } else if (halo != null && r < haloScale) {
                 val chance = haloDensity * (1.0 - (r - 1.0) / (haloScale - 1.0))
                 if (Hash.unit(hash) >= chance || !ore.haloRule.test(host)) continue
                 chunk.setBlockState(pos, halo.pick(Hash.unit(Hash.mix(hash xor HALO_SALT))), false)
@@ -151,5 +157,6 @@ object Painter {
     }
 
     private const val HALO_SALT = 0x51F15EL
+    private const val RING_SALT = 0x41B60L
     private const val OUTCROP_SALT = 0x0C7C20L
 }

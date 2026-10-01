@@ -3,6 +3,6 @@
   "minVersion": "0.8",
   "package": "kami.geology.mixin",
   "compatibilityLevel": "JAVA_21",
-  "mixins": ["NoiseChunkMixin"],
+  "mixins": ["BlockStateMixin", "NoiseChunkMixin"],
   "injectors": { "defaultRequire": 1 }
 }

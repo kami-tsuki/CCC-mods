@@ -9,6 +9,7 @@ import kami.geology.command.GeoText.site
 import kami.geology.config.ConfigStore
 import kami.geology.map.Workers
 import kami.geology.net.MapServer
+import kami.geology.world.Hardness
 import kami.geology.world.WorldContext
 import kami.geology.world.Worlds
 import kami.libs.chat.Chat
@@ -49,6 +50,7 @@ object GeologyCommand {
     fun reload(): String {
         val settings = ConfigStore.load() ?: error("could not load, see the log")
         Worlds.clear()
+        Hardness.update(settings)
         val skipped = ConfigStore.problems.let { if (it.isEmpty()) "" else " Skipped: ${it.joinToString("; ")}." }
         return "{${settings.ores.size}} ores active.$skipped New chunks use it, ore removal needs a restart."
     }

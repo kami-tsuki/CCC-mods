@@ -47,7 +47,7 @@ class Site(
     val maxZ: Int
 
     init {
-        val scale = ore.haloScale
+        val scale = ore.outerScale
         val lumpPad = (lumps.indices step 4).maxOfOrNull { lumps[it + 3] * scale } ?: 0.0
         val pad = warpAmplitude + 1.5 + lumpPad
         fun extent(i: Int) = sqrt(

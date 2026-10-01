@@ -1,5 +1,6 @@
 package kami.geology
 
+import kami.geology.client.ClientHooks
 import kami.geology.command.GeologyCommand
 import kami.geology.config.Compat
 import kami.geology.config.ConfigStore
@@ -9,6 +10,7 @@ import kami.geology.map.Workers
 import kami.geology.net.MapServer
 import kami.geology.world.GeologyBiomeModifier
 import kami.geology.world.GeologyFeature
+import kami.geology.world.Hardness
 import kami.geology.world.Worlds
 import kami.libs.config.Configs
 import kami.libs.log.Log
@@ -18,6 +20,7 @@ import net.minecraft.world.item.CreativeModeTabs
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.neoforged.fml.common.Mod
+import net.neoforged.fml.loading.FMLEnvironment
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent
 import net.neoforged.neoforge.event.TagsUpdatedEvent
@@ -60,16 +63,18 @@ object KamiGeology {
             if (event.tabKey == CreativeModeTabs.TOOLS_AND_UTILITIES) PROSPECTORS_BY_TIER.forEach { event.accept(it.get()) }
         }
         GeologyCommand.register()
+        if (FMLEnvironment.dist.isClient) ClientHooks.init()
         FORGE_BUS.addListener<TagsUpdatedEvent> {
             if (it.updateCause == TagsUpdatedEvent.UpdateCause.SERVER_DATA_LOAD) {
                 Compat.scan(it.registryAccess)
-                ConfigStore.load()
+                Hardness.update(ConfigStore.load())
             }
         }
         FORGE_BUS.addListener<ServerStoppedEvent> { Worlds.clear(); Workers.shutdown() }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { (it.entity as? ServerPlayer)?.let { p -> MapServer.forget(p) } }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { event ->
             val player = event.entity as? ServerPlayer ?: return@addListener
+            Hardness.send(player)
             val tag = player.persistentData
             if (!tag.getBoolean(STARTER_KIT_TAG)) {
                 tag.putBoolean(STARTER_KIT_TAG, true)

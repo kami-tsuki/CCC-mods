@@ -6,6 +6,7 @@
   "mixins": [
     "FireBlockMixin",
     "FlowingFluidMixin",
+    "TfmgSparkMixin",
     "research.LevelMixin",
     "research.ServerLevelMixin",
     "research.PacketListenerMixin",

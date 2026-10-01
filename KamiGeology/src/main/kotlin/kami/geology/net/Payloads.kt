@@ -189,3 +189,15 @@ class ProbeResponse(val seq: Int, val x: Int, val z: Int, val lines: List<String
         )
     }
 }
+
+class HardnessSync(val factors: Map<String, Float>) : CustomPacketPayload {
+    override fun type() = TYPE
+
+    companion object {
+        val TYPE = CustomPacketPayload.Type<HardnessSync>(id("hardness"))
+        val CODEC = codec<HardnessSync>(
+            { buf, v -> buf.writeMap(v.factors, { b, k -> b.writeUtf(k) }, { b, f -> b.writeFloat(f) }) },
+            { buf -> HardnessSync(buf.readMap({ it.readUtf() }, { it.readFloat() })) }
+        )
+    }
+}

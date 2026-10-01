@@ -6,7 +6,9 @@ data class Cell(val col: Int, val row: Int)
 
 data class Band(val id: Int, val firstCol: Int, val cols: Int)
 
-class Placement(val cells: List<Cell>, val bands: List<Band>)
+data class Lane(val id: Int, val firstRow: Int, val rows: Int)
+
+class Placement(val cells: List<Cell>, val bands: List<Band>, val lanes: List<Lane> = emptyList())
 
 object TechLayout {
     fun depths(parents: List<List<Int>>, bandOf: List<Int> = emptyList()): IntArray {
@@ -40,10 +42,12 @@ object TechLayout {
             val hiddenHere = hidden.getOrNull(node).orEmpty()
             val shown = options.filter { it !in hiddenHere }.ifEmpty { options }
             val same = shown.filter { group(it) == group(node) }
-            primary[node] = same.firstOrNull() ?: shown.minWithOrNull(compareBy({ -band(it) }, { -depth[it] })) ?: -1
+            primary[node] = same.firstOrNull() ?: -1
         }
         return primary
     }
+
+    private const val LANE_GAP = 1
 
     private class Shape(val ids: IntArray, val cols: IntArray, val rel: IntArray)
 
@@ -82,6 +86,7 @@ object TechLayout {
         val stamp = IntArray(n)
         var tick = 0
         fun group(node: Int) = groups.getOrElse(node) { 0 }
+        val laned = parents.indices.map { group(it) }.distinct().size > 1
         fun key(child: Int, prev: IntArray): Double {
             tick++
             val own = collect(child)
@@ -122,15 +127,21 @@ object TechLayout {
                 }
                 return Shape(ids.toIntArray(), cols.toIntArray(), rel.toIntArray())
             }
-            val sky = HashMap<Int, Int>()
-            ordered(roots, prev).forEach { root ->
-                val sub = shape(root)
-                val off = fit(sub, sky, 0)
-                for (i in sub.ids.indices) {
-                    val row = sub.rel[i] + off
-                    rows[sub.ids[i]] = row
-                    sky[sub.cols[i]] = max(sky[sub.cols[i]] ?: row, row)
+            var floor = if (laned) LANE_GAP else 0
+            roots.groupBy { group(it) }.toSortedMap().values.forEach { lane ->
+                val sky = HashMap<Int, Int>()
+                var bottom = floor - 1
+                ordered(lane, prev).forEach { root ->
+                    val sub = shape(root)
+                    val off = fit(sub, sky, floor)
+                    for (i in sub.ids.indices) {
+                        val row = sub.rel[i] + off
+                        rows[sub.ids[i]] = row
+                        sky[sub.cols[i]] = max(sky[sub.cols[i]] ?: row, row)
+                        bottom = max(bottom, row)
+                    }
                 }
+                floor = bottom + 1 + LANE_GAP
             }
             return rows
         }
@@ -144,6 +155,11 @@ object TechLayout {
             while (Cell(colOf[node], row) in taken) row++
             cells[node] = Cell(colOf[node], row).also { taken += it }
         }
-        return Placement(cells.map { it ?: Cell(0, 0) }, bands)
+        val placed = cells.map { it ?: Cell(0, 0) }
+        val lanes = if (!laned) emptyList() else parents.indices.groupBy { group(it) }.toSortedMap().map { (id, list) ->
+            val top = list.minOf { placed[it].row }
+            Lane(id, top, list.maxOf { placed[it].row } - top + 1)
+        }
+        return Placement(placed, bands, lanes)
     }
 }
