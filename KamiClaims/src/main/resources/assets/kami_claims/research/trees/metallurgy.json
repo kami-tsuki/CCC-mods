@@ -56,6 +56,21 @@
       "id": "brass",
       "icon": "create:brass_ingot",
       "order": 10
+    },
+    {
+      "id": "netherite",
+      "icon": "minecraft:netherite_ingot",
+      "order": 11
+    },
+    {
+      "id": "cast_iron",
+      "icon": "tfmg:cast_iron_ingot",
+      "order": 12
+    },
+    {
+      "id": "steel",
+      "icon": "tfmg:steel_ingot",
+      "order": 13
     }
   ],
   "nodes": [
@@ -2099,16 +2114,6 @@
           "id": "minecraft:cauldron"
         },
         {
-          "type": "recipes",
-          "recipeType": "create:compacting",
-          "input": "#c:ingots/iron"
-        },
-        {
-          "type": "recipes",
-          "recipeType": "create:compacting",
-          "output": "#c:ingots/iron"
-        },
-        {
           "type": "output",
           "id": "create:industrial_iron_*"
         },
@@ -2177,6 +2182,1125 @@
           "recipeType": "create:pressing",
           "input": "#c:ingots/brass",
           "output": "create:brass_sheet"
+        }
+      ]
+    },
+    {
+      "id": "netherite",
+      "category": "netherite",
+      "icon": "minecraft:netherite_ingot",
+      "level": 25,
+      "cost": 500,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gold_compacting"
+        },
+        {
+          "type": "node",
+          "id": "tools_armor:diamond_tools",
+          "hidden": true
+        }
+      ],
+      "tasks": [
+        {
+          "type": "mine",
+          "block": "minecraft:ancient_debris",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:netherrack",
+          "count": 512
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "minecraft:netherite_scrap"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:netherite_scrap_from_blasting"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:netherite_ingot"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:splashing/netherite_ingot_from_ceramic_mold"
+        },
+        {
+          "type": "recipe",
+          "id": "dndesires:seething/netherite_scrap_netherite_scrap"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:molten_metals/acid_ancient_debris"
+        },
+        {
+          "type": "output",
+          "id": "createvintageneoforged:netherite_sheet"
+        }
+      ]
+    },
+    {
+      "id": "zinc_melting",
+      "category": "zinc",
+      "icon": "create:zinc_ingot",
+      "level": 10,
+      "cost": 450,
+      "time": "35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "zinc_washing"
+        },
+        {
+          "type": "node",
+          "id": "technology:mixer"
+        },
+        {
+          "type": "node",
+          "id": "technology:blaze_burner"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/zinc",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "molten_metals:mixing/molten_zinc_from_*"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:molten_metals/crushed_zinc"
+        }
+      ]
+    },
+    {
+      "id": "lead_melting",
+      "category": "lead",
+      "icon": "tfmg:lead_ingot",
+      "level": 10,
+      "cost": 450,
+      "time": "35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "lead_washing"
+        },
+        {
+          "type": "node",
+          "id": "technology:mixer"
+        },
+        {
+          "type": "node",
+          "id": "technology:blaze_burner"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/lead",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "molten_metals:mixing/molten_lead_from_*"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:molten_metals/crushed_lead"
+        }
+      ]
+    },
+    {
+      "id": "copper_melting",
+      "category": "copper",
+      "icon": "minecraft:copper_ingot",
+      "level": 10,
+      "cost": 450,
+      "time": "35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "copper_washing"
+        },
+        {
+          "type": "node",
+          "id": "technology:mixer"
+        },
+        {
+          "type": "node",
+          "id": "technology:blaze_burner"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/copper",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "molten_metals:mixing/molten_copper_from_*"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:molten_metals/crushed_copper"
+        }
+      ]
+    },
+    {
+      "id": "iron_melting",
+      "category": "iron",
+      "icon": "minecraft:iron_ingot",
+      "level": 10,
+      "cost": 450,
+      "time": "35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "iron_washing"
+        },
+        {
+          "type": "node",
+          "id": "technology:mixer"
+        },
+        {
+          "type": "node",
+          "id": "technology:blaze_burner"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/iron",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "molten_metals:mixing/molten_iron_from_*"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:molten_metals/crushed_iron"
+        }
+      ]
+    },
+    {
+      "id": "gold_melting",
+      "category": "gold",
+      "icon": "minecraft:gold_ingot",
+      "level": 10,
+      "cost": 450,
+      "time": "35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gold_washing"
+        },
+        {
+          "type": "node",
+          "id": "technology:mixer"
+        },
+        {
+          "type": "node",
+          "id": "technology:blaze_burner"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/gold",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "molten_metals:mixing/molten_gold_from_*"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:molten_metals/crushed_gold"
+        }
+      ]
+    },
+    {
+      "id": "tin_melting",
+      "category": "tin",
+      "icon": "create_ironworks:tin_ingot",
+      "level": 10,
+      "cost": 450,
+      "time": "35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "tin_washing"
+        },
+        {
+          "type": "node",
+          "id": "technology:mixer"
+        },
+        {
+          "type": "node",
+          "id": "technology:blaze_burner"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/tin",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "molten_metals:mixing/molten_tin_from_*"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:molten_metals/crushed_tin"
+        }
+      ]
+    },
+    {
+      "id": "silver_melting",
+      "category": "silver",
+      "icon": "chemica:silver_ingot",
+      "level": 10,
+      "cost": 450,
+      "time": "35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "silver_crushing"
+        },
+        {
+          "type": "node",
+          "id": "technology:mixer"
+        },
+        {
+          "type": "node",
+          "id": "technology:blaze_burner"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "molten_metals:mixing/molten_silver_from_*"
+        }
+      ]
+    },
+    {
+      "id": "ceramic_mold",
+      "category": "metallurgy",
+      "icon": "molten_metals:ceramic_ingot_mold",
+      "level": 10,
+      "cost": 400,
+      "time": "30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "blast_furnace"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:clay_ball",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "molten_metals:unfired_ceramic_ingot_mold"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:ceramic_ingot_mold"
+        }
+      ]
+    },
+    {
+      "id": "ingot_mold",
+      "category": "metallurgy",
+      "icon": "molten_metals:ingot_mold",
+      "level": 20,
+      "cost": 2500,
+      "time": "2h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ceramic_mold"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "molten_metals:ceramic_ingot_mold",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "molten_metals:ingot_mold"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:filling/*_filled_metal_mold"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:filling/silver_filled_metal_mold_caverns"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:splashing/*_ingot_from_metal_mold"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:emptying/*_from_metal_mold"
+        }
+      ]
+    },
+    {
+      "id": "zinc_casting",
+      "category": "zinc",
+      "icon": "create:zinc_ingot",
+      "level": 10,
+      "cost": 500,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "zinc_melting"
+        },
+        {
+          "type": "node",
+          "id": "ceramic_mold"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "molten_metals:ceramic_ingot_mold",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "#c:ingots/zinc",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "molten_metals:filling/zinc_filled_ceramic_mold*"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:splashing/zinc_ingot_from_ceramic_mold*"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:emptying/molten_zinc_from_ceramic_mold*"
+        }
+      ]
+    },
+    {
+      "id": "lead_casting",
+      "category": "lead",
+      "icon": "tfmg:lead_ingot",
+      "level": 10,
+      "cost": 500,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "lead_melting"
+        },
+        {
+          "type": "node",
+          "id": "ceramic_mold"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "molten_metals:ceramic_ingot_mold",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "#c:ingots/lead",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "molten_metals:filling/lead_filled_ceramic_mold*"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:splashing/lead_ingot_from_ceramic_mold*"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:emptying/molten_lead_from_ceramic_mold*"
+        }
+      ]
+    },
+    {
+      "id": "copper_casting",
+      "category": "copper",
+      "icon": "minecraft:copper_ingot",
+      "level": 10,
+      "cost": 500,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "copper_melting"
+        },
+        {
+          "type": "node",
+          "id": "ceramic_mold"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "molten_metals:ceramic_ingot_mold",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "#c:ingots/copper",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "molten_metals:filling/copper_filled_ceramic_mold*"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:splashing/copper_ingot_from_ceramic_mold*"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:emptying/molten_copper_from_ceramic_mold*"
+        }
+      ]
+    },
+    {
+      "id": "iron_casting",
+      "category": "iron",
+      "icon": "minecraft:iron_ingot",
+      "level": 10,
+      "cost": 500,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "iron_melting"
+        },
+        {
+          "type": "node",
+          "id": "ceramic_mold"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "molten_metals:ceramic_ingot_mold",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "#c:ingots/iron",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "molten_metals:filling/iron_filled_ceramic_mold*"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:splashing/iron_ingot_from_ceramic_mold*"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:emptying/molten_iron_from_ceramic_mold*"
+        }
+      ]
+    },
+    {
+      "id": "gold_casting",
+      "category": "gold",
+      "icon": "minecraft:gold_ingot",
+      "level": 10,
+      "cost": 500,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gold_melting"
+        },
+        {
+          "type": "node",
+          "id": "ceramic_mold"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "molten_metals:ceramic_ingot_mold",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "#c:ingots/gold",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "molten_metals:filling/gold_filled_ceramic_mold*"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:splashing/gold_ingot_from_ceramic_mold*"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:emptying/molten_gold_from_ceramic_mold*"
+        }
+      ]
+    },
+    {
+      "id": "tin_casting",
+      "category": "tin",
+      "icon": "create_ironworks:tin_ingot",
+      "level": 10,
+      "cost": 500,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "tin_melting"
+        },
+        {
+          "type": "node",
+          "id": "ceramic_mold"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "molten_metals:ceramic_ingot_mold",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "#c:ingots/tin",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "molten_metals:filling/tin_filled_ceramic_mold*"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:splashing/tin_ingot_from_ceramic_mold*"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:emptying/molten_tin_from_ceramic_mold*"
+        }
+      ]
+    },
+    {
+      "id": "silver_casting",
+      "category": "silver",
+      "icon": "chemica:silver_ingot",
+      "level": 10,
+      "cost": 500,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "silver_melting"
+        },
+        {
+          "type": "node",
+          "id": "ceramic_mold"
+        },
+        {
+          "type": "node",
+          "id": "technology:encased_fan"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "molten_metals:ceramic_ingot_mold",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "molten_metals:filling/silver_filled_ceramic_mold*"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:splashing/silver_ingot_from_ceramic_mold*"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:emptying/molten_silver_from_ceramic_mold*"
+        }
+      ]
+    },
+    {
+      "id": "molten_cast_iron",
+      "category": "cast_iron",
+      "icon": "tfmg:cast_iron_ingot",
+      "level": 15,
+      "cost": 1000,
+      "time": "1h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "iron_melting"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/iron",
+          "count": 64
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:coal",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "kami_js:molten_metals/early_cast_iron"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:compacting/cast_iron"
+        }
+      ]
+    },
+    {
+      "id": "cast_iron_ingot",
+      "category": "cast_iron",
+      "icon": "tfmg:cast_iron_ingot",
+      "level": 15,
+      "cost": 1100,
+      "time": "1h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "molten_cast_iron"
+        },
+        {
+          "type": "node",
+          "id": "ceramic_mold"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "molten_metals:ceramic_ingot_mold",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:iron_block",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "kami_js:blast_furnace/cast_iron_ceramic_mold"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:compacting/forge_cast_iron_ingot"
+        }
+      ]
+    },
+    {
+      "id": "cast_iron_pressing",
+      "category": "cast_iron",
+      "icon": "tfmg:cast_iron_sheet",
+      "level": 16,
+      "cost": 1500,
+      "time": "1h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "cast_iron_ingot"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:cast_iron_ingot",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tfmg:pressing/cast_iron_ingot"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/cast_iron_ingot_from_*"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/cast_iron_nugget_from_*"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/cast_iron_block_from_compacting"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:cast_iron_bars_from_ingots_cast_iron_stonecutting"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:cast_iron_ladder_from_ingots_cast_iron_stonecutting"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/cast_iron_flywheel"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/cast_iron_truss"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/cast_iron_frame"
+        }
+      ]
+    },
+    {
+      "id": "fireclay",
+      "category": "steel",
+      "icon": "tfmg:fireclay",
+      "level": 16,
+      "cost": 1500,
+      "time": "1h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "cast_iron_pressing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:cast_iron_sheet",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/fireclay"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:smelting/fireproof_brick"
+        }
+      ]
+    },
+    {
+      "id": "tfmg_blast_furnace",
+      "category": "steel",
+      "icon": "tfmg:blast_furnace_output",
+      "level": 17,
+      "cost": 2000,
+      "time": "2h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "fireclay"
+        },
+        {
+          "type": "node",
+          "id": "technology:cast_iron_tank"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:fireproof_brick",
+          "count": 32
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:cast_iron_block",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/blast_furnace_output"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/fireproof_bricks"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/fireproof_brick_reinforcement"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/blast_furnace_hatch"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:blast_furnace/cast_iron"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:blast_furnace/cast_iron_casting"
+        }
+      ]
+    },
+    {
+      "id": "coke",
+      "category": "steel",
+      "icon": "tfmg:coal_coke",
+      "level": 18,
+      "cost": 2200,
+      "time": "2h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "tfmg_blast_furnace"
+        },
+        {
+          "type": "node",
+          "id": "iron_deco",
+          "hidden": true
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:coal_block",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:cast_iron_ingot",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/coke_oven"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:coking/*"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/coal_coke"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/coal_coke_block"
+        },
+        {
+          "type": "recipe",
+          "id": "create:crushing/coal_coke"
+        }
+      ]
+    },
+    {
+      "id": "steel",
+      "category": "steel",
+      "icon": "tfmg:steel_ingot",
+      "level": 25,
+      "cost": 5000,
+      "time": "4h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "coke"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:coal_coke",
+          "count": 64
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:cast_iron_block",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tfmg:industrial_blasting/steel*"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:blast_furnace/steel_*"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:blast_furnace/slag_reclaim"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:mixing/molten_steel_from_*"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:filling/steel_filled_*"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:splashing/steel_ingot_from_*"
+        },
+        {
+          "type": "recipe",
+          "id": "molten_metals:emptying/molten_steel_from_*"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/steel_ingot_from_*"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/steel_nugget_from_decompacting"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/steel_block_from_compacting"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:*_from_ingots_steel_stonecutting"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/steel_cogwheel"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/large_steel_cogwheel"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:sequenced_assembly/heavy_plate"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:item_application/steel_casing"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:item_application/heavy_machinery_casing"
+        }
+      ]
+    },
+    {
+      "id": "blast_furnace_reinforcement",
+      "category": "steel",
+      "icon": "tfmg:blast_furnace_reinforcement",
+      "level": 30,
+      "cost": 7000,
+      "time": "5h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "steel"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:steel_ingot",
+          "count": 32
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/blast_furnace_reinforcement"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/rusted_blast_furnace_reinforcement"
         }
       ]
     }

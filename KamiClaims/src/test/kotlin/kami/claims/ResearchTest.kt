@@ -29,7 +29,7 @@ class ResearchTest {
     fun bundledDefaultsValidateWithoutProblems() {
         val built = Validator.build(ResearchSettings(), LevelsConfig(), Defaults.groups, Defaults.trees)
         assertEquals(emptyList(), built.problems)
-        assertEquals(setOf("metallurgy", "technology", "buffs"), built.defs.trees.keys)
+        assertEquals(setOf("metallurgy", "technology", "buffs", "tools_armor", "military"), built.defs.trees.keys)
         assertEquals(Scope.ANY, built.defs.trees.getValue("metallurgy").scope)
         assertEquals(0, LevelsConfig().capacity(Capacity.PROVINCES))
     }
@@ -72,7 +72,7 @@ class ResearchTest {
         assertEquals(emptyList(), Research.load(folder))
         listOf("research.json", "levels.json", "groups/basics.json", "trees/metallurgy.json", "trees/technology.json").forEach { assertTrue(Files.exists(dir.resolve(it)), it) }
         assertTrue(Research.defs.node("metallurgy:stone_tools") != null)
-        assertEquals(setOf("metallurgy", "technology", "buffs"), Research.defs.trees.keys)
+        assertEquals(setOf("metallurgy", "technology", "buffs", "tools_armor", "military"), Research.defs.trees.keys)
     }
 
     @Test

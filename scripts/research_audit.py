@@ -19,7 +19,7 @@ from collections import defaultdict
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 RES = os.path.join(ROOT, 'KamiClaims', 'src', 'main', 'resources', 'assets', 'kami_claims', 'research')
 SERVER = os.path.join(ROOT, 'Test-Server-NeoForge-1.21.1')
-TREES = ['metallurgy', 'technology']
+TREES = ['metallurgy', 'technology', 'tools_armor', 'military']
 IGNORE_PRODUCERS = {'technology:wood_building', 'technology:crafting_table'}
 
 OWNER = {
@@ -30,8 +30,8 @@ OWNER = {
     'technology:blaze_burner', 'technology:copper_casing', 'technology:fluid_basics', 'technology:chain_conveyor',
     'technology:fluid_handling', 'technology:hose_pulley', 'technology:portable_fluid_interface',
     'technology:steam_engine', 'technology:brass_hand', 'technology:steam_whistle', 'technology:copper_table_cover',
-    'technology:deployer', 'technology:transmitter', 'technology:precision_mechanism', 'technology:copper_backtank',
-    'technology:copper_diving_gear', 'technology:potato_cannon', 'technology:mixer',
+    'technology:deployer', 'technology:transmitter', 'technology:precision_mechanism', 'tools_armor:copper_backtank',
+    'tools_armor:copper_diving_gear', 'technology:potato_cannon', 'technology:mixer',
     'metallurgy:andesite_alloy_iron', 'metallurgy:andesite_alloy_zinc', 'metallurgy:brass', 'metallurgy:iron_pressing',
 }
 
@@ -495,6 +495,8 @@ class Model:
             with open(os.path.join(RES, 'groups', fn), encoding='utf8') as fh:
                 self.groups[fn[:-5]] = json.load(fh)
         for tree in TREES:
+            if not os.path.exists(os.path.join(RES, 'trees', tree + '.json')):
+                continue
             with open(os.path.join(RES, 'trees', tree + '.json'), encoding='utf8') as fh:
                 data = json.load(fh)
             for n in data['nodes']:

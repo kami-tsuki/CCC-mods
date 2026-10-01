@@ -10,6 +10,7 @@ import kami.libs.ui.widget.Lock
 import kami.libs.ui.core.Tip
 import kami.libs.ui.graph.Cell
 import kami.libs.ui.style.Format
+import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr
 import kami.libs.text.Phrase
@@ -30,6 +31,17 @@ object ResearchGraph {
 
     fun availableIn(tree: TreeView, category: String) = tree.nodes.count { it.category == category && it.key in ClientResearch.state.available }
 
+    private var labelTrees: List<TreeView>? = null
+    private val labels = HashMap<String, String>()
+
+    fun externalLabel(key: String): String {
+        if (ClientResearch.trees !== labelTrees) { labels.clear(); labelTrees = ClientResearch.trees }
+        return labels.getOrPut(key) {
+            val tree = ClientResearch.trees.firstOrNull { key.startsWith(it.id + ":") }
+            (tree?.label()?.resolve() ?: key.substringBefore(":")) + ": " + (ClientResearch.node(key)?.label()?.resolve() ?: key.substringAfter(":"))
+        }
+    }
+
     private fun techNode(node: NodeView, group: Int, highlight: Boolean, filteredOut: Boolean, ticking: Boolean): TechNode {
         val status = ClientResearch.status(node.key)
         val locked = node.level > ClientResearch.state.level
@@ -40,6 +52,7 @@ object ResearchGraph {
         val countdown = queued?.takeIf { (it.state == NodeState.RESEARCHING || it.state == NodeState.PAUSED) && node.timeMs > 0 }?.let { ClientResearch.countdown(it, node, ticking) }
         val lock = if (locked && status != NodeStatus.DONE) Lock.level(node.level) else null
         val lockText = lock?.label
+        val visible = node.external.filter { it !in node.hiddenExternal }
         return TechNode(
             label = node.label().resolve(),
             accent = ResearchLook.color(status),
@@ -51,6 +64,7 @@ object ResearchGraph {
             status = ResearchLook.icon(status),
             band = node.level.coerceAtLeast(1),
             group = group,
+            badge = if (visible.isEmpty()) null else Icons.CHAIN,
             item = stackOf(node.icon),
             progress = progress,
             ready = status == NodeStatus.READY,
@@ -64,7 +78,7 @@ object ResearchGraph {
                 lock?.how?.let { it to Palette.textSecondary },
                 tr("kami_libs.common.cost") + ": " + Format.money(node.cost) to Palette.textSecondary,
                 tr("kami_claims.research.detail.time") + ": " + Format.duration(node.timeMs) to Palette.textSecondary
-            )) }
+            ) + visible.map { externalLabel(it) to if (it in ClientResearch.state.done) Palette.success else Palette.textSecondary }) }
         )
     }
 }

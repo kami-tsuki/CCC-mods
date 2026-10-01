@@ -46,7 +46,7 @@ class ResearchDefs(val settings: ResearchSettings, val levels: LevelsConfig, val
 object Defaults {
     private val json = Configs.json()
     val groupNames = listOf("basics")
-    val treeNames = listOf("metallurgy", "technology", "buffs")
+    val treeNames = listOf("metallurgy", "technology", "buffs", "tools_armor", "military")
 
     val groups: Map<String, Group> by lazy { groupNames.associateWith { read("groups/$it.json", Group.serializer()) } }
     val trees: Map<String, TreeFile> by lazy { treeNames.associateWith { read("trees/$it.json", TreeFile.serializer()) } }

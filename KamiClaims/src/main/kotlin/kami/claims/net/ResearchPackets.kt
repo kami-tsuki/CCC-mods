@@ -45,7 +45,7 @@ class NodeView(
     val tree: String, val id: String, val category: String, val title: String, val description: String, val icon: String,
     val level: Int, val cost: Long, val timeMs: Long, val xp: Long, val conditions: List<String>, val requires: List<Int>,
     val tasks: List<TaskView>, val unlocks: List<UnlockView>, val x: Int?, val y: Int?, val anyRequires: List<Int> = emptyList(),
-    val hiddenRequires: List<Int> = emptyList()
+    val hiddenRequires: List<Int> = emptyList(), val external: List<String> = emptyList(), val hiddenExternal: List<String> = emptyList()
 ) {
     val key get() = "$tree:$id"
     fun label() = nodeLabel(tree, id, title)
@@ -133,6 +133,8 @@ private fun WireWriter.node(n: NodeView) {
     nullableInt(n.x).nullableInt(n.y)
     list(n.anyRequires) { varInt(it) }
     list(n.hiddenRequires) { varInt(it) }
+    list(n.external) { utf(it, MAX_ID) }
+    list(n.hiddenExternal) { utf(it, MAX_ID) }
 }
 
 private fun WireReader.node(tree: String) = NodeView(
@@ -144,7 +146,9 @@ private fun WireReader.node(tree: String) = NodeView(
     list(MAX_UNLOCKS) { unlock() },
     nullableInt(), nullableInt(),
     list(MAX_LINKS) { varInt() },
-    list(MAX_LINKS) { varInt() }
+    list(MAX_LINKS) { varInt() },
+    list(MAX_LINKS) { utf(MAX_ID) },
+    list(MAX_LINKS) { utf(MAX_ID) }
 )
 
 private fun WireWriter.tree(t: TreeView) {

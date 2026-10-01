@@ -110,6 +110,7 @@ object ResearchSync {
     private fun node(tree: Tree, node: Node, index: Map<String, Int>): NodeView {
         val refs = node.requires.flatMap { it.refs() }.distinct()
         val hard = node.requires.flatMap { it.hardRefs() }.toSet()
+        val hidden = node.requires.flatMap { it.hiddenRefs() }.distinct()
         return NodeView(
             tree.id, node.id, node.category, node.title, node.description, node.icon, node.level, node.cost, node.time.inWholeMilliseconds,
             node.xp ?: -1,
@@ -118,7 +119,9 @@ object ResearchSync {
             node.tasks.map { TaskView(it.kind, it.subject, it.target) },
             unlocks(node.unlocks), node.x, node.y,
             refs.filter { it !in hard }.mapNotNull { index[it] },
-            node.requires.flatMap { it.hiddenRefs() }.distinct().mapNotNull { index[it] }
+            hidden.mapNotNull { index[it] },
+            refs.filter { it !in index }.take(MAX_LINKS),
+            hidden.filter { it !in index }.take(MAX_LINKS)
         )
     }
 

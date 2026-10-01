@@ -1,0 +1,5700 @@
+{
+  "title": "Military",
+  "scope": "any",
+  "categories": [
+    {
+      "id": "melee",
+      "icon": "minecraft:iron_sword",
+      "order": 0
+    },
+    {
+      "id": "archery",
+      "icon": "minecraft:bow",
+      "order": 1
+    },
+    {
+      "id": "alchemy",
+      "icon": "minecraft:brewing_stand",
+      "order": 2
+    },
+    {
+      "id": "explosives",
+      "icon": "minecraft:tnt",
+      "order": 3
+    },
+    {
+      "id": "firearms",
+      "icon": "tacz:gun_smith_table",
+      "order": 4
+    },
+    {
+      "id": "ammo",
+      "icon": "tacz:ammo",
+      "order": 5
+    },
+    {
+      "id": "attachments",
+      "icon": "tacz:attachment",
+      "order": 6
+    },
+    {
+      "id": "artillery",
+      "icon": "createbigcannons:cannon_mount",
+      "order": 7
+    },
+    {
+      "id": "munitions",
+      "icon": "createbigcannons:solid_shot",
+      "order": 8
+    }
+  ],
+  "nodes": [
+    {
+      "id": "knives_primitive",
+      "category": "melee",
+      "icon": "farmersdelight:flint_knife",
+      "level": 5,
+      "cost": 250,
+      "time": "20m",
+      "requires": [],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:flint",
+          "count": 24
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "farmersdelight:flint_knife"
+        },
+        {
+          "type": "output",
+          "id": "moredelight:wooden_knife"
+        },
+        {
+          "type": "output",
+          "id": "moredelight:stone_knife"
+        }
+      ]
+    },
+    {
+      "id": "copper_melee",
+      "category": "melee",
+      "icon": "create_ironworks:copper_sword",
+      "level": 8,
+      "cost": 400,
+      "time": "30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "knives_primitive"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:copper_smelting"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:zinc_smelting"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_ingot",
+          "count": 12
+        },
+        {
+          "type": "deposit",
+          "item": "create:zinc_ingot",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create_ironworks:copper_sword"
+        },
+        {
+          "type": "output",
+          "id": "create_things_and_misc:copper_knife"
+        },
+        {
+          "type": "output",
+          "id": "create_things_and_misc:zinc_knife"
+        }
+      ]
+    },
+    {
+      "id": "iron_melee",
+      "category": "melee",
+      "icon": "minecraft:iron_sword",
+      "level": 10,
+      "cost": 500,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "copper_melee"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:iron_smelting"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:gold_smelting"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:iron_ingot",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gold_ingot",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "minecraft:iron_sword"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:golden_sword"
+        },
+        {
+          "type": "output",
+          "id": "farmersdelight:iron_knife"
+        },
+        {
+          "type": "output",
+          "id": "farmersdelight:golden_knife"
+        },
+        {
+          "type": "output",
+          "id": "croptopia:knife"
+        }
+      ]
+    },
+    {
+      "id": "lead_sword",
+      "category": "melee",
+      "icon": "tfmg:lead_sword",
+      "level": 12,
+      "cost": 720,
+      "time": "55m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "iron_melee"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/lead",
+          "count": 12
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "tfmg:lead_sword"
+        }
+      ]
+    },
+    {
+      "id": "bronze_melee",
+      "category": "melee",
+      "icon": "create_ironworks:bronze_sword",
+      "level": 15,
+      "cost": 1125,
+      "time": "1h20m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "iron_melee"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/bronze",
+          "count": 12
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create_ironworks:bronze_sword"
+        }
+      ]
+    },
+    {
+      "id": "brass_melee",
+      "category": "melee",
+      "icon": "create_ironworks:brass_sword",
+      "level": 18,
+      "cost": 1620,
+      "time": "1h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "bronze_melee"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:brass"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 14
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create_ironworks:brass_sword"
+        },
+        {
+          "type": "output",
+          "id": "create_things_and_misc:brass_knife"
+        }
+      ]
+    },
+    {
+      "id": "diamond_melee",
+      "category": "melee",
+      "icon": "minecraft:diamond_sword",
+      "level": 25,
+      "cost": 5625,
+      "time": "3h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "brass_melee"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:diamond",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "minecraft:diamond_sword"
+        },
+        {
+          "type": "output",
+          "id": "farmersdelight:diamond_knife"
+        }
+      ]
+    },
+    {
+      "id": "aluminum_sword",
+      "category": "melee",
+      "icon": "tfmg:aluminum_sword",
+      "level": 28,
+      "cost": 7055,
+      "time": "4h25m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "diamond_melee"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/aluminum",
+          "count": 14
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "tfmg:aluminum_sword"
+        }
+      ]
+    },
+    {
+      "id": "steel_melee",
+      "category": "melee",
+      "icon": "create_ironworks:steel_sword",
+      "level": 30,
+      "cost": 8100,
+      "time": "5h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "aluminum_sword"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/steel",
+          "count": 14
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create_ironworks:steel_sword"
+        }
+      ]
+    },
+    {
+      "id": "netherite_melee",
+      "category": "melee",
+      "icon": "minecraft:netherite_sword",
+      "level": 40,
+      "cost": 14400,
+      "time": "5h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "steel_melee"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:netherite"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:netherite_ingot",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "minecraft:netherite_sword"
+        },
+        {
+          "type": "output",
+          "id": "farmersdelight:netherite_knife"
+        }
+      ]
+    },
+    {
+      "id": "adv_iron_sword",
+      "category": "melee",
+      "icon": "advancednetherite:netherite_iron_sword",
+      "level": 50,
+      "cost": 22500,
+      "time": "6h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "netherite_melee"
+        },
+        {
+          "type": "node",
+          "id": "tools_armor:advanced_netherite_iron"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "advancednetherite:netherite_iron_ingot",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "advancednetherite:netherite_iron_sword"
+        }
+      ]
+    },
+    {
+      "id": "adv_gold_sword",
+      "category": "melee",
+      "icon": "advancednetherite:netherite_gold_sword",
+      "level": 60,
+      "cost": 25500,
+      "time": "6h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "adv_iron_sword"
+        },
+        {
+          "type": "node",
+          "id": "tools_armor:advanced_netherite_gold"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "advancednetherite:netherite_gold_ingot",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "advancednetherite:netherite_gold_sword"
+        }
+      ]
+    },
+    {
+      "id": "adv_emerald_sword",
+      "category": "melee",
+      "icon": "advancednetherite:netherite_emerald_sword",
+      "level": 70,
+      "cost": 28500,
+      "time": "7h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "adv_gold_sword"
+        },
+        {
+          "type": "node",
+          "id": "tools_armor:advanced_netherite_emerald"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "advancednetherite:netherite_emerald_ingot",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "advancednetherite:netherite_emerald_sword"
+        }
+      ]
+    },
+    {
+      "id": "adv_diamond_sword",
+      "category": "melee",
+      "icon": "advancednetherite:netherite_diamond_sword",
+      "level": 80,
+      "cost": 31500,
+      "time": "7h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "adv_emerald_sword"
+        },
+        {
+          "type": "node",
+          "id": "tools_armor:advanced_netherite_diamond"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "advancednetherite:netherite_diamond_ingot",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "advancednetherite:netherite_diamond_sword"
+        }
+      ]
+    },
+    {
+      "id": "bow_arrows",
+      "category": "archery",
+      "icon": "minecraft:bow",
+      "level": 6,
+      "cost": 300,
+      "time": "25m",
+      "requires": [],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:feather",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:flint",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "minecraft:bow"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:arrow"
+        }
+      ]
+    },
+    {
+      "id": "crossbow",
+      "category": "archery",
+      "icon": "minecraft:crossbow",
+      "level": 12,
+      "cost": 720,
+      "time": "55m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "bow_arrows"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:iron_smelting"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:string",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:iron_ingot",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "minecraft:crossbow"
+        }
+      ]
+    },
+    {
+      "id": "spectral_arrow",
+      "category": "archery",
+      "icon": "minecraft:spectral_arrow",
+      "level": 14,
+      "cost": 980,
+      "time": "1h10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "crossbow"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:glowstone_dust",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "minecraft:spectral_arrow"
+        }
+      ]
+    },
+    {
+      "id": "tipped_arrow",
+      "category": "archery",
+      "icon": "minecraft:tipped_arrow",
+      "level": 24,
+      "cost": 5180,
+      "time": "3h10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "spectral_arrow"
+        },
+        {
+          "type": "node",
+          "id": "brewing_stand"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:arrow",
+          "count": 32
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:glass_bottle",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "minecraft:tipped_arrow"
+        }
+      ]
+    },
+    {
+      "id": "brewing_stand",
+      "category": "alchemy",
+      "icon": "minecraft:brewing_stand",
+      "level": 18,
+      "cost": 1620,
+      "time": "1h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "technology:cuisine"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:blaze_rod",
+          "count": 6
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:glass_bottle",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "minecraft:brewing_stand"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:brewing_stand"
+        }
+      ]
+    },
+    {
+      "id": "brew_amplifiers",
+      "category": "alchemy",
+      "icon": "minecraft:fermented_spider_eye",
+      "level": 22,
+      "cost": 4355,
+      "time": "2h35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "brewing_stand"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:spider_eye",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gold_nugget",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "minecraft:fermented_spider_eye"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:glistering_melon_slice"
+        }
+      ]
+    },
+    {
+      "id": "dragon_breath",
+      "category": "alchemy",
+      "icon": "minecraft:dragon_breath",
+      "level": 28,
+      "cost": 7055,
+      "time": "4h25m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "brew_amplifiers"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:glass_bottle",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "minecraft:dragon_breath"
+        }
+      ]
+    },
+    {
+      "id": "fire_charge",
+      "category": "explosives",
+      "icon": "minecraft:fire_charge",
+      "level": 20,
+      "cost": 2000,
+      "time": "2h",
+      "requires": [],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:blaze_powder",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:coal",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "minecraft:fire_charge"
+        }
+      ]
+    },
+    {
+      "id": "tnt",
+      "category": "explosives",
+      "icon": "minecraft:tnt",
+      "level": 45,
+      "cost": 18225,
+      "time": "5h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "fire_charge"
+        },
+        {
+          "type": "node",
+          "id": "ammo_basics"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tacz_c:gunpowder_cylinder",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_c:tnt_recipe"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:tnt_minecart"
+        }
+      ]
+    },
+    {
+      "id": "explosives_chem",
+      "category": "explosives",
+      "icon": "tacz_c:gunpowder_cake",
+      "level": 45,
+      "cost": 18225,
+      "time": "5h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "tnt"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "kami_js:explosives/*"
+        }
+      ]
+    },
+    {
+      "id": "grenades",
+      "category": "explosives",
+      "icon": "tacz_tactical_breaching:frag_grenade",
+      "level": 60,
+      "cost": 25500,
+      "time": "6h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "explosives_chem"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 48
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_tactical_breaching:frag_grenade"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_tactical_breaching:flashbang_grenade"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_tactical_breaching:dropped_magazine"
+        }
+      ]
+    },
+    {
+      "id": "restraints",
+      "category": "explosives",
+      "icon": "tacz_tactical_breaching:handcuffs",
+      "level": 90,
+      "cost": 34500,
+      "time": "8h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "grenades"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:iron_ingot",
+          "count": 24
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:chain",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_tactical_breaching:handcuffs"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_tactical_breaching:handcuff_key"
+        }
+      ]
+    },
+    {
+      "id": "gas_mask",
+      "category": "explosives",
+      "icon": "tacz_tactical_breaching:gas_mask",
+      "level": 90,
+      "cost": 34500,
+      "time": "8h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "grenades"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:lead_sheet",
+          "count": 12
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:charcoal",
+          "count": 24
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_tactical_breaching:gas_mask"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_tactical_breaching:basic_filter"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_tactical_breaching:military_filter"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_tactical_breaching:advanced_nbc_filter"
+        }
+      ]
+    },
+    {
+      "id": "gunsmithing",
+      "category": "firearms",
+      "icon": "tacz:gun_smith_table",
+      "level": 40,
+      "cost": 14400,
+      "time": "5h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "technology:steel_mechanism"
+        },
+        {
+          "type": "node",
+          "id": "technology:precision_mechanism"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:ingot_mold"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:steel_mechanism",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun_smith_table"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachment_workbench"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:target"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:target_minecart"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:statue"
+        },
+        {
+          "type": "recipe",
+          "id": "createimmersivetacz:gun_barrel"
+        },
+        {
+          "type": "recipe",
+          "id": "createimmersivetacz:firing_mechanism"
+        },
+        {
+          "type": "recipe",
+          "id": "createimmersivetacz:gun_trigger"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:hardened_nitro"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:mixing/congealed_nitro*"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:milling/nitropowder"
+        }
+      ]
+    },
+    {
+      "id": "ammo_basics",
+      "category": "ammo",
+      "icon": "tacz_c:primer",
+      "level": 40,
+      "cost": 14400,
+      "time": "5h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gunsmithing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_c:brass_annealing"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:brass_cup_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:brass_cylinder_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:copper_cup_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:thin_*_sheet_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:primer_*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:red_paper_mix"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:gunpowder_*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_core_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_deploying"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_recipe"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:large_bullet_*"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_to_*"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/gunpowder_*"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:createimmersivetacz/*"
+        },
+        {
+          "type": "recipe",
+          "id": "createimmersivetacz:nitropowder*"
+        }
+      ]
+    },
+    {
+      "id": "ammo_9mm",
+      "category": "ammo",
+      "icon": "tacz:ammo",
+      "level": 40,
+      "cost": 14400,
+      "time": "5h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_basics"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_ingot",
+          "count": 28
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 28
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_9mm*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:case_9mm_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_bullet_9mm*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_76225*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:case_76225_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_bullet_76225*"
+        }
+      ]
+    },
+    {
+      "id": "ammo_22wmr",
+      "category": "ammo",
+      "icon": "tacz:ammo",
+      "level": 42,
+      "cost": 15875,
+      "time": "5h35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_9mm"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_ingot",
+          "count": 28
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 28
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_22wmr*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:case_22wmr_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_bullet_22wmr*"
+        }
+      ]
+    },
+    {
+      "id": "ammo_12g",
+      "category": "ammo",
+      "icon": "tacz:ammo",
+      "level": 44,
+      "cost": 17420,
+      "time": "5h40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_22wmr"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:paper",
+          "count": 29
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 29
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_12g*"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_bullet_12g*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:base_12g_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:wad_12g"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:shell_case_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:pellets_recipe_mechanical"
+        }
+      ]
+    },
+    {
+      "id": "ammo_45acp",
+      "category": "ammo",
+      "icon": "tacz:ammo",
+      "level": 46,
+      "cost": 19040,
+      "time": "5h50m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_12g"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_ingot",
+          "count": 29
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 29
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_45acp*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:case_45acp_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_bullet_45acp*"
+        }
+      ]
+    },
+    {
+      "id": "ammo_45_70",
+      "category": "ammo",
+      "icon": "tacz:ammo",
+      "level": 52,
+      "cost": 23100,
+      "time": "6h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_45acp"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_ingot",
+          "count": 31
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 31
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_4570*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:case_4570_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_bullet_4570*"
+        }
+      ]
+    },
+    {
+      "id": "ammo_357mag",
+      "category": "ammo",
+      "icon": "tacz:ammo",
+      "level": 62,
+      "cost": 26100,
+      "time": "6h35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_45_70"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_ingot",
+          "count": 34
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 34
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_357mag*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:case_357mag_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_bullet_357mag*"
+        }
+      ]
+    },
+    {
+      "id": "ammo_762x39",
+      "category": "ammo",
+      "icon": "tacz:ammo",
+      "level": 68,
+      "cost": 27900,
+      "time": "6h55m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_357mag"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_ingot",
+          "count": 36
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 36
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_76239*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:case_76239_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_bullet_76239*"
+        }
+      ]
+    },
+    {
+      "id": "ammo_792x57",
+      "category": "ammo",
+      "icon": "tacz:ammo",
+      "level": 76,
+      "cost": 30300,
+      "time": "7h20m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_762x39"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_ingot",
+          "count": 38
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 38
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_792x57*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:case_792x57_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_bullet_792x57*"
+        }
+      ]
+    },
+    {
+      "id": "ammo_556x45",
+      "category": "ammo",
+      "icon": "tacz:ammo",
+      "level": 82,
+      "cost": 32100,
+      "time": "7h35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_792x57"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_ingot",
+          "count": 40
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 40
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_55645*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:case_55645_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_bullet_55645*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_54539*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:case_54539_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_bullet_54539*"
+        }
+      ]
+    },
+    {
+      "id": "ammo_50ae",
+      "category": "ammo",
+      "icon": "tacz:ammo",
+      "level": 84,
+      "cost": 32700,
+      "time": "7h40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_556x45"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_ingot",
+          "count": 41
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 41
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_50ae*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:case_50ae_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_bullet_50ae*"
+        }
+      ]
+    },
+    {
+      "id": "ammo_30_06",
+      "category": "ammo",
+      "icon": "tacz:ammo",
+      "level": 86,
+      "cost": 33300,
+      "time": "7h50m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_50ae"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_ingot",
+          "count": 41
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 41
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_3006*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:case_3006_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_bullet_3006*"
+        }
+      ]
+    },
+    {
+      "id": "ammo_58x42",
+      "category": "ammo",
+      "icon": "tacz:ammo",
+      "level": 96,
+      "cost": 36300,
+      "time": "8h20m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_30_06"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_ingot",
+          "count": 44
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 44
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_5842*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:case_5842_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_bullet_5842*"
+        }
+      ]
+    },
+    {
+      "id": "ammo_57x28",
+      "category": "ammo",
+      "icon": "tacz:ammo",
+      "level": 102,
+      "cost": 38100,
+      "time": "8h35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_58x42"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_ingot",
+          "count": 46
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 46
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_5728*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:case_5728_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_bullet_5728*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_4630*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:case_4630_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_bullet_4630*"
+        }
+      ]
+    },
+    {
+      "id": "ammo_308",
+      "category": "ammo",
+      "icon": "tacz:ammo",
+      "level": 112,
+      "cost": 41100,
+      "time": "9h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_57x28"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_ingot",
+          "count": 49
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 49
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_308*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:case_308_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_bullet_308*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_76254*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:case_76254_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_bullet_76254*"
+        }
+      ]
+    },
+    {
+      "id": "ammo_6851fury",
+      "category": "ammo",
+      "icon": "tacz:ammo",
+      "level": 122,
+      "cost": 44100,
+      "time": "9h35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_308"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_ingot",
+          "count": 52
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 52
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_6851fury*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:case_6851fury_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_bullet_6851fury*"
+        }
+      ]
+    },
+    {
+      "id": "ammo_500mag",
+      "category": "ammo",
+      "icon": "tacz:ammo",
+      "level": 140,
+      "cost": 49500,
+      "time": "10h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_6851fury"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_ingot",
+          "count": 58
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 58
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_500mag*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:case_500mag_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_bullet_500mag*"
+        }
+      ]
+    },
+    {
+      "id": "ammo_40mm",
+      "category": "ammo",
+      "icon": "tacz:ammo",
+      "level": 148,
+      "cost": 51900,
+      "time": "10h55m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_500mag"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:iron_ingot",
+          "count": 60
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 60
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_c:grenade_*_40mm"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:grenade_40mm_assembly"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:booster_charge_40mm_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_grenade_booster_charge_40mm"
+        }
+      ]
+    },
+    {
+      "id": "ammo_338",
+      "category": "ammo",
+      "icon": "tacz:ammo",
+      "level": 160,
+      "cost": 55500,
+      "time": "11h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_40mm"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_ingot",
+          "count": 64
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 64
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_338*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:case_338_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_bullet_338*"
+        }
+      ]
+    },
+    {
+      "id": "ammo_rpg_rocket",
+      "category": "ammo",
+      "icon": "tacz:ammo",
+      "level": 172,
+      "cost": 59100,
+      "time": "12h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_338"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:iron_ingot",
+          "count": 67
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 67
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_c:rpg_*"
+        }
+      ]
+    },
+    {
+      "id": "ammo_50bmg",
+      "category": "ammo",
+      "icon": "tacz:ammo",
+      "level": 200,
+      "cost": 67500,
+      "time": "12h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_rpg_rocket"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_ingot",
+          "count": 76
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 76
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz_c:bullet_50bmg*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:case_50bmg_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz_c/fluid_bullet_50bmg*"
+        }
+      ]
+    },
+    {
+      "id": "gun_glock_17",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 40,
+      "cost": 14400,
+      "time": "5h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_9mm"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 24
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/glock_17"
+        }
+      ]
+    },
+    {
+      "id": "gun_m9a4",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 41,
+      "cost": 15125,
+      "time": "5h35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_9mm"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 24
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/m9a4"
+        }
+      ]
+    },
+    {
+      "id": "gun_db_short",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 44,
+      "cost": 17420,
+      "time": "5h40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_12g"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 25
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/db_short"
+        }
+      ]
+    },
+    {
+      "id": "gun_cz75",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 45,
+      "cost": 18225,
+      "time": "5h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_9mm"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 26
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 17
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/cz75"
+        }
+      ]
+    },
+    {
+      "id": "gun_m1911",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 47,
+      "cost": 19880,
+      "time": "5h50m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_45acp"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 26
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 17
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/m1911"
+        }
+      ]
+    },
+    {
+      "id": "gun_b93r",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 49,
+      "cost": 21605,
+      "time": "5h55m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_9mm"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 27
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 17
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/b93r"
+        }
+      ]
+    },
+    {
+      "id": "gun_db_long",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 50,
+      "cost": 22500,
+      "time": "6h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_12g"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 28
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 18
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/db_long"
+        }
+      ]
+    },
+    {
+      "id": "gun_uzi",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 50,
+      "cost": 22500,
+      "time": "6h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_9mm"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 28
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 18
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/uzi"
+        }
+      ]
+    },
+    {
+      "id": "gun_springfield1873",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 52,
+      "cost": 23100,
+      "time": "6h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_45_70"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 28
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 18
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/springfield1873"
+        }
+      ]
+    },
+    {
+      "id": "gun_p320",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 54,
+      "cost": 23700,
+      "time": "6h10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_45acp"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 29
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 18
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/p320"
+        }
+      ]
+    },
+    {
+      "id": "gun_hk_mp5a5",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 56,
+      "cost": 24300,
+      "time": "6h20m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_9mm"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 30
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 19
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/hk_mp5a5"
+        }
+      ]
+    },
+    {
+      "id": "gun_hk_mk23",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 58,
+      "cost": 24900,
+      "time": "6h25m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_45acp"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 31
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 19
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/hk_mk23"
+        }
+      ]
+    },
+    {
+      "id": "gun_m870",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 60,
+      "cost": 25500,
+      "time": "6h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_12g"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 32
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 20
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/m870"
+        }
+      ]
+    },
+    {
+      "id": "gun_rhino357",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 62,
+      "cost": 26100,
+      "time": "6h35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_357mag"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 32
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 20
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/rhino357"
+        }
+      ]
+    },
+    {
+      "id": "gun_ump45",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 64,
+      "cost": 26700,
+      "time": "6h40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_45acp"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 33
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 20
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/ump45"
+        }
+      ]
+    },
+    {
+      "id": "gun_type_81",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 68,
+      "cost": 27900,
+      "time": "6h55m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_762x39"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 35
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 21
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/type_81"
+        }
+      ]
+    },
+    {
+      "id": "gun_sks_tactical",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 72,
+      "cost": 29100,
+      "time": "7h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_762x39"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 36
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 22
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/sks_tactical"
+        }
+      ]
+    },
+    {
+      "id": "gun_kar98",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 76,
+      "cost": 30300,
+      "time": "7h20m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_792x57"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 38
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 23
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/kar98"
+        }
+      ]
+    },
+    {
+      "id": "gun_ak47",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 80,
+      "cost": 31500,
+      "time": "7h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_762x39"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 40
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 24
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/ak47"
+        }
+      ]
+    },
+    {
+      "id": "gun_m16a1",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 82,
+      "cost": 32100,
+      "time": "7h35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_556x45"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 40
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 24
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/m16a1"
+        }
+      ]
+    },
+    {
+      "id": "gun_timeless50",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 84,
+      "cost": 32700,
+      "time": "7h40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_50ae"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 41
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 24
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/timeless50"
+        }
+      ]
+    },
+    {
+      "id": "gun_m700",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 86,
+      "cost": 33300,
+      "time": "7h50m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_30_06"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 42
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 25
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/m700"
+        }
+      ]
+    },
+    {
+      "id": "gun_m16a4",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 88,
+      "cost": 33900,
+      "time": "7h55m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_556x45"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 43
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 25
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/m16a4"
+        }
+      ]
+    },
+    {
+      "id": "gun_deagle",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 90,
+      "cost": 34500,
+      "time": "8h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_50ae"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 44
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 26
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/deagle"
+        }
+      ]
+    },
+    {
+      "id": "gun_m4a1",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 92,
+      "cost": 35100,
+      "time": "8h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_556x45"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 44
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 26
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/m4a1"
+        }
+      ]
+    },
+    {
+      "id": "gun_lonetrail",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 94,
+      "cost": 35700,
+      "time": "8h10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_30_06"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 45
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 26
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/lonetrail"
+        }
+      ]
+    },
+    {
+      "id": "gun_qbz_95",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 96,
+      "cost": 36300,
+      "time": "8h20m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_58x42"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 46
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 27
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/qbz_95"
+        }
+      ]
+    },
+    {
+      "id": "gun_aug",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 98,
+      "cost": 36900,
+      "time": "8h25m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_556x45"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 47
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 27
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/aug"
+        }
+      ]
+    },
+    {
+      "id": "gun_scar_l",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 100,
+      "cost": 37500,
+      "time": "8h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_556x45"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 48
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 28
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/scar_l"
+        }
+      ]
+    },
+    {
+      "id": "gun_p90",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 102,
+      "cost": 38100,
+      "time": "8h35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_57x28"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 48
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 28
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/p90"
+        }
+      ]
+    },
+    {
+      "id": "gun_m1014",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 104,
+      "cost": 38700,
+      "time": "8h40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_12g"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 49
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 28
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/m1014"
+        }
+      ]
+    },
+    {
+      "id": "gun_g36k",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 106,
+      "cost": 39300,
+      "time": "8h50m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_556x45"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 50
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 29
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/g36k"
+        }
+      ]
+    },
+    {
+      "id": "gun_deagle_golden",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 106,
+      "cost": 39300,
+      "time": "8h50m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_357mag"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 50
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 29
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/deagle_golden"
+        }
+      ]
+    },
+    {
+      "id": "gun_vector45",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 108,
+      "cost": 39900,
+      "time": "8h55m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_45acp"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 51
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 29
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/vector45"
+        }
+      ]
+    },
+    {
+      "id": "gun_qbz_191",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 110,
+      "cost": 40500,
+      "time": "9h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_58x42"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 52
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 30
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/qbz_191"
+        }
+      ]
+    },
+    {
+      "id": "gun_hk_g3",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 112,
+      "cost": 41100,
+      "time": "9h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_308"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 52
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 30
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/hk_g3"
+        }
+      ]
+    },
+    {
+      "id": "gun_hk416d",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 114,
+      "cost": 41700,
+      "time": "9h10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_556x45"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 53
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 30
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/hk416d"
+        }
+      ]
+    },
+    {
+      "id": "gun_rpk",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 116,
+      "cost": 42300,
+      "time": "9h20m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_762x39"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 54
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 31
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/rpk"
+        }
+      ]
+    },
+    {
+      "id": "gun_fn_fal",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 118,
+      "cost": 42900,
+      "time": "9h25m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_308"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 55
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 31
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/fn_fal"
+        }
+      ]
+    },
+    {
+      "id": "gun_spr15hb",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 120,
+      "cost": 43500,
+      "time": "9h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_556x45"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 56
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/spr15hb"
+        }
+      ]
+    },
+    {
+      "id": "gun_scar_h",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 124,
+      "cost": 44700,
+      "time": "9h40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_308"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 57
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/scar_h"
+        }
+      ]
+    },
+    {
+      "id": "gun_spas_12",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 128,
+      "cost": 45900,
+      "time": "9h55m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_12g"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 59
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 33
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/spas_12"
+        }
+      ]
+    },
+    {
+      "id": "gun_mk14",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 132,
+      "cost": 47100,
+      "time": "10h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_308"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 60
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 34
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/mk14"
+        }
+      ]
+    },
+    {
+      "id": "gun_aa12",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 136,
+      "cost": 48300,
+      "time": "10h20m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_12g"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 62
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 35
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/aa12"
+        }
+      ]
+    },
+    {
+      "id": "gun_taurus500",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 140,
+      "cost": 49500,
+      "time": "10h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_500mag"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 64
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 36
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/taurus500"
+        }
+      ]
+    },
+    {
+      "id": "gun_m249",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 144,
+      "cost": 50700,
+      "time": "10h40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_556x45"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 65
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 36
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/m249"
+        }
+      ]
+    },
+    {
+      "id": "gun_m320",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 148,
+      "cost": 51900,
+      "time": "10h55m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_40mm"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 67
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 37
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/m320"
+        }
+      ]
+    },
+    {
+      "id": "gun_fn_evolys",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 154,
+      "cost": 53700,
+      "time": "11h10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_308"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 69
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 38
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/fn_evolys"
+        }
+      ]
+    },
+    {
+      "id": "gun_ai_awp",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 160,
+      "cost": 55500,
+      "time": "11h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_338"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 72
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 40
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/ai_awp"
+        }
+      ]
+    },
+    {
+      "id": "gun_rpg7",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 172,
+      "cost": 59100,
+      "time": "12h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_rpg_rocket"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 76
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 42
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/rpg7"
+        }
+      ]
+    },
+    {
+      "id": "gun_minigun",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 185,
+      "cost": 63000,
+      "time": "12h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_308"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 82
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 45
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/minigun"
+        }
+      ]
+    },
+    {
+      "id": "gun_m107",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 200,
+      "cost": 67500,
+      "time": "12h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_50bmg"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 88
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 48
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/m107"
+        }
+      ]
+    },
+    {
+      "id": "gun_m95",
+      "category": "firearms",
+      "icon": "tacz:modern_kinetic_gun",
+      "level": 200,
+      "cost": 67500,
+      "time": "12h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_50bmg"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 88
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 48
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gun/m95"
+        }
+      ]
+    },
+    {
+      "id": "ammo_box_iron",
+      "category": "firearms",
+      "icon": "tacz:ammo_box",
+      "level": 50,
+      "cost": 22500,
+      "time": "6h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gunsmithing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:iron_ingot",
+          "count": 24
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:iron_ammo_box"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:ammo_workbench"
+        }
+      ]
+    },
+    {
+      "id": "ammo_box_gold",
+      "category": "firearms",
+      "icon": "tacz:ammo_box",
+      "level": 100,
+      "cost": 37500,
+      "time": "8h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_box_iron"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:gold_ingot",
+          "count": 24
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:gold_ammo_box"
+        }
+      ]
+    },
+    {
+      "id": "ammo_box_diamond",
+      "category": "firearms",
+      "icon": "tacz:ammo_box",
+      "level": 150,
+      "cost": 52500,
+      "time": "11h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_box_gold"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:diamond",
+          "count": 12
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:diamond_ammo_box"
+        }
+      ]
+    },
+    {
+      "id": "sights_pistol",
+      "category": "attachments",
+      "icon": "tacz:attachment",
+      "level": 45,
+      "cost": 18225,
+      "time": "5h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gunsmithing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 15
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:redstone",
+          "count": 17
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/sight_acro_pistol"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/sight_deltapoint_pistol"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/sight_fastfire_pistol"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/sight_pk06_pistol"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/sight_rmr_dot"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/sight_sro_dot"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/sight_t1"
+        }
+      ]
+    },
+    {
+      "id": "sights_rifle",
+      "category": "attachments",
+      "icon": "tacz:attachment",
+      "level": 55,
+      "cost": 24000,
+      "time": "6h15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "sights_pistol"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 17
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:redstone",
+          "count": 19
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/sight_acro_rifle"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/sight_deltapoint_rifle"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/sight_fastfire_rifle"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/sight_pk06_rifle"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/sight_t2"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/sight_coyote"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/sight_srs_02"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/sight_552"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/sight_uh1"
+        }
+      ]
+    },
+    {
+      "id": "bayonets",
+      "category": "attachments",
+      "icon": "tacz:attachment",
+      "level": 60,
+      "cost": 25500,
+      "time": "6h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gunsmithing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 18
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:redstone",
+          "count": 20
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/bayonet_6h3"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/bayonet_m9"
+        }
+      ]
+    },
+    {
+      "id": "grips_1",
+      "category": "attachments",
+      "icon": "tacz:attachment",
+      "level": 65,
+      "cost": 27000,
+      "time": "6h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gunsmithing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 19
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:redstone",
+          "count": 21
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/grip_rk6"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/grip_td"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/grip_se_5"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/grip_osovets_black"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/grip_magpul_afg_2"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/grip_cobra"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/grip_vertical_talon"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/grip_rk0"
+        }
+      ]
+    },
+    {
+      "id": "stocks_1",
+      "category": "attachments",
+      "icon": "tacz:attachment",
+      "level": 70,
+      "cost": 28500,
+      "time": "7h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gunsmithing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 20
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:redstone",
+          "count": 22
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/oem_stock_light"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/stock_m4ss"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/stock_moe"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/stock_ripstock"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/stock_carbon_bone_c5"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/stock_sba3"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/stock_ak12"
+        }
+      ]
+    },
+    {
+      "id": "mags_1",
+      "category": "attachments",
+      "icon": "tacz:attachment",
+      "level": 75,
+      "cost": 30000,
+      "time": "7h15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gunsmithing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 21
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:redstone",
+          "count": 23
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/extended_mag_1"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/light_extended_mag_1"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/shotgun_extended_mag_1"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/sniper_extended_mag_1"
+        }
+      ]
+    },
+    {
+      "id": "scopes_low",
+      "category": "attachments",
+      "icon": "tacz:attachment",
+      "level": 80,
+      "cost": 31500,
+      "time": "7h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gunsmithing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 22
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:redstone",
+          "count": 24
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/scope_retro_2x"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/sight_okp7"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/sight_exp3"
+        }
+      ]
+    },
+    {
+      "id": "muzzle_1",
+      "category": "attachments",
+      "icon": "tacz:attachment",
+      "level": 90,
+      "cost": 34500,
+      "time": "8h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gunsmithing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 24
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:redstone",
+          "count": 26
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/muzzle_brake_cyclone_d2"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/muzzle_compensator_trident"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/muzzle_brake_pioneer"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/muzzle_brake_mastiff_sg"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/muzzle_brake_timeless50"
+        }
+      ]
+    },
+    {
+      "id": "scopes_mid",
+      "category": "attachments",
+      "icon": "tacz:attachment",
+      "level": 110,
+      "cost": 40500,
+      "time": "9h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "scopes_low"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 28
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:redstone",
+          "count": 30
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/scope_acog_ta31"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/scope_elcan_4x"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/scope_hamr"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/scope_lpvo_1_6"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/scope_qmk152"
+        }
+      ]
+    },
+    {
+      "id": "grips_2",
+      "category": "attachments",
+      "icon": "tacz:attachment",
+      "level": 120,
+      "cost": 43500,
+      "time": "9h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "grips_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 30
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:redstone",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/grip_rk1_b25u"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/grip_vertical_military"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/grip_vertical_ranger"
+        }
+      ]
+    },
+    {
+      "id": "lasers",
+      "category": "attachments",
+      "icon": "tacz:attachment",
+      "level": 125,
+      "cost": 45000,
+      "time": "9h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gunsmithing"
+        },
+        {
+          "type": "node",
+          "id": "technology:vintage_laser"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 31
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:redstone",
+          "count": 33
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/laser_compact"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/laser_lopro"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/laser_nightstick"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/laser_peq6"
+        }
+      ]
+    },
+    {
+      "id": "silencers_1",
+      "category": "attachments",
+      "icon": "tacz:attachment",
+      "level": 130,
+      "cost": 46500,
+      "time": "10h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gunsmithing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 32
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:redstone",
+          "count": 34
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/muzzle_silencer_mirage"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/muzzle_silencer_wraith"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/muzzle_silencer_ptilopsis"
+        }
+      ]
+    },
+    {
+      "id": "mags_2",
+      "category": "attachments",
+      "icon": "tacz:attachment",
+      "level": 135,
+      "cost": 48000,
+      "time": "10h15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "mags_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 33
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:redstone",
+          "count": 35
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/extended_mag_2"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/light_extended_mag_2"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/shotgun_extended_mag_2"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/sniper_extended_mag_2"
+        }
+      ]
+    },
+    {
+      "id": "stocks_2",
+      "category": "attachments",
+      "icon": "tacz:attachment",
+      "level": 140,
+      "cost": 49500,
+      "time": "10h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "stocks_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 34
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:redstone",
+          "count": 36
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/oem_stock_heavy"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/oem_stock_tactical"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/stock_hk_slim_line"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/stock_militech_b5"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/stock_tactical_ar"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/stock_heavy_spas_12"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/stock_tactical_spas_12"
+        }
+      ]
+    },
+    {
+      "id": "muzzle_2",
+      "category": "attachments",
+      "icon": "tacz:attachment",
+      "level": 150,
+      "cost": 52500,
+      "time": "11h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "muzzle_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 36
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:redstone",
+          "count": 38
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/muzzle_brake_cthulhu"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/muzzle_brake_trex"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/muzzle_choke_sg"
+        }
+      ]
+    },
+    {
+      "id": "scopes_high",
+      "category": "attachments",
+      "icon": "tacz:attachment",
+      "level": 170,
+      "cost": 58500,
+      "time": "12h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "scopes_mid"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 40
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:redstone",
+          "count": 42
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/scope_standard_8x"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/scope_mk5hd"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/scope_vudu"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/scope_98k"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/scope_1873_6x"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/scope_contender"
+        }
+      ]
+    },
+    {
+      "id": "silencers_2",
+      "category": "attachments",
+      "icon": "tacz:attachment",
+      "level": 180,
+      "cost": 61500,
+      "time": "12h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "silencers_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 42
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:redstone",
+          "count": 44
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/muzzle_silencer_sg"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/muzzle_silencer_knight_qd"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/muzzle_silencer_ursus"
+        }
+      ]
+    },
+    {
+      "id": "ammo_mods_1",
+      "category": "attachments",
+      "icon": "tacz:attachment",
+      "level": 190,
+      "cost": 64500,
+      "time": "12h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gunsmithing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 44
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:redstone",
+          "count": 46
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/ammo_mod_fmj"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/ammo_mod_hp"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/ammo_mod_slug"
+        }
+      ]
+    },
+    {
+      "id": "mags_3",
+      "category": "attachments",
+      "icon": "tacz:attachment",
+      "level": 195,
+      "cost": 66000,
+      "time": "12h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "mags_2"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 45
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:redstone",
+          "count": 47
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/extended_mag_3"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/light_extended_mag_3"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/shotgun_extended_mag_3"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/sniper_extended_mag_3"
+        }
+      ]
+    },
+    {
+      "id": "silencers_3",
+      "category": "attachments",
+      "icon": "tacz:attachment",
+      "level": 230,
+      "cost": 76500,
+      "time": "12h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "silencers_2"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 52
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:redstone",
+          "count": 54
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/muzzle_silencer_phantom_s1"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/muzzle_silencer_vulture"
+        }
+      ]
+    },
+    {
+      "id": "ammo_mods_2",
+      "category": "attachments",
+      "icon": "tacz:attachment",
+      "level": 250,
+      "cost": 82500,
+      "time": "12h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_mods_1"
+        },
+        {
+          "type": "node",
+          "id": "fire_charge"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 56
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:redstone",
+          "count": 58
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/ammo_mod_he"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/ammo_mod_i"
+        }
+      ]
+    },
+    {
+      "id": "golden_barrel",
+      "category": "attachments",
+      "icon": "tacz:attachment",
+      "level": 106,
+      "cost": 39300,
+      "time": "8h50m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gun_deagle_golden"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tacz:attachments/deagle_golden_long_barrel"
+        }
+      ]
+    },
+    {
+      "id": "immersive_attachments",
+      "category": "attachments",
+      "icon": "tacz:attachment",
+      "level": 70,
+      "cost": 28500,
+      "time": "7h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gunsmithing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 12
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 12
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "createimmersivetacz:attachments/*"
+        }
+      ]
+    },
+    {
+      "id": "cannon_basics",
+      "category": "artillery",
+      "icon": "createbigcannons:cannon_mount",
+      "level": 50,
+      "cost": 22500,
+      "time": "6h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:cast_iron_ingot"
+        },
+        {
+          "type": "node",
+          "id": "technology:pistons"
+        },
+        {
+          "type": "node",
+          "id": "technology:fluid_basics"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:brass"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:iron_deco"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:cast_iron_ingot",
+          "count": 24
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:iron_ingot",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "createbigcannons:cannon_mount"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:fixed_cannon_mount"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:cannon_mount_extension"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:cannon_carriage"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:cannon_builder"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:cannon_drill"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:cannon_loader"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:cannon_welder"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:ram_head"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:ram_rod"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:worm"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:worm_head"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:pair_of_cannon_wheels"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:casting_sand"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:basin_foundry_lid"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:cast_iron_sliding_breechblock"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:wrought_iron_cannon_chamber"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:wrought_iron_cannon_end"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:log_cannon_chamber"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:log_cannon_end"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:cutting/very_small_cast_mould"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:cutting/small_cast_mould"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:cutting/medium_cast_mould"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:cutting/large_cast_mould"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:cutting/very_large_cast_mould"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:cutting/cannon_end_cast_mould"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:cutting/sliding_breech_cast_mould"
+        }
+      ]
+    },
+    {
+      "id": "basic_munitions",
+      "category": "munitions",
+      "icon": "createbigcannons:solid_shot",
+      "level": 50,
+      "cost": 22500,
+      "time": "6h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "cannon_basics"
+        },
+        {
+          "type": "node",
+          "id": "ammo_basics"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:cast_iron_ingot",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "createbigcannons:solid_shot"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:shot_balls"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:powder_charge"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:empty_powder_charge"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:impact_fuze"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:gunpowder_pinch"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:gunpowder_from_pinches"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:compacting/packed_gunpowder"
+        }
+      ]
+    },
+    {
+      "id": "drop_mortar",
+      "category": "artillery",
+      "icon": "createbigcannons:drop_mortar_shell",
+      "level": 60,
+      "cost": 25500,
+      "time": "6h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "basic_munitions"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:iron_ingot",
+          "count": 24
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 24
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "createbigcannons:drop_mortar_shell"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:mortar_stone"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:wrought_iron_drop_mortar_end"
+        }
+      ]
+    },
+    {
+      "id": "bronze_cannon",
+      "category": "artillery",
+      "icon": "createbigcannons:bronze_sliding_breechblock",
+      "level": 70,
+      "cost": 28500,
+      "time": "7h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "drop_mortar"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/bronze",
+          "count": 24
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "createbigcannons:bronze_sliding_breechblock"
+        }
+      ]
+    },
+    {
+      "id": "he_munitions",
+      "category": "munitions",
+      "icon": "createbigcannons:he_shell",
+      "level": 70,
+      "cost": 28500,
+      "time": "7h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "bronze_cannon"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 48
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:cast_iron_ingot",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "createbigcannons:he_shell"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:timed_fuze"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:wired_fuze"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:munition_fuzing"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:munition_fuzing_deployer"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:fuze_removal"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:tracer_tip"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:tracer_application"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:tracer_application_deployer"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:tracer_removal"
+        }
+      ]
+    },
+    {
+      "id": "cast_iron_autocannon",
+      "category": "artillery",
+      "icon": "createbigcannons:autocannon_ammo_container",
+      "level": 80,
+      "cost": 31500,
+      "time": "7h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "bronze_cannon"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:cast_iron_ingot",
+          "count": 32
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "createbigcannons:cutting/autocannon_*_cast_mould"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:cutting/autocannon_cartridge_sheet_*"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:cutting/spring_wire_iron"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:sequenced_assembly/cast_iron_autocannon_breech_extractor"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:sequenced_assembly/recoil_spring"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:sequenced_assembly/pressing_autocannon_cartridge"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:sequenced_assembly/filling_autocannon_cartridge"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:autocannon_ammo_container"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:autocannon_ammo_container_filling_deployer"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:flak_autocannon_round"
+        }
+      ]
+    },
+    {
+      "id": "grapeshot_shrapnel",
+      "category": "munitions",
+      "icon": "createbigcannons:bag_of_grapeshot",
+      "level": 90,
+      "cost": 34500,
+      "time": "8h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "he_munitions"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 64
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:iron_nugget",
+          "count": 64
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "createbigcannons:bag_of_grapeshot"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:shrapnel_shell"
+        }
+      ]
+    },
+    {
+      "id": "bronze_autocannon",
+      "category": "artillery",
+      "icon": "createbigcannons:autocannon_ammo_container",
+      "level": 90,
+      "cost": 34500,
+      "time": "8h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "cast_iron_autocannon"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/bronze",
+          "count": 24
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "createbigcannons:sequenced_assembly/bronze_autocannon_breech_extractor"
+        }
+      ]
+    },
+    {
+      "id": "steel_cannon",
+      "category": "artillery",
+      "icon": "createbigcannons:steel_sliding_breechblock",
+      "level": 100,
+      "cost": 37500,
+      "time": "8h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "bronze_autocannon"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/steel",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "createbigcannons:steel_sliding_breechblock"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:quickfiring_mechanism"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:cutting/spring_wire_steel"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:sequenced_assembly/steel_autocannon_breech_extractor"
+        }
+      ]
+    },
+    {
+      "id": "ap_munitions",
+      "category": "munitions",
+      "icon": "createbigcannons:ap_shell",
+      "level": 100,
+      "cost": 37500,
+      "time": "8h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "grapeshot_shrapnel"
+        },
+        {
+          "type": "node",
+          "id": "steel_cannon"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/steel",
+          "count": 24
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 64
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "createbigcannons:ap_shot"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:ap_shell"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:big_cartridge_sheet"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:big_cartridge_filling"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:big_cartridge_filling_deployer"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:cartridge_assembly"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:cartridge_assembly_deployer"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:sequenced_assembly/pressing_big_cartridge"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:ap_autocannon_round"
+        }
+      ]
+    },
+    {
+      "id": "special_shells",
+      "category": "munitions",
+      "icon": "createbigcannons:smoke_shell",
+      "level": 115,
+      "cost": 42000,
+      "time": "9h15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ap_munitions"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/steel",
+          "count": 32
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:redstone",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "createbigcannons:fluid_shell"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:smoke_shell"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:proximity_fuze"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:delayed_impact_fuze"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:delayed_inertia_fuze"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:inertia_fuze"
+        }
+      ]
+    },
+    {
+      "id": "rifled_barrels",
+      "category": "artillery",
+      "icon": "cbc_at:rifled_barrel_cast_mould",
+      "level": 115,
+      "cost": 42000,
+      "time": "9h15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "steel_cannon"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/steel",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "cbc_at:cutting/rifled_barrel_cast_mould"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:cutting/muzzle_brake_cast_mould"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:cutting/silencer_cast_mould"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:cutting/fume_extractor_cast_mould"
+        }
+      ]
+    },
+    {
+      "id": "cbc_at_ap",
+      "category": "munitions",
+      "icon": "cbc_at:apds_item",
+      "level": 125,
+      "cost": 45000,
+      "time": "9h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "special_shells"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/steel",
+          "count": 32
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 64
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "cbc_at:munition/autocannon/apds_item"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:munition/autocannon/apdsfs_item"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:munition/heavy_autocannon_munition/ha_ap_item"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:munition/heavy_autocannon_munition/ha_apds_item"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:munition/heavy_autocannon_munition/ha_apdsfs_item"
+        }
+      ]
+    },
+    {
+      "id": "mg_autocannon",
+      "category": "artillery",
+      "icon": "createbigcannons:machine_gun_round",
+      "level": 135,
+      "cost": 48000,
+      "time": "10h15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "cbc_at_ap"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/steel",
+          "count": 48
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:gunpowder",
+          "count": 96
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "createbigcannons:machine_gun_round"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:cutting/empty_machine_gun_round"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:sequenced_assembly/assembling_machine_gun_round"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:cutting/*autocannon*"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:munition/heavy_autocannon_munition/heavy_autocannon_*"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:munition/heavy_autocannon_munition/ha_munition_assembly"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:munition/heavy_autocannon_munition/ha_fuzing"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:munition/heavy_autocannon_munition/ha_unfuzing"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:munition/heavy_autocannon_munition/ha_tracer*"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:munition/autocannon/he_item"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:munition/autocannon/hei_item"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:munition/heavy_autocannon_munition/ha_he_item"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:munition/heavy_autocannon_munition/ha_hef_item"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:munition/heavy_autocannon_munition/ha_smoke_item"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:munition/heavy_autocannon_munition/ha_heat_item"
+        }
+      ]
+    },
+    {
+      "id": "rocket_pods",
+      "category": "munitions",
+      "icon": "cbc_at:wrought_iron_medium_rocket_rail",
+      "level": 135,
+      "cost": 48000,
+      "time": "10h15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "cbc_at_ap"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/steel",
+          "count": 48
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:redstone",
+          "count": 64
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "cbc_at:medium_rocket_rail*"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:cutting/rocket_pod_*"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:munition/rocket/*"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:munition/cluster_munition_assembly"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:munition/caseless_munition_assembly"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:munition/grapeshot_*"
+        }
+      ]
+    },
+    {
+      "id": "nethersteel_cannon",
+      "category": "artillery",
+      "icon": "createbigcannons:nethersteel_screw_lock",
+      "level": 150,
+      "cost": 52500,
+      "time": "11h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "steel_cannon"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:netherite"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "createbigcannons:nethersteel_ingot",
+          "count": 24
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "createbigcannons:nethersteel_screw_lock"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:steel_screw_lock"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:cutting/screw_breech_cast_mould"
+        }
+      ]
+    }
+  ]
+}

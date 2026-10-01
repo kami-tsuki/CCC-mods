@@ -74,6 +74,7 @@ private const val READY_GLOW_SWING = 0.4f
 private const val LIFT_SHADOW_AT = 0.5f
 private val LOCAL = Rect(0, 0, TECH_NODE_W, TECH_NODE_H)
 private val LOCK_BADGE = Rect(LOCK_X, LOCK_Y, LOCK_SIZE, LOCK_SIZE)
+private val LINK_BADGE = Rect(TECH_NODE_W - LOCK_SIZE - LOCK_X, LOCK_Y, LOCK_SIZE, LOCK_SIZE)
 private val BAR = Rect(TEXT_PAD, TECH_NODE_H - BAR_BOTTOM, TECH_NODE_W - 2 * TEXT_PAD, BAR_H)
 
 class TechNode(
@@ -94,7 +95,8 @@ class TechNode(
     val band: Int = 0,
     val item: ItemStack = ItemStack.EMPTY,
     val hidden: Set<Int> = emptySet(),
-    val group: Int = 0
+    val group: Int = 0,
+    val badge: Icon? = null
 ) {
     val locked get() = status == Icons.LOCK
     val textX get() = if (item.isEmpty) TEXT_PAD else ITEM_TEXT_X
@@ -461,6 +463,7 @@ private fun Ui.drawNode(node: TechNode, index: Int, x: Int, y: Int, zoom: Double
     }
     if (!overview) {
         if (!node.locked) node.status?.let { Draw.leadIcon(g, it, TECH_NODE_W - STATUS_ICON_X, STATUS_ICON_Y, node.accent) }
+        node.badge?.let { Draw.tinted(g, it.sprite, LINK_BADGE, Palette.textSecondary) }
     }
     val countdown = node.countdown
     if (countdown != null) {

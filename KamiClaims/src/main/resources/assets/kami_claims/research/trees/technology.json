@@ -36,6 +36,11 @@
       "id": "brass",
       "icon": "create:brass_casing",
       "order": 6
+    },
+    {
+      "id": "steel",
+      "icon": "tfmg:steel_ingot",
+      "order": 7
     }
   ],
   "nodes": [
@@ -1100,10 +1105,6 @@
         {
           "type": "output",
           "id": "createvintageneoforged:centrifuge"
-        },
-        {
-          "type": "output",
-          "id": "createvintageneoforged:netherite_sheet"
         }
       ]
     },
@@ -1719,10 +1720,6 @@
         {
           "type": "output",
           "id": "create:wrench"
-        },
-        {
-          "type": "output",
-          "id": "create:goggles"
         }
       ]
     },
@@ -4268,47 +4265,6 @@
       ]
     },
     {
-      "id": "copper_backtank",
-      "category": "fluids",
-      "icon": "create:copper_backtank",
-      "level": 20,
-      "cost": 3000,
-      "time": "3h",
-      "requires": [
-        {
-          "type": "node",
-          "id": "portable_fluid_interface"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:storage_blocks/copper",
-          "count": 8
-        },
-        {
-          "type": "deposit",
-          "item": "create:andesite_alloy",
-          "count": 16
-        },
-        {
-          "type": "deposit",
-          "item": "create:shaft",
-          "count": 8
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "block",
-          "id": "create:copper_backtank"
-        },
-        {
-          "type": "output",
-          "id": "create:copper_backtank"
-        }
-      ]
-    },
-    {
       "id": "mechanical_arm",
       "category": "brass",
       "icon": "create:mechanical_arm",
@@ -4633,135 +4589,6 @@
       ]
     },
     {
-      "id": "copper_diving_gear",
-      "category": "fluids",
-      "icon": "create:copper_diving_helmet",
-      "level": 23,
-      "cost": 4200,
-      "time": "3h30m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "copper_backtank"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/copper",
-          "count": 16
-        },
-        {
-          "type": "deposit",
-          "item": "#c:glass_blocks",
-          "count": 4
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "create:copper_diving_helmet"
-        },
-        {
-          "type": "output",
-          "id": "create:copper_diving_boots"
-        }
-      ]
-    },
-    {
-      "id": "jetpack",
-      "category": "fluids",
-      "icon": "create_jetpack:jetpack",
-      "level": 24,
-      "cost": 4500,
-      "time": "3h45m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "copper_backtank"
-        },
-        {
-          "type": "node",
-          "id": "precision_mechanism"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "create:precision_mechanism",
-          "count": 4
-        },
-        {
-          "type": "deposit",
-          "item": "create:copper_backtank",
-          "count": 2
-        },
-        {
-          "type": "deposit",
-          "item": "minecraft:elytra",
-          "count": 1
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "block",
-          "id": "create_jetpack:jetpack"
-        },
-        {
-          "type": "output",
-          "id": "create_jetpack:jetpack"
-        }
-      ]
-    },
-    {
-      "id": "netherite_diving",
-      "category": "fluids",
-      "icon": "create:netherite_diving_helmet",
-      "level": 25,
-      "cost": 5000,
-      "time": "4h",
-      "requires": [
-        {
-          "type": "node",
-          "id": "copper_diving_gear"
-        },
-        {
-          "type": "node",
-          "id": "jetpack"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "minecraft:netherite_ingot",
-          "count": 4
-        },
-        {
-          "type": "deposit",
-          "item": "minecraft:netherite_upgrade_smithing_template",
-          "count": 3
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "create:netherite_backtank"
-        },
-        {
-          "type": "output",
-          "id": "create:netherite_diving_helmet"
-        },
-        {
-          "type": "output",
-          "id": "create:netherite_diving_boots"
-        },
-        {
-          "type": "output",
-          "id": "create_jetpack:netherite_jetpack"
-        }
-      ]
-    },
-    {
       "id": "extendo_wand",
       "category": "brass",
       "icon": "create:extendo_grip",
@@ -4840,6 +4667,430 @@
         {
           "type": "output",
           "id": "create:potato_cannon"
+        }
+      ]
+    },
+    {
+      "id": "brass_pipes",
+      "category": "brass",
+      "icon": "tfmg:brass_pipe",
+      "level": 16,
+      "cost": 1600,
+      "time": "1h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "electron_tubes"
+        },
+        {
+          "type": "node",
+          "id": "fluid_basics",
+          "hidden": true
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:brass_sheet",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "create:fluid_pipe",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/brass_*"
+        }
+      ]
+    },
+    {
+      "id": "cast_iron_pipes",
+      "category": "fluids",
+      "icon": "tfmg:cast_iron_pipe",
+      "level": 16,
+      "cost": 1500,
+      "time": "1h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:cast_iron_pressing"
+        },
+        {
+          "type": "node",
+          "id": "fluid_basics",
+          "hidden": true
+        },
+        {
+          "type": "node",
+          "id": "electron_tubes",
+          "hidden": true
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:cast_iron_sheet",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "create:fluid_pipe",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/cast_iron_pipe*"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:curving/cast_iron_pipe_v_shaped"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/cast_iron_mechanical_pump"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/cast_iron_smart_fluid_pipe"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/cast_iron_fluid_valve"
+        }
+      ]
+    },
+    {
+      "id": "cast_iron_tank",
+      "category": "fluids",
+      "icon": "tfmg:cast_iron_fluid_tank",
+      "level": 17,
+      "cost": 1800,
+      "time": "1h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "cast_iron_pipes"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:cast_iron_sheet",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "#c:barrels/wooden",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/cast_iron_fluid_tank"
+        }
+      ]
+    },
+    {
+      "id": "blast_furnace_machines",
+      "category": "steel",
+      "icon": "tfmg:blast_stove",
+      "level": 18,
+      "cost": 2400,
+      "time": "2h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:tfmg_blast_furnace"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:iron_deco",
+          "hidden": true
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:fireproof_bricks",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:cast_iron_fluid_tank",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/blast_stove"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/casting_basin"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/air_intake"
+        }
+      ]
+    },
+    {
+      "id": "steel_fluids",
+      "category": "steel",
+      "icon": "tfmg:steel_fluid_tank",
+      "level": 26,
+      "cost": 5500,
+      "time": "4h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:steel"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:steel_ingot",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/steel_fluid_tank"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/steel_pipe*"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:curving/steel_pipe_v_shaped"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/steel_mechanical_pump"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/steel_fluid_valve"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/steel_smart_fluid_pipe"
+        }
+      ]
+    },
+    {
+      "id": "firebox",
+      "category": "steel",
+      "icon": "tfmg:firebox",
+      "level": 27,
+      "cost": 6000,
+      "time": "4h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "steel_fluids"
+        },
+        {
+          "type": "node",
+          "id": "brass_pipes"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:fireproof_bricks",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:brass_pipe",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/firebox"
+        }
+      ]
+    },
+    {
+      "id": "steel_mechanism",
+      "category": "steel",
+      "icon": "tfmg:steel_mechanism",
+      "level": 30,
+      "cost": 8000,
+      "time": "5h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:steel"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:lead_pressing",
+          "hidden": true
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:nickel_pressing",
+          "hidden": true
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:large_steel_cogwheel",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:screw",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tfmg:sequenced_assembly/steel_mechanism"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:sulfuric/steel_mechanism_lubricated"
+        }
+      ]
+    },
+    {
+      "id": "vats",
+      "category": "steel",
+      "icon": "tfmg:steel_chemical_vat",
+      "level": 30,
+      "cost": 8000,
+      "time": "5h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "steel_fluids"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:lead_pressing"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:nickel_pressing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:steel_fluid_tank",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:cast_iron_fluid_tank",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:lead_sheet",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/cast_iron_chemical_vat"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/steel_chemical_vat"
+        }
+      ]
+    },
+    {
+      "id": "winding_machine",
+      "category": "steel",
+      "icon": "tfmg:winding_machine",
+      "level": 31,
+      "cost": 8500,
+      "time": "5h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "steel_mechanism"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:steel_mechanism",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/winding_machine"
+        }
+      ]
+    },
+    {
+      "id": "fireproof_vat",
+      "category": "steel",
+      "icon": "tfmg:fireproof_chemical_vat",
+      "level": 32,
+      "cost": 9000,
+      "time": "6h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "vats"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:steel_chemical_vat",
+          "count": 2
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:fireproof_bricks",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/fireproof_chemical_vat"
         }
       ]
     }

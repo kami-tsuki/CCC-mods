@@ -60,7 +60,7 @@ class ResearchDetail(private val page: ClaimsPage) {
             node.summary().resolve().ifEmpty { null },
             tree?.let { t -> node.requires.map { t.nodes[it] } },
             node.conditionTexts().withIndex().filter { it.value.key != NODE_CONDITION }.map { it.index to it.value.resolve() },
-            tree?.nodes?.filter { index in it.requires }.orEmpty(),
+            tree?.nodes?.filter { index in it.requires }.orEmpty() + trees.filter { it.id != node.tree }.flatMap { t -> t.nodes.filter { node.key in it.external } },
             node.tasks.map(::taskText)
         ).also { facts = it }
     }
@@ -124,12 +124,13 @@ class ResearchDetail(private val page: ClaimsPage) {
         val flags = ClientResearch.conditionMet(node.key)
         val unknown = if (status == NodeStatus.DONE) true else null
         val levelOk = flags?.firstOrNull() ?: unknown
-        if (node.level == 0 && deps.isEmpty() && facts.conditions.isEmpty()) return
+        if (node.level == 0 && deps.isEmpty() && node.external.isEmpty() && facts.conditions.isEmpty()) return
         ui.section(stack, tr("kami_claims.research.detail.requirements"))
         if (node.level > 0) ui.requirementRow(stack.take(REQUIREMENT_ROW_H), tr("kami_claims.research.cond.level", node.level), levelOk)
         deps.forEach { dep ->
             ui.requirementRow(stack.take(REQUIREMENT_ROW_H), dep.label().resolve(), dep.key in state.done) { select(dep.key) }
         }
+        node.external.forEach { key -> ui.requirementRow(stack.take(REQUIREMENT_ROW_H), ResearchGraph.externalLabel(key), key in state.done) { select(key) } }
         facts.conditions.forEach { (index, text) -> ui.requirementRow(stack.take(REQUIREMENT_ROW_H), text, flags?.getOrNull(index + 1) ?: unknown) }
     }
 
@@ -164,7 +165,7 @@ class ResearchDetail(private val page: ClaimsPage) {
     private fun leadsTo(ui: Ui, stack: Stack, node: NodeView, facts: NodeFacts, select: (String) -> Unit) {
         val next = facts.next.takeIf { it.isNotEmpty() } ?: return
         ui.section(stack, tr("kami_claims.research.detail.leads"))
-        ui.chipFlow(stack, next.map { ChipSpec(it.label().resolve(), ResearchLook.color(ClientResearch.status(it.key))) }, "leads:${node.key}")?.let { select(next[it].key) }
+        ui.chipFlow(stack, next.map { ChipSpec(if (it.tree == node.tree) it.label().resolve() else ResearchGraph.externalLabel(it.key), ResearchLook.color(ClientResearch.status(it.key))) }, "leads:${node.key}")?.let { select(next[it].key) }
     }
 
     private fun footer(ui: Ui, r: Rect, node: NodeView, status: NodeStatus, queue: QueueView?) {
