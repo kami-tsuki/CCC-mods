@@ -9,6 +9,7 @@ import kami.claims.now
 import kami.claims.research.Capacity
 import kami.claims.research.Features
 import kami.claims.research.Levels
+import kami.claims.research.Loans
 import kami.claims.research.Progress
 import kami.claims.social.Mail
 import kami.libs.chat.Tone
@@ -57,6 +58,7 @@ object Provinces {
 
     fun request(child: Country, target: Country) {
         if (child.parent != null) throw Fail("kami_claims.error.already_province")
+        Loans.requireNoLoans(child, "kami_claims.loans.error.province_join")
         if (target.id == child.id) throw Fail("kami_claims.error.province_self")
         if (target.parent != null) throw Fail("kami_claims.error.province_holder", v(target.name))
         target.provinceRequests[child.id] = expiry()
@@ -65,6 +67,7 @@ object Provinces {
 
     fun offer(child: Country, parent: Country): ProvinceOffer {
         if (child.parent != null) throw Fail("kami_claims.error.already_province")
+        Loans.requireNoLoans(child, "kami_claims.loans.error.province_join")
         val offer = child.provinceInvites[parent.id] ?: throw Fail("kami_claims.error.no_province_invite")
         if (offer.until < now()) { child.provinceInvites.remove(parent.id); throw Fail("kami_claims.error.invite_expired") }
         return offer
@@ -80,6 +83,7 @@ object Provinces {
         canHold(parent)
         if ((parent.provinceRequests[child.id] ?: 0) < now()) throw Fail("kami_claims.error.no_province_request")
         if (child.parent != null) throw Fail("kami_claims.error.has_overlord")
+        Loans.requireNoLoans(child, "kami_claims.loans.error.province_join")
         parent.provinceRequests.remove(child.id)
         val offer = ProvinceOffer(expiry(), mode, amount, answered = true)
         child.provinceInvites[parent.id] = offer

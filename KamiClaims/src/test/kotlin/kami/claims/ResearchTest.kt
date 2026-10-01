@@ -186,19 +186,12 @@ class ResearchTest {
     fun levelCurve() {
         val levels = LevelsConfig(curve = XpCurve(from = 2, base = 100.0, rise = 0.0), maxLevel = 5, rules = emptyMap())
         assertEquals(listOf(0L, 0L, 100L, 200L, 300L, 400L), (0..5).map(levels::xpFor))
-        assertEquals(1, levels.levelOf(0))
-        assertEquals(1, levels.levelOf(99))
-        assertEquals(2, levels.levelOf(100))
-        assertEquals(4, levels.levelOf(399))
-        assertEquals(5, levels.levelOf(1_000_000))
     }
 
     @Test
     fun levelTableReplacesCurveAndCapsLevel() {
         val levels = LevelsConfig(table = listOf(10, 50), maxLevel = 9, rules = emptyMap())
         assertEquals(3, levels.top)
-        assertEquals(2, levels.levelOf(10))
-        assertEquals(3, levels.levelOf(9999))
     }
 
     @Test

@@ -80,39 +80,54 @@ object ClientResearch {
 
     fun tokenCost(id: String): Long = state.tokenCosts[id] ?: 0
 
-    fun counter(key: String): Long = state.counters[key] ?: 0
-
     fun conditionMet(key: String): List<Boolean>? = state.met[key]
 
     fun queued(key: String): QueueView? = state.queue.firstOrNull { it.node == key }
 
-    fun status(key: String): NodeStatus = when {
-        key in state.done -> NodeStatus.DONE
-        else -> queued(key)?.let { NodeStatus.valueOf(it.state.name) } ?: if (key in state.available) NodeStatus.AVAILABLE else NodeStatus.LOCKED
-    }
+    fun status(key: String): NodeStatus =
+        if (key in state.done) NodeStatus.DONE
+        else queued(key)?.let { NodeStatus.valueOf(it.state.name) } ?: if (key in state.available) NodeStatus.AVAILABLE else NodeStatus.LOCKED
 
     fun receive(next: DefsView) {
-        defs = next
-        forgetStacks()
-        nodes = next.trees.flatMap { it.nodes }.associateBy { it.key }
-        recipes = IdExtras.decode(next.extras, IdExtras.RECIPES)
-        blocks = IdExtras.decode(next.extras, IdExtras.BLOCKS)
-        refreshDerived()
+        applyDefs(next)
         notifyListeners()
     }
 
     fun receive(next: StateView) {
         val change = ResearchChange.between(state, next)
-        state = next
-        receivedAt = System.currentTimeMillis()
-        refreshDerived()
+        applyState(next)
         notifyListeners()
         change?.let { c -> changeListeners.toList().forEach { it(c) } }
     }
 
     fun clear() {
-        receive(DefsView.EMPTY)
-        receive(StateView.NONE)
+        loadDefs(DefsView.EMPTY)
+        loadState(StateView.NONE)
+        refreshDerived()
+        notifyListeners()
+    }
+
+    private fun applyDefs(next: DefsView) {
+        loadDefs(next)
+        refreshDerived()
+    }
+
+    private fun loadDefs(next: DefsView) {
+        defs = next
+        forgetStacks()
+        nodes = next.trees.flatMap { it.nodes }.associateBy { it.key }
+        recipes = IdExtras.decode(next.extras, IdExtras.RECIPES)
+        blocks = IdExtras.decode(next.extras, IdExtras.BLOCKS)
+    }
+
+    private fun applyState(next: StateView) {
+        loadState(next)
+        refreshDerived()
+    }
+
+    private fun loadState(next: StateView) {
+        state = next
+        receivedAt = System.currentTimeMillis()
     }
 
     private fun refreshDerived() {

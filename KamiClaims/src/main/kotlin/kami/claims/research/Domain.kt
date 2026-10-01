@@ -31,7 +31,9 @@ enum class Capacity {
     @SerialName("marketSlots") MARKET_SLOTS,
     @SerialName("auctionSlots") AUCTION_SLOTS,
     @SerialName("freeChunks") FREE_CHUNKS,
-    @SerialName("plots") PLOTS
+    @SerialName("plots") PLOTS;
+
+    val id: String get() = Capacity.serializer().descriptor.getElementName(ordinal)
 }
 
 object DurationText : KSerializer<Duration> {
@@ -40,11 +42,13 @@ object DurationText : KSerializer<Duration> {
     override fun deserialize(decoder: Decoder): Duration = Duration.parse(decoder.decodeString())
 }
 
+fun nodeLabel(tree: String, id: String, title: String) = Phrase.or("kami_claims.research.node.$tree.$id", title)
+
 @Serializable
 class Category(val id: String, val title: String = "", val icon: String = "", val order: Int = 0)
 
 @Serializable
-class Node(
+data class Node(
     val id: String,
     val category: String,
     val title: String = "",
@@ -65,14 +69,13 @@ class Node(
 
     fun conditions(): List<Condition> = if (level > 0) listOf<Condition>(MinLevel(level)) + requires else requires
 
-    fun label() = Phrase.or("kami_claims.research.node.$tree.$id", title)
+    fun label() = nodeLabel(tree, id, title)
 
-    fun dependencies(): List<String> = requires.flatMap { it.refs() } + tasks.filterIsInstance<HoldTask>().flatMap { it.condition.refs() }
+    fun allConditions(): List<Condition> = requires + tasks.filterIsInstance<HoldTask>().map { it.condition }
 
-    fun placed(tree: String) = Node(
-        id, category, title, description, icon, level, cost, time, xp,
-        requires.map { it.qualified(tree) }, tasks.map { it.qualified(tree) }, unlocks, x, y, tree
-    )
+    fun dependencies(): List<String> = allConditions().flatMap { it.refs() }
+
+    fun placed(tree: String) = copy(requires = requires.map { it.qualified(tree) }, tasks = tasks.map { it.qualified(tree) }, tree = tree)
 }
 
 class Tree(val id: String, val title: String, val scope: Scope, val categories: List<Category>, val nodes: List<Node>) {

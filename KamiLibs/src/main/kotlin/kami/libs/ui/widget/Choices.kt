@@ -20,7 +20,7 @@ class Option<T>(
     val value: T, val label: String, val icon: Icon? = null, val description: String? = null,
     val color: Int? = null, val disabledReason: String? = null, val lock: Lock? = null
 ) {
-    val reason: String? get() = disabledReason ?: lock?.let { it.how ?: it.label }
+    val reason: String? get() = disabledReason ?: lock?.reason
 }
 
 enum class PopoverAlign { START, END }
@@ -39,7 +39,7 @@ fun Ui.popover(anchor: Rect, w: Int, h: Int, align: PopoverAlign = PopoverAlign.
     if (input.presses.any { !it.consumed && !box.contains(it.x, it.y) && !anchor.contains(it.x, it.y) }) onOutside()
 }
 
-private fun Ui.clickable(key: Any, r: Rect, enabled: Boolean): Boolean {
+fun Ui.clickable(key: Any, r: Rect, enabled: Boolean = true): Boolean {
     focusable(key)
     val hover = hover(key, r)
     if (enabled && hover) cursor = Cursor.HAND

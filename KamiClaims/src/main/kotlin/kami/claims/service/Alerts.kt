@@ -6,6 +6,7 @@ import kami.claims.Country
 import kami.claims.Rank
 import kami.claims.Realm
 import kami.claims.now
+import kami.claims.research.Buffs
 import kami.claims.research.Loans
 import kami.claims.today
 import kami.libs.text.Phrase
@@ -34,8 +35,9 @@ object Alerts {
 
     fun nextBill(c: Country): Long {
         val tomorrow = today() + 1
+        val borderTax = Buffs.tax(c)
         return Realm.claims(c.id).filter { !it.free && tomorrow > it.since && (tomorrow - it.since) % Realm.period(it) == 0L }
-            .sumOf { Realm.price(it).toLong() * (1 + it.debt) }
+            .sumOf { Buffs.price(c, it, borderTax).toLong() * (1 + it.debt) }
     }
 
     fun of(p: ServerPlayer, c: Country?, delegated: Boolean): List<AlertLine> {

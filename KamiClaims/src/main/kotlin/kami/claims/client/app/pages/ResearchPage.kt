@@ -10,6 +10,7 @@ import kami.claims.research.NodeState
 import kami.libs.text.Phrase
 import kami.libs.ui.anim.transition
 import kami.libs.ui.app.Route
+import kami.libs.ui.core.Memo
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Row
 import kami.libs.ui.core.Stack
@@ -30,7 +31,8 @@ class ResearchPage(app: ClaimsApp) : ClaimsPage(app) {
     private val bands = HashMap<String, TechBands>()
     private val chips = HashMap<String, CategoryChips>()
     private var tabs: List<TabItem>? = null
-    private var subscriptions = emptyList<() -> Unit>()
+    private val selectedIndex = Memo()
+    private val currentIndex = Memo()
     private val search = TextState()
     private var treeIndex = 0
     private var category: String? = null
@@ -42,8 +44,7 @@ class ResearchPage(app: ClaimsApp) : ClaimsPage(app) {
     private val completed = ArrayList<String>()
 
     override fun opened(route: Route) {
-        unsubscribe()
-        subscriptions = listOf(
+        subscribe(
             ClientResearch.listen { invalidate() },
             ClientResearch.onChange { change -> if (app.isOpen) completed += change.completed }
         )
@@ -52,14 +53,8 @@ class ResearchPage(app: ClaimsApp) : ClaimsPage(app) {
     }
 
     override fun leaving(next: Route): Boolean {
-        unsubscribe()
         completed.clear()
-        return true
-    }
-
-    private fun unsubscribe() {
-        subscriptions.forEach { it() }
-        subscriptions = emptyList()
+        return super.leaving(next)
     }
 
     private fun invalidate() {
@@ -87,11 +82,11 @@ class ResearchPage(app: ClaimsApp) : ClaimsPage(app) {
         main = ui.filterBar(main, "research:filter") { bar -> toolbar(ui, bar) }
         val tree = trees[treeIndex]
         main = categoryChips(ui, main, tree)
-        val ticking = info?.members?.none { it.online } != true
+        val ticking = !nobodyOnline
         if (ticking != cachedTicking) { cachedTicking = ticking; invalidate() }
         val nodes = cache.getOrPut(tree.id) { ResearchGraph.nodes(tree, matches.toSet(), category, ticking) }
         val state = views.getOrPut(tree.id) { TechTreeState() }
-        val index = tree.nodes.indexOfFirst { it.key == selected }
+        val index = nodeIndex(selectedIndex, tree, selected)
         ui.techTree(main, nodes, state, index.takeIf { it >= 0 }, "research-tree", bands.getOrPut(tree.id) { ResearchGraph.bands(tree) })?.let { selected = tree.nodes[it].key; drawerOpen = true }
         if (state.takeClear()) { selected = null; drawerOpen = false }
         celebrate(tree, state)
@@ -138,13 +133,15 @@ class ResearchPage(app: ClaimsApp) : ClaimsPage(app) {
         return CategoryChips(categories, specs)
     }
 
+    private fun nodeIndex(memo: Memo, tree: TreeView, key: String?) = memo.of(tree, key) { tree.nodes.indexOfFirst { it.key == key } }
+
     private fun toolbar(ui: Ui, bar: Rect) {
         if (ui.input.takeKey(GLFW.GLFW_KEY_F) { it.ctrl } != null) ui.focus = ui.id("research-search")
         val row = Row(bar, 4)
         val fit = tr("kami_claims.research.fit")
         if (ui.edgeButton(row, fit, Icons.AREA, tip = tr("kami_claims.research.fit.tooltip"), key = "research-fit")) views[ClientResearch.trees[treeIndex].id]?.refit()
         val current = ClientResearch.state.queue.firstOrNull { it.state == NodeState.RESEARCHING }?.node
-        val located = current?.let { key -> ClientResearch.trees[treeIndex].nodes.indexOfFirst { it.key == key } }?.takeIf { it >= 0 }
+        val located = nodeIndex(currentIndex, ClientResearch.trees[treeIndex], current).takeIf { it >= 0 }
         val tip = tr(if (located == null) "kami_claims.research.current.none" else "kami_claims.research.current")
         if (ui.iconButton(row.take(CONTROL_H), Icons.LOCATE, tip, enabled = located != null, key = "research-current")) {
             views[ClientResearch.trees[treeIndex].id]?.center(located!!)

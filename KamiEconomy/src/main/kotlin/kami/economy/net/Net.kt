@@ -1,12 +1,15 @@
 package kami.economy.net
 
 import kami.economy.LOG
+import kami.libs.claims.ClaimsApi
+import kami.libs.claims.Locks
 import kami.libs.text.Phrase
 import kami.economy.Config
 import kami.economy.KamiEconomy
 import kami.economy.economy.Blacklist
 import kami.economy.economy.BidResult
 import kami.economy.economy.BuyNowResult
+import kami.economy.economy.ListResult
 import kami.economy.economy.Classification
 import kami.economy.economy.Gate
 import kami.economy.economy.Ledger
@@ -231,6 +234,8 @@ object Net {
         return Phrase.of("kami_economy.action.bid_cancelled", Phrase.money(refund)) to true
     }
 
+    private fun embargo(country: String) = Locks.embargo(ClaimsApi.country(country)?.name ?: country)
+
     private fun auctionList(p: ServerPlayer, me: String, args: List<String>): Pair<Phrase, Boolean> {
         val item = args.itemArg()
         val qty = args.intArg(1, "kami_economy.action.invalid_quantity")
@@ -238,16 +243,16 @@ object Net {
         val buyNow = args.getOrNull(3)?.toIntOrNull()?.takeIf { it > 0 }
         if (qty <= 0 || startPrice <= 0) return Phrase.of("kami_economy.action.invalid_listing") to false
         if (!Config.s.validPrice(startPrice) || (buyNow != null && !Config.s.validPrice(buyNow))) return outOfRange()
-        if (Limits.auctionFull(me)) return Limits.auctionDenial(me) to false
         val stack = p.inventory.items.firstOrNull { !it.isEmpty && Blacklist.itemId(it) == item && it.count >= qty && Blacklist.classify(it) != Classification.BLOCKED }
             ?: return Phrase.of("kami_economy.action.not_enough_items", qty) to false
+        if (Limits.auctionFull(me)) return Limits.auctionDenial(me) to false
         val taken = stack.copyWithCount(qty)
         stack.shrink(qty)
         val listed = runCatching { Ledger.auctionList(me, taken, startPrice, buyNow, p.server.registryAccess()) }
-        if (listed.isFailure) {
-            LOG.error("auction_list failed for ${taken.item}", listed.exceptionOrNull())
+        if (listed.getOrNull() !is ListResult.Ok) {
+            listed.exceptionOrNull()?.let { LOG.error("auction_list failed for ${taken.item}", it) }
             if (!p.inventory.add(taken)) p.drop(taken, false)
-            return Phrase.of("kami_economy.action.auction_failed") to false
+            return if (listed.isFailure) Phrase.of("kami_economy.action.auction_failed") to false else Limits.auctionDenial(me) to false
         }
         return Phrase.of("kami_economy.action.auction_listed", taken.hoverName.string) to true
     }
@@ -256,20 +261,22 @@ object Net {
         val id = args.getOrNull(0)?.toLongOrNull() ?: return Phrase.of("kami_economy.action.invalid_auction") to false
         val amount = args.getOrNull(1)?.toIntOrNull() ?: return Phrase.of("kami_economy.action.invalid_bid") to false
         if (amount > Config.s.maxPrice) return outOfRange()
-        return when (Ledger.auctionBid(me, id, amount)) {
+        return when (val result = Ledger.auctionBid(me, id, amount)) {
             BidResult.Ok -> Phrase.of("kami_economy.action.bid_placed") to true
             BidResult.TooLow -> Phrase.of("kami_economy.action.bid_low") to false
             BidResult.InsufficientFunds -> Phrase.of("kami_economy.action.no_funds") to false
             BidResult.NotFound -> Phrase.of("kami_economy.action.auction_missing") to false
+            is BidResult.Embargoed -> embargo(result.country) to false
         }
     }
 
     private fun auctionBuy(p: ServerPlayer, me: String, args: List<String>): Pair<Phrase, Boolean> {
         val id = args.getOrNull(0)?.toLongOrNull() ?: return Phrase.of("kami_economy.action.invalid_auction") to false
-        return when (Ledger.auctionBuyNow(me, id)) {
+        return when (val result = Ledger.auctionBuyNow(me, id)) {
             BuyNowResult.Ok -> { KamiEconomy.deliver(p); Phrase.of("kami_economy.action.purchased") to true }
             BuyNowResult.InsufficientFunds -> Phrase.of("kami_economy.action.no_funds") to false
             BuyNowResult.NotAvailable -> Phrase.of("kami_economy.action.no_buyout") to false
+            is BuyNowResult.Embargoed -> embargo(result.country) to false
         }
     }
 

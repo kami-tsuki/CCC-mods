@@ -10,14 +10,15 @@ import thedarkcolour.kotlinforforge.neoforge.forge.FORGE_BUS
 object ResearchTooltip {
     private const val MAX_NODES = 3
     private val cache = HashMap<String, List<Component>>()
-    private var subscription: (() -> Unit)? = null
+    private var registered = false
 
     fun init() {
-        subscription?.invoke()
-        subscription = ClientResearch.listen { cache.clear() }
+        if (registered) return
+        registered = true
+        ClientResearch.listen { cache.clear() }
         FORGE_BUS.addListener<ItemTooltipEvent> { event ->
             val id = BuiltInRegistries.ITEM.getKey(event.itemStack.item).toString()
-            event.toolTip.addAll(cache.getOrPut(id, { lines(id) }))
+            event.toolTip.addAll(cache.getOrPut(id) { lines(id) })
         }
     }
 

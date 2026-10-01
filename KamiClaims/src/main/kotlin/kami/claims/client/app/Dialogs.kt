@@ -1,7 +1,9 @@
 package kami.claims.client.app
 
 import kami.libs.ui.text.tr
+import kami.claims.NameRules
 import kami.claims.client.store.ClaimsStore
+import kami.claims.net.Snap
 import kami.libs.ui.app.Consequence
 import kami.libs.ui.app.Dialog
 import kami.libs.ui.app.confirmDialog
@@ -31,22 +33,23 @@ object Dialogs {
         after()
     }
 
+    fun nameError(text: String, snap: Snap): String? = when {
+        text.length < (snap.limits?.nameMin ?: 3) -> tr("kami_claims.wizard.name.error.short", snap.limits?.nameMin ?: 3)
+        !NameRules.valid(text) -> tr("kami_claims.wizard.name.error.chars")
+        snap.countries.any { it.name.equals(text, true) } -> tr("kami_claims.wizard.name.error.taken")
+        else -> null
+    }
+
     fun rename(app: ClaimsApp) {
         val name = TextState()
         app.open(Dialog(tr("kami_claims.rename.title"), tr("kami_claims.rename.subtitle"), Icons.EDIT) { s ->
             val snap = ClaimsStore.snap ?: return@Dialog
-            val min = snap.limits?.nameMin ?: 3
             val max = snap.limits?.nameMax ?: 24
-            name.error = when {
-                name.text.length < min -> tr("kami_claims.wizard.name.error.short", min)
-                !name.text.all { it.isLetterOrDigit() || it == '_' || it == '-' } -> tr("kami_claims.wizard.name.error.chars")
-                snap.countries.any { it.name.equals(name.text, true) } -> tr("kami_claims.wizard.name.error.taken")
-                else -> null
-            }
+            name.error = nameError(name.text, snap)
             val offer = tokenOffer(Tokens.RENAME)
             var y = s.body.y
             fieldLabel(Rect(s.body.x, y, s.body.w, 9), tr("kami_claims.wizard.name"), "${name.text.length}/$max"); y += 11
-            textField(Rect(s.body.x, y, s.body.w, CONTROL_H), name, snap.info?.name.orEmpty(), Icons.FLAG, maxLength = max, allow = { it.isLetterOrDigit() || it == '_' || it == '-' }, key = "rename-field", autoFocus = true)
+            textField(Rect(s.body.x, y, s.body.w, CONTROL_H), name, snap.info?.name.orEmpty(), Icons.FLAG, maxLength = max, allow = NameRules::allows, key = "rename-field", autoFocus = true)
             name.touched = name.text.isNotEmpty()
             y += CONTROL_H + 2
             fieldHelp(Rect(s.body.x, y, s.body.w, 9), name, tr("kami_claims.rename.desc")); y += 16

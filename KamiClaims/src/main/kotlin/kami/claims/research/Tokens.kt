@@ -11,10 +11,11 @@ object Tokens {
     const val RENAME = "rename"
     const val CAPITAL_MOVE = "capital_move"
 
-    fun count(country: Country, id: String) = country.tokens[id] ?: 0
+    private fun count(country: Country, id: String) = country.tokens[id] ?: 0
 
     fun grant(country: Country, id: String, count: Int) {
         country.tokens.merge(id, count, Int::plus)
+        ResearchSync.refresh(country)
     }
 
     fun spend(country: Country, id: String, cost: Long, actor: String? = null) {

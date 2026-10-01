@@ -1,6 +1,7 @@
 package kami.claims
 
 import kami.claims.research.BuffState
+import kami.claims.research.Buffs
 import kami.claims.research.Capacity
 import kami.claims.research.Levels
 import kami.claims.research.ResearchState
@@ -141,7 +142,7 @@ class Country(
     var xpDay: Long = 0,
     val xpFrac: MutableMap<String, Double> = mutableMapOf(),
     var rewardedLevel: Int = 0,
-    var level: Int = 0,
+    var level: Int = 1,
     var slug: String = "",
     val tokens: MutableMap<String, Int> = mutableMapOf(),
     val counters: MutableMap<String, Long> = mutableMapOf(),
@@ -194,13 +195,14 @@ object Realm {
 
     fun reset(next: Data) {
         rev++
+        Buffs.clearBorders()
         data = next
         data.claims.removeAll { it.country !in data.countries }
         index.clear()
         home.clear()
         byCountry.clear()
         data.claims.forEach { index[it.key] = it; byCountry.getOrPut(it.country) { mutableListOf() } += it }
-        data.countries.values.forEach { c -> c.members.keys.forEach { home[it] = c.id } }
+        data.countries.values.forEach { c -> c.members.keys.forEach { home[it] = c.id }; c.level = c.level.coerceAtLeast(1) }
         data.countries.values.forEach { c -> if (c.parent != null && country(c.parent) == null) { c.parent = null; c.provinceDebt = 0; c.independenceRequested = false } }
         data.countries.values.forEach { c -> c.provinces.removeAll { it !in data.countries || country(it)?.parent != c.id } }
         data.countries.values.forEach { c ->
@@ -226,6 +228,8 @@ object Realm {
         data.claims += c
         index[c.key] = c
         byCountry.getOrPut(c.country) { mutableListOf() } += c
+        Buffs.dropBorders(c.country)
+        neighbors(c).forEach { k -> index[k]?.let { Buffs.dropBorders(it.country) } }
         data.reserves.removeAll { it.dim == c.dim && it.x == c.x && it.z == c.z }
         changed()
     }
@@ -234,6 +238,8 @@ object Realm {
         data.claims.remove(c)
         index.remove(c.key)
         byCountry[c.country]?.remove(c)
+        Buffs.dropBorders(c.country)
+        neighbors(c).forEach { k -> index[k]?.let { Buffs.dropBorders(it.country) } }
         if (reserve) data.reserves += Reserve(c.dim, c.x, c.z, c.country, now() + Config.s.reserveDays * Config.s.dayMillis)
         changed()
     }
@@ -264,6 +270,8 @@ object Realm {
         c.parent?.let { country(it)?.provinces?.remove(c.id) }
         c.provinces.forEach { pid -> country(pid)?.let { it.parent = null; it.provinceDebt = 0; it.independenceRequested = false } }
         data.countries.remove(c.id)
+        Buffs.dropBorders(c.id)
+        Levels.forget(c.id)
         data.countries.values.forEach { it.alliances.remove(c.id); it.allianceOffers.remove(c.id); it.tradePolicy.remove(c.id) }
         syncAllies()
         changed()

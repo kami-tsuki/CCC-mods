@@ -18,7 +18,7 @@ class ResearchPacketTest {
 
     private fun assertSame(a: DefsView, b: DefsView) {
         assertEquals(a.trees.map { it.id }, b.trees.map { it.id })
-        assertEquals(a.levels.map { Triple(it.level, it.xp, it.rewards.map { r -> listOf(r.kind, r.id, r.add, r.amount) }) }, b.levels.map { Triple(it.level, it.xp, it.rewards.map { r -> listOf(r.kind, r.id, r.add, r.amount) }) })
+        assertEquals(a.levels.map { Triple(it.level, it.xp, it.rewards.map { r -> listOf(r.kind, r.id, r.count, r.amplifier, r.cooldownSeconds, r.interestPct, r.amount) }) }, b.levels.map { Triple(it.level, it.xp, it.rewards.map { r -> listOf(r.kind, r.id, r.count, r.amplifier, r.cooldownSeconds, r.interestPct, r.amount) }) })
         a.trees.zip(b.trees).forEach { (x, y) ->
             assertEquals(x.scope, y.scope)
             assertEquals(x.categories.map { it.id to it.order }, y.categories.map { it.id to it.order })
@@ -28,7 +28,7 @@ class ResearchPacketTest {
                 assertEquals(listOf(m.level, m.requires, m.anyRequires, m.hiddenRequires, m.conditions, m.x, m.y), listOf(n.level, n.requires, n.anyRequires, n.hiddenRequires, n.conditions, n.x, n.y))
                 assertEquals(listOf(m.cost, m.timeMs, m.xp), listOf(n.cost, n.timeMs, n.xp))
                 assertEquals(m.tasks.map { Triple(it.kind, it.subject, it.target) }, n.tasks.map { Triple(it.kind, it.subject, it.target) })
-                assertEquals(m.unlocks.map { Triple(it.kind, it.id, it.add) }, n.unlocks.map { Triple(it.kind, it.id, it.add) })
+                assertEquals(m.unlocks.map { Triple(it.kind, it.id, it.count) }, n.unlocks.map { Triple(it.kind, it.id, it.count) })
             }
         }
     }

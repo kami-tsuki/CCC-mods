@@ -11,11 +11,7 @@ import kami.claims.client.store.ClaimsStore
 import kami.claims.client.store.ClientResearch
 import kami.claims.research.Capacity
 import kami.claims.client.store.Outcome
-import kami.claims.net.GoalLine
 import kami.claims.service.AlertLine
-import kami.libs.ui.anim.reveal
-import kami.libs.ui.widget.PROGRESS_LABELLED_H
-import kami.libs.ui.widget.progressBar
 import kami.claims.client.store.ResearchChange
 import kami.libs.ui.anim.countUp
 import kami.libs.ui.anim.flash
@@ -50,6 +46,8 @@ import kami.libs.ui.style.UiSound
 import kami.libs.ui.widget.badge
 import kami.libs.ui.widget.SMALL_H
 import kami.libs.ui.widget.button
+import kami.libs.ui.widget.clickable
+import kami.libs.ui.widget.iconSlot
 import kami.libs.ui.widget.buttonWidth
 import kami.libs.ui.widget.edgeButton
 import kami.libs.ui.widget.iconButton
@@ -138,7 +136,9 @@ class ClaimsApp : KamiApp() {
 
     override fun collapseChanged() { ClientClaims.savePrefs() }
 
-    override fun nav(): List<NavGroup> {
+    override val navKey get() = ClaimsStore.info == null
+
+    override fun buildNav(): List<NavGroup> {
         val none = ClaimsStore.info == null
         val overview = if (none) listOf(NavItem("welcome", tr("kami_claims.nav.welcome"), Icons.FLAG, badge("welcome")))
         else listOf(NavItem("dashboard", tr("kami_claims.nav.dashboard"), Icons.DASHBOARD, badge("dashboard")), NavItem("statistics", tr("kami_claims.nav.statistics"), Icons.STATS, lock = { lock("details") }))
@@ -153,12 +153,12 @@ class ClaimsApp : KamiApp() {
                 NavItem("research", tr("kami_claims.nav.research"), Icons.TREE, badge("research"), ::needsCountry),
                 NavItem("levels", tr("kami_claims.nav.levels"), Icons.STAR, lock = ::needsCountry),
                 NavItem("queue", tr("kami_claims.nav.queue"), Icons.SCROLL, lock = ::needsCountry),
-                NavItem("research_buffs", tr("kami_claims.nav.buffs"), Icons.SHIELD, lock = ::needsCountry, teaser = ::buffsLock)
+                NavItem("research_buffs", tr("kami_claims.nav.buffs"), Icons.SHIELD, lock = ::needsCountry, teaser = ClientLocks::buffsTeaser)
             )),
             group("economy", tr("kami_claims.nav.group.economy"), listOf(
                 NavItem("budget", tr("kami_claims.nav.budget"), Icons.SCALES, badge("budget"), { needsCountry() ?: lock("details") }),
                 NavItem("ledger", tr("kami_claims.nav.ledger"), Icons.LEDGER, lock = { needsCountry() ?: lock("details") }),
-                NavItem("loans", tr("kami_claims.nav.loans"), Icons.COIN, badge("loans"), ::needsCountry, ::loansLock)
+                NavItem("loans", tr("kami_claims.nav.loans"), Icons.COIN, badge("loans"), ::needsCountry, ClientLocks::loansTeaser)
             )),
             group("society", tr("kami_claims.nav.group.society"), listOf(
                 NavItem("citizens", tr("kami_claims.nav.citizens"), Icons.PEOPLE, badge("citizens"), ::needsCountry),
@@ -225,10 +225,8 @@ class ClaimsApp : KamiApp() {
             Draw.text(ui.g, tr("kami_claims.topbar.no_country"), identity.x + 18, identity.y + 3, TextStyle.HEADING, Palette.textMuted)
             Draw.text(ui.g, tr("kami_claims.world.nomansland"), identity.x + 18, identity.y + 13, Palette.textMuted)
         }
-        val close = row.takeFromRight(SMALL_H)
-        if (ui.iconButton(close.centered(SMALL_H, SMALL_H), Icons.CLOSE, tr("kami_libs.common.close.tooltip"), key = "app-close")) Minecraft.getInstance().setScreen(null)
-        val bell = row.takeFromRight(SMALL_H)
-        bell(ui, bell.centered(SMALL_H, SMALL_H))
+        if (ui.iconButton(row.iconSlot(), Icons.CLOSE, tr("kami_libs.common.close.tooltip"), key = "app-close")) Minecraft.getInstance().setScreen(null)
+        bell(ui, row.iconSlot())
         if (info == null) {
             kpi(ui, row.takeFromRight(110), Icons.COIN, tr("kami_claims.kpi.funds"), Format.money(snap.funds, compact = true), Palette.money, { Tip.text(tr("kami_claims.kpi.funds.tooltip"), tr("kami_claims.kpi.funds")) }, null)
             return
@@ -265,29 +263,19 @@ class ClaimsApp : KamiApp() {
         }
     }
 
-    private fun levelTip(): Tip {
-        val s = ClientResearch.state
-        val text = when {
-            ClientResearch.xpTracked -> tr("kami_claims.kpi.level.tooltip", Format.number(s.xp), Format.number(s.xpCeiling))
-            ClientResearch.atMaxLevel -> tr("kami_claims.research.levels.max")
-            else -> tr("kami_claims.research.levels.requirements_only")
-        }
-        return Tip.text(text, tr("kami_claims.kpi.level"))
-    }
-
     private fun levelKpi(ui: Ui, r: Rect) {
-        kpi(ui, r, Icons.STAR, tr("kami_claims.kpi.level"), tr("kami_claims.research.level", ClientResearch.state.level), Palette.brass, { levelTip() }, "levels")
+        kpi(ui, r, Icons.STAR, tr("kami_claims.kpi.level"), tr("kami_claims.research.level", ClientResearch.state.level), Palette.brass, { Tip.text(xpText(), tr("kami_claims.kpi.level")) }, "levels")
         xpStrip(ui, r)
     }
 
     private fun levelCell(ui: Ui, r: Rect) {
-        val hover = ui.hover("kpi:level-cell", r)
-        if (hover) { Draw.fill(ui.g, r.inset(0, 2), Palette.hover); ui.cursor = Cursor.HAND }
+        val hit = ui.clickable("kpi:level-cell", r)
+        if (ui.hovering(r)) Draw.fill(ui.g, r.inset(0, 2), Palette.hover)
         val label = tr("kami_claims.kpi.level.short", ClientResearch.state.level)
         Draw.text(ui.g, label, r.x + (r.w - Draw.width(label)) / 2, r.y + 8, Palette.brass)
         xpStrip(ui, r)
-        ui.tooltip("kpi:level-cell", r) { levelTip() }
-        if (ui.pressed(r) != null) { UiSound.click(); navigate(Route("levels")) }
+        ui.tooltip("kpi:level-cell", r) { Tip.text(xpText(), tr("kami_claims.kpi.level")) }
+        if (hit) navigate(Route("levels"))
     }
 
     private fun xpStrip(ui: Ui, r: Rect) {
@@ -298,15 +286,15 @@ class ClaimsApp : KamiApp() {
     }
 
     private fun kpi(ui: Ui, r: Rect, icon: Icon, label: String, value: String, color: Int, tip: (() -> Tip?)?, page: String?, flashValue: Long? = null) {
-        val hover = ui.hover("kpi:$label", r)
-        ui.anchor("kpi:$label", r)
-        if (hover && page != null) { Draw.fill(ui.g, r.inset(0, 2), Palette.hover); ui.cursor = Cursor.HAND }
-        flashValue?.let { v -> ui.flash("kpi:$label", v).takeIf { it != 0 }?.let { Draw.fill(ui.g, r.inset(0, 2), it) } }
+        val key = "kpi:$label"
+        ui.anchor(key, r)
+        if (page != null && ui.hovering(r)) Draw.fill(ui.g, r.inset(0, 2), Palette.hover)
+        flashValue?.let { v -> ui.flash(key, v).takeIf { it != 0 }?.let { Draw.fill(ui.g, r.inset(0, 2), it) } }
         val textX = r.x + 4 + Draw.leadIcon(ui.g, icon, r.x + 4, r.centerY) + 2
         Draw.text(ui.g, Draw.fit(label.uppercase(Format.locale), r.right - textX), textX, r.y + 3, Palette.textMuted)
         Draw.text(ui.g, Draw.fit(value, r.right - textX), textX, r.y + 13, color)
-        tip?.let { build -> ui.tooltip("kpi:$label", r) { build() } }
-        if (page != null && ui.pressed(r) != null) { UiSound.click(); navigate(Route(page)) }
+        tip?.let { build -> ui.tooltip(key, r) { build() } }
+        if (page != null && ui.clickable(key, r)) navigate(Route(page))
     }
 
     fun runwayText(treasury: Long, net: Long) = if (net >= 0) tr("kami_claims.runway.stable") else trn("kami_claims.unit.day", treasury / -net)
@@ -336,17 +324,6 @@ class ClaimsApp : KamiApp() {
                 var y = area.y
                 alerts.forEach { a -> y += alertCard(ui, Rect(area.x, y, area.w, alertHeight(a, area.w)), a, compactCard = true) }
             }
-        }
-    }
-
-    fun goalRows(ui: Ui, area: Rect, goals: List<GoalLine>) {
-        goals.forEachIndexed { i, goal ->
-            val row = Rect(area.x, area.y + i * GOAL_H, area.w, GOAL_H - 2)
-            val hover = ui.hovering(row) && goal.page.isNotEmpty()
-            if (hover) { Draw.fill(ui.g, row, Palette.hover); ui.cursor = Cursor.HAND }
-            val shown = (goal.value * ui.reveal("goal:$i", goal.max, i * 60L)).toLong()
-            ui.progressBar(Rect(row.x + 2, row.y + 2, row.w - 4, PROGRESS_LABELLED_H), shown, goal.max, trJson(goal.text), key = "goal:$i")
-            if (goal.page.isNotEmpty() && ui.pressed(row) != null) { UiSound.click(); navigate(Route(goal.page)) }
         }
     }
 
@@ -425,7 +402,6 @@ class ClaimsApp : KamiApp() {
     }
 
     companion object {
-        const val GOAL_H = 26
         private const val LEVEL_W = 84
         private const val LEVEL_COMPACT_W = 36
         private const val MAX_COMPLETE_TOASTS = 3

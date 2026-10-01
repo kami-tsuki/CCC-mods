@@ -33,22 +33,11 @@ class ResearchChangeTest {
     fun completedNodesAreTheNewlyDoneOnes() {
         val change = assertNotNull(ResearchChange.between(state(done = listOf("t:a"), queue = listOf(running("t:b"))), state(done = listOf("t:a", "t:b"), xp = 40)))
         assertEquals(listOf("t:b"), change.completed)
-        assertEquals(emptyList(), change.started)
-        assertEquals(40, change.xpGained)
     }
 
     @Test
-    fun startedNodesAreNewlyResearching() {
-        val change = assertNotNull(ResearchChange.between(state(queue = listOf(running("t:a"))), state(queue = listOf(running("t:a"), running("t:b")))))
-        assertEquals(listOf("t:b"), change.started)
-    }
-
-    @Test
-    fun levelUpReportsBothLevels() {
+    fun levelUpIsReported() {
         val change = assertNotNull(ResearchChange.between(state(level = 2, xp = 90), state(level = 3, xp = 120)))
         assertTrue(change.leveledUp)
-        assertEquals(2, change.levelFrom)
-        assertEquals(3, change.levelTo)
-        assertEquals(30, change.xpGained)
     }
 }

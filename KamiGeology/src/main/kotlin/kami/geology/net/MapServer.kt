@@ -2,7 +2,6 @@ package kami.geology.net
 
 import kami.geology.KamiGeology
 import kami.geology.client.ClientHooks
-import kami.geology.command.GeoText
 import kami.geology.config.Distribution
 import kami.geology.map.Heatmap
 import kami.geology.map.MapColors
@@ -12,8 +11,6 @@ import kami.geology.world.Discovery
 import kami.geology.world.Prospector
 import kami.geology.world.WorldContext
 import kami.geology.world.Worlds
-import kami.libs.chat.Theme
-import kami.libs.text.Phrase
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
 import net.neoforged.neoforge.network.PacketDistributor
@@ -54,9 +51,7 @@ object MapServer {
             )
         )
         val sites = world.settings.ores.flatMap { world.sitesIn(it, region.x0, region.z0, region.x0 + region.w - 1, region.z0 + region.h - 1) }
-        if (Discovery.report(player, tier, sites)) {
-            player.sendSystemMessage(GeoText.chat.msg { add(Phrase.of("kami_geology.prospector.discovered"), Theme.MUTED) })
-        }
+        Discovery.report(player, tier, sites)
     }
 
     private fun legend(world: WorldContext): Pair<List<OreInfo>, List<ProvinceInfo>> {

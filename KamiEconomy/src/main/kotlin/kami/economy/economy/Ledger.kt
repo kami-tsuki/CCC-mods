@@ -5,7 +5,8 @@ import kami.economy.Config
 import kami.economy.Market
 import kami.economy.Order
 import kami.libs.claims.ClaimsApi
-import kami.libs.claims.TreasuryKind
+import kami.libs.claims.Relation
+import kami.libs.economy.CleanStep
 import kami.libs.economy.Money
 import kami.libs.economy.Numismatics
 import kami.libs.progress.KamiProgress
@@ -64,7 +65,8 @@ data class Intent(
     val capLots: Int = 0,
     val preBalance: Long = -1,
     val prevBalance: Long = -1,
-    val sellerBalance: Long = -1
+    val sellerBalance: Long = -1,
+    val tariff: Long = 0
 )
 
 sealed class SellResult {
@@ -95,17 +97,24 @@ sealed class OrderResult {
     data class Limit(val max: Int) : OrderResult()
 }
 
+sealed class ListResult {
+    data class Ok(val id: Long) : ListResult()
+    data class Limit(val max: Int) : ListResult()
+}
+
 sealed class BidResult {
     object Ok : BidResult()
     object TooLow : BidResult()
     object InsufficientFunds : BidResult()
     object NotFound : BidResult()
+    data class Embargoed(val country: String) : BidResult()
 }
 
 sealed class BuyNowResult {
     object Ok : BuyNowResult()
     object InsufficientFunds : BuyNowResult()
     object NotAvailable : BuyNowResult()
+    data class Embargoed(val country: String) : BuyNowResult()
 }
 
 object Ledger {
@@ -156,7 +165,7 @@ object Ledger {
 
     private fun resumeDebited(intent: Intent, amount: Int): Intent? {
         if (amount <= 0 || intent.preBalance < 0) return null
-        val payer = runCatching { UUID.fromString(intent.actor) }.getOrNull() ?: return null
+        val payer = Trade.uuid(intent.actor) ?: return null
         val diff = intent.preBalance - wallet.balance(payer)
         return when {
             diff <= 0 -> null
@@ -165,11 +174,29 @@ object Ledger {
         }
     }
 
-    private fun traded(player: String, counterparties: List<String>, spurs: Long, item: String, qty: Int) {
+    internal fun earnsXp(player: String, counterparty: String): Boolean {
+        val country = Trade.country(player) ?: return false
+        val other = Trade.country(counterparty) ?: return true
+        return other != country && ClaimsApi.relation(country, other) == Relation.NEUTRAL
+    }
+
+    private fun traded(player: String, counterparty: String, spurs: Long, item: String, qty: Int) {
+        if (spurs <= 0 || qty <= 0 || !earnsXp(player, counterparty)) return
         val country = Trade.country(player) ?: return
-        if (counterparties.isNotEmpty() && counterparties.all { Trade.country(it) == country }) return
         KamiProgress.post(country, "trade", item, qty.toLong())
         KamiProgress.post(country, "trade_value", item, spurs)
+    }
+
+    private fun tradedFills(actor: String, item: String, fills: List<LedgerFill>, actorSpurs: (LedgerFill) -> Long) {
+        fills.forEach { traded(actor, it.owner, actorSpurs(it), item, it.qty) }
+        fills.forEach { if (it.owner.isNotEmpty()) traded(it.owner, actor, net(it), item, it.qty) }
+    }
+
+    private fun creditTariff(payer: String, tariff: Long) {
+        if (tariff <= 0) return
+        val country = Trade.country(payer) ?: return
+        val unapplied = tariff - ClaimsApi.creditTariff(country, tariff)
+        if (unapplied > 0) Trade.uuid(payer)?.let { wallet.deposit(it, unapplied.toInt()) }
     }
 
     private fun stockSale(player: String, item: String, qty: Int) {
@@ -229,15 +256,14 @@ object Ledger {
         var current = intent
         if (current.state == LedgerState.PENDING) {
             Matching.applySale(current.item, current.actor, current.fills.map { FillLinePlan(it.orderId, it.owner, it.qty, it.unitPrice, it.lot) }, current.capLots)
-            current.fills.forEach { f -> if (f.tariff > 0) Trade.country(f.owner)?.let { ClaimsApi.credit(it, f.tariff, TreasuryKind.TARIFF) } }
+            current.fills.forEach { f -> creditTariff(f.owner, f.tariff) }
             current = current.copy(state = LedgerState.BOOK_INSERTED)
-            val actor = runCatching { UUID.fromString(current.actor) }.getOrNull()
+            val actor = Trade.uuid(current.actor)
             if (actor != null) current = current.copy(preBalance = wallet.balance(actor))
             write(current)
         }
         if (creditOrFreeze(current, current.actor, current.netSpurs, current.preBalance)) write(current.copy(state = LedgerState.PAID))
-        traded(current.actor, current.fills.map { it.owner }, current.netSpurs, current.item, current.fills.sumOf { it.qty })
-        current.fills.forEach { if (it.owner.isNotEmpty()) traded(it.owner, listOf(current.actor), net(it), current.item, it.qty) }
+        tradedFills(current.actor, current.item, current.fills) { net(it) - it.tariff }
         stockSale(current.actor, current.item, current.fills.filter { it.owner.isEmpty() }.sumOf { it.qty })
     }
 
@@ -298,7 +324,7 @@ object Ledger {
         write(intent)
         val current = stockSold(intent)
         if (creditOrFreeze(current, current.actor, current.netSpurs, current.preBalance)) write(current.copy(state = LedgerState.PAID))
-        traded(current.actor, emptyList(), current.netSpurs, current.item, current.qty)
+        traded(current.actor, "", current.netSpurs, current.item, current.qty)
         stockSale(current.actor, current.item, current.qty)
         Market.save()
         return SellResult.Ok(id)
@@ -306,7 +332,7 @@ object Ledger {
 
     private fun stockSold(intent: Intent): Intent {
         Stocks.sold(intent.actor, intent.item, intent.qty / intent.lot.coerceAtLeast(1), intent.capLots, intent.unitPrice)
-        val actor = runCatching { UUID.fromString(intent.actor) }.getOrNull()
+        val actor = Trade.uuid(intent.actor)
         val current = intent.copy(state = LedgerState.BOOK_INSERTED, preBalance = actor?.let { wallet.balance(it) } ?: intent.preBalance)
         write(current)
         return current
@@ -333,14 +359,12 @@ object Ledger {
         Matching.applyFills(intent.item, intent.fills.map { FillLinePlan(it.orderId, it.owner, it.qty, it.unitPrice, it.lot) })
         Market.queueDelivery(intent.actor, intent.item, intent.qty, "${intent.id}:d")
         payFills(intent.copy(state = LedgerState.BOOK_INSERTED).also(::write))
-        traded(intent.actor, intent.fills.map { it.owner }, intent.netSpurs, intent.item, intent.fills.sumOf { it.qty })
-        intent.fills.forEach { if (it.owner.isNotEmpty()) traded(it.owner, listOf(intent.actor), net(it), intent.item, it.qty) }
+        tradedFills(intent.actor, intent.item, intent.fills) { gross(it) + it.tariff }
     }
 
-    private fun net(f: LedgerFill): Long {
-        val gross = f.qty.toLong() / f.lot.coerceAtLeast(1) * f.unitPrice
-        return gross - if (f.tax >= 0) f.tax else Matching.tax(gross)
-    }
+    private fun gross(f: LedgerFill): Long = f.qty.toLong() / f.lot.coerceAtLeast(1) * f.unitPrice
+
+    private fun net(f: LedgerFill): Long = gross(f) - if (f.tax >= 0) f.tax else Matching.tax(gross(f))
 
     fun cancel(owner: String, item: String, orderId: Long): Order? {
         val existing = Matching.bookFor(item).sells.firstOrNull { it.id == orderId && it.owner == owner } ?: return null
@@ -404,7 +428,7 @@ object Ledger {
 
     private fun alreadyCredited(who: String, pre: Long, amount: Long): Boolean {
         if (pre < 0) return false
-        val actor = runCatching { UUID.fromString(who) }.getOrNull() ?: return false
+        val actor = Trade.uuid(who) ?: return false
         return wallet.balance(actor) - pre >= amount
     }
 
@@ -417,7 +441,7 @@ object Ledger {
     }
 
     private fun balanceOf(who: String): Long =
-        runCatching { UUID.fromString(who) }.getOrNull()?.let { wallet.balance(it) } ?: -1
+        Trade.uuid(who)?.let { wallet.balance(it) } ?: -1
 
     private fun withBalances(intent: Intent): Intent = intent.copy(
         prevBalance = if (intent.prevBidder.isNotEmpty()) balanceOf(intent.prevBidder) else -1,
@@ -431,7 +455,7 @@ object Ledger {
             Market.dirty = true
             current = current.copy(state = LedgerState.BOOK_INSERTED)
             if (current.netSpurs < 0) {
-                val actor = runCatching { UUID.fromString(current.actor) }.getOrNull()
+                val actor = Trade.uuid(current.actor)
                 if (actor != null) current = current.copy(preBalance = wallet.balance(actor))
             }
             write(current)
@@ -445,7 +469,8 @@ object Ledger {
         return ids.sumOf { cancel(owner, item, it)?.amount ?: 0 }
     }
 
-    fun auctionList(seller: String, stack: ItemStack, startPrice: Int, buyNowPrice: Int?, registries: HolderLookup.Provider): Long {
+    fun auctionList(seller: String, stack: ItemStack, startPrice: Int, buyNowPrice: Int?, registries: HolderLookup.Provider): ListResult {
+        if (Limits.auctionFull(seller)) return ListResult.Limit(Limits.auctionSlots(seller))
         val id = Market.nextId()
         val data = StackCodec.encode(stack, registries)
         val label = stack.hoverName.string
@@ -453,11 +478,12 @@ object Ledger {
         Auctions.insert(id, seller, data, label, startPrice, buyNowPrice)
         write(Intent(id, IntentType.AUCTION_LIST, LedgerState.PAID, actor = seller, auctionId = id, stackData = data, label = label, unitPrice = startPrice, buyNow = buyNowPrice ?: -1))
         Market.save()
-        return id
+        return ListResult.Ok(id)
     }
 
     fun auctionBid(bidder: String, auctionId: Long, amount: Int): BidResult {
         val a = Auctions.find(auctionId)?.takeIf { it.state == AuctionState.OPEN } ?: return BidResult.NotFound
+        if (!Trade.canTrade(bidder, a.seller)) return BidResult.Embargoed(Trade.country(a.seller).orEmpty())
         if (amount <= 0 || amount < Auctions.minBid(a)) return BidResult.TooLow
         val bidderId = UUID.fromString(bidder)
         if (wallet.balance(bidderId) < amount) return BidResult.InsufficientFunds
@@ -471,6 +497,7 @@ object Ledger {
     fun auctionBuyNow(buyer: String, auctionId: Long): BuyNowResult {
         val a = Auctions.find(auctionId)?.takeIf { it.state == AuctionState.OPEN } ?: return BuyNowResult.NotAvailable
         val price = a.buyNowPrice ?: return BuyNowResult.NotAvailable
+        if (!Trade.canTrade(buyer, a.seller)) return BuyNowResult.Embargoed(Trade.country(a.seller).orEmpty())
         val buyerId = UUID.fromString(buyer)
         if (wallet.balance(buyerId) < price) return BuyNowResult.InsufficientFunds
         val intent = withBalances(settleIntent(a, buyer, price).copy(prevBidder = a.currentBidder, prevBid = a.currentBid, instant = true))
@@ -512,8 +539,9 @@ object Ledger {
     }
 
     private fun settleIntent(a: Auction, buyer: String, price: Int): Intent {
-        val net = price - (price * Config.s.auctionFeePct).toLong()
-        return Intent(Market.nextId(), IntentType.AUCTION_SETTLE, LedgerState.PENDING, actor = buyer, seller = a.seller, auctionId = a.id, unitPrice = price, netSpurs = net, stackData = a.stackData)
+        val tariff = CleanStep.charge(price.toLong(), Trade.terms(buyer, a.seller).tariffPct)
+        val net = (price - (price * Config.s.auctionFeePct).toLong() - tariff).coerceAtLeast(0)
+        return Intent(Market.nextId(), IntentType.AUCTION_SETTLE, LedgerState.PENDING, actor = buyer, seller = a.seller, auctionId = a.id, unitPrice = price, netSpurs = net, tariff = tariff, stackData = a.stackData)
     }
 
     private fun settle(intent: Intent) {
@@ -521,6 +549,7 @@ object Ledger {
         if (current.state != LedgerState.BOOK_INSERTED) {
             if (current.prevBidder.isNotEmpty() && !creditOrFreeze(current, current.prevBidder, current.prevBid.toLong(), current.prevBalance)) return
             Auctions.settle(current.auctionId, current.actor, current.unitPrice)
+            creditTariff(current.actor, current.tariff)
             current = current.copy(state = LedgerState.BOOK_INSERTED)
             write(current)
         }
@@ -528,9 +557,9 @@ object Ledger {
         if (creditOrFreeze(current, current.seller, current.netSpurs, current.sellerBalance)) write(current.copy(state = LedgerState.PAID))
         val item = StackCodec.itemId(current.stackData)
         val count = StackCodec.count(current.stackData)
-        traded(current.actor, listOf(current.seller), current.unitPrice.toLong(), item, count)
-        traded(current.seller, listOf(current.actor), current.netSpurs, item, count)
-        Trade.country(current.seller)?.let { KamiProgress.post(it, "auction_sold", item, count.toLong()) }
+        traded(current.actor, current.seller, current.unitPrice.toLong(), item, count)
+        traded(current.seller, current.actor, current.netSpurs, item, count)
+        if (earnsXp(current.seller, current.actor)) Trade.country(current.seller)?.let { KamiProgress.post(it, "auction_sold", item, count.toLong()) }
     }
 
     private fun applyBid(intent: Intent) {
@@ -555,8 +584,8 @@ object Ledger {
                 write(intent)
             }
             if (!creditOrFreeze(intent, f.owner, net(f), pre)) return
-            if (f.tariff > 0) Trade.country(intent.actor)?.let { ClaimsApi.credit(it, f.tariff, TreasuryKind.TARIFF) }
             intent = intent.copy(paid = intent.paid + f.orderId).also(::write)
+            creditTariff(intent.actor, f.tariff)
         }
         write(intent.copy(state = LedgerState.PAID))
     }
@@ -599,7 +628,7 @@ object Ledger {
                         val current = if (intent.state == LedgerState.PENDING) stockSold(intent) else intent
                         if (creditOrFreeze(current, current.actor, current.netSpurs, current.preBalance)) {
                             write(current.copy(state = LedgerState.PAID))
-                            traded(current.actor, emptyList(), current.netSpurs, current.item, current.qty)
+                            traded(current.actor, "", current.netSpurs, current.item, current.qty)
                             stockSale(current.actor, current.item, current.qty)
                         }
                     }

@@ -40,6 +40,14 @@ fun Ui.edgeButton(
     disabledReason: String? = null, tip: String? = null, pending: Boolean = false, left: Boolean = false, key: Any = label
 ) = button(if (left) row.take(buttonWidth(label, icon)) else row.takeFromRight(buttonWidth(label, icon)), label, icon, style, enabled, disabledReason, tip, pending, key)
 
+fun Row.iconSlot() = takeFromRight(SMALL_H).centered(SMALL_H, SMALL_H)
+
+fun Ui.adaptiveButton(
+    row: Row, narrow: Boolean, label: String, icon: Icon, style: ButtonStyle = ButtonStyle.SECONDARY, enabled: Boolean = true,
+    disabledReason: String? = null, pending: Boolean = false, key: Any = label
+) = if (narrow) iconButton(row.iconSlot(), icon, label, enabled = enabled && !pending, disabledReason = disabledReason, key = key)
+else edgeButton(row, label, icon, style, enabled, disabledReason, pending = pending, key = key)
+
 private fun Ui.hoverWash(r: Rect, feel: Feel) =
     Draw.fill(g, r.inset(1), Palette.alpha(0xFFFFFF, (HOVER_LIGHTEN * feel.hover * (1f - feel.press)).toInt()))
 

@@ -3,6 +3,7 @@ package kami.claims.client.app.pages
 import kami.libs.ui.text.trJson
 import kami.libs.ui.text.trn
 import kami.libs.ui.text.tr
+import kami.claims.NameRules
 import kami.claims.client.ClientClaims
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ClaimsPage
@@ -111,12 +112,7 @@ class WelcomePage(app: ClaimsApp) : ClaimsPage(app) {
             val limits = snap.limits
             val min = limits?.nameMin ?: 3
             val max = limits?.nameMax ?: 24
-            name.error = when {
-                name.text.length < min -> tr("kami_claims.wizard.name.error.short", min)
-                !name.text.all { it.isLetterOrDigit() || it == '_' || it == '-' } -> tr("kami_claims.wizard.name.error.chars")
-                snap.countries.any { it.name.equals(name.text, true) } -> tr("kami_claims.wizard.name.error.taken")
-                else -> null
-            }
+            name.error = Dialogs.nameError(name.text, snap)
             val here = snap.detail?.takeIf { it.x == snap.px && it.z == snap.pz }
             val problem = here?.takeIf { it.blocked }?.let { trJson(it.note) }
             when (s.step) {
@@ -134,7 +130,7 @@ class WelcomePage(app: ClaimsApp) : ClaimsPage(app) {
                 1 -> {
                     var y = b.y
                     fieldLabel(Rect(b.x, y, b.w, 9), tr("kami_claims.wizard.name"), "${name.text.length}/$max"); y += 11
-                    textField(Rect(b.x, y, b.w, CONTROL_H), name, tr("kami_claims.wizard.name.placeholder"), Icons.FLAG, maxLength = max, allow = { it.isLetterOrDigit() || it == '_' || it == '-' }, key = "name", autoFocus = true); y += CONTROL_H + 2
+                    textField(Rect(b.x, y, b.w, CONTROL_H), name, tr("kami_claims.wizard.name.placeholder"), Icons.FLAG, maxLength = max, allow = NameRules::allows, key = "name", autoFocus = true); y += CONTROL_H + 2
                     name.touched = name.text.isNotEmpty()
                     fieldHelp(Rect(b.x, y, b.w, 9), name, tr("kami_claims.wizard.name.desc", min, max)); y += 16
                     Draw.text(g, tr("kami_claims.wizard.name.later"), b.x, y, Palette.textMuted); y += 14

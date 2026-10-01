@@ -10,11 +10,11 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 
 private const val MAX_SELECTORS = 3
+private const val CYCLE_MS = 1000L
 
 private val stacks = HashMap<String, ItemStack>()
 private val members = HashMap<String, List<List<ItemStack>>>()
 private val shown = HashMap<String, MutableList<ItemStack>>()
-private const val CYCLE_MS = 1000L
 
 fun stackOf(selector: String): ItemStack = stacks.getOrPut(selector) { firstItem(selector)?.let { ItemStack(it) } ?: ItemStack.EMPTY }
 
@@ -34,16 +34,14 @@ fun forgetStacks() {
     shown.clear()
 }
 
-private fun allItems(selector: String): List<Item> =
-    if (selector.startsWith("#")) ResourceLocation.tryParse(selector.drop(1))
-        ?.let { BuiltInRegistries.ITEM.getTag(TagKey.create(Registries.ITEM, it)).orElse(null) }
-        ?.map { it.value() }?.filter { it != Items.AIR }.orEmpty()
-    else listOfNotNull(firstItem(selector))
+private fun tagItems(selector: String): List<Item> = ResourceLocation.tryParse(selector.drop(1))
+    ?.let { BuiltInRegistries.ITEM.getTag(TagKey.create(Registries.ITEM, it)).orElse(null) }
+    ?.map { it.value() }?.filter { it != Items.AIR }.orEmpty()
+
+private fun allItems(selector: String): List<Item> = if (selector.startsWith("#")) tagItems(selector) else listOfNotNull(firstItem(selector))
 
 private fun firstItem(selector: String): Item? = when {
-    selector.startsWith("#") -> ResourceLocation.tryParse(selector.drop(1))
-        ?.let { BuiltInRegistries.ITEM.getTag(TagKey.create(Registries.ITEM, it)).orElse(null) }
-        ?.firstOrNull { it.value() != Items.AIR }?.value()
+    selector.startsWith("#") -> tagItems(selector).firstOrNull()
     '*' in selector || '?' in selector -> BuiltInRegistries.ITEM.keySet().filter { Selectors.glob(selector, it.toString()) }.minOrNull()
         ?.let { BuiltInRegistries.ITEM.get(it) }?.takeIf { it != Items.AIR }
     else -> ResourceLocation.tryParse(selector)?.let { BuiltInRegistries.ITEM.getOptional(it).orElse(null) }?.takeIf { it != Items.AIR }

@@ -7,13 +7,12 @@ import kami.libs.claims.Goal
 import kami.libs.text.Phrase
 
 object Goals {
-    const val LIMIT = 6
+    private const val LIMIT = 6
+    private val UNLISTED = setOf(Capacity.PLOTS, Capacity.FREE_CHUNKS, Capacity.MARKET_SLOTS, Capacity.AUCTION_SLOTS)
 
     class Raise(val level: Int, val max: Int)
 
-    fun id(key: Capacity): String = Capacity.serializer().descriptor.getElementName(key.ordinal)
-
-    fun capacity(id: String): Capacity? = Capacity.entries.firstOrNull { id(it) == id }
+    fun capacity(id: String): Capacity? = Capacity.entries.firstOrNull { it.id == id }
 
     fun label(key: Capacity): Phrase = Phrase.of("kami_claims.research.capacity.${key.name.lowercase()}").asValue()
 
@@ -68,7 +67,7 @@ object Goals {
         return listOf(Goal(Phrase.of("kami_claims.goal.research_queue", node.label().asValue()), 0, 1, "research"))
     }
 
-    private fun capacities(country: Country): List<Goal> = Capacity.entries.filter { it != Capacity.PLOTS && it != Capacity.FREE_CHUNKS }.mapNotNull { key ->
+    private fun capacities(country: Country): List<Goal> = Capacity.entries.filterNot { it in UNLISTED }.mapNotNull { key ->
         val max = Levels.capacity(country, key)
         val used = Levels.used(country, key)
         if (max <= 0 || used * 10L < max * 9L) return@mapNotNull null

@@ -12,6 +12,7 @@ import kami.claims.net.TaskView
 import kami.claims.net.UnlockView
 import kami.claims.research.Capacity
 import kami.claims.research.NodeState
+import kami.libs.ui.core.Cursor
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Stack
 import kami.libs.ui.core.Ui
@@ -25,6 +26,7 @@ import kami.libs.ui.text.tr
 import kami.libs.ui.text.trJson
 import kami.libs.ui.widget.ChipSpec
 import kami.libs.ui.widget.CAPACITY_BAR_H
+import kami.libs.ui.widget.CARD_HEADER_H
 import kami.libs.ui.widget.CAPACITY_HINT_H
 import kami.libs.ui.widget.PROGRESS_LABELLED_H
 import kami.libs.ui.widget.card
@@ -42,6 +44,10 @@ import net.minecraft.world.item.Items
 private val UPPERCASE = Regex("[A-Z]")
 private val capacityKeys = HashMap<String, String>()
 private const val ITEM_CELL = 22
+const val REQUIREMENT_ROW_H = 11
+private const val STACK_GAP = 4
+private const val LEVEL_BAR_SPACER = 2
+private const val CARD_BODY_MARGIN = 12
 
 object ResearchLook {
     fun color(status: NodeStatus) = when (status) {
@@ -147,50 +153,47 @@ fun xpText(xp: Long = ClientResearch.state.xp): String = when {
 fun Ui.levelBar(r: Rect) {
     val s = ClientResearch.state
     val label = tr("kami_claims.research.level", s.level)
-    when {
-        ClientResearch.xpTracked -> progressBar(r, s.xp - s.xpFloor, s.xpCeiling - s.xpFloor, label, xpText(), key = "level-bar")
-        ClientResearch.atMaxLevel -> progressBar(r, 1, 1, label, xpText(), key = "level-bar")
-        else -> progressBar(r, 0, 1, label, xpText(), key = "level-bar")
-    }
+    val tracked = ClientResearch.xpTracked
+    val value = if (tracked) s.xp - s.xpFloor else if (ClientResearch.atMaxLevel) 1L else 0L
+    progressBar(r, value, if (tracked) s.xpCeiling - s.xpFloor else 1L, label, xpText(), key = "level-bar")
 }
 
 fun Ui.levelRequirements(stack: Stack, level: Int) {
     ClientResearch.levelRequirements(level).forEach { (phrase, met) -> requirementRow(stack.take(REQUIREMENT_ROW_H), phrase.resolve(), met) }
 }
 
-fun Ui.requirementRow(r: Rect, text: String, met: Boolean?) {
+fun Ui.requirementRow(r: Rect, text: String, met: Boolean?, onClick: (() -> Unit)? = null) {
+    val over = onClick != null && hovering(r)
+    if (over) { Draw.fill(g, r, Palette.hover); cursor = Cursor.HAND }
     val icon = when (met) { true -> Icons.CHECK; false -> Icons.CROSS; null -> Icons.PENDING }
     val color = when (met) { true -> Palette.success; false -> Palette.danger; null -> Palette.textMuted }
     val x = r.x + Draw.leadIcon(g, icon, r.x, r.centerY, color) + 2
-    Draw.text(g, Draw.fit(text, r.right - x), x, r.y + 1, Palette.textSecondary)
+    Draw.text(g, Draw.fit(text, r.right - x), x, r.y + 1, if (over) Palette.text else Palette.textSecondary)
+    if (onClick != null && pressed(r) != null) onClick()
 }
 
-const val REQUIREMENT_ROW_H = 11
+private val progressCapacities = listOf(Capacity.CHUNKS, Capacity.CITIZENS, Capacity.PROVINCES, Capacity.TREASURY)
 
-fun Ui.capacityBars(stack: Stack, ids: List<Capacity>) = ids.forEach { capacityRow(stack, it) }
-
-val progressCapacities = listOf(Capacity.CHUNKS, Capacity.CITIZENS, Capacity.PROVINCES, Capacity.TREASURY)
-
-fun progressCardHeight() = 28 + PROGRESS_LABELLED_H + 8 + progressCapacities.sumOf { (if (ClientLocks.raise(it) != null) CAPACITY_BAR_H + CAPACITY_HINT_H + 8 else CAPACITY_BAR_H + 4) }
-
+fun progressCardHeight() = CARD_HEADER_H + CARD_BODY_MARGIN + PROGRESS_LABELLED_H + 2 * STACK_GAP +
+    progressCapacities.sumOf { CAPACITY_BAR_H + STACK_GAP + if (ClientLocks.raise(it) != null) CAPACITY_HINT_H + STACK_GAP else 0 }
 
 fun Ui.progressCard(r: Rect) {
     val body = card(r, tr("kami_claims.dashboard.progress"), Icons.STAR)
-    val stack = Stack(body.x, body.y, body.w, 4)
+    val stack = Stack(body.x, body.y, body.w, STACK_GAP)
     levelBar(stack.take(PROGRESS_LABELLED_H))
-    stack.take(2)
-    capacityBars(stack, progressCapacities)
+    stack.take(LEVEL_BAR_SPACER)
+    progressCapacities.forEach { capacityRow(stack, it) }
 }
 
 fun unlockText(unlock: UnlockView) = when (unlock.kind) {
-    "capacity" -> tr("kami_claims.research.unlock.capacity", unlock.add, ResearchLook.capacity(unlock.id))
+    "capacity" -> tr("kami_claims.research.unlock.capacity", unlock.count, ResearchLook.capacity(unlock.id))
     "money" -> tr("kami_claims.research.unlock.money", Format.money(unlock.amount))
     "feature" -> tr("kami_claims.research.unlock.feature", ClientLocks.featureName(unlock.id))
     "token" -> tr("kami_claims.research.unlock.token", ClientLocks.tokenName(unlock.id))
-    "buff" -> tr("kami_claims.research.unlock.buff", effectName(unlock.id) + " " + roman(unlock.add + 1))
-    "buff_points" -> tr("kami_claims.research.unlock.buff_points", unlock.add)
+    "buff" -> tr("kami_claims.research.unlock.buff", effectName(unlock.id) + " " + roman(unlock.amplifier + 1))
+    "buff_points" -> tr("kami_claims.research.unlock.buff_points", unlock.count)
     "loan" -> tr("kami_claims.research.unlock.loan", Format.money(unlock.amount))
-    "loan_slots" -> tr("kami_claims.research.unlock.loan_slots", unlock.add)
+    "loan_slots" -> tr("kami_claims.research.unlock.loan_slots", unlock.count)
     else -> tr("kami_claims.research.unlock.${unlock.kind}", unlock.id.substringAfter(':').replace('_', ' '))
 }
 

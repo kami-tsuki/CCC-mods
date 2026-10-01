@@ -5,6 +5,7 @@ import kami.claims.*
 import kami.claims.economy.Bank
 import kami.claims.economy.Treasury
 import kami.claims.research.Buffs
+import kami.claims.research.Features
 import kami.claims.research.Levels
 import kami.claims.research.Loans
 import kami.claims.research.Progress
@@ -77,7 +78,7 @@ object Upkeep {
         val heir = c.members.entries.filter { it.value !== boss && it.value.rank != Rank.BANISHED }.sortedWith(seniority()).firstOrNull() ?: return
         boss.rank = Rank.CITIZEN
         heir.value.rank = Rank.PRESIDENT
-        if (c.members.values.none { it.rank == Rank.CHANCELLOR }) {
+        if (Features.unlocked(c, Features.CHANCELLOR) && c.members.values.none { it.rank == Rank.CHANCELLOR }) {
             c.members.entries.filter { it.value !== heir.value && it.value.rank != Rank.BANISHED }.sortedWith(seniority()).firstOrNull()?.value?.rank = Rank.CHANCELLOR
         }
         Mail.broadcast(c, Phrase.of("kami_claims.mail.succession"))
@@ -120,13 +121,14 @@ object Upkeep {
     private fun bill(c: Country, day: Long) {
         val claims = Realm.claims(c.id)
         var paid = 0L
+        val borderTax = Buffs.billedTax(c)
         claims.filter { day > it.since && (day - it.since) % Realm.period(it) == 0L }.sortedBy { it.at }.forEach { cl ->
             if (cl.free) {
                 cl.upkeepCycles++
                 return@forEach
             }
 
-            val cost = Buffs.price(c, cl).toLong() * (1 + cl.debt)
+            val cost = Buffs.price(c, cl, borderTax).toLong() * (1 + cl.debt)
             if (c.treasury >= cost) {
                 c.treasury -= cost
                 paid += cost
@@ -135,6 +137,7 @@ object Upkeep {
             } else cl.debt++
         }
         Treasury.record(c, LedgerKind.UPKEEP, -paid)
+        Buffs.settle(c)
         val lost = claims.filter { it.debt >= s.maxDebt }.sortedByDescending { it.at }.count {
             (!it.capital && Realm.removable(it)).also { ok -> if (ok) Realm.unclaim(it, true) }
         }
@@ -176,7 +179,7 @@ object Upkeep {
             if (def.pay <= budget && def.pay <= c.treasury && Bank.give(UUID.fromString(id), def.pay)) {
                 Treasury.move(c, LedgerKind.JOB_PAY, -def.pay.toLong(), id, name)
                 budget -= def.pay
-                Progress.report(c, "wage", "", 1)
+                if (def.pay > 0) Progress.report(c, "wage", "", 1)
                 Mail.direct(id, Phrase.of("kami_claims.mail.wage_paid", money(def.pay), Words.job(name)), Tone.OK)
             } else Mail.direct(id, Phrase.of("kami_claims.mail.wage_unpaid", Words.job(name)), Tone.BAD)
         }
@@ -189,8 +192,9 @@ object Upkeep {
 
     fun summary(c: Country): Summary {
         val claims = Realm.claims(c.id)
+        val borderTax = Buffs.tax(c)
         return Summary(
-            claims.filter { !it.free }.sumOf { Buffs.price(c, it).toLong() * 1000 / Realm.period(it) } / 1000,
+            claims.filter { !it.free }.sumOf { Buffs.price(c, it, borderTax).toLong() * 1000 / Realm.period(it) } / 1000,
             claims.filter { it.owner != null }.sumOf { (if (it.tax >= 0) it.tax else c.tax).toLong() },
             c.members.values.sumOf { m -> (m.job?.let { j -> c.job(j)?.pay } ?: 0).toLong() }
         )

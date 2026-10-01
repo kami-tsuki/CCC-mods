@@ -183,7 +183,7 @@ object Sync {
         return Triple(all.drop(page * pageSize).take(pageSize), page, pages)
     }
 
-    private fun slot(me: String, key: String, used: Int, max: Int) = Slot(used, max, if (used >= max) Limits.hint(me, key, max) else "")
+    private fun slot(me: String, key: String, used: Int, max: Int) = Slot(used, max, if (used >= max) Limits.hint(me, key, used) else "")
 
     fun encode(p: ServerPlayer, msg: String, ok: Boolean, open: Boolean): String {
         val s = states.getOrPut(p.uuid) { State() }

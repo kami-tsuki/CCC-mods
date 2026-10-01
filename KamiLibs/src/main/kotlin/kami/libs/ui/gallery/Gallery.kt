@@ -46,7 +46,7 @@ class Gallery : KamiApp() {
         "buttons" to ButtonsPage(this), "inputs" to InputsPage(), "display" to DisplayPage(), "data" to DataPage(), "tree" to TreePage(), "strip" to StripPage(), "motion" to MotionPage(this), "overlays" to OverlaysPage(this)
     )
 
-    override fun nav() = listOf(
+    override fun buildNav() = listOf(
         NavGroup("Controls", listOf(NavItem("buttons", "Buttons", Icons.CURSOR), NavItem("inputs", "Inputs", Icons.EDIT, { NavBadge(2, Severity.INFO) }))),
         NavGroup("Content", listOf(NavItem("display", "Display", Icons.DASHBOARD), NavItem("data", "Data", Icons.STATS), NavItem("tree", "Tech tree", Icons.TREE), NavItem("strip", "Strip", Icons.SORT_DOWN), NavItem("motion", "Motion", Icons.CLOCK)), collapsible = true),
         NavGroup("Layers", listOf(NavItem("overlays", "Overlays", Icons.LAYERS), NavItem("locked", "Locked page", Icons.LOCK, lock = { "Example of a page you cannot open yet" })))
@@ -246,9 +246,9 @@ private class TreePage : Page() {
         TechNode("Smithing", Palette.success, listOf(0), done = true, status = Icons.CHECK),
         TechNode("Kinetics", Palette.info, listOf(0), status = Icons.CLOCK, progress = 0.4, flowing = true, countdown = Countdown(60_000, 36_000, System.currentTimeMillis(), true)),
         TechNode("Pressing", Palette.money, listOf(2), ready = true),
-        TechNode("Steam power", Palette.textMuted, listOf(2, 1), dashed = setOf(1), dim = true, status = Icons.LOCK, lock = "Level 4"),
+        TechNode("Steam power", Palette.textMuted, listOf(2, 1), dashed = setOf(1), dim = true, status = Icons.LOCK),
         TechNode("Alchemy", Palette.brass, listOf(1)),
-        TechNode("Chemistry", Palette.textMuted, listOf(5, 3), dim = true, status = Icons.LOCK, lock = "Level 6")
+        TechNode("Chemistry", Palette.textMuted, listOf(5, 3), dim = true, status = Icons.LOCK)
     )
 
     override fun draw(ui: Ui, r: Rect) {
@@ -287,7 +287,7 @@ private class MotionPage(val app: Gallery) : Page() {
     private var balance = 1_200L
     private var paused = false
     private var replay = 0L
-    private val curves = listOf("Out quad" to Ease.outQuad, "Out cubic" to Ease.outCubic, "In-out cubic" to Ease.inOutCubic, "Out back" to Ease.outBack, "Out expo" to Ease.outExpo)
+    private val curves = listOf("Out cubic" to Ease.outCubic)
 
     override fun draw(ui: Ui, r: Rect) {
         val (left, right) = r.columns(2, 10)

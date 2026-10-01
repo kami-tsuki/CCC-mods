@@ -36,6 +36,8 @@ class ContextStack(private val resolve: (source: Any, pos: Long) -> String?) {
         countries[depth] = null
     }
 
+    fun source(): Any? = sources.getOrNull(depth - 1)
+
     fun country(): String? {
         val top = depth - 1
         if (top < 0) return null
@@ -80,40 +82,34 @@ object RecipeContext {
         if (pushed) stack.pop()
     }
 
-    @JvmStatic
-    fun wrap(player: ServerPlayer, task: Runnable) = Runnable {
-        val pushed = push(player, 0)
+    private fun <T> call(source: Any, pos: Long, task: Supplier<T>): T {
+        val pushed = push(source, pos)
         try {
-            task.run()
+            return task.get()
         } finally {
             pop(pushed)
         }
     }
 
     @JvmStatic
-    fun <T> wrap(player: ServerPlayer, task: Supplier<T>) = Supplier {
-        val pushed = push(player, 0)
-        try {
-            task.get()
-        } finally {
-            pop(pushed)
-        }
-    }
+    fun run(source: Any, pos: Long, task: Runnable) = call(source, pos) { task.run() }
+
+    @JvmStatic
+    fun wrap(player: ServerPlayer, task: Runnable) = Runnable { run(player, 0, task) }
+
+    @JvmStatic
+    fun <T> wrap(player: ServerPlayer, task: Supplier<T>) = Supplier { call(player, 0, task) }
 
     @JvmStatic
     fun countryId(): String? = if (active) stack.country() else null
 
     @JvmStatic
-    fun allowed(recipe: ResourceLocation): Boolean {
-        if (!active || Research.allowed(null, recipe)) return true
-        return Research.allowed(Realm.country(stack.country()), recipe)
-    }
+    fun allowed(recipe: ResourceLocation) = !active || !Gate.gated(recipe) || bypassed() || Gate.recipe(Realm.country(stack.country()), recipe)
 
     @JvmStatic
-    fun allowedBlock(block: ResourceLocation): Boolean {
-        if (!active || Research.allowedBlock(null, block)) return true
-        return Research.allowedBlock(Realm.country(stack.country()), block)
-    }
+    fun allowedBlock(block: ResourceLocation) = !active || !Gate.gatedBlock(block) || bypassed() || Gate.block(Realm.country(stack.country()), block)
+
+    private fun bypassed() = (stack.source() as? ServerPlayer)?.let(RecipeFilter::bypassed) == true
 
     private fun resolve(source: Any, pos: Long): String? = when (source) {
         is ServerPlayer -> Realm.of(source.stringUUID)?.id

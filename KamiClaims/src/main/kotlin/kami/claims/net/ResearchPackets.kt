@@ -3,13 +3,18 @@ package kami.claims.net
 import kami.claims.KamiClaims
 import kami.claims.research.Capacity
 import kami.claims.research.Limits.MAX_CATEGORIES
+import kami.claims.research.Limits.MAX_COUNTERS
 import kami.claims.research.Limits.MAX_ID
+import kami.claims.research.Limits.MAX_KEY
 import kami.claims.research.Limits.MAX_LEVELS
+import kami.claims.research.Limits.MAX_LINKS
 import kami.claims.research.Limits.MAX_NODES
 import kami.claims.research.Limits.MAX_TEXT
 import kami.claims.research.Limits.MAX_TREES
+import kami.claims.research.Limits.MAX_UNLOCKS
 import kami.claims.research.NodeState
 import kami.claims.research.Scope
+import kami.claims.research.nodeLabel
 import kami.libs.net.Blob
 import kami.libs.net.DEFLATE_ABOVE
 import kami.libs.net.WireReader
@@ -21,14 +26,18 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 private val net = Packets.forMod(KamiClaims.ID)
 
 private const val MAX_BYTES = 8 * 1024 * 1024
-private const val MAX_LINKS = 64
-private const val MAX_UNLOCKS = 4096
+private const val MAX_COUNTRY = 64
+private const val MAX_MODE = 16
+private const val MAX_EXTRAS = 16
+private const val MAX_STATE_NODES = MAX_TREES * MAX_NODES
 
 class CategoryView(val id: String, val title: String, val icon: String, val order: Int)
 
 class TaskView(val kind: String, val subject: String, val target: Long)
 
-class UnlockView(val kind: String, val id: String, val add: Int = 0, val amount: Long = 0)
+class UnlockView(
+    val kind: String, val id: String, val count: Int = 0, val amplifier: Int = 0, val cooldownSeconds: Int = 0, val interestPct: Int = 0, val amount: Long = 0
+)
 
 class LevelView(val level: Int, val xp: Long, val rewards: List<UnlockView>, val requires: List<String> = emptyList())
 
@@ -39,7 +48,7 @@ class NodeView(
     val hiddenRequires: List<Int> = emptyList()
 ) {
     val key get() = "$tree:$id"
-    fun label() = Phrase.or("kami_claims.research.node.$tree.$id", title)
+    fun label() = nodeLabel(tree, id, title)
     fun summary() = Phrase.or("kami_claims.research.node.$tree.$id.desc", description)
     fun conditionTexts() = conditions.mapNotNull { Phrase.parse(it) }
 }
@@ -103,16 +112,16 @@ private fun WireWriter.category(c: CategoryView) {
 private fun WireReader.category() = CategoryView(utf(MAX_ID), utf(MAX_TEXT), utf(MAX_ID), varInt())
 
 private fun WireWriter.task(t: TaskView) {
-    utf(t.kind, 32).utf(t.subject, MAX_TEXT).varLong(t.target)
+    utf(t.kind, MAX_KEY).utf(t.subject, MAX_TEXT).varLong(t.target)
 }
 
-private fun WireReader.task() = TaskView(utf(32), utf(MAX_TEXT), varLong())
+private fun WireReader.task() = TaskView(utf(MAX_KEY), utf(MAX_TEXT), varLong())
 
 private fun WireWriter.unlock(u: UnlockView) {
-    utf(u.kind, 32).utf(u.id, MAX_ID).varInt(u.add).varLong(u.amount)
+    utf(u.kind, MAX_KEY).utf(u.id, MAX_ID).varInt(u.count).varInt(u.amplifier).varInt(u.cooldownSeconds).varInt(u.interestPct).varLong(u.amount)
 }
 
-private fun WireReader.unlock() = UnlockView(utf(32), utf(MAX_ID), varInt(), varLong())
+private fun WireReader.unlock() = UnlockView(utf(MAX_KEY), utf(MAX_ID), varInt(), varInt(), varInt(), varInt(), varLong())
 
 private fun WireWriter.node(n: NodeView) {
     utf(n.id, MAX_ID).utf(n.category, MAX_ID).utf(n.title, MAX_TEXT).utf(n.description, MAX_TEXT).utf(n.icon, MAX_ID)
@@ -158,7 +167,7 @@ object ResearchWire {
     fun encodeDefs(defs: DefsView, deflateAbove: Int = DEFLATE_ABOVE): ByteArray {
         val w = WireWriter()
         w.list(defs.trees) { w.tree(it) }
-        w.list(defs.extras.entries.toList()) { w.utf(it.key, 32).bytes(it.value) }
+        w.list(defs.extras.entries.toList()) { w.utf(it.key, MAX_KEY).bytes(it.value) }
         w.list(defs.levels) { level ->
             w.varInt(level.level).varLong(level.xp).list(level.rewards) { w.unlock(it) }
             w.list(level.requires) { w.utf(it, MAX_TEXT) }
@@ -169,13 +178,13 @@ object ResearchWire {
     fun decodeDefs(data: ByteArray): DefsView = WireReader(Blob.unpack(data, MAX_BYTES)).let { r ->
         DefsView(
             r.list(MAX_TREES) { r.tree() },
-            r.list(16) { r.utf(32) to r.bytes(MAX_BYTES) }.toMap(),
+            r.list(MAX_EXTRAS) { r.utf(MAX_KEY) to r.bytes(MAX_BYTES) }.toMap(),
             r.list(MAX_LEVELS) { LevelView(r.varInt(), r.varLong(), r.list(MAX_UNLOCKS) { r.unlock() }, r.list(MAX_LINKS) { r.utf(MAX_TEXT) }) }
         )
     }
 
     fun encodeState(s: StateView): ByteArray = WireWriter().apply {
-        utf(s.country, 64).varInt(s.level).varLong(s.xp).varLong(s.xpFloor).varLong(s.xpCeiling).varLong(s.treasury).bool(s.canManage)
+        utf(s.country, MAX_COUNTRY).varInt(s.level).varLong(s.xp).varLong(s.xpFloor).varLong(s.xpCeiling).varLong(s.treasury).bool(s.canManage)
         list(s.done) { utf(it, MAX_ID) }
         list(s.queue) { q ->
             utf(q.node, MAX_ID).varInt(q.state.ordinal).varLong(q.remainingMs).bool(q.paid)
@@ -193,45 +202,58 @@ object ResearchWire {
         list(s.tokens.entries.toList()) { utf(it.key, MAX_ID); varInt(it.value) }
         list(s.tokenCosts.entries.toList()) { utf(it.key, MAX_ID); varLong(it.value) }
         list(s.counters.entries.toList()) { utf(it.key, MAX_ID); varLong(it.value) }
-        bool(s.buffs.unlocked).varInt(s.buffs.points).varInt(s.buffs.used).varInt(s.buffs.surchargePerBorderChunk).varInt(s.buffs.borderChunks)
-        list(s.buffs.list) { b ->
-            utf(b.key, MAX_ID).utf(b.effect, MAX_ID).varInt(b.amplifier).utf(b.mode, 16).varInt(b.cooldownSeconds).varInt(b.cost).varInt(b.tax).bool(b.enabled)
-        }
-        bool(s.loans.unlocked).varInt(s.loans.slots).bool(s.loans.inDefault)
-        list(s.loans.active) { l -> utf(l.id, MAX_ID).varLong(l.principal).varLong(l.total).varLong(l.paid).varLong(l.perDay).varInt(l.daysLeft).varLong(l.overdue) }
-        list(s.loans.offers) { o ->
-            utf(o.id, MAX_ID).varLong(o.amount).varInt(o.interestPct).varInt(o.termDays).varLong(o.total).varLong(o.perDay).bool(o.unlocked).varInt(o.level).varInt(o.cooldownDays)
-        }
+        buffs(s.buffs)
+        loans(s.loans)
     }.toBytes()
 
     fun decodeState(data: ByteArray): StateView = WireReader(data).let { r ->
         StateView(
-            r.utf(64), r.varInt(), r.varLong(), r.varLong(), r.varLong(), r.varLong(), r.bool(),
-            r.list(MAX_NODES) { r.utf(MAX_ID) },
-            r.list(MAX_NODES) { QueueView(r.utf(MAX_ID), r.enum(NodeState.entries), r.varLong(), r.bool(), r.list(MAX_LINKS) { r.varLong() }) },
-            r.list(MAX_NODES) { r.utf(MAX_ID) },
+            r.utf(MAX_COUNTRY), r.varInt(), r.varLong(), r.varLong(), r.varLong(), r.varLong(), r.bool(),
+            r.list(MAX_STATE_NODES) { r.utf(MAX_ID) },
+            r.list(MAX_STATE_NODES) { QueueView(r.utf(MAX_ID), r.enum(NodeState.entries), r.varLong(), r.bool(), r.list(MAX_LINKS) { r.varLong() }) },
+            r.list(MAX_STATE_NODES) { r.utf(MAX_ID) },
             r.list(Capacity.entries.size) { r.varInt() },
             r.list(Capacity.entries.size) { r.varInt() },
             r.list(MAX_TREES) { r.utf(MAX_ID) },
-            r.list(MAX_NODES) { r.utf(MAX_ID) to r.list(MAX_LINKS + 1) { r.bool() } }.toMap(),
+            r.list(MAX_STATE_NODES) { r.utf(MAX_ID) to r.list(MAX_LINKS + 1) { r.bool() } }.toMap(),
             r.list(MAX_LEVELS) { r.list(MAX_LINKS) { r.bool() } },
             r.list(MAX_LINKS) { r.utf(MAX_ID) to r.varInt() }.toMap(),
             r.list(MAX_LINKS) { r.utf(MAX_ID) to r.varLong() }.toMap(),
-            r.list(MAX_LINKS) { r.utf(MAX_ID) to r.varLong() }.toMap(),
-            BuffsView(
-                r.bool(), r.varInt(), r.varInt(), r.varInt(), r.varInt(),
-                r.list(MAX_NODES) { BuffView(r.utf(MAX_ID), r.utf(MAX_ID), r.varInt(), r.utf(16), r.varInt(), r.varInt(), r.varInt(), r.bool()) }
-            ),
-            r.bool().let { unlocked ->
-                val slots = r.varInt()
-                val inDefault = r.bool()
-                LoansView(
-                    unlocked, slots,
-                    r.list(MAX_LINKS) { ActiveLoanView(r.utf(MAX_ID), r.varLong(), r.varLong(), r.varLong(), r.varLong(), r.varInt(), r.varLong()) },
-                    r.list(MAX_LINKS) { LoanOfferView(r.utf(MAX_ID), r.varLong(), r.varInt(), r.varInt(), r.varLong(), r.varLong(), r.bool(), r.varInt(), r.varInt()) },
-                    inDefault
-                )
-            }
+            r.list(MAX_COUNTERS) { r.utf(MAX_ID) to r.varLong() }.toMap(),
+            r.buffs(),
+            r.loans()
+        )
+    }
+
+    private fun WireWriter.buffs(b: BuffsView) {
+        bool(b.unlocked).varInt(b.points).varInt(b.used).varInt(b.surchargePerBorderChunk).varInt(b.borderChunks)
+        list(b.list) { buff ->
+            utf(buff.key, MAX_ID).utf(buff.effect, MAX_ID).varInt(buff.amplifier).utf(buff.mode, MAX_MODE).varInt(buff.cooldownSeconds).varInt(buff.cost).varInt(buff.tax).bool(buff.enabled)
+        }
+    }
+
+    private fun WireReader.buffs() = BuffsView(
+        bool(), varInt(), varInt(), varInt(), varInt(),
+        list(MAX_STATE_NODES) { BuffView(utf(MAX_ID), utf(MAX_ID), varInt(), utf(MAX_MODE), varInt(), varInt(), varInt(), bool()) }
+    )
+
+    private fun WireWriter.loans(l: LoansView) {
+        bool(l.unlocked).varInt(l.slots).bool(l.inDefault)
+        list(l.active) { a -> utf(a.id, MAX_ID).varLong(a.principal).varLong(a.total).varLong(a.paid).varLong(a.perDay).varInt(a.daysLeft).varLong(a.overdue) }
+        list(l.offers) { o ->
+            utf(o.id, MAX_ID).varLong(o.amount).varInt(o.interestPct).varInt(o.termDays).varLong(o.total).varLong(o.perDay).bool(o.unlocked).varInt(o.level).varInt(o.cooldownDays)
+        }
+    }
+
+    private fun WireReader.loans(): LoansView {
+        val unlocked = bool()
+        val slots = varInt()
+        val inDefault = bool()
+        return LoansView(
+            unlocked, slots,
+            list(MAX_LINKS) { ActiveLoanView(utf(MAX_ID), varLong(), varLong(), varLong(), varLong(), varInt(), varLong()) },
+            list(MAX_LINKS) { LoanOfferView(utf(MAX_ID), varLong(), varInt(), varInt(), varLong(), varLong(), bool(), varInt(), varInt()) },
+            inDefault
         )
     }
 }

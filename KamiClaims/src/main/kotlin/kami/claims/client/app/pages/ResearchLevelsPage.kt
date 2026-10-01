@@ -8,15 +8,17 @@ import kami.claims.net.LevelView
 import kami.claims.net.NodeView
 import kami.claims.net.UnlockView
 import kami.libs.ui.anim.anim
+import kami.libs.ui.anim.feel
 import kami.libs.ui.anim.burst
 import kami.libs.ui.anim.pulse
 import kami.libs.ui.anim.reveal
+import kami.libs.ui.anim.since
 import kami.libs.ui.app.Route
-import kami.libs.ui.core.Cursor
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Stack
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
+import kami.libs.ui.core.Memo
 import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
@@ -38,31 +40,23 @@ class ResearchLevelsPage(app: ClaimsApp) : ClaimsPage(app) {
     private var centered = false
     private var detailHeight = 0
     private var levelUp = false
-    private var popSince = 0.0
-    private var subscriptions = emptyList<() -> Unit>()
+    private var popTrigger = 0L
     private val cardRewards = HashMap<Int, CardContent>()
-    private val unlockedNodes = HashMap<Int, List<NodeView>>()
+    private val unlockedNodes = HashMap<Int, NodeChips>()
+    private val localeSeen = Memo()
+
+    private fun freshLocale() = localeSeen.of(Format.locale) { cardRewards.clear(); unlockedNodes.clear() }
 
     override fun opened(route: Route) {
-        unsubscribe()
-        subscriptions = listOf(
+        subscribe(
             ClientResearch.listen { cardRewards.clear(); unlockedNodes.clear() },
             ClientResearch.onChange { change -> if (change.leveledUp && app.isOpen) levelUp = true }
         )
         cardRewards.clear()
         unlockedNodes.clear()
+        popTrigger = 0L
         centered = false
         selected = null
-    }
-
-    override fun leaving(next: Route): Boolean {
-        unsubscribe()
-        return true
-    }
-
-    private fun unsubscribe() {
-        subscriptions.forEach { it() }
-        subscriptions = emptyList()
     }
 
     override fun draw(ui: Ui, r: Rect) {
@@ -83,7 +77,7 @@ class ResearchLevelsPage(app: ClaimsApp) : ClaimsPage(app) {
         val state = ClientResearch.state
         val width = PAD * 2 + levels.size * CARD_W + (levels.size - 1) * CARD_GAP
         val celebrate = levelUp
-        if (celebrate) { levelUp = false; centered = false; popSince = ui.time }
+        if (celebrate) { levelUp = false; centered = false; popTrigger++ }
         val scroll = ui.hstrip("levels-strip", r, width, CARD_W + CARD_GAP, snap = true) { area ->
             track(ui, area, levels.size)
             levels.forEach { level ->
@@ -94,9 +88,9 @@ class ResearchLevelsPage(app: ClaimsApp) : ClaimsPage(app) {
                     UiSound.levelUp()
                 }
                 if (card.right < r.x || card.x > r.right) return@forEach
-                if (ui.hovering(card)) ui.cursor = Cursor.HAND
-                if (ui.pressed(card) != null) selected = level.level
-                drawCard(ui, card, level, state.level, compact)
+                val content = content(level)
+                if (ui.clickable(content.cardKey, card)) selected = level.level
+                drawCard(ui, card, level, content, state.level, compact)
             }
         }
         if (!centered) { scroll.centerOn(PAD + (state.level - 1) * (CARD_W + CARD_GAP) + CARD_W / 2); centered = true }
@@ -124,34 +118,32 @@ class ResearchLevelsPage(app: ClaimsApp) : ClaimsPage(app) {
         }
     }
 
-    private fun drawCard(ui: Ui, slot: Rect, level: LevelView, current: Int, compact: Boolean) {
+    private fun drawCard(ui: Ui, slot: Rect, level: LevelView, content: CardContent, current: Int, compact: Boolean) {
         val isCurrent = level.level == current
-        val pop = if (isCurrent && !ui.reduceMotion) (sin(((ui.time - popSince) / POP_SECONDS).toFloat().coerceIn(0f, 1f) * PI) * POP_PX).toInt() else 0
+        val pop = if (isCurrent && popTrigger > 0) (sin((ui.since("level-pop", popTrigger) / 1000f / POP_SECONDS).coerceIn(0f, 1f) * PI) * POP_PX).toInt() else 0
         val card = slot.grow(pop)
-        val hover = ui.anim("level-hover:${level.level}", if (ui.hovering(slot)) 1f else 0f, speed = 16f)
-        val select = ui.anim("level-select:${level.level}", if (selected == level.level) 1f else 0f, speed = 16f)
+        val feel = ui.feel(content.feelKey, ui.hovering(slot), false, selected == level.level)
         val reached = level.level <= current
         val accent = when { isCurrent -> Palette.brass; reached -> Palette.success; else -> Palette.border }
         if (isCurrent) Draw.glow(ui.g, card, Palette.brass, 0.5f + 0.3f * ui.pulse(CURRENT_PULSE_MS))
-        Draw.box(ui.g, card, Palette.mix(if (isCurrent) Palette.selected else Palette.raised, Palette.hover, hover), Palette.mix(accent, Palette.brass, select))
+        Draw.box(ui.g, card, Palette.mix(if (isCurrent) Palette.selected else Palette.raised, Palette.hover, feel.hover), Palette.mix(accent, Palette.brass, feel.focus))
         val icon = when { isCurrent -> Icons.STAR; reached -> Icons.CHECK; else -> Icons.LOCK }
         Draw.leadIcon(ui.g, icon, card.right - STATE_ICON_X, card.y + STATE_ICON_Y, if (reached) accent else Palette.textMuted)
-        Draw.text(ui.g, tr("kami_claims.research.level", level.level), card.x + CARD_PAD, card.y + TITLE_Y, if (reached) Palette.text else Palette.textSecondary)
-        Draw.text(ui.g, Draw.fit(xpLabel(level), CARD_W - 2 * CARD_PAD - Draw.ICON_SLOT), card.x + CARD_PAD, card.y + XP_Y, Palette.textMuted)
-        rewards(ui, card, level, if (compact) 1 else LINES, if (compact) REQUIREMENT_LINES_COMPACT else REQUIREMENT_LINES)
+        Draw.text(ui.g, content.title, card.x + CARD_PAD, card.y + TITLE_Y, if (reached) Palette.text else Palette.textSecondary)
+        Draw.text(ui.g, Draw.fit(content.xp, CARD_W - 2 * CARD_PAD - Draw.ICON_SLOT), card.x + CARD_PAD, card.y + XP_Y, Palette.textMuted)
+        rewards(ui, card, content, if (compact) 1 else LINES, if (compact) REQUIREMENT_LINES_COMPACT else REQUIREMENT_LINES)
         if (isCurrent && (ClientResearch.xpTracked || ClientResearch.atMaxLevel)) progressStrip(ui, card)
         if (!reached) Draw.fill(ui.g, card.inset(1), Palette.alpha(Palette.surface, 0x70))
     }
 
-    private fun rewards(ui: Ui, card: Rect, level: LevelView, lines: Int, requirementLines: Int) {
-        val content = cardRewards.getOrPut(level.level) { cardContent(level) }
+    private fun rewards(ui: Ui, card: Rect, content: CardContent, lines: Int, requirementLines: Int) {
         val shownRequirements = content.requirements.take(requirementLines)
         shownRequirements.forEachIndexed { i, (text, met) ->
             ui.requirementRow(Rect(card.x + CARD_PAD, card.y + REQUIREMENT_Y + i * REQUIREMENT_STEP, CARD_W - 2 * CARD_PAD, REQUIREMENT_STEP), text, met)
         }
         val itemsTop = card.y + REQUIREMENT_Y + shownRequirements.size * REQUIREMENT_STEP + if (shownRequirements.isEmpty()) 0 else REQUIREMENT_GAP
         content.items.forEachIndexed { i, unlock ->
-            ui.itemSlot(Rect(card.x + CARD_PAD + i * ITEM_STEP, itemsTop, ITEM_SLOT, ITEM_SLOT), stackOf(unlock.id), key = "level-item:${level.level}:$i")
+            ui.itemSlot(Rect(card.x + CARD_PAD + i * ITEM_STEP, itemsTop, ITEM_SLOT, ITEM_SLOT), stackOf(unlock.id), key = content.itemKeys[i])
         }
         val rest = content.rest
         val hidden = rest.size - lines
@@ -165,14 +157,20 @@ class ResearchLevelsPage(app: ClaimsApp) : ClaimsPage(app) {
         if (hidden > 0) Draw.text(ui.g, tr("kami_claims.research.levels.more", hidden + 1), card.x + CARD_PAD, top + shown.size * Draw.LINE, Palette.textMuted)
     }
 
+    private fun content(level: LevelView): CardContent { freshLocale(); return cardRewards.getOrPut(level.level) { cardContent(level) } }
+
     private fun cardContent(level: LevelView): CardContent {
         val (items, others) = level.rewards.partition(::isItemUnlock)
         val requirements = ClientResearch.levelRequirements(level.level).map { (phrase, met) -> phrase.resolve() to met }
-        return CardContent(items.take(ITEMS_PER_CARD), others + items.drop(ITEMS_PER_CARD), requirements)
+        val shownItems = items.take(ITEMS_PER_CARD)
+        val xp = if (level.xp == 0L) tr("kami_claims.research.levels.requirements_only") else tr("kami_claims.research.levels.xp_needed", Format.number(level.xp))
+        return CardContent(tr("kami_claims.research.level", level.level), xp, "level-card:${level.level}", "level:${level.level}", shownItems, shownItems.indices.map { "level-item:${level.level}:$it" }, others + items.drop(ITEMS_PER_CARD), requirements)
     }
 
-    private fun xpLabel(level: LevelView) =
-        if (level.xp == 0L) tr("kami_claims.research.levels.requirements_only") else tr("kami_claims.research.levels.xp_needed", Format.number(level.xp))
+    private fun nodeChips(level: LevelView): NodeChips { freshLocale(); return unlockedNodes.getOrPut(level.level) {
+        val nodes = ClientResearch.trees.flatMap { it.nodes }.filter { it.level == level.level }
+        NodeChips(nodes, nodes.map { nodeChip(it.key, it.label().resolve()) })
+    } }
 
     private fun progressStrip(ui: Ui, card: Rect) {
         val fraction = if (ClientResearch.xpTracked) ClientResearch.xpFraction else 1f
@@ -189,12 +187,13 @@ class ResearchLevelsPage(app: ClaimsApp) : ClaimsPage(app) {
             level.level == current -> tr("kami_claims.research.levels.current") to Severity.INFO
             else -> tr("kami_claims.research.levels.locked") to Severity.NEUTRAL
         }
-        val title = tr("kami_claims.research.level", level.level)
+        val content = content(level)
+        val title = content.title
         Draw.text(ui.g, title, heading.x, heading.y + HEADING_TEXT_Y, TextStyle.HEADING)
         ui.statusPill(heading.x + Draw.width(title, TextStyle.HEADING) + PILL_GAP, heading.y + HEADING_TEXT_Y, stateLabel, severity, key = "levels-state")
-        Draw.textRight(ui.g, xpLabel(level), heading.right, heading.y + HEADING_XP_Y, Palette.textMuted)
+        Draw.textRight(ui.g, content.xp, heading.right, heading.y + HEADING_XP_Y, Palette.textMuted)
         ui.scroll("levels-detail", area.dropTop(HEADING_H + DETAIL_GAP), detailHeight) { view ->
-            val unlocked = unlockedNodes.getOrPut(level.level) { ClientResearch.trees.flatMap { it.nodes }.filter { it.level == level.level } }
+            val unlocked = nodeChips(level)
             val rewards = { stack: Stack -> requirementsSection(ui, stack, level); rewardsSection(ui, stack, level) }
             val nodes = { stack: Stack -> nodesSection(ui, stack, level, unlocked) }
             if (view.w < SINGLE_COLUMN_W) {
@@ -227,11 +226,11 @@ class ResearchLevelsPage(app: ClaimsApp) : ClaimsPage(app) {
         else ui.unlockList(stack, level.rewards, "level-rewards:${level.level}")
     }
 
-    private fun nodesSection(ui: Ui, stack: Stack, level: LevelView, unlocked: List<NodeView>) {
+    private fun nodesSection(ui: Ui, stack: Stack, level: LevelView, unlocked: NodeChips) {
         ui.section(stack, tr("kami_claims.research.levels.nodes"))
-        if (unlocked.isEmpty()) emptyLine(ui, stack, tr("kami_claims.research.levels.no_nodes"))
-        else ui.chipFlow(stack, unlocked.map { nodeChip(it.key, it.label().resolve()) }, "level-nodes:${level.level}")
-            ?.let { app.navigate(Route("research", focus = unlocked[it].key)) }
+        if (unlocked.nodes.isEmpty()) emptyLine(ui, stack, tr("kami_claims.research.levels.no_nodes"))
+        else ui.chipFlow(stack, unlocked.chips, "level-nodes:${level.level}")
+            ?.let { app.navigate(Route("research", focus = unlocked.nodes[it].key)) }
     }
 
     private fun nodeChip(key: String, label: String): ChipSpec {
@@ -244,7 +243,9 @@ class ResearchLevelsPage(app: ClaimsApp) : ClaimsPage(app) {
     }
 }
 
-private data class CardContent(val items: List<UnlockView>, val rest: List<UnlockView>, val requirements: List<Pair<String, Boolean>>)
+private class CardContent(val title: String, val xp: String, val cardKey: String, val feelKey: String, val items: List<UnlockView>, val itemKeys: List<String>, val rest: List<UnlockView>, val requirements: List<Pair<String, Boolean>>)
+
+private class NodeChips(val nodes: List<NodeView>, val chips: List<ChipSpec>)
 
 private const val PAD = 4
 private const val CARD_W = 104

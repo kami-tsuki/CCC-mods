@@ -11,7 +11,9 @@ class Terms(val taxPct: Int, val tariffPct: Int, val relation: Relation) {
 }
 
 object Trade {
-    fun country(player: String): String? = runCatching { UUID.fromString(player) }.getOrNull()?.let { ClaimsApi.countryOf(it) }
+    fun uuid(player: String): UUID? = runCatching { UUID.fromString(player) }.getOrNull()
+
+    fun country(player: String): String? = uuid(player)?.let { ClaimsApi.countryOf(it) }
 
     fun terms(buyer: String, seller: String): Terms {
         val a = country(buyer)

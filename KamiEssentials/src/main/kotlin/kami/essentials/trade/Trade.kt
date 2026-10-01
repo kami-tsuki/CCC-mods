@@ -4,6 +4,7 @@ import kami.essentials.Config
 import kami.essentials.chat.Talk
 import kami.libs.chat.tell
 import kami.libs.claims.ClaimsApi
+import kami.libs.claims.Relation
 import kami.libs.economy.MarketApi
 import kami.libs.progress.KamiProgress
 import kami.libs.text.Phrase
@@ -75,6 +76,7 @@ class Trade(val players: List<ServerPlayer>) {
     }
 
     private fun finish() {
+        if (embargoed()) return cancel(null, Phrase.of("kami_essentials.trade.reason.embargo"))
         val full = players.indices.firstOrNull { side -> !fits(players[side], offers[1 - side].items) }
         if (full != null) {
             changed()
@@ -84,8 +86,8 @@ class Trade(val players: List<ServerPlayer>) {
         val items = offers.map { it.removeAllItems() }
         players.forEachIndexed { side, p -> give(p, items[1 - side]) }
         end()
-        if (items.none { it.isEmpty() } && players.map { ClaimsApi.countryOf(it.uuid) }.distinct().size == players.size) {
-            val value = items.flatten().sumOf { MarketApi.value(it) * it.count }
+        if (items.none { it.isEmpty() } && neutralCountries()) {
+            val value = items.flatten().sumOf { MarketApi.value(it) }
             val count = items.sumOf { list -> list.sumOf { it.count } }.toLong()
             players.forEach {
                 KamiProgress.post(it, "trade", "", count)
@@ -95,6 +97,16 @@ class Trade(val players: List<ServerPlayer>) {
         players.forEachIndexed { side, p ->
             p.tell(Talk.chat.ok(Phrase.of("kami_essentials.trade.done", Phrase.value(name(1 - side)), Phrase.value(items[1 - side].sumOf { it.count }), Phrase.value(items[side].sumOf { it.count }))))
         }
+    }
+
+    private fun neutralCountries(): Boolean {
+        val (a, b) = players.map { ClaimsApi.countryOf(it.uuid) }
+        return a != null && b != null && a != b && ClaimsApi.relation(a, b) == Relation.NEUTRAL
+    }
+
+    private fun embargoed(): Boolean {
+        val (a, b) = players.map { ClaimsApi.countryOf(it.uuid) }
+        return a != null && b != null && !ClaimsApi.canTrade(a, b)
     }
 
     private fun end() {

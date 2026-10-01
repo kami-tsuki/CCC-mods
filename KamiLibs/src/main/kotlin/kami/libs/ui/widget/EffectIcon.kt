@@ -9,7 +9,7 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.effect.MobEffect
 
-const val EFFECT_ICON = 18
+private const val EFFECT_ICON = 18
 
 private val holders = HashMap<String, Holder<MobEffect>?>()
 private val names = HashMap<String, String>()

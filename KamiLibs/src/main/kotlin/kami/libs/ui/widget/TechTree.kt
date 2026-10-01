@@ -70,7 +70,7 @@ private const val READY_GLOW_SWING = 0.4f
 private const val LIFT_SHADOW_AT = 0.5f
 private val LOCAL = Rect(0, 0, TECH_NODE_W, TECH_NODE_H)
 private val LOCK_BADGE = Rect(LOCK_X, LOCK_Y, LOCK_SIZE, LOCK_SIZE)
-private val BAR =Rect(TEXT_PAD, TECH_NODE_H - BAR_BOTTOM, TECH_NODE_W - 2 * TEXT_PAD, BAR_H)
+private val BAR = Rect(TEXT_PAD, TECH_NODE_H - BAR_BOTTOM, TECH_NODE_W - 2 * TEXT_PAD, BAR_H)
 
 class TechNode(
     val label: String,
@@ -80,7 +80,6 @@ class TechNode(
     val done: Boolean = false,
     val dim: Boolean = false,
     val status: Icon? = null,
-    val lock: String? = null,
     val progress: Double? = null,
     val highlight: Boolean = false,
     val pinned: Cell? = null,
@@ -93,7 +92,7 @@ class TechNode(
     val hidden: Set<Int> = emptySet(),
     val group: Int = 0
 ) {
-    val locked get() = lock != null || status == Icons.LOCK
+    val locked get() = status == Icons.LOCK
     val textX get() = if (item.isEmpty) TEXT_PAD else ITEM_TEXT_X
 }
 
@@ -454,7 +453,6 @@ private fun Ui.drawNode(node: TechNode, index: Int, x: Int, y: Int, zoom: Double
     }
     if (!overview) {
         if (!node.locked) node.status?.let { Draw.leadIcon(g, it, TECH_NODE_W - STATUS_ICON_X, STATUS_ICON_Y, node.accent) }
-        node.lock?.let { Draw.text(g, it, node.textX, TIME_Y, Palette.warning) }
     }
     val countdown = node.countdown
     if (countdown != null) {
@@ -463,7 +461,7 @@ private fun Ui.drawNode(node: TechNode, index: Int, x: Int, y: Int, zoom: Double
         val tone = if (paused) Palette.textMuted else Palette.brass
         Draw.thinBar(g, BAR, fraction, tone)
         if (paused) Draw.hatch(g, BAR.withWidth((BAR.w * fraction).toInt()), Palette.alpha(Palette.canvas, PAUSED_ALPHA), HATCH_SPACING)
-        if (!overview && node.lock == null) Draw.text(g, state.timeLeft(index, countdown.remaining(wallMillis)), node.textX, TIME_Y, tone)
+        if (!overview) Draw.text(g, state.timeLeft(index, countdown.remaining(wallMillis)), node.textX, TIME_Y, tone)
     } else node.progress?.let { Draw.thinBar(g, BAR, it.toFloat(), TASK_BAR) }
     val faded = state.fadeOf(index)
     if (faded > 0.02f) {

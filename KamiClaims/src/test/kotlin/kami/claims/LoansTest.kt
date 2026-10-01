@@ -2,6 +2,7 @@ package kami.claims
 
 import kami.claims.research.*
 import kami.claims.service.Fail
+import kami.libs.config.Configs
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -18,17 +19,25 @@ class LoansTest {
         Levels.day = { kami.claims.today() }
     }
 
+    private val json = Configs.json()
+
+    private fun node(id: String, unlock: String) = """{"id":"$id","category":"c","unlocks":[$unlock]}"""
+
+    private fun loan(id: String, amount: Int, pct: Int, days: Int, slots: Int = 0) =
+        node("loan_$id", """{"type":"loan","id":"$id","amount":$amount,"interestPct":$pct,"termDays":$days}""" + if (slots > 0) """,{"type":"loan_slots","add":$slots}""" else "")
+
     private fun country(treasury: Long, vararg done: String): Country {
-        val built = Validator.build(ResearchSettings(), LevelsConfig(), Defaults.groups, Defaults.trees)
-        assertEquals(emptyList(), built.problems.filter { it.contains("buffs") })
-        Research.defs = built.defs
+        val nodes = listOf(loan("small", 1_000, 30, 7, slots = 1), loan("medium", 10_000, 10, 10), loan("large", 50_000, 10, 30), node("loan_slot_1", """{"type":"loan_slots","add":1}"""))
+        val tree = json.decodeFromString(TreeFile.serializer(), """{"categories":[{"id":"c"}],"nodes":[${nodes.joinToString(",")}]}""")
+        val levels = LevelsConfig(rules = emptyMap(), capacities = mapOf(Capacity.TREASURY to 10_000))
+        Research.defs = Validator.build(ResearchSettings(baseline = emptyList()), levels, emptyMap(), mapOf("t" to tree)).defs
         Realm.reset(Data())
         Levels.day = { today }
         today = 0
         val c = Country("lender", treasury = treasury)
         Realm.data.countries[c.id] = c
         Realm.join(c, "p1", Rank.PRESIDENT)
-        done.forEach { c.research.done["buffs:$it"] = 0 }
+        done.forEach { c.research.done["t:$it"] = 0 }
         return c
     }
 
@@ -101,5 +110,38 @@ class LoansTest {
         today = 7
         Loans.take(c, "small", "p1")
         assertEquals(1, c.loans.size)
+    }
+
+    @Test
+    fun takeIsAllowedExactlyAtTheRoomLeft() {
+        val c = country(9_001, "loan_small", "loan_slot_1")
+        assertFailsWith<Fail> { Loans.take(c, "small", "p1") }
+        c.treasury = 9_000
+        Loans.take(c, "small", "p1")
+        assertEquals(10_000L, c.treasury)
+    }
+
+    @Test
+    fun insolventCollectChargesTheFeeOnTheMissedInstallmentOnly() {
+        val c = country(0, "loan_small")
+        c.loans += Loan("small", 1_000, 1_300, 0, 186, 0)
+        Loans.collect(c, 1)
+        val loan = c.loans.single()
+        val fee = (186 * 10 + 99) / 100
+        assertEquals(0L, loan.paid)
+        assertEquals(1_300L + fee, loan.total)
+        assertEquals(186L + fee, loan.overdue)
+        assertTrue(Loans.inDefault(c))
+        Loans.collect(c, 2)
+        assertEquals(1_300L + 2 * fee, loan.total)
+        assertEquals(186L + fee + 186 + fee, loan.overdue)
+    }
+
+    @Test
+    fun provincesCannotTakeLoans() {
+        val c = country(5_000, "loan_small")
+        c.parent = "capital"
+        assertFailsWith<Fail> { Loans.take(c, "small", "p1") }
+        assertTrue(c.loans.isEmpty())
     }
 }

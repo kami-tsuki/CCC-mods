@@ -69,7 +69,7 @@ object ClientClaims {
                     "tourDone" to "The guided tour was finished or skipped.",
                     "skipClaimConfirm" to "Claim without a confirmation when the treasury lasts at least 7 more days.",
                     "dismissed" to "Alerts you dismissed.",
-                    "hiddenSteps" to "The next steps checklist is hidden.",
+                    "hiddenSteps" to "The goals checklist is hidden.",
                     "denialTips" to "How often the border tip was shown after a blocked action.",
                     "collapsedGroups" to "Navigation groups you collapsed."
                 )

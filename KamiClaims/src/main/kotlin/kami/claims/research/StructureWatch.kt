@@ -33,7 +33,7 @@ object Structures {
         for (player in players) {
             if (player is FakePlayer || (tick + player.id) % PERIOD != 0) continue
             val entered = watch.observe(player.uuid, sightingAt(player)) ?: continue
-            Progress.of(player)?.let { Progress.structureEntered(it, entered.id, entered.tags) }
+            Progress.structureEntered(player, entered.id, entered.tags)
         }
     }
 

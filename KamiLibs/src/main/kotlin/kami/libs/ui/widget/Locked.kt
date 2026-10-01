@@ -16,6 +16,8 @@ import kami.libs.ui.style.UiSound
 import kami.libs.ui.text.tr
 
 class Lock(val label: String, val how: String? = null) {
+    val reason get() = how ?: label
+
     companion object {
         fun level(level: Int, what: String? = null) = Lock(
             tr("kami_libs.lock.ui.level", level),
@@ -50,7 +52,10 @@ internal fun Ui.lockClick(r: Rect, lock: Lock): Boolean {
 
 fun Ui.locked(r: Rect, lock: Lock?, key: Any = "locked", draw: (Rect) -> Unit): Boolean {
     draw(r)
-    if (lock == null) return false
+    return lock != null && lockVeil(r, lock, key)
+}
+
+fun Ui.lockVeil(r: Rect, lock: Lock, key: Any = "locked"): Boolean {
     Draw.fill(g, r, Palette.alpha(Palette.canvas, VEIL_ALPHA))
     val reveal = anim("$key:reveal", if (hover(key, r)) 1f else 0f, 16f)
     lockChip(r.right - lockChipWidth(lock) - 3, r.y + 3, lock, "$key:chip")
@@ -69,7 +74,7 @@ fun Ui.lockedButton(
     disabledReason: String? = null, tip: String? = null, pending: Boolean = false, key: Any = label
 ): Boolean {
     if (lock == null) return button(r, label, icon, style, enabled, disabledReason, tip, pending, key)
-    button(r, label, Icons.LOCK, style, false, lock.how ?: lock.label, key = key)
+    button(r, label, Icons.LOCK, style, false, lock.reason, key = key)
     lockClick(r, lock)
     return false
 }
@@ -95,15 +100,19 @@ fun Ui.lockedPanel(r: Rect, title: String, teaser: String, lock: Lock, icon: Ico
     tooltip(key, r, lock.how)
 }
 
+private fun Ui.capacityNext(x: Int, r: Rect, next: Lock, full: Boolean, reserve: Int) {
+    val color = if (full) Palette.warning else Palette.textMuted
+    val textX = x + Draw.leadIcon(g, Icons.LOCK, x, r.centerY, color) + 1
+    Draw.text(g, Draw.fit(next.label, r.right - textX - reserve), textX, r.y + 1, color)
+}
+
 fun Ui.capacityRow(stack: Stack, label: String, used: Int, max: Int, next: Lock?, key: Any = "capacity:$label") {
     val full = max > 0 && used >= max
-    progressBar(stack.take(CAPACITY_BAR_H), used.toLong(), max.toLong(), label, null, if (used * 10L >= max * 9L) Palette.warning else Palette.brass, Palette.warning, key = key)
+    progressBar(stack.take(CAPACITY_BAR_H), used.toLong(), max.toLong(), label, null, if (max > 0 && used * 10L >= max * 9L) Palette.warning else Palette.brass, Palette.warning, key = key)
     if (next == null) return
     val hint = stack.take(CAPACITY_HINT_H)
-    val color = if (full) Palette.warning else Palette.textMuted
-    val x = hint.x + Draw.leadIcon(g, Icons.LOCK, hint.x, hint.centerY, color) + 1
     if (full) Draw.text(g, tr("kami_libs.lock.ui.full"), hint.right - Draw.width(tr("kami_libs.lock.ui.full")), hint.y + 1, Palette.warning)
-    Draw.text(g, Draw.fit(next.label, hint.right - x - 40), x, hint.y + 1, color)
+    capacityNext(hint.x, hint, next, full, 40)
     tooltip("$key:next", hint, next.how)
 }
 
@@ -113,11 +122,7 @@ fun Ui.capacityLine(r: Rect, label: String, used: Int, max: Int, next: Lock?, ke
     Draw.text(g, label, r.x, r.y + 1, Palette.textSecondary)
     val x = r.x + Draw.width(label) + 6
     Draw.text(g, count, x, r.y + 1, if (full) Palette.warning else Palette.text)
-    if (next != null) {
-        val hintX = x + Draw.width(count) + 6
-        val color = if (full) Palette.warning else Palette.textMuted
-        val textX = hintX + Draw.leadIcon(g, Icons.LOCK, hintX, r.centerY, color) + 1
-        Draw.text(g, Draw.fit(next.label, r.right - textX), textX, r.y + 1, color)
-        tooltip(key, r, next.how)
-    }
+    if (next == null) return
+    capacityNext(x + Draw.width(count) + 6, r, next, full, 0)
+    tooltip(key, r, next.how)
 }

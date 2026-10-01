@@ -5,10 +5,12 @@ import kami.libs.ui.anim.anim
 import kami.libs.ui.text.tr
 import kami.libs.ui.core.Cursor
 import kami.libs.ui.core.Key
+import kami.libs.ui.core.Memo
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
+import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icon
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
@@ -18,6 +20,7 @@ import kami.libs.ui.style.TextStyle
 import kami.libs.ui.style.UiSound
 import kami.libs.ui.widget.Lock
 import kami.libs.ui.widget.badge
+import kami.libs.ui.widget.clickable
 import kami.libs.ui.widget.iconButton
 import kami.libs.ui.widget.scroll
 import net.minecraft.client.gui.GuiGraphics
@@ -32,8 +35,13 @@ data class Route(val page: String, val params: Map<String, String> = emptyMap(),
 }
 
 class NavBadge(val count: Int, val severity: Severity)
-class NavItem(val page: String, val label: String, val icon: Icon, val badge: () -> NavBadge? = { null }, val lock: () -> String? = { null }, val teaser: () -> Lock? = { null })
-class NavGroup(val label: String, val items: List<NavItem>, val id: String = label, val collapsible: Boolean = false)
+class NavItem(val page: String, val label: String, val icon: Icon, val badge: () -> NavBadge? = { null }, val lock: () -> String? = { null }, val teaser: () -> Lock? = { null }) {
+    val key = "nav:$page"
+}
+class NavGroup(val label: String, val items: List<NavItem>, val id: String = label, val collapsible: Boolean = false) {
+    val openKey = "nav-open:$id"
+    val headerKey = "navgroup:$id"
+}
 
 abstract class Page {
     abstract val title: String
@@ -79,7 +87,10 @@ abstract class KamiApp {
     private var revealPage: String? = null
     private val navY = HashMap<String, Int>()
 
-    abstract fun nav(): List<NavGroup>
+    private val navMemo = Memo()
+    protected open val navKey: Any? get() = null
+    protected abstract fun buildNav(): List<NavGroup>
+    fun nav(): List<NavGroup> = navMemo.of(Format.locale, navKey) { buildNav() }
     abstract fun create(id: String): Page
     fun page(id: String): Page = pages.getOrPut(id) { create(id) }
     abstract fun topBar(ui: Ui, r: Rect)
@@ -173,7 +184,7 @@ abstract class KamiApp {
     private fun sidebar(r: Rect) {
         Draw.sprite(ui.g, Sprites.SIDEBAR, r)
         val groups = nav()
-        val opens = groups.map { ui.anim("nav-open:${it.id}", if (isCollapsed(it)) 0f else 1f, 14f) }
+        val opens = groups.map { ui.anim(it.openKey, if (isCollapsed(it)) 0f else 1f, 14f) }
         val height = groups.withIndex().sumOf { (i, group) ->
             (if (!compact) GROUP_H else if (i > 0) 4 else 0) + group.items.sumOf { rowHeight(it, opens[i]) } + 4
         }
@@ -213,11 +224,10 @@ abstract class KamiApp {
             Draw.text(ui.g, group.label.uppercase(), r.x + 7, r.y + 3, Palette.textMuted)
             return
         }
-        val key = "navgroup:${group.id}"
+        val key = group.headerKey
         val collapsed = isCollapsed(group)
-        val hover = ui.hover(key, r)
-        ui.focusable(key)
-        if (hover) { ui.cursor = Cursor.HAND; Draw.fill(ui.g, r, Palette.hover) }
+        val hit = ui.clickable(key, r)
+        if (ui.hovering(r)) Draw.fill(ui.g, r, Palette.hover)
         val chevron = if (collapsed) Icons.CHEVRON_RIGHT else Icons.CHEVRON_DOWN
         Draw.tintedIcon(ui.g, chevron, r.x, r.y + (r.h - Draw.ICON) / 2, Draw.ICON, Palette.textMuted)
         val badge = if (collapsed) collapsedBadge(group) else null
@@ -226,7 +236,7 @@ abstract class KamiApp {
         val room = r.w - 18 - (label?.let { Draw.width(it) + 14 } ?: 0)
         Draw.text(ui.g, Draw.fit(group.label.uppercase(), room), r.x + 16, r.y + 3, Palette.textMuted)
         ui.focusRing(key, r)
-        if (ui.pressed(r) != null || ui.activatedByKey(key)) toggle(group)
+        if (hit) toggle(group)
     }
 
     private fun badgeLabel(count: Int) = if (count > 99) "99+" else count.toString()
@@ -248,9 +258,10 @@ abstract class KamiApp {
         val lock = item.lock()
         val teaser = item.teaser()
         val active = route.page == item.page
-        val hover = ui.hover("nav:${item.page}", r)
-        ui.anchor("nav:${item.page}", r)
-        ui.focusable("nav:${item.page}")
+        val key = item.key
+        val hover = ui.hover(key, r)
+        ui.anchor(key, r)
+        ui.focusable(key)
         if (hover) ui.cursor = Cursor.HAND
         if (hover && !active) Draw.fill(ui.g, r, Palette.hover)
         val iconX = if (compact) r.x + (r.w - Draw.ICON) / 2 else r.x + 4
@@ -272,17 +283,17 @@ abstract class KamiApp {
             val label = badgeLabel(b.count)
             if (compact) ui.badge(r.right - 10, r.y, label, b.severity) else ui.badge(r.right - Draw.width(label) - 9, r.y + (r.h - 10) / 2, label, b.severity)
         }
-        ui.tooltip("nav:${item.page}", r) {
+        ui.tooltip(key, r) {
             when {
                 lock != null -> Tip(item.label, listOf(lock to Palette.warning), Severity.WARNING, Icons.LOCK)
-                teaser != null -> Tip(item.label, listOf((teaser.how ?: teaser.label) to Palette.warning), Severity.WARNING, Icons.LOCK)
+                teaser != null -> Tip(item.label, listOf(teaser.reason to Palette.warning), Severity.WARNING, Icons.LOCK)
                 compact -> Tip.text(groupOf(item.page)?.label ?: "", item.label)
                 shown != item.label -> Tip.text(item.label)
                 else -> null
             }
         }
-        ui.focusRing("nav:${item.page}", r)
-        if (lock == null && (ui.pressed(r) != null || ui.activatedByKey("nav:${item.page}"))) navigate(Route(item.page))
+        ui.focusRing(key, r)
+        if (lock == null && (ui.pressed(r) != null || ui.activatedByKey(key))) navigate(Route(item.page))
     }
 
     private fun breadcrumbs(r: Rect, current: Page) {

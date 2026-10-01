@@ -60,7 +60,7 @@ class MarketApp(snap: Snap) : KamiApp() {
         if (notify && next.msg.isNotEmpty()) toast(if (next.ok) Severity.SUCCESS else Severity.DANGER, trJson(next.msg))
     }
 
-    override fun nav() = listOf(NavGroup(tr("kami_economy.market.title"), listOf(
+    override fun buildNav() = listOf(NavGroup(tr("kami_economy.market.title"), listOf(
         NavItem("browse", tr("kami_economy.market.tab.browse"), Icons.SEARCH),
         NavItem("sell", tr("kami_economy.market.tab.sell"), Icons.CHEST),
         NavItem("orders", tr("kami_economy.market.tab.orders"), Icons.LEDGER, { snap.orders.size.takeIf { it > 0 }?.let { NavBadge(it, Severity.INFO) } }),

@@ -4,6 +4,7 @@ import kami.claims.client.ClientHooks
 import kami.claims.command.ClaimsCommands
 import kami.claims.net.Net
 import kami.claims.research.Features
+import kami.claims.research.Gate
 import kami.claims.research.Goals
 import kami.claims.research.Levels
 import kami.claims.research.Listeners
@@ -25,7 +26,6 @@ import kami.libs.claims.FlagInfo
 import kami.libs.claims.Goal
 import kami.libs.claims.Locks
 import kami.libs.claims.Relation
-import kami.libs.claims.TreasuryKind
 import kami.claims.service.Diplomacy
 import kami.claims.service.View
 import kami.libs.config.Configs
@@ -94,10 +94,12 @@ object KamiClaims {
                     return Diplomacy.tariff(x, y)
                 }
 
-                override fun level(player: UUID): Int? = Realm.of(player.toString())?.level
+                override fun level(player: UUID): Int? = Realm.of(player.toString())?.let(Research::level)
 
-                override fun lock(player: UUID, feature: String): Phrase? =
-                    Realm.of(player.toString())?.let { Features.lockReason(it, feature) } ?: Locks.noCountry()
+                override fun lock(player: UUID, feature: String): Phrase? {
+                    val c = Realm.of(player.toString()) ?: return Locks.noCountry()
+                    return Features.lockReason(c, feature)
+                }
 
                 override fun limit(player: UUID, key: String, used: Int): Phrase? {
                     val c = Realm.of(player.toString()) ?: return Locks.noCountry()
@@ -106,19 +108,15 @@ object KamiClaims {
 
                 override fun goals(player: UUID): List<Goal> = Realm.of(player.toString())?.let(Goals::of).orEmpty()
 
-                override fun allowedRecipe(country: String?, recipe: ResourceLocation) = Research.allowed(Realm.country(country), recipe)
+                override fun allowedRecipe(country: String?, recipe: ResourceLocation) = Gate.recipe(Realm.country(country), recipe)
 
-                override fun allowedBlock(country: String?, block: ResourceLocation) = Research.allowedBlock(Realm.country(country), block)
+                override fun allowedBlock(country: String?, block: ResourceLocation) = Gate.block(Realm.country(country), block)
 
                 override fun capacity(player: UUID, key: String): Int? = Realm.of(player.toString())?.let { c ->
                     Goals.capacity(key)?.let { Levels.capacity(c, it) }
                 }
 
-                override fun credit(country: String, amount: Long, kind: TreasuryKind): Long {
-                    val c = Realm.country(country) ?: return 0
-                    Diplomacy.credit(c, amount, LedgerKind.valueOf(kind.name))
-                    return amount.coerceAtLeast(0)
-                }
+                override fun creditTariff(country: String, amount: Long): Long = Realm.country(country)?.let { Diplomacy.creditTariff(it, amount) } ?: 0
             })
         }
         MOD_BUS.addListener<RegisterPayloadHandlersEvent> { Net.register(it) }
@@ -146,6 +144,7 @@ object KamiClaims {
         FORGE_BUS.addListener<BlockEvent.BreakEvent> { Guard.onBreak(it) }
         FORGE_BUS.addListener<BlockEvent.EntityPlaceEvent> { Guard.onPlace(it) }
         FORGE_BUS.addListener<PlayerInteractEvent.RightClickBlock> { Guard.onUse(it) }
+        FORGE_BUS.addListener<PlayerInteractEvent.RightClickItem> { Guard.onUseItem(it) }
         FORGE_BUS.addListener<PlayerInteractEvent.EntityInteract> { Guard.onEntityUse(it) }
         FORGE_BUS.addListener<PlayerInteractEvent.EntityInteractSpecific> { Guard.onEntityUse(it) }
         FORGE_BUS.addListener<AttackEntityEvent> { Guard.onAttack(it) }

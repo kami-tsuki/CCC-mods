@@ -22,7 +22,7 @@ class LoanOffer(val node: Node, val unlock: LoanUnlock) {
 }
 
 object Loans {
-    const val COOLDOWN_DAYS = 7
+    private const val COOLDOWN_DAYS = 7
     private const val LATE_FEE_PCT = 10
 
     fun offers(): List<LoanOffer> =
@@ -30,9 +30,7 @@ object Loans {
 
     fun unlocked(country: Country, offer: LoanOffer) = offer.node.key in country.research.done
 
-    fun slots(country: Country): Int = country.research.done.keys.sumOf { key ->
-        Research.defs.node(key)?.unlocks.orEmpty().filterIsInstance<LoanSlotsUnlock>().sumOf { it.add }
-    }
+    fun slots(country: Country): Int = Research.unlocks<LoanSlotsUnlock>(country).sumOf { it.add }
 
     fun inDefault(country: Country) = country.loans.any { it.overdue > 0 }
 
@@ -43,12 +41,13 @@ object Loans {
     fun cooldownDays(country: Country, id: String, day: Long): Int =
         country.loanCooldowns[id]?.let { (it + COOLDOWN_DAYS - day).coerceAtLeast(0).toInt() } ?: 0
 
-    fun requireNoLoans(country: Country) {
-        if (country.loans.isNotEmpty()) throw Fail("kami_claims.loans.error.withdraw")
+    fun requireNoLoans(country: Country, key: String = "kami_claims.loans.error.withdraw") {
+        if (country.loans.isNotEmpty()) throw Fail(key)
     }
 
     fun take(country: Country, id: String, actor: String?): Phrase {
         Features.require(country, Features.LOANS)
+        if (country.parent != null) throw Fail("kami_claims.loans.error.province")
         val offer = offers().firstOrNull { it.unlock.id == id } ?: throw Fail("kami_claims.loans.error.unknown", Words.v(id))
         if (!unlocked(country, offer)) throw Fail(Locks.research(offer.node.label().asValue()))
         val day = Levels.day()
@@ -82,7 +81,7 @@ object Loans {
             if (pay > 0) Treasury.move(country, LedgerKind.LOAN_PAYMENT, -pay, note = loan.id)
             loan.paid += pay
             val missing = due - pay
-            val fee = (missing * LATE_FEE_PCT + 99) / 100
+            val fee = (minOf(missing, loan.perDay) * LATE_FEE_PCT + 99) / 100
             loan.total += fee
             loan.overdue = if (missing > 0) missing + fee else 0
             when {

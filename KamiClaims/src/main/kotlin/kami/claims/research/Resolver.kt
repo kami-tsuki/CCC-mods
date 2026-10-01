@@ -15,9 +15,15 @@ class WorldFacts(
 class Matched(val recipes: Set<String> = emptySet(), val blocks: Set<String> = emptySet()) {
     val isEmpty get() = recipes.isEmpty() && blocks.isEmpty()
 
-    operator fun plus(other: Matched) = Matched(recipes + other.recipes, blocks + other.blocks)
     operator fun minus(other: Matched) = Matched(recipes - other.recipes, blocks - other.blocks)
     operator fun contains(id: String) = id in recipes || id in blocks
+}
+
+fun Iterable<Matched>.merged(): Matched {
+    val recipes = HashSet<String>()
+    val blocks = HashSet<String>()
+    forEach { recipes += it.recipes; blocks += it.blocks }
+    return Matched(recipes, blocks)
 }
 
 class Resolution(
@@ -34,7 +40,7 @@ class Resolution(
 }
 
 class Resolver(private val world: WorldFacts, private val defs: ResearchDefs) {
-    private val memo = HashMap<String, Matched>()
+    private val memo = HashMap<Pair<String, List<String?>>, Matched>()
     private val problems = ArrayList<String>()
     private val notes = ArrayList<String>()
 
@@ -48,56 +54,51 @@ class Resolver(private val world: WorldFacts, private val defs: ResearchDefs) {
         val nodes = selected.mapValues { it.value - baseline }
         val levels = defs.levels.rewards.mapValues { (level, rewards) -> all(rewards, "level $level") - baseline }
         val locked = all(defs.settings.locked, "settings.locked") - baseline
-        val gated = (nodes.values + levels.values + locked).fold(Matched()) { sum, part -> sum + part }
+        val gated = (nodes.values + levels.values + locked).merged()
         val outputs = world.recipes.filter { it.id in gated.recipes && it.outputs.isNotEmpty() }.associate { it.id to it.outputs }
         return Resolution(gated, nodes, levels, outputs, problems, notes)
     }
 
-    private fun all(unlocks: List<Unlock>, where: String) = unlocks.fold(Matched()) { sum, unlock -> sum + select(unlock, where) }
+    private fun all(unlocks: List<Unlock>, where: String) = unlocks.map { select(it, where) }.merged()
 
     private fun select(unlock: Unlock, where: String): Matched = when (unlock) {
-        is GroupRef -> all(defs.groups[unlock.id]?.unlocks.orEmpty().filter { it !is GroupRef }, "$where via ${unlock.id}")
-        is RecipeUnlock -> cached("recipe", unlock.id, where) { matchRecipes { Selectors.glob(unlock.id, it.id) } }
-        is RecipeTypeUnlock -> cached("recipe_type", unlock.id, where) { matchRecipes { Selectors.glob(unlock.id, it.type) } }
-        is RecipesUnlock -> cached("recipes", "${unlock.recipeType}|${unlock.input}|${unlock.output}", where) {
+        is GroupRef -> all(defs.groups[unlock.id]?.unlocks.orEmpty(), "$where via ${unlock.id}")
+        is RecipeUnlock -> cached("recipe", listOf(unlock.id), where) { matchRecipes { Selectors.glob(unlock.id, it.id) } }
+        is RecipeTypeUnlock -> cached("recipe_type", listOf(unlock.id), where) { matchRecipes { Selectors.glob(unlock.id, it.type) } }
+        is RecipesUnlock -> cached("recipes", listOf(unlock.recipeType, unlock.input, unlock.output), where) {
             matchRecipes { recipe ->
                 (unlock.recipeType == null || Selectors.glob(unlock.recipeType, recipe.type)) &&
-                    (unlock.output == null || recipe.outputs.any { outputMatches(unlock.output, it) }) &&
-                    (unlock.input == null || recipe.inputs.any { outputMatches(unlock.input, it) })
+                    (unlock.output == null || recipe.outputs.any { matches(unlock.output, it, world.itemTagged) }) &&
+                    (unlock.input == null || recipe.inputs.any { matches(unlock.input, it, world.itemTagged) })
             }
         }
-        is OutputUnlock -> cached("output", unlock.id, where) { matchRecipes { recipe -> recipe.outputs.any { outputMatches(unlock.id, it) } } }
-        is ModUnlock -> cached("mod", unlock.id, where) {
+        is OutputUnlock -> cached("output", listOf(unlock.id), where) { matchRecipes { recipe -> recipe.outputs.any { matches(unlock.id, it, world.itemTagged) } } }
+        is ModUnlock -> cached("mod", listOf(unlock.id), where) {
             Matched(
                 world.recipes.filter { recipe -> Selectors.namespace(recipe.id) == unlock.id || recipe.outputs.any { Selectors.namespace(it) == unlock.id } }.map { it.id }.toSet(),
                 world.blocks.filter { Selectors.namespace(it) == unlock.id }.toSet()
             )
         }
-        is BlockUnlock -> cached("block", unlock.id, where) {
-            Matched(blocks = world.blocks.filter { blockMatches(unlock.id, it) }.toSet())
+        is BlockUnlock -> cached("block", listOf(unlock.id), where) {
+            Matched(blocks = world.blocks.filter { matches(unlock.id, it, world.blockTagged) }.toSet())
         }
         is CapacityUnlock, is MoneyReward, is FeatureUnlock, is TokenUnlock, is BuffUnlock, is BuffPointsUnlock, is LoanUnlock, is LoanSlotsUnlock -> Matched()
     }
 
-    private fun outputMatches(spec: String, item: String) =
-        if (spec.startsWith('#')) world.itemTagged(spec.drop(1), item) else Selectors.glob(spec, item)
-
-    private fun blockMatches(spec: String, block: String) =
-        if (spec.startsWith('#')) world.blockTagged(spec.drop(1), block) else Selectors.glob(spec, block)
+    private fun matches(spec: String, id: String, tagged: (String, String) -> Boolean) =
+        if (spec.startsWith('#')) tagged(spec.drop(1), id) else Selectors.glob(spec, id)
 
     private fun matchRecipes(test: (RecipeFact) -> Boolean) = Matched(recipes = world.recipes.filter(test).map { it.id }.toSet())
 
-    private fun cached(kind: String, spec: String, where: String, compute: () -> Matched): Matched =
-        memo.getOrPut("$kind:$spec") {
-            compute().also { if (it.isEmpty) report(kind, spec, where) }
+    private fun cached(kind: String, specs: List<String?>, where: String, compute: () -> Matched): Matched =
+        memo.getOrPut(kind to specs) {
+            compute().also { if (it.isEmpty) report(kind, specs, where) }
         }
 
-    private fun report(kind: String, spec: String, where: String) {
-        val namespaces = when (kind) {
-            "mod" -> listOf(spec)
-            "recipes" -> spec.split('|').filter { it != "null" }.map(Selectors::namespace)
-            else -> listOf(Selectors.namespace(spec))
-        }
+    private fun report(kind: String, specs: List<String?>, where: String) {
+        val spec = specs.joinToString("|")
+        val given = specs.filterNotNull()
+        val namespaces = if (kind == "mod") given else given.map(Selectors::namespace)
         val missing = namespaces.firstOrNull { it != "*" && !world.modLoaded(it) }
         if (missing != null) notes += "$where: $kind $spec skipped, mod $missing is not installed"
         else problems += "$where: $kind $spec matches nothing"

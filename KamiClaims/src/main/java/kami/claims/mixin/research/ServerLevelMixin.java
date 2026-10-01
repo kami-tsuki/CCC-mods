@@ -12,11 +12,6 @@ import org.spongepowered.asm.mixin.Mixin;
 public abstract class ServerLevelMixin {
     @WrapMethod(method = "tickBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/Block;)V", require = 1)
     private void kami$scheduledTickContext(BlockPos pos, Block block, Operation<Void> original) {
-        boolean pushed = RecipeContext.push((ServerLevel) (Object) this, pos.asLong());
-        try {
-            original.call(pos, block);
-        } finally {
-            RecipeContext.pop(pushed);
-        }
+        RecipeContext.run((ServerLevel) (Object) this, pos.asLong(), () -> original.call(pos, block));
     }
 }

@@ -6,7 +6,6 @@ import kami.libs.claims.ClaimsApi
 import kami.libs.claims.CountryCapacity
 import kami.libs.claims.Locks
 import kami.libs.text.Phrase
-import java.util.UUID
 
 object Limits {
     fun marketSlots(player: String): Int = slots(player, CountryCapacity.MARKET_SLOTS, Config.s.marketSlots)
@@ -21,16 +20,15 @@ object Limits {
 
     fun auctionFull(player: String) = auctionUsed(player) >= auctionSlots(player)
 
-    fun marketDenial(player: String): Phrase = denial(player, CountryCapacity.MARKET_SLOTS, "kami_economy.slots.orders", marketSlots(player))
+    fun marketDenial(player: String): Phrase = denial(player, CountryCapacity.MARKET_SLOTS, "kami_economy.slots.orders", marketUsed(player), marketSlots(player))
 
-    fun auctionDenial(player: String): Phrase = denial(player, CountryCapacity.AUCTION_SLOTS, "kami_economy.slots.auctions", auctionSlots(player))
+    fun auctionDenial(player: String): Phrase = denial(player, CountryCapacity.AUCTION_SLOTS, "kami_economy.slots.auctions", auctionUsed(player), auctionSlots(player))
 
-    fun hint(player: String, key: String, max: Int): String =
-        runCatching { UUID.fromString(player) }.getOrNull()?.let { ClaimsApi.limit(it, key, max)?.json() } ?: ""
+    fun hint(player: String, key: String, used: Int): String = limit(player, key, used)?.json() ?: ""
 
-    private fun denial(player: String, key: String, name: String, max: Int): Phrase =
-        runCatching { UUID.fromString(player) }.getOrNull()?.let { ClaimsApi.limit(it, key, max) } ?: Locks.capacity(Phrase.of(name), max, null, null)
+    private fun limit(player: String, key: String, used: Int): Phrase? = Trade.uuid(player)?.let { ClaimsApi.limit(it, key, used) }
 
-    private fun slots(player: String, key: String, fallback: Int): Int =
-        runCatching { UUID.fromString(player) }.getOrNull()?.let { ClaimsApi.capacity(it, key, fallback) } ?: fallback
+    private fun denial(player: String, key: String, name: String, used: Int, max: Int): Phrase = limit(player, key, used) ?: Locks.capacity(Phrase.of(name), max, null, null)
+
+    private fun slots(player: String, key: String, fallback: Int): Int = Trade.uuid(player)?.let { ClaimsApi.capacity(it, key, fallback) } ?: fallback
 }

@@ -149,7 +149,7 @@ fun Ui.subTabs(r: Rect, tabs: List<TabItem>, selected: Int, key: Any = "tabs"): 
         })
         if (badgeText != null) badge(cell.right - badgeW - 4, cell.y + (cell.h - 10) / 2, badgeText, t.badgeSeverity)
         if (i == selected) { underlineX = cell.x; underlineW = cell.w }
-        controlTip("$key:$i", cell, usable, t.disabledReason ?: t.lock?.let { it.how ?: it.label }, t.label.takeIf { it != label })
+        controlTip("$key:$i", cell, usable, t.disabledReason ?: t.lock?.reason, t.label.takeIf { it != label })
         t.lock?.let { lockClick(cell, it) }
         focusRing("$key:$i", cell)
         if (usable && i != selected && (pressed(cell) != null || activatedByKey("$key:$i"))) { result = i; UiSound.page() }

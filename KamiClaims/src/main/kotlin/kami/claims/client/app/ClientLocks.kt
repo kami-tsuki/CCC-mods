@@ -5,6 +5,7 @@ import kami.claims.client.store.ClientResearch
 import kami.claims.net.LevelView
 import kami.claims.Rank
 import kami.claims.research.Capacity
+import kami.libs.ui.core.Memo
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Stack
 import kami.libs.ui.core.Ui
@@ -26,15 +27,15 @@ object ClientLocks {
 
     private val features = HashMap<String, Lock?>()
     private val raises = HashMap<Capacity, Lock?>()
-    private var seenState: Any? = null
-    private var seenDefs: Any? = null
+    private val fulls = HashMap<Capacity, Lock?>()
+    private val seen = Memo()
+    private val loansTeaserMemo = Memo()
+    private val buffsTeaserMemo = Memo()
 
-    private fun fresh() {
-        if (seenState === ClientResearch.state && seenDefs === ClientResearch.defs) return
-        seenState = ClientResearch.state
-        seenDefs = ClientResearch.defs
+    private fun fresh() = seen.of(ClientResearch.state, ClientResearch.defs, Format.locale) {
         features.clear()
         raises.clear()
+        fulls.clear()
     }
 
     fun feature(id: String): Lock? {
@@ -56,6 +57,21 @@ object ClientLocks {
         else -> Icons.STAR
     }
 
+    fun loansTeaser(): Lock? {
+        if (ClientResearch.loans.unlocked) return null
+        return loansTeaserMemo.of(ClientResearch.defs, Format.locale) {
+            val level = ClientResearch.defs.trees.asSequence().flatMap { it.nodes }.firstOrNull { n -> n.unlocks.any { it.kind == "feature" && it.id == "loans" } }?.level ?: 10
+            Lock(tr("kami_claims.loans.lock.label"), tr("kami_claims.loans.lock.how", level))
+        }
+    }
+
+    fun buffsTeaser(): Lock? {
+        if (ClientResearch.buffs.unlocked) return null
+        return buffsTeaserMemo.of(ClientResearch.defs, Format.locale) {
+            Lock(tr("kami_claims.buffs.lock.label"), tr("kami_claims.buffs.lock.how", ClientResearch.node("buffs:buffs_view")?.level ?: 15))
+        }
+    }
+
     fun tokenName(id: String) = tr("kami_claims.token.$id")
 
     fun raise(cap: Capacity): Lock? {
@@ -72,21 +88,21 @@ object ClientLocks {
     }
 
     fun full(cap: Capacity): Lock? {
+        fresh()
+        if (cap in fulls) return fulls[cap]
         val state = ClientResearch.state
-        if (state.used(cap) < state.max(cap)) return null
-        return Lock(tr("kami_claims.lock.slots", state.used(cap), state.max(cap)), raise(cap)?.how)
+        val lock = if (state.used(cap) < state.max(cap)) null else Lock(tr("kami_claims.lock.slots", state.used(cap), state.max(cap)), raise(cap)?.how)
+        return lock.also { fulls[cap] = it }
     }
 
-    private fun nextRaise(cap: Capacity): LevelView? {
-        val key = cap.name.replace("_", "").lowercase()
-        return ClientResearch.defs.levels.firstOrNull { level -> level.level > ClientResearch.state.level && level.rewards.any { it.kind == "capacity" && it.id.lowercase() == key } }
-    }
+    private fun capacityRewards(level: LevelView, cap: Capacity) = level.rewards.filter { it.kind == "capacity" && it.id.equals(cap.id, ignoreCase = true) }
+
+    private fun nextRaise(cap: Capacity): LevelView? =
+        ClientResearch.defs.levels.firstOrNull { it.level > ClientResearch.state.level && capacityRewards(it, cap).isNotEmpty() }
 
     private fun computeRaise(cap: Capacity): Lock? {
         val next = nextRaise(cap) ?: return null
-        val key = cap.name.replace("_", "").lowercase()
-        val gain = next.rewards.filter { it.kind == "capacity" && it.id.lowercase() == key }.sumOf { it.add }
-        return Lock.raise(next.level, ClientResearch.state.max(cap) + gain)
+        return Lock.raise(next.level, ClientResearch.state.max(cap) + capacityRewards(next, cap).sumOf { it.count })
     }
 
     fun unlock(cap: Capacity, what: String): Lock? {
@@ -98,12 +114,12 @@ object ClientLocks {
 
 fun Ui.capacityRow(stack: Stack, cap: Capacity) {
     val state = ClientResearch.state
-    capacityRow(stack, ResearchLook.capacity(cap.name.lowercase()), state.used(cap), state.max(cap), ClientLocks.raise(cap), "capacity:${cap.name}")
+    capacityRow(stack, ResearchLook.capacity(cap.id), state.used(cap), state.max(cap), ClientLocks.raise(cap), "capacity:${cap.name}")
 }
 
 fun Ui.capacityLine(r: Rect, cap: Capacity) {
     val state = ClientResearch.state
-    capacityLine(r, ResearchLook.capacity(cap.name.lowercase()), state.used(cap), state.max(cap), ClientLocks.raise(cap), "capacity-line:${cap.name}")
+    capacityLine(r, ResearchLook.capacity(cap.id), state.used(cap), state.max(cap), ClientLocks.raise(cap), "capacity-line:${cap.name}")
 }
 
 class TokenOffer(val text: String, val severity: Severity, val free: Boolean, val affordable: Boolean)

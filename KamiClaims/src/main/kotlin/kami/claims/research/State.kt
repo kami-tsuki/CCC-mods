@@ -18,7 +18,7 @@ class QueueEntry(
 )
 
 @Serializable
-class BuffState(val enabled: MutableSet<String> = mutableSetOf())
+class BuffState(val enabled: MutableSet<String> = mutableSetOf(), val billed: MutableSet<String> = mutableSetOf())
 
 @Serializable
 class ResearchState(

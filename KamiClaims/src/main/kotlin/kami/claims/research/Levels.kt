@@ -58,42 +58,57 @@ class LevelsConfig(
 
     fun xpFor(level: Int): Long = rules[level]?.xp ?: curveXp(level)
 
-    fun levelOf(xp: Long): Int = (top downTo 1).first { xpFor(it) <= xp }
-
     fun requirements(level: Int): List<Condition> = rules[level]?.requires.orEmpty()
 
     fun capacity(key: Capacity) = capacities[key] ?: LevelDefaults.capacities[key] ?: 0
 
-    fun rewardsUpTo(level: Int): List<Unlock> = rewards.filterKeys { it <= level }.toSortedMap().values.flatten()
+    fun rewardsUpTo(level: Int): List<Unlock> = rewards.filterKeys { it <= level }.values.flatten()
 
-    fun featureLevel(id: String): Int? = rewards.filterValues { list -> list.any { it is FeatureUnlock && it.id == id } }.keys.minOrNull()
+    private val featureLevels: Map<String, Int> by lazy {
+        rewards.entries.sortedByDescending { it.key }.flatMap { (level, list) -> list.filterIsInstance<FeatureUnlock>().map { it.id to level } }.toMap()
+    }
+
+    fun featureLevel(id: String): Int? = featureLevels[id]
 }
 
 object Levels {
+    private val blocked = HashMap<String, Int>()
+
     var day: () -> Long = ::today
     var announce: (Phrase) -> Unit = { text ->
         ServerLifecycleHooks.getCurrentServer()?.playerList?.broadcastSystemMessage(Mail.chat.info(text.component()), false)
     }
 
     fun capacity(country: Country, key: Capacity): Int = Research.defs.levels.capacity(key) +
-        country.research.done.keys.sumOf { done -> Research.defs.node(done)?.unlocks.orEmpty().added(key) } +
-        Research.defs.levels.rewardsUpTo(Research.level(country)).added(key)
+        Research.unlocks<CapacityUnlock>(country).added(key) +
+        Research.defs.levels.rewardsUpTo(Research.level(country)).filterIsInstance<CapacityUnlock>().added(key)
 
-    private fun List<Unlock>.added(key: Capacity) = filterIsInstance<CapacityUnlock>().filter { it.key == key }.sumOf { it.add }
+    private fun List<CapacityUnlock>.added(key: Capacity) = filter { it.key == key }.sumOf { it.add }
 
     fun settleRewards(country: Country) {
         val level = Research.level(country)
         if (country.rewardedLevel >= level) return
-        val fresh = Research.defs.levels.rewards.filterKeys { it in country.rewardedLevel + 1..level }.values.flatten()
-        val money = fresh.filterIsInstance<MoneyReward>().sumOf { it.amount }
-        fresh.filterIsInstance<TokenUnlock>().forEach { Tokens.grant(country, it.id, it.count) }
-        country.rewardedLevel = level
-        if (money > 0) Treasury.move(country, LedgerKind.LEVEL_REWARD, money, note = "level $level")
+        val rewards = Research.defs.levels.rewards
+        val stuck = rewards.keys.sorted().filter { it in country.rewardedLevel + 1..level }.firstOrNull { !pay(country, it, rewards.getValue(it)) }
+        if (stuck == null) blocked.remove(country.id)
+        country.rewardedLevel = if (stuck == null) level else stuck - 1
         Realm.dirty = true
-        ResearchSync.touch(country)
     }
 
-    fun settleAllRewards() = Realm.data.countries.values.forEach { advance(it); settleRewards(it) }
+    fun forget(country: String) = blocked.remove(country)
+
+    private fun pay(country: Country, level: Int, rewards: List<Unlock>): Boolean {
+        val money = rewards.filterIsInstance<MoneyReward>().sumOf { it.amount }
+        if (money > Treasury.room(country)) {
+            if (blocked.put(country.id, level) != level) Mail.broadcast(country, Phrase.of("kami_claims.level.mail.reward_blocked", Words.v(level), Words.money(money)), Tone.WARN)
+            return false
+        }
+        rewards.filterIsInstance<TokenUnlock>().forEach { Tokens.grant(country, it.id, it.count) }
+        if (money > 0) Treasury.move(country, LedgerKind.LEVEL_REWARD, money, note = "level $level")
+        return true
+    }
+
+    fun advanceAll() = Realm.data.countries.values.forEach(::advance)
 
     fun used(country: Country, key: Capacity) = when (key) {
         Capacity.CHUNKS -> Realm.claims(country.id).size
@@ -107,8 +122,6 @@ object Levels {
         Capacity.PLOTS -> Realm.claims(country.id).filter { it.owner != null }.groupingBy { it.owner }.eachCount().values.maxOrNull() ?: 0
         Capacity.MARKET_SLOTS, Capacity.AUCTION_SLOTS -> 0
     }
-
-    fun full(country: Country, key: Capacity, used: Int) = used >= capacity(country, key)
 
     fun add(country: Country, source: String, units: Double) {
         val rate = Research.defs.levels.sources[source]?.rate ?: return
@@ -134,33 +147,23 @@ object Levels {
     }
 
     fun award(country: Country, xp: Long) {
-        migrate(country)
         country.xp += xp
         Realm.dirty = true
-        ResearchSync.touch(country)
+        ResearchSync.refresh(country)
         advance(country)
     }
 
-    fun migrate(country: Country) {
-        if (country.level > 0) return
-        country.level = 1
-        Realm.dirty = true
-    }
-
-    fun advanceAll() = Realm.data.countries.values.forEach { advance(it) }
-
     fun advance(country: Country) {
-        migrate(country)
         val config = Research.defs.levels
         val before = country.level
         while (country.level < config.top && config.xpFor(country.level + 1) <= country.xp && config.requirements(country.level + 1).all { it.met(country) }) country.level++
+        settleRewards(country)
         if (country.level == before) return
         Realm.dirty = true
         leveledUp(country, country.level)
     }
 
     private fun leveledUp(country: Country, level: Int) {
-        settleRewards(country)
         Mail.broadcast(country, Phrase.of("kami_claims.level.mail.up", Words.v(level)), Tone.OK)
         if (Research.defs.levels.announce) announce(Phrase.of("kami_claims.level.broadcast", Words.v(country.name), Words.v(level)))
         Realm.changed()

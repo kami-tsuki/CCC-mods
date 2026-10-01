@@ -7,6 +7,7 @@ import kami.claims.Key
 import kami.claims.Realm
 import kami.claims.now
 import kami.claims.research.Capacity
+import kami.claims.research.Buffs
 import kami.claims.research.Features
 import kami.claims.research.Levels
 import kami.libs.text.Phrase
@@ -26,6 +27,8 @@ object Planner {
     private val s get() = Config.s
 
     private fun neighbours(k: Key) = listOf(Key(k.dim, k.x + 1, k.z), Key(k.dim, k.x - 1, k.z), Key(k.dim, k.x, k.z + 1), Key(k.dim, k.x, k.z - 1))
+
+    private fun surcharge(c: Country, k: Key, owned: Set<Key>) = if (neighbours(k).any { it !in owned }) Buffs.tax(c) else 0
 
     fun blockReason(c: Country, k: Key, type: String, owned: Set<Key>, treasury: Long, count: Int): Phrase? {
         if (k.dim !in s.dimensionSet) return Phrase.of("kami_claims.block.dimension")
@@ -65,7 +68,7 @@ object Planner {
         }
         pending.forEach { k -> decided[k] = PlannedCell(k, if (Realm.index[k]?.country == c.id) Outcome.SKIP else Outcome.BLOCKED, blockReason(c, k, type, owned, treasury, count)) }
         val ordered = keys.distinct().mapNotNull { decided[it] }
-        return Plan(ordered, c.treasury - treasury, ordered.filter { it.outcome == Outcome.CLAIM || it.outcome == Outcome.FREE }.sumOf { if (it.outcome == Outcome.FREE) 0.0 else it.price.toDouble() / it.period })
+        return Plan(ordered, c.treasury - treasury, ordered.filter { it.outcome == Outcome.CLAIM || it.outcome == Outcome.FREE }.sumOf { if (it.outcome == Outcome.FREE) 0.0 else (it.price + surcharge(c, it.key, owned)).toDouble() / it.period })
     }
 
     fun unclaimLock(cl: Claim): Phrase? {
@@ -106,7 +109,8 @@ object Planner {
         candidates.filter { it.key !in decided }.forEach { decided[it.key] = PlannedCell(it.key, Outcome.BLOCKED, Phrase.of("kami_claims.block.split")) }
         keys.filter { it !in decided }.forEach { k -> decided[k] = PlannedCell(k, Outcome.SKIP, Phrase.of("kami_claims.block.not_yours")) }
         val ordered = keys.distinct().mapNotNull { decided[it] }
-        val saved = ordered.filter { it.outcome == Outcome.UNCLAIM }.sumOf { k -> Realm.index[k.key]?.takeIf { !it.free }?.let { it.def?.price?.toDouble()?.div(Realm.period(it)) } ?: 0.0 }
+        val borderTax = Buffs.tax(c)
+        val saved = ordered.filter { it.outcome == Outcome.UNCLAIM }.sumOf { k -> Realm.index[k.key]?.takeIf { !it.free }?.let { Buffs.price(c, it, borderTax).toDouble() / Realm.period(it) } ?: 0.0 }
         return Plan(ordered, 0, -saved)
     }
 
@@ -122,9 +126,11 @@ object Planner {
                 else -> PlannedCell(k, Outcome.RETYPE, if (cl.owner != null && type != "residential") Phrase.of("kami_claims.block.tenant_loses") else null, def?.price ?: 0, max(1, def?.period ?: 1))
             }
         }
+        val borderTax = Buffs.tax(c)
         val delta = cells.filter { it.outcome == Outcome.RETYPE }.sumOf { cell ->
             val cl = Realm.index[cell.key]!!
-            if (cl.free) 0.0 else cell.price.toDouble() / cell.period - Realm.price(cl).toDouble() / Realm.period(cl)
+            val current = Buffs.price(c, cl, borderTax)
+            if (cl.free) 0.0 else (cell.price + current - Realm.price(cl)).toDouble() / cell.period - current.toDouble() / Realm.period(cl)
         }
         return Plan(cells, 0, delta)
     }

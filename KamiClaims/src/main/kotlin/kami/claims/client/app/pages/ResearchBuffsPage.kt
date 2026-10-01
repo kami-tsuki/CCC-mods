@@ -2,16 +2,16 @@ package kami.claims.client.app.pages
 
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ClaimsPage
+import kami.claims.client.app.ClientLocks
 import kami.claims.client.app.Dialogs
 import kami.claims.client.store.ClientResearch
 import kami.claims.net.BuffView
 import kami.claims.net.BuffsView
-import kami.claims.net.NodeView
 import kami.libs.text.Phrase
-import kami.libs.ui.anim.reveal
 import kami.libs.ui.app.Consequence
 import kami.libs.ui.app.Route
 import kami.libs.ui.core.Rect
+import kami.libs.ui.core.Memo
 import kami.libs.ui.core.Stack
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
@@ -26,19 +26,6 @@ private const val TREE = "buffs"
 private const val VIEW_NODE = "buffs:buffs_view"
 private const val PULSE_EFFECT = "minecraft:instant_health"
 private const val DEFAULT_COOLDOWN = 300L
-
-private var lockFor: Any? = null
-private var lockValue: Lock? = null
-
-fun buffsLock(): Lock? {
-    if (ClientResearch.buffs.unlocked) return null
-    if (lockFor !== ClientResearch.defs) {
-        lockFor = ClientResearch.defs
-        val level = ClientResearch.node(VIEW_NODE)?.level ?: 15
-        lockValue = Lock(tr("kami_claims.buffs.lock.label"), tr("kami_claims.buffs.lock.how", level))
-    }
-    return lockValue
-}
 
 private class BuffCard(
     val key: String, val effect: String, val title: String, val mode: String, val stats: String, val enabled: Boolean,
@@ -56,10 +43,7 @@ class ResearchBuffsPage(app: ClaimsApp) : ClaimsPage(app) {
     override val title get() = tr("kami_claims.nav.buffs")
 
     private var scrollHeight = 0
-    private var builtFor: Any? = null
-    private var builtDefs: Any? = null
-    private var builtState: Any? = null
-    private var builtWidth = -1
+    private val built = Memo()
     private var groups = emptyList<Group>()
     private var examples = emptyList<BuffCard>()
     private var surchargeText = ""
@@ -70,61 +54,42 @@ class ResearchBuffsPage(app: ClaimsApp) : ClaimsPage(app) {
 
     override fun draw(ui: Ui, r: Rect) {
         val buffs = ClientResearch.buffs
-        val lock = buffsLock()
+        val lock = ClientLocks.buffsTeaser()
         if (lock != null) {
             rebuild(buffs, r.w)
             return teaser(ui, r, lock)
         }
         ui.scroll("buffs-page", r, scrollHeight) { area ->
             rebuild(buffs, area.w)
-            val stack = Stack(area.x, area.y, area.w, GAP)
+            val stack = Stack(area.x, area.y, area.w, CARD_GAP)
             ui.progressBar(stack.take(PROGRESS_LABELLED_H), buffs.used.toLong(), buffs.points.toLong(), tr("kami_claims.buffs.points"), key = "buffs-points")
             Draw.paragraph(ui.g, surchargeText, stack.x, stack.take(surchargeH).y, stack.w, if (buffs.surchargePerBorderChunk > 0) Palette.warning else Palette.textSecondary)
             Draw.paragraph(ui.g, explainText, stack.x, stack.take(explainH).y, stack.w, Palette.textMuted)
-            val cols = columns(stack.w)
-            val cardW = (stack.w - (cols - 1) * GAP) / cols
+            val cols = cardColumns(stack.w, MIN_CARD_W, MAX_COLUMNS)
             var index = 0
             groups.forEach { group ->
                 ui.section(stack, group.title, group.cards.size.toString())
-                var i = 0
-                while (i < group.cards.size) {
-                    val row = stack.take(CARD_H)
-                    for (c in 0 until cols) {
-                        val card = group.cards.getOrNull(i + c) ?: break
-                        drawCard(ui, Rect(row.x + c * (cardW + GAP), row.y, cardW, CARD_H), card, index++, false)
-                    }
-                    i += cols
-                }
+                stack.cardGrid(group.cards.size, cols, { CARD_H }) { rect, i -> drawCard(ui, rect, group.cards[i], index++, false) }
             }
             if (groups.isEmpty()) Draw.text(ui.g, emptyText, stack.x, stack.take(Draw.LINE).y, Palette.textMuted)
             scrollHeight = stack.bottom - area.y
         }
     }
 
-    private fun columns(w: Int) = ((w + GAP) / (MIN_CARD_W + GAP)).coerceIn(1, MAX_COLUMNS)
-
     private fun teaser(ui: Ui, r: Rect, lock: Lock) {
         val panel = r.top(TEASER_H.coerceAtMost(r.h))
         ui.lockedPanel(panel, tr("kami_claims.nav.buffs"), tr("kami_claims.buffs.teaser"), lock, Icons.LOCK, "buffs-locked")
         val rest = r.dropTop(panel.h + 8)
         if (rest.h < CARD_H) return
-        val cols = columns(rest.w)
-        val cardW = (rest.w - (cols - 1) * GAP) / cols
-        for (c in 0 until minOf(cols, examples.size)) {
-            val rect = Rect(rest.x + c * (cardW + GAP), rest.y, cardW, CARD_H)
-            val card = examples[c]
-            drawCard(ui, rect, card, c, true)
-            if (ui.locked(rect, lock, card.exampleKey) {}) app.navigate(Route("research", focus = VIEW_NODE))
+        val cols = cardColumns(rest.w, MIN_CARD_W, MAX_COLUMNS)
+        Stack(rest.x, rest.y, rest.w).cardGrid(minOf(cols, examples.size), cols, { CARD_H }) { rect, i ->
+            drawCard(ui, rect, examples[i], i, true)
+            if (ui.lockVeil(rect, lock, examples[i].exampleKey)) app.navigate(Route("research", focus = VIEW_NODE))
         }
     }
 
-    private fun rebuild(buffs: BuffsView, width: Int) {
+    private fun rebuild(buffs: BuffsView, width: Int) = built.of(buffs, ClientResearch.defs, ClientResearch.state, width, Format.locale) {
         val state = ClientResearch.state
-        if (builtFor === buffs && builtDefs === ClientResearch.defs && builtState === state && builtWidth == width) return
-        builtFor = buffs
-        builtDefs = ClientResearch.defs
-        builtState = state
-        builtWidth = width
         val tree = ClientResearch.defs.trees.firstOrNull { it.id == TREE }
         val owned = buffs.list.mapTo(HashSet()) { it.key }
         val manage = if (state.canManage) null else Lock(tr("kami_claims.buffs.lock.rights"), tr("kami_claims.research.reason.rights"))
@@ -137,15 +102,13 @@ class ResearchBuffsPage(app: ClaimsApp) : ClaimsPage(app) {
                 tr("kami_claims.buffs.stats", buff.cost, buff.tax), buff.enabled, buff, null, toggleLock
             )
         }
-        val pending = ArrayList<NodeView>()
-        tree?.nodes?.forEach { node -> if (node.key !in owned && node.unlocks.any { it.kind == "buff" }) pending += node }
-        pending.sortBy { it.level }
+        val unowned = tree?.nodes.orEmpty().filter { node -> node.key !in owned && node.unlocks.any { it.kind == "buff" } }.sortedBy { it.level }
         val locked = ArrayList<BuffCard>()
-        pending.forEach { node ->
+        unowned.forEach { node ->
             val unlock = node.unlocks.first { it.kind == "buff" }
             val lock = if (state.level < node.level) Lock.level(node.level, node.label().resolve()) else Lock.research(node.label().resolve())
             val card = BuffCard(
-                node.key, unlock.id, name(unlock.id, unlock.add), modeText(unlock.id == PULSE_EFFECT, if (unlock.amount > 0) unlock.amount else DEFAULT_COOLDOWN),
+                node.key, unlock.id, name(unlock.id, unlock.amplifier), modeText(unlock.id == PULSE_EFFECT, if (unlock.cooldownSeconds > 0) unlock.cooldownSeconds.toLong() else DEFAULT_COOLDOWN),
                 tr("kami_claims.buffs.locked.level", node.level), false, null, lock, null
             )
             cards += node.category to card
@@ -154,14 +117,14 @@ class ResearchBuffsPage(app: ClaimsApp) : ClaimsPage(app) {
         examples = locked.take(MAX_COLUMNS)
         val order = tree?.categories?.sortedBy { it.order }.orEmpty()
         val known = order.mapTo(HashSet()) { it.id }
-        val built = ArrayList<Group>()
+        val grouped = ArrayList<Group>()
         order.forEach { category ->
             val inGroup = cards.filter { it.first == category.id }.map { it.second }
-            if (inGroup.isNotEmpty()) built += Group(Phrase.or("kami_claims.research.category.${category.id}", category.title).resolve(), inGroup)
+            if (inGroup.isNotEmpty()) grouped += Group(Phrase.or("kami_claims.research.category.${category.id}", category.title).resolve(), inGroup)
         }
         val rest = cards.filter { it.first !in known }.map { it.second }
-        if (rest.isNotEmpty()) built += Group(tr("kami_claims.buffs.category.other"), rest)
-        groups = built
+        if (rest.isNotEmpty()) grouped += Group(tr("kami_claims.buffs.category.other"), rest)
+        groups = grouped
         val per = buffs.surchargePerBorderChunk
         surchargeText = tr("kami_claims.buffs.surcharge", Format.number(per), Format.number(per.toLong() * buffs.borderChunks), Format.number(buffs.borderChunks))
         explainText = tr("kami_claims.buffs.explain")
@@ -175,9 +138,7 @@ class ResearchBuffsPage(app: ClaimsApp) : ClaimsPage(app) {
     private fun modeText(pulse: Boolean, cooldown: Long) =
         if (pulse) tr("kami_claims.buffs.mode.pulse", Format.number(cooldown / 60)) else tr("kami_claims.buffs.mode.aura")
 
-    private fun drawCard(ui: Ui, r: Rect, card: BuffCard, index: Int, dim: Boolean) {
-        val appear = ui.reveal(card.revealKey, 0L, delayMs = index.coerceAtMost(MAX_STAGGER) * STAGGER_MS)
-        val box = r.slideIn(appear, 0, SHIFT)
+    private fun drawCard(ui: Ui, r: Rect, card: BuffCard, index: Int, dim: Boolean) = ui.staggered(r, card.revealKey, index) { box ->
         val muted = card.buff == null || dim
         Draw.box(ui.g, box, if (card.enabled) Palette.selected else Palette.raised, if (card.enabled) Palette.success else Palette.border)
         val slot = Rect(box.x + PAD, box.y + PAD, SLOT, SLOT)
@@ -198,9 +159,8 @@ class ResearchBuffsPage(app: ClaimsApp) : ClaimsPage(app) {
             val style = if (buff.enabled) ButtonStyle.SECONDARY else ButtonStyle.PRIMARY
             if (ui.lockedButton(button, label, card.toggleLock, if (buff.enabled) Icons.CROSS else Icons.CHECK, style, !busy, pending = busy, key = card.buttonKey)) toggle(buff, card.title)
         } else if (card.lock != null && !dim) {
-            if (ui.locked(box, card.lock, card.lockKey) {}) app.navigate(Route("research", focus = card.key))
+            if (ui.lockVeil(box, card.lock, card.lockKey)) app.navigate(Route("research", focus = card.key))
         }
-        if (appear < 1f) Draw.veilBox(ui.g, r, appear, Palette.surface)
     }
 
     private fun toggle(buff: BuffView, title: String) {
@@ -217,7 +177,6 @@ class ResearchBuffsPage(app: ClaimsApp) : ClaimsPage(app) {
     }
 }
 
-private const val GAP = 4
 private const val CARD_H = 62
 private const val MIN_CARD_W = 190
 private const val MAX_COLUMNS = 3
@@ -226,7 +185,3 @@ private const val SLOT = 24
 private const val BUTTON_W = 84
 private const val CHIP_RESERVE = 70
 private const val DIM = 0.55f
-private const val TEASER_H = 150
-private const val SHIFT = 4
-private const val STAGGER_MS = 30L
-private const val MAX_STAGGER = 12

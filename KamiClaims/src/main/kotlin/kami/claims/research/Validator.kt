@@ -2,10 +2,13 @@ package kami.claims.research
 
 import kami.claims.research.Limits.MAX_CATEGORIES
 import kami.claims.research.Limits.MAX_ID
+import kami.claims.research.Limits.MAX_KEY
 import kami.claims.research.Limits.MAX_LEVELS
+import kami.claims.research.Limits.MAX_LINKS
 import kami.claims.research.Limits.MAX_NODES
 import kami.claims.research.Limits.MAX_TEXT
 import kami.claims.research.Limits.MAX_TREES
+import kami.claims.research.Limits.MAX_UNLOCKS
 import kami.libs.config.Configs
 import kami.libs.config.Jsonc
 import kotlinx.serialization.json.JsonElement
@@ -53,22 +56,59 @@ object Validator {
         }
         val known = trees.values.flatMap { tree -> tree.nodes.map { it.key } }.toSet()
         rewardProblems(levels, cleanGroups.keys, known).forEach { problems += "levels.json: $it" }
-        trees.values.flatMap { it.nodes }.forEach { node ->
-            val cap = levels.capacity(Capacity.TREASURY) + levels.rewardsUpTo(node.level).filterIsInstance<CapacityUnlock>().filter { it.key == Capacity.TREASURY }.sumOf { it.add }
-            if (node.cost > cap) problems += "${node.key}: cost ${node.cost} is above the treasury cap $cap at level ${node.level}"
-        }
-        return Built(ResearchDefs(settings, levels, cleanGroups, trees), problems)
+        problems += costProblems(levels, trees.values.flatMap { it.nodes })
+        return Built(ResearchDefs(settings, cleanLevels(levels, problems), cleanGroups, trees), problems)
     }
+
+    private fun treasuryCap(levels: LevelsConfig, level: Int) =
+        levels.capacity(Capacity.TREASURY) + levels.rewardsUpTo(level).filterIsInstance<CapacityUnlock>().filter { it.key == Capacity.TREASURY }.sumOf { it.add }
+
+    private fun costProblems(levels: LevelsConfig, nodes: List<Node>) = nodes.mapNotNull { node ->
+        val cap = treasuryCap(levels, node.level)
+        if (node.cost > cap) "${node.key}: cost ${node.cost} is above the treasury cap $cap at level ${node.level}" else null
+    }
+
+    private fun cleanLevels(levels: LevelsConfig, problems: MutableList<String>): LevelsConfig {
+        val before = problems.size
+        val rewards = levels.rewards.mapValues { (level, list) ->
+            val cap = treasuryCap(levels, level)
+            list.mapNotNull { reward ->
+                when {
+                    reward.oversized() -> null.also { problems += "levels.json: reward at level $level: id is longer than $MAX_ID" }
+                    reward is MoneyReward && reward.amount > cap -> MoneyReward(cap.toLong()).also { problems += "levels.json: reward at level $level: money ${reward.amount} is above the treasury cap $cap, clamped" }
+                    else -> reward
+                }
+            }
+        }
+        if (problems.size == before) return levels
+        return LevelsConfig(levels.curve, levels.table, levels.maxLevel, levels.xpFromLevel, levels.sources, levels.counted, levels.capacities, levels.rules, rewards, levels.announce)
+    }
+
+    private fun Unlock.oversized() = when (this) {
+        is RecipeUnlock -> listOf(id)
+        is RecipeTypeUnlock -> listOf(id)
+        is RecipesUnlock -> listOfNotNull(recipeType, input, output)
+        is OutputUnlock -> listOf(id)
+        is ModUnlock -> listOf(id)
+        is BlockUnlock -> listOf(id)
+        is FeatureUnlock -> listOf(id)
+        is BuffUnlock -> listOf(effect)
+        is LoanUnlock -> listOf(id)
+        is TokenUnlock -> listOf(id)
+        else -> emptyList()
+    }.any { it.length > MAX_ID }
 
     private class Draft(val id: String, val file: TreeFile, var nodes: List<Node>)
 
     private fun settle(drafts: MutableMap<String, Draft>, reused: MutableMap<String, Tree>, previous: Map<String, Tree>, groups: Set<String>, maxLevel: Int, problems: MutableList<String>) {
         while (true) {
-            val keys = (drafts.values.flatMap { it.nodes } + reused.values.flatMap { it.nodes }).map { it.key }.toSet()
+            val all = drafts.values.flatMap { it.nodes } + reused.values.flatMap { it.nodes }
+            val keys = all.map { it.key }.toSet()
+            val sharedLoans = all.flatMap { node -> node.unlocks.filterIsInstance<LoanUnlock>().map { it.id } }.groupingBy { it }.eachCount().filterValues { it > 1 }.keys
             var changed = false
             drafts.values.forEach { draft ->
                 val categories = draft.file.categories.map { it.id }.toSet()
-                val flawed = draft.nodes.mapNotNull { node -> flaw(node, keys, categories, groups, maxLevel)?.let { node to it } }
+                val flawed = draft.nodes.mapNotNull { node -> flaw(node, keys, categories, groups, sharedLoans, maxLevel)?.let { node to it } }
                 flawed.forEach { (node, text) -> problems += "trees/${draft.id}.json: node ${node.id}: $text" }
                 if (flawed.isNotEmpty()) {
                     draft.nodes = draft.nodes - flawed.map { it.first }.toSet()
@@ -102,16 +142,20 @@ object Validator {
                     when {
                         condition.refs().any { it !in nodes } -> "rule at level $level: unknown node ${condition.refs().first { it !in nodes }}"
                         condition.describe().json().length > MAX_TEXT -> "rule at level $level: condition is too long"
+                        condition.counters().any { it.length > MAX_ID } -> "rule at level $level: counter key is longer than $MAX_ID"
                         else -> null
                     }
                 }
         }
         return rewards + rules
     }
+
     private fun cleanGroup(id: String, group: Group, problems: MutableList<String>): Group {
         val (nested, plain) = group.unlocks.partition { it is GroupRef }
         if (nested.isNotEmpty()) problems += "groups/$id.json: groups cannot contain groups"
-        return Group(group.title, plain)
+        val fitting = plain.filterNot { it.oversized() }
+        if (fitting.size < plain.size) problems += "groups/$id.json: unlock id is longer than $MAX_ID"
+        return Group(group.title, fitting)
     }
 
     private fun draft(id: String, file: TreeFile, problems: MutableList<String>): Draft? {
@@ -130,17 +174,22 @@ object Validator {
         return Draft(id, file, decoded.map { it.placed(id) })
     }
 
-    private fun flaw(node: Node, keys: Set<String>, categories: Set<String>, groups: Set<String>, maxLevel: Int): String? = when {
+    private fun flaw(node: Node, keys: Set<String>, categories: Set<String>, groups: Set<String>, sharedLoans: Set<String>, maxLevel: Int): String? = when {
         node.category !in categories -> "unknown category ${node.category}"
         node.level !in 0..maxLevel -> "level ${node.level} is out of range"
         node.cost < 0 -> "negative cost"
-        listOf(node.id, node.category, node.icon).any { it.length > MAX_ID } -> "id, category or icon is longer than $MAX_ID"
+        listOf(node.key, node.category, node.icon).any { it.length > MAX_ID } -> "key, category or icon is longer than $MAX_ID"
+        node.tasks.any { it.kind.length > MAX_KEY } || node.allConditions().any { condition -> condition.counters().any { it.length > MAX_ID } } || node.unlocks.any { it.oversized() } ->
+            "task kind (max $MAX_KEY), counter key or unlock id (max $MAX_ID) is too long"
         node.title.length > MAX_TEXT || node.description.length > MAX_TEXT -> "title or description is longer than $MAX_TEXT"
         node.requires.any { it.describe().json().length > MAX_TEXT } || node.tasks.any { it is HoldTask && it.condition.describe().json().length > MAX_TEXT } -> "condition is too long"
+        node.requires.size > MAX_LINKS || node.tasks.size > MAX_LINKS || node.unlocks.size > MAX_UNLOCKS || node.dependencies().distinct().size > MAX_LINKS -> "more than $MAX_LINKS requirements, tasks or links, or more than $MAX_UNLOCKS unlocks"
+        node.tasks.any { it.subject.length > MAX_TEXT } -> "task subject is longer than $MAX_TEXT"
         node.unlocks.any { it is MoneyReward || it is TokenUnlock } -> "money and tokens are only level rewards"
         node.unlocks.count { it is BuffUnlock } > 1 -> "at most one buff per node"
         node.unlocks.any { it is BuffUnlock && (it.effect.isBlank() || it.amplifier !in 0..9 || it.cooldownSeconds < 0) || it is BuffPointsUnlock && it.add < 0 } -> "invalid buff"
         node.unlocks.any { it is LoanUnlock && (it.id.isBlank() || it.amount <= 0 || it.interestPct < 0 || it.termDays <= 0) || it is LoanSlotsUnlock && it.add < 0 } -> "invalid loan"
+        node.unlocks.any { it is LoanUnlock && it.id in sharedLoans } -> "duplicate loan id"
         node.unlocks.any { it is RecipesUnlock && it.recipeType == null && it.input == null && it.output == null } -> "recipes unlock needs a type, input or output"
         node.tasks.any { it is DepositTask && it.selectors.isEmpty() } -> "deposit task needs an item"
         else -> node.dependencies().firstOrNull { it !in keys }?.let { "unknown node $it" }

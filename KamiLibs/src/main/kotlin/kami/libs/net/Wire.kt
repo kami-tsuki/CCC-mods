@@ -48,7 +48,7 @@ class WireWriter {
 class WireReader(private val data: ByteArray) {
     private var at = 0
 
-    val remaining get() = data.size - at
+    private val remaining get() = data.size - at
 
     fun varLong(): Long {
         var result = 0L

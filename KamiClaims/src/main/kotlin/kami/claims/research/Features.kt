@@ -12,17 +12,24 @@ object Features {
     const val BANISH = "banish"
     const val ALLIANCES = "alliances"
     const val EMBARGOES = "embargoes"
-    const val VENDORS = "economy:vendors"
     const val LOANS = "loans"
+    const val BUFFS = "buffs"
 
     fun claimType(type: String) = "claim_type:$type"
 
-    fun unlockLevel(id: String): Int? = Research.defs.levels.featureLevel(id)
+    private var nodeIndex: Pair<ResearchDefs, Map<String, List<Node>>>? = null
 
-    private fun unlockingNodes(id: String) = Research.defs.nodes.values.filter { node -> node.unlocks.any { it is FeatureUnlock && it.id == id } }
+    private fun unlockingNodes(id: String): List<Node> {
+        val defs = Research.defs
+        val index = nodeIndex?.takeIf { it.first === defs }?.second ?: defs.nodes.values
+            .flatMap { node -> node.unlocks.filterIsInstance<FeatureUnlock>().map { it.id to node } }
+            .groupBy({ it.first }, { it.second })
+            .also { nodeIndex = defs to it }
+        return index[id].orEmpty()
+    }
 
     fun unlocked(country: Country, id: String): Boolean {
-        val level = unlockLevel(id)
+        val level = Research.defs.levels.featureLevel(id)
         val nodes = unlockingNodes(id)
         if (level == null && nodes.isEmpty()) return true
         return level?.let { Research.level(country) >= it } == true || nodes.any { it.key in country.research.done }
@@ -30,7 +37,7 @@ object Features {
 
     fun lockReason(country: Country, id: String): Phrase? {
         if (unlocked(country, id)) return null
-        return unlockLevel(id)?.let { Locks.level(Words.feature(id), it) } ?: Locks.research(unlockingNodes(id).first().label().asValue())
+        return Research.defs.levels.featureLevel(id)?.let { Locks.level(Words.feature(id), it) } ?: Locks.research(unlockingNodes(id).first().label().asValue())
     }
 
     fun limit(country: Country, key: Capacity, used: Int): Phrase? {

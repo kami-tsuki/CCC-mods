@@ -8,7 +8,8 @@ import kami.libs.chat.bar
 import kami.claims.*
 import kami.claims.net.Denied
 import kami.claims.net.Net
-import kami.claims.research.Research
+import kami.claims.research.Gate
+import kami.claims.research.RecipeFilter
 import kami.claims.service.View
 import kami.libs.text.Phrase
 import kami.claims.social.Perms
@@ -17,6 +18,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.network.chat.Component
+import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket
 import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket
 import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket
 import net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket
@@ -24,6 +26,7 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.tags.TagKey
 import net.minecraft.world.Container
+import net.minecraft.world.InteractionResult
 import net.minecraft.world.MenuProvider
 import net.minecraft.core.Direction
 import net.minecraft.world.entity.Entity
@@ -35,6 +38,8 @@ import net.minecraft.world.item.FireChargeItem
 import net.minecraft.world.item.FlintAndSteelItem
 import net.minecraft.world.item.SolidBucketItem
 import net.minecraft.world.level.material.Fluids
+import net.minecraft.world.phys.BlockHitResult
+import net.minecraft.world.phys.HitResult
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.LevelAccessor
@@ -182,11 +187,11 @@ object Guard {
 
     private fun researchLocked(who: Entity?, level: LevelAccessor, pos: BlockPos, block: Block): Boolean {
         if (who != null && who !is ServerPlayer) return false
-        val player = (who as? ServerPlayer)?.takeUnless { it is FakePlayer }
-        if (player != null && Perms.has(player, Perms.RESEARCH_BYPASS)) return false
+        val player = (who as ServerPlayer?)?.takeUnless { it is FakePlayer }
+        if (player != null && RecipeFilter.bypassed(player)) return false
         val country = if (player != null) Realm.of(player.stringUUID)
         else dim(level)?.let { Realm.index[key(it, pos)] }?.let { Realm.data.countries[it.country] }
-        if (Research.allowedBlock(country, BuiltInRegistries.BLOCK.getKey(block))) return false
+        if (Gate.block(country, BuiltInRegistries.BLOCK.getKey(block))) return false
         player?.bar(Chat.bar(Tone.BAD, Phrase.of("kami_claims.research.locked.block", block.name.string).component()))
         return true
     }
@@ -202,7 +207,28 @@ object Guard {
         val ignites = item is FlintAndSteelItem || item is FireChargeItem
         if (item !is BucketItem && item !is SolidBucketItem && !ignites) return
         val at = if (empty) e.pos else e.pos.relative(e.face ?: Direction.UP)
-        if (!check(level, at, e.entity, if (empty) Action.BREAK else Action.PLACE, null)) e.isCanceled = true
+        if (check(level, at, e.entity, if (empty) Action.BREAK else Action.PLACE, null)) return
+        e.isCanceled = true
+        (e.entity as? ServerPlayer)?.let { resync(it, at) }
+    }
+
+    fun onUseItem(e: PlayerInteractEvent.RightClickItem) {
+        val player = e.entity as? ServerPlayer ?: return
+        val item = e.itemStack.item
+        if (item !is BucketItem && item !is SolidBucketItem) return
+        val empty = item is BucketItem && item.content == Fluids.EMPTY
+        val hit = player.pick(player.blockInteractionRange(), 1f, empty) as? BlockHitResult ?: return
+        if (hit.type != HitResult.Type.BLOCK) return
+        val targets = if (empty) listOf(hit.blockPos) else listOf(hit.blockPos, hit.blockPos.relative(hit.direction))
+        if (targets.all { check(player.level(), it, player, if (empty) Action.BREAK else Action.PLACE, null) }) return
+        e.isCanceled = true
+        e.cancellationResult = InteractionResult.FAIL
+        targets.forEach { resync(player, it) }
+    }
+
+    private fun resync(player: ServerPlayer, at: BlockPos) {
+        player.containerMenu.sendAllDataToRemote()
+        (listOf(at) + Direction.entries.map(at::relative)).forEach { player.connection.send(ClientboundBlockUpdatePacket(player.level(), it)) }
     }
 
     fun onEntityUse(e: PlayerInteractEvent) {

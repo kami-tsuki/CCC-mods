@@ -6,11 +6,13 @@ import kami.libs.progress.ProgressEvent
 import net.minecraft.server.level.ServerPlayer
 
 object Progress {
-    fun of(player: ServerPlayer) = Realm.of(player.stringUUID)
-
     fun onEvent(event: ProgressEvent) {
-        val country = event.country?.let { Realm.country(it) } ?: event.player?.let(::of) ?: return
+        val country = event.country?.let { Realm.country(it) } ?: event.player?.let { Realm.of(it.stringUUID) } ?: return
         report(country, event.kind, event.subject, event.amount, event.once)
+    }
+
+    fun report(player: ServerPlayer, kind: String, subject: String, amount: Long = 1) {
+        Realm.of(player.stringUUID)?.let { report(it, kind, subject, amount) }
     }
 
     fun report(country: Country, kind: String, subject: String, amount: Long, once: String? = null) {
@@ -19,11 +21,8 @@ object Progress {
             if (!country.research.visited.add("once:$once")) return
             Realm.dirty = true
         }
-        when (kind) {
-            "trade_value" -> Unit
-            else -> Levels.add(country, kind, amount.toDouble())
-        }
-        if (kind == "taxes") Counters.add(country, Counters.TAXES_COLLECTED, amount)
+        if (kind != Kinds.TRADE_VALUE) Levels.add(country, kind, amount.toDouble())
+        if (kind == Kinds.TAXES) Counters.add(country, Counters.TAXES_COLLECTED, amount)
         else if (kind in Research.defs.levels.counted) Counters.event(country, kind, subject, amount)
         if (country.research.queue.isEmpty()) return
         val byNode = Research.defs.taskIndex[kind] ?: return
@@ -33,31 +32,36 @@ object Progress {
         }
     }
 
+    fun visited(player: ServerPlayer, dimension: String) {
+        Realm.of(player.stringUUID)?.let { visited(it, dimension) }
+    }
+
     fun visited(country: Country, dimension: String) {
-        if (country.research.visited.add(dimension)) {
-            Levels.add(country, "discovery", 1.0)
-            Realm.dirty = true
-        }
-        report(country, "visit", dimension, 1)
+        firstTime(country, dimension, "discovery")
+        report(country, Kinds.VISIT, dimension, 1)
     }
 
     fun citizenJoined(country: Country, player: String) {
-        if (country.research.visited.add("citizen:$player")) {
-            Levels.add(country, "citizen", 1.0)
-            Realm.dirty = true
-        }
+        firstTime(country, "citizen:$player", "citizen")
+    }
+
+    fun structureEntered(player: ServerPlayer, id: String, tags: Collection<String>) {
+        Realm.of(player.stringUUID)?.let { structureEntered(it, id, tags) }
     }
 
     fun structureEntered(country: Country, id: String, tags: Collection<String>) {
-        if (country.research.visited.add("structure:$id")) {
-            Levels.add(country, "discovery", 1.0)
-            Realm.dirty = true
-        }
-        report(country, "structure", id, 1)
-        tags.forEach { report(country, "structure", "#$it", 1) }
+        firstTime(country, "structure:$id", "discovery")
+        report(country, Kinds.STRUCTURE, id, 1)
+        tags.forEach { report(country, Kinds.STRUCTURE, "#$it", 1) }
     }
 
     fun processed(country: Country, recipeType: String, output: String) {
-        if (Research.defs.taskIndex["process"] != null) report(country, "process", "$recipeType|$output", 1)
+        report(country, Kinds.PROCESS, "$recipeType|$output", 1)
+    }
+
+    private fun firstTime(country: Country, key: String, source: String) {
+        if (!country.research.visited.add(key)) return
+        Levels.add(country, source, 1.0)
+        Realm.dirty = true
     }
 }

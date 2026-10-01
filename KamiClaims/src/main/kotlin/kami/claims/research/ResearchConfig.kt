@@ -26,6 +26,7 @@ class TreeFile(
 
 class ResearchDefs(val settings: ResearchSettings, val levels: LevelsConfig, val groups: Map<String, Group>, val trees: Map<String, Tree>) {
     val nodes: Map<String, Node> = trees.values.flatMap { it.nodes }.associateBy { it.key }
+    val counterKeys: Set<String> = (nodes.values.flatMap { it.allConditions() } + levels.rules.values.flatMap { it.requires }).flatMap { it.counters() }.toSet()
     val taskIndex: Map<String, Map<String, List<Int>>> = nodes.values
         .flatMap { node -> node.tasks.mapIndexed { index, task -> Triple(task.kind, node.key, index) } }
         .groupBy({ it.first }, { it.second to it.third })
@@ -71,7 +72,7 @@ object Docs {
         "table" to "Optional explicit XP thresholds for levels 2 and up, replaces the curve when not empty",
         "maxLevel" to "Highest reachable level",
         "sources" to "XP sources: rate per unit and daily cap per country (0 means no cap)",
-        "capacities" to "Base capacities (chunks, provinces, citizens, researchSlots, queueSlots, treasury, officers, marketSlots, auctionSlots, freeChunks), raised by research nodes and level rewards",
+        "capacities" to "Base capacities (chunks, provinces, citizens, researchSlots, queueSlots, treasury, officers, marketSlots, auctionSlots, freeChunks, plots), raised by research nodes and level rewards",
         "rules" to "Per level: xp overrides the curve (0 means requirements only), requires are conditions (chunks, plots, counter, flag, treasury, citizens, ...) that must hold to reach the level",
         "rewards" to "Rewards per level: unlocks like in nodes (capacity, group, recipe, output, block, mod) money paid once into the treasury, feature (claim_type:id, role:chancellor, banish, alliances, embargoes) or token (rename, capital_move)",
         "announce" to "Announce level ups"

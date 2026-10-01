@@ -9,11 +9,12 @@ import kotlin.io.path.extension
 import kotlin.io.path.nameWithoutExtension
 
 class ConfigFolder(val root: Path, private val hint: String, private val json: Json = Configs.json(), private val log: Log = Log.of("config")) {
-    val problems = ArrayList<String>()
+    private val found = ArrayList<String>()
+    val problems: List<String> get() = found
     private val lastGood = HashMap<Path, Any>()
 
     fun startLoad() {
-        problems.clear()
+        found.clear()
         Files.createDirectories(root)
     }
 
@@ -38,7 +39,7 @@ class ConfigFolder(val root: Path, private val hint: String, private val json: J
         json.decodeFromString(serializer, Files.readString(path)).also { lastGood[path] = it }
     } catch (e: Exception) {
         log.error("Ignoring {}: {}", path.fileName, e.message)
-        problems += "${root.relativize(path).joinToString("/")}: ${Jsonc.reason(e)}"
+        found += "${root.relativize(path).joinToString("/")}: ${Jsonc.reason(e)}"
         lastGood[path] as T?
     }
 

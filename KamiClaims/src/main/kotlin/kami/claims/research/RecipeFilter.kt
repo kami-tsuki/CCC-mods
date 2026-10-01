@@ -11,6 +11,7 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.item.crafting.RecipeHolder
 import net.minecraft.world.level.block.Block
+import java.lang.reflect.Method
 import java.util.Optional
 
 object RecipeFilter {
@@ -40,14 +41,21 @@ object RecipeFilter {
         return if (kept.size == recipes.size) recipes else kept
     }
 
+    private val resultBlockGetters = object : ClassValue<Method?>() {
+        override fun computeValue(type: Class<*>) = runCatching { type.getMethod("getResultBlock") }.getOrNull()
+    }
+
     private fun resultBlock(recipe: Any): ResourceLocation? = runCatching {
-        BuiltInRegistries.BLOCK.getKey(recipe.javaClass.getMethod("getResultBlock").invoke(recipe) as Block)
+        (resultBlockGetters.get(recipe.javaClass)?.invoke(recipe) as? Block)?.let(BuiltInRegistries.BLOCK::getKey)
     }.getOrNull()
 
     @JvmStatic
+    fun bypassed(player: ServerPlayer) = Perms.has(player, Perms.RESEARCH_BYPASS)
+
+    @JvmStatic
     fun allowedFor(player: ServerPlayer, recipe: ResourceLocation): Boolean {
-        if (Research.allowed(null, recipe) || Perms.has(player, Perms.RESEARCH_BYPASS)) return true
-        return Research.allowed(Realm.of(player.stringUUID), recipe)
+        if (!Gate.gated(recipe) || bypassed(player)) return true
+        return Gate.recipe(Realm.of(player.stringUUID), recipe)
     }
 
     @JvmStatic

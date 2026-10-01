@@ -86,7 +86,7 @@ class Toasts {
             t.action?.let { label ->
                 if (live && ui.link(box.x + 24, box.y + 18 + bodyLines.size * Draw.LINE, label, key = "toast-action:${t.id}")) { t.onAction?.invoke(); t.dismissed = true }
             }
-            if (live && !t.dismissed && ui.pressed(box) != null) t.dismissed = true
+            if (live && ui.pressed(box) != null) t.dismissed = true
             Draw.veilBox(ui.g, box.inset(1), minOf(enter, 1f - leave))
         }
     }

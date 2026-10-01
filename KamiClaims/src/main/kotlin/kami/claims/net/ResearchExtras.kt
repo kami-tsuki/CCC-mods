@@ -1,13 +1,15 @@
 package kami.claims.net
 
 import kami.claims.research.Limits.MAX_ID
+import kami.claims.research.Limits.MAX_NODES
+import kami.claims.research.Limits.MAX_TREES
 import kami.claims.research.Matched
 import kami.claims.research.Resolution
 import kami.libs.net.WireReader
 import kami.libs.net.WireWriter
 
 private const val MAX_IDS = 1 shl 20
-private const val MAX_GROUPS = 4096
+private const val MAX_GROUPS = MAX_TREES * MAX_NODES
 
 class ExtraKeys(val ids: String, val nodes: String, val levels: String, val producers: String)
 
@@ -20,7 +22,7 @@ class IdExtras(
 ) {
     private val index by lazy { ids.withIndex().associate { (i, id) -> id to i } }
 
-    fun openIndices(doneNodes: Collection<String>, level: Int): Set<Int> =
+    private fun openIndices(doneNodes: Collection<String>, level: Int): Set<Int> =
         doneNodes.flatMap { nodes[it].orEmpty() }.toSet() + levels.filterKeys { it <= level }.values.flatten()
 
     fun hidden(doneNodes: Collection<String>, level: Int): Set<String> {

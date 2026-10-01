@@ -6,16 +6,13 @@ import kami.libs.config.ConfigFolder
 import kami.libs.config.Configs
 import kami.libs.log.Log
 import kami.libs.text.Phrase
-import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.neoforged.neoforge.server.ServerLifecycleHooks
 
 object Research {
     var defs = ResearchDefs.EMPTY
         internal set
-    var problems: List<String> = emptyList()
-        internal set
-
+    private var problems: List<String> = emptyList()
     private var loadProblems: List<String> = emptyList()
     private val log = Log.of("research")
     private val folder by lazy { ConfigFolder(Configs.dir("claims").resolve("research"), "Reload with /kami reload claims") }
@@ -25,10 +22,6 @@ object Research {
     fun available(country: Country): List<Node> = defs.treesFor(country).flatMap { it.nodes }.filter { node ->
         node.key !in country.research.done && country.research.queue.none { it.node == node.key } && node.conditions().all { it.met(country) }
     }
-
-    fun allowed(country: Country?, recipe: ResourceLocation) = Gate.recipe(country, recipe.namespace, recipe.path)
-
-    fun allowedBlock(country: Country?, block: ResourceLocation) = Gate.block(country, block.namespace, block.path)
 
     fun reload(): String? {
         load(folder)
@@ -59,9 +52,8 @@ object Research {
         val built = Validator.build(settings, levels, groups, trees, defs.trees, Defaults.trees)
         defs = built.defs
         Gate.install(Resolution.EMPTY)
-        ResearchSync.defsChanged()
         Queue.dropOrphans()
-        Levels.settleAllRewards()
+        Levels.advanceAll()
         loadProblems = folder.problems + built.problems
         problems = loadProblems
         problems.forEach { log.warn("{}", it) }

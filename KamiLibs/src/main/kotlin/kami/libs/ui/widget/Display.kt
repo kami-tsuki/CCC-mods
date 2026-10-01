@@ -283,11 +283,10 @@ fun Ui.chipFlow(stack: Stack, chips: List<ChipSpec>, key: String): Int? {
         val width = Draw.width(chip.label) + 12 + if (chip.icon != null) Draw.ICON_SLOT else 0
         if (x + width > row.right && x > row.x) { row = stack.take(CHIP_H); x = row.x }
         val box = Rect(x, row.y, width, CHIP_H)
-        focusable("$key:$i")
+        val hit = clickable("$key:$i", box)
         chip(x, row.y, chip.label, chip.color, chip.icon, key = "$key:$i", selected = chip.selected, interactive = true)
-        if (hovering(box)) cursor = Cursor.HAND
         focusRing("$key:$i", box)
-        if (pressed(box) != null || activatedByKey("$key:$i")) clicked = i
+        if (hit) clicked = i
         x += width + 3
     }
     return clicked

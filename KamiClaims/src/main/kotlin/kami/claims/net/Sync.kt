@@ -2,6 +2,7 @@ package kami.claims.net
 
 import kami.claims.*
 import kami.claims.economy.Bank
+import kami.claims.research.Buffs
 import kami.claims.research.Capacity
 import kami.claims.research.Goals
 import kami.claims.research.Levels
@@ -165,7 +166,7 @@ object Sync {
             k.x, k.z, c.name, rel, cl.type, cl.owner?.let { Names.of(p.server, it) } ?: "",
             if (own) cl.roles.map { (id, r) -> "${Names.of(p.server, id)}: ${r.name.lowercase()}" } else emptyList(),
             if (priv) cl.debt else 0, if (own) (if (cl.tax >= 0) cl.tax else c.tax) else -1, if (own) cl.lapse else 0,
-            Realm.price(cl), Realm.period(cl), priv && cl.free, cl.capital, "", access, "", cl.at, cl.owner ?: "",
+            Buffs.price(c, cl), Realm.period(cl), priv && cl.free, cl.capital, "", access, "", cl.at, cl.owner ?: "",
             if (priv) Planner.unclaimLock(cl)?.json() ?: "" else ""
         )
     }
@@ -196,6 +197,7 @@ object Sync {
         val me = p.stringUUID
         val claims = Realm.claims(c.id)
         val sum = Upkeep.summary(c)
+        val borderTax = Buffs.tax(c)
         val priv = delegated || View.privileged(c, me)
         val staff = !delegated && Service.rankOf(c, p) >= s.min(Cap.INVITE)
         val provStaff = !delegated && Service.rankOf(c, p) >= s.min(Cap.PROVINCE)
@@ -211,7 +213,7 @@ object Sync {
                 c.job(j)?.let { d -> val cfg = s.jobs.getValue(j); JobLine(j, cfg.type, d.pay, d.quota, d.period, cfg.actions.map { it.name.lowercase() }, cfg.blocks) }
             },
             claimLines(p, claims, c, me, priv),
-            claims.filter { !it.free }.groupBy { it.type }.map { (t, list) -> Break(t, list.size, list.sumOf { Realm.price(it).toDouble() / Realm.period(it) }) },
+            claims.filter { !it.free }.groupBy { it.type }.map { (t, list) -> Break(t, list.size, list.sumOf { Buffs.price(c, it, borderTax).toDouble() / Realm.period(it) }) },
             claims.count { it.owner == me },
             c.parent?.let { Realm.country(it)?.name } ?: "", c.taxMode.name.lowercase(), c.taxAmount, c.provinceDebt, c.independenceRequested,
             if (provStaff) c.provinceInvites.filterValues { it.until > now() }.mapNotNull { (pid, o) ->

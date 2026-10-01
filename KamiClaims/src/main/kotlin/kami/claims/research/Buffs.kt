@@ -39,18 +39,18 @@ class PulseTracker {
 
     fun forget(player: UUID) {
         inside.remove(player)
-        readyAt.keys.removeAll { it.first == player }
     }
+
+    fun prune(at: Long) = readyAt.values.removeAll { it <= at }
 }
 
 object Buffs {
-    const val FEATURE = "buffs"
     private const val WATCH_TICKS = 10
     private const val AURA_TICKS = 80
     private const val AURA_DURATION = 220
 
     private val tracker = PulseTracker()
-    private val borders = HashMap<String, Pair<Int, Set<Key>>>()
+    private val borders = HashMap<String, Set<Key>>()
 
     fun unlocked(country: Country): List<Buff> = Research.defs.nodes.values.filter { it.key in country.research.done }.mapNotNull { node ->
         node.unlocks.filterIsInstance<BuffUnlock>().firstOrNull()?.let { Buff(node.key, node, it) }
@@ -58,9 +58,7 @@ object Buffs {
 
     fun enabled(country: Country): List<Buff> = unlocked(country).filter { it.key in country.buffs.enabled }
 
-    fun points(country: Country): Int = country.research.done.keys.sumOf { key ->
-        Research.defs.node(key)?.unlocks.orEmpty().filterIsInstance<BuffPointsUnlock>().sumOf { it.add }
-    }
+    fun points(country: Country): Int = Research.unlocks<BuffPointsUnlock>(country).sumOf { it.add }
 
     fun used(country: Country): Int = enabled(country).sumOf { it.cost }
 
@@ -71,35 +69,43 @@ object Buffs {
     }
 
     fun toggle(country: Country, key: String): Phrase {
-        Features.require(country, FEATURE)
-        val node = Research.defs.nodeFor(country, key)?.takeIf { n -> n.unlocks.any { it is BuffUnlock } } ?: throw Fail("kami_claims.research.error.unknown", Words.v(key))
-        val buff = unlocked(country).firstOrNull { it.key == key } ?: throw Fail(Locks.research(node.label().asValue()))
+        Features.require(country, Features.BUFFS)
+        fun unknown() = Fail("kami_claims.research.error.unknown", Words.v(key))
+        val node = Research.defs.nodeFor(country, key) ?: throw unknown()
+        val unlock = node.unlocks.filterIsInstance<BuffUnlock>().firstOrNull() ?: throw unknown()
+        if (key !in country.research.done) throw Fail(Locks.research(node.label().asValue()))
+        val buff = Buff(key, node, unlock)
         val on = country.buffs.enabled.add(key)
         if (!on) country.buffs.enabled.remove(key)
-        else if (used(country) > points(country)) {
+        else (points(country) - used(country)).takeIf { it < 0 }?.let { free ->
             country.buffs.enabled.remove(key)
-            throw Fail("kami_claims.buffs.error.points", Words.num(points(country) - used(country)), Words.num(buff.cost))
+            throw Fail("kami_claims.buffs.error.points", Words.num(free), Words.num(buff.cost))
         }
+        if (on) country.buffs.billed += key
         Realm.changed()
         ResearchSync.refresh(country)
         return Phrase.of(if (on) "kami_claims.buffs.done.on" else "kami_claims.buffs.done.off", node.label().asValue())
     }
 
     fun borderChunks(country: Country): Set<Key> {
-        borders[country.id]?.takeIf { it.first == Realm.rev }?.let { return it.second }
-        val keys = Realm.claims(country.id).filter { claim -> Realm.neighbors(claim).any { Realm.index[it]?.country != country.id } }.map { it.key }.toSet()
-        borders[country.id] = Realm.rev to keys
-        return keys
+        borders[country.id]?.let { return it }
+        return Realm.claims(country.id).filter { claim -> Realm.neighbors(claim).any { Realm.index[it]?.country != country.id } }.map { it.key }.toSet().also { borders[country.id] = it }
     }
 
     fun tax(country: Country): Int = enabled(country).sumOf { it.tax }
 
-    fun surcharge(country: Country, claim: Claim): Int = if (claim.key in borderChunks(country)) tax(country) else 0
+    fun billedTax(country: Country): Int = unlocked(country).filter { it.key in country.buffs.enabled || it.key in country.buffs.billed }.sumOf { it.tax }
 
-    fun price(country: Country, claim: Claim): Int = Realm.price(claim) + surcharge(country, claim)
+    fun settle(country: Country) = country.buffs.billed.clear()
+
+    fun price(country: Country, claim: Claim, borderTax: Int = tax(country)): Int = Realm.price(claim) + if (claim.key in borderChunks(country)) borderTax else 0
+
+    fun dropBorders(country: String) = borders.remove(country)
+
+    fun clearBorders() = borders.clear()
 
     fun view(country: Country): BuffsView {
-        if (!Features.unlocked(country, FEATURE)) return BuffsView.NONE
+        if (!Features.unlocked(country, Features.BUFFS)) return BuffsView.NONE
         val list = unlocked(country).map {
             BuffView(it.key, it.unlock.effect, it.unlock.amplifier, it.unlock.mode.name.lowercase(), it.unlock.cooldownSeconds, it.cost, it.tax, it.key in country.buffs.enabled)
         }
@@ -111,6 +117,7 @@ object Buffs {
     fun tick(server: MinecraftServer) {
         val tick = server.tickCount
         if (tick % WATCH_TICKS != 0) return
+        if (tick % AURA_TICKS == 0) tracker.prune(System.currentTimeMillis())
         server.playerList.players.forEach { p ->
             val home = Realm.of(p.stringUUID)
             val standing = Realm.at(p.level().dimension().location().toString(), p.chunkPosition().x, p.chunkPosition().z)?.country

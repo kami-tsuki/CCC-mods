@@ -122,7 +122,7 @@ class SettingsPage(app: ClaimsApp) : ClaimsPage(app) {
         val gf = Flow(guide, 4)
         if (ui.button(gf.take(CONTROL_H), tr("kami_claims.help.tour"), Icons.STAR, key = "tour")) app.startTour()
         if (ui.button(gf.take(CONTROL_H), tr("kami_claims.settings.guidance.undismiss", Format.number(p.dismissed.size)), Icons.BELL, enabled = p.dismissed.isNotEmpty(), disabledReason = tr("kami_claims.settings.guidance.undismiss.disabled"), key = "undismiss")) { p.dismissed.clear(); save() }
-        if (ui.button(gf.take(CONTROL_H), tr("kami_claims.settings.guidance.steps"), Icons.CHECK, enabled = p.hiddenSteps, disabledReason = tr("kami_claims.settings.guidance.steps.disabled"), key = "steps")) { p.hiddenSteps = false; save() }
+        if (ui.button(gf.take(CONTROL_H), tr("kami_claims.settings.guidance.goals"), Icons.CHECK, enabled = p.hiddenSteps, disabledReason = tr("kami_claims.settings.guidance.goals.disabled"), key = "goals")) { p.hiddenSteps = false; save() }
         val keys = ui.card(rf.remaining(), tr("kami_claims.settings.keys"), Icons.GENERIC)
         val kf = Flow(keys, 3)
         listOf("K" to tr("key.kami_claims.open"), "B" to tr("key.kami_claims.borders"), "M" to tr("kami_claims.nav.map"), "?" to tr("kami_claims.tour.help"), "Esc" to tr("kami_claims.settings.keys.escape"), "Alt+←" to tr("kami_claims.settings.keys.previous"), tr("kami_claims.settings.keys.groups.key") to tr("kami_claims.settings.keys.groups")).forEach { (k, v) -> ui.keyHints(keys.x, kf.take(13).y, listOf(k to v)) }

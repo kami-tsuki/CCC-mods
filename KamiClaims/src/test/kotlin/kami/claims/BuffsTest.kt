@@ -85,6 +85,8 @@ class BuffsTest {
         assertFalse(tracker.ready(player, "buffs:instant_health_1", 200_000, 300_000))
         assertTrue(tracker.ready(player, "buffs:instant_health_1", 301_000, 300_000))
         tracker.forget(player)
-        assertTrue(tracker.ready(player, "buffs:instant_health_1", 302_000, 300_000))
+        assertFalse(tracker.ready(player, "buffs:instant_health_1", 302_000, 300_000))
+        tracker.prune(700_000)
+        assertTrue(tracker.ready(player, "buffs:instant_health_1", 700_001, 300_000))
     }
 }

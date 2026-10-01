@@ -200,6 +200,7 @@ object Service {
 
     private fun disband(p: ServerPlayer, confirmed: Boolean): Phrase {
         val c = need(p, Rank.PRESIDENT)
+        Loans.requireNoLoans(c, "kami_claims.loans.error.disband")
         if (!confirmed) throw NeedsConfirm(listOf(
             Phrase.of("kami_claims.confirm.disband.title", v(c.name)),
             Phrase.of("kami_claims.confirm.disband.land", chunks(Realm.claims(c.id).size)),
@@ -214,6 +215,7 @@ object Service {
     private fun leave(p: ServerPlayer): Phrase {
         val c = home(p)
         if (rankOf(c, p) == Rank.PRESIDENT && c.members.size > 1) throw Fail("kami_claims.error.transfer_first")
+        if (c.members.size == 1) Loans.requireNoLoans(c, "kami_claims.loans.error.disband")
         Realm.leave(c, p.stringUUID)
         ResearchSync.refresh(c)
         if (c.members.isEmpty()) Realm.disband(c)
@@ -299,7 +301,11 @@ object Service {
         val m = member(c, id)
         val mine = c.members.getValue(p.stringUUID)
         if (m === mine) throw Fail("kami_claims.error.already_president")
-        val stepDown = if (m.rank >= Rank.OFFICER) m.rank else Rank.OFFICER
+        val stepDown = when {
+            m.rank >= Rank.OFFICER -> m.rank
+            Features.limit(c, Capacity.OFFICERS, Levels.used(c, Capacity.OFFICERS)) == null -> Rank.OFFICER
+            else -> Rank.CITIZEN
+        }
         if (!confirmed) throw NeedsConfirm(listOf(
             Phrase.of("kami_claims.confirm.president.title", v(Names.of(p.server, id)), v(c.name)),
             Phrase.of("kami_claims.confirm.president.rights"),

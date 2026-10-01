@@ -12,7 +12,6 @@ import kami.claims.research.NodeState
 import kami.libs.ui.anim.countUp
 import kami.libs.ui.anim.spring
 import kami.libs.ui.app.Route
-import kami.libs.ui.core.Cursor
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Row
 import kami.libs.ui.core.Stack
@@ -40,7 +39,7 @@ class ResearchQueuePage(app: ClaimsApp) : ClaimsPage(app) {
         val full = state.used(cap) >= state.max(cap)
         val raise = ClientLocks.raise(cap)
         return KpiTile(
-            ResearchLook.capacity(cap.name.lowercase()), "${state.used(cap)}/${state.max(cap)}", icon, if (full) Palette.warning else Palette.text,
+            ResearchLook.capacity(cap.id), "${state.used(cap)}/${state.max(cap)}", icon, if (full) Palette.warning else Palette.text,
             sub = raise?.label, tip = raise?.how?.let { Tip.text(it) }
         )
     }
@@ -53,6 +52,7 @@ class ResearchQueuePage(app: ClaimsApp) : ClaimsPage(app) {
             KpiTile(tr("kami_claims.kpi.treasury"), Format.number(ui.countUp("queue-treasury", state.treasury)), Icons.TREASURY, Palette.money, flashValue = state.treasury)
         ), key = "queue-kpi")
         val body = r.dropTop(TILE_H + 6)
+        val offline = nobodyOnline
         if (state.queue !== splitFor) {
             splitFor = state.queue
             val (active, idle) = state.queue.partition { it.state == NodeState.RESEARCHING }
@@ -61,22 +61,21 @@ class ResearchQueuePage(app: ClaimsApp) : ClaimsPage(app) {
         }
         val runningSlots = maxOf(state.max(Capacity.RESEARCH_SLOTS), running.size)
         val waitingSlots = maxOf(state.max(Capacity.QUEUE_SLOTS), waiting.size)
-        val nobodyOnline = info?.members?.none { it.online } == true
-        val height = SECTION_H + runningSlots * ROW_H + SECTION_H + waitingSlots * ROW_H + (if (nobodyOnline && running.isNotEmpty()) NOTICE_H else 0) + (if (state.queue.isEmpty()) EMPTY_H else 0)
+        val height = SECTION_H + runningSlots * ROW_H + SECTION_H + waitingSlots * ROW_H + (if (offline && running.isNotEmpty()) NOTICE_H else 0) + (if (state.queue.isEmpty()) EMPTY_H else 0)
         ui.scroll("research-queue", body, height) { area ->
             val stack = Stack(area.x, area.y, area.w, 0)
-            if (nobodyOnline && running.isNotEmpty()) ui.callout(stack.take(NOTICE_H), Severity.WARNING, tr("kami_claims.research.queue.offline"))
+            if (offline && running.isNotEmpty()) ui.callout(stack.take(NOTICE_H), Severity.WARNING, tr("kami_claims.research.queue.offline"))
             ui.section(stack.take(SECTION_H), tr("kami_claims.research.status.researching"), "${running.size}/$runningSlots")
-            repeat(runningSlots) { i -> slot(ui, stack.take(ROW_H), area.y, running.getOrNull(i), nobodyOnline, "running:$i") }
+            repeat(runningSlots) { i -> slot(ui, stack.take(ROW_H), area.y, running.getOrNull(i), "running:$i", offline) }
             ui.section(stack.take(SECTION_H), tr("kami_claims.research.queue.waiting"), "${waiting.size}/$waitingSlots")
-            repeat(waitingSlots) { i -> slot(ui, stack.take(ROW_H), area.y, waiting.getOrNull(i), nobodyOnline, "waiting:$i") }
+            repeat(waitingSlots) { i -> slot(ui, stack.take(ROW_H), area.y, waiting.getOrNull(i), "waiting:$i", offline) }
             if (state.queue.isEmpty() && ui.emptyState(stack.take(EMPTY_H), tr("kami_claims.research.queue.empty.title"), tr("kami_claims.research.queue.empty"), action = tr("kami_claims.research.queue.open_tree"), key = "queue-empty")) {
                 app.navigate(Route("research"))
             }
         }
     }
 
-    private fun slot(ui: Ui, r: Rect, originY: Int, entry: QueueView?, nobodyOnline: Boolean, key: String) {
+    private fun slot(ui: Ui, r: Rect, originY: Int, entry: QueueView?, key: String, offline: Boolean) {
         val node = entry?.let { ClientResearch.node(it.node) }
         if (entry == null || node == null) {
             freeSlot(ui, r.inset(0, 1), key)
@@ -92,20 +91,19 @@ class ResearchQueuePage(app: ClaimsApp) : ClaimsPage(app) {
         val manage = ClientResearch.state.canManage
         if (ui.iconButton(line.iconSlot(), Icons.LOCATE, tr("kami_claims.research.action.show"), key = "queue-show:${node.key}")) app.navigate(Route("research", focus = node.key))
         if (manage) controls(ui, line, node, entry, inner.w < NARROW_W)
-        val spec = barFor(node, entry, nobodyOnline, ui.wallMillis)
+        val spec = barFor(node, entry, offline, ui.wallMillis)
         val status = ClientResearch.status(node.key)
         ui.progressBar(line.remaining(), spec.value, spec.max, node.label().resolve(), spec.remaining, ResearchLook.color(status), shimmer = spec.stalled == false, paused = spec.stalled == true, key = "queue-bar:${node.key}")
     }
 
     private fun freeSlot(ui: Ui, row: Rect, key: String) {
-        val hover = ui.hover("queue-free:$key", row)
-        ui.focusable("queue-free:$key")
-        val color = if (hover) Palette.textSecondary else Palette.border
-        if (hover) { ui.cursor = Cursor.HAND; Draw.fill(ui.g, row, Palette.alpha(Palette.hover, 0x80)) }
-        Draw.dashedRect(ui.g, row, color)
+        val hit = ui.clickable("queue-free:$key", row)
+        val hover = ui.hovering(row)
+        if (hover) Draw.fill(ui.g, row, Palette.alpha(Palette.hover, 0x80))
+        Draw.dashedRect(ui.g, row, if (hover) Palette.textSecondary else Palette.border)
         Draw.textCentered(ui.g, Draw.fit(tr("kami_claims.research.queue.free"), row.w - 8), row, if (hover) Palette.text else Palette.textMuted)
         ui.focusRing("queue-free:$key", row)
-        if (ui.pressed(row) != null || ui.activatedByKey("queue-free:$key")) app.navigate(Route("research"))
+        if (hit) app.navigate(Route("research"))
     }
 
     private fun controls(ui: Ui, line: Row, node: NodeView, entry: QueueView, narrow: Boolean) {
@@ -114,9 +112,7 @@ class ResearchQueuePage(app: ClaimsApp) : ClaimsPage(app) {
         if (entry.state == NodeState.RESEARCHING) {
             val label = tr("kami_claims.research.action.pause")
             val pending = actions.pending(node)
-            val fired = if (narrow) ui.iconButton(line.iconSlot(), Icons.PENDING, label, enabled = !pending, key = "queue-pause:${node.key}")
-            else ui.edgeButton(line, label, Icons.PENDING, pending = pending, key = "queue-pause:${node.key}")
-            if (fired) actions.pause(node)
+            if (ui.adaptiveButton(line, narrow, label, Icons.PENDING, pending = pending, key = "queue-pause:${node.key}")) actions.pause(node)
             return
         }
         if (ui.iconButton(line.iconSlot(), Icons.SORT_DOWN, tr("kami_claims.research.action.down"), enabled = index < queue.lastIndex, key = "queue-down:${node.key}")) actions.move(node, index + 1)
@@ -124,9 +120,7 @@ class ResearchQueuePage(app: ClaimsApp) : ClaimsPage(app) {
         val reason = actions.startReason(node, entry)
         val label = tr("kami_claims.research.action.start")
         val pending = actions.pending(node)
-        val fired = if (narrow) ui.iconButton(line.iconSlot(), Icons.CHECK, label, enabled = reason == null && !pending, disabledReason = reason, key = "queue-start:${node.key}")
-        else ui.edgeButton(line, label, Icons.CHECK, ButtonStyle.PRIMARY, reason == null, reason, pending = pending, key = "queue-start:${node.key}")
-        if (fired) actions.start(node, entry)
+        if (ui.adaptiveButton(line, narrow, label, Icons.CHECK, ButtonStyle.PRIMARY, reason == null, reason, pending, "queue-start:${node.key}")) actions.start(node, entry)
     }
 }
 
@@ -137,5 +131,3 @@ private const val NOTICE_H = 28
 private const val EMPTY_H = 96
 private const val NARROW_W = 300
 private const val ROW_STIFFNESS = 220f
-
-private fun Row.iconSlot() = takeFromRight(SMALL_H).centered(SMALL_H, SMALL_H)

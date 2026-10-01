@@ -40,10 +40,10 @@ object Diplomacy {
 
     fun tariff(buyer: Country, seller: Country) = if (sameFamily(buyer, seller)) 0 else policy(buyer, seller).tariffPct
 
-    fun credit(c: Country, amount: Long, kind: LedgerKind, note: String = ""): Long {
+    fun creditTariff(c: Country, amount: Long): Long {
         if (amount <= 0) return 0
-        val applied = Treasury.move(c, kind, amount, note = note)
-        if (kind == LedgerKind.TARIFF) Progress.report(c, "taxes", "", applied)
+        val applied = Treasury.move(c, LedgerKind.TARIFF, amount)
+        Progress.report(c, "taxes", "", applied)
         Realm.changed()
         return applied
     }

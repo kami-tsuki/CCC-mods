@@ -1,5 +1,7 @@
 package kami.claims.research
 
+import kami.libs.claims.FeatureIds
+
 object LevelDefaults {
     val capacities: Map<Capacity, Int> = mapOf(
         Capacity.CHUNKS to 36,
@@ -21,15 +23,15 @@ object LevelDefaults {
         "taxes" to XpSource(0.2, 300),
         "claims" to XpSource(1.0, 150),
         "playtime" to XpSource(15.0, 300),
-        "trade" to XpSource(1.0, 1000),
-        "auction_sold" to XpSource(100.0, 2000),
-        "rent" to XpSource(100.0, 2000),
-        "wage" to XpSource(10.0, 500),
+        "trade" to XpSource(1.0, 300),
+        "auction_sold" to XpSource(100.0, 500),
+        "rent" to XpSource(100.0, 500),
+        "wage" to XpSource(10.0, 100),
         "prospect" to XpSource(2.0, 40),
         "deposit_found" to XpSource(25.0, 100),
-        "alliance" to XpSource(150.0),
-        "province" to XpSource(150.0),
-        "citizen" to XpSource(25.0),
+        "alliance" to XpSource(150.0, 300),
+        "province" to XpSource(150.0, 300),
+        "citizen" to XpSource(25.0, 100),
         "discovery" to XpSource(50.0, 200)
     )
 
@@ -72,7 +74,7 @@ object LevelDefaults {
         22 to listOf(add(Capacity.PROVINCES, 1)),
         23 to listOf(FeatureUnlock(Features.EMBARGOES)),
         24 to listOf(add(Capacity.FREE_CHUNKS, 3)),
-        25 to listOf(FeatureUnlock(Features.claimType("market")), FeatureUnlock(Features.VENDORS)),
+        25 to listOf(FeatureUnlock(Features.claimType("market")), FeatureUnlock(FeatureIds.VENDORS)),
         30 to listOf(add(Capacity.RESEARCH_SLOTS, 1), add(Capacity.TREASURY, 500_000)),
         35 to listOf(add(Capacity.TREASURY, 500_000)),
         40 to listOf(add(Capacity.TREASURY, 500_000)),

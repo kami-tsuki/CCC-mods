@@ -61,4 +61,13 @@ class PricingTest {
         assertFalse(book.recentFills.isNotEmpty())
     }
 
+    @Test
+    fun valueUsesTheBasePrice() {
+        Market.data = kami.economy.Data()
+        Config.s = Settings(starterGoods = listOf(kami.economy.StarterGood("test:iron_ingot", 40)))
+        Stocks.index { emptyList() }
+        assertEquals(40L, EconomyProvider.valueOf("test:iron_ingot", 64))
+        assertEquals(20L, EconomyProvider.valueOf("test:iron_ingot", 32))
+        assertEquals(0L, EconomyProvider.valueOf("test:unknown", 8))
+    }
 }

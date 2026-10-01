@@ -102,6 +102,7 @@
   "kami_essentials.trade.reason.player_left": "A player left.",
   "kami_essentials.trade.reason.stopping": "The server is stopping.",
   "kami_essentials.trade.reason.window": "The trade window was closed.",
+  "kami_essentials.trade.reason.embargo": "Trading between your countries is embargoed.",
   "kami_essentials.trade.request.accept": "Accept",
   "kami_essentials.trade.request.accept.tooltip": "Open the trade window",
   "kami_essentials.trade.request.deny": "Decline",

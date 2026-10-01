@@ -21,6 +21,7 @@ import kami.libs.text.Phrase
 import net.minecraft.commands.SharedSuggestionProvider
 import net.minecraft.commands.arguments.GameProfileArgument
 import net.minecraft.commands.arguments.ResourceLocationArgument
+import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
 
 private fun nodeIds() = Research.defs.nodes.values.map { it.id }.distinct()
@@ -28,6 +29,8 @@ private fun nodeIds() = Research.defs.nodes.values.map { it.id }.distinct()
 private fun Ctx.act(name: String, vararg args: String) = ok(Service.act(me(), name, args.toList()))
 
 private fun Ctx.target(): Country = Realm.country(text("country")) ?: fail(Phrase.of("kami_claims.error.unknown_country"))
+
+private fun Ctx.finished(name: String, target: Country) = ok(Phrase.of("kami_claims.research.admin.$name", Words.v(target.name)), true)
 
 private fun status(country: Country, node: ResearchNode): Phrase {
     val state = when {
@@ -66,7 +69,7 @@ private fun Ctx.showList(country: Country) {
     info(Phrase.of("kami_claims.research.list.title", num(country.research.done.size), num(nodes.size), num(available.size)))
     available.forEach { node ->
         row {
-            run(net.minecraft.network.chat.Component.literal(node.id), "/claims research enqueue ${node.id}", Phrase.of("kami_claims.research.list.tooltip").component())
+            run(Component.literal(node.id), "/claims research enqueue ${node.id}", Phrase.of("kami_claims.research.list.tooltip").component())
             muted("  ")
             add(node.label(), Theme.MUTED)
             muted("  ")
@@ -125,7 +128,7 @@ fun adminResearchCmd(): Node {
     fun step(name: String, action: (Country, String) -> Unit) = lit(name).then(word("country") { Realm.data.countries.keys }.then(word("node", ::nodeIds).does { ctx ->
         val target = ctx.target()
         action(target, Queue.key(target, ctx.text("node")))
-        ctx.ok(Phrase.of("kami_claims.research.admin.$name", Words.v(target.name)), true)
+        ctx.finished(name, target)
     }))
     return lit("research").requires { Perms.has(it, Perms.RESEARCH_ADMIN) }
         .then(step("grant", Queue::grant))
@@ -133,8 +136,8 @@ fun adminResearchCmd(): Node {
         .then(step("finish", Queue::finish))
         .then(lit("why").then(arg("player", GameProfileArgument.gameProfile()).then(arg("recipe", ResourceLocationArgument.id()).suggests { _, b -> SharedSuggestionProvider.suggestResource(Gate.resolution.gated.let { it.recipes + it.blocks }.map(ResourceLocation::parse), b) }.does { it.why() })))
         .then(lit("reset").then(word("country") { Realm.data.countries.keys }
-            .does { ctx -> Queue.reset(ctx.target(), null); ctx.ok(Phrase.of("kami_claims.research.admin.reset", Words.v(ctx.target().name)), true) }
-            .then(word("node", ::nodeIds).does { ctx -> Queue.reset(ctx.target(), Queue.key(ctx.target(), ctx.text("node"))); ctx.ok(Phrase.of("kami_claims.research.admin.reset", Words.v(ctx.target().name)), true) })))
+            .does { ctx -> ctx.target().let { Queue.reset(it, null); ctx.finished("reset", it) } }
+            .then(word("node", ::nodeIds).does { ctx -> ctx.target().let { Queue.reset(it, Queue.key(it, ctx.text("node"))); ctx.finished("reset", it) } })))
 }
 
 fun adminXpCmd(): Node = lit("xp").requires { Perms.has(it, Perms.RESEARCH_ADMIN) }

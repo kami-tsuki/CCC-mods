@@ -18,19 +18,8 @@ class Citizenship(val country: String, val name: String, val color: Int, val par
 
 enum class Relation { NEUTRAL, ALLIED, FAMILY, EMBARGO }
 
-enum class TreasuryKind { TARIFF }
-
 object CountryCapacity {
-    const val CHUNKS = "chunks"
-    const val PROVINCES = "provinces"
-    const val CITIZENS = "citizens"
-    const val RESEARCH_SLOTS = "researchSlots"
-    const val QUEUE_SLOTS = "queueSlots"
-    const val TREASURY = "treasury"
-    const val OFFICERS = "officers"
     const val MARKET_SLOTS = "marketSlots"
-    const val FREE_CHUNKS = "freeChunks"
-    const val PLOTS = "plots"
     const val AUCTION_SLOTS = "auctionSlots"
 }
 
@@ -43,7 +32,7 @@ interface ClaimsProvider {
     fun relation(a: String, b: String): Relation = Relation.NEUTRAL
     fun tariff(buyerCountry: String, sellerCountry: String): Int = 0
     fun capacity(player: UUID, key: String): Int? = null
-    fun credit(country: String, amount: Long, kind: TreasuryKind): Long = 0
+    fun creditTariff(country: String, amount: Long): Long = 0
     fun level(player: UUID): Int? = null
     fun lock(player: UUID, feature: String): Phrase? = null
     fun limit(player: UUID, key: String, used: Int): Phrase? = null
@@ -71,7 +60,7 @@ object ClaimsApi {
     fun tariff(buyerCountry: String, sellerCountry: String): Int = provider?.tariff(buyerCountry, sellerCountry) ?: 0
     fun capacity(player: UUID, key: String, fallback: Int): Int = provider?.capacity(player, key) ?: fallback
     fun canTrade(a: String, b: String): Boolean = relation(a, b) != Relation.EMBARGO
-    fun credit(country: String, amount: Long, kind: TreasuryKind): Long = provider?.credit(country, amount, kind) ?: 0
+    fun creditTariff(country: String, amount: Long): Long = provider?.creditTariff(country, amount) ?: 0
     fun level(player: UUID): Int? = provider?.level(player)
     fun lock(player: UUID, feature: String): Phrase? = provider?.lock(player, feature)
     fun limit(player: UUID, key: String, used: Int): Phrase? = provider?.limit(player, key, used)

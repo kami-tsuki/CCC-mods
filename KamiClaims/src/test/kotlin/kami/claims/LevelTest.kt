@@ -106,13 +106,31 @@ class LevelTest {
     }
 
     @Test
+    fun moneyRewardWaitsForTreasuryRoomThenPaysOnce() {
+        install(levels = config(rewards = mapOf(2 to listOf(MoneyReward(100)))))
+        val c = country()
+        c.treasury = Levels.capacity(c, Capacity.TREASURY) - 50L
+        val full = c.treasury
+        Levels.award(c, 100)
+        assertEquals(2, Research.level(c))
+        assertEquals(full, c.treasury)
+        assertEquals(1, c.rewardedLevel)
+        c.treasury = 0
+        Levels.settleRewards(c)
+        assertEquals(100L, c.treasury)
+        assertEquals(2, c.rewardedLevel)
+        Levels.settleRewards(c)
+        assertEquals(100L, c.treasury)
+    }
+
+    @Test
     fun existingCountriesAreRewardedOnceOnFirstLoad() {
         install(levels = config(rewards = mapOf(2 to listOf(MoneyReward(100)), 3 to listOf(MoneyReward(50)))))
         val c = country()
         c.xp = 400
         assertEquals(0, c.rewardedLevel)
-        Levels.settleAllRewards()
-        Levels.settleAllRewards()
+        Levels.advanceAll()
+        Levels.advanceAll()
         assertEquals(1150L, c.treasury)
         assertEquals(5, c.rewardedLevel)
     }
@@ -125,7 +143,7 @@ class LevelTest {
         val next = Key("minecraft:overworld", 4, 0)
         assertNotNull(Planner.blockReason(c, next, "civic", owned, 1000, 4))
         assertEquals(4, Realm.claims(c.id).size)
-        assertTrue(Levels.full(c, Capacity.CHUNKS, 4))
+        assertTrue(4 >= Levels.capacity(c, Capacity.CHUNKS))
         install("""{"id":"n","category":"c","unlocks":[{"type":"capacity","key":"chunks","add":2}]}""")
         c.research.done["t:n"] = 1
         assertNull(Planner.blockReason(c, next, "civic", owned, 1000, 4))

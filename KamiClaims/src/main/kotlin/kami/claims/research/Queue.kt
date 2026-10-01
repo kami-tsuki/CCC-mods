@@ -24,6 +24,7 @@ object Queue {
     }
 
     private const val HOUR = 3_600_000L
+    private const val XP_PER_NODE_LEVEL = 100L
     private val log = Log.of("research")
     private var lastTick = 0L
     private val playtime = HashMap<String, Long>()
@@ -44,7 +45,7 @@ object Queue {
 
     fun researching(country: Country) = country.research.queue.count { it.state == NodeState.RESEARCHING }
 
-    fun tasksDone(entry: QueueEntry, node: Node) = node.tasks.indices.all { (entry.tasks[it] ?: 0) >= node.tasks[it].target }
+    private fun tasksDone(entry: QueueEntry, node: Node) = node.tasks.indices.all { (entry.tasks[it] ?: 0) >= node.tasks[it].target }
 
     fun enqueue(country: Country, key: String, by: String?) {
         val node = node(country, key)
@@ -117,10 +118,11 @@ object Queue {
         if (time - lastTick < interval) return
         val elapsed = minOf(time - lastTick, 2 * interval)
         lastTick = time
+        playtime.keys.retainAll(Realm.data.countries.keys)
         Realm.data.countries.values.toList().forEach { tick(it, elapsed) }
     }
 
-    fun tick(country: Country, elapsed: Long) {
+    internal fun tick(country: Country, elapsed: Long) {
         val online = onlineCount(country)
         if (online > 0) countPlaytime(country, online * elapsed)
         Levels.advance(country)
@@ -149,18 +151,17 @@ object Queue {
     }
 
     fun complete(country: Country, node: Node) {
-        country.research.queue.removeAll { it.node == node.key }
-        country.research.done[node.key] = clock()
-        Levels.grant(country, "research", node.xp ?: (100L * maxOf(1, node.level)))
+        markDone(country, node.key)
+        Levels.grant(country, "research", node.xp ?: (XP_PER_NODE_LEVEL * maxOf(1, node.level)))
         if (settings.announce) Mail.broadcast(country, Phrase.of("kami_claims.research.mail.done", node.label().asValue()), Tone.OK)
         Realm.changed()
         ResearchSync.touch(country)
     }
 
     fun grant(country: Country, key: String) {
-        if (Research.defs.node(key) == null) throw Fail("kami_claims.research.error.unknown", Words.v(key))
-        country.research.queue.removeAll { it.node == key }
-        country.research.done[key] = clock()
+        val node = Research.defs.node(key) ?: throw Fail("kami_claims.research.error.unknown", Words.v(key))
+        if (key in country.research.done) throw Fail("kami_claims.research.error.done", node.label().asValue())
+        markDone(country, key)
         Realm.changed()
         ResearchSync.touch(country)
     }
@@ -172,7 +173,9 @@ object Queue {
     }
 
     fun finish(country: Country, key: String) {
-        complete(country, Research.defs.node(key) ?: throw Fail("kami_claims.research.error.unknown", Words.v(key)))
+        val node = Research.defs.node(key) ?: throw Fail("kami_claims.research.error.unknown", Words.v(key))
+        if (key in country.research.done) throw Fail("kami_claims.research.error.done", node.label().asValue())
+        complete(country, node)
     }
 
     fun reset(country: Country, key: String?) {
@@ -202,6 +205,11 @@ object Queue {
         Mail.officers(country, Phrase.of("kami_claims.research.mail.ready", node.label().asValue()))
         Realm.changed()
         ResearchSync.touch(country)
+    }
+
+    private fun markDone(country: Country, key: String) {
+        country.research.queue.removeAll { it.node == key }
+        country.research.done[key] = clock()
     }
 
     private fun countPlaytime(country: Country, memberMs: Long) {

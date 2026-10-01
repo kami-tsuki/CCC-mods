@@ -5,10 +5,7 @@ import kami.economy.Data
 import kami.economy.Market
 import kami.economy.Order
 import kami.economy.Settings
-import kami.libs.claims.Citizenship
-import kami.libs.claims.ClaimInfo
 import kami.libs.claims.ClaimsApi
-import kami.libs.claims.ClaimsProvider
 import kami.libs.claims.CountryCapacity
 import java.nio.file.Files
 import java.util.UUID
@@ -19,14 +16,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class LimitsTest {
-    private class FakeClaims(val limits: Map<String, Int>) : ClaimsProvider {
-        override fun at(dim: String, x: Int, z: Int): ClaimInfo? = null
-        override fun isBanished(player: UUID, country: String) = false
-        override fun countryOf(player: UUID) = "aurelia"
-        override fun citizenship(player: UUID): Citizenship? = null
-        override fun capacity(player: UUID, key: String) = limits[key]
-    }
-
     private class Purse : Wallet {
         override fun balance(id: UUID) = 1_000_000L
         override fun deduct(id: UUID, amount: Int) = amount
@@ -41,7 +30,7 @@ class LimitsTest {
         Market.data = Data()
         Ledger.attach(Files.createTempFile("kami_economy", ".wal"))
         Ledger.wallet = Purse()
-        ClaimsApi.register(limits?.let(::FakeClaims))
+        ClaimsApi.register(limits?.let { l -> Fakes.claims().also { it.capacities += l } })
     }
 
     private fun sellOrders(count: Int) = repeat(count) { Matching.insertSell("test:item$it", Order(nextId++, player, 10, 5)) }

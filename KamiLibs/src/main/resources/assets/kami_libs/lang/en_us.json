@@ -88,7 +88,7 @@
   "kami_libs.lock.ui.level.how": "Reach level %s to get this.",
   "kami_libs.lock.ui.level.how_for": "%2$s unlocks at level %1$s.",
   "kami_libs.lock.ui.research": "Research: %s",
-  "kami_libs.lock.ui.research.how": "Finish the research %s to get this.",
+  "kami_libs.lock.ui.research.how": "Finish research %s to get this.",
   "kami_libs.lock.ui.raise": "Level %1$s raises it to %2$s",
   "kami_libs.lock.ui.raise.how": "Reach level %1$s to raise this limit to %2$s.",
   "kami_libs.lock.ui.full": "Full"

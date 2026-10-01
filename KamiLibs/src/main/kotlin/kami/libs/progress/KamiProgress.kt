@@ -11,11 +11,11 @@ object KamiProgress {
     private val log = Log.of("libs")
     private val busAvailable = runCatching { FORGE_BUS }.isSuccess
 
-    fun post(player: ServerPlayer, kind: String, subject: String, amount: Long, once: String? = null) = post(kind) { ProgressEvent(kind, subject, amount, player, null, once) }
+    fun post(player: ServerPlayer, kind: String, subject: String, amount: Long, once: String? = null) = dispatch(kind) { ProgressEvent(kind, subject, amount, player, null, once) }
 
-    fun post(country: String, kind: String, subject: String, amount: Long, once: String? = null) = post(kind) { ProgressEvent(kind, subject, amount, null, country, once) }
+    fun post(country: String, kind: String, subject: String, amount: Long, once: String? = null) = dispatch(kind) { ProgressEvent(kind, subject, amount, null, country, once) }
 
-    private inline fun post(kind: String, event: () -> ProgressEvent) {
+    private inline fun dispatch(kind: String, event: () -> ProgressEvent) {
         if (!busAvailable) return
         try {
             FORGE_BUS.post(event())

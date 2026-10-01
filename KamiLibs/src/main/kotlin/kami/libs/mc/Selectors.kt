@@ -7,8 +7,6 @@ import net.minecraft.tags.TagKey
 object Selectors {
     fun matches(spec: String, id: String, tagged: (String) -> Boolean) = if (spec.startsWith('#')) tagged(spec.drop(1)) else spec == id
 
-    fun matchesAny(specs: List<String>, id: String, tagged: (String) -> Boolean) = specs.any { matches(it, id, tagged) }
-
     fun glob(pattern: String, text: String): Boolean {
         var p = 0
         var t = 0

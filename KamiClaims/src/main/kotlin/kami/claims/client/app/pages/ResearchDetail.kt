@@ -9,7 +9,6 @@ import kami.claims.net.QueueView
 import kami.claims.net.TreeView
 import kami.claims.research.NodeState
 import kami.libs.ui.anim.reveal
-import kami.libs.ui.core.Cursor
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Stack
 import kami.libs.ui.core.Ui
@@ -61,7 +60,8 @@ class ResearchDetail(private val page: ClaimsPage) {
             node.summary().resolve().takeIf { it.isNotEmpty() && !it.startsWith("kami_") },
             tree?.let { t -> node.requires.map { t.nodes[it] } },
             node.conditionTexts().withIndex().filter { it.value.key != NODE_CONDITION }.map { it.index to it.value.resolve() },
-            tree?.nodes?.filter { index in it.requires }
+            tree?.nodes?.filter { index in it.requires }.orEmpty(),
+            node.tasks.map(::taskText)
         ).also { facts = it }
     }
 
@@ -88,7 +88,7 @@ class ResearchDetail(private val page: ClaimsPage) {
         facts.summary?.let { text -> stack.take(Draw.paragraph(ui.g, text, stack.x, stack.bottom, area.w, Palette.textSecondary)) }
         properties(ui, stack, node)
         requirements(ui, stack, node, status, facts, select)
-        tasks(ui, stack, node, status, queue)
+        tasks(ui, stack, node, status, queue, facts.taskTexts)
         unlocks(ui, stack, node)
         leadsTo(ui, stack, node, facts, select)
         return stack.bottom - area.y
@@ -119,24 +119,14 @@ class ResearchDetail(private val page: ClaimsPage) {
         val levelOk = flags?.firstOrNull() ?: unknown
         if (node.level == 0 && deps.isEmpty() && facts.conditions.isEmpty()) return
         ui.section(stack, tr("kami_claims.research.detail.requirements"))
-        if (node.level > 0) requirement(ui, stack.take(ROW_H), tr("kami_claims.research.cond.level", node.level), levelOk, null)
+        if (node.level > 0) ui.requirementRow(stack.take(REQUIREMENT_ROW_H), tr("kami_claims.research.cond.level", node.level), levelOk)
         deps.forEach { dep ->
-            requirement(ui, stack.take(ROW_H), dep.label().resolve(), dep.key in state.done) { select(dep.key) }
+            ui.requirementRow(stack.take(REQUIREMENT_ROW_H), dep.label().resolve(), dep.key in state.done) { select(dep.key) }
         }
-        facts.conditions.forEach { (index, text) -> requirement(ui, stack.take(ROW_H), text, flags?.getOrNull(index + 1) ?: unknown, null) }
+        facts.conditions.forEach { (index, text) -> ui.requirementRow(stack.take(REQUIREMENT_ROW_H), text, flags?.getOrNull(index + 1) ?: unknown) }
     }
 
-    private fun requirement(ui: Ui, r: Rect, text: String, met: Boolean?, onClick: (() -> Unit)?) {
-        val over = onClick != null && ui.hovering(r)
-        if (over) { Draw.fill(ui.g, r, Palette.hover); ui.cursor = Cursor.HAND }
-        val icon = when (met) { true -> Icons.CHECK; false -> Icons.CROSS; null -> Icons.PENDING }
-        val color = when (met) { true -> Palette.success; false -> Palette.danger; null -> Palette.textMuted }
-        val x = r.x + Draw.leadIcon(ui.g, icon, r.x, r.centerY, color) + 2
-        Draw.text(ui.g, Draw.fit(text, r.right - x), x, r.y + 1, if (over) Palette.text else Palette.textSecondary)
-        if (onClick != null && ui.pressed(r) != null) onClick()
-    }
-
-    private fun tasks(ui: Ui, stack: Stack, node: NodeView, status: NodeStatus, queue: QueueView?) {
+    private fun tasks(ui: Ui, stack: Stack, node: NodeView, status: NodeStatus, queue: QueueView?, texts: List<String>) {
         if (node.tasks.isEmpty()) return
         ui.section(stack, tr("kami_claims.research.detail.tasks"))
         node.tasks.forEachIndexed { i, task ->
@@ -145,7 +135,7 @@ class ResearchDetail(private val page: ClaimsPage) {
             icons.forEachIndexed { k, item -> ui.itemIcon(slot.x + k * TASK_ICON_STEP, slot.y + (slot.h - ITEM_ICON) / 2, item, "task-icon:${node.key}:$i:$k") }
             val row = slot.dropLeft(icons.size * TASK_ICON_STEP)
             val progress = if (status == NodeStatus.DONE) task.target else (queue?.tasks?.getOrNull(i) ?: 0L).coerceAtMost(task.target)
-            Draw.text(ui.g, Draw.fit(taskText(task), row.w), row.x, row.y, Palette.textSecondary)
+            Draw.text(ui.g, Draw.fit(texts[i], row.w), row.x, row.y, Palette.textSecondary)
             val line = Rect(row.x, row.bottom - SMALL_H, row.w, SMALL_H)
             val showDeposit = task.kind == "deposit" && status != NodeStatus.DONE
             val label = tr("kami_claims.research.action.deposit")
@@ -165,7 +155,7 @@ class ResearchDetail(private val page: ClaimsPage) {
     }
 
     private fun leadsTo(ui: Ui, stack: Stack, node: NodeView, facts: NodeFacts, select: (String) -> Unit) {
-        val next = facts.next?.takeIf { it.isNotEmpty() } ?: return
+        val next = facts.next.takeIf { it.isNotEmpty() } ?: return
         ui.section(stack, tr("kami_claims.research.detail.leads"))
         ui.chipFlow(stack, next.map { ChipSpec(it.label().resolve(), ResearchLook.color(ClientResearch.status(it.key))) }, "leads:${node.key}")?.let { select(next[it].key) }
     }
@@ -196,12 +186,12 @@ private class NodeFacts(
     val summary: String?,
     val deps: List<NodeView>?,
     val conditions: List<Pair<Int, String>>,
-    val next: List<NodeView>?
+    val next: List<NodeView>,
+    val taskTexts: List<String>
 )
 
 private const val NODE_CONDITION = "kami_claims.research.cond.node"
 private const val HEADER_H = 26
-private const val ROW_H = 11
 private const val CHIP_GAP = 3
 private const val TASK_H = 28
 private const val TASK_ICON_STEP = ITEM_ICON + 3

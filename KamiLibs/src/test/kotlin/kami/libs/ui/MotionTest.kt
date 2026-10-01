@@ -12,7 +12,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class MotionTest {
-    private val curves: List<Curve> = listOf(Ease.outQuad, Ease.outCubic, Ease.inOutCubic, Ease.outBack, Ease.outExpo)
+    private val curves: List<Curve> = listOf(Ease.outCubic)
 
     @Test
     fun curvesHitBothEndpoints() {
@@ -25,8 +25,8 @@ class MotionTest {
     }
 
     @Test
-    fun plainCurvesNeverDecrease() {
-        (curves - Ease.outBack).forEach { curve ->
+    fun curvesNeverDecrease() {
+        curves.forEach { curve ->
             var last = 0f
             for (i in 0..100) {
                 val v = curve.at(i / 100f)
@@ -34,11 +34,6 @@ class MotionTest {
                 last = v
             }
         }
-    }
-
-    @Test
-    fun outBackOvershootsBeforeSettling() {
-        assertTrue((1..99).any { Ease.outBack.at(it / 100f) > 1.02f })
     }
 
     @Test

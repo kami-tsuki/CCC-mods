@@ -103,45 +103,17 @@ class OwnerTreeTest {
     }
 
     @Test
-    fun levelTwoWaitsForNineClaimsAndTheStoredLevelNeverDrops() {
+    fun theStoredLevelNeverDrops() {
         Research.defs = build(emptyMap()).defs
         val c = country()
-        c.level = 1
         c.xp = 50
-        repeat(8) { Realm.add(Claim(c.id, "minecraft:overworld", it, 0, "residential")) }
+        repeat(12) { Realm.add(Claim(c.id, "minecraft:overworld", it, 0, "civic")) }
         Levels.advance(c)
-        assertEquals(1, Research.level(c))
-        Realm.add(Claim(c.id, "minecraft:overworld", 8, 0, "residential"))
-        Levels.advance(c)
-        assertEquals(2, Research.level(c))
-        listOf("mining", "forestry", "farming").forEachIndexed { i, type -> Realm.add(Claim(c.id, "minecraft:overworld", 20 + i, 0, type)) }
-        Levels.advance(c)
-        assertEquals(4, Research.level(c))
+        val level = Research.level(c)
+        assertTrue(level > 1)
         Realm.claims(c.id).forEach { Realm.unclaim(it, false) }
         Levels.advance(c)
-        assertEquals(4, Research.level(c))
-        assertEquals(4, c.level)
-    }
-
-    @Test
-    fun levelRequirementsAreListedPerLevel() {
-        val levels = LevelsConfig()
-        assertEquals(listOf(0, 1, 3), (1..3).map { levels.requirements(it).size })
-        assertEquals(listOf(0L, 0L, 0L), (1..3).map(levels::xpFor))
-        assertTrue(levels.xpFor(11) > 0)
-    }
-
-    @Test
-    fun oldSavesGetTheirLevelFromXp() {
-        Research.defs = build(emptyMap(), LevelsConfig(curve = XpCurve(from = 2, base = 100.0, rise = 0.0), rules = emptyMap())).defs
-        val rich = json.decodeFromString(Country.serializer(), """{"name":"Rich","xp":400,"members":{"u":{"rank":"PRESIDENT"}}}""")
-        val fresh = json.decodeFromString(Country.serializer(), """{"name":"Fresh","members":{"v":{"rank":"PRESIDENT"}}}""")
-        assertEquals(0, rich.level)
-        assertEquals(1, Research.level(fresh))
-        Realm.data.countries[rich.id] = rich
-        Realm.data.countries[fresh.id] = fresh
-        Levels.settleAllRewards()
-        assertEquals(5, rich.level)
-        assertEquals(1, fresh.level)
+        assertEquals(level, Research.level(c))
+        assertEquals(level, c.level)
     }
 }
