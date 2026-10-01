@@ -1,5 +1,9 @@
 package kami.claims
 
+import kami.claims.research.BuffState
+import kami.claims.research.Capacity
+import kami.claims.research.Levels
+import kami.claims.research.ResearchState
 import kami.libs.config.WorldStore
 import kotlinx.serialization.Serializable
 import net.minecraft.server.MinecraftServer
@@ -10,7 +14,7 @@ import kotlin.math.max
 enum class Rank { BANISHED, ALLIED, CITIZEN, OFFICER, CHANCELLOR, PRESIDENT }
 
 @Serializable
-enum class Cap { CLAIM, CAPITAL, TAX, RULES, WITHDRAW, INVITE, MEMBERS, RANK, JOBS, PLOT, DETAILS, PROVINCE, TRADE }
+enum class Cap { CLAIM, CAPITAL, TAX, RULES, WITHDRAW, INVITE, MEMBERS, RANK, JOBS, PLOT, DETAILS, PROVINCE, TRADE, RESEARCH }
 
 @Serializable
 enum class TaxMode { PERCENT, FLAT }
@@ -50,7 +54,7 @@ class JobDef(var pay: Int, var quota: Int, var period: Int)
 class ProvinceOffer(val until: Long, val mode: TaxMode, val amount: Double, val answered: Boolean = false)
 
 @Serializable
-enum class LedgerKind { DEPOSIT, WITHDRAW, CLAIM, UPKEEP, PLOT_TAX, JOB_PAY, TRIBUTE_IN, TRIBUTE_OUT, ADJUST, TARIFF }
+enum class LedgerKind { DEPOSIT, WITHDRAW, CLAIM, UPKEEP, PLOT_TAX, JOB_PAY, TRIBUTE_IN, TRIBUTE_OUT, ADJUST, TARIFF, RESEARCH, LEVEL_REWARD, FEE, LOAN_IN, LOAN_PAYMENT }
 
 @Serializable
 class LedgerEntry(val at: Long, val kind: LedgerKind, val amount: Long, val balance: Long, val actor: String? = null, val note: String = "")
@@ -58,14 +62,15 @@ class LedgerEntry(val at: Long, val kind: LedgerKind, val amount: Long, val bala
 @Serializable
 class DayStat(
     val day: Long, val at: Long, val treasury: Long, val income: Long, val upkeep: Long, val jobs: Long, val tributeIn: Long, val tributeOut: Long,
-    val deposits: Long, val withdrawals: Long, val chunks: Int, val debtChunks: Int, val members: Int, val plots: Int, val types: Map<String, Int> = emptyMap()
+    val deposits: Long, val withdrawals: Long, val chunks: Int, val debtChunks: Int, val members: Int, val plots: Int, val types: Map<String, Int> = emptyMap(),
+    val ledger: Map<String, Long> = emptyMap()
 )
 
 @Serializable
 class TradePolicy(val tariffPct: Int = 0, val embargo: Boolean = false)
 
 @Serializable
-class Flag(val pattern: Int = 0, val emblem: Int = 0, val secondary: Int = 0xFFFFFF)
+data class Flag(val pattern: Int = 0, val emblem: Int = 0, val secondary: Int = 0xFFFFFF)
 
 @Serializable
 class Claim(
@@ -91,8 +96,11 @@ class Claim(
 }
 
 @Serializable
+class Loan(val id: String, val principal: Long, var total: Long, var paid: Long, val perDay: Long, val takenDay: Long, var overdue: Long = 0)
+
+@Serializable
 class Country(
-    val name: String,
+    var name: String,
     val created: Long = now(),
     var treasury: Long = 0,
     var pending: Long = 0,
@@ -126,9 +134,22 @@ class Country(
     val autoAllies: MutableSet<String> = mutableSetOf(),
     val alliances: MutableSet<String> = mutableSetOf(),
     val allianceOffers: MutableMap<String, Long> = mutableMapOf(),
-    val tradePolicy: MutableMap<String, TradePolicy> = mutableMapOf()
+    val tradePolicy: MutableMap<String, TradePolicy> = mutableMapOf(),
+    val research: ResearchState = ResearchState(),
+    var xp: Long = 0,
+    val xpToday: MutableMap<String, Long> = mutableMapOf(),
+    var xpDay: Long = 0,
+    val xpFrac: MutableMap<String, Double> = mutableMapOf(),
+    var rewardedLevel: Int = 0,
+    var level: Int = 0,
+    var slug: String = "",
+    val tokens: MutableMap<String, Int> = mutableMapOf(),
+    val counters: MutableMap<String, Long> = mutableMapOf(),
+    val buffs: BuffState = BuffState(),
+    val loans: MutableList<Loan> = mutableListOf(),
+    val loanCooldowns: MutableMap<String, Long> = mutableMapOf()
 ) {
-    val id get() = name.lowercase()
+    val id get() = slug.ifEmpty { name.lowercase() }
     fun rank(id: String) = members[id]?.rank ?: outsiders[id]
     fun president() = members.entries.firstOrNull { it.value.rank == Rank.PRESIDENT }?.key
     fun job(name: String): JobDef? = jobs[name] ?: Config.s.jobs[name]?.let { JobDef(it.pay, it.quota, it.period) }
@@ -172,6 +193,7 @@ object Realm {
     }
 
     fun reset(next: Data) {
+        rev++
         data = next
         data.claims.removeAll { it.country !in data.countries }
         index.clear()
@@ -189,7 +211,7 @@ object Realm {
         syncAllies()
     }
 
-    fun country(name: String?) = name?.let { data.countries[it.lowercase()] }
+    fun country(name: String?) = name?.let { n -> data.countries[n.lowercase()] ?: data.countries.values.firstOrNull { it.name.equals(n, true) } }
     fun of(id: String) = country(home[id])
     fun claims(name: String): List<Claim> = byCountry[name]?.toList() ?: emptyList()
     fun at(dim: String, x: Int, z: Int) = index[Key(dim, x, z)]
@@ -280,7 +302,7 @@ object Realm {
 
     fun freeAllowed(c: Country): Int {
         if (now() - c.lastActive > Config.s.inactiveDays * Config.s.dayMillis) return 0
-        return Config.s.freeChunks + minOf(Config.s.freeBonusCap, c.members.size / max(1, Config.s.freeBonusMembers))
+        return Config.s.freeChunks + Levels.capacity(c, Capacity.FREE_CHUNKS) + minOf(Config.s.freeBonusCap, c.members.size / max(1, Config.s.freeBonusMembers))
     }
 
     fun refreshFree(c: Country) {

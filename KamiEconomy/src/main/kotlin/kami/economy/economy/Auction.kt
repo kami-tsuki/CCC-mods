@@ -36,6 +36,14 @@ object StackCodec {
         val tag = NbtIo.readCompressed(ByteArrayInputStream(bytes), NbtAccounter.unlimitedHeap())
         return ItemStack.parse(registries, tag).orElse(ItemStack.EMPTY)
     }
+
+    fun count(data: String): Int = runCatching {
+        NbtIo.readCompressed(ByteArrayInputStream(Base64.getDecoder().decode(data)), NbtAccounter.unlimitedHeap()).getInt("count")
+    }.getOrDefault(1).coerceAtLeast(1)
+
+    fun itemId(data: String): String = runCatching {
+        NbtIo.readCompressed(ByteArrayInputStream(Base64.getDecoder().decode(data)), NbtAccounter.unlimitedHeap()).getString("id")
+    }.getOrDefault("")
 }
 
 object Auctions {

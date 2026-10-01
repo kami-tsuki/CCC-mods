@@ -2,10 +2,14 @@ package kami.claims.client.app.pages
 
 import kami.claims.client.ClientClaims
 import kami.claims.client.app.ClaimsApp
+import kami.claims.client.app.ClientLocks
+import kami.claims.client.app.tokenOffer
+import kami.claims.research.Tokens
 import kami.claims.client.app.ClaimsPage
 import kami.libs.ui.app.Consequence
 import kami.claims.client.app.Dialogs
 import kami.libs.ui.widget.Flags
+import kami.libs.ui.widget.lockChip
 import kami.claims.client.app.Vocabulary
 import kami.claims.client.map.ClaimsLayer
 import kami.claims.client.map.MapMode
@@ -30,7 +34,6 @@ import kami.libs.ui.style.Icon
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
-import kami.libs.ui.style.Sprites
 import kami.libs.ui.style.TextStyle
 import kami.libs.ui.text.tr
 import kami.libs.ui.text.trJson
@@ -291,7 +294,7 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
         val g = ui.g
         val preview = previewFor()
         val outcomes = preview?.cells?.associateBy { key(it.x, it.z) } ?: emptyMap()
-        val phase = if (ui.reduceMotion) 0 else (ui.now / 90 % 1000).toInt()
+        val phase = if (ui.reduceMotion) 0 else (ui.wallMillis / 90 % 1000).toInt()
         val typeColor = Vocabulary.type(planType).color
         selection.forEach { k ->
             val (x, z) = unkey(k)
@@ -441,7 +444,9 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
             val row = f.take(TABLE_ROW_H)
             val look = Vocabulary.type(t.name)
             val x = row.x + Draw.leadIcon(ui.g, look.icon, row.x, row.centerY) + 2
-            Draw.text(ui.g, look.label, x, row.y + 3, look.color)
+            val typeLock = ClientLocks.claimType(t.name)
+            Draw.text(ui.g, look.label, x, row.y + 3, if (typeLock == null) look.color else Palette.textMuted)
+            typeLock?.let { ui.lockChip(x + Draw.width(look.label) + 4, row.y - 1, it, "price-lock:${t.name}") }
             Draw.textRight(ui.g, if (t.period > 1) "${Format.money(t.price.toLong())} / ${Format.days(t.period.toLong())}" else Format.money(t.price.toLong()), row.right, row.y + 3, Palette.textSecondary)
             ui.tooltip("price:${t.name}", row, look.description)
         }
@@ -529,6 +534,7 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
             if (e.flags and View.CAPITAL == 0) place(tr("kami_claims.map.action.capital"), Icons.CROWN, ButtonStyle.SECONDARY, can("capital"), lock("capital"), "capital") {
                 Dialogs.confirm(app, tr("kami_claims.map.capital.confirm.title", x, z), null, Icons.CROWN, listOf(
                     Consequence(tr("kami_claims.map.capital.safe")),
+                    tokenOffer(Tokens.CAPITAL_MOVE).let { Consequence(it.text, it.severity) },
                     Consequence(tr("kami_claims.map.capital.cooldown", trn("kami_claims.unit.day", limits?.capitalCooldownDays ?: 7)), Severity.WARNING)
                 ), tr("kami_claims.cap.capital"), "capital", arrayOf(x.toString(), z.toString()))
             }
@@ -556,7 +562,7 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
             ui.fieldLabel(f.take(9), tr(if (plan == Plan.CLAIM) "kami_claims.map.plan.claim_as" else "kami_claims.map.plan.new_type"))
             ui.select(f.take(CONTROL_H), snap.types.map { t ->
                 val look = Vocabulary.type(t.name)
-                Option(t.name, look.label, look.icon, "${Vocabulary.rate(t.price, t.period)} · ${look.description}", look.color)
+                Option(t.name, look.label, look.icon, "${Vocabulary.rate(t.price, t.period)} · ${look.description}", look.color, lock = ClientLocks.claimType(t.name))
             }, planType, key = "plan-type")?.let { planType = it; ClaimsStore.clearPreview(); touchSelection() }
         }
         val preview = previewFor()

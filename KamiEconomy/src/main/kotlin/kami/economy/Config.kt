@@ -26,6 +26,8 @@ data class Settings(
     val allyTaxRate: Double = 0.08,
     val maxPrice: Int = 1_000_000,
     val maxAmount: Int = 10_000,
+    val marketSlots: Int = 5,
+    val auctionSlots: Int = 5,
     val lots: Map<String, Int> = emptyMap(),
     val auctionFeePct: Double = 0.05,
     val auctionDurationMillis: Long = 3 * 24 * 60 * 60 * 1000L,
@@ -34,7 +36,10 @@ data class Settings(
     val starterGoods: List<StarterGood> = starters(20, "#minecraft:logs", "minecraft:baked_potato", "minecraft:apple") +
         starters(10, "minecraft:carrot", "minecraft:potato", "minecraft:beetroot", "minecraft:pumpkin", "minecraft:sugar_cane", "minecraft:cocoa_beans") +
         starters(15, "minecraft:bread") +
-        starters(5, "minecraft:wheat", "minecraft:melon_slice", "minecraft:sweet_berries"),
+        starters(5, "minecraft:wheat", "minecraft:melon_slice", "minecraft:sweet_berries") +
+        starters(40, "#c:ingots/iron", "#c:ingots/copper") +
+        starters(50, "#c:ingots/zinc", "#c:ingots/lead") +
+        starters(80, "#c:ingots/gold"),
     val dailySellLots: Int = 3,
     val resetHour: Int = 6,
     val recoveryPct: Int = 5,
@@ -54,7 +59,8 @@ data class Settings(
     val pageSize: Int = 30,
     val guiCooldown: Int = 4,
 
-    val allowCreativeVendors: Boolean = false
+    val allowCreativeVendors: Boolean = false,
+    val levelLocks: Boolean = true
 ) {
     val storageItemSet: Set<String> by lazy { storageItemIds.toHashSet() }
     val creativeItemSet: Set<String> by lazy { creativeItemIds.toHashSet() }
@@ -102,12 +108,14 @@ private val sections = listOf(
             "allyTaxRate" to "Tax on player trades between allied countries or one country family, 0 to 0.9.",
             "maxPrice" to "Highest price per lot a player may ask or bid.",
             "maxAmount" to "Most items one player may buy or sell in one trade.",
+            "marketSlots" to "Active sell and buy orders one player may hold when no country raises the limit.",
             "lots" to "Items per lot by item id, default 1. Prices are per lot and trades move whole lots."
         )
     ),
     Section(
         "auctions.json", "The auction house for unique items.",
         mapOf(
+            "auctionSlots" to "Active auctions one player may hold when no country raises the limit.",
             "auctionFeePct" to "Fee taken from a finished auction, 0 to 0.9.",
             "auctionDurationMillis" to "How long an auction runs in milliseconds. 259200000 is three days.",
             "auctionCheckIntervalTicks" to "Ticks between two checks for finished auctions."
@@ -138,7 +146,8 @@ private val sections = listOf(
             "historyDailyRetention" to "Daily price points kept per item.",
             "pageSize" to "Items per market page, 5 to 100.",
             "guiCooldown" to "Ticks between two GUI actions of one player.",
-            "allowCreativeVendors" to "Allow the creative vendor block from Numismatics."
+            "allowCreativeVendors" to "Allow the creative vendor block from Numismatics.",
+            "levelLocks" to "Enforce the country level feature locks economy:auctions and economy:vendors. A feature no level reward mentions stays unlocked."
         )
     )
 )

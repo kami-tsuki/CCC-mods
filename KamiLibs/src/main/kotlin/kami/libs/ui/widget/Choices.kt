@@ -1,5 +1,6 @@
 package kami.libs.ui.widget
 
+import kami.libs.ui.anim.anim
 import kami.libs.ui.core.Cursor
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Tip
@@ -17,8 +18,10 @@ import org.lwjgl.glfw.GLFW
 
 class Option<T>(
     val value: T, val label: String, val icon: Icon? = null, val description: String? = null,
-    val color: Int? = null, val disabledReason: String? = null
-)
+    val color: Int? = null, val disabledReason: String? = null, val lock: Lock? = null
+) {
+    val reason: String? get() = disabledReason ?: lock?.let { it.how ?: it.label }
+}
 
 enum class PopoverAlign { START, END }
 
@@ -60,7 +63,7 @@ fun Ui.checkbox(r: Rect, label: String, checked: Boolean?, enabled: Boolean = tr
 fun Ui.toggle(r: Rect, on: Boolean, label: String = "", enabled: Boolean = true, disabledReason: String? = null, tip: String? = null, key: Any = "toggle:$label"): Boolean? {
     val track = Rect(r.x, r.y + (r.h - 10) / 2, 20, 10)
     val hit = clickable(key, r, enabled)
-    val t = animate("toggle:$key", if (on) 1f else 0f)
+    val t = anim("toggle:$key", if (on) 1f else 0f)
     Draw.sprite(g, if (on) Sprites.TOGGLE_ON else Sprites.TOGGLE, track)
     Draw.sprite(g, Sprites.KNOB, Rect(track.x + 1 + (10 * t).toInt(), track.y + 1, 8, 8))
     val shown = Draw.fit(label, r.w - 26)
@@ -76,14 +79,14 @@ fun <T> Ui.radioGroup(r: Rect, options: List<Option<T>>, selected: T, enabled: B
     options.forEach { o ->
         val descH = o.description?.let { Draw.paragraphHeight(it, r.w - 16) } ?: 0
         val row = Rect(r.x, y, r.w, rowHeight + descH)
-        val usable = enabled && o.disabledReason == null
+        val usable = enabled && o.reason == null
         if (clickable("$key:${o.label}", row, usable)) result = o.value
         Draw.sprite(g, if (o.value == selected) Sprites.RADIO_ON else Sprites.RADIO, Rect(r.x, y + (rowHeight - 10) / 2, 10, 10))
         var tx = r.x + 14
         o.icon?.let { tx += Draw.leadIcon(g, it, tx, y + rowHeight / 2) }
         Draw.text(g, o.label, tx, y + (rowHeight - 8) / 2, if (usable) (if (o.value == selected) Palette.text else Palette.textSecondary) else Palette.textDisabled)
         o.description?.let { Draw.paragraph(g, it, r.x + 14, y + rowHeight, r.w - 14, Palette.textMuted) }
-        o.disabledReason?.let { reason -> tooltip("$key:${o.label}", row) { Tip.disabled(reason) } }
+        o.reason?.let { reason -> tooltip("$key:${o.label}", row) { Tip.disabled(reason) } }
         y += row.h + 2
     }
     return result
@@ -98,16 +101,16 @@ fun <T> Ui.segmented(r: Rect, options: List<Option<T>>, selected: T, enabled: Bo
     Draw.sprite(g, Sprites.SUNKEN, r)
     options.forEachIndexed { i, o ->
         val cell = cells[i]
-        val usable = enabled && o.disabledReason == null
+        val usable = enabled && o.reason == null
         val chosen = o.value == selected
         val hover = hovering(cell) && usable
         if (clickable("$key:$i", cell, usable)) result = o.value
         if (chosen) Draw.sprite(g, Sprites.Look.SECONDARY.of(hover, false, true), cell.inset(1))
         else if (hover) Draw.fill(g, cell.inset(1), Palette.hover)
-        val iconW = if (o.icon == null) 0 else if (o.label.isEmpty()) Draw.ICON - 4 else Draw.ICON_SLOT
+        val iconW = if (o.icon == null && o.lock == null) 0 else if (o.label.isEmpty()) Draw.ICON - 4 else Draw.ICON_SLOT
         val content = iconW + Draw.width(o.label)
         var x = cell.x + max(3, (cell.w - content) / 2)
-        o.icon?.let { Draw.leadIcon(g, it, x, cell.centerY, if (usable) null else Palette.alpha(0xFFFFFF, 0x60)) }
+        (if (o.lock != null) Icons.LOCK else o.icon)?.let { Draw.leadIcon(g, it, x, cell.centerY, if (usable) null else Palette.alpha(0xFFFFFF, 0x60)) }
         x += iconW
         val shown = Draw.fit(o.label, cell.right - x - 3)
         if (o.label.isNotEmpty()) Draw.text(g, shown, x, cell.y + (cell.h - 8) / 2, when {
@@ -117,7 +120,7 @@ fun <T> Ui.segmented(r: Rect, options: List<Option<T>>, selected: T, enabled: Bo
         })
         if (chosen) Draw.hline(g, cell.x + 2, cell.bottom - 2, cell.w - 4, Palette.brass)
         if (i > 0 && !chosen && options.getOrNull(i - 1)?.value != selected) Draw.vline(g, cell.x, cell.y + 3, cell.h - 6, Palette.borderSubtle)
-        val tip = o.disabledReason?.let { Tip.disabled(it) } ?: o.description?.let { Tip.text(it, o.label.ifEmpty { null }) } ?: o.label.takeIf { it != shown }?.let { Tip.text(it) }
+        val tip = o.reason?.let { Tip.disabled(it) } ?: o.description?.let { Tip.text(it, o.label.ifEmpty { null }) } ?: o.label.takeIf { it != shown }?.let { Tip.text(it) }
         tooltip("$key:$i", cell) { tip }
     }
     return result
@@ -165,16 +168,19 @@ fun <T> Ui.select(
             scroll("menu:$key", area, visible.size * rowH) { content ->
                 visible.forEachIndexed { i, o ->
                     val row = Rect(content.x, content.y + i * rowH, content.w, rowH)
-                    val usable = o.disabledReason == null
+                    val usable = o.reason == null
                     val over = hovering(row) && usable
                     if (over) { Draw.fill(g, row, Palette.hover); cursor = Cursor.HAND }
                     if (o.value == selected) Draw.fill(g, row.left(2), Palette.brass)
                     var x = row.x + 5
                     o.color?.let { Draw.fill(g, Rect(x, row.y + 4, 6, 6), it); x += 10 }
                     o.icon?.let { x += Draw.leadIcon(g, it, x, row.y + 7) }
-                    Draw.text(g, Draw.fit(o.label, row.right - x - 4), x, row.y + 3, if (usable) Palette.text else Palette.textDisabled)
-                    o.description?.let { Draw.text(g, Draw.fit(it, row.right - x - 4), x, row.y + 12, Palette.textMuted) }
-                    o.disabledReason?.let { reason -> tooltip("opt:$key:$i", row) { Tip.disabled(reason) } }
+                    val chipW = o.lock?.let { lockChipWidth(it) + 4 } ?: 0
+                    Draw.text(g, Draw.fit(o.label, row.right - x - 4 - chipW), x, row.y + 3, if (usable) Palette.text else Palette.textDisabled)
+                    o.lock?.let { lockChip(row.right - chipW, row.y + 3, it, "opt:$key:$i:lock") }
+                    o.description?.let { Draw.text(g, Draw.fit(it, row.right - x - 4 - chipW), x, row.y + 12, Palette.textMuted) }
+                    o.reason?.let { reason -> tooltip("opt:$key:$i", row) { Tip.disabled(reason) } }
+                    o.lock?.let { lockClick(row, it) }
                     if (usable && pressed(row) != null) {
                         pick.put(o.value)
                         state[0] = false

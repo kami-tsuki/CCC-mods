@@ -5,14 +5,16 @@ import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Sprites
 import kami.libs.ui.style.TextStyle
 import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.util.FormattedCharSequence
 import kotlin.math.max
 import kotlin.math.min
 
 object Tooltips {
     private const val MAX_WIDTH = 180
     private const val PAD = 4
+    private const val RISE = 2
 
-    private fun layout(t: Tip): Pair<Int, List<Pair<List<net.minecraft.util.FormattedCharSequence>, Int>>> {
+    private fun layout(t: Tip): Pair<Int, List<Pair<List<FormattedCharSequence>, Int>>> {
         val titleW = t.title?.let { Draw.width(it, TextStyle.HEADING) + if (t.icon != null) Draw.ICON_SLOT else 0 } ?: 0
         val natural = t.lines.maxOfOrNull { Draw.font.width(it.first) } ?: 0
         val keysW = t.keys?.let { Draw.font.width(it) } ?: 0
@@ -20,7 +22,7 @@ object Tooltips {
         return width to t.lines.map { Draw.wrap(it.first, width) to it.second }
     }
 
-    fun draw(g: GuiGraphics, t: Tip, mx: Int, my: Int, screen: Rect) {
+    fun draw(g: GuiGraphics, t: Tip, mx: Int, my: Int, screen: Rect, appear: Float = 1f) {
         val (width, wrapped) = layout(t)
         var height = PAD * 2
         if (t.title != null) height += Draw.LINE + 1
@@ -33,7 +35,7 @@ object Tooltips {
         var y = my + 10
         if (x + w > screen.right - 4) x = mx - w - 8
         if (y + height > screen.bottom - 4) y = max(4, screen.bottom - height - 4)
-        val box = Rect(max(4, x), y, w, height)
+        val box = Rect(max(4, x), y + ((1f - appear) * RISE).toInt(), w, height)
         Draw.shadow(g, box, 1)
         Draw.sprite(g, Sprites.TOOLTIP, box)
         t.severity?.let { Draw.fill(g, box.left(1).inset(0, 1), it.color) }
@@ -57,5 +59,6 @@ object Tooltips {
             Draw.hline(g, cx, cy, width, Palette.borderSubtle)
             Draw.text(g, it, cx, cy + 2, Palette.textMuted)
         }
+        Draw.veilBox(g, box.inset(1), appear)
     }
 }

@@ -3,6 +3,7 @@ package kami.claims.client
 import kami.claims.service.View
 import kami.libs.config.KamiConfig
 import kami.libs.config.Section
+import kami.libs.log.Log
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -34,7 +35,8 @@ class Prefs(
     var skipClaimConfirm: Boolean = false,
     var dismissed: MutableSet<String> = mutableSetOf(),
     var hiddenSteps: Boolean = false,
-    var denialTips: Int = 0
+    var denialTips: Int = 0,
+    var collapsedGroups: MutableSet<String> = mutableSetOf()
 )
 
 object ClientClaims {
@@ -68,7 +70,8 @@ object ClientClaims {
                     "skipClaimConfirm" to "Claim without a confirmation when the treasury lasts at least 7 more days.",
                     "dismissed" to "Alerts you dismissed.",
                     "hiddenSteps" to "The next steps checklist is hidden.",
-                    "denialTips" to "How often the border tip was shown after a blocked action."
+                    "denialTips" to "How often the border tip was shown after a blocked action.",
+                    "collapsedGroups" to "Navigation groups you collapsed."
                 )
             )
         ),
@@ -89,7 +92,14 @@ object ClientClaims {
     private var reserves: List<HashSet<Long>> = emptyList()
     private val regions = HashMap<Long, Int>()
 
-    fun savePrefs() = runCatching { config.save(prefs) }
+    private val log = Log.of("claims")
+
+    fun savePrefs() = runCatching { config.save(prefs) }.onFailure { log.warn("Could not save client.json: {}", it.message) }
+
+    fun finishTour() {
+        prefs.tourDone = true
+        savePrefs()
+    }
 
     fun update(p: View.Payload) {
         dims = p.dims

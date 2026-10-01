@@ -2,6 +2,8 @@ package kami.libs.ui.widget
 
 import kami.libs.ui.style.Format
 import kami.libs.ui.text.tr
+import kami.libs.ui.anim.feel
+import kami.libs.ui.anim.Feel
 import kami.libs.ui.core.Cursor
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Row
@@ -24,6 +26,7 @@ enum class ButtonStyle(val look: Sprites.Look, val text: () -> Int) {
 
 const val CONTROL_H = 18
 const val SMALL_H = 16
+private const val HOVER_LIGHTEN = 0x1C
 
 fun buttonWidth(label: String, icon: Icon? = null) = Draw.width(label) + (if (icon != null) Draw.ICON_SLOT else 0) + 14
 
@@ -37,6 +40,9 @@ fun Ui.edgeButton(
     disabledReason: String? = null, tip: String? = null, pending: Boolean = false, left: Boolean = false, key: Any = label
 ) = button(if (left) row.take(buttonWidth(label, icon)) else row.takeFromRight(buttonWidth(label, icon)), label, icon, style, enabled, disabledReason, tip, pending, key)
 
+private fun Ui.hoverWash(r: Rect, feel: Feel) =
+    Draw.fill(g, r.inset(1), Palette.alpha(0xFFFFFF, (HOVER_LIGHTEN * feel.hover * (1f - feel.press)).toInt()))
+
 fun Ui.button(
     r: Rect, label: String, icon: Icon? = null, style: ButtonStyle = ButtonStyle.SECONDARY, enabled: Boolean = true,
     disabledReason: String? = null, tip: String? = null, pending: Boolean = false, key: Any = label
@@ -47,16 +53,19 @@ fun Ui.button(
     val pressedNow = hover && usable && isDown() && active == id
     if (usable && hover) cursor = Cursor.HAND
     if (usable && pressed(r) != null) active = id
-    Draw.sprite(g, style.look.of(hover && usable, pressedNow, usable), r)
+    val feel = feel(key, hover && usable, pressedNow)
+    Draw.sprite(g, style.look.of(false, pressedNow, usable), r)
+    if (usable) hoverWash(r, feel)
+    val sink = if (feel.press > 0.5f) 1 else 0
     val color = if (usable) style.text() else Palette.textDisabled
     val iconSlot = if (icon != null || pending) (if (label.isEmpty()) Draw.ICON - 4 else Draw.ICON_SLOT) else 0
     val content = iconSlot + Draw.width(label)
     var x = r.x + maxOf(2, (r.w - content) / 2)
-    if (pending) spinner(x, r.centerY - 4, color)
-    else if (icon != null) Draw.leadIcon(g, icon, x, r.centerY, if (usable) null else Palette.alpha(0xFFFFFF, 0x60))
+    if (pending) spinner(x, r.centerY - 4 + sink, color)
+    else if (icon != null) Draw.leadIcon(g, icon, x, r.centerY + sink, if (usable) null else Palette.alpha(0xFFFFFF, 0x60))
     x += iconSlot
     val shown = Draw.fit(label, r.w - 6 - (x - r.x))
-    if (label.isNotEmpty()) Draw.text(g, shown, x, r.y + (r.h - 8) / 2, TextStyle.BODY, color)
+    if (label.isNotEmpty()) Draw.text(g, shown, x, r.y + (r.h - 8) / 2 + sink, TextStyle.BODY, color)
     controlTip(key, r, enabled, disabledReason, tip ?: label.takeIf { it != shown })
     focusRing(key, r)
     val released = active == id && released() != null
@@ -72,10 +81,13 @@ fun Ui.iconButton(r: Rect, icon: Icon, tip: String, enabled: Boolean = true, sel
     if (enabled && hover) cursor = Cursor.HAND
     if (enabled && pressed(r) != null) active = id
     val look = if (selected) Sprites.Look.SECONDARY else Sprites.Look.GHOST
-    Draw.sprite(g, look.of(hover && enabled, active == id && isDown(), enabled), r)
+    val down = enabled && active == id && isDown()
+    val feel = feel(key, hover && enabled, down)
+    Draw.sprite(g, look.of(false, down, enabled), r)
+    if (enabled) hoverWash(r, feel)
     if (selected) Draw.hline(g, r.x + 2, r.bottom - 1, r.w - 4, Palette.brass)
     val x = r.x + (r.w - Draw.ICON) / 2
-    val y = r.y + (r.h - Draw.ICON) / 2
+    val y = r.y + (r.h - Draw.ICON) / 2 + if (feel.press > 0.5f) 1 else 0
     if (enabled) Draw.icon(g, icon, x, y) else Draw.tintedIcon(g, icon, x, y, Draw.ICON, Palette.alpha(0xFFFFFF, 0x60))
     controlTip(key, r, enabled, disabledReason, tip)
     focusRing(key, r)
@@ -91,10 +103,10 @@ fun Ui.holdButton(r: Rect, label: String, holdMs: Long = 1500, enabled: Boolean 
     val hover = hover(key, r)
     val state = remember("holdStart:$key") { longArrayOf(0L) }
     if (enabled && hover) cursor = Cursor.HAND
-    if (enabled && pressed(r) != null) { active = id; state[0] = now }
+    if (enabled && pressed(r) != null) { active = id; state[0] = wallMillis }
     val holding = enabled && active == id && isDown() && hover
     if (!holding) state[0] = 0L
-    val progress = if (state[0] == 0L) 0f else ((now - state[0]).toFloat() / holdMs).coerceIn(0f, 1f)
+    val progress = if (state[0] == 0L) 0f else ((wallMillis - state[0]).toFloat() / holdMs).coerceIn(0f, 1f)
     Draw.sprite(g, Sprites.Look.DANGER.of(hover && enabled, holding, enabled), r)
     if (progress > 0f) Draw.fill(g, Rect(r.x + 1, r.y + 1, ((r.w - 2) * progress).toInt(), r.h - 2), Palette.alpha(0xFFFFFF, 0x28))
     val text = if (holding) tr("kami_libs.common.keep_holding") else label
@@ -120,7 +132,7 @@ fun Ui.link(x: Int, y: Int, label: String, key: Any = "link:$label"): Boolean {
 }
 
 fun Ui.spinner(x: Int, y: Int, color: Int = Palette.text) {
-    val step = ((now / 120) % 8).toInt()
+    val step = ((wallMillis / 120) % 8).toInt()
     for (i in 0 until 8) {
         val angle = i * Math.PI / 4
         val px = x + 4 + (Math.cos(angle) * 3).toInt()

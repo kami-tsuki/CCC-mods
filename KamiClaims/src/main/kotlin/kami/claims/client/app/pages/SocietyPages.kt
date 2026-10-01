@@ -4,6 +4,9 @@ import kami.libs.ui.text.trn
 import kami.libs.ui.text.tr
 import kami.claims.Rank
 import kami.claims.client.app.ClaimsApp
+import kami.claims.client.app.ClientLocks
+import kami.claims.client.app.capacityLine
+import kami.claims.research.Capacity
 import kami.claims.client.app.ClaimsPage
 import kami.libs.ui.app.Consequence
 import kami.claims.client.app.Dialogs
@@ -125,8 +128,9 @@ class CitizensPage(app: ClaimsApp) : ClaimsPage(app) {
             else -> null
         }
         ui.segmented(f.take(CONTROL_H), targets.map { t ->
-            Option(t, Vocabulary.rank(t.name).label, Vocabulary.rank(t.name).icon, disabledReason = rankLock ?: if (t >= myRank) tr("kami_claims.citizens.rank.disabled.above") else if (t == Rank.CHANCELLOR && info.members.any { it.rank == "chancellor" && it.id != m.id }) tr("kami_claims.citizens.rank.disabled.chancellor") else null)
+            Option(t, Vocabulary.rank(t.name).label, Vocabulary.rank(t.name).icon, lock = ClientLocks.rank(t, rank), disabledReason = rankLock ?: if (t >= myRank) tr("kami_claims.citizens.rank.disabled.above") else if (t == Rank.CHANCELLOR && info.members.any { it.rank == "chancellor" && it.id != m.id }) tr("kami_claims.citizens.rank.disabled.chancellor") else null)
         }, rank, key = "rank:${m.id}")?.let { next -> rankDialog(m, rank, next) }
+        ui.capacityLine(f.take(10), Capacity.OFFICERS)
         f.skip(4)
         ui.section(f.take(14), tr("kami_claims.dashboard.you.job"))
         val jobLock = lock("jobs")
@@ -167,7 +171,7 @@ class CitizensPage(app: ClaimsApp) : ClaimsPage(app) {
                 Consequence(tr("kami_claims.citizens.kick.rejoin"))
             ), tr("kami_claims.citizens.kick"), "kick", arrayOf(m.id), danger = true, hold = true)
         }
-        if (ui.button(Rect(rest.x + half + 4, y, half, CONTROL_H), tr("kami_claims.citizens.banish"), Icons.BAN, ButtonStyle.DANGER, memberLock == null, memberLock, key = "ban:${m.id}")) {
+        if (ui.lockedButton(Rect(rest.x + half + 4, y, half, CONTROL_H), tr("kami_claims.citizens.banish"), ClientLocks.feature("banish"), Icons.BAN, ButtonStyle.DANGER, memberLock == null, memberLock, key = "ban:${m.id}")) {
             Dialogs.confirm(app, tr("kami_claims.citizens.banish.confirm.title", m.name), info.name, Icons.BAN, listOf(
                 Consequence(tr("kami_claims.citizens.banish.locked", m.name), Severity.DANGER),
                 Consequence(tr("kami_claims.citizens.banish.lift"), Severity.WARNING)

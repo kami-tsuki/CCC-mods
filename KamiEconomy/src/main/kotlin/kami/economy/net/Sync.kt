@@ -5,6 +5,7 @@ import kami.economy.Market
 import kami.economy.Order
 import kami.economy.economy.Auctions
 import kami.economy.economy.History
+import kami.economy.economy.Limits
 import kami.economy.economy.Matching
 import kami.economy.economy.Resolution
 import kami.economy.economy.Stocks
@@ -12,6 +13,7 @@ import kami.economy.economy.Terms
 import kami.economy.economy.Trade
 import kami.libs.economy.Numismatics
 import kami.libs.claims.ClaimsApi
+import kami.libs.claims.CountryCapacity
 import kami.libs.claims.FlagInfo
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -46,11 +48,13 @@ import kotlin.math.roundToInt
     val vendors: List<VendorLine> = emptyList(), val vendorPrice: Int = 0
 )
 @Serializable class AuctionLine(val id: Long, val label: String, val stackData: String, val startPrice: Int, val buyNowPrice: Int, val currentBid: Int, val currentBidder: String, val expiresAt: Long, val mine: Boolean)
+@Serializable class Slot(val used: Int = 0, val max: Int = 0, val hint: String = "")
 @Serializable class Snap(
     val funds: Long, val rows: List<Row>, val orders: List<OrderLine>, val query: String, val sort: String,
     val page: Int, val pages: Int, val taxPct: Int, val auctionFeePct: Int, val detail: Detail?, val quote: QuoteLine?,
     val auctions: List<AuctionLine>, val auctionPage: Int, val auctionPages: Int,
-    val msg: String, val ok: Boolean, val open: Boolean, val citizen: Boolean = true
+    val msg: String, val ok: Boolean, val open: Boolean, val citizen: Boolean = true,
+    val orderSlots: Slot = Slot(), val auctionSlots: Slot = Slot(), val goal: String = "", val goalValue: Long = 0, val goalMax: Long = 0
 )
 
 private class State {
@@ -179,16 +183,23 @@ object Sync {
         return Triple(all.drop(page * pageSize).take(pageSize), page, pages)
     }
 
+    private fun slot(me: String, key: String, used: Int, max: Int) = Slot(used, max, if (used >= max) Limits.hint(me, key, max) else "")
+
     fun encode(p: ServerPlayer, msg: String, ok: Boolean, open: Boolean): String {
         val s = states.getOrPut(p.uuid) { State() }
         s.quote?.let { quote(p, it.item, it.qty, it.market) }
         val (rowList, pages) = rows(s)
         val (auctionList, auctionPage, auctionPages) = auctions(s, p.stringUUID)
         val funds = Numismatics.balance(p.uuid)
+        val me = p.stringUUID
+        val goal = ClaimsApi.goals(p.uuid).firstOrNull()
         val snap = Snap(
             funds, rowList, myOrders(p.stringUUID), s.text, s.sort, s.page, pages,
             Config.s.taxPct, (Config.s.auctionFeePct * 100).roundToInt(),
-            detail(s, p.stringUUID, funds), s.quote, auctionList, auctionPage, auctionPages, msg, ok, open, ClaimsApi.isCitizen(p.uuid)
+            detail(s, p.stringUUID, funds), s.quote, auctionList, auctionPage, auctionPages, msg, ok, open, ClaimsApi.isCitizen(p.uuid),
+            slot(me, CountryCapacity.MARKET_SLOTS, Limits.marketUsed(me), Limits.marketSlots(me)),
+            slot(me, CountryCapacity.AUCTION_SLOTS, Limits.auctionUsed(me), Limits.auctionSlots(me)),
+            goal?.text?.json() ?: "", goal?.value ?: 0, goal?.max ?: 0
         )
         return json.encodeToString(snap)
     }

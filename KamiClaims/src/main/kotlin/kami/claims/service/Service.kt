@@ -1,8 +1,18 @@
 package kami.claims.service
 
+import kami.claims.net.ResearchSync
 import kami.claims.*
 import kami.claims.economy.Bank
 import kami.claims.economy.Treasury
+import kami.claims.research.Buffs
+import kami.claims.research.Loans
+import kami.claims.research.Capacity
+import kami.claims.research.Deposit
+import kami.claims.research.Features
+import kami.claims.research.Tokens
+import kami.claims.research.Levels
+import kami.claims.research.Progress
+import kami.claims.research.Queue
 import kami.claims.service.Words.chunks
 import kami.claims.service.Words.count
 import kami.claims.service.Words.days
@@ -55,7 +65,7 @@ object Service {
         val target = acting
         if (cap in delegableCaps && target != null) {
             val own = home(p)
-            if (target != own.id) {
+            if (Realm.country(target) !== own) {
                 val delegate = Realm.country(target) ?: throw Fail("kami_claims.error.unknown_country")
                 if (delegate.parent != own.id) throw Fail("kami_claims.error.not_your_province")
                 if (rankOf(own, p) < Rank.CHANCELLOR) throw Fail("kami_claims.error.delegate_rank")
@@ -84,6 +94,10 @@ object Service {
 
     private fun member(c: Country, id: String) = c.members[id] ?: throw Fail("kami_claims.error.not_member")
 
+    private fun citizenRoom(c: Country) {
+        Features.requireRoom(c, Capacity.CITIZENS, c.members.size)
+    }
+
     private fun mine(c: Country, k: Key) = Realm.index[k]?.takeIf { it.country == c.id } ?: throw Fail("kami_claims.error.not_your_chunk")
 
     fun claimError(c: Country, k: Key, type: String): Phrase? {
@@ -95,6 +109,7 @@ object Service {
         val free = Realm.claims(c.id).size < Realm.freeAllowed(c)
         if (!free) Treasury.move(c, LedgerKind.CLAIM, -s.types.getValue(type).price.toLong(), note = "${k.x}, ${k.z}")
         Realm.add(Claim(c.id, k.dim, k.x, k.z, type, capital = capital, free = free))
+        ResearchSync.refresh(c)
     }
 
     private fun dispatch(p: ServerPlayer, name: String, a: List<String>): Phrase {
@@ -117,6 +132,7 @@ object Service {
             "unclaim" -> unclaim(p, spot(p, a, 0))
             "type" -> retype(p, arg(a, 0), spot(p, a, 1))
             "capital" -> capital(p, spot(p, a, 0))
+            "rename" -> Naming.rename(need(p, Rank.PRESIDENT), arg(a, 0), p.stringUUID)
             "deposit" -> deposit(p, num(a, 0))
             "withdraw" -> withdraw(p, num(a, 0))
             "tax" -> need(p, Cap.TAX).let { it.tax = max(0, num(a, 0)); Phrase.of("kami_claims.done.tax", Words.rate(it.tax, 1)) }
@@ -157,6 +173,10 @@ object Service {
             "province_invite", "province_request", "province_approve", "province_deny", "province_release", "province_forgive",
             "province_independence", "province_withdraw", "province_decline", "province_tax" -> province(p, name, a)
             "province_give" -> provinceGive(p, arg(a, 0), arg(a, 1), confirmed(a))
+            "loan_take" -> Loans.take(need(p, Cap.WITHDRAW), arg(a, 0), p.stringUUID)
+            "loan_repay" -> Loans.repay(need(p, Cap.WITHDRAW), arg(a, 0), p.stringUUID)
+            "buff_toggle" -> Buffs.toggle(need(p, Cap.RESEARCH), arg(a, 0))
+            "research_enqueue", "research_start", "research_pause", "research_move", "research_deposit" -> researchAct(p, name, a)
             "alliance" -> alliance(p, arg(a, 0), country(arg(a, 1)))
             "tariff" -> Diplomacy.setTariff(need(p, Cap.TRADE), country(arg(a, 0)), num(a, 1))
             "embargo" -> Diplomacy.setEmbargo(need(p, Cap.TRADE), country(arg(a, 0)), arg(a, 1) == "on")
@@ -168,8 +188,7 @@ object Service {
 
     private fun create(p: ServerPlayer, n: String): Phrase {
         if (Realm.of(p.stringUUID) != null) throw Fail("kami_claims.error.leave_first")
-        if (n.length !in s.nameLength[0]..s.nameLength[1] || !n.all { it.isLetterOrDigit() || it == '_' || it == '-' }) throw Fail("kami_claims.error.name", num(s.nameLength[0]), num(s.nameLength[1]))
-        if (Realm.country(n) != null) throw Fail("kami_claims.error.name_taken")
+        Naming.check(n)
         val c = Country(n)
         claimError(c, here(p), s.defaultType)?.let { throw Fail(it) }
         Realm.data.countries[c.id] = c
@@ -196,6 +215,7 @@ object Service {
         val c = home(p)
         if (rankOf(c, p) == Rank.PRESIDENT && c.members.size > 1) throw Fail("kami_claims.error.transfer_first")
         Realm.leave(c, p.stringUUID)
+        ResearchSync.refresh(c)
         if (c.members.isEmpty()) Realm.disband(c)
         return Phrase.of("kami_claims.done.left", v(c.name))
     }
@@ -204,6 +224,7 @@ object Service {
         val c = need(p, Cap.INVITE)
         if (Realm.of(id) != null) throw Fail("kami_claims.error.already_member")
         if (c.outsiders[id] == Rank.BANISHED) throw Fail("kami_claims.error.target_banished")
+        citizenRoom(c)
         c.invites[id] = now() + s.inviteDays * s.dayMillis
         Effects.invite(p.server, id, c)
         return Phrase.of("kami_claims.done.invited")
@@ -213,7 +234,9 @@ object Service {
         val c = Realm.country(country) ?: throw Fail("kami_claims.error.unknown_country")
         if (Realm.of(p.stringUUID) != null) throw Fail("kami_claims.error.leave_first")
         if ((c.invites[p.stringUUID] ?: 0) < now()) throw Fail("kami_claims.error.no_invite")
+        citizenRoom(c)
         Realm.join(c, p.stringUUID, Rank.CITIZEN)
+        Progress.citizenJoined(c, p.stringUUID)
         Mail.broadcast(c, Phrase.of("kami_claims.mail.joined", v(p.name.string)), Tone.OK)
         return Phrase.of("kami_claims.done.welcome", v(c.name))
     }
@@ -231,16 +254,20 @@ object Service {
         val c = need(p, Cap.INVITE)
         if (c.requests.remove(id) == null) throw Fail("kami_claims.error.no_request")
         if (Realm.of(id) != null) throw Fail("kami_claims.error.already_member")
+        citizenRoom(c)
         Realm.join(c, id, Rank.CITIZEN)
+        Progress.citizenJoined(c, id)
         Mail.broadcast(c, Phrase.of("kami_claims.mail.joined", v(Names.of(p.server, id))), Tone.OK)
         return Phrase.of("kami_claims.done.request_approved")
     }
 
     private fun kick(p: ServerPlayer, id: String, banish: Boolean): Phrase {
         val c = need(p, Cap.MEMBERS)
+        if (banish) Features.require(c, Features.BANISH)
         c.members[id]?.let {
             if (it.rank >= rankOf(c, p)) throw Fail("kami_claims.error.lower_ranks")
             Realm.leave(c, id)
+            ResearchSync.refresh(c)
             Mail.direct(id, Phrase.of(if (banish) "kami_claims.mail.banished" else "kami_claims.mail.removed", v(c.name)), Tone.BAD)
         }
         if (banish) c.outsiders[id] = Rank.BANISHED
@@ -261,6 +288,7 @@ object Service {
         if (rank !in listOf(Rank.CITIZEN, Rank.OFFICER, Rank.CHANCELLOR)) throw Fail("kami_claims.error.rank_choice")
         if (m.rank >= mine || rank >= mine) throw Fail("kami_claims.error.rank_below")
         if (rank == Rank.CHANCELLOR && c.members.values.any { it.rank == Rank.CHANCELLOR }) throw Fail("kami_claims.error.one_chancellor")
+        if (m.rank != rank) Features.requireRank(c, rank)
         m.rank = rank
         Mail.direct(id, Phrase.of("kami_claims.mail.rank", Words.rank(rank)))
         return Phrase.of("kami_claims.done.rank")
@@ -356,6 +384,7 @@ object Service {
         val c = need(p, Cap.CLAIM)
         val plan = Planner.unclaim(c, r.cells)
         plan.ready.forEach { cell -> Realm.index[cell.key]?.let { Realm.unclaim(it, false) } }
+        ResearchSync.refresh(c)
         val blocked = plan.blocked
         val reason = blocked.firstOrNull()?.reason ?: Phrase.literal("")
         if (plan.ready.isEmpty() && blocked.isNotEmpty()) throw Fail(Phrase.of("kami_claims.error.nothing_released", reason), "BLOCKED", blocked.first().key)
@@ -368,6 +397,7 @@ object Service {
         if (s.types[type] == null) throw Fail("kami_claims.error.unknown_type")
         val set = r.cells.toHashSet()
         val hit = Realm.claims(c.id).filter { it.key in set }
+        if (hit.any { it.type != type }) Features.require(c, Features.claimType(type))
         hit.forEach { applyType(it, type) }
         return Phrase.of("kami_claims.done.retyped", chunks(hit.size), Words.type(type))
     }
@@ -378,17 +408,21 @@ object Service {
     }
 
     private fun unclaim(p: ServerPlayer, k: Key): Phrase {
-        val cl = mine(need(p, Cap.CLAIM), k)
+        val c = need(p, Cap.CLAIM)
+        val cl = mine(c, k)
         if (cl.capital) throw Fail("kami_claims.error.capital")
         ensureUnclaimUnlocked(cl)
         if (!Realm.removable(cl)) throw Fail("kami_claims.error.split")
         Realm.unclaim(cl, false)
+        ResearchSync.refresh(c)
         return Phrase.of("kami_claims.done.chunk_released")
     }
 
     private fun retype(p: ServerPlayer, type: String, k: Key): Phrase {
-        val cl = mine(need(p, Cap.CLAIM), k)
+        val c = need(p, Cap.CLAIM)
+        val cl = mine(c, k)
         if (s.types[type] == null) throw Fail("kami_claims.error.unknown_type")
+        if (cl.type != type) Features.require(c, Features.claimType(type))
         applyType(cl, type)
         return Phrase.of("kami_claims.done.chunk_retyped", Words.type(type), Words.rate(Realm.price(cl), Realm.period(cl)))
     }
@@ -398,6 +432,7 @@ object Service {
         val cl = mine(c, k)
         if (cl.capital) throw Fail("kami_claims.error.already_capital")
         if (now() - c.moved < s.capitalCooldownDays * s.dayMillis) throw Fail("kami_claims.error.capital_cooldown")
+        Tokens.spend(c, Tokens.CAPITAL_MOVE, s.capitalMoveCost, p.stringUUID)
         Realm.claims(c.id).forEach { it.capital = false }
         cl.capital = true
         c.moved = now()
@@ -407,6 +442,7 @@ object Service {
     private fun deposit(p: ServerPlayer, n: Int): Phrase {
         val c = home(p)
         if (n < 1) throw Fail(Phrase.of("kami_claims.error.amount"), "AMOUNT")
+        if (n > Treasury.room(c)) throw Fail(Phrase.of("kami_claims.error.treasury_full", money(Treasury.room(c))), "AMOUNT")
         if (!Bank.take(p.uuid, n)) throw Fail(Phrase.of("kami_claims.error.funds", money(n)), "FUNDS")
         Treasury.move(c, LedgerKind.DEPOSIT, n.toLong(), p.stringUUID)
         c.pending += n
@@ -415,6 +451,7 @@ object Service {
 
     private fun withdraw(p: ServerPlayer, n: Int): Phrase {
         val c = need(p, Cap.WITHDRAW)
+        Loans.requireNoLoans(c)
         if (n < 1) throw Fail(Phrase.of("kami_claims.error.amount"), "AMOUNT")
         if (c.treasury < n) throw Fail(Phrase.of("kami_claims.error.treasury_short", money(c.treasury)), "FUNDS")
         if (!Bank.give(p.uuid, n)) throw Fail("kami_claims.error.payout")
@@ -473,10 +510,11 @@ object Service {
         val cl = mine(c, k)
         if (cl.type != "residential") throw Fail("kami_claims.error.plot_type")
         if (cl.owner != null) throw Fail("kami_claims.error.plot_taken")
-        if (Realm.claims(c.id).count { it.owner == p.stringUUID } >= s.maxPlots) throw Fail("kami_claims.error.plot_limit", count("kami_claims.unit.plot", s.maxPlots))
+        Features.requireRoom(c, Capacity.PLOTS, Realm.claims(c.id).count { it.owner == p.stringUUID })
         cl.owner = p.stringUUID
         cl.lapse = 0
         cl.roles.clear()
+        Progress.report(c, "plot", "", 1)
         return Phrase.of("kami_claims.done.plot_claimed", Words.rate(if (cl.tax >= 0) cl.tax else c.tax, 1))
     }
 
@@ -488,6 +526,23 @@ object Service {
     }
 
     private fun country(name: String) = Realm.country(name) ?: throw Fail("kami_claims.error.unknown_country")
+
+    private fun researchAct(p: ServerPlayer, name: String, a: List<String>): Phrase {
+        if (name == "research_deposit") {
+            val key = Queue.key(home(p), arg(a, 0))
+            val moved = Deposit.take(p, key, num(a, 1))
+            return Phrase.of("kami_claims.research.done.deposit", num(moved), Queue.node(home(p), key).label().asValue())
+        }
+        val c = need(p, Cap.RESEARCH)
+        val key = Queue.key(c, arg(a, 0))
+        when (name) {
+            "research_enqueue" -> Queue.enqueue(c, key, p.stringUUID)
+            "research_start" -> Queue.start(c, key, p.stringUUID)
+            "research_pause" -> Queue.pause(c, key)
+            else -> Queue.move(c, key, num(a, 1))
+        }
+        return Phrase.of("kami_claims.research.done.${name.removePrefix("research_")}", Queue.node(c, key).label().asValue())
+    }
 
     private fun alliance(p: ServerPlayer, step: String, other: Country): Phrase {
         val c = need(p, Cap.TRADE)

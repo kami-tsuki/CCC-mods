@@ -34,7 +34,9 @@ data class GeneralConfig(
         "fluorochemicals" to listOf("fluorite", "phosphorus"),
         "acids" to listOf("sulfur", "salt")
     ),
-    val richness: Richness = Richness()
+    val richness: Richness = Richness(),
+    val scanBlocks: Map<String, Int> = linkedMapOf("1" to 1, "2" to 3, "3" to 5),
+    val scanChunks: Map<String, Int> = linkedMapOf("4" to 1, "5" to 3, "6" to 5, "7" to 7, "8" to 9)
 )
 
 @Serializable

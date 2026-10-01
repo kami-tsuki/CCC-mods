@@ -11,7 +11,7 @@ class PlannerTest {
 
     private fun country(owned: Int, treasury: Long): Country {
         Realm.reset(Data())
-        val c = Country("planland", treasury = treasury)
+        val c = Country("planland", treasury = treasury, level = 5)
         Realm.data.countries[c.id] = c
         Realm.join(c, "p1", Rank.PRESIDENT)
         (0 until owned).forEach { i -> Realm.add(Claim(c.id, dim, i, 0, "civic", at = i.toLong(), since = 0, capital = i == 0)) }

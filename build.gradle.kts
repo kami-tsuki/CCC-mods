@@ -100,7 +100,7 @@ subprojects {
                 mods.mkdirs()
                 mods.listFiles { f -> f.name.startsWith(modId) && f.extension == "jar" }?.forEach { it.delete() }
                 config.listFiles { f -> f.name.startsWith(modId) }?.forEach { it.deleteRecursively() }
-                config.resolve("kami/$configName").deleteRecursively()
+                config.resolve("kami/$configName").listFiles { f -> f.name != "client.json" }?.forEach { it.deleteRecursively() }
                 jarFile.copyTo(mods.resolve(jarFile.name), overwrite = true)
             }
         }

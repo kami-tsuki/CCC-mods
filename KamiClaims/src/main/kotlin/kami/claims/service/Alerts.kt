@@ -6,6 +6,7 @@ import kami.claims.Country
 import kami.claims.Rank
 import kami.claims.Realm
 import kami.claims.now
+import kami.claims.research.Loans
 import kami.claims.today
 import kami.libs.text.Phrase
 import kotlinx.serialization.Serializable
@@ -17,9 +18,6 @@ class AlertLine(
     val action: String = "", val act: String = "", val args: List<String> = emptyList(),
     val page: String = "", val focus: String = ""
 )
-
-@Serializable
-class StepLine(val id: String, val label: String, val hint: String, val done: Boolean, val page: String)
 
 object Alerts {
     private val s get() = Config.s
@@ -68,6 +66,11 @@ object Alerts {
                 if (bill > c.treasury) out += alert("bill", "WARNING", t("kami_claims.alert.bill.title"), t("kami_claims.alert.bill.body", money(bill), money(c.treasury)),
                     t("kami_claims.alert.deposit", money(bill - c.treasury)), "deposit", listOf((bill - c.treasury).toString()), "budget")
             }
+            if (Loans.inDefault(c)) out += alert("loan_default", "DANGER", t("kami_claims.alert.loan_default.title"),
+                t("kami_claims.alert.loan_default.body", money(c.loans.sumOf { it.overdue })), t("kami_claims.alert.open.loans"), page = "loans")
+            else if (c.loans.isNotEmpty() && Loans.dueNext(c) > c.treasury) out += alert("loan_due", "WARNING", t("kami_claims.alert.loan_due.title"),
+                t("kami_claims.alert.loan_due.body", money(Loans.dueNext(c)), money(c.treasury)), t("kami_claims.alert.deposit", money(Loans.dueNext(c) - c.treasury)),
+                "deposit", listOf((Loans.dueNext(c) - c.treasury).toString()), "loans")
             val net = sum.upkeep + sum.jobs - sum.income
             if (net > 0 && claims.any { !it.free }) {
                 val left = c.treasury / net
@@ -135,20 +138,5 @@ object Alerts {
                 t("kami_claims.alert.inactive.body", days(quiet), days(s.inactiveDays)))
         }
         return out.sortedBy { listOf("DANGER", "WARNING", "INFO").indexOf(it.severity) }
-    }
-
-    fun steps(c: Country?, canLead: Boolean): List<StepLine> {
-        if (c == null || !canLead) return emptyList()
-        val claims = Realm.claims(c.id)
-        val upkeep = Upkeep.summary(c).upkeep
-        fun step(id: String, hint: Phrase, done: Boolean, page: String) = StepLine(id, t("kami_claims.step.$id").json(), hint.json(), done, page)
-        return listOf(
-            step("claim", t("kami_claims.step.claim.desc", Phrase.plural("kami_claims.unit.chunk", Realm.freeAllowed(c).toLong())), claims.size > 1, "map"),
-            step("residential", t("kami_claims.step.residential.desc"), claims.any { it.type == "residential" }, "map"),
-            step("treasury", t("kami_claims.step.treasury.desc"), upkeep == 0L || c.treasury >= upkeep * 7, "budget"),
-            step("invite", t("kami_claims.step.invite.desc", Phrase.plural("kami_claims.unit.member", s.freeBonusMembers.toLong())), c.members.size > 1, "citizens"),
-            step("job", t("kami_claims.step.job.desc"), c.members.values.any { it.job != null }, "jobs"),
-            step("identity", t("kami_claims.step.identity.desc"), c.color != 0, "identity")
-        )
     }
 }

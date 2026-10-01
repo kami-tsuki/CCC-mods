@@ -10,11 +10,11 @@ import kami.economy.economy.BuyNowResult
 import kami.economy.economy.Classification
 import kami.economy.economy.Gate
 import kami.economy.economy.Ledger
+import kami.economy.economy.Limits
 import kami.economy.economy.SellResult
 import kami.economy.economy.BuyResult
 import kami.economy.economy.OrderResult
 import kami.economy.client.ClientHooks
-import kami.libs.claims.ClaimsApi
 import kami.libs.net.ActPayload
 import kami.libs.net.Packets
 import kami.libs.net.SnapshotPayload
@@ -149,13 +149,14 @@ object Net {
     private fun List<String>.itemArg(i: Int = 0): String = getOrNull(i) ?: fail("kami_economy.action.invalid_item")
     private fun List<String>.intArg(i: Int, key: String): Int = getOrNull(i)?.toIntOrNull() ?: fail(key)
 
-    private fun orderReply(result: OrderResult, onOk: (OrderResult.Ok) -> Pair<Phrase, Boolean>): Pair<Phrase, Boolean> = when (result) {
+    private fun orderReply(me: String, result: OrderResult, onOk: (OrderResult.Ok) -> Pair<Phrase, Boolean>): Pair<Phrase, Boolean> = when (result) {
         is OrderResult.Ok -> onOk(result)
         OrderResult.OutOfRange -> outOfRange()
         is OrderResult.NotClean -> notClean(result.step)
         OrderResult.InsufficientFunds -> Phrase.of("kami_economy.action.no_funds") to false
         OrderResult.Crosses -> Phrase.of("kami_economy.action.bid_crosses") to false
         OrderResult.Exists -> Phrase.of("kami_economy.action.bid_exists") to false
+        is OrderResult.Limit -> Limits.marketDenial(me) to false
     }
 
     private fun sell(p: ServerPlayer, me: String, market: Boolean, args: List<String>): Pair<Phrase, Boolean> {
@@ -208,6 +209,7 @@ object Net {
                 when (result) {
                     is SellResult.NotClean -> notClean(result.step)
                     SellResult.Full -> Phrase.of("kami_economy.market.stock.full") to false
+                    is SellResult.Limit -> Limits.marketDenial(me) to false
                     SellResult.NoBuyers -> Phrase.of("kami_economy.action.no_buyers") to false
                     else -> Phrase.of("kami_economy.action.sell_failed") to false
                 }
@@ -220,7 +222,7 @@ object Net {
         val qty = args.intArg(1, "kami_economy.action.invalid_quantity")
         val price = args.intArg(2, "kami_economy.action.invalid_price")
         if (item !in kami.economy.Market.data.books && kami.economy.economy.Stocks.good(item) == null) return Phrase.of("kami_economy.action.invalid_item") to false
-        return orderReply(Ledger.bid(me, item, qty, price)) { Phrase.of("kami_economy.action.bid_order", qty, item, Phrase.money(price.toLong())) to true }
+        return orderReply(me, Ledger.bid(me, item, qty, price)) { Phrase.of("kami_economy.action.bid_order", qty, item, Phrase.money(price.toLong())) to true }
     }
 
     private fun cancelBid(me: String, args: List<String>): Pair<Phrase, Boolean> {
@@ -236,6 +238,7 @@ object Net {
         val buyNow = args.getOrNull(3)?.toIntOrNull()?.takeIf { it > 0 }
         if (qty <= 0 || startPrice <= 0) return Phrase.of("kami_economy.action.invalid_listing") to false
         if (!Config.s.validPrice(startPrice) || (buyNow != null && !Config.s.validPrice(buyNow))) return outOfRange()
+        if (Limits.auctionFull(me)) return Limits.auctionDenial(me) to false
         val stack = p.inventory.items.firstOrNull { !it.isEmpty && Blacklist.itemId(it) == item && it.count >= qty && Blacklist.classify(it) != Classification.BLOCKED }
             ?: return Phrase.of("kami_economy.action.not_enough_items", qty) to false
         val taken = stack.copyWithCount(qty)
@@ -309,12 +312,12 @@ object Net {
         val item = args.itemArg()
         val newPrice = args.intArg(1, "kami_economy.action.invalid_price")
         if (!Config.s.validPrice(newPrice)) return outOfRange()
-        return orderReply(Ledger.repriceBid(me, item, newPrice)) { Phrase.of("kami_economy.action.repriced", Phrase.money(newPrice.toLong())) to true }
+        return orderReply(me, Ledger.repriceBid(me, item, newPrice)) { Phrase.of("kami_economy.action.repriced", Phrase.money(newPrice.toLong())) to true }
     }
 
     private fun act(p: ServerPlayer, name: String, args: List<String>): Pair<Phrase, Boolean> {
         val me = p.stringUUID
-        if (Gate.blocked(name, ClaimsApi.isCitizen(p.uuid))) return Phrase.of("kami_libs.economy.no_country") to false
+        Gate.denial(p.uuid, name)?.let { return it to false }
         return try {
             when (name) {
                 "sell", "sell_market" -> sell(p, me, name == "sell_market", args)

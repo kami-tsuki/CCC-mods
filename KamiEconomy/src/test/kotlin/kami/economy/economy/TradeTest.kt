@@ -32,7 +32,7 @@ class TradeTest {
         override fun citizenship(player: UUID): Citizenship? = null
         override fun relation(a: String, b: String) = relations[a to b] ?: relations[b to a] ?: Relation.NEUTRAL
         override fun tariff(buyerCountry: String, sellerCountry: String) = tariffs[buyerCountry to sellerCountry] ?: 0
-        override fun credit(country: String, amount: Long, kind: TreasuryKind): Boolean { credits += Triple(country, amount, kind); return true }
+        override fun credit(country: String, amount: Long, kind: TreasuryKind): Long { credits += Triple(country, amount, kind); return amount }
     }
 
     private class Purse(var funds: Long) : Wallet {

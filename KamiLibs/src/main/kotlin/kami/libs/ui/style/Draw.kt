@@ -134,6 +134,30 @@ object Draw {
         icon(g, icon, centerX - ICON / 2, centerY - ICON / 2)
     }
 
+    fun glow(g: GuiGraphics, r: Rect, color: Int, strength: Float) {
+        if (r.isEmpty || strength <= 0.02f) return
+        for (i in 1..3) g.renderOutline(r.x - i, r.y - i, r.w + i * 2, r.h + i * 2, Palette.alpha(color, ((0x50 shr (i - 1)) * strength).toInt()))
+    }
+
+    fun veil(g: GuiGraphics, r: Rect, color: Int, amount: Float) {
+        val shade = Palette.fade(color, amount)
+        if (shade != 0) fill(g, r, shade)
+    }
+
+    fun veilBox(g: GuiGraphics, r: Rect, appear: Float, color: Int = Palette.canvas, strength: Float = 1f) = veil(g, r, color, (1f - appear) * strength)
+
+    fun thinBar(g: GuiGraphics, r: Rect, fraction: Float, color: Int) {
+        fill(g, r, Palette.alpha(Palette.border, 0xC0))
+        fill(g, r.withWidth((r.w * fraction.coerceIn(0f, 1f)).toInt()), color)
+    }
+
+    fun dashedRect(g: GuiGraphics, r: Rect, color: Int) {
+        dashed(g, r.x, r.y, r.right - 1, r.y, color)
+        dashed(g, r.x, r.bottom - 1, r.right - 1, r.bottom - 1, color)
+        dashed(g, r.x, r.y, r.x, r.bottom - 1, color)
+        dashed(g, r.right - 1, r.y, r.right - 1, r.bottom - 1, color)
+    }
+
     fun shadow(g: GuiGraphics, r: Rect, depth: Int) {
         for (i in 1..depth.coerceAtMost(2)) g.fill(r.x + i, r.y + i, r.right + i, r.bottom + i, Palette.alpha(0, 0x30 / i))
     }
@@ -145,10 +169,14 @@ object Draw {
 
     fun width(text: String, style: TextStyle = TextStyle.BODY) = font.width(styled(text, style)) * style.scale
 
-    fun text(g: GuiGraphics, text: String, x: Int, y: Int, color: Int = Palette.text, shadow: Boolean = false): Int = g.drawString(font, text, x, y, color, shadow)
+    private fun invisible(color: Int) = color ushr 24 < Palette.MIN_VISIBLE_ALPHA
+
+    fun text(g: GuiGraphics, text: String, x: Int, y: Int, color: Int = Palette.text, shadow: Boolean = false): Int =
+        if (invisible(color)) x + font.width(text) else g.drawString(font, text, x, y, color, shadow)
 
     fun text(g: GuiGraphics, text: String, x: Int, y: Int, style: TextStyle, color: Int = style.color()): Int {
         val c = styled(text, style)
+        if (invisible(color)) return x + font.width(c) * style.scale
         if (style.scale == 1) return g.drawString(font, c, x, y, color, style.shadow)
         g.pose().pushPose()
         g.pose().translate(x.toFloat(), y.toFloat(), 0f)

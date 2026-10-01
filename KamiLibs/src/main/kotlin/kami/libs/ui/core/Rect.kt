@@ -17,6 +17,7 @@ data class Rect(val x: Int, val y: Int, val w: Int, val h: Int) {
     fun inset(horizontal: Int, vertical: Int) = Rect(x + horizontal, y + vertical, max(0, w - horizontal * 2), max(0, h - vertical * 2))
     fun inset(left: Int, top: Int, right: Int, bottom: Int) = Rect(x + left, y + top, max(0, w - left - right), max(0, h - top - bottom))
     fun offset(dx: Int, dy: Int) = Rect(x + dx, y + dy, w, h)
+    fun slideIn(t: Float, dx: Int, dy: Int) = offset(((1f - t) * dx).toInt(), ((1f - t) * dy).toInt())
     fun grow(all: Int) = Rect(x - all, y - all, w + all * 2, h + all * 2)
     fun withHeight(height: Int) = Rect(x, y, w, height)
     fun withWidth(width: Int) = Rect(x, y, width, h)
@@ -96,4 +97,10 @@ class Row(private var area: Rect, private val gap: Int = 4) {
     fun take(width: Int): Rect = area.left(width).also { area = area.dropLeft(width, gap) }
     fun takeFromRight(width: Int): Rect = area.right(width).also { area = area.dropRight(width, gap) }
     fun remaining(): Rect = area.also { area = Rect(area.right, area.y, 0, area.h) }
+}
+
+class Stack(val x: Int, private var y: Int, val w: Int, private val gap: Int = 4) {
+    val bottom get() = y
+
+    fun take(height: Int) = Rect(x, y, w, height).also { y += height + gap }
 }

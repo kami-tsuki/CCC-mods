@@ -1,8 +1,11 @@
 package kami.libs.ui.widget
 
+import kami.libs.ui.anim.flash
+import kami.libs.ui.anim.pulse
 import kami.libs.ui.text.tr
 import kami.libs.ui.core.Cursor
 import kami.libs.ui.core.Rect
+import kami.libs.ui.core.Stack
 import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
@@ -108,10 +111,19 @@ fun Ui.meter(r: Rect, value: Int, max: Int, severityAt: (Int) -> Severity, label
     label?.let { Draw.textRight(g, it, r.right, r.y - 10, Palette.textMuted) }
 }
 
-fun Ui.chip(x: Int, y: Int, label: String, color: Int = Palette.textSecondary, icon: Icon? = null, tip: String? = null, key: Any = "chip:$label"): Int {
+fun Ui.chip(
+    x: Int, y: Int, label: String, color: Int = Palette.textSecondary, icon: Icon? = null, tip: String? = null, key: Any = "chip:$label",
+    selected: Boolean = false, interactive: Boolean = false
+): Int {
     val w = Draw.width(label) + 10 + (if (icon != null) Draw.ICON_SLOT - 1 else 0)
     val r = Rect(x, y, w, 13)
-    Draw.tinted(g, Sprites.CHIP, r, Palette.alpha(color, 0x24))
+    val fill = when {
+        selected -> 0x50
+        interactive && hovering(r) -> 0x3C
+        else -> 0x24
+    }
+    Draw.tinted(g, Sprites.CHIP, r, Palette.alpha(color, fill))
+    if (selected) Draw.outline(g, r, Palette.alpha(color, 0xC0))
     var tx = x + 5
     icon?.let { tx += Draw.leadIcon(g, it, tx - 1, r.centerY) - 1 }
     Draw.text(g, label, tx, y + 3, color)
@@ -252,3 +264,36 @@ fun Ui.itemSlot(r: Rect, stack: ItemStack, count: String? = null, selected: Bool
     if (hover && enabled) cursor = Cursor.HAND
     return enabled && pressed(r) != null
 }
+
+fun Ui.itemIcon(x: Int, y: Int, stack: ItemStack, key: Any) {
+    if (stack.isEmpty) return
+    g.renderItem(stack, x, y)
+    if (hover(key, Rect(x, y, ITEM_ICON, ITEM_ICON))) overlay(5) { g.renderTooltip(Draw.font, stack, mouseX, mouseY) }
+}
+
+const val ITEM_ICON = 16
+
+class ChipSpec(val label: String, val color: Int = Palette.textSecondary, val icon: Icon? = null, val selected: Boolean = false)
+
+fun Ui.chipFlow(stack: Stack, chips: List<ChipSpec>, key: String): Int? {
+    var clicked: Int? = null
+    var row = stack.take(CHIP_H)
+    var x = row.x
+    chips.forEachIndexed { i, chip ->
+        val width = Draw.width(chip.label) + 12 + if (chip.icon != null) Draw.ICON_SLOT else 0
+        if (x + width > row.right && x > row.x) { row = stack.take(CHIP_H); x = row.x }
+        val box = Rect(x, row.y, width, CHIP_H)
+        focusable("$key:$i")
+        chip(x, row.y, chip.label, chip.color, chip.icon, key = "$key:$i", selected = chip.selected, interactive = true)
+        if (hovering(box)) cursor = Cursor.HAND
+        focusRing("$key:$i", box)
+        if (pressed(box) != null || activatedByKey("$key:$i")) clicked = i
+        x += width + 3
+    }
+    return clicked
+}
+
+fun Ui.property(stack: Stack, label: String, value: String, color: Int = Palette.text): Rect = property(stack.take(PROPERTY_ROW_H), label, value, color)
+
+private const val CHIP_H = 13
+private const val PROPERTY_ROW_H = 11

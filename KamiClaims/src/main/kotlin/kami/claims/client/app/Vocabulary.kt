@@ -93,7 +93,8 @@ object Vocabulary {
         cap("plot", Icons.HOUSE),
         cap("details", Icons.LEDGER),
         cap("province", Icons.CHAIN),
-        cap("trade", Icons.SCALES)
+        cap("trade", Icons.SCALES),
+        cap("research", Icons.TREE)
     )
 
     private fun entry(id: String, icon: Icon) = id to Look("kami_claims.ledger.$id", 0, icon)

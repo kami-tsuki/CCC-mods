@@ -14,6 +14,10 @@ object Words {
     fun chunks(n: Number) = count("kami_claims.unit.chunk", n)
     fun type(id: String) = Phrase.or("kami_claims.chunk_type.$id", id.replaceFirstChar(Char::uppercase)).asValue()
     fun job(id: String) = Phrase.or("kami_claims.job.$id", id).asValue()
+    fun feature(id: String): Phrase =
+        if (id.startsWith("claim_type:")) Phrase.of("kami_claims.feature.claim_type", type(id.substringAfter(':'))).asValue()
+        else Phrase.of("kami_claims.feature.${id.replace(':', '.')}").asValue()
+
     fun rank(r: Rank) = Phrase.of("kami_claims.rank.${r.name.lowercase()}").asValue()
 
     fun rate(price: Number, period: Int): Phrase {

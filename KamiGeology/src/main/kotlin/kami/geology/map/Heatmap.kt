@@ -175,10 +175,10 @@ object Heatmap {
         return lines
     }
 
-    fun probeColumn(world: WorldContext, x: Int, z: Int, y0: Int, y1: Int): List<Pair<String, String>> =
+    fun probeColumn(world: WorldContext, x: Int, z: Int, y0: Int, y1: Int): List<Site> =
         world.settings.ores.mapNotNull { ore ->
             world.sitesIn(ore, x, z, x, z).firstOrNull { site ->
                 (max(site.minY, y0)..min(site.maxY, y1)).any { y -> site.radius(x + 0.5, y + 0.5, z + 0.5, world.noise) <= 1.0 }
-            }?.let { ore.id to it.tier.name }
+            }
         }
 }

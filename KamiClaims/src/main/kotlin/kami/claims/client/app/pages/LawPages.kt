@@ -1,6 +1,11 @@
 package kami.claims.client.app.pages
 
 import kami.claims.client.app.ClaimsApp
+import kami.claims.client.app.tokenOffer
+import kami.claims.client.app.Dialogs
+import kami.claims.client.store.ClaimsStore
+import kami.claims.research.Tokens
+import kami.claims.Rank
 import kami.claims.client.app.ClaimsPage
 import kami.libs.ui.widget.Flags
 import kami.claims.client.app.Vocabulary
@@ -253,8 +258,10 @@ class IdentityPage(app: ClaimsApp) : ClaimsPage(app) {
         if (color < 0) { color = info.color; pattern = info.flag.pattern; emblem = info.flag.emblem; secondary = info.flag.secondary }
         val editable = can("rules")
         val (left, right) = r.columns(listOf(1f, 1.2f), 10)
-        val pb = ui.card(left, tr("kami_claims.identity.preview"), Icons.FLAG)
+        val lf = Flow(left, 6)
+        val pb = ui.card(lf.take(left.h - NAME_CARD_H - 6), tr("kami_claims.identity.preview"), Icons.FLAG)
         ui.anchor("identity:preview", left)
+        nameCard(ui, lf.remaining())
         Flags.draw(ui.g, Rect(pb.x + (pb.w - 96) / 2, pb.y + 4, 96, 64), color, pattern, emblem, secondary)
         val name = Draw.fit(info.name, pb.w - 8, TextStyle.TITLE)
         Draw.text(ui.g, name, pb.x + (pb.w - Draw.width(name, TextStyle.TITLE)) / 2, pb.y + 76, TextStyle.TITLE)
@@ -290,6 +297,15 @@ class IdentityPage(app: ClaimsApp) : ClaimsPage(app) {
         }
     }
 
+    private fun nameCard(ui: Ui, r: Rect) {
+        val f = Flow(ui.card(r, tr("kami_claims.identity.name"), Icons.EDIT), 3)
+        val offer = tokenOffer(Tokens.RENAME)
+        val line = f.take(10)
+        Draw.text(ui.g, Draw.fit(offer.text, line.w), line.x, line.y + 1, offer.severity.color)
+        val president = ClaimsStore.rank == Rank.PRESIDENT
+        if (ui.button(f.take(CONTROL_H), tr("kami_claims.identity.rename"), Icons.EDIT, enabled = president, disabledReason = tr("kami_claims.identity.rename.president"), key = "rename")) Dialogs.rename(app)
+    }
+
     private fun swatch(ui: Ui, r: Rect, value: Int, chosen: Boolean, enabled: Boolean, onPick: () -> Unit) {
         Draw.fill(ui.g, r, Palette.opaque(value))
         pick(ui, r, chosen, enabled, "#%06X".format(value), onPick)
@@ -306,3 +322,4 @@ class IdentityPage(app: ClaimsApp) : ClaimsPage(app) {
 private const val HEAD_H = 18
 private const val RULE_H = 20
 private const val EXPLAIN_H = 60
+private const val NAME_CARD_H = 62

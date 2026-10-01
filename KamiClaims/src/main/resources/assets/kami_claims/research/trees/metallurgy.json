@@ -1,0 +1,2184 @@
+{
+  "title": "Metallurgy",
+  "scope": "any",
+  "categories": [
+    {
+      "id": "stone_age",
+      "icon": "minecraft:stone",
+      "order": 0
+    },
+    {
+      "id": "metallurgy",
+      "icon": "minecraft:blast_furnace",
+      "order": 1
+    },
+    {
+      "id": "zinc",
+      "icon": "create:zinc_ingot",
+      "order": 2
+    },
+    {
+      "id": "lead",
+      "icon": "tfmg:lead_ingot",
+      "order": 3
+    },
+    {
+      "id": "copper",
+      "icon": "minecraft:copper_ingot",
+      "order": 4
+    },
+    {
+      "id": "iron",
+      "icon": "minecraft:iron_ingot",
+      "order": 5
+    },
+    {
+      "id": "gold",
+      "icon": "minecraft:gold_ingot",
+      "order": 6
+    },
+    {
+      "id": "tin",
+      "icon": "create_ironworks:tin_ingot",
+      "order": 7
+    },
+    {
+      "id": "nickel",
+      "icon": "tfmg:nickel_ingot",
+      "order": 8
+    },
+    {
+      "id": "silver",
+      "icon": "chemica:silver_ingot",
+      "order": 9
+    },
+    {
+      "id": "brass",
+      "icon": "create:brass_ingot",
+      "order": 10
+    }
+  ],
+  "nodes": [
+    {
+      "id": "stone_tools",
+      "category": "stone_age",
+      "icon": "minecraft:stone",
+      "level": 1,
+      "cost": 0,
+      "time": "1m",
+      "requires": [],
+      "tasks": [
+        {
+          "type": "mine",
+          "block": "minecraft:stone",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "minecraft:stone_sword"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:stone_pickaxe"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:stone_axe"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:stone_shovel"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:stone_hoe"
+        }
+      ]
+    },
+    {
+      "id": "furnace",
+      "category": "stone_age",
+      "icon": "minecraft:furnace",
+      "level": 1,
+      "cost": 10,
+      "time": "2m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "stone_tools"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:cobblestone",
+          "count": 64
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "minecraft:furnace"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:furnace"
+        }
+      ]
+    },
+    {
+      "id": "stonecutter",
+      "category": "stone_age",
+      "icon": "minecraft:stonecutter",
+      "level": 1,
+      "cost": 10,
+      "time": "2m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "iron_smelting"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:cobblestone",
+          "count": 64
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "minecraft:stonecutter"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:stonecutter"
+        }
+      ]
+    },
+    {
+      "id": "chisel",
+      "category": "stone_age",
+      "icon": "rechiseled:chisel",
+      "level": 1,
+      "cost": 25,
+      "time": "3m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "stonecutter"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:iron_ingot",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "rechiseled:chisel"
+        }
+      ]
+    },
+    {
+      "id": "coal_compacting",
+      "category": "metallurgy",
+      "icon": "minecraft:coal_block",
+      "level": 2,
+      "cost": 20,
+      "time": "10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "furnace"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:coal",
+          "count": 64
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "minecraft:coal",
+          "output": "minecraft:coal_block"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "minecraft:coal_block",
+          "output": "minecraft:coal"
+        }
+      ]
+    },
+    {
+      "id": "zinc_smelting",
+      "category": "zinc",
+      "icon": "create:raw_zinc",
+      "level": 1,
+      "cost": 15,
+      "time": "5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "furnace"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "items": [
+            "#c:raw_materials/zinc",
+            "#c:ores/zinc"
+          ],
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "#c:raw_materials/zinc",
+          "output": "#c:ingots/zinc"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "#c:ores/zinc",
+          "output": "#c:ingots/zinc"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "#c:raw_materials/zinc",
+          "output": "#c:ingots/zinc"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "#c:ores/zinc",
+          "output": "#c:ingots/zinc"
+        }
+      ]
+    },
+    {
+      "id": "zinc_compacting",
+      "category": "zinc",
+      "icon": "create:zinc_block",
+      "level": 2,
+      "cost": 15,
+      "time": "10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "zinc_smelting"
+        }
+      ],
+      "tasks": [],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:nuggets/zinc",
+          "output": "#c:ingots/zinc"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:ingots/zinc",
+          "output": "#c:nuggets/zinc"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:storage_blocks/zinc",
+          "output": "#c:ingots/zinc"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:ingots/zinc",
+          "output": "#c:storage_blocks/zinc"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:storage_blocks/raw_zinc",
+          "output": "#c:raw_materials/zinc"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:raw_materials/zinc",
+          "output": "#c:storage_blocks/raw_zinc"
+        }
+      ]
+    },
+    {
+      "id": "andesite_alloy_zinc",
+      "category": "zinc",
+      "icon": "create:andesite_alloy",
+      "level": 2,
+      "cost": 30,
+      "time": "5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "zinc_compacting"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "mine",
+          "block": "minecraft:andesite",
+          "count": 64
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:nuggets/zinc",
+          "output": "create:andesite_alloy"
+        },
+        {
+          "type": "output",
+          "id": "create:andesite_alloy_block"
+        }
+      ]
+    },
+    {
+      "id": "zinc_crushing",
+      "category": "zinc",
+      "icon": "create:crushed_raw_zinc",
+      "level": 4,
+      "cost": 60,
+      "time": "15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "zinc_compacting"
+        },
+        {
+          "type": "node",
+          "id": "technology:crushing_wheels"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "items": [
+            "#c:ingots/zinc"
+          ],
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "create:crushing",
+          "input": "#c:raw_materials/zinc",
+          "output": "*:crushed_raw_zinc"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "*:crushed_raw_zinc",
+          "output": "#c:ingots/zinc"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "*:crushed_raw_zinc",
+          "output": "#c:ingots/zinc"
+        }
+      ]
+    },
+    {
+      "id": "lead_smelting",
+      "category": "lead",
+      "icon": "tfmg:raw_lead",
+      "level": 1,
+      "cost": 15,
+      "time": "5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "furnace"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "items": [
+            "#c:raw_materials/lead",
+            "#c:ores/lead"
+          ],
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "#c:raw_materials/lead",
+          "output": "#c:ingots/lead"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "#c:ores/lead",
+          "output": "#c:ingots/lead"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "#c:raw_materials/lead",
+          "output": "#c:ingots/lead"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "#c:ores/lead",
+          "output": "#c:ingots/lead"
+        }
+      ]
+    },
+    {
+      "id": "lead_compacting",
+      "category": "lead",
+      "icon": "tfmg:lead_block",
+      "level": 2,
+      "cost": 15,
+      "time": "10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "lead_smelting"
+        }
+      ],
+      "tasks": [],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:nuggets/lead",
+          "output": "#c:ingots/lead"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:ingots/lead",
+          "output": "#c:nuggets/lead"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:storage_blocks/lead",
+          "output": "#c:ingots/lead"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:ingots/lead",
+          "output": "#c:storage_blocks/lead"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:storage_blocks/raw_lead",
+          "output": "#c:raw_materials/lead"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:raw_materials/lead",
+          "output": "#c:storage_blocks/raw_lead"
+        }
+      ]
+    },
+    {
+      "id": "lead_crushing",
+      "category": "lead",
+      "icon": "create:crushed_raw_lead",
+      "level": 4,
+      "cost": 60,
+      "time": "15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "lead_compacting"
+        },
+        {
+          "type": "node",
+          "id": "technology:crushing_wheels"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "items": [
+            "#c:ingots/lead"
+          ],
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "create:crushing",
+          "input": "#c:raw_materials/lead",
+          "output": "*:crushed_raw_lead"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "*:crushed_raw_lead",
+          "output": "#c:ingots/lead"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "*:crushed_raw_lead",
+          "output": "#c:ingots/lead"
+        },
+        {
+          "type": "output",
+          "id": "create:crushed_raw_lead"
+        }
+      ]
+    },
+    {
+      "id": "copper_smelting",
+      "category": "copper",
+      "icon": "minecraft:raw_copper",
+      "level": 1,
+      "cost": 15,
+      "time": "5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "furnace"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "items": [
+            "#c:raw_materials/copper",
+            "#c:ores/copper"
+          ],
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "#c:raw_materials/copper",
+          "output": "#c:ingots/copper"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "#c:ores/copper",
+          "output": "#c:ingots/copper"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "#c:raw_materials/copper",
+          "output": "#c:ingots/copper"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "#c:ores/copper",
+          "output": "#c:ingots/copper"
+        }
+      ]
+    },
+    {
+      "id": "copper_compacting",
+      "category": "copper",
+      "icon": "minecraft:copper_block",
+      "level": 2,
+      "cost": 15,
+      "time": "10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "copper_smelting"
+        }
+      ],
+      "tasks": [],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:nuggets/copper",
+          "output": "#c:ingots/copper"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:ingots/copper",
+          "output": "#c:nuggets/copper"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:storage_blocks/copper",
+          "output": "#c:ingots/copper"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:ingots/copper",
+          "output": "#c:storage_blocks/copper"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:storage_blocks/raw_copper",
+          "output": "#c:raw_materials/copper"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:raw_materials/copper",
+          "output": "#c:storage_blocks/raw_copper"
+        }
+      ]
+    },
+    {
+      "id": "copper_crushing",
+      "category": "copper",
+      "icon": "create:crushed_raw_copper",
+      "level": 4,
+      "cost": 60,
+      "time": "15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "copper_compacting"
+        },
+        {
+          "type": "node",
+          "id": "technology:crushing_wheels"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "items": [
+            "#c:ingots/copper"
+          ],
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "create:crushing",
+          "input": "#c:raw_materials/copper",
+          "output": "*:crushed_raw_copper"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "*:crushed_raw_copper",
+          "output": "#c:ingots/copper"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "*:crushed_raw_copper",
+          "output": "#c:ingots/copper"
+        }
+      ]
+    },
+    {
+      "id": "iron_smelting",
+      "category": "iron",
+      "icon": "minecraft:raw_iron",
+      "level": 1,
+      "cost": 15,
+      "time": "5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "furnace"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "items": [
+            "#c:raw_materials/iron",
+            "#c:ores/iron"
+          ],
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "#c:raw_materials/iron",
+          "output": "#c:ingots/iron"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "#c:ores/iron",
+          "output": "#c:ingots/iron"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "#c:raw_materials/iron",
+          "output": "#c:ingots/iron"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "#c:ores/iron",
+          "output": "#c:ingots/iron"
+        }
+      ]
+    },
+    {
+      "id": "iron_compacting",
+      "category": "iron",
+      "icon": "minecraft:iron_block",
+      "level": 2,
+      "cost": 15,
+      "time": "10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "iron_smelting"
+        }
+      ],
+      "tasks": [],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:nuggets/iron",
+          "output": "#c:ingots/iron"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:ingots/iron",
+          "output": "#c:nuggets/iron"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:storage_blocks/iron",
+          "output": "#c:ingots/iron"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:ingots/iron",
+          "output": "#c:storage_blocks/iron"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:storage_blocks/raw_iron",
+          "output": "#c:raw_materials/iron"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:raw_materials/iron",
+          "output": "#c:storage_blocks/raw_iron"
+        }
+      ]
+    },
+    {
+      "id": "andesite_alloy_iron",
+      "category": "iron",
+      "icon": "create:andesite_alloy",
+      "level": 2,
+      "cost": 30,
+      "time": "5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "iron_compacting"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "mine",
+          "block": "minecraft:andesite",
+          "count": 64
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:nuggets/iron",
+          "output": "create:andesite_alloy"
+        },
+        {
+          "type": "output",
+          "id": "create:andesite_alloy_block"
+        }
+      ]
+    },
+    {
+      "id": "iron_crushing",
+      "category": "iron",
+      "icon": "create:crushed_raw_iron",
+      "level": 4,
+      "cost": 60,
+      "time": "15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "iron_compacting"
+        },
+        {
+          "type": "node",
+          "id": "technology:crushing_wheels"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "items": [
+            "#c:ingots/iron"
+          ],
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "create:crushing",
+          "input": "#c:raw_materials/iron",
+          "output": "*:crushed_raw_iron"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "*:crushed_raw_iron",
+          "output": "#c:ingots/iron"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "*:crushed_raw_iron",
+          "output": "#c:ingots/iron"
+        }
+      ]
+    },
+    {
+      "id": "gold_smelting",
+      "category": "gold",
+      "icon": "minecraft:raw_gold",
+      "level": 1,
+      "cost": 25,
+      "time": "5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "furnace"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "items": [
+            "#c:raw_materials/gold",
+            "#c:ores/gold"
+          ],
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "#c:raw_materials/gold",
+          "output": "#c:ingots/gold"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "#c:ores/gold",
+          "output": "#c:ingots/gold"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "#c:raw_materials/gold",
+          "output": "#c:ingots/gold"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "#c:ores/gold",
+          "output": "#c:ingots/gold"
+        }
+      ]
+    },
+    {
+      "id": "gold_compacting",
+      "category": "gold",
+      "icon": "minecraft:gold_block",
+      "level": 2,
+      "cost": 15,
+      "time": "10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gold_smelting"
+        }
+      ],
+      "tasks": [],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:nuggets/gold",
+          "output": "#c:ingots/gold"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:ingots/gold",
+          "output": "#c:nuggets/gold"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:storage_blocks/gold",
+          "output": "#c:ingots/gold"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:ingots/gold",
+          "output": "#c:storage_blocks/gold"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:storage_blocks/raw_gold",
+          "output": "#c:raw_materials/gold"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:raw_materials/gold",
+          "output": "#c:storage_blocks/raw_gold"
+        }
+      ]
+    },
+    {
+      "id": "gold_crushing",
+      "category": "gold",
+      "icon": "create:crushed_raw_gold",
+      "level": 4,
+      "cost": 60,
+      "time": "15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gold_compacting"
+        },
+        {
+          "type": "node",
+          "id": "technology:crushing_wheels"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "items": [
+            "#c:ingots/gold"
+          ],
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "create:crushing",
+          "input": "#c:raw_materials/gold",
+          "output": "*:crushed_raw_gold"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "*:crushed_raw_gold",
+          "output": "#c:ingots/gold"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "*:crushed_raw_gold",
+          "output": "#c:ingots/gold"
+        }
+      ]
+    },
+    {
+      "id": "tin_smelting",
+      "category": "tin",
+      "icon": "create_ironworks:raw_tin",
+      "level": 1,
+      "cost": 15,
+      "time": "5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "furnace"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "items": [
+            "#c:raw_materials/tin",
+            "#c:ores/tin"
+          ],
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "#c:raw_materials/tin",
+          "output": "#c:ingots/tin"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "#c:ores/tin",
+          "output": "#c:ingots/tin"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "#c:raw_materials/tin",
+          "output": "#c:ingots/tin"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "#c:ores/tin",
+          "output": "#c:ingots/tin"
+        }
+      ]
+    },
+    {
+      "id": "tin_compacting",
+      "category": "tin",
+      "icon": "create_ironworks:tin_block",
+      "level": 2,
+      "cost": 15,
+      "time": "10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "tin_smelting"
+        }
+      ],
+      "tasks": [],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:nuggets/tin",
+          "output": "#c:ingots/tin"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:ingots/tin",
+          "output": "#c:nuggets/tin"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:storage_blocks/tin",
+          "output": "#c:ingots/tin"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:ingots/tin",
+          "output": "#c:storage_blocks/tin"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:storage_blocks/raw_tin",
+          "output": "#c:raw_materials/tin"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:raw_materials/tin",
+          "output": "#c:storage_blocks/raw_tin"
+        }
+      ]
+    },
+    {
+      "id": "tin_crushing",
+      "category": "tin",
+      "icon": "create_ironworks:crushed_raw_tin",
+      "level": 4,
+      "cost": 60,
+      "time": "15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "tin_compacting"
+        },
+        {
+          "type": "node",
+          "id": "technology:crushing_wheels"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "items": [
+            "#c:ingots/tin"
+          ],
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "create:crushing",
+          "input": "#c:raw_materials/tin",
+          "output": "*:crushed_raw_tin"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "*:crushed_raw_tin",
+          "output": "#c:ingots/tin"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "*:crushed_raw_tin",
+          "output": "#c:ingots/tin"
+        },
+        {
+          "type": "output",
+          "id": "create:crushed_raw_tin"
+        }
+      ]
+    },
+    {
+      "id": "nickel_smelting",
+      "category": "nickel",
+      "icon": "tfmg:raw_nickel",
+      "level": 1,
+      "cost": 15,
+      "time": "5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "furnace"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "items": [
+            "#c:raw_materials/nickel",
+            "#c:ores/nickel"
+          ],
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "#c:raw_materials/nickel",
+          "output": "#c:ingots/nickel"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "#c:ores/nickel",
+          "output": "#c:ingots/nickel"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "#c:raw_materials/nickel",
+          "output": "#c:ingots/nickel"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "#c:ores/nickel",
+          "output": "#c:ingots/nickel"
+        }
+      ]
+    },
+    {
+      "id": "nickel_compacting",
+      "category": "nickel",
+      "icon": "tfmg:nickel_block",
+      "level": 2,
+      "cost": 15,
+      "time": "10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "nickel_smelting"
+        }
+      ],
+      "tasks": [],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:nuggets/nickel",
+          "output": "#c:ingots/nickel"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:ingots/nickel",
+          "output": "#c:nuggets/nickel"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:storage_blocks/nickel",
+          "output": "#c:ingots/nickel"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:ingots/nickel",
+          "output": "#c:storage_blocks/nickel"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:storage_blocks/raw_nickel",
+          "output": "#c:raw_materials/nickel"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:raw_materials/nickel",
+          "output": "#c:storage_blocks/raw_nickel"
+        }
+      ]
+    },
+    {
+      "id": "nickel_crushing",
+      "category": "nickel",
+      "icon": "create:crushed_raw_nickel",
+      "level": 4,
+      "cost": 60,
+      "time": "15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "nickel_compacting"
+        },
+        {
+          "type": "node",
+          "id": "technology:crushing_wheels"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "items": [
+            "#c:ingots/nickel"
+          ],
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "create:crushing",
+          "input": "#c:raw_materials/nickel",
+          "output": "*:crushed_raw_nickel"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "*:crushed_raw_nickel",
+          "output": "#c:ingots/nickel"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "*:crushed_raw_nickel",
+          "output": "#c:ingots/nickel"
+        },
+        {
+          "type": "output",
+          "id": "create:crushed_raw_nickel"
+        }
+      ]
+    },
+    {
+      "id": "silver_smelting",
+      "category": "silver",
+      "icon": "chemica:raw_silver",
+      "level": 1,
+      "cost": 15,
+      "time": "5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "furnace"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "items": [
+            "#c:raw_materials/silver",
+            "chemica:deepslate_silver_ore"
+          ],
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "#c:raw_materials/silver",
+          "output": "#c:ingots/silver"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "chemica:deepslate_silver_ore",
+          "output": "#c:ingots/silver"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "#c:raw_materials/silver",
+          "output": "#c:ingots/silver"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "chemica:deepslate_silver_ore",
+          "output": "#c:ingots/silver"
+        }
+      ]
+    },
+    {
+      "id": "silver_compacting",
+      "category": "silver",
+      "icon": "chemica:silver_nugget",
+      "level": 2,
+      "cost": 15,
+      "time": "10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "silver_smelting"
+        }
+      ],
+      "tasks": [],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:nuggets/silver",
+          "output": "#c:ingots/silver"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:crafting_*",
+          "input": "#c:ingots/silver",
+          "output": "#c:nuggets/silver"
+        }
+      ]
+    },
+    {
+      "id": "silver_crushing",
+      "category": "silver",
+      "icon": "create:crushed_raw_silver",
+      "level": 4,
+      "cost": 60,
+      "time": "15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "silver_compacting"
+        },
+        {
+          "type": "node",
+          "id": "technology:crushing_wheels"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "items": [
+            "#c:ingots/silver"
+          ],
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "create:crushing",
+          "input": "#c:raw_materials/silver",
+          "output": "*:crushed_raw_silver"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:smelting",
+          "input": "*:crushed_raw_silver",
+          "output": "#c:ingots/silver"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "minecraft:blasting",
+          "input": "*:crushed_raw_silver",
+          "output": "#c:ingots/silver"
+        },
+        {
+          "type": "output",
+          "id": "create:crushed_raw_silver"
+        }
+      ]
+    },
+    {
+      "id": "blast_furnace",
+      "category": "metallurgy",
+      "icon": "minecraft:blast_furnace",
+      "level": 3,
+      "cost": 250,
+      "time": "60m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "coal_compacting"
+        },
+        {
+          "type": "node",
+          "id": "iron_smelting"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:coal_block",
+          "count": 5
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:furnace",
+          "count": 3
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "minecraft:blast_furnace"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:blast_furnace"
+        }
+      ]
+    },
+    {
+      "id": "zinc_washing",
+      "category": "zinc",
+      "icon": "create:zinc_nugget",
+      "level": 6,
+      "cost": 200,
+      "time": "30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "zinc_crushing"
+        },
+        {
+          "type": "node",
+          "id": "technology:encased_fan"
+        }
+      ],
+      "tasks": [],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "create:splashing",
+          "input": "*:crushed_raw_zinc"
+        }
+      ]
+    },
+    {
+      "id": "zinc_pressing",
+      "category": "zinc",
+      "icon": "powergrid:zinc_sheet",
+      "level": 4,
+      "cost": 60,
+      "time": "10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "zinc_compacting"
+        },
+        {
+          "type": "node",
+          "id": "technology:mechanical_press"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/zinc",
+          "count": 6
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "create:pressing",
+          "input": "#c:ingots/zinc",
+          "output": "*:zinc_sheet"
+        }
+      ]
+    },
+    {
+      "id": "lead_washing",
+      "category": "lead",
+      "icon": "tfmg:lead_nugget",
+      "level": 6,
+      "cost": 200,
+      "time": "30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "lead_crushing"
+        },
+        {
+          "type": "node",
+          "id": "technology:encased_fan"
+        }
+      ],
+      "tasks": [],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "create:splashing",
+          "input": "*:crushed_raw_lead"
+        }
+      ]
+    },
+    {
+      "id": "lead_pressing",
+      "category": "lead",
+      "icon": "tfmg:lead_sheet",
+      "level": 4,
+      "cost": 60,
+      "time": "10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "lead_compacting"
+        },
+        {
+          "type": "node",
+          "id": "technology:mechanical_press"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/lead",
+          "count": 6
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "create:pressing",
+          "input": "#c:ingots/lead",
+          "output": "*:lead_sheet"
+        }
+      ]
+    },
+    {
+      "id": "copper_washing",
+      "category": "copper",
+      "icon": "create:copper_nugget",
+      "level": 6,
+      "cost": 200,
+      "time": "30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "copper_crushing"
+        },
+        {
+          "type": "node",
+          "id": "technology:encased_fan"
+        }
+      ],
+      "tasks": [],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "create:splashing",
+          "input": "*:crushed_raw_copper"
+        }
+      ]
+    },
+    {
+      "id": "copper_pressing",
+      "category": "copper",
+      "icon": "create:copper_sheet",
+      "level": 4,
+      "cost": 60,
+      "time": "10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "copper_compacting"
+        },
+        {
+          "type": "node",
+          "id": "technology:mechanical_press"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/copper",
+          "count": 6
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "create:pressing",
+          "input": "#c:ingots/copper",
+          "output": "create:copper_sheet"
+        }
+      ]
+    },
+    {
+      "id": "iron_washing",
+      "category": "iron",
+      "icon": "minecraft:iron_nugget",
+      "level": 6,
+      "cost": 200,
+      "time": "30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "iron_crushing"
+        },
+        {
+          "type": "node",
+          "id": "technology:encased_fan"
+        }
+      ],
+      "tasks": [],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "create:splashing",
+          "input": "*:crushed_raw_iron"
+        }
+      ]
+    },
+    {
+      "id": "iron_pressing",
+      "category": "iron",
+      "icon": "create:iron_sheet",
+      "level": 4,
+      "cost": 60,
+      "time": "10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "iron_compacting"
+        },
+        {
+          "type": "node",
+          "id": "technology:mechanical_press"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/iron",
+          "count": 6
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "create:pressing",
+          "input": "#c:ingots/iron",
+          "output": "create:iron_sheet"
+        }
+      ]
+    },
+    {
+      "id": "gold_washing",
+      "category": "gold",
+      "icon": "minecraft:gold_nugget",
+      "level": 6,
+      "cost": 200,
+      "time": "30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gold_crushing"
+        },
+        {
+          "type": "node",
+          "id": "technology:encased_fan"
+        }
+      ],
+      "tasks": [],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "create:splashing",
+          "input": "*:crushed_raw_gold"
+        }
+      ]
+    },
+    {
+      "id": "gold_pressing",
+      "category": "gold",
+      "icon": "create:golden_sheet",
+      "level": 4,
+      "cost": 60,
+      "time": "10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gold_compacting"
+        },
+        {
+          "type": "node",
+          "id": "technology:mechanical_press"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/gold",
+          "count": 6
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "create:pressing",
+          "input": "#c:ingots/gold",
+          "output": "create:golden_sheet"
+        }
+      ]
+    },
+    {
+      "id": "tin_washing",
+      "category": "tin",
+      "icon": "create_ironworks:tin_nugget",
+      "level": 6,
+      "cost": 200,
+      "time": "30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "tin_crushing"
+        },
+        {
+          "type": "node",
+          "id": "technology:encased_fan"
+        }
+      ],
+      "tasks": [],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "create:splashing",
+          "input": "*:crushed_raw_tin"
+        }
+      ]
+    },
+    {
+      "id": "tin_pressing",
+      "category": "tin",
+      "icon": "chemica:tin_sheet",
+      "level": 4,
+      "cost": 60,
+      "time": "10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "tin_compacting"
+        },
+        {
+          "type": "node",
+          "id": "technology:mechanical_press"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/tin",
+          "count": 6
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "create:pressing",
+          "input": "#c:ingots/tin",
+          "output": "*:tin_sheet"
+        }
+      ]
+    },
+    {
+      "id": "nickel_pressing",
+      "category": "nickel",
+      "icon": "tfmg:nickel_sheet",
+      "level": 4,
+      "cost": 60,
+      "time": "10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "nickel_compacting"
+        },
+        {
+          "type": "node",
+          "id": "technology:mechanical_press"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/nickel",
+          "count": 6
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "create:pressing",
+          "input": "#c:ingots/nickel",
+          "output": "*:nickel_sheet"
+        }
+      ]
+    },
+    {
+      "id": "silver_pressing",
+      "category": "silver",
+      "icon": "chemica:silver_sheet",
+      "level": 4,
+      "cost": 60,
+      "time": "10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "silver_compacting"
+        },
+        {
+          "type": "node",
+          "id": "technology:mechanical_press"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 54
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "recipeType": "create:pressing",
+          "input": "#c:ingots/silver",
+          "output": "*:silver_sheet"
+        }
+      ]
+    },
+    {
+      "id": "copper_deco",
+      "category": "copper",
+      "icon": "minecraft:cut_copper",
+      "level": 3,
+      "cost": 150,
+      "time": "45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "copper_compacting"
+        },
+        {
+          "type": "node",
+          "id": "chisel",
+          "hidden": true
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 3
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:exposed_copper",
+          "count": 3
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:weathered_copper",
+          "count": 3
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:oxidized_copper",
+          "count": 3
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "minecraft:*cut_copper*"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:*chiseled_copper*"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:*copper_door"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:*copper_trapdoor"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:*copper_grate"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:*copper_bulb"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:waxed_*copper*"
+        },
+        {
+          "type": "output",
+          "id": "create:*copper_shingle*"
+        },
+        {
+          "type": "output",
+          "id": "create:*copper_tile*"
+        },
+        {
+          "type": "output",
+          "id": "create:copper_bars"
+        },
+        {
+          "type": "output",
+          "id": "create:copper_ladder"
+        },
+        {
+          "type": "output",
+          "id": "create:copper_scaffolding"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "create:compacting",
+          "input": "#c:ingots/copper"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "create:compacting",
+          "output": "#c:ingots/copper"
+        }
+      ]
+    },
+    {
+      "id": "iron_deco",
+      "category": "iron",
+      "icon": "minecraft:iron_bars",
+      "level": 3,
+      "cost": 150,
+      "time": "45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "iron_compacting"
+        },
+        {
+          "type": "node",
+          "id": "chisel",
+          "hidden": true
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:iron_block",
+          "count": 3
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "minecraft:iron_bars"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:chain"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:lantern"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:soul_lantern"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:iron_door"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:iron_trapdoor"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:heavy_weighted_pressure_plate"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:cauldron"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "create:compacting",
+          "input": "#c:ingots/iron"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "create:compacting",
+          "output": "#c:ingots/iron"
+        },
+        {
+          "type": "output",
+          "id": "create:industrial_iron_*"
+        },
+        {
+          "type": "output",
+          "id": "create:weathered_iron_*"
+        },
+        {
+          "type": "output",
+          "id": "create:ornate_iron_window*"
+        }
+      ]
+    },
+    {
+      "id": "brass",
+      "category": "brass",
+      "icon": "create:brass_ingot",
+      "level": 10,
+      "cost": 500,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "copper_compacting"
+        },
+        {
+          "type": "node",
+          "id": "zinc_compacting"
+        },
+        {
+          "type": "node",
+          "id": "technology:mixer"
+        },
+        {
+          "type": "node",
+          "id": "technology:blaze_burner"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/copper",
+          "count": 64
+        },
+        {
+          "type": "deposit",
+          "item": "#c:ingots/zinc",
+          "count": 64
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipes",
+          "output": "#c:ingots/brass"
+        },
+        {
+          "type": "recipes",
+          "output": "#c:nuggets/brass"
+        },
+        {
+          "type": "recipes",
+          "output": "#c:storage_blocks/brass"
+        },
+        {
+          "type": "recipes",
+          "recipeType": "create:pressing",
+          "input": "#c:ingots/brass",
+          "output": "create:brass_sheet"
+        }
+      ]
+    }
+  ]
+}

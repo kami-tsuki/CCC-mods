@@ -7,6 +7,7 @@ import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
+import kami.libs.ui.style.Format
 import kami.libs.ui.style.Severity
 import net.minecraft.client.gui.GuiGraphics
 import org.lwjgl.glfw.GLFW
@@ -39,7 +40,7 @@ class Column<T>(
                 Draw.text(g, s, x, r.y + (r.h - 8) / 2, color(row))
             }
 
-        fun <T> number(title: String, width: Int, tip: String? = null, color: (T) -> Int = { Palette.text }, format: (Long) -> String = { kami.libs.ui.style.Format.number(it) }, value: (T) -> Long) =
+        fun <T> number(title: String, width: Int, tip: String? = null, color: (T) -> Int = { Palette.text }, format: (Long) -> String = { Format.number(it) }, value: (T) -> Long) =
             Column(title, width, Align.RIGHT, compareBy(value), tip) { _, r, row ->
                 val s = format(value(row))
                 Draw.text(g, s, r.right - Draw.width(s), r.y + (r.h - 8) / 2, color(row))
@@ -155,9 +156,9 @@ fun <T> Ui.table(
             }
             if (over) cursor = Cursor.HAND
             pressed(rr)?.let {
-                val double = state.lastClicked == k && now - state.lastClickAt < 350
+                val double = state.lastClicked == k && wallMillis - state.lastClickAt < 350
                 state.lastClicked = k
-                state.lastClickAt = now
+                state.lastClickAt = wallMillis
                 state.focusKey = k
                 focus = id(key)
                 if (double) opened = row

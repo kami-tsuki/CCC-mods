@@ -4,6 +4,7 @@ import kami.libs.ui.app.AppScreen
 import kami.libs.ui.app.Callout
 import kami.libs.ui.app.Dialog
 import kami.libs.ui.app.DialogKind
+import kami.libs.ui.app.DialogScope
 import kami.libs.ui.app.KamiApp
 import kami.libs.ui.app.NavBadge
 import kami.libs.ui.app.NavGroup
@@ -13,6 +14,18 @@ import kami.libs.ui.app.Route
 import kami.libs.ui.app.Tour
 import kami.libs.ui.app.dialogButtons
 import kami.libs.ui.app.wizardButtons
+import kami.libs.ui.anim.Countdown
+import kami.libs.ui.anim.Ease
+import kami.libs.ui.anim.reveal
+import kami.libs.ui.anim.countUp
+import kami.libs.ui.anim.floatText
+import kami.libs.ui.anim.burst
+import kami.libs.ui.anim.flowDots
+import kami.libs.ui.anim.gained
+import kami.libs.ui.anim.pulse
+import kami.libs.ui.anim.spring
+import kami.libs.ui.anim.tween
+import kami.libs.ui.anim.transition
 import kami.libs.ui.core.Flow
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Tip
@@ -30,12 +43,12 @@ import net.minecraft.network.chat.Component
 class Gallery : KamiApp() {
     override val home = Route("buttons")
     private val pages = mapOf(
-        "buttons" to ButtonsPage(this), "inputs" to InputsPage(), "display" to DisplayPage(), "data" to DataPage(), "overlays" to OverlaysPage(this)
+        "buttons" to ButtonsPage(this), "inputs" to InputsPage(), "display" to DisplayPage(), "data" to DataPage(), "tree" to TreePage(), "strip" to StripPage(), "motion" to MotionPage(this), "overlays" to OverlaysPage(this)
     )
 
     override fun nav() = listOf(
         NavGroup("Controls", listOf(NavItem("buttons", "Buttons", Icons.CURSOR), NavItem("inputs", "Inputs", Icons.EDIT, { NavBadge(2, Severity.INFO) }))),
-        NavGroup("Content", listOf(NavItem("display", "Display", Icons.DASHBOARD), NavItem("data", "Data", Icons.STATS))),
+        NavGroup("Content", listOf(NavItem("display", "Display", Icons.DASHBOARD), NavItem("data", "Data", Icons.STATS), NavItem("tree", "Tech tree", Icons.TREE), NavItem("strip", "Strip", Icons.SORT_DOWN), NavItem("motion", "Motion", Icons.CLOCK)), collapsible = true),
         NavGroup("Layers", listOf(NavItem("overlays", "Overlays", Icons.LAYERS), NavItem("locked", "Locked page", Icons.LOCK, lock = { "Example of a page you cannot open yet" })))
     )
 
@@ -221,5 +234,122 @@ private class OverlaysPage(val app: Gallery) : Page() {
         Draw.text(ui.g, "Hover here for a rich tooltip", r.x, r.y + 66, Palette.link)
     }
 
-    private fun Ui.paragraph(s: kami.libs.ui.app.DialogScope, text: String) = Draw.paragraph(g, text, s.body.x, s.body.y, s.body.w) + 4
+    private fun Ui.paragraph(s: DialogScope, text: String) = Draw.paragraph(g, text, s.body.x, s.body.y, s.body.w) + 4
+}
+
+private class TreePage : Page() {
+    override val title = "Tech tree"
+    private val state = TechTreeState()
+    private var selected: Int? = null
+    private val nodes = listOf(
+        TechNode("Stonework", Palette.success, emptyList(), done = true, status = Icons.CHECK),
+        TechNode("Smithing", Palette.success, listOf(0), done = true, status = Icons.CHECK),
+        TechNode("Kinetics", Palette.info, listOf(0), status = Icons.CLOCK, progress = 0.4, flowing = true, countdown = Countdown(60_000, 36_000, System.currentTimeMillis(), true)),
+        TechNode("Pressing", Palette.money, listOf(2), ready = true),
+        TechNode("Steam power", Palette.textMuted, listOf(2, 1), dashed = setOf(1), dim = true, status = Icons.LOCK, lock = "Level 4"),
+        TechNode("Alchemy", Palette.brass, listOf(1)),
+        TechNode("Chemistry", Palette.textMuted, listOf(5, 3), dim = true, status = Icons.LOCK, lock = "Level 6")
+    )
+
+    override fun draw(ui: Ui, r: Rect) {
+        ui.techTree(r.dropBottom(CONTROL_H + 4), nodes, state, selected)?.let { selected = it }
+        if (ui.button(r.bottom(CONTROL_H).left(120), "Celebrate node", key = "burst")) selected?.let { state.burst(it) }
+    }
+}
+
+private class StripPage : Page() {
+    override val title = "Strip"
+    private var selected = 6
+    private var centered = false
+
+    override fun draw(ui: Ui, r: Rect) {
+        val strip = r.top(90)
+        ui.panel(strip, sunken = true)
+        val s = ui.hstrip("gallery-strip", strip.inset(4), 30 * 76 + 4, 76, snap = true) { area ->
+            repeat(30) { i ->
+                val card = Rect(area.x + i * 76, area.y, 70, area.h)
+                val over = ui.hovering(card)
+                Draw.box(ui.g, card, if (over) Palette.hover else Palette.raised, if (i == selected) Palette.brass else Palette.border)
+                Draw.textCentered(ui.g, "Card ${i + 1}", card, if (i == selected) Palette.text else Palette.textSecondary)
+                if (ui.pressed(card) != null) selected = i
+            }
+        }
+        if (!centered) { s.centerOn(selected * 76 + 35); centered = true }
+        Draw.text(ui.g, "Wheel, drag or arrow keys to scroll", r.x, r.y + 98, Palette.textMuted)
+    }
+}
+
+private class MotionPage(val app: Gallery) : Page() {
+    override val title = "Motion"
+    private var flip = false
+    private var springTarget = 0
+    private var panelShown = true
+    private var balance = 1_200L
+    private var paused = false
+    private var replay = 0L
+    private val curves = listOf("Out quad" to Ease.outQuad, "Out cubic" to Ease.outCubic, "In-out cubic" to Ease.inOutCubic, "Out back" to Ease.outBack, "Out expo" to Ease.outExpo)
+
+    override fun draw(ui: Ui, r: Rect) {
+        val (left, right) = r.columns(2, 10)
+        curvesColumn(ui, Flow(left, 4))
+        effectsColumn(ui, Flow(right, 4))
+    }
+
+    private fun curvesColumn(ui: Ui, f: Flow) {
+        ui.toggle(f.take(14), ui.reduceMotion, "Reduce motion", key = "reduce")?.let { ui.reduceMotion = it }
+        ui.section(f.take(14), "Curves")
+        if (ui.button(f.take(CONTROL_H).left(80), "Play", key = "play")) flip = !flip
+        curves.forEach { (name, curve) ->
+            val row = f.take(12)
+            Draw.text(ui.g, name, row.x, row.y + 2, Palette.textMuted)
+            val track = row.dropLeft(80)
+            Draw.hline(ui.g, track.x, row.centerY, track.w, Palette.border)
+            val t = ui.tween("curve:$name", if (flip) 1f else 0f, 700, curve)
+            Draw.fill(ui.g, Rect(track.x + ((track.w - 8) * t).toInt(), row.y + 2, 8, 8), Palette.brass)
+        }
+        ui.section(f.take(14), "Spring (click the track)")
+        val track = f.take(16)
+        ui.panel(track, sunken = true)
+        if (ui.pressed(track) != null) springTarget = ui.mouseX - track.x
+        val x = ui.spring("demo-spring", springTarget.toFloat())
+        Draw.fill(ui.g, Rect(track.x + x.toInt() - 5, track.y + 3, 10, 10), Palette.info)
+        ui.section(f.take(14), "Transition and since")
+        if (ui.button(f.take(CONTROL_H).left(120), if (panelShown) "Hide panel" else "Show panel", key = "panel")) panelShown = !panelShown
+        val slot = f.take(28)
+        val t = ui.transition("demo-panel", panelShown)
+        if (t > 0f) {
+            val box = slot.slideIn(t, 12, 0)
+            ui.panel(box)
+            Draw.text(ui.g, "Slides and fades", box.x + 6, box.y + 10, Palette.text)
+            Draw.veilBox(ui.g, box, t)
+        }
+        if (ui.button(f.take(CONTROL_H).left(120), "Replay stagger", key = "stagger")) replay++
+        val chips = f.take(14)
+        repeat(4) { i ->
+            val appear = ui.reveal("demo-stagger", replay, delayMs = i * 70L, ms = 200)
+            if (appear > 0f) ui.chip(chips.x + i * 64, chips.y + ((1f - appear) * 4).toInt(), "Chip ${i + 1}", Palette.info, key = "demo-chip:$i")
+        }
+    }
+
+    private fun effectsColumn(ui: Ui, f: Flow) {
+        ui.section(f.take(14), "Counting and floating text")
+        val row = f.take(CONTROL_H)
+        val gain = Rect(row.x, row.y, 90, CONTROL_H)
+        if (ui.button(gain, "Earn 250", key = "earn")) balance += 250
+        ui.gained("demo-gain", balance).takeIf { it > 0 }?.let { ui.floatText(gain.centerX, gain.y, "+$it", Palette.money) }
+        Draw.text(ui.g, Format.number(ui.countUp("demo-count", balance)), gain.right + 8, row.y + 5, Palette.money)
+        ui.section(f.take(14), "Burst and glow")
+        val burstRow = f.take(CONTROL_H)
+        val burstButton = Rect(burstRow.x, burstRow.y, 90, CONTROL_H)
+        if (ui.button(burstButton, "Burst", key = "burst-demo")) ui.burst(burstButton.centerX, burstButton.centerY, Palette.brass)
+        val glowBox = Rect(burstButton.right + 14, burstRow.y + 2, 40, CONTROL_H - 4)
+        Draw.box(ui.g, glowBox, Palette.raised, Palette.border)
+        Draw.glow(ui.g, glowBox, Palette.money, 0.3f + 0.4f * ui.pulse(1600))
+        ui.section(f.take(14), "Progress")
+        ui.toggle(f.take(14), paused, "Paused", key = "paused-demo")?.let { paused = it }
+        ui.progressBar(f.take(PROGRESS_LABELLED_H), 640, 1000, "Working", "6 min left", shimmer = true, paused = paused, key = "demo-working")
+        ui.section(f.take(14), "Flow dots")
+        val lane = f.take(24)
+        ui.flowDots(lane.x + 4, lane.y + 4, lane.centerX, lane.right - 4, lane.bottom - 4, Palette.info)
+    }
 }

@@ -147,7 +147,7 @@ fun Ui.textField(
             Draw.fill(g, Rect(inner.x + a, ty - 1, b - a, 10), Palette.alpha(Palette.focus, 0x60))
         }
         Draw.text(g, state.text, inner.x - state.scroll, ty, if (enabled) Palette.text else Palette.textDisabled)
-        if (focused && (now / 500) % 2 == 0L) Draw.vline(g, inner.x + cursorX - state.scroll, ty - 1, 10, Palette.text)
+        if (focused && (wallMillis / 500) % 2 == 0L) Draw.vline(g, inner.x + cursorX - state.scroll, ty - 1, 10, Palette.text)
     }
     suffix?.let { Draw.text(g, it, r.right - suffixW, r.y + (r.h - 8) / 2, Palette.textMuted) }
     if (showClear) {

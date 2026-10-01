@@ -3,6 +3,7 @@ package kami.claims.client.app.pages
 import kami.libs.ui.text.trn
 import kami.libs.ui.text.tr
 import kami.claims.client.app.ClaimsApp
+import kami.claims.client.app.ClientLocks
 import kami.claims.client.app.ClaimsPage
 import kami.libs.ui.app.Consequence
 import kami.claims.client.app.Dialogs
@@ -96,7 +97,7 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
             }
             "offer_in" -> {
                 val half = row.rest.w / 2 - 2
-                if (ui.button(row.take(half), tr("kami_claims.trade.alliance.accept"), Icons.HANDSHAKE, ButtonStyle.PRIMARY, reason == null, reason, pending = pending("alliance"), key = "alliance-accept")) act("alliance", "accept", l.name, key = "alliance")
+                if (ui.lockedButton(row.take(half), tr("kami_claims.trade.alliance.accept"), ClientLocks.feature("alliances"), Icons.HANDSHAKE, ButtonStyle.PRIMARY, reason == null, reason, pending = pending("alliance"), key = "alliance-accept")) act("alliance", "accept", l.name, key = "alliance")
                 if (ui.button(row.rest, tr("kami_claims.trade.alliance.decline"), Icons.REMOVE, enabled = reason == null, disabledReason = reason, key = "alliance-decline")) act("alliance", "decline", l.name, key = "alliance")
             }
             else -> {
@@ -105,7 +106,7 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
                     l.trade == "embargo" -> tr("kami_claims.trade.alliance.embargo")
                     else -> null
                 }
-                if (ui.button(row.rest, tr("kami_claims.trade.alliance.propose"), Icons.HANDSHAKE, ButtonStyle.PRIMARY, why == null, why, pending = pending("alliance"), key = "alliance-propose")) {
+                if (ui.lockedButton(row.rest, tr("kami_claims.trade.alliance.propose"), ClientLocks.feature("alliances"), Icons.HANDSHAKE, ButtonStyle.PRIMARY, why == null, why, pending = pending("alliance"), key = "alliance-propose")) {
                     Dialogs.confirm(app, tr("kami_claims.trade.alliance.propose.title", l.name), null, Icons.HANDSHAKE, listOf(
                         Consequence(tr("kami_claims.trade.alliance.propose.rank", l.name)),
                         Consequence(tr("kami_claims.trade.alliance.propose.rate"))
@@ -123,7 +124,9 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
         ui.section(f.take(14), tr("kami_claims.trade.embargo"))
         val erow = f.take(CONTROL_H)
         val allied = l.alliance == "allied"
-        ui.toggle(erow, l.embargo, tr("kami_claims.trade.embargo.toggle"), reason == null && !(allied && !l.embargo), reason ?: tr("kami_claims.trade.embargo.ally"), tr("kami_claims.trade.embargo.tooltip"), key = "embargo")?.let { on ->
+        val embargoLock = ClientLocks.feature("embargoes")
+        if (embargoLock != null) ui.lockedButton(erow, tr("kami_claims.trade.embargo.toggle"), embargoLock, Icons.BAN, key = "embargo-locked")
+        else ui.toggle(erow, l.embargo, tr("kami_claims.trade.embargo.toggle"), reason == null && !(allied && !l.embargo), reason ?: tr("kami_claims.trade.embargo.ally"), tr("kami_claims.trade.embargo.tooltip"), key = "embargo")?.let { on ->
             if (on) Dialogs.confirm(app, tr("kami_claims.trade.embargo.title", l.name), null, Icons.BAN, listOf(
                 Consequence(tr("kami_claims.trade.embargo.market", l.name), Severity.WARNING),
                 Consequence(tr("kami_claims.trade.embargo.vendors", l.name), Severity.WARNING)
@@ -149,7 +152,7 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
                 Consequence(tr("kami_claims.relations.ally.stays"))
             ), ally, "ally", arrayOf(name.text)) { name.set("") }
         }
-        if (ui.edgeButton(row, banish, Icons.BAN, ButtonStyle.DANGER, staff == null && ready, staff ?: needName, left = true, key = "banish")) {
+        if (ui.lockedButton(row.take(buttonWidth(banish, Icons.BAN)), banish, ClientLocks.feature("banish"), Icons.BAN, ButtonStyle.DANGER, staff == null && ready, staff ?: needName, key = "banish")) {
             Dialogs.confirm(app, tr("kami_claims.citizens.banish.confirm.title", name.text), null, Icons.BAN, listOf(
                 Consequence(tr("kami_claims.relations.banish.locked", name.text), Severity.DANGER),
                 Consequence(tr("kami_claims.relations.banish.member"), Severity.WARNING)

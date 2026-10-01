@@ -1,10 +1,17 @@
 package kami.libs.ui.map
 
+import kami.libs.ui.anim.Spring
 import kami.libs.ui.core.Cursor
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Ui
 import org.lwjgl.glfw.GLFW
 import kotlin.math.max
+import kotlin.math.pow
+
+private const val GLIDE_STIFFNESS = 110f
+private const val X = 0
+private const val Z = 1
+private const val SCALE = 2
 
 class Viewport(var unitsPerPx: Double = 1.0, val minUnitsPerPx: Double = 0.05, val maxUnitsPerPx: Double = 64.0) {
     var cx = 0.0
@@ -15,6 +22,10 @@ class Viewport(var unitsPerPx: Double = 1.0, val minUnitsPerPx: Double = 0.05, v
         private set
     private var lastX = 0
     private var lastY = 0
+    private val glideProgress = Spring(0f)
+    private val glideFrom = DoubleArray(3)
+    private val glideTo = DoubleArray(3)
+    private var gliding = false
 
     private val midX get() = view.x + view.w / 2.0
     private val midY get() = view.y + view.h / 2.0
@@ -50,6 +61,27 @@ class Viewport(var unitsPerPx: Double = 1.0, val minUnitsPerPx: Double = 0.05, v
         unitsPerPx = max(w / max(1, view.w), h / max(1, view.h)) / fill
     }
 
+    fun glide(targetX: Double, targetZ: Double, targetUnitsPerPx: Double = unitsPerPx) {
+        glideFrom[X] = cx; glideFrom[Z] = cz; glideFrom[SCALE] = unitsPerPx
+        glideTo[X] = targetX; glideTo[Z] = targetZ; glideTo[SCALE] = targetUnitsPerPx
+        glideProgress.value = 0f
+        glideProgress.velocity = 0f
+        gliding = true
+    }
+
+    fun cancelGlide() { gliding = false }
+
+    fun step(dt: Float, instant: Boolean) {
+        if (!gliding) return
+        if (instant) glideProgress.value = 1f else glideProgress.step(1f, dt, GLIDE_STIFFNESS)
+        val p = glideProgress.value.toDouble()
+        val done = instant || glideProgress.settled(1f)
+        cx = glideFrom[X] + (glideTo[X] - glideFrom[X]) * p
+        cz = glideFrom[Z] + (glideTo[Z] - glideFrom[Z]) * p
+        unitsPerPx = glideFrom[SCALE] * (glideTo[SCALE] / glideFrom[SCALE]).pow(p)
+        if (done) { cx = glideTo[X]; cz = glideTo[Z]; unitsPerPx = glideTo[SCALE]; gliding = false }
+    }
+
     fun interact(ui: Ui, r: Rect, zoomStep: Double = 1.25, key: Any = "viewport"): Boolean {
         view = r
         var changed = false
@@ -67,6 +99,7 @@ class Viewport(var unitsPerPx: Double = 1.0, val minUnitsPerPx: Double = 0.05, v
             ui.cursor = Cursor.MOVE
         }
         if (ui.hovering(r) && !ui.typing) changed = keyboard(ui, zoomStep) || changed
+        if (changed || dragging) cancelGlide()
         return changed
     }
 

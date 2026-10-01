@@ -34,7 +34,7 @@ private fun Ui.itemCell(c: Rect, stack: ItemStack, name: String, key: String, co
     return clicked
 }
 
-private fun noCountry() = tr("kami_libs.economy.no_country")
+private fun noCountry() = tr("kami_libs.lock.no_country")
 
 private fun ownedAllowed(item: String): Int = Minecraft.getInstance().player?.inventory?.items
     ?.filter { !it.isEmpty && Blacklist.itemId(it) == item && Blacklist.classify(it) == Classification.ALLOWED }?.sumOf { it.count } ?: 0
@@ -395,7 +395,7 @@ internal class ItemPage(val app: MarketApp) : Page() {
                 if (ui.edgeButton(r, label, style = ButtonStyle.PRIMARY, enabled = reason == null, disabledReason = reason)) { app.request("buy", item, n.toString()); app.closeDetail() }
             }
             "sell" -> {
-                if (ui.edgeButton(r, label, style = ButtonStyle.PRIMARY, enabled = app.snap.citizen && n in 1..ownedAllowed(item), disabledReason = if (!app.snap.citizen) noCountry() else tr("kami_economy.market.sell.none"))) {
+                if (ui.lockedButton(r.right(buttonWidth(label)), label, app.slotLock(app.snap.orderSlots), style = ButtonStyle.PRIMARY, enabled = app.snap.citizen && n in 1..ownedAllowed(item), disabledReason = if (!app.snap.citizen) noCountry() else tr("kami_economy.market.sell.none"))) {
                     app.request("sell", item, n.toString(), sellPrice(d).toString())
                     app.closeDetail()
                 }
@@ -430,7 +430,7 @@ internal class ItemPage(val app: MarketApp) : Page() {
                     escrow(d) > app.snap.funds -> tr("kami_economy.market.buy.funds")
                     else -> null
                 }
-                if (ui.edgeButton(r, label, style = ButtonStyle.PRIMARY, enabled = reason == null, disabledReason = reason)) {
+                if (ui.lockedButton(r.right(buttonWidth(label)), label, app.slotLock(app.snap.orderSlots), style = ButtonStyle.PRIMARY, enabled = reason == null, disabledReason = reason)) {
                     app.request("bid", item, n.toString(), bidPrice(d).toString())
                     app.closeDetail()
                 }
@@ -490,7 +490,7 @@ internal class ListAuctionPage(val app: MarketApp) : Page() {
 
     override fun actions(ui: Ui, r: Rect) {
         val invalid = buyNow.value in 1..start.value
-        if (ui.edgeButton(r, tr("kami_economy.market.auction.list"), style = ButtonStyle.PRIMARY, enabled = app.snap.citizen && !invalid, disabledReason = if (!app.snap.citizen) noCountry() else tr("kami_economy.market.auction.buy_now.invalid"))) {
+        if (ui.lockedButton(r.right(buttonWidth(tr("kami_economy.market.auction.list"))), tr("kami_economy.market.auction.list"), app.slotLock(app.snap.auctionSlots), style = ButtonStyle.PRIMARY, enabled = app.snap.citizen && !invalid, disabledReason = if (!app.snap.citizen) noCountry() else tr("kami_economy.market.auction.buy_now.invalid"))) {
             app.request("auction_list", item, qty.toString(), start.value.toString(), buyNow.value.takeIf { it > start.value }?.toString() ?: "0")
             app.closeDetail()
         }

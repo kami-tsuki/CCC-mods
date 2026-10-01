@@ -1,6 +1,7 @@
 package kami.claims.command
 
 import kami.claims.*
+import kami.claims.economy.Treasury
 import kami.claims.net.Net
 import kami.claims.net.Sync
 import kami.claims.service.NeedsConfirm
@@ -100,6 +101,7 @@ private fun Node.countryCore(countries: () -> Collection<String>): Node =
         Net.send(p, open = true)
     })
     .then(lit("create").requires { Perms.has(it, Perms.FOUND) }.then(arg("name", StringArgumentType.word()).does { it.run("create", it.text("name")) }))
+    .then(lit("country").then(lit("rename").then(arg("name", StringArgumentType.word()).does { it.run("rename", it.text("name")) })))
     .then(lit("disband").does { it.run("disband") }.then(lit("confirm").does { it.run("disband", "confirm") }))
     .then(lit("info").does { ctx -> ctx.status(Service.home(ctx.me())) }
         .then(word("country", countries).does { ctx ->
@@ -286,7 +288,7 @@ private fun adminCmd() = lit("admin").requires { Perms.has(it, Perms.ADMIN) }
     }))
     .then(lit("treasury").then(word("country") { Realm.data.countries.keys }.then(arg("amount", LongArgumentType.longArg(0)).does { ctx ->
         val c = Realm.country(ctx.text("country")) ?: fail(Phrase.of("kami_claims.error.unknown_country"))
-        c.treasury = LongArgumentType.getLong(ctx, "amount")
+        Treasury.move(c, LedgerKind.ADJUST, LongArgumentType.getLong(ctx, "amount") - c.treasury, note = "admin")
         Realm.dirty = true
         ctx.ok(Phrase.of("kami_claims.admin.treasury", Phrase.value(c.name), money(c.treasury)), true)
     })))
@@ -299,10 +301,12 @@ private fun adminCmd() = lit("admin").requires { Perms.has(it, Perms.ADMIN) }
         Upkeep.process(++Realm.data.day)
         ctx.ok(Phrase.of("kami_claims.admin.day", num(Realm.data.day)), true)
     })
+    .then(adminResearchCmd())
+    .then(adminXpCmd())
     .then(lit("save").does { ctx -> Realm.save(true); ctx.ok(Phrase.of("kami_claims.admin.saved")) })
 
 object ClaimsCommands {
     fun register() = KamiCommands.module("claims", "Countries, land, plots and provinces") {
-        countryCmd().then(plotCmd()).then(adminCmd())
+        countryCmd().then(researchCmd()).then(levelCmd()).then(plotCmd()).then(adminCmd())
     }
 }

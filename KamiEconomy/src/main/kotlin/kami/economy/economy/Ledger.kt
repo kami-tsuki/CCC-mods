@@ -8,6 +8,7 @@ import kami.libs.claims.ClaimsApi
 import kami.libs.claims.TreasuryKind
 import kami.libs.economy.Money
 import kami.libs.economy.Numismatics
+import kami.libs.progress.KamiProgress
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -73,6 +74,7 @@ sealed class SellResult {
     object Failed : SellResult()
     data class NotClean(val step: Int) : SellResult()
     object Full : SellResult()
+    data class Limit(val max: Int) : SellResult()
 }
 
 sealed class BuyResult {
@@ -90,6 +92,7 @@ sealed class OrderResult {
     object InsufficientFunds : OrderResult()
     object Crosses : OrderResult()
     object Exists : OrderResult()
+    data class Limit(val max: Int) : OrderResult()
 }
 
 sealed class BidResult {
@@ -162,6 +165,18 @@ object Ledger {
         }
     }
 
+    private fun traded(player: String, counterparties: List<String>, spurs: Long, item: String, qty: Int) {
+        val country = Trade.country(player) ?: return
+        if (counterparties.isNotEmpty() && counterparties.all { Trade.country(it) == country }) return
+        KamiProgress.post(country, "trade", item, qty.toLong())
+        KamiProgress.post(country, "trade_value", item, spurs)
+    }
+
+    private fun stockSale(player: String, item: String, qty: Int) {
+        if (qty <= 0) return
+        Trade.country(player)?.let { KamiProgress.post(it, "sale_stock", item, qty.toLong()) }
+    }
+
     fun sell(seller: String, item: String, qty: Int, unitPrice: Int): SellResult {
         if (!Config.s.validAmount(qty) || !Config.s.validPrice(unitPrice)) return SellResult.Failed
         val price = Matching.bookFor(item).sells.firstOrNull { it.owner == seller }?.price ?: unitPrice
@@ -170,7 +185,9 @@ object Ledger {
         if (!Matching.isClean(qty / lot, price)) return SellResult.NotClean(Matching.step(price) * lot)
         val gross = qty.toLong() / lot * price
         if (Money.spurs(gross) == null) return SellResult.Failed
-        val filled = Matching.sellPlan(seller, item, qty, minPrice = price).takeIf { it.filled > 0 && it.net > 0 }?.let { sellPlanned(seller, item, it) } ?: 0
+        val plan = Matching.sellPlan(seller, item, qty, minPrice = price).takeIf { it.filled > 0 && it.net > 0 }
+        if (qty > (plan?.filled ?: 0) && Limits.marketFull(seller)) return SellResult.Limit(Limits.marketSlots(seller))
+        val filled = plan?.let { sellPlanned(seller, item, it) } ?: 0
         val rest = qty - filled
         if (rest <= 0) {
             Market.save()
@@ -219,6 +236,9 @@ object Ledger {
             write(current)
         }
         if (creditOrFreeze(current, current.actor, current.netSpurs, current.preBalance)) write(current.copy(state = LedgerState.PAID))
+        traded(current.actor, current.fills.map { it.owner }, current.netSpurs, current.item, current.fills.sumOf { it.qty })
+        current.fills.forEach { if (it.owner.isNotEmpty()) traded(it.owner, listOf(current.actor), net(it), current.item, it.qty) }
+        stockSale(current.actor, current.item, current.fills.filter { it.owner.isEmpty() }.sumOf { it.qty })
     }
 
     fun bid(buyer: String, item: String, qty: Int, price: Int): OrderResult {
@@ -227,6 +247,7 @@ object Ledger {
         if (qty % lot != 0) return OrderResult.NotClean(lot)
         if (!Matching.isClean(qty / lot, price)) return OrderResult.NotClean(Matching.step(price) * lot)
         if (Matching.bookFor(item).buys.any { it.owner == buyer }) return OrderResult.Exists
+        if (Limits.marketFull(buyer)) return OrderResult.Limit(Limits.marketSlots(buyer))
         if (Matching.effectiveSellPrice(item)?.let { it <= price } == true) return OrderResult.Crosses
         val escrow = qty.toLong() / lot * price
         val total = Money.spurs(escrow) ?: return OrderResult.OutOfRange
@@ -277,6 +298,8 @@ object Ledger {
         write(intent)
         val current = stockSold(intent)
         if (creditOrFreeze(current, current.actor, current.netSpurs, current.preBalance)) write(current.copy(state = LedgerState.PAID))
+        traded(current.actor, emptyList(), current.netSpurs, current.item, current.qty)
+        stockSale(current.actor, current.item, current.qty)
         Market.save()
         return SellResult.Ok(id)
     }
@@ -310,6 +333,8 @@ object Ledger {
         Matching.applyFills(intent.item, intent.fills.map { FillLinePlan(it.orderId, it.owner, it.qty, it.unitPrice, it.lot) })
         Market.queueDelivery(intent.actor, intent.item, intent.qty, "${intent.id}:d")
         payFills(intent.copy(state = LedgerState.BOOK_INSERTED).also(::write))
+        traded(intent.actor, intent.fills.map { it.owner }, intent.netSpurs, intent.item, intent.fills.sumOf { it.qty })
+        intent.fills.forEach { if (it.owner.isNotEmpty()) traded(it.owner, listOf(intent.actor), net(it), intent.item, it.qty) }
     }
 
     private fun net(f: LedgerFill): Long {
@@ -501,6 +526,11 @@ object Ledger {
         }
         Market.queueStackDelivery(current.actor, current.stackData, "${current.id}:d")
         if (creditOrFreeze(current, current.seller, current.netSpurs, current.sellerBalance)) write(current.copy(state = LedgerState.PAID))
+        val item = StackCodec.itemId(current.stackData)
+        val count = StackCodec.count(current.stackData)
+        traded(current.actor, listOf(current.seller), current.unitPrice.toLong(), item, count)
+        traded(current.seller, listOf(current.actor), current.netSpurs, item, count)
+        Trade.country(current.seller)?.let { KamiProgress.post(it, "auction_sold", item, count.toLong()) }
     }
 
     private fun applyBid(intent: Intent) {
@@ -567,7 +597,11 @@ object Ledger {
                         write(intent.copy(state = LedgerState.PAID))
                     } else {
                         val current = if (intent.state == LedgerState.PENDING) stockSold(intent) else intent
-                        if (creditOrFreeze(current, current.actor, current.netSpurs, current.preBalance)) write(current.copy(state = LedgerState.PAID))
+                        if (creditOrFreeze(current, current.actor, current.netSpurs, current.preBalance)) {
+                            write(current.copy(state = LedgerState.PAID))
+                            traded(current.actor, emptyList(), current.netSpurs, current.item, current.qty)
+                            stockSale(current.actor, current.item, current.qty)
+                        }
                     }
                 }
                 IntentType.BUY -> when (intent.state) {

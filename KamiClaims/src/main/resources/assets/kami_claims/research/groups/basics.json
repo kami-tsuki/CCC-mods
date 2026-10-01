@@ -1,0 +1,53 @@
+{
+  "title": "Baseline",
+  "unlocks": [
+    {
+      "type": "output",
+      "id": "minecraft:chest"
+    },
+    {
+      "type": "output",
+      "id": "minecraft:torch"
+    },
+    {
+      "type": "output",
+      "id": "minecraft:campfire"
+    },
+    {
+      "type": "output",
+      "id": "minecraft:wooden_pickaxe"
+    },
+    {
+      "type": "output",
+      "id": "minecraft:wooden_axe"
+    },
+    {
+      "type": "output",
+      "id": "minecraft:wooden_shovel"
+    },
+    {
+      "type": "output",
+      "id": "minecraft:wooden_hoe"
+    },
+    {
+      "type": "output",
+      "id": "minecraft:wooden_sword"
+    },
+    {
+      "type": "output",
+      "id": "minecraft:charcoal"
+    },
+    {
+      "type": "output",
+      "id": "minecraft:glass"
+    },
+    {
+      "type": "output",
+      "id": "minecraft:stone"
+    },
+    {
+      "type": "output",
+      "id": "minecraft:brick"
+    }
+  ]
+}

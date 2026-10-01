@@ -5,6 +5,7 @@ import kami.economy.client.PriceCache
 import kami.economy.economy.Blacklist
 import kami.economy.economy.Classification
 import kami.economy.net.Row
+import kami.economy.net.Slot
 import kami.economy.net.Snap
 import kami.libs.text.Text
 import kami.libs.ui.app.AppScreen
@@ -77,14 +78,34 @@ class MarketApp(snap: Snap) : KamiApp() {
 
     override fun banner(ui: Ui, r: Rect): Int {
         if (snap.citizen) return 0
-        ui.banner(r.top(22), Severity.WARNING, tr("kami_libs.economy.no_country"))
+        ui.banner(r.top(22), Severity.WARNING, tr("kami_libs.lock.no_country"))
         return 22
     }
 
     override fun topBar(ui: Ui, r: Rect) {
         Draw.leadIcon(ui.g, Icons.COIN, r.x + 6, r.centerY, Palette.money)
-        Draw.text(ui.g, tr("kami_economy.market.title"), r.x + 24, r.centerY - 4, TextStyle.HEADING)
+        var x = Draw.text(ui.g, tr("kami_economy.market.title"), r.x + 24, r.centerY - 4, TextStyle.HEADING) + 12
         ui.moneyRight(r.right - 8, r.centerY - 4, snap.funds)
+        val limit = r.right - 90
+        x = chip(ui, x, r, tr("kami_economy.slots.orders"), snap.orderSlots, limit)
+        x = chip(ui, x, r, tr("kami_economy.slots.auctions"), snap.auctionSlots, limit)
+        if (snap.goal.isNotEmpty()) {
+            val text = trJson(snap.goal) + if (snap.goalMax > 0) " ${snap.goalValue}/${snap.goalMax}" else ""
+            if (x + Draw.width(text, TextStyle.CAPTION) <= limit) Draw.text(ui.g, text, x, r.centerY - 4, TextStyle.CAPTION)
+        }
+    }
+
+    fun slotLock(slot: Slot): Lock? =
+        if (slot.used < slot.max || (slot.max <= 0 && slot.hint.isEmpty())) null else Lock(tr("kami_economy.slots.full", slot.used, slot.max), slot.hint.takeIf { it.isNotEmpty() }?.let { trJson(it) })
+
+    private fun chip(ui: Ui, x: Int, r: Rect, name: String, slot: Slot, limit: Int): Int {
+        if (slot.max <= 0 && slot.hint.isEmpty()) return x
+        val lock = slotLock(slot)
+        val text = "$name ${slot.used}/${slot.max}"
+        val w = Draw.width(text) + 10 + if (lock != null) Draw.ICON_SLOT - 1 else 0
+        if (x + w > limit) return x
+        ui.chip(x, r.centerY - 6, text, if (lock != null) Palette.warning else Palette.textSecondary, if (lock != null) Icons.LOCK else null, lock?.how, "slot:$name")
+        return x + w + 6
     }
 
     fun openItem(item: String, mode: String, qty: Int = 1) = navigate(Route("item", mapOf("item" to item, "mode" to mode, "qty" to qty.toString())))
@@ -186,7 +207,7 @@ private class SellPage(val app: MarketApp) : Page() {
     override fun actions(ui: Ui, r: Rect) {
         val selected = entries().firstOrNull { it.slot in table.selected }
         val label = tr("kami_economy.market.sell.open")
-        if (ui.edgeButton(r, label, style = ButtonStyle.PRIMARY, enabled = app.snap.citizen && selected != null, disabledReason = if (!app.snap.citizen) tr("kami_libs.economy.no_country") else tr("kami_economy.market.sell.open.none")))
+        if (ui.edgeButton(r, label, style = ButtonStyle.PRIMARY, enabled = app.snap.citizen && selected != null, disabledReason = if (!app.snap.citizen) tr("kami_libs.lock.no_country") else tr("kami_economy.market.sell.open.none")))
             selected?.let(app::openSell)
     }
 

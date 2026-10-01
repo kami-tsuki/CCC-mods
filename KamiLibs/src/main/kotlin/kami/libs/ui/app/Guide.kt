@@ -2,6 +2,7 @@ package kami.libs.ui.app
 
 import kami.libs.ui.style.Format
 import kami.libs.ui.text.tr
+import kami.libs.ui.anim.pulse
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw

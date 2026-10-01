@@ -1,0 +1,4679 @@
+{
+  "title": "Buffs",
+  "scope": "country",
+  "categories": [
+    {
+      "id": "view",
+      "icon": "minecraft:beacon",
+      "order": 0
+    },
+    {
+      "id": "healing",
+      "icon": "minecraft:golden_apple",
+      "order": 1
+    },
+    {
+      "id": "combat",
+      "icon": "minecraft:iron_sword",
+      "order": 2
+    },
+    {
+      "id": "movement",
+      "icon": "minecraft:leather_boots",
+      "order": 3
+    },
+    {
+      "id": "work",
+      "icon": "minecraft:golden_pickaxe",
+      "order": 4
+    },
+    {
+      "id": "utility",
+      "icon": "minecraft:spyglass",
+      "order": 5
+    },
+    {
+      "id": "finance",
+      "icon": "minecraft:gold_ingot",
+      "order": 6
+    },
+    {
+      "id": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "order": 7
+    },
+    {
+      "id": "invest_land",
+      "icon": "minecraft:copper_block",
+      "order": 8
+    },
+    {
+      "id": "invest_citizens",
+      "icon": "tfmg:nickel_block",
+      "order": 9
+    },
+    {
+      "id": "invest_provinces",
+      "icon": "create_ironworks:tin_block",
+      "order": 10
+    }
+  ],
+  "nodes": [
+    {
+      "id": "buffs_view",
+      "category": "view",
+      "icon": "minecraft:beacon",
+      "level": 15,
+      "cost": 1000,
+      "time": "30m",
+      "requires": [],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:emerald_block",
+          "count": 9
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "feature",
+          "id": "buffs"
+        },
+        {
+          "type": "buff_points",
+          "add": 1
+        }
+      ]
+    },
+    {
+      "id": "buff_points_1",
+      "category": "view",
+      "icon": "minecraft:nether_star",
+      "level": 30,
+      "cost": 20000,
+      "time": "3h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "buffs_view"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff_points",
+          "add": 1
+        }
+      ]
+    },
+    {
+      "id": "buff_points_2",
+      "category": "view",
+      "icon": "minecraft:nether_star",
+      "level": 57,
+      "cost": 350000,
+      "time": "7h50m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "buff_points_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff_points",
+          "add": 1
+        }
+      ]
+    },
+    {
+      "id": "buff_points_3",
+      "category": "view",
+      "icon": "minecraft:nether_star",
+      "level": 76,
+      "cost": 1800000,
+      "time": "11h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "buff_points_2"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff_points",
+          "add": 2
+        }
+      ]
+    },
+    {
+      "id": "buff_points_4",
+      "category": "view",
+      "icon": "minecraft:nether_star",
+      "level": 100,
+      "cost": 20000000,
+      "time": "15h20m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "buff_points_3"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 24
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff_points",
+          "add": 1
+        }
+      ]
+    },
+    {
+      "id": "instant_health_1",
+      "category": "healing",
+      "icon": "minecraft:glistering_melon_slice",
+      "level": 15,
+      "cost": 1000,
+      "time": "30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "buffs_view"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 1
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:instant_health",
+          "amplifier": 0,
+          "mode": "pulse",
+          "cooldownSeconds": 300
+        }
+      ]
+    },
+    {
+      "id": "instant_health_2",
+      "category": "healing",
+      "icon": "minecraft:glistering_melon_slice",
+      "level": 45,
+      "cost": 89000,
+      "time": "5h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "instant_health_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 5
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:instant_health",
+          "amplifier": 1,
+          "mode": "pulse",
+          "cooldownSeconds": 300
+        }
+      ]
+    },
+    {
+      "id": "instant_health_3",
+      "category": "healing",
+      "icon": "minecraft:glistering_melon_slice",
+      "level": 195,
+      "cost": 500000000,
+      "time": "24h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "instant_health_2"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:instant_health",
+          "amplifier": 2,
+          "mode": "pulse",
+          "cooldownSeconds": 300
+        }
+      ]
+    },
+    {
+      "id": "regeneration_1",
+      "category": "healing",
+      "icon": "minecraft:ghast_tear",
+      "level": 20,
+      "cost": 5000,
+      "time": "1h20m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "instant_health_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 2
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:regeneration",
+          "amplifier": 0,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "regeneration_2",
+      "category": "healing",
+      "icon": "minecraft:ghast_tear",
+      "level": 50,
+      "cost": 160000,
+      "time": "6h35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "instant_health_2"
+        },
+        {
+          "type": "node",
+          "id": "regeneration_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 10
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:regeneration",
+          "amplifier": 1,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "regeneration_3",
+      "category": "healing",
+      "icon": "minecraft:ghast_tear",
+      "level": 155,
+      "cost": 180000000,
+      "time": "24h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "regeneration_2"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 20
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:regeneration",
+          "amplifier": 2,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "speed_1",
+      "category": "movement",
+      "icon": "minecraft:sugar",
+      "level": 23,
+      "cost": 7600,
+      "time": "1h55m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "buffs_view"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 1
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:speed",
+          "amplifier": 0,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "speed_2",
+      "category": "movement",
+      "icon": "minecraft:sugar",
+      "level": 62,
+      "cost": 570000,
+      "time": "8h40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "speed_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 6
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:speed",
+          "amplifier": 1,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "speed_3",
+      "category": "movement",
+      "icon": "minecraft:sugar",
+      "level": 105,
+      "cost": 50000000,
+      "time": "16h10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "speed_2"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:speed",
+          "amplifier": 2,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "haste_1",
+      "category": "work",
+      "icon": "minecraft:golden_pickaxe",
+      "level": 25,
+      "cost": 10000,
+      "time": "2h15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "speed_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 1
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:haste",
+          "amplifier": 0,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "haste_2",
+      "category": "work",
+      "icon": "minecraft:golden_pickaxe",
+      "level": 55,
+      "cost": 280000,
+      "time": "7h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "haste_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 7
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:haste",
+          "amplifier": 1,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "haste_3",
+      "category": "work",
+      "icon": "minecraft:golden_pickaxe",
+      "level": 115,
+      "cost": 65000000,
+      "time": "17h55m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "haste_2"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 18
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:haste",
+          "amplifier": 2,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "resistance_1",
+      "category": "combat",
+      "icon": "minecraft:iron_chestplate",
+      "level": 22,
+      "cost": 6600,
+      "time": "1h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "instant_health_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 2
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:resistance",
+          "amplifier": 0,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "resistance_2",
+      "category": "combat",
+      "icon": "minecraft:iron_chestplate",
+      "level": 42,
+      "cost": 63000,
+      "time": "5h10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "resistance_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:resistance",
+          "amplifier": 1,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "resistance_3",
+      "category": "combat",
+      "icon": "minecraft:iron_chestplate",
+      "level": 125,
+      "cost": 83000000,
+      "time": "19h40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "resistance_2"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 24
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:resistance",
+          "amplifier": 2,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "jump_boost_1",
+      "category": "movement",
+      "icon": "minecraft:rabbit_foot",
+      "level": 35,
+      "cost": 32000,
+      "time": "4h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "buffs_view"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 2
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:jump_boost",
+          "amplifier": 0,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "jump_boost_2",
+      "category": "movement",
+      "icon": "minecraft:rabbit_foot",
+      "level": 68,
+      "cost": 870000,
+      "time": "9h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "jump_boost_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:jump_boost",
+          "amplifier": 1,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "jump_boost_3",
+      "category": "movement",
+      "icon": "minecraft:rabbit_foot",
+      "level": 135,
+      "cost": 110000000,
+      "time": "21h25m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "jump_boost_2"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 20
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:jump_boost",
+          "amplifier": 2,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "strength_1",
+      "category": "combat",
+      "icon": "minecraft:blaze_powder",
+      "level": 40,
+      "cost": 50000,
+      "time": "4h50m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "resistance_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 3
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:strength",
+          "amplifier": 0,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "strength_2",
+      "category": "combat",
+      "icon": "minecraft:blaze_powder",
+      "level": 75,
+      "cost": 1600000,
+      "time": "10h55m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "strength_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 9
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:strength",
+          "amplifier": 1,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "strength_3",
+      "category": "combat",
+      "icon": "minecraft:blaze_powder",
+      "level": 145,
+      "cost": 140000000,
+      "time": "23h10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "strength_2"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 28
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:strength",
+          "amplifier": 2,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "absorption_1",
+      "category": "healing",
+      "icon": "minecraft:shield",
+      "level": 45,
+      "cost": 89000,
+      "time": "5h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "regeneration_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 3
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:absorption",
+          "amplifier": 0,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "absorption_2",
+      "category": "healing",
+      "icon": "minecraft:shield",
+      "level": 80,
+      "cost": 2700000,
+      "time": "11h50m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "absorption_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 10
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:absorption",
+          "amplifier": 1,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "absorption_3",
+      "category": "healing",
+      "icon": "minecraft:shield",
+      "level": 165,
+      "cost": 230000000,
+      "time": "24h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "absorption_2"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 26
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:absorption",
+          "amplifier": 2,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "health_boost_1",
+      "category": "healing",
+      "icon": "minecraft:golden_apple",
+      "level": 70,
+      "cost": 1000000,
+      "time": "10h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "regeneration_1"
+        },
+        {
+          "type": "node",
+          "id": "resistance_2"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 3
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:health_boost",
+          "amplifier": 0,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "health_boost_2",
+      "category": "healing",
+      "icon": "minecraft:golden_apple",
+      "level": 90,
+      "cost": 7400000,
+      "time": "13h35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "health_boost_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 10
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:health_boost",
+          "amplifier": 1,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "health_boost_3",
+      "category": "healing",
+      "icon": "minecraft:golden_apple",
+      "level": 180,
+      "cost": 340000000,
+      "time": "24h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "health_boost_2"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:health_boost",
+          "amplifier": 2,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "luck_1",
+      "category": "work",
+      "icon": "minecraft:emerald",
+      "level": 65,
+      "cost": 710000,
+      "time": "9h10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "haste_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 3
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:luck",
+          "amplifier": 0,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "luck_2",
+      "category": "work",
+      "icon": "minecraft:emerald",
+      "level": 85,
+      "cost": 4500000,
+      "time": "12h40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "luck_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:luck",
+          "amplifier": 1,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "luck_3",
+      "category": "work",
+      "icon": "minecraft:emerald",
+      "level": 99,
+      "cost": 18000000,
+      "time": "15h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "luck_2"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:luck",
+          "amplifier": 2,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "night_vision",
+      "category": "utility",
+      "icon": "minecraft:golden_carrot",
+      "level": 28,
+      "cost": 15000,
+      "time": "2h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "speed_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 1
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:night_vision",
+          "amplifier": 0,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "water_breathing",
+      "category": "utility",
+      "icon": "minecraft:pufferfish",
+      "level": 33,
+      "cost": 26000,
+      "time": "3h40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "night_vision"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 2
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:water_breathing",
+          "amplifier": 0,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "fire_resistance",
+      "category": "utility",
+      "icon": "minecraft:magma_cream",
+      "level": 60,
+      "cost": 500000,
+      "time": "8h20m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "resistance_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:nether_star",
+          "count": 3
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "buff",
+          "effect": "minecraft:fire_resistance",
+          "amplifier": 0,
+          "mode": "aura"
+        }
+      ]
+    },
+    {
+      "id": "loan_small",
+      "category": "finance",
+      "icon": "minecraft:gold_ingot",
+      "level": 10,
+      "cost": 500,
+      "time": "15m",
+      "requires": [],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:gold_ingot",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "feature",
+          "id": "loans"
+        },
+        {
+          "type": "loan_slots",
+          "add": 1
+        },
+        {
+          "type": "loan",
+          "id": "small",
+          "amount": 1000,
+          "interestPct": 30,
+          "termDays": 7
+        }
+      ]
+    },
+    {
+      "id": "loan_slot_1",
+      "category": "finance",
+      "icon": "minecraft:gold_block",
+      "level": 15,
+      "cost": 2000,
+      "time": "30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "loan_small"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:gold_block",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "loan_slots",
+          "add": 1
+        }
+      ]
+    },
+    {
+      "id": "loan_medium",
+      "category": "finance",
+      "icon": "minecraft:gold_block",
+      "level": 25,
+      "cost": 5000,
+      "time": "1h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "loan_small"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:gold_block",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "loan",
+          "id": "medium",
+          "amount": 10000,
+          "interestPct": 35,
+          "termDays": 14
+        }
+      ]
+    },
+    {
+      "id": "loan_slot_2",
+      "category": "finance",
+      "icon": "minecraft:gold_block",
+      "level": 45,
+      "cost": 25000,
+      "time": "2h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "loan_medium"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:gold_block",
+          "count": 64
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "loan_slots",
+          "add": 1
+        }
+      ]
+    },
+    {
+      "id": "loan_large",
+      "category": "finance",
+      "icon": "minecraft:gold_block",
+      "level": 65,
+      "cost": 100000,
+      "time": "4h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "loan_medium"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:gold_block",
+          "count": 128
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "loan",
+          "id": "large",
+          "amount": 100000,
+          "interestPct": 40,
+          "termDays": 21
+        }
+      ]
+    },
+    {
+      "id": "loan_huge",
+      "category": "finance",
+      "icon": "minecraft:gold_block",
+      "level": 125,
+      "cost": 1000000,
+      "time": "8h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "loan_large"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:gold_block",
+          "count": 256
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "loan",
+          "id": "huge",
+          "amount": 1000000,
+          "interestPct": 50,
+          "termDays": 30
+        }
+      ]
+    },
+    {
+      "id": "treasury_1",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 2,
+      "cost": 200,
+      "time": "9m",
+      "requires": [],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 9
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 1000
+        }
+      ]
+    },
+    {
+      "id": "treasury_2",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 4,
+      "cost": 200,
+      "time": "13m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 18
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 1000
+        }
+      ]
+    },
+    {
+      "id": "treasury_3",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 6,
+      "cost": 200,
+      "time": "17m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_2"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 18
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 1000
+        }
+      ]
+    },
+    {
+      "id": "treasury_4",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 8,
+      "cost": 1000,
+      "time": "21m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_3"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 27
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 5000
+        }
+      ]
+    },
+    {
+      "id": "treasury_5",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 10,
+      "cost": 1000,
+      "time": "25m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_4"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 27
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 5000
+        }
+      ]
+    },
+    {
+      "id": "treasury_6",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 12,
+      "cost": 1000,
+      "time": "29m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_5"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 36
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 5000
+        }
+      ]
+    },
+    {
+      "id": "treasury_7",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 14,
+      "cost": 1000,
+      "time": "33m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_6"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 36
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 5000
+        }
+      ]
+    },
+    {
+      "id": "treasury_8",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 16,
+      "cost": 1000,
+      "time": "37m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_7"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 45
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 5000
+        }
+      ]
+    },
+    {
+      "id": "treasury_9",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 18,
+      "cost": 2000,
+      "time": "41m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_8"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 45
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 10000
+        }
+      ]
+    },
+    {
+      "id": "treasury_10",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 20,
+      "cost": 10000,
+      "time": "45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_9"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 54
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 50000
+        }
+      ]
+    },
+    {
+      "id": "treasury_11",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 22,
+      "cost": 10000,
+      "time": "49m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_10"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 54
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 50000
+        }
+      ]
+    },
+    {
+      "id": "treasury_12",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 24,
+      "cost": 10000,
+      "time": "53m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_11"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 63
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 50000
+        }
+      ]
+    },
+    {
+      "id": "treasury_13",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 26,
+      "cost": 10000,
+      "time": "57m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_12"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 63
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 50000
+        }
+      ]
+    },
+    {
+      "id": "treasury_14",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 28,
+      "cost": 10000,
+      "time": "1h1m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_13"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 72
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 50000
+        }
+      ]
+    },
+    {
+      "id": "treasury_15",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 30,
+      "cost": 20000,
+      "time": "1h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_14"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 72
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 100000
+        }
+      ]
+    },
+    {
+      "id": "treasury_16",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 32,
+      "cost": 20000,
+      "time": "1h9m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_15"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 81
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 100000
+        }
+      ]
+    },
+    {
+      "id": "treasury_17",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 34,
+      "cost": 20000,
+      "time": "1h13m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_16"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 81
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 100000
+        }
+      ]
+    },
+    {
+      "id": "treasury_18",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 36,
+      "cost": 30000,
+      "time": "1h17m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_17"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 90
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 150000
+        }
+      ]
+    },
+    {
+      "id": "treasury_19",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 38,
+      "cost": 30000,
+      "time": "1h21m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_18"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 90
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 150000
+        }
+      ]
+    },
+    {
+      "id": "treasury_20",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 40,
+      "cost": 40000,
+      "time": "1h25m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_19"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 99
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 200000
+        }
+      ]
+    },
+    {
+      "id": "treasury_21",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 42,
+      "cost": 40000,
+      "time": "1h29m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_20"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 99
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 200000
+        }
+      ]
+    },
+    {
+      "id": "treasury_22",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 44,
+      "cost": 40000,
+      "time": "1h33m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_21"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 108
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 200000
+        }
+      ]
+    },
+    {
+      "id": "treasury_23",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 46,
+      "cost": 45000,
+      "time": "1h37m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_22"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 108
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 220000
+        }
+      ]
+    },
+    {
+      "id": "treasury_24",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 48,
+      "cost": 45000,
+      "time": "1h41m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_23"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 117
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 220000
+        }
+      ]
+    },
+    {
+      "id": "treasury_25",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 50,
+      "cost": 50000,
+      "time": "1h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_24"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 117
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 250000
+        }
+      ]
+    },
+    {
+      "id": "treasury_26",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 52,
+      "cost": 50000,
+      "time": "1h49m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_25"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 126
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 250000
+        }
+      ]
+    },
+    {
+      "id": "treasury_27",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 54,
+      "cost": 50000,
+      "time": "1h53m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_26"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 126
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 250000
+        }
+      ]
+    },
+    {
+      "id": "treasury_28",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 56,
+      "cost": 100000,
+      "time": "1h57m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_27"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 135
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 500000
+        }
+      ]
+    },
+    {
+      "id": "treasury_29",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 58,
+      "cost": 100000,
+      "time": "2h1m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_28"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 135
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 500000
+        }
+      ]
+    },
+    {
+      "id": "treasury_30",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 60,
+      "cost": 200000,
+      "time": "2h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_29"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 144
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 1000000
+        }
+      ]
+    },
+    {
+      "id": "treasury_31",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 62,
+      "cost": 200000,
+      "time": "2h9m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_30"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 144
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 1000000
+        }
+      ]
+    },
+    {
+      "id": "treasury_32",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 64,
+      "cost": 200000,
+      "time": "2h13m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_31"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 153
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 1000000
+        }
+      ]
+    },
+    {
+      "id": "treasury_33",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 66,
+      "cost": 400000,
+      "time": "2h17m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_32"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 153
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 2000000
+        }
+      ]
+    },
+    {
+      "id": "treasury_34",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 68,
+      "cost": 400000,
+      "time": "2h21m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_33"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 162
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 2000000
+        }
+      ]
+    },
+    {
+      "id": "treasury_35",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 70,
+      "cost": 800000,
+      "time": "2h25m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_34"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 162
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 4000000
+        }
+      ]
+    },
+    {
+      "id": "treasury_36",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 72,
+      "cost": 800000,
+      "time": "2h29m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_35"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 171
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 4000000
+        }
+      ]
+    },
+    {
+      "id": "treasury_37",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 74,
+      "cost": 800000,
+      "time": "2h33m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_36"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 171
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 4000000
+        }
+      ]
+    },
+    {
+      "id": "treasury_38",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 76,
+      "cost": 1500000,
+      "time": "2h37m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_37"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 180
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 7500000
+        }
+      ]
+    },
+    {
+      "id": "treasury_39",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 78,
+      "cost": 1500000,
+      "time": "2h41m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_38"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 180
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 7500000
+        }
+      ]
+    },
+    {
+      "id": "treasury_40",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 80,
+      "cost": 2500000,
+      "time": "2h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_39"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 189
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 12000000
+        }
+      ]
+    },
+    {
+      "id": "treasury_41",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 82,
+      "cost": 2500000,
+      "time": "2h49m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_40"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 189
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 12000000
+        }
+      ]
+    },
+    {
+      "id": "treasury_42",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 84,
+      "cost": 2500000,
+      "time": "2h53m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_41"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 198
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 12000000
+        }
+      ]
+    },
+    {
+      "id": "treasury_43",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 86,
+      "cost": 4000000,
+      "time": "2h57m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_42"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 198
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 20000000
+        }
+      ]
+    },
+    {
+      "id": "treasury_44",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 88,
+      "cost": 4000000,
+      "time": "3h1m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_43"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 207
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 20000000
+        }
+      ]
+    },
+    {
+      "id": "treasury_45",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 90,
+      "cost": 7000000,
+      "time": "3h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_44"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 207
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 35000000
+        }
+      ]
+    },
+    {
+      "id": "treasury_46",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 92,
+      "cost": 7000000,
+      "time": "3h9m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_45"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 216
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 35000000
+        }
+      ]
+    },
+    {
+      "id": "treasury_47",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 94,
+      "cost": 7000000,
+      "time": "3h13m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_46"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 216
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 35000000
+        }
+      ]
+    },
+    {
+      "id": "treasury_48",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 96,
+      "cost": 12000000,
+      "time": "3h17m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_47"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 225
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 60000000
+        }
+      ]
+    },
+    {
+      "id": "treasury_49",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 98,
+      "cost": 12000000,
+      "time": "3h21m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_48"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 225
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 60000000
+        }
+      ]
+    },
+    {
+      "id": "treasury_50",
+      "category": "invest_treasury",
+      "icon": "chemica:silver_ingot",
+      "level": 100,
+      "cost": 20000000,
+      "time": "3h25m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "treasury_49"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/silver",
+          "count": 234
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "treasury",
+          "add": 100000000
+        }
+      ]
+    },
+    {
+      "id": "land_1",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 1,
+      "cost": 200,
+      "time": "7m",
+      "requires": [],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_2",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 3,
+      "cost": 200,
+      "time": "11m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 6
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_3",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 5,
+      "cost": 200,
+      "time": "15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_2"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_4",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 7,
+      "cost": 1000,
+      "time": "19m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_3"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 10
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_5",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 9,
+      "cost": 1000,
+      "time": "23m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_4"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 12
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_6",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 11,
+      "cost": 1000,
+      "time": "27m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_5"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 14
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_7",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 13,
+      "cost": 1000,
+      "time": "31m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_6"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_8",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 15,
+      "cost": 1000,
+      "time": "35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_7"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 18
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_9",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 17,
+      "cost": 2000,
+      "time": "39m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_8"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 20
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_10",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 19,
+      "cost": 2000,
+      "time": "43m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_9"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 22
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_11",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 21,
+      "cost": 10000,
+      "time": "47m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_10"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 24
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_12",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 23,
+      "cost": 10000,
+      "time": "51m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_11"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 26
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_13",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 25,
+      "cost": 10000,
+      "time": "55m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_12"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 28
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_14",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 27,
+      "cost": 10000,
+      "time": "59m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_13"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 30
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_15",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 29,
+      "cost": 10000,
+      "time": "1h3m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_14"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_16",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 31,
+      "cost": 20000,
+      "time": "1h7m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_15"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 34
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_17",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 33,
+      "cost": 20000,
+      "time": "1h11m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_16"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 36
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_18",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 35,
+      "cost": 30000,
+      "time": "1h15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_17"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 38
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_19",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 37,
+      "cost": 30000,
+      "time": "1h19m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_18"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 40
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_20",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 39,
+      "cost": 30000,
+      "time": "1h23m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_19"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 42
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_21",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 41,
+      "cost": 40000,
+      "time": "1h27m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_20"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 44
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_22",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 43,
+      "cost": 40000,
+      "time": "1h31m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_21"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 46
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_23",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 45,
+      "cost": 45000,
+      "time": "1h35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_22"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 48
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_24",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 47,
+      "cost": 45000,
+      "time": "1h39m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_23"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 50
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_25",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 49,
+      "cost": 45000,
+      "time": "1h43m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_24"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 52
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_26",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 51,
+      "cost": 50000,
+      "time": "1h47m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_25"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 54
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_27",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 53,
+      "cost": 50000,
+      "time": "1h51m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_26"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 56
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_28",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 55,
+      "cost": 100000,
+      "time": "1h55m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_27"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 58
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_29",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 57,
+      "cost": 100000,
+      "time": "1h59m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_28"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 60
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_30",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 59,
+      "cost": 100000,
+      "time": "2h3m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_29"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 62
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_31",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 61,
+      "cost": 200000,
+      "time": "2h7m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_30"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 64
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_32",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 63,
+      "cost": 200000,
+      "time": "2h11m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_31"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 66
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_33",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 65,
+      "cost": 400000,
+      "time": "2h15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_32"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 68
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_34",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 67,
+      "cost": 400000,
+      "time": "2h19m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_33"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 70
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_35",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 69,
+      "cost": 400000,
+      "time": "2h23m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_34"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 72
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_36",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 71,
+      "cost": 800000,
+      "time": "2h27m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_35"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 74
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_37",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 73,
+      "cost": 800000,
+      "time": "2h31m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_36"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 76
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_38",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 75,
+      "cost": 1500000,
+      "time": "2h35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_37"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 78
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_39",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 77,
+      "cost": 1500000,
+      "time": "2h39m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_38"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 80
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_40",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 79,
+      "cost": 1500000,
+      "time": "2h43m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_39"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 82
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_41",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 81,
+      "cost": 2500000,
+      "time": "2h47m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_40"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 84
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_42",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 83,
+      "cost": 2500000,
+      "time": "2h51m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_41"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 86
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_43",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 85,
+      "cost": 4000000,
+      "time": "2h55m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_42"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 88
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_44",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 87,
+      "cost": 4000000,
+      "time": "2h59m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_43"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 90
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_45",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 89,
+      "cost": 4000000,
+      "time": "3h3m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_44"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 92
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_46",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 91,
+      "cost": 7000000,
+      "time": "3h7m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_45"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 94
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_47",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 93,
+      "cost": 7000000,
+      "time": "3h11m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_46"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 96
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_48",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 95,
+      "cost": 12000000,
+      "time": "3h15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_47"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 98
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_49",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 97,
+      "cost": 12000000,
+      "time": "3h19m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_48"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 100
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "land_50",
+      "category": "invest_land",
+      "icon": "minecraft:copper_block",
+      "level": 99,
+      "cost": 12000000,
+      "time": "3h23m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "land_49"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_block",
+          "count": 102
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "chunks",
+          "add": 4
+        }
+      ]
+    },
+    {
+      "id": "citizens_1",
+      "category": "invest_citizens",
+      "icon": "tfmg:nickel_block",
+      "level": 5,
+      "cost": 200,
+      "time": "15m",
+      "requires": [],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/nickel",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "citizens",
+          "add": 5
+        }
+      ]
+    },
+    {
+      "id": "citizens_2",
+      "category": "invest_citizens",
+      "icon": "tfmg:nickel_block",
+      "level": 15,
+      "cost": 1000,
+      "time": "35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "citizens_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/nickel",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "citizens",
+          "add": 5
+        }
+      ]
+    },
+    {
+      "id": "citizens_3",
+      "category": "invest_citizens",
+      "icon": "tfmg:nickel_block",
+      "level": 20,
+      "cost": 10000,
+      "time": "45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "citizens_2"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/nickel",
+          "count": 24
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "citizens",
+          "add": 5
+        }
+      ]
+    },
+    {
+      "id": "citizens_4",
+      "category": "invest_citizens",
+      "icon": "tfmg:nickel_block",
+      "level": 25,
+      "cost": 10000,
+      "time": "55m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "citizens_3"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/nickel",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "citizens",
+          "add": 5
+        }
+      ]
+    },
+    {
+      "id": "citizens_5",
+      "category": "invest_citizens",
+      "icon": "tfmg:nickel_block",
+      "level": 30,
+      "cost": 20000,
+      "time": "1h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "citizens_4"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/nickel",
+          "count": 48
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "citizens",
+          "add": 5
+        }
+      ]
+    },
+    {
+      "id": "citizens_6",
+      "category": "invest_citizens",
+      "icon": "tfmg:nickel_block",
+      "level": 35,
+      "cost": 30000,
+      "time": "1h15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "citizens_5"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/nickel",
+          "count": 64
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "citizens",
+          "add": 5
+        }
+      ]
+    },
+    {
+      "id": "citizens_7",
+      "category": "invest_citizens",
+      "icon": "tfmg:nickel_block",
+      "level": 40,
+      "cost": 40000,
+      "time": "1h25m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "citizens_6"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/nickel",
+          "count": 96
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "citizens",
+          "add": 5
+        }
+      ]
+    },
+    {
+      "id": "citizens_8",
+      "category": "invest_citizens",
+      "icon": "tfmg:nickel_block",
+      "level": 50,
+      "cost": 50000,
+      "time": "1h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "citizens_7"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/nickel",
+          "count": 128
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "citizens",
+          "add": 5
+        }
+      ]
+    },
+    {
+      "id": "citizens_9",
+      "category": "invest_citizens",
+      "icon": "tfmg:nickel_block",
+      "level": 60,
+      "cost": 200000,
+      "time": "2h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "citizens_8"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/nickel",
+          "count": 160
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:emerald_block",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "citizens",
+          "add": 5
+        }
+      ]
+    },
+    {
+      "id": "citizens_10",
+      "category": "invest_citizens",
+      "icon": "tfmg:nickel_block",
+      "level": 70,
+      "cost": 800000,
+      "time": "2h25m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "citizens_9"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/nickel",
+          "count": 192
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:emerald_block",
+          "count": 24
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "citizens",
+          "add": 5
+        }
+      ]
+    },
+    {
+      "id": "citizens_11",
+      "category": "invest_citizens",
+      "icon": "tfmg:nickel_block",
+      "level": 80,
+      "cost": 2500000,
+      "time": "2h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "citizens_10"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/nickel",
+          "count": 224
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:emerald_block",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "citizens",
+          "add": 5
+        }
+      ]
+    },
+    {
+      "id": "citizens_12",
+      "category": "invest_citizens",
+      "icon": "tfmg:nickel_block",
+      "level": 90,
+      "cost": 7000000,
+      "time": "3h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "citizens_11"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/nickel",
+          "count": 256
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:emerald_block",
+          "count": 48
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "citizens",
+          "add": 5
+        }
+      ]
+    },
+    {
+      "id": "citizens_13",
+      "category": "invest_citizens",
+      "icon": "tfmg:nickel_block",
+      "level": 100,
+      "cost": 20000000,
+      "time": "3h25m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "citizens_12"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/nickel",
+          "count": 320
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:emerald_block",
+          "count": 64
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "citizens",
+          "add": 5
+        }
+      ]
+    },
+    {
+      "id": "provinces_1",
+      "category": "invest_provinces",
+      "icon": "create_ironworks:tin_block",
+      "level": 15,
+      "cost": 1000,
+      "time": "35m",
+      "requires": [],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/tin",
+          "count": 128
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "provinces",
+          "add": 1
+        }
+      ]
+    },
+    {
+      "id": "provinces_2",
+      "category": "invest_provinces",
+      "icon": "create_ironworks:tin_block",
+      "level": 30,
+      "cost": 20000,
+      "time": "1h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "provinces_1"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/tin",
+          "count": 256
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "provinces",
+          "add": 1
+        }
+      ]
+    },
+    {
+      "id": "provinces_3",
+      "category": "invest_provinces",
+      "icon": "create_ironworks:tin_block",
+      "level": 45,
+      "cost": 45000,
+      "time": "1h35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "provinces_2"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/tin",
+          "count": 64
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "provinces",
+          "add": 1
+        }
+      ]
+    },
+    {
+      "id": "provinces_4",
+      "category": "invest_provinces",
+      "icon": "create_ironworks:tin_block",
+      "level": 60,
+      "cost": 200000,
+      "time": "2h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "provinces_3"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/tin",
+          "count": 128
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "provinces",
+          "add": 1
+        }
+      ]
+    },
+    {
+      "id": "provinces_5",
+      "category": "invest_provinces",
+      "icon": "create_ironworks:tin_block",
+      "level": 75,
+      "cost": 1500000,
+      "time": "2h35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "provinces_4"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/tin",
+          "count": 192
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "provinces",
+          "add": 1
+        }
+      ]
+    },
+    {
+      "id": "provinces_6",
+      "category": "invest_provinces",
+      "icon": "create_ironworks:tin_block",
+      "level": 90,
+      "cost": 7000000,
+      "time": "3h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "provinces_5"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/tin",
+          "count": 256
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "capacity",
+          "key": "provinces",
+          "add": 1
+        }
+      ]
+    }
+  ]
+}

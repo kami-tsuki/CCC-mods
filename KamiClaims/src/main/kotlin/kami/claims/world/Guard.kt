@@ -8,6 +8,7 @@ import kami.libs.chat.bar
 import kami.claims.*
 import kami.claims.net.Denied
 import kami.claims.net.Net
+import kami.claims.research.Research
 import kami.claims.service.View
 import kami.libs.text.Phrase
 import kami.claims.social.Perms
@@ -175,7 +176,19 @@ object Guard {
 
     fun onPlace(e: BlockEvent.EntityPlaceEvent) {
         if (!check(e.level, e.pos, e.entity, Action.PLACE, e.placedBlock.block)) e.isCanceled = true
+        else if (researchLocked(e.entity, e.level, e.pos, e.placedBlock.block)) e.isCanceled = true
         else (e.entity as? ServerPlayer)?.let { if (it !is FakePlayer) credit(it, e.pos, Action.PLACE, e.placedBlock) }
+    }
+
+    private fun researchLocked(who: Entity?, level: LevelAccessor, pos: BlockPos, block: Block): Boolean {
+        if (who != null && who !is ServerPlayer) return false
+        val player = (who as? ServerPlayer)?.takeUnless { it is FakePlayer }
+        if (player != null && Perms.has(player, Perms.RESEARCH_BYPASS)) return false
+        val country = if (player != null) Realm.of(player.stringUUID)
+        else dim(level)?.let { Realm.index[key(it, pos)] }?.let { Realm.data.countries[it.country] }
+        if (Research.allowedBlock(country, BuiltInRegistries.BLOCK.getKey(block))) return false
+        player?.bar(Chat.bar(Tone.BAD, Phrase.of("kami_claims.research.locked.block", block.name.string).component()))
+        return true
     }
 
     fun onUse(e: PlayerInteractEvent.RightClickBlock) {

@@ -2,6 +2,9 @@ package kami.claims.net
 
 import kami.claims.*
 import kami.claims.economy.Bank
+import kami.claims.research.Capacity
+import kami.claims.research.Goals
+import kami.claims.research.Levels
 import kami.claims.service.AlertLine
 import kami.claims.service.Diplomacy
 import kami.claims.service.Alerts
@@ -9,7 +12,6 @@ import kami.claims.service.Plan
 import kami.claims.service.Planner
 import kami.claims.service.Provinces
 import kami.claims.service.Service
-import kami.claims.service.StepLine
 import kami.claims.service.Upkeep
 import kami.claims.service.View
 import kami.claims.world.Guard
@@ -54,6 +56,7 @@ import java.util.UUID
     val access: Map<String, Boolean> = emptyMap(), val reserved: String = "", val at: Long = 0, val ownerId: String = "", val locked: String = "",
     val blocked: Boolean = false
 )
+@Serializable class GoalLine(val text: String, val value: Long, val max: Long, val page: String)
 @Serializable class Info(
     val name: String, val rank: String, val treasury: Long, val upkeep: Long, val income: Long, val jobs: Long, val runway: String, val tax: Int,
     val chunks: Int, val free: Int, val shutdown: Int, val release: Int, val color: Int, val nextBilling: Long, val details: Boolean,
@@ -81,7 +84,7 @@ import java.util.UUID
     val caps: Map<String, String>, val detail: Detail?, val funds: Long, val freeChunks: Int, val jobShare: Int, val maxPlots: Int, val maxProvinceDebt: Int,
     val players: List<PlayerLine>, val msg: String, val ok: Boolean, val open: Boolean, val px: Int, val pz: Int,
     val rid: Int = 0, val reason: String = "", val targetX: Int = 0, val targetZ: Int = 0, val hasTarget: Boolean = false,
-    val alerts: List<AlertLine> = emptyList(), val steps: List<StepLine> = emptyList(), val ledger: List<LedgerLine> = emptyList(),
+    val alerts: List<AlertLine> = emptyList(), val goals: List<GoalLine> = emptyList(), val ledger: List<LedgerLine> = emptyList(),
     val history: List<DayLine> = emptyList(), val preview: PreviewLine? = null, val limits: Limits? = null,
     val delegable: List<String> = emptyList(), val kept: List<String> = emptyList(), val me: String = "", val dim: String = "", val rank: String = ""
 )
@@ -264,10 +267,10 @@ object Sync {
             c?.let { info(p, it, own, delegated) }, countries,
             invitedCountries(me),
             types, s.jobs.keys.toList(), s.caps.mapKeys { it.key.name.lowercase() }.mapValues { it.value.name.lowercase() },
-            focus[p.uuid]?.let { detail(p, it) }, Bank.funds(p.uuid), s.freeChunks, (s.jobShare * 100).toInt(), s.maxPlots, s.maxProvinceDebt,
+            focus[p.uuid]?.let { detail(p, it) }, Bank.funds(p.uuid), s.freeChunks, (s.jobShare * 100).toInt(), c?.let { Levels.capacity(it, Capacity.PLOTS) } ?: 0, s.maxProvinceDebt,
             players, reply.msg, reply.ok, open, here.x, here.z,
             reply.rid, reply.reason, reply.target?.x ?: 0, reply.target?.z ?: 0, reply.target != null,
-            Alerts.of(p, c, delegated), Alerts.steps(c, lead && !delegated), ledger, history, previews.remove(p.uuid), limits(s),
+            Alerts.of(p, c, delegated), if (c != null && lead && !delegated) Goals.of(c).map { GoalLine(it.text.json(), it.value, it.max, it.page.orEmpty()) } else emptyList(), ledger, history, previews.remove(p.uuid), limits(s),
             Provinces.delegatedRights, Provinces.keptRights, me, here.dim, own?.let { Service.rankOf(it, p).name.lowercase() } ?: ""
         )
         return json.encodeToString(snap)

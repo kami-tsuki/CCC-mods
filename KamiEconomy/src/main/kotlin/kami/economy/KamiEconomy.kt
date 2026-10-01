@@ -4,7 +4,7 @@ import kami.economy.client.ClientEconomy
 import kami.economy.command.EconomyCommands
 import kami.economy.economy.Auctions
 import kami.economy.economy.History
-import kami.economy.economy.Matching
+import kami.economy.economy.EconomyProvider
 import kami.economy.economy.Pricing
 import kami.economy.economy.Stocks
 import kami.economy.economy.StackCodec
@@ -14,7 +14,6 @@ import kami.economy.world.VendorRegistry
 import net.neoforged.neoforge.event.level.BlockEvent
 import net.neoforged.neoforge.event.level.LevelEvent
 import kami.libs.economy.MarketApi
-import kami.libs.economy.MarketProvider
 import kami.libs.log.Log
 import kami.libs.mc.Registry
 import net.minecraft.server.level.ServerPlayer
@@ -43,10 +42,7 @@ object KamiEconomy {
     init {
         MOD_BUS.addListener<FMLCommonSetupEvent> {
             Config.load()
-            MarketApi.register(object : MarketProvider {
-                override fun bestPrice(item: String) = Matching.bestPrice(item)
-                override fun available(item: String) = Matching.available(item)
-            })
+            MarketApi.register(EconomyProvider)
         }
         MOD_BUS.addListener<RegisterPayloadHandlersEvent> { Net.register(it) }
         if (FMLEnvironment.dist == Dist.CLIENT) ClientEconomy.init()

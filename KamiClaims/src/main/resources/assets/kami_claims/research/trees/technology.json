@@ -1,0 +1,4847 @@
+{
+  "title": "Technology",
+  "scope": "any",
+  "categories": [
+    {
+      "id": "basics",
+      "icon": "minecraft:crafting_table",
+      "order": 0
+    },
+    {
+      "id": "power",
+      "icon": "create:water_wheel",
+      "order": 1
+    },
+    {
+      "id": "transmission",
+      "icon": "create:cogwheel",
+      "order": 2
+    },
+    {
+      "id": "processing",
+      "icon": "create:millstone",
+      "order": 3
+    },
+    {
+      "id": "logistics",
+      "icon": "create:chute",
+      "order": 4
+    },
+    {
+      "id": "fluids",
+      "icon": "create:fluid_pipe",
+      "order": 5
+    },
+    {
+      "id": "brass",
+      "icon": "create:brass_casing",
+      "order": 6
+    }
+  ],
+  "nodes": [
+    {
+      "id": "crafting_table",
+      "category": "basics",
+      "icon": "minecraft:crafting_table",
+      "level": 1,
+      "cost": 10,
+      "time": "1m",
+      "requires": [],
+      "tasks": [
+        {
+          "type": "mine",
+          "block": "#minecraft:logs",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "minecraft:crafting_table"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:crafting_table"
+        }
+      ]
+    },
+    {
+      "id": "wood_building",
+      "category": "basics",
+      "icon": "minecraft:oak_stairs",
+      "level": 1,
+      "cost": 15,
+      "time": "2m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "crafting_table"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "mine",
+          "block": "#minecraft:logs",
+          "count": 64
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "#minecraft:wooden_doors"
+        },
+        {
+          "type": "output",
+          "id": "#minecraft:wooden_doors"
+        },
+        {
+          "type": "block",
+          "id": "#minecraft:wooden_stairs"
+        },
+        {
+          "type": "output",
+          "id": "#minecraft:wooden_stairs"
+        },
+        {
+          "type": "block",
+          "id": "#minecraft:wooden_trapdoors"
+        },
+        {
+          "type": "output",
+          "id": "#minecraft:wooden_trapdoors"
+        },
+        {
+          "type": "block",
+          "id": "#minecraft:wooden_fences"
+        },
+        {
+          "type": "output",
+          "id": "#minecraft:wooden_fences"
+        },
+        {
+          "type": "block",
+          "id": "#minecraft:fence_gates"
+        },
+        {
+          "type": "output",
+          "id": "#minecraft:fence_gates"
+        },
+        {
+          "type": "block",
+          "id": "#minecraft:wooden_slabs"
+        },
+        {
+          "type": "output",
+          "id": "#minecraft:wooden_slabs"
+        },
+        {
+          "type": "block",
+          "id": "#minecraft:wooden_buttons"
+        },
+        {
+          "type": "output",
+          "id": "#minecraft:wooden_buttons"
+        },
+        {
+          "type": "block",
+          "id": "#minecraft:wooden_pressure_plates"
+        },
+        {
+          "type": "output",
+          "id": "#minecraft:wooden_pressure_plates"
+        },
+        {
+          "type": "block",
+          "id": "#minecraft:all_signs"
+        },
+        {
+          "type": "output",
+          "id": "#minecraft:signs"
+        },
+        {
+          "type": "block",
+          "id": "#minecraft:all_hanging_signs"
+        },
+        {
+          "type": "output",
+          "id": "#minecraft:hanging_signs"
+        }
+      ]
+    },
+    {
+      "id": "andesite_casing",
+      "category": "basics",
+      "icon": "create:andesite_casing",
+      "level": 2,
+      "cost": 20,
+      "time": "3m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "crafting_table"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#minecraft:logs",
+          "count": 64
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:andesite_casing"
+        },
+        {
+          "type": "output",
+          "id": "create:andesite_casing"
+        }
+      ]
+    },
+    {
+      "id": "hand_crank",
+      "category": "power",
+      "icon": "create:hand_crank",
+      "level": 2,
+      "cost": 40,
+      "time": "5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "crafting_table"
+        },
+        {
+          "type": "any",
+          "of": [
+            {
+              "type": "node",
+              "id": "metallurgy:andesite_alloy_iron"
+            },
+            {
+              "type": "node",
+              "id": "metallurgy:andesite_alloy_zinc"
+            }
+          ]
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:crafting_table",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:andesite_alloy",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:hand_crank"
+        },
+        {
+          "type": "output",
+          "id": "create:hand_crank"
+        }
+      ]
+    },
+    {
+      "id": "shafts_cogs",
+      "category": "transmission",
+      "icon": "create:cogwheel",
+      "level": 2,
+      "cost": 40,
+      "time": "5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "hand_crank"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:andesite_alloy",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:shaft"
+        },
+        {
+          "type": "output",
+          "id": "create:shaft"
+        },
+        {
+          "type": "block",
+          "id": "create:cogwheel"
+        },
+        {
+          "type": "output",
+          "id": "create:cogwheel"
+        },
+        {
+          "type": "block",
+          "id": "create:large_cogwheel"
+        },
+        {
+          "type": "output",
+          "id": "create:large_cogwheel"
+        }
+      ]
+    },
+    {
+      "id": "water_wheel",
+      "category": "power",
+      "icon": "create:water_wheel",
+      "level": 3,
+      "cost": 60,
+      "time": "8m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "shafts_cogs"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "create:andesite_alloy",
+          "count": 64
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:water_wheel"
+        },
+        {
+          "type": "output",
+          "id": "create:water_wheel"
+        }
+      ]
+    },
+    {
+      "id": "millstone",
+      "category": "processing",
+      "icon": "create:millstone",
+      "level": 3,
+      "cost": 60,
+      "time": "8m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "andesite_casing"
+        },
+        {
+          "type": "node",
+          "id": "shafts_cogs"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:andesite_casing",
+          "count": 64
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:millstone"
+        },
+        {
+          "type": "output",
+          "id": "create:millstone"
+        },
+        {
+          "type": "output",
+          "id": "create:wheat_flour"
+        }
+      ]
+    },
+    {
+      "id": "belt",
+      "category": "transmission",
+      "icon": "create:belt_connector",
+      "level": 3,
+      "cost": 60,
+      "time": "8m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "shafts_cogs"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:dried_kelp",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:belt"
+        },
+        {
+          "type": "output",
+          "id": "create:belt_connector"
+        }
+      ]
+    },
+    {
+      "id": "crushing_wheels",
+      "category": "processing",
+      "icon": "create:crushing_wheel",
+      "level": 4,
+      "cost": 100,
+      "time": "15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "millstone"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:andesite_casing",
+          "count": 128
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:crushing_wheel"
+        },
+        {
+          "type": "output",
+          "id": "create:crushing_wheel"
+        },
+        {
+          "type": "output",
+          "id": "create:cinder_flour"
+        },
+        {
+          "type": "output",
+          "id": "create:powdered_obsidian"
+        }
+      ]
+    },
+    {
+      "id": "gearbox",
+      "category": "transmission",
+      "icon": "create:gearbox",
+      "level": 4,
+      "cost": 80,
+      "time": "10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "belt"
+        },
+        {
+          "type": "node",
+          "id": "andesite_casing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:cogwheel",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:shaft",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:andesite_casing",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:gearbox"
+        },
+        {
+          "type": "output",
+          "id": "create:gearbox"
+        },
+        {
+          "type": "output",
+          "id": "create:vertical_gearbox"
+        }
+      ]
+    },
+    {
+      "id": "mechanical_press",
+      "category": "processing",
+      "icon": "create:mechanical_press",
+      "level": 4,
+      "cost": 120,
+      "time": "15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "andesite_casing"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:iron_compacting"
+        },
+        {
+          "type": "node",
+          "id": "shafts_cogs"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:iron_block",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "create:andesite_casing",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:mechanical_press"
+        },
+        {
+          "type": "output",
+          "id": "create:mechanical_press"
+        }
+      ]
+    },
+    {
+      "id": "large_water_wheel",
+      "category": "power",
+      "icon": "create:large_water_wheel",
+      "level": 5,
+      "cost": 100,
+      "time": "12m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "water_wheel"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:water_wheel",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:large_water_wheel"
+        },
+        {
+          "type": "output",
+          "id": "create:large_water_wheel"
+        }
+      ]
+    },
+    {
+      "id": "propeller_whisk",
+      "category": "processing",
+      "icon": "create:propeller",
+      "level": 5,
+      "cost": 120,
+      "time": "15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:iron_pressing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:plates/iron",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "create:andesite_alloy",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create:propeller"
+        },
+        {
+          "type": "output",
+          "id": "create:whisk"
+        }
+      ]
+    },
+    {
+      "id": "basin",
+      "category": "processing",
+      "icon": "create:basin",
+      "level": 5,
+      "cost": 80,
+      "time": "10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "mechanical_press"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:andesite_alloy",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:basin"
+        },
+        {
+          "type": "output",
+          "id": "create:basin"
+        }
+      ]
+    },
+    {
+      "id": "depot",
+      "category": "logistics",
+      "icon": "create:depot",
+      "level": 5,
+      "cost": 80,
+      "time": "10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "andesite_casing"
+        },
+        {
+          "type": "node",
+          "id": "shafts_cogs"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:andesite_alloy",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:andesite_casing",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:depot"
+        },
+        {
+          "type": "output",
+          "id": "create:depot"
+        }
+      ]
+    },
+    {
+      "id": "gauges",
+      "category": "transmission",
+      "icon": "create:speedometer",
+      "level": 5,
+      "cost": 80,
+      "time": "10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gearbox"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:compass",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "create:andesite_casing",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:speedometer"
+        },
+        {
+          "type": "output",
+          "id": "create:speedometer"
+        },
+        {
+          "type": "block",
+          "id": "create:stressometer"
+        },
+        {
+          "type": "output",
+          "id": "create:stressometer"
+        }
+      ]
+    },
+    {
+      "id": "brackets",
+      "category": "transmission",
+      "icon": "create:metal_girder",
+      "level": 5,
+      "cost": 70,
+      "time": "10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:iron_pressing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:plates/iron",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "create:andesite_alloy",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:wooden_bracket"
+        },
+        {
+          "type": "output",
+          "id": "create:wooden_bracket"
+        },
+        {
+          "type": "block",
+          "id": "create:metal_bracket"
+        },
+        {
+          "type": "output",
+          "id": "create:metal_bracket"
+        },
+        {
+          "type": "block",
+          "id": "create:metal_girder"
+        },
+        {
+          "type": "output",
+          "id": "create:metal_girder"
+        }
+      ]
+    },
+    {
+      "id": "encased_fan",
+      "category": "processing",
+      "icon": "create:encased_fan",
+      "level": 6,
+      "cost": 250,
+      "time": "25m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "propeller_whisk"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:flint_and_steel",
+          "count": 3
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:bucket",
+          "count": 3
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:encased_fan"
+        },
+        {
+          "type": "output",
+          "id": "create:encased_fan"
+        },
+        {
+          "type": "block",
+          "id": "create:nozzle"
+        },
+        {
+          "type": "output",
+          "id": "create:nozzle"
+        }
+      ]
+    },
+    {
+      "id": "fan_catalysts",
+      "category": "processing",
+      "icon": "create_connected:empty_fan_catalyst",
+      "level": 17,
+      "cost": 2000,
+      "time": "2h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "encased_fan"
+        },
+        {
+          "type": "node",
+          "id": "cuisine"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:brass"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/brass",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "create:blaze_cake",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create_connected:empty_fan_catalyst"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:empty_fan_catalyst"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:fan_*_catalyst"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:fan_ending_catalyst_*"
+        }
+      ]
+    },
+    {
+      "id": "mixer",
+      "category": "processing",
+      "icon": "create:mechanical_mixer",
+      "level": 6,
+      "cost": 250,
+      "time": "25m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "propeller_whisk"
+        },
+        {
+          "type": "node",
+          "id": "basin"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:andesite_casing",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:cogwheel",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:mechanical_mixer"
+        },
+        {
+          "type": "output",
+          "id": "create:mechanical_mixer"
+        }
+      ]
+    },
+    {
+      "id": "chain_drives",
+      "category": "transmission",
+      "icon": "create:encased_chain_drive",
+      "level": 6,
+      "cost": 250,
+      "time": "25m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gearbox"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:cogwheel",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "create:shaft",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "create:andesite_casing",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:clutch"
+        },
+        {
+          "type": "output",
+          "id": "create:clutch"
+        },
+        {
+          "type": "block",
+          "id": "create:gearshift"
+        },
+        {
+          "type": "output",
+          "id": "create:gearshift"
+        },
+        {
+          "type": "block",
+          "id": "create:encased_chain_drive"
+        },
+        {
+          "type": "output",
+          "id": "create:encased_chain_drive"
+        }
+      ]
+    },
+    {
+      "id": "spring_coiling",
+      "category": "processing",
+      "icon": "createvintageneoforged:spring_coiling_machine",
+      "level": 10,
+      "cost": 500,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gearbox"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:iron_compacting"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:andesite_casing",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:iron_ingot",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "createvintageneoforged:spring_coiling_machine"
+        },
+        {
+          "type": "output",
+          "id": "createvintageneoforged:spring_coiling_machine"
+        },
+        {
+          "type": "output",
+          "id": "createvintageneoforged:spring_coiling_machine_wheel"
+        },
+        {
+          "type": "output",
+          "id": "createvintageneoforged:iron_rod"
+        },
+        {
+          "type": "output",
+          "id": "createvintageneoforged:iron_spring"
+        }
+      ]
+    },
+    {
+      "id": "vintage_machines",
+      "category": "processing",
+      "icon": "createvintageneoforged:vibrating_table",
+      "level": 12,
+      "cost": 800,
+      "time": "55m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "spring_coiling"
+        },
+        {
+          "type": "node",
+          "id": "pistons"
+        },
+        {
+          "type": "node",
+          "id": "rose_quartz"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "createvintageneoforged:iron_spring",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:mechanical_piston",
+          "count": 2
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "createvintageneoforged:vibrating_table"
+        },
+        {
+          "type": "output",
+          "id": "createvintageneoforged:vibrating_table"
+        },
+        {
+          "type": "block",
+          "id": "createvintageneoforged:belt_grinder"
+        },
+        {
+          "type": "output",
+          "id": "createvintageneoforged:belt_grinder"
+        },
+        {
+          "type": "output",
+          "id": "createvintageneoforged:grinder_belt"
+        },
+        {
+          "type": "block",
+          "id": "createvintageneoforged:helve_hammer"
+        },
+        {
+          "type": "output",
+          "id": "createvintageneoforged:helve_hammer"
+        },
+        {
+          "type": "block",
+          "id": "createvintageneoforged:curving_press"
+        },
+        {
+          "type": "output",
+          "id": "createvintageneoforged:curving_press"
+        },
+        {
+          "type": "output",
+          "id": "createvintageneoforged:convex_curving_head"
+        },
+        {
+          "type": "output",
+          "id": "createvintageneoforged:concave_curving_head"
+        },
+        {
+          "type": "output",
+          "id": "createvintageneoforged:v_shaped_curving_head"
+        },
+        {
+          "type": "output",
+          "id": "createvintageneoforged:w_shaped_curving_head"
+        },
+        {
+          "type": "block",
+          "id": "createvintageneoforged:centrifuge"
+        },
+        {
+          "type": "output",
+          "id": "createvintageneoforged:centrifuge"
+        },
+        {
+          "type": "output",
+          "id": "createvintageneoforged:netherite_sheet"
+        }
+      ]
+    },
+    {
+      "id": "vacuum_chamber",
+      "category": "fluids",
+      "icon": "createvintageneoforged:vacuum_chamber",
+      "level": 14,
+      "cost": 1200,
+      "time": "1h15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "fluid_handling"
+        },
+        {
+          "type": "node",
+          "id": "spring_coiling"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:mechanical_pump",
+          "count": 2
+        },
+        {
+          "type": "deposit",
+          "item": "createvintageneoforged:iron_spring",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "createvintageneoforged:vacuum_chamber"
+        },
+        {
+          "type": "output",
+          "id": "createvintageneoforged:vacuum_chamber"
+        }
+      ]
+    },
+    {
+      "id": "vintage_laser",
+      "category": "brass",
+      "icon": "createvintageneoforged:laser",
+      "level": 21,
+      "cost": 3500,
+      "time": "3h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "precision_mechanism"
+        },
+        {
+          "type": "node",
+          "id": "spring_coiling"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:copper_pressing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:electron_tube",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:quartz",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "createvintageneoforged:laser"
+        },
+        {
+          "type": "output",
+          "id": "createvintageneoforged:laser"
+        },
+        {
+          "type": "output",
+          "id": "createvintageneoforged:laser_item"
+        },
+        {
+          "type": "output",
+          "id": "createvintageneoforged:recipe_card"
+        },
+        {
+          "type": "output",
+          "id": "createvintageneoforged:helve_hammer_slot_cover"
+        }
+      ]
+    },
+    {
+      "id": "vintage_lathe",
+      "category": "brass",
+      "icon": "createvintageneoforged:lathe",
+      "level": 22,
+      "cost": 3800,
+      "time": "3h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "vintage_laser"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:precision_mechanism",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "createvintageneoforged:iron_spring",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "createvintageneoforged:lathe"
+        },
+        {
+          "type": "output",
+          "id": "createvintageneoforged:lathe"
+        }
+      ]
+    },
+    {
+      "id": "adjustable_gearshift",
+      "category": "transmission",
+      "icon": "create:adjustable_chain_gearshift",
+      "level": 16,
+      "cost": 1500,
+      "time": "1h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "chain_drives"
+        },
+        {
+          "type": "node",
+          "id": "electron_tubes"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:encased_chain_drive",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:electron_tube",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:adjustable_chain_gearshift"
+        },
+        {
+          "type": "output",
+          "id": "create:adjustable_chain_gearshift"
+        }
+      ]
+    },
+    {
+      "id": "connected_gearing",
+      "category": "transmission",
+      "icon": "create_connected:six_way_gearbox",
+      "level": 8,
+      "cost": 400,
+      "time": "35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "chain_drives"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:gearbox",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "create:large_cogwheel",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create_connected:parallel_gearbox"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:parallel_gearbox"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:vertical_parallel_gearbox"
+        },
+        {
+          "type": "block",
+          "id": "create_connected:six_way_gearbox"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:six_way_gearbox"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:vertical_six_way_gearbox"
+        },
+        {
+          "type": "block",
+          "id": "create_connected:cross_connector"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:cross_connector"
+        },
+        {
+          "type": "block",
+          "id": "create_connected:encased_chain_cogwheel"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:encased_chain_cogwheel"
+        },
+        {
+          "type": "block",
+          "id": "create_connected:crank_wheel"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:crank_wheel"
+        },
+        {
+          "type": "block",
+          "id": "create_connected:large_crank_wheel"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:large_crank_wheel"
+        }
+      ]
+    },
+    {
+      "id": "connected_clutches",
+      "category": "transmission",
+      "icon": "create_connected:centrifugal_clutch",
+      "level": 9,
+      "cost": 450,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "chain_drives"
+        },
+        {
+          "type": "node",
+          "id": "gauges"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:iron_pressing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:clutch",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "create:gearshift",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create_connected:centrifugal_clutch"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:centrifugal_clutch"
+        },
+        {
+          "type": "block",
+          "id": "create_connected:freewheel_clutch"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:freewheel_clutch"
+        },
+        {
+          "type": "block",
+          "id": "create_connected:inverted_clutch"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:inverted_clutch"
+        },
+        {
+          "type": "block",
+          "id": "create_connected:inverted_gearshift"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:inverted_gearshift"
+        },
+        {
+          "type": "block",
+          "id": "create_connected:shear_pin"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:shear_pin"
+        }
+      ]
+    },
+    {
+      "id": "chute",
+      "category": "logistics",
+      "icon": "create:chute",
+      "level": 6,
+      "cost": 220,
+      "time": "22m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "depot"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:iron_pressing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:plates/iron",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:iron_ingot",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:chute"
+        },
+        {
+          "type": "output",
+          "id": "create:chute"
+        },
+        {
+          "type": "block",
+          "id": "create:portable_storage_interface"
+        },
+        {
+          "type": "output",
+          "id": "create:portable_storage_interface"
+        }
+      ]
+    },
+    {
+      "id": "andesite_funnels",
+      "category": "logistics",
+      "icon": "create:andesite_funnel",
+      "level": 7,
+      "cost": 300,
+      "time": "30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "chute"
+        },
+        {
+          "type": "node",
+          "id": "belt"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:andesite_alloy",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:dried_kelp",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:andesite_funnel"
+        },
+        {
+          "type": "output",
+          "id": "create:andesite_funnel"
+        },
+        {
+          "type": "block",
+          "id": "create:andesite_tunnel"
+        },
+        {
+          "type": "output",
+          "id": "create:andesite_tunnel"
+        }
+      ]
+    },
+    {
+      "id": "item_filter",
+      "category": "logistics",
+      "icon": "create:filter",
+      "level": 7,
+      "cost": 300,
+      "time": "30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "andesite_funnels"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:nuggets/iron",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "#minecraft:wool",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create:filter"
+        }
+      ]
+    },
+    {
+      "id": "drill_saw",
+      "category": "processing",
+      "icon": "create:mechanical_drill",
+      "level": 7,
+      "cost": 350,
+      "time": "30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gearbox"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:iron_pressing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:andesite_casing",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "#c:plates/iron",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:mechanical_drill"
+        },
+        {
+          "type": "output",
+          "id": "create:mechanical_drill"
+        },
+        {
+          "type": "block",
+          "id": "create:mechanical_saw"
+        },
+        {
+          "type": "output",
+          "id": "create:mechanical_saw"
+        }
+      ]
+    },
+    {
+      "id": "bearings",
+      "category": "transmission",
+      "icon": "create:mechanical_bearing",
+      "level": 7,
+      "cost": 300,
+      "time": "30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gearbox"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:andesite_casing",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:shaft",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:mechanical_bearing"
+        },
+        {
+          "type": "output",
+          "id": "create:mechanical_bearing"
+        },
+        {
+          "type": "block",
+          "id": "create:turntable"
+        },
+        {
+          "type": "output",
+          "id": "create:turntable"
+        }
+      ]
+    },
+    {
+      "id": "slicer",
+      "category": "processing",
+      "icon": "sliceanddice:slicer",
+      "level": 8,
+      "cost": 400,
+      "time": "35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "bearings"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:turntable",
+          "count": 2
+        },
+        {
+          "type": "deposit",
+          "item": "create:cogwheel",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "sliceanddice:slicer"
+        },
+        {
+          "type": "output",
+          "id": "sliceanddice:slicer"
+        }
+      ]
+    },
+    {
+      "id": "wrench_goggles",
+      "category": "transmission",
+      "icon": "create:wrench",
+      "level": 7,
+      "cost": 300,
+      "time": "30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:gold_pressing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:plates/gold",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create:wrench"
+        },
+        {
+          "type": "output",
+          "id": "create:goggles"
+        }
+      ]
+    },
+    {
+      "id": "toolbox",
+      "category": "logistics",
+      "icon": "create:brown_toolbox",
+      "level": 8,
+      "cost": 400,
+      "time": "35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "wrench_goggles"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:plates/gold",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:leather",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:*_toolbox"
+        },
+        {
+          "type": "output",
+          "id": "create:*_toolbox"
+        }
+      ]
+    },
+    {
+      "id": "desk_utilities",
+      "category": "logistics",
+      "icon": "create:clipboard",
+      "level": 8,
+      "cost": 350,
+      "time": "30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "depot"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:gold_pressing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:paper",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "#c:plates/gold",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:clipboard"
+        },
+        {
+          "type": "output",
+          "id": "create:clipboard"
+        },
+        {
+          "type": "block",
+          "id": "create:desk_bell"
+        },
+        {
+          "type": "output",
+          "id": "create:desk_bell"
+        },
+        {
+          "type": "output",
+          "id": "create:crafting_blueprint"
+        }
+      ]
+    },
+    {
+      "id": "schematics",
+      "category": "logistics",
+      "icon": "create:schematicannon",
+      "level": 9,
+      "cost": 450,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "depot"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:iron_compacting"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:dispenser",
+          "count": 1
+        },
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/iron",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:smooth_stone",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:schematic_table"
+        },
+        {
+          "type": "output",
+          "id": "create:schematic_table"
+        },
+        {
+          "type": "block",
+          "id": "create:schematicannon"
+        },
+        {
+          "type": "output",
+          "id": "create:schematicannon"
+        },
+        {
+          "type": "output",
+          "id": "create:empty_schematic"
+        },
+        {
+          "type": "output",
+          "id": "create:schematic_and_quill"
+        }
+      ]
+    },
+    {
+      "id": "cardboard",
+      "category": "logistics",
+      "icon": "create:cardboard",
+      "level": 9,
+      "cost": 450,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "chute"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:paper",
+          "count": 32
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:string",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create:cardboard*"
+        },
+        {
+          "type": "block",
+          "id": "create:cardboard_block"
+        },
+        {
+          "type": "output",
+          "id": "create:bound_cardboard_block"
+        },
+        {
+          "type": "block",
+          "id": "create:bound_cardboard_block"
+        },
+        {
+          "type": "output",
+          "id": "create:pulp"
+        }
+      ]
+    },
+    {
+      "id": "harvester_plough",
+      "category": "processing",
+      "icon": "create:mechanical_harvester",
+      "level": 8,
+      "cost": 400,
+      "time": "35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "drill_saw"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:andesite_casing",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "#c:plates/iron",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:mechanical_harvester"
+        },
+        {
+          "type": "output",
+          "id": "create:mechanical_harvester"
+        },
+        {
+          "type": "block",
+          "id": "create:mechanical_plough"
+        },
+        {
+          "type": "output",
+          "id": "create:mechanical_plough"
+        }
+      ]
+    },
+    {
+      "id": "pistons",
+      "category": "transmission",
+      "icon": "create:mechanical_piston",
+      "level": 8,
+      "cost": 400,
+      "time": "35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "bearings"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:andesite_casing",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "#c:slimeballs",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:mechanical_piston"
+        },
+        {
+          "type": "output",
+          "id": "create:mechanical_piston"
+        },
+        {
+          "type": "block",
+          "id": "create:sticky_mechanical_piston"
+        },
+        {
+          "type": "output",
+          "id": "create:sticky_mechanical_piston"
+        },
+        {
+          "type": "block",
+          "id": "create:piston_extension_pole"
+        },
+        {
+          "type": "output",
+          "id": "create:piston_extension_pole"
+        }
+      ]
+    },
+    {
+      "id": "rope_pulley",
+      "category": "transmission",
+      "icon": "create:rope_pulley",
+      "level": 8,
+      "cost": 400,
+      "time": "35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "bearings"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:iron_pressing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:andesite_casing",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "#minecraft:wool",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:rope_pulley"
+        },
+        {
+          "type": "output",
+          "id": "create:rope_pulley"
+        }
+      ]
+    },
+    {
+      "id": "weighted_ejector",
+      "category": "logistics",
+      "icon": "create:weighted_ejector",
+      "level": 8,
+      "cost": 400,
+      "time": "35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "depot"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:gold_pressing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:depot",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "#c:plates/gold",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:weighted_ejector"
+        },
+        {
+          "type": "output",
+          "id": "create:weighted_ejector"
+        }
+      ]
+    },
+    {
+      "id": "chassis",
+      "category": "transmission",
+      "icon": "create:linear_chassis",
+      "level": 9,
+      "cost": 450,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "pistons"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#minecraft:logs",
+          "count": 32
+        },
+        {
+          "type": "deposit",
+          "item": "create:andesite_alloy",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:linear_chassis"
+        },
+        {
+          "type": "output",
+          "id": "create:linear_chassis"
+        },
+        {
+          "type": "block",
+          "id": "create:radial_chassis"
+        },
+        {
+          "type": "output",
+          "id": "create:radial_chassis"
+        },
+        {
+          "type": "block",
+          "id": "create:secondary_linear_chassis"
+        },
+        {
+          "type": "output",
+          "id": "create:secondary_linear_chassis"
+        },
+        {
+          "type": "block",
+          "id": "create:sticker"
+        },
+        {
+          "type": "output",
+          "id": "create:sticker"
+        },
+        {
+          "type": "output",
+          "id": "create:super_glue"
+        }
+      ]
+    },
+    {
+      "id": "gantry",
+      "category": "transmission",
+      "icon": "create:gantry_shaft",
+      "level": 9,
+      "cost": 450,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "rope_pulley"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:andesite_casing",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:andesite_alloy",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "#c:dusts/redstone",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:gantry_carriage"
+        },
+        {
+          "type": "output",
+          "id": "create:gantry_carriage"
+        },
+        {
+          "type": "block",
+          "id": "create:gantry_shaft"
+        },
+        {
+          "type": "output",
+          "id": "create:gantry_shaft"
+        }
+      ]
+    },
+    {
+      "id": "item_vault",
+      "category": "logistics",
+      "icon": "create:item_vault",
+      "level": 9,
+      "cost": 500,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "chute"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:iron_deco"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:barrels/wooden",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "#c:plates/iron",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:item_vault"
+        },
+        {
+          "type": "output",
+          "id": "create:item_vault"
+        },
+        {
+          "type": "block",
+          "id": "create:item_hatch"
+        },
+        {
+          "type": "output",
+          "id": "create:item_hatch"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:item_silo"
+        },
+        {
+          "type": "block",
+          "id": "create_connected:item_silo"
+        }
+      ]
+    },
+    {
+      "id": "windmill",
+      "category": "power",
+      "icon": "create:windmill_bearing",
+      "level": 10,
+      "cost": 500,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "water_wheel"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#minecraft:wool",
+          "count": 32
+        },
+        {
+          "type": "deposit",
+          "item": "create:shaft",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:windmill_bearing"
+        },
+        {
+          "type": "output",
+          "id": "create:windmill_bearing"
+        },
+        {
+          "type": "block",
+          "id": "create:sail_frame"
+        },
+        {
+          "type": "output",
+          "id": "create:sail_frame"
+        },
+        {
+          "type": "block",
+          "id": "create:*_sail"
+        },
+        {
+          "type": "output",
+          "id": "create:*_sail"
+        }
+      ]
+    },
+    {
+      "id": "blaze_burner",
+      "category": "power",
+      "icon": "create:blaze_burner",
+      "level": 10,
+      "cost": 500,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:iron_pressing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:netherracks",
+          "count": 32
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:blaze_rod",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:blaze_burner"
+        },
+        {
+          "type": "output",
+          "id": "create:empty_blaze_burner"
+        }
+      ]
+    },
+    {
+      "id": "copper_casing",
+      "category": "fluids",
+      "icon": "create:copper_casing",
+      "level": 10,
+      "cost": 500,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:copper_pressing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/copper",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "#c:stripped_logs",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:copper_casing"
+        },
+        {
+          "type": "output",
+          "id": "create:copper_casing"
+        }
+      ]
+    },
+    {
+      "id": "cart_assembler",
+      "category": "transmission",
+      "icon": "create:cart_assembler",
+      "level": 10,
+      "cost": 500,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "chassis"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:iron_pressing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:minecart",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "#c:dusts/redstone",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:cart_assembler"
+        },
+        {
+          "type": "output",
+          "id": "create:cart_assembler"
+        },
+        {
+          "type": "block",
+          "id": "create:*_seat"
+        },
+        {
+          "type": "output",
+          "id": "create:*_seat"
+        },
+        {
+          "type": "output",
+          "id": "create:minecart_coupling"
+        }
+      ]
+    },
+    {
+      "id": "packaging",
+      "category": "logistics",
+      "icon": "create:packager",
+      "level": 10,
+      "cost": 550,
+      "time": "45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "item_vault"
+        },
+        {
+          "type": "node",
+          "id": "cardboard"
+        },
+        {
+          "type": "node",
+          "id": "copper_casing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/cardboard",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "#c:slimeballs",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:packager"
+        },
+        {
+          "type": "output",
+          "id": "create:packager"
+        },
+        {
+          "type": "block",
+          "id": "create:repackager"
+        },
+        {
+          "type": "output",
+          "id": "create:repackager"
+        },
+        {
+          "type": "block",
+          "id": "create:package_frogport"
+        },
+        {
+          "type": "output",
+          "id": "create:package_frogport"
+        },
+        {
+          "type": "block",
+          "id": "create:*_postbox"
+        },
+        {
+          "type": "output",
+          "id": "create:*_postbox"
+        },
+        {
+          "type": "output",
+          "id": "create_factory_logistics:barrel_packager"
+        },
+        {
+          "type": "block",
+          "id": "create_factory_logistics:barrel_packager"
+        },
+        {
+          "type": "output",
+          "id": "create_factory_logistics:jar_packager"
+        },
+        {
+          "type": "block",
+          "id": "create_factory_logistics:jar_packager"
+        }
+      ]
+    },
+    {
+      "id": "inventory_access",
+      "category": "logistics",
+      "icon": "create_connected:inventory_access_port",
+      "level": 17,
+      "cost": 2000,
+      "time": "2h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "item_vault"
+        },
+        {
+          "type": "node",
+          "id": "electron_tubes"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:item_vault",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "create:electron_tube",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create_connected:inventory_access_port"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:inventory_access_port"
+        },
+        {
+          "type": "block",
+          "id": "create_connected:inventory_bridge"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:inventory_bridge"
+        }
+      ]
+    },
+    {
+      "id": "fluid_basics",
+      "category": "fluids",
+      "icon": "create:fluid_tank",
+      "level": 11,
+      "cost": 700,
+      "time": "50m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "copper_casing"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:copper_pressing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/copper",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "#c:barrels/wooden",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:fluid_tank"
+        },
+        {
+          "type": "output",
+          "id": "create:fluid_tank"
+        },
+        {
+          "type": "block",
+          "id": "create:fluid_pipe"
+        },
+        {
+          "type": "output",
+          "id": "create:fluid_pipe"
+        },
+        {
+          "type": "block",
+          "id": "create:encased_fluid_pipe"
+        },
+        {
+          "type": "block",
+          "id": "create:glass_fluid_pipe"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:fluid_vessel"
+        },
+        {
+          "type": "block",
+          "id": "create_connected:fluid_vessel"
+        }
+      ]
+    },
+    {
+      "id": "fluid_mechanism",
+      "category": "fluids",
+      "icon": "create_factory_logistics:fluid_mechanism",
+      "level": 11,
+      "cost": 800,
+      "time": "55m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "fluid_basics"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:gold_compacting"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:plates/copper",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "create:cogwheel",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create_factory_logistics:fluid_mechanism"
+        }
+      ]
+    },
+    {
+      "id": "rose_quartz",
+      "category": "processing",
+      "icon": "create:polished_rose_quartz",
+      "level": 12,
+      "cost": 700,
+      "time": "50m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "basin"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:quartz",
+          "count": 32
+        },
+        {
+          "type": "deposit",
+          "item": "#c:sands",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create:rose_quartz"
+        },
+        {
+          "type": "output",
+          "id": "create:polished_rose_quartz"
+        },
+        {
+          "type": "output",
+          "id": "create:rose_quartz_block"
+        },
+        {
+          "type": "output",
+          "id": "create:rose_quartz_tiles"
+        },
+        {
+          "type": "output",
+          "id": "create:small_rose_quartz_tiles"
+        },
+        {
+          "type": "output",
+          "id": "create:sand_paper"
+        },
+        {
+          "type": "output",
+          "id": "create:red_sand_paper"
+        }
+      ]
+    },
+    {
+      "id": "cuisine",
+      "category": "processing",
+      "icon": "create:sweet_roll",
+      "level": 13,
+      "cost": 800,
+      "time": "55m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "mixer"
+        },
+        {
+          "type": "node",
+          "id": "fluid_handling"
+        },
+        {
+          "type": "node",
+          "id": "crushing_wheels"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:wheat_flour",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:sugar",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create:dough"
+        },
+        {
+          "type": "output",
+          "id": "create:sweet_roll"
+        },
+        {
+          "type": "output",
+          "id": "create:chocolate"
+        },
+        {
+          "type": "output",
+          "id": "create:bar_of_chocolate"
+        },
+        {
+          "type": "output",
+          "id": "create:builders_tea"
+        },
+        {
+          "type": "output",
+          "id": "create:tea"
+        },
+        {
+          "type": "output",
+          "id": "create:honey"
+        },
+        {
+          "type": "output",
+          "id": "create:honeyed_apple"
+        },
+        {
+          "type": "output",
+          "id": "create:chocolate_glazed_berries"
+        },
+        {
+          "type": "output",
+          "id": "create:blaze_cake"
+        },
+        {
+          "type": "output",
+          "id": "create:blaze_cake_base"
+        }
+      ]
+    },
+    {
+      "id": "chain_conveyor",
+      "category": "logistics",
+      "icon": "create:chain_conveyor",
+      "level": 11,
+      "cost": 700,
+      "time": "50m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:iron_deco"
+        },
+        {
+          "type": "node",
+          "id": "gearbox"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:chain",
+          "count": 64
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:chain_conveyor"
+        },
+        {
+          "type": "output",
+          "id": "create:chain_conveyor"
+        }
+      ]
+    },
+    {
+      "id": "fluid_handling",
+      "category": "fluids",
+      "icon": "create:mechanical_pump",
+      "level": 12,
+      "cost": 900,
+      "time": "1h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "fluid_mechanism"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:iron_deco"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:iron_pressing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create_factory_logistics:fluid_mechanism",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:dried_kelp",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:spout"
+        },
+        {
+          "type": "output",
+          "id": "create:spout"
+        },
+        {
+          "type": "block",
+          "id": "create:item_drain"
+        },
+        {
+          "type": "output",
+          "id": "create:item_drain"
+        },
+        {
+          "type": "block",
+          "id": "create:mechanical_pump"
+        },
+        {
+          "type": "output",
+          "id": "create:mechanical_pump"
+        },
+        {
+          "type": "block",
+          "id": "create:fluid_valve"
+        },
+        {
+          "type": "output",
+          "id": "create:fluid_valve"
+        },
+        {
+          "type": "block",
+          "id": "create:*_valve_handle"
+        },
+        {
+          "type": "output",
+          "id": "create:*_valve_handle"
+        }
+      ]
+    },
+    {
+      "id": "hose_pulley",
+      "category": "fluids",
+      "icon": "create:hose_pulley",
+      "level": 13,
+      "cost": 1000,
+      "time": "1h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "fluid_handling"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create_factory_logistics:fluid_mechanism",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:dried_kelp_block",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:hose_pulley"
+        },
+        {
+          "type": "output",
+          "id": "create:hose_pulley"
+        }
+      ]
+    },
+    {
+      "id": "sprinklers",
+      "category": "fluids",
+      "icon": "sliceanddice:sprinkler",
+      "level": 13,
+      "cost": 800,
+      "time": "55m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "fluid_handling"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:fluid_pipe",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "#c:plates/copper",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "sliceanddice:sprinkler"
+        },
+        {
+          "type": "output",
+          "id": "sliceanddice:sprinkler"
+        },
+        {
+          "type": "output",
+          "id": "sliceanddice:floor_sprinkler"
+        },
+        {
+          "type": "output",
+          "id": "sliceanddice:fertilizer"
+        }
+      ]
+    },
+    {
+      "id": "portable_fluid_interface",
+      "category": "fluids",
+      "icon": "create:portable_fluid_interface",
+      "level": 14,
+      "cost": 1200,
+      "time": "1h15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "hose_pulley"
+        },
+        {
+          "type": "node",
+          "id": "chute"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:chute",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:copper_casing",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create_factory_logistics:fluid_mechanism",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:portable_fluid_interface"
+        },
+        {
+          "type": "output",
+          "id": "create:portable_fluid_interface"
+        }
+      ]
+    },
+    {
+      "id": "steam_engine",
+      "category": "power",
+      "icon": "create:steam_engine",
+      "level": 15,
+      "cost": 1500,
+      "time": "1h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "large_water_wheel"
+        },
+        {
+          "type": "node",
+          "id": "blaze_burner"
+        },
+        {
+          "type": "node",
+          "id": "windmill"
+        },
+        {
+          "type": "node",
+          "id": "fluid_mechanism"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:gold_pressing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/copper",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "#c:plates/gold",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "create_factory_logistics:fluid_mechanism",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:steam_engine"
+        },
+        {
+          "type": "output",
+          "id": "create:steam_engine"
+        }
+      ]
+    },
+    {
+      "id": "brass_hand",
+      "category": "brass",
+      "icon": "create:brass_hand",
+      "level": 15,
+      "cost": 1200,
+      "time": "1h20m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:brass"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:plates/brass",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "create:andesite_alloy",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create:brass_hand"
+        },
+        {
+          "type": "output",
+          "id": "create:crafter_slot_cover"
+        }
+      ]
+    },
+    {
+      "id": "brass_casing",
+      "category": "brass",
+      "icon": "create:brass_casing",
+      "level": 15,
+      "cost": 1200,
+      "time": "1h20m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:brass"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/brass",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "#c:stripped_logs",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:brass_casing"
+        },
+        {
+          "type": "output",
+          "id": "create:brass_casing"
+        },
+        {
+          "type": "output",
+          "id": "create:brass_door"
+        }
+      ]
+    },
+    {
+      "id": "electron_tubes",
+      "category": "brass",
+      "icon": "create:electron_tube",
+      "level": 15,
+      "cost": 1300,
+      "time": "1h25m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "brass_casing"
+        },
+        {
+          "type": "node",
+          "id": "rose_quartz"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:polished_rose_quartz",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "#c:plates/iron",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create:electron_tube"
+        }
+      ]
+    },
+    {
+      "id": "steam_whistle",
+      "category": "power",
+      "icon": "create:steam_whistle",
+      "level": 16,
+      "cost": 1500,
+      "time": "1h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "steam_engine"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/copper",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "#c:plates/gold",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:steam_whistle"
+        },
+        {
+          "type": "output",
+          "id": "create:steam_whistle"
+        }
+      ]
+    },
+    {
+      "id": "copper_table_cover",
+      "category": "logistics",
+      "icon": "create:copper_table_cloth",
+      "level": 16,
+      "cost": 1600,
+      "time": "1h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "copper_casing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/copper",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:copper_table_cloth"
+        },
+        {
+          "type": "output",
+          "id": "create:copper_table_cloth"
+        }
+      ]
+    },
+    {
+      "id": "deployer",
+      "category": "brass",
+      "icon": "create:deployer",
+      "level": 16,
+      "cost": 2000,
+      "time": "2h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "brass_hand"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:brass"
+        },
+        {
+          "type": "node",
+          "id": "electron_tubes"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:brass_hand",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:andesite_casing",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:deployer"
+        },
+        {
+          "type": "output",
+          "id": "create:deployer"
+        }
+      ]
+    },
+    {
+      "id": "flywheel",
+      "category": "power",
+      "icon": "create:flywheel",
+      "level": 16,
+      "cost": 1600,
+      "time": "1h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "steam_engine"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:brass"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/brass",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:shaft",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:flywheel"
+        },
+        {
+          "type": "output",
+          "id": "create:flywheel"
+        }
+      ]
+    },
+    {
+      "id": "brass_funnels",
+      "category": "logistics",
+      "icon": "create:brass_funnel",
+      "level": 16,
+      "cost": 1800,
+      "time": "1h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "andesite_funnels"
+        },
+        {
+          "type": "node",
+          "id": "electron_tubes"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/brass",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "create:electron_tube",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:brass_funnel"
+        },
+        {
+          "type": "output",
+          "id": "create:brass_funnel"
+        },
+        {
+          "type": "block",
+          "id": "create:brass_tunnel"
+        },
+        {
+          "type": "output",
+          "id": "create:brass_tunnel"
+        },
+        {
+          "type": "output",
+          "id": "create:attribute_filter"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:brass_chute"
+        },
+        {
+          "type": "block",
+          "id": "create_connected:brass_chute"
+        }
+      ]
+    },
+    {
+      "id": "transmitter",
+      "category": "logistics",
+      "icon": "create:redstone_link",
+      "level": 17,
+      "cost": 2000,
+      "time": "2h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "electron_tubes"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:copper_pressing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:plates/copper",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:lightning_rod",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create:transmitter"
+        },
+        {
+          "type": "block",
+          "id": "create:redstone_link"
+        },
+        {
+          "type": "output",
+          "id": "create:redstone_link"
+        }
+      ]
+    },
+    {
+      "id": "mechanical_crafter",
+      "category": "brass",
+      "icon": "create:mechanical_crafter",
+      "level": 17,
+      "cost": 2000,
+      "time": "2h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "electron_tubes"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:brass_casing",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:electron_tube",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:crafting_table",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:mechanical_crafter"
+        },
+        {
+          "type": "output",
+          "id": "create:mechanical_crafter"
+        }
+      ]
+    },
+    {
+      "id": "smart_chute",
+      "category": "logistics",
+      "icon": "create:smart_chute",
+      "level": 17,
+      "cost": 2000,
+      "time": "2h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "chute"
+        },
+        {
+          "type": "node",
+          "id": "electron_tubes"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:chute",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "#c:plates/brass",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:electron_tube",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:smart_chute"
+        },
+        {
+          "type": "output",
+          "id": "create:smart_chute"
+        }
+      ]
+    },
+    {
+      "id": "hypertubes",
+      "category": "logistics",
+      "icon": "create_hypertube:hypertube",
+      "level": 22,
+      "cost": 3800,
+      "time": "3h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "smart_chute"
+        },
+        {
+          "type": "node",
+          "id": "transmitter"
+        },
+        {
+          "type": "node",
+          "id": "precision_mechanism"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:plates/brass",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "create:smart_chute",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create_hypertube:*"
+        },
+        {
+          "type": "output",
+          "id": "create_hypertube:*"
+        }
+      ]
+    },
+    {
+      "id": "smart_fluid_pipe",
+      "category": "fluids",
+      "icon": "create:smart_fluid_pipe",
+      "level": 17,
+      "cost": 2000,
+      "time": "2h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "fluid_handling"
+        },
+        {
+          "type": "node",
+          "id": "electron_tubes"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:fluid_pipe",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:electron_tube",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create_factory_logistics:fluid_mechanism",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:smart_fluid_pipe"
+        },
+        {
+          "type": "output",
+          "id": "create:smart_fluid_pipe"
+        }
+      ]
+    },
+    {
+      "id": "mechanical_roller",
+      "category": "processing",
+      "icon": "create:mechanical_roller",
+      "level": 17,
+      "cost": 2200,
+      "time": "2h15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "crushing_wheels"
+        },
+        {
+          "type": "node",
+          "id": "electron_tubes"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:crushing_wheel",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:electron_tube",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:mechanical_roller"
+        },
+        {
+          "type": "output",
+          "id": "create:mechanical_roller"
+        }
+      ]
+    },
+    {
+      "id": "redstone_circuits",
+      "category": "logistics",
+      "icon": "create:pulse_repeater",
+      "level": 18,
+      "cost": 2200,
+      "time": "2h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "transmitter"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:plates/brass",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "#c:dusts/redstone",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:pulse_repeater"
+        },
+        {
+          "type": "output",
+          "id": "create:pulse_repeater"
+        },
+        {
+          "type": "block",
+          "id": "create:pulse_extender"
+        },
+        {
+          "type": "output",
+          "id": "create:pulse_extender"
+        },
+        {
+          "type": "block",
+          "id": "create:pulse_timer"
+        },
+        {
+          "type": "output",
+          "id": "create:pulse_timer"
+        },
+        {
+          "type": "block",
+          "id": "create:powered_latch"
+        },
+        {
+          "type": "output",
+          "id": "create:powered_latch"
+        },
+        {
+          "type": "block",
+          "id": "create:powered_toggle_latch"
+        },
+        {
+          "type": "output",
+          "id": "create:powered_toggle_latch"
+        },
+        {
+          "type": "block",
+          "id": "create:redstone_contact"
+        },
+        {
+          "type": "output",
+          "id": "create:redstone_contact"
+        },
+        {
+          "type": "block",
+          "id": "create:analog_lever"
+        },
+        {
+          "type": "output",
+          "id": "create:analog_lever"
+        },
+        {
+          "type": "output",
+          "id": "create:linked_controller"
+        }
+      ]
+    },
+    {
+      "id": "sensors_displays",
+      "category": "logistics",
+      "icon": "create:content_observer",
+      "level": 18,
+      "cost": 2400,
+      "time": "2h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "transmitter"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:brass_casing",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:electron_tube",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:content_observer"
+        },
+        {
+          "type": "output",
+          "id": "create:content_observer"
+        },
+        {
+          "type": "block",
+          "id": "create:stockpile_switch"
+        },
+        {
+          "type": "output",
+          "id": "create:stockpile_switch"
+        },
+        {
+          "type": "block",
+          "id": "create:display_link"
+        },
+        {
+          "type": "output",
+          "id": "create:display_link"
+        },
+        {
+          "type": "block",
+          "id": "create:nixie_tube"
+        },
+        {
+          "type": "output",
+          "id": "create:nixie_tube"
+        },
+        {
+          "type": "block",
+          "id": "create:contraption_controls"
+        },
+        {
+          "type": "output",
+          "id": "create:contraption_controls"
+        },
+        {
+          "type": "output",
+          "id": "create:display_board"
+        }
+      ]
+    },
+    {
+      "id": "connected_brass_drives",
+      "category": "brass",
+      "icon": "create_connected:overstress_clutch",
+      "level": 17,
+      "cost": 2000,
+      "time": "2h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "electron_tubes"
+        },
+        {
+          "type": "node",
+          "id": "chain_drives"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:clutch",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "create:electron_tube",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create_connected:overstress_clutch"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:overstress_clutch"
+        },
+        {
+          "type": "block",
+          "id": "create_connected:brake"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:brake"
+        },
+        {
+          "type": "block",
+          "id": "create_connected:kinetic_bridge"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:kinetic_bridge"
+        }
+      ]
+    },
+    {
+      "id": "brass_motion",
+      "category": "transmission",
+      "icon": "create:sequenced_gearshift",
+      "level": 18,
+      "cost": 2400,
+      "time": "2h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "chain_drives"
+        },
+        {
+          "type": "node",
+          "id": "electron_tubes"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:brass_casing",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:electron_tube",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:cogwheel",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:sequenced_gearshift"
+        },
+        {
+          "type": "output",
+          "id": "create:sequenced_gearshift"
+        },
+        {
+          "type": "block",
+          "id": "create:clockwork_bearing"
+        },
+        {
+          "type": "output",
+          "id": "create:clockwork_bearing"
+        },
+        {
+          "type": "block",
+          "id": "create:elevator_pulley"
+        },
+        {
+          "type": "output",
+          "id": "create:elevator_pulley"
+        }
+      ]
+    },
+    {
+      "id": "sturdy_sheet",
+      "category": "brass",
+      "icon": "create:sturdy_sheet",
+      "level": 19,
+      "cost": 2600,
+      "time": "2h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "fluid_handling"
+        },
+        {
+          "type": "node",
+          "id": "crushing_wheels"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:obsidian",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:lava_bucket",
+          "count": 2
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create:sturdy_sheet"
+        }
+      ]
+    },
+    {
+      "id": "brass_curios",
+      "category": "brass",
+      "icon": "create:peculiar_bell",
+      "level": 17,
+      "cost": 2000,
+      "time": "2h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "brass_casing"
+        },
+        {
+          "type": "node",
+          "id": "encased_fan"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/brass",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:clock",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:peculiar_bell"
+        },
+        {
+          "type": "output",
+          "id": "create:peculiar_bell"
+        },
+        {
+          "type": "block",
+          "id": "create:haunted_bell"
+        },
+        {
+          "type": "output",
+          "id": "create:haunted_bell"
+        },
+        {
+          "type": "block",
+          "id": "create:cuckoo_clock"
+        },
+        {
+          "type": "output",
+          "id": "create:cuckoo_clock"
+        },
+        {
+          "type": "output",
+          "id": "create:mysterious_cuckoo_clock"
+        },
+        {
+          "type": "block",
+          "id": "create:placard"
+        },
+        {
+          "type": "output",
+          "id": "create:placard"
+        }
+      ]
+    },
+    {
+      "id": "stock_logistics",
+      "category": "logistics",
+      "icon": "create:stock_ticker",
+      "level": 19,
+      "cost": 2600,
+      "time": "2h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "packaging"
+        },
+        {
+          "type": "node",
+          "id": "transmitter"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:item_vault",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:transmitter",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:packager",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:stock_link"
+        },
+        {
+          "type": "output",
+          "id": "create:stock_link"
+        },
+        {
+          "type": "block",
+          "id": "create:stock_ticker"
+        },
+        {
+          "type": "output",
+          "id": "create:stock_ticker"
+        },
+        {
+          "type": "block",
+          "id": "create:redstone_requester"
+        },
+        {
+          "type": "output",
+          "id": "create:redstone_requester"
+        },
+        {
+          "type": "output",
+          "id": "create:package_filter"
+        },
+        {
+          "type": "output",
+          "id": "create_factory_logistics:network_link"
+        },
+        {
+          "type": "block",
+          "id": "create_factory_logistics:network_link"
+        }
+      ]
+    },
+    {
+      "id": "connected_redstone",
+      "category": "logistics",
+      "icon": "create_connected:sequenced_pulse_generator",
+      "level": 19,
+      "cost": 2600,
+      "time": "2h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "sensors_displays"
+        },
+        {
+          "type": "node",
+          "id": "redstone_circuits"
+        },
+        {
+          "type": "node",
+          "id": "brass_hand"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:gold_pressing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:electron_tube",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "create:transmitter",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create_connected:control_chip"
+        },
+        {
+          "type": "block",
+          "id": "create_connected:sequenced_pulse_generator"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:sequenced_pulse_generator"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:linked_transmitter"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:redstone_link_wildcard"
+        },
+        {
+          "type": "block",
+          "id": "create_connected:dashboard"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:dashboard"
+        }
+      ]
+    },
+    {
+      "id": "precision_mechanism",
+      "category": "brass",
+      "icon": "create:precision_mechanism",
+      "level": 20,
+      "cost": 3000,
+      "time": "3h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "deployer"
+        },
+        {
+          "type": "node",
+          "id": "mechanical_crafter"
+        },
+        {
+          "type": "node",
+          "id": "brass_funnels"
+        },
+        {
+          "type": "node",
+          "id": "brass_motion"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:gold_pressing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:plates/gold",
+          "count": 32
+        },
+        {
+          "type": "deposit",
+          "item": "create:cogwheel",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "create:large_cogwheel",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "#c:nuggets/iron",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create:precision_mechanism"
+        }
+      ]
+    },
+    {
+      "id": "copper_backtank",
+      "category": "fluids",
+      "icon": "create:copper_backtank",
+      "level": 20,
+      "cost": 3000,
+      "time": "3h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "portable_fluid_interface"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/copper",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:andesite_alloy",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "create:shaft",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:copper_backtank"
+        },
+        {
+          "type": "output",
+          "id": "create:copper_backtank"
+        }
+      ]
+    },
+    {
+      "id": "mechanical_arm",
+      "category": "brass",
+      "icon": "create:mechanical_arm",
+      "level": 21,
+      "cost": 3500,
+      "time": "3h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "precision_mechanism"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:precision_mechanism",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_casing",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:mechanical_arm"
+        },
+        {
+          "type": "output",
+          "id": "create:mechanical_arm"
+        }
+      ]
+    },
+    {
+      "id": "rotation_speed_controller",
+      "category": "transmission",
+      "icon": "create:rotation_speed_controller",
+      "level": 21,
+      "cost": 3500,
+      "time": "3h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "precision_mechanism"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:precision_mechanism",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_casing",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:rotation_speed_controller"
+        },
+        {
+          "type": "output",
+          "id": "create:rotation_speed_controller"
+        }
+      ]
+    },
+    {
+      "id": "connected_precision",
+      "category": "brass",
+      "icon": "create_connected:kinetic_battery",
+      "level": 22,
+      "cost": 3800,
+      "time": "3h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "rotation_speed_controller"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:precision_mechanism",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "create:rotation_speed_controller",
+          "count": 2
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create_connected:brass_gearbox"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:brass_gearbox"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:vertical_brass_gearbox"
+        },
+        {
+          "type": "block",
+          "id": "create_connected:kinetic_battery"
+        },
+        {
+          "type": "output",
+          "id": "create_connected:kinetic_battery"
+        }
+      ]
+    },
+    {
+      "id": "railways",
+      "category": "brass",
+      "icon": "create:railway_casing",
+      "level": 21,
+      "cost": 3500,
+      "time": "3h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "electron_tubes"
+        },
+        {
+          "type": "node",
+          "id": "sturdy_sheet"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:brass_casing",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "create:sturdy_sheet",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:railway_casing"
+        },
+        {
+          "type": "output",
+          "id": "create:railway_casing"
+        },
+        {
+          "type": "block",
+          "id": "create:track"
+        },
+        {
+          "type": "output",
+          "id": "create:track"
+        },
+        {
+          "type": "block",
+          "id": "create:track_station"
+        },
+        {
+          "type": "output",
+          "id": "create:track_station"
+        },
+        {
+          "type": "block",
+          "id": "create:track_signal"
+        },
+        {
+          "type": "output",
+          "id": "create:track_signal"
+        },
+        {
+          "type": "block",
+          "id": "create:track_observer"
+        },
+        {
+          "type": "output",
+          "id": "create:track_observer"
+        },
+        {
+          "type": "block",
+          "id": "create:train_door"
+        },
+        {
+          "type": "output",
+          "id": "create:train_door"
+        },
+        {
+          "type": "block",
+          "id": "create:train_trapdoor"
+        },
+        {
+          "type": "output",
+          "id": "create:train_trapdoor"
+        },
+        {
+          "type": "output",
+          "id": "create:controller_rail"
+        },
+        {
+          "type": "output",
+          "id": "create:schedule"
+        },
+        {
+          "type": "output",
+          "id": "create_train_parts:*"
+        },
+        {
+          "type": "block",
+          "id": "create_train_parts:*"
+        }
+      ]
+    },
+    {
+      "id": "factory_gauge",
+      "category": "logistics",
+      "icon": "create:factory_gauge",
+      "level": 22,
+      "cost": 3800,
+      "time": "3h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "stock_logistics"
+        },
+        {
+          "type": "node",
+          "id": "precision_mechanism"
+        },
+        {
+          "type": "node",
+          "id": "fluid_mechanism"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:precision_mechanism",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:stock_link",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:factory_gauge"
+        },
+        {
+          "type": "output",
+          "id": "create:factory_gauge"
+        },
+        {
+          "type": "output",
+          "id": "create_factory_logistics:factory_fluid_gauge"
+        },
+        {
+          "type": "block",
+          "id": "create_factory_logistics:factory_fluid_gauge"
+        },
+        {
+          "type": "output",
+          "id": "create_factory_logistics:factory_chemical_gauge"
+        },
+        {
+          "type": "block",
+          "id": "create_factory_logistics:factory_chemical_gauge"
+        }
+      ]
+    },
+    {
+      "id": "train_controls",
+      "category": "brass",
+      "icon": "create:controls",
+      "level": 23,
+      "cost": 4000,
+      "time": "3h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "railways"
+        },
+        {
+          "type": "node",
+          "id": "precision_mechanism"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:precision_mechanism",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "create:railway_casing",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:controls"
+        },
+        {
+          "type": "output",
+          "id": "create:controls"
+        }
+      ]
+    },
+    {
+      "id": "copper_diving_gear",
+      "category": "fluids",
+      "icon": "create:copper_diving_helmet",
+      "level": 23,
+      "cost": 4200,
+      "time": "3h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "copper_backtank"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/copper",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "#c:glass_blocks",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create:copper_diving_helmet"
+        },
+        {
+          "type": "output",
+          "id": "create:copper_diving_boots"
+        }
+      ]
+    },
+    {
+      "id": "jetpack",
+      "category": "fluids",
+      "icon": "create_jetpack:jetpack",
+      "level": 24,
+      "cost": 4500,
+      "time": "3h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "copper_backtank"
+        },
+        {
+          "type": "node",
+          "id": "precision_mechanism"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:precision_mechanism",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "create:copper_backtank",
+          "count": 2
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:elytra",
+          "count": 1
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create_jetpack:jetpack"
+        },
+        {
+          "type": "output",
+          "id": "create_jetpack:jetpack"
+        }
+      ]
+    },
+    {
+      "id": "netherite_diving",
+      "category": "fluids",
+      "icon": "create:netherite_diving_helmet",
+      "level": 25,
+      "cost": 5000,
+      "time": "4h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "copper_diving_gear"
+        },
+        {
+          "type": "node",
+          "id": "jetpack"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:netherite_ingot",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:netherite_upgrade_smithing_template",
+          "count": 3
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create:netherite_backtank"
+        },
+        {
+          "type": "output",
+          "id": "create:netherite_diving_helmet"
+        },
+        {
+          "type": "output",
+          "id": "create:netherite_diving_boots"
+        },
+        {
+          "type": "output",
+          "id": "create_jetpack:netherite_jetpack"
+        }
+      ]
+    },
+    {
+      "id": "extendo_wand",
+      "category": "brass",
+      "icon": "create:extendo_grip",
+      "level": 24,
+      "cost": 4500,
+      "time": "3h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "precision_mechanism"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:precision_mechanism",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_hand",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "#c:ingots/brass",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create:extendo_grip"
+        },
+        {
+          "type": "output",
+          "id": "create:wand_of_symmetry"
+        }
+      ]
+    },
+    {
+      "id": "potato_cannon",
+      "category": "fluids",
+      "icon": "create:potato_cannon",
+      "level": 25,
+      "cost": 5000,
+      "time": "4h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "fluid_basics"
+        },
+        {
+          "type": "node",
+          "id": "precision_mechanism"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:precision_mechanism",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "create:fluid_pipe",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "#c:ingots/copper",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create:potato_cannon"
+        }
+      ]
+    }
+  ]
+}

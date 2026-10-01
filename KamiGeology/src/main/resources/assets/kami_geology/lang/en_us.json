@@ -101,6 +101,7 @@
   "kami_geology.ore.vanadium": "Vanadium",
   "kami_geology.ore.zinc": "Zinc",
   "kami_geology.prospector.no_deposits": "No deposits in this dimension",
+  "kami_geology.prospector.discovered": "New deposit found, your country gains XP",
   "kami_geology.prospector.nothing": "No ore below you",
   "kami_geology.province.arid": "Arid",
   "kami_geology.province.boreal": "Boreal",

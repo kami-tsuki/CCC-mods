@@ -1,6 +1,8 @@
 package kami.claims.client.app.pages
 
 import kami.claims.client.app.ClaimsApp
+import kami.claims.client.app.ClientLocks
+import kami.claims.research.Capacity
 import kami.claims.client.app.ClaimsPage
 import kami.libs.ui.app.Consequence
 import kami.claims.client.app.Dialogs
@@ -56,6 +58,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
 
     override fun draw(ui: Ui, r: Rect) {
         val info = info ?: return
+        ClientLocks.unlock(Capacity.PROVINCES, tr("kami_claims.nav.provinces"))?.takeIf { info.parent.isEmpty() }?.let { return ui.lockedPanel(r, tr("kami_claims.nav.provinces"), tr("kami_claims.provinces.locked.teaser"), it, Icons.CHAIN, "provinces-locked") }
         val offers = info.provinceInvites.size + info.provinceRequests.size
         val tabsRect = r.top(CONTROL_H)
         ui.anchor("provinces:tabs", tabsRect)

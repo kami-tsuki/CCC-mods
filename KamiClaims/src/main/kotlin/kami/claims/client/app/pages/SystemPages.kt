@@ -54,7 +54,7 @@ class HelpPage(app: ClaimsApp) : ClaimsPage(app) {
             if (ui.pressed(row) != null) chapter = i
         }
         val g = nav.dropTop(chapters.size * (NAV_ROW_H + 2) + 8)
-        if (ui.button(Rect(g.x, g.y, g.w, CONTROL_H), tr("kami_claims.help.tour"), Icons.STAR, key = "tour")) { ClientClaims.prefs.tourDone = false; app.startTour() }
+        if (ui.button(Rect(g.x, g.y, g.w, CONTROL_H), tr("kami_claims.help.tour"), Icons.STAR, key = "tour")) app.startTour()
         val c = chapters[chapter]
         val card = ui.card(body.top((body.h * 0.6).toInt()), c.title, c.icon)
         var y = card.y
@@ -120,7 +120,7 @@ class SettingsPage(app: ClaimsApp) : ClaimsPage(app) {
         ui.slider(lf2.take(CONTROL_H), p.tooltipDelay.toDouble(), 0.0, 1500.0, 50.0, format = { "${Format.number(it.toLong())} ms" }, key = "tip-delay")?.let { p.tooltipDelay = it.toInt(); save() }
         val guide = ui.card(rf.take(92), tr("kami_claims.settings.guidance"), Icons.HELP)
         val gf = Flow(guide, 4)
-        if (ui.button(gf.take(CONTROL_H), tr("kami_claims.help.tour"), Icons.STAR, key = "tour")) { p.tourDone = false; save(); app.startTour() }
+        if (ui.button(gf.take(CONTROL_H), tr("kami_claims.help.tour"), Icons.STAR, key = "tour")) app.startTour()
         if (ui.button(gf.take(CONTROL_H), tr("kami_claims.settings.guidance.undismiss", Format.number(p.dismissed.size)), Icons.BELL, enabled = p.dismissed.isNotEmpty(), disabledReason = tr("kami_claims.settings.guidance.undismiss.disabled"), key = "undismiss")) { p.dismissed.clear(); save() }
         if (ui.button(gf.take(CONTROL_H), tr("kami_claims.settings.guidance.steps"), Icons.CHECK, enabled = p.hiddenSteps, disabledReason = tr("kami_claims.settings.guidance.steps.disabled"), key = "steps")) { p.hiddenSteps = false; save() }
         val keys = ui.card(rf.remaining(), tr("kami_claims.settings.keys"), Icons.GENERIC)

@@ -1,5 +1,6 @@
 package kami.libs.ui.app
 
+import kami.libs.ui.anim.reveal
 import kami.libs.ui.text.tr
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Ui
@@ -21,6 +22,10 @@ import kami.libs.ui.widget.scroll
 import net.minecraft.resources.ResourceLocation
 import kotlin.math.max
 import kotlin.math.min
+
+private const val OPEN_MS = 150
+private const val OPEN_SLIDE = 8
+private const val OPEN_VEIL = 0.85f
 
 enum class DialogKind { INFO, CONFIRM, DESTRUCTIVE }
 
@@ -63,9 +68,10 @@ class Dialog(
         val maxBody = (screen.h - 40 - headerH - stepsH - hazardH - footerH - staleH).coerceAtLeast(48)
         val w = min(width, screen.w - 16)
         val h = hazardH + headerH + stepsH + staleH + min(bodyHeight, maxBody) + footerH + 12
-        val box = screen.centered(w, h)
+        val appear = ui.reveal("open", hashCode().toLong(), ms = OPEN_MS)
+        val box = screen.centered(w, h).slideIn(appear, 0, OPEN_SLIDE)
         ui.block(screen)
-        Draw.fill(ui.g, screen, Palette.backdrop)
+        Draw.veil(ui.g, screen, Palette.backdrop, appear)
         Draw.shadow(ui.g, box, 2)
         Draw.sprite(ui.g, if (kind == DialogKind.DESTRUCTIVE) Sprites.MODAL_DANGER else Sprites.MODAL, box)
         var y = box.y + 1
@@ -104,6 +110,7 @@ class Dialog(
             scope.used = inner.used
         }
         if (scope.used > 0) bodyHeight = scope.used
+        Draw.veilBox(ui.g, box.inset(1), appear, strength = OPEN_VEIL)
         ui.onEscape(40) { close() }
     }
 }

@@ -14,6 +14,8 @@ object Docs {
         "siteCache" to "Deposit sites kept in memory.",
         "auditThreshold" to "Ore blocks an area needs to count as having a supply, used by the audit command.",
         "chains" to "Production chains checked by the audit command: name to the ores it needs.",
+        "scanBlocks" to "Prospector tier to scan width in blocks, centered on you.",
+        "scanChunks" to "Prospector tier to scan width in chunks, centered on your chunk.",
         "richness" to "Deposit grades: drop and ore density multipliers.",
         "richness.grades.weight" to "Relative chance of a grade."
     )

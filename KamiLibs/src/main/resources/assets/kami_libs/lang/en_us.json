@@ -58,6 +58,7 @@
   "kami_libs.pager.label": "%1$s / %2$s",
   "kami_libs.pager.next.tooltip": "Next page",
   "kami_libs.pager.prev.tooltip": "Previous page",
+  "kami_libs.progress.paused": "Paused",
   "kami_libs.table.empty": "No entries",
   "kami_libs.time.ago": "%s ago",
   "kami_libs.time.date_pattern": "MMM d, HH:mm",
@@ -76,5 +77,19 @@
   "kami_libs.unit.per_day": "%s/day",
   "kami_libs.unit.percent": "%s%%",
   "kami_libs.unit.thousand": "%sK",
-  "kami_libs.unit.trillion": "%sT"
+  "kami_libs.unit.trillion": "%sT",
+  "kami_libs.lock.level": "%s unlocks at level %s.",
+  "kami_libs.lock.capacity": "%s limit reached (%s).",
+  "kami_libs.lock.capacity_next": "%s limit reached (%s). Level %s raises it to %s.",
+  "kami_libs.lock.no_country": "You need a country for this.",
+  "kami_libs.lock.research": "Requires research: %s.",
+  "kami_libs.lock.embargo": "Trade blocked: embargo with %s.",
+  "kami_libs.lock.ui.level": "Level %s",
+  "kami_libs.lock.ui.level.how": "Reach level %s to get this.",
+  "kami_libs.lock.ui.level.how_for": "%2$s unlocks at level %1$s.",
+  "kami_libs.lock.ui.research": "Research: %s",
+  "kami_libs.lock.ui.research.how": "Finish the research %s to get this.",
+  "kami_libs.lock.ui.raise": "Level %1$s raises it to %2$s",
+  "kami_libs.lock.ui.raise.how": "Reach level %1$s to raise this limit to %2$s.",
+  "kami_libs.lock.ui.full": "Full"
 }

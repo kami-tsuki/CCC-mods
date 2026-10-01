@@ -6,6 +6,7 @@ import kami.essentials.Flag
 import kami.essentials.Store
 import kami.essentials.chat.Names
 import kami.libs.chat.Theme
+import kami.libs.claims.ClaimsApi
 import kami.libs.economy.Coins
 import kami.libs.economy.Numismatics
 import net.minecraft.ChatFormatting
@@ -32,6 +33,8 @@ object Sidebar {
     val LINES: Map<String, (ServerPlayer) -> Component> = linkedMapOf(
         "country" to { p -> Names.citizenship(p.uuid)?.let { Component.literal(it.name).withColor(Names.color(it)) } ?: none() },
         "rank" to { p -> Names.citizenship(p.uuid)?.let { Names.title(it.rank).withColor(Theme.VALUE) } ?: none() },
+        "level" to { p -> ClaimsApi.level(p.uuid)?.let { value(it.toString()) } ?: none() },
+        "goal" to { p -> ClaimsApi.goals(p.uuid).firstOrNull()?.let { it.text.component().withColor(Theme.VALUE) } ?: none() },
         "balance" to { p -> value(Coins.compact(Numismatics.balance(p.uuid))) },
         "playtime" to { p -> Names.playtime(p).component().withColor(Theme.VALUE) },
         "kills" to { p -> value("%,d".format(Names.stat(p, Stats.PLAYER_KILLS))) },

@@ -41,3 +41,6 @@ scripts/ui-art/
 
 # Local planning docs
 docs/
+tmp_*/
+tmp_audit/
+scripts/__pycache__/

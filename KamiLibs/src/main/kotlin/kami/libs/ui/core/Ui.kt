@@ -5,7 +5,12 @@ import kami.libs.ui.style.Icon
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
 import kami.libs.ui.style.UiSound
-import kotlin.math.exp
+import kami.libs.ui.anim.reveal
+import kami.libs.ui.anim.Effects
+import kami.libs.ui.anim.Floaters
+import kami.libs.ui.anim.Glows
+import kami.libs.ui.anim.MotionStore
+import kami.libs.ui.anim.Sparks
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.screens.Screen
@@ -28,6 +33,8 @@ class Tip(
     }
 }
 
+private const val TIP_FADE_MS = 90
+
 class Ui {
     lateinit var g: GuiGraphics
         private set
@@ -38,7 +45,9 @@ class Ui {
         private set
     var screen = Rect.ZERO
         private set
-    var now = 0L
+    var wallMillis = 0L
+        private set
+    var time = 0.0
         private set
     var dt = 0f
         private set
@@ -59,8 +68,14 @@ class Ui {
     private var hovered: String? = null
     private var hoverSince = 0L
 
-    private val scopes = ArrayList<String>()
+    private val prefixes = ArrayList<String>()
+    private var prefix = ""
     private val states = HashMap<String, Any>()
+    val motion = MotionStore()
+    val sparks = Sparks()
+    val floaters = Floaters()
+    val glows = Glows()
+    private val startNanos = System.nanoTime()
     private val clips = ArrayList<Rect>()
     private var blockers = ArrayList<Pair<Int, Rect>>()
     private var nextBlockers = ArrayList<Pair<Int, Rect>>()
@@ -73,18 +88,20 @@ class Ui {
         private set
     private var tip: Tip? = null
     private var tipKey: String? = null
+    private var shownTipKey: String? = null
+    private var tipEpoch = 0L
     private var appliedCursor = Cursor.ARROW
     private val glfwCursors = HashMap<Cursor, Long>()
 
-    fun id(key: Any): String = if (scopes.isEmpty()) key.toString() else scopes.joinToString("/") + "/" + key
+    fun id(key: Any): String = if (prefix.isEmpty()) key.toString() else prefix + key
 
     inline fun <R> scope(key: Any, block: () -> R): R {
         push(key.toString())
         try { return block() } finally { pop() }
     }
 
-    fun push(key: String) { scopes += key }
-    fun pop() { scopes.removeAt(scopes.lastIndex) }
+    fun push(key: String) { prefixes += prefix; prefix = "$prefix$key/" }
+    fun pop() { prefix = prefixes.removeAt(prefixes.lastIndex) }
 
     @Suppress("UNCHECKED_CAST")
     fun <T : Any> remember(key: Any, init: () -> T): T = states.getOrPut(id(key), init) as T
@@ -97,14 +114,19 @@ class Ui {
         return cache.result
     }
 
-    fun forget(prefix: String) { states.keys.removeIf { it.startsWith(prefix) } }
+    fun forget(prefix: String) {
+        states.keys.removeIf { it.startsWith(prefix) }
+        motion.forget(prefix)
+    }
 
     fun frame(graphics: GuiGraphics, mx: Int, my: Int, width: Int, height: Int, draw: () -> Unit) {
         g = graphics
-        val t = System.currentTimeMillis()
-        dt = if (now == 0L) 0f else ((t - now) / 1000f).coerceIn(0f, 0.1f)
-        now = t
+        val elapsed = (System.nanoTime() - startNanos) / 1e9
+        dt = if (frame == 0L) 0f else (elapsed - time).toFloat().coerceIn(0f, 0.1f)
+        time = elapsed
+        wallMillis = System.currentTimeMillis()
         frame++
+        motion.sweep(frame)
         mouseX = mx
         mouseY = my
         screen = Rect(0, 0, width, height)
@@ -118,6 +140,7 @@ class Ui {
         if (input.presses.isNotEmpty()) keyboardMode = false
         draw()
         runOverlays()
+        drawParticles()
         drawTooltip()
         handleTabbing()
         blockers = nextBlockers
@@ -145,14 +168,14 @@ class Ui {
 
     fun overlay(offset: Int = 1, draw: () -> Unit) {
         val target = layer + offset
-        val captured = ArrayList(scopes)
+        val captured = prefix
         overlays.getOrPut(target) { ArrayList() } += {
-            val saved = ArrayList(scopes)
+            val saved = prefix
             val savedClips = ArrayList(clips)
-            scopes.clear(); scopes.addAll(captured)
+            prefix = captured
             clips.clear()
             draw()
-            scopes.clear(); scopes.addAll(saved)
+            prefix = saved
             clips.clear(); clips.addAll(savedClips)
         }
     }
@@ -170,12 +193,12 @@ class Ui {
         val over = hovering(r)
         if (over) {
             val full = id(key)
-            if (hovered != full) { hovered = full; hoverSince = now }
+            if (hovered != full) { hovered = full; hoverSince = wallMillis }
         }
         return over
     }
 
-    fun hoverTime(key: Any): Long = if (hovered == id(key)) now - hoverSince else 0
+    fun hoverTime(key: Any): Long = if (hovered == id(key)) wallMillis - hoverSince else 0
 
     fun pressed(r: Rect, button: Int = 0): Click? =
         input.presses.firstOrNull { !it.consumed && it.button == button && r.contains(it.x, it.y) && canHit(it.x, it.y) }?.also { it.consumed = true }
@@ -238,38 +261,24 @@ class Ui {
     fun tooltip(key: Any, r: Rect, tip: Tip) = tooltip(key, r) { tip }
 
     private fun drawTooltip() {
-        val t = tip ?: return
+        val t = tip
+        if (t == null) { shownTipKey = null; return }
+        if (tipKey != shownTipKey) { shownTipKey = tipKey; tipEpoch++ }
+        val appear = reveal("tooltip", tipEpoch, ms = TIP_FADE_MS)
         g.pose().pushPose()
         g.pose().translate(0f, 0f, 900f)
-        Tooltips.draw(g, t, mouseX, mouseY, screen)
+        Tooltips.draw(g, t, mouseX, mouseY, screen, appear)
         g.pose().popPose()
     }
 
-    fun animate(key: Any, target: Float, speed: Float = 14f, start: Float = target): Float {
-        val state = remember("anim:$key") { floatArrayOf(start) }
-        if (reduceMotion) { state[0] = target; return target }
-        state[0] += (target - state[0]) * (1 - exp(-speed * dt))
-        if (kotlin.math.abs(target - state[0]) < 0.001f) state[0] = target
-        return state[0]
-    }
-
-    fun flash(key: Any, value: Long): Int {
-        val state = remember("flash:$key") { longArrayOf(value, 0L, 0L) }
-        if (state[0] != value) {
-            state[2] = if (value > state[0]) 1 else -1
-            state[0] = value
-            state[1] = now
-        }
-        val age = now - state[1]
-        if (state[1] == 0L || age > 900) return 0
-        val alpha = ((1 - age / 900f) * 0x60).toInt()
-        return Palette.alpha(if (state[2] > 0) Palette.success else Palette.danger, alpha)
-    }
-
-    fun pulse(periodMs: Long = 1200): Float {
-        if (reduceMotion) return 0.5f
-        val t = (now % periodMs) / periodMs.toFloat()
-        return (kotlin.math.sin(t * Math.PI * 2).toFloat() + 1f) / 2f
+    private fun drawParticles() {
+        sparks.update(dt)
+        floaters.update(dt)
+        glows.update(dt)
+        g.pose().pushPose()
+        g.pose().translate(0f, 0f, 850f)
+        Effects.drawParticles(g, sparks, floaters, glows)
+        g.pose().popPose()
     }
 
     fun click(sound: Boolean = true) { if (sound) UiSound.click() }

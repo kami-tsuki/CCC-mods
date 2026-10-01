@@ -5,6 +5,13 @@ import kami.claims.client.store.ClaimsStore
 import kami.libs.ui.app.Consequence
 import kami.libs.ui.app.Dialog
 import kami.libs.ui.app.confirmDialog
+import kami.libs.ui.app.consequences
+import kami.claims.research.Tokens
+import kami.libs.ui.widget.CONTROL_H
+import kami.libs.ui.widget.TextState
+import kami.libs.ui.widget.fieldHelp
+import kami.libs.ui.widget.fieldLabel
+import kami.libs.ui.widget.textField
 import kami.libs.ui.app.dialogButtons
 import kami.libs.ui.app.numberDialogBody
 import kami.libs.ui.core.Rect
@@ -22,6 +29,35 @@ object Dialogs {
     ) = confirmDialog(app::open, title, subtitle, icon, items, primary, danger, hold, typed, stale = stale) {
         ClaimsStore.send(name, *args, key = name)
         after()
+    }
+
+    fun rename(app: ClaimsApp) {
+        val name = TextState()
+        app.open(Dialog(tr("kami_claims.rename.title"), tr("kami_claims.rename.subtitle"), Icons.EDIT) { s ->
+            val snap = ClaimsStore.snap ?: return@Dialog
+            val min = snap.limits?.nameMin ?: 3
+            val max = snap.limits?.nameMax ?: 24
+            name.error = when {
+                name.text.length < min -> tr("kami_claims.wizard.name.error.short", min)
+                !name.text.all { it.isLetterOrDigit() || it == '_' || it == '-' } -> tr("kami_claims.wizard.name.error.chars")
+                snap.countries.any { it.name.equals(name.text, true) } -> tr("kami_claims.wizard.name.error.taken")
+                else -> null
+            }
+            val offer = tokenOffer(Tokens.RENAME)
+            var y = s.body.y
+            fieldLabel(Rect(s.body.x, y, s.body.w, 9), tr("kami_claims.wizard.name"), "${name.text.length}/$max"); y += 11
+            textField(Rect(s.body.x, y, s.body.w, CONTROL_H), name, snap.info?.name.orEmpty(), Icons.FLAG, maxLength = max, allow = { it.isLetterOrDigit() || it == '_' || it == '-' }, key = "rename-field", autoFocus = true)
+            name.touched = name.text.isNotEmpty()
+            y += CONTROL_H + 2
+            fieldHelp(Rect(s.body.x, y, s.body.w, 9), name, tr("kami_claims.rename.desc")); y += 16
+            y += consequences(s.body.x, y, s.body.w, listOf(Consequence(offer.text, offer.severity), Consequence(tr("kami_claims.rename.keeps")))) + 4
+            s.used = y - s.body.y
+            val reason = name.error ?: tr("kami_claims.token.unaffordable")
+            dialogButtons(s, tr("kami_claims.rename.action"), name.error == null && name.text.isNotEmpty() && offer.affordable, reason) {
+                ClaimsStore.send("rename", name.text, key = "rename")
+                s.close()
+            }
+        })
     }
 
     fun money(app: ClaimsApp, deposit: Boolean, suggested: Long = 10) {

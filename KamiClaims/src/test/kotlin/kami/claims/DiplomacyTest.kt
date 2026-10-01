@@ -11,7 +11,7 @@ import kotlin.test.assertTrue
 
 class DiplomacyTest {
     private fun country(name: String): Country {
-        val c = Country(name)
+        val c = Country(name, level = 100)
         Realm.data.countries[c.id] = c
         Realm.join(c, "${name}_p", Rank.PRESIDENT)
         return c

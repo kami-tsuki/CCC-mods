@@ -3,7 +3,23 @@
   "minVersion": "0.8",
   "package": "kami.claims.mixin",
   "compatibilityLevel": "JAVA_21",
-  "mixins": ["FireBlockMixin", "FlowingFluidMixin"],
+  "mixins": [
+    "FireBlockMixin",
+    "FlowingFluidMixin",
+    "research.LevelMixin",
+    "research.ServerLevelMixin",
+    "research.PacketListenerMixin",
+    "research.PayloadContextMixin",
+    "research.RecipeManagerMixin",
+    "research.CraftingMenuMixin",
+    "research.RecipeCacheMixin",
+    "research.CreateRecipeFinderMixin",
+    "research.CreateSequencedAssemblyMixin",
+    "research.CreateProcessingRecipeMixin",
+    "research.CbcBlockRecipeFinderMixin",
+    "research.FurnaceBlockEntityMixin",
+    "research.TaczGunSmithMixin"
+  ],
   "client": [],
   "injectors": { "defaultRequire": 0 }
 }

@@ -1,6 +1,7 @@
 package kami.essentials.trade
 
 import kami.libs.claims.ClaimsApi
+import kami.libs.claims.Locks
 import kami.libs.text.Phrase
 import kami.essentials.Config
 import kami.essentials.Perms
@@ -85,6 +86,9 @@ object Trades {
         if (me === other) fail(Phrase.of("kami_essentials.trade.self"))
         if (!ClaimsApi.isCitizen(me.uuid)) fail(Phrase.of("kami_libs.economy.no_country"))
         if (!ClaimsApi.isCitizen(other.uuid)) fail(Phrase.of("kami_essentials.trade.other_no_country", Phrase.value(name)))
+        val mine = ClaimsApi.countryOf(me.uuid)
+        val theirs = ClaimsApi.countryOf(other.uuid)
+        if (mine != null && theirs != null && !ClaimsApi.canTrade(mine, theirs)) fail(Locks.embargo(ClaimsApi.country(theirs)?.name ?: theirs))
         if (busy(me)) fail(Phrase.of("kami_essentials.trade.busy"))
         if (busy(other)) fail(Phrase.of("kami_essentials.trade.other_busy", Phrase.value(name)))
         if (!inRange(me, other)) fail(

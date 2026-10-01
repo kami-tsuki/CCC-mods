@@ -101,6 +101,7 @@
   "kami_geology.ore.vanadium": "Vanadium",
   "kami_geology.ore.zinc": "Zink",
   "kami_geology.prospector.no_deposits": "In dieser Dimension gibt es keine Vorkommen",
+  "kami_geology.prospector.discovered": "Neues Vorkommen gefunden, dein Land erhält XP",
   "kami_geology.prospector.nothing": "Kein Erz unter dir",
   "kami_geology.province.arid": "Trocken",
   "kami_geology.province.boreal": "Boreal",

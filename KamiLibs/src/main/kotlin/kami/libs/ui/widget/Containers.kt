@@ -1,18 +1,29 @@
 package kami.libs.ui.widget
 
+import kami.libs.ui.anim.Ease
+import kami.libs.ui.anim.anim
+import kotlin.math.roundToInt
 import kami.libs.ui.core.Cursor
 import kami.libs.ui.core.Flow
 import kami.libs.ui.core.Rect
+import kami.libs.ui.core.Stack
 import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Icon
+import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
 import kami.libs.ui.style.Sprites
 import kami.libs.ui.style.TextStyle
 import kami.libs.ui.style.UiSound
+import net.minecraft.resources.ResourceLocation
+import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.min
+
+private const val EASE_SPEED = 18f
+private const val SECTION_ROW_H = 13
 
 class ScrollState {
     var offset = 0.0
@@ -20,9 +31,17 @@ class ScrollState {
     var content = 0
     var view = 0
     var reveal: Int? = null
+    var center: Int? = null
 
-    val max get() = kotlin.math.max(0, content - view)
+    val max get() = maxOf(0, content - view)
     fun scrollTo(y: Int) { reveal = y }
+    fun centerOn(position: Int) { center = position }
+}
+
+internal fun Ui.ease(s: ScrollState) {
+    s.target = s.target.coerceIn(0.0, s.max.toDouble())
+    s.offset += (s.target - s.offset) * (if (reduceMotion) 1.0 else Ease.blend(EASE_SPEED, dt).toDouble())
+    if (abs(s.target - s.offset) < 0.5) s.offset = s.target
 }
 
 fun Ui.scroll(key: Any, r: Rect, contentHeight: Int, draw: (Rect) -> Unit): ScrollState {
@@ -32,9 +51,7 @@ fun Ui.scroll(key: Any, r: Rect, contentHeight: Int, draw: (Rect) -> Unit): Scro
     s.reveal?.let { y -> if (y < s.target || y > s.target + r.h - 20) s.target = (y - 20).toDouble(); s.reveal = null }
     val w = wheel(r)
     if (w != 0.0) s.target -= w * 24
-    s.target = s.target.coerceIn(0.0, s.max.toDouble())
-    s.offset += (s.target - s.offset) * (if (reduceMotion) 1.0 else (1 - kotlin.math.exp(-18.0 * dt)))
-    if (kotlin.math.abs(s.target - s.offset) < 0.5) s.offset = s.target
+    ease(s)
     val bar = s.max > 0
     val content = Rect(r.x, r.y - s.offset.toInt(), r.w - if (bar) 4 else 0, max(contentHeight, r.h))
     clip(r) { draw(content) }
@@ -85,7 +102,7 @@ fun Ui.card(r: Rect, title: String? = null, icon: Icon? = null, severity: Severi
     trailing?.let { Draw.textRight(g, Draw.fit(it, (r.w / 2).coerceAtLeast(26)), r.right - (if (help != null) 17 else 5), textY, Palette.textMuted) }
     help?.let { h ->
         val hr = Rect(r.right - 15, header.y + (header.h - 12) / 2 + 1, 12, 12)
-        Draw.tintedIcon(g, kami.libs.ui.style.Icons.HELP, hr.x - 2, hr.y - 2, Draw.ICON, if (hovering(hr)) Palette.text else Palette.textMuted)
+        Draw.tintedIcon(g, Icons.HELP, hr.x - 2, hr.y - 2, Draw.ICON, if (hovering(hr)) Palette.text else Palette.textMuted)
         tooltip("help:$key", hr) { Tip.text(h, title) }
     }
     return Rect(r.x + 5, header.bottom + 4, r.w - 10, r.h - header.h - 8)
@@ -97,12 +114,15 @@ fun Ui.section(r: Rect, title: String, trailing: String? = null): Rect {
     Draw.hline(g, r.x, r.y + 10, r.w, Palette.borderSubtle)
     return r.dropTop(13)
 }
+fun Ui.section(stack: Stack, title: String, trailing: String? = null): Rect = section(stack.take(SECTION_ROW_H), title, trailing)
 
-class TabItem(val label: String, val icon: Icon? = null, val badge: Int = 0, val badgeSeverity: Severity = Severity.INFO, val disabledReason: String? = null)
+class TabItem(val label: String, val icon: Icon? = null, val badge: Int = 0, val badgeSeverity: Severity = Severity.INFO, val disabledReason: String? = null, val lock: Lock? = null)
 
 fun Ui.subTabs(r: Rect, tabs: List<TabItem>, selected: Int, key: Any = "tabs"): Int? {
     var result: Int? = null
     var x = r.x
+    var underlineX = -1
+    var underlineW = 0
     Draw.hline(g, r.x, r.bottom - 1, r.w, Palette.borderSubtle)
     val remainingMin = { index: Int -> ((tabs.size - index - 1) * 36).coerceAtLeast(0) }
     tabs.forEachIndexed { i, t ->
@@ -110,14 +130,14 @@ fun Ui.subTabs(r: Rect, tabs: List<TabItem>, selected: Int, key: Any = "tabs"): 
         val maxW = (r.right - x - remainingMin(i)).coerceAtLeast(36)
         val w = natural.coerceIn(36, maxW)
         val cell = Rect(x, r.y, w, r.h)
-        val usable = t.disabledReason == null
+        val usable = t.disabledReason == null && t.lock == null
         focusable("$key:$i")
         val hover = hover("$key:$i", cell) && usable
         if (hover) cursor = Cursor.HAND
         if (i == selected) Draw.sprite(g, Sprites.TAB_ACTIVE, cell.inset(0, 0, 0, 1))
         else if (hover) Draw.fill(g, cell.inset(0, 2, 0, 1), Palette.hover)
         var tx = cell.x + 7
-        t.icon?.let { tx += Draw.leadIcon(g, it, tx, cell.centerY) }
+        (if (t.lock != null) Icons.LOCK else t.icon)?.let { tx += Draw.leadIcon(g, it, tx, cell.centerY, if (t.lock != null) Palette.warning else null) }
         val badgeText = if (t.badge > 0) t.badge.toString() else null
         val badgeW = badgeText?.let { max(10, Draw.width(it) + 5) } ?: 0
         val textW = (cell.right - tx - if (badgeW > 0) badgeW + 4 else 6).coerceAtLeast(6)
@@ -128,11 +148,17 @@ fun Ui.subTabs(r: Rect, tabs: List<TabItem>, selected: Int, key: Any = "tabs"): 
             else -> Palette.textMuted
         })
         if (badgeText != null) badge(cell.right - badgeW - 4, cell.y + (cell.h - 10) / 2, badgeText, t.badgeSeverity)
-        if (i == selected) Draw.fill(g, Rect(cell.x, cell.bottom - 2, cell.w, 2), Palette.brass)
-        controlTip("$key:$i", cell, usable, t.disabledReason, t.label.takeIf { it != label })
+        if (i == selected) { underlineX = cell.x; underlineW = cell.w }
+        controlTip("$key:$i", cell, usable, t.disabledReason ?: t.lock?.let { it.how ?: it.label }, t.label.takeIf { it != label })
+        t.lock?.let { lockClick(cell, it) }
         focusRing("$key:$i", cell)
         if (usable && i != selected && (pressed(cell) != null || activatedByKey("$key:$i"))) { result = i; UiSound.page() }
         x += w + 1
+    }
+    if (underlineX >= 0) {
+        val left = anim("$key:underline-x", underlineX.toFloat(), 22f)
+        val width = anim("$key:underline-w", underlineW.toFloat(), 22f)
+        Draw.fill(g, Rect(left.roundToInt(), r.bottom - 2, width.roundToInt(), 2), Palette.brass)
     }
     return result
 }
@@ -144,12 +170,12 @@ fun Ui.badge(x: Int, y: Int, text: String, severity: Severity = Severity.INFO): 
     return w
 }
 
-fun Ui.emptyState(r: Rect, title: String, body: String, illustration: net.minecraft.resources.ResourceLocation? = null, action: String? = null, actionIcon: Icon? = null, key: Any = "empty"): Boolean {
+fun Ui.emptyState(r: Rect, title: String, body: String, illustration: ResourceLocation? = null, action: String? = null, actionIcon: Icon? = null, key: Any = "empty"): Boolean {
     var y = r.y + max(4, (r.h - 120) / 3)
     illustration?.let { Draw.sprite(g, it, Rect(r.centerX - 32, y, 64, 64)); y += 68 }
     Draw.text(g, title, r.centerX - Draw.width(title, TextStyle.HEADING) / 2, y, TextStyle.HEADING)
     y += 13
-    val lines = Draw.wrap(body, kotlin.math.min(260, r.w - 20))
+    val lines = Draw.wrap(body, min(260, r.w - 20))
     lines.forEach { line -> g.drawString(Draw.font, line, r.centerX - Draw.font.width(line) / 2, y, Palette.textSecondary, false); y += Draw.LINE }
     if (action == null) return false
     val w = buttonWidth(action, actionIcon)

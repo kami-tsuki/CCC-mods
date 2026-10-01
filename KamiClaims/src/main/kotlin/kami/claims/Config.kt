@@ -35,7 +35,8 @@ data class Settings(
     val successionDays: Int = 31,
     val inviteDays: Int = 7,
     val capitalCooldownDays: Int = 7,
-    val maxPlots: Int = 4,
+    val renameCost: Long = 50_000,
+    val capitalMoveCost: Long = 10_000,
     val residentialTax: Int = 5,
     val shutdownDays: Int = 3,
     val releaseDays: Int = 3,
@@ -56,7 +57,7 @@ data class Settings(
     val caps: Map<Cap, Rank> = mapOf(
         Cap.CLAIM to Rank.CHANCELLOR, Cap.CAPITAL to Rank.PRESIDENT, Cap.TAX to Rank.CHANCELLOR, Cap.RULES to Rank.CHANCELLOR,
         Cap.WITHDRAW to Rank.CHANCELLOR, Cap.INVITE to Rank.OFFICER, Cap.MEMBERS to Rank.OFFICER, Cap.RANK to Rank.CHANCELLOR,
-        Cap.JOBS to Rank.OFFICER, Cap.PLOT to Rank.CITIZEN, Cap.DETAILS to Rank.CHANCELLOR, Cap.PROVINCE to Rank.CHANCELLOR, Cap.TRADE to Rank.CHANCELLOR
+        Cap.JOBS to Rank.OFFICER, Cap.PLOT to Rank.CITIZEN, Cap.DETAILS to Rank.CHANCELLOR, Cap.PROVINCE to Rank.CHANCELLOR, Cap.TRADE to Rank.CHANCELLOR, Cap.RESEARCH to Rank.CHANCELLOR
     ),
     val provinceTaxRateBounds: List<Double> = listOf(0.0, 0.5),
     val maxProvinceDebt: Int = 3,
@@ -104,6 +105,8 @@ private fun Settings.sane(): Settings {
         nameLength = nameLength.takeIf { it.size == 2 && it[0] in 1..it[1] && it[1] <= 48 } ?: listOf(3, 24),
         types = valid,
         caps = Cap.values().associateWith { caps[it] ?: Settings().caps.getValue(it) },
+        renameCost = renameCost.coerceAtLeast(0),
+        capitalMoveCost = capitalMoveCost.coerceAtLeast(0),
         maxRect = maxRect.coerceIn(1, 4096),
         defaultType = defaultType.takeIf { it in valid } ?: valid.keys.first(),
         provinceTaxRateBounds = provinceTaxRateBounds.takeIf { it.size == 2 && it[0] in 0.0..it[1] && it[1] <= 1.0 } ?: listOf(0.0, 0.5),
@@ -129,6 +132,8 @@ private val sections = listOf(
             "successionDays" to "Days a president can be offline before the chancellor takes over.",
             "inviteDays" to "Days an invite stays open.",
             "capitalCooldownDays" to "Days between two capital moves.",
+            "renameCost" to "Spurs from the treasury for renaming a country when it has no rename token.",
+            "capitalMoveCost" to "Spurs from the treasury for moving the capital when the country has no capital move token.",
             "maxRect" to "Most chunks one area selection may cover.",
             "maxCatchUp" to "Most missed days worked off at once after downtime.",
             "nameLength" to "Shortest and longest country name.",
@@ -168,7 +173,6 @@ private val sections = listOf(
     Section(
         "plots.json", "Player plots inside residential chunks.",
         mapOf(
-            "maxPlots" to "Most plots one player can own.",
             "residentialTax" to "Default daily rent of a plot.",
             "shutdownDays" to "Unpaid days before the owner is locked out.",
             "releaseDays" to "Days after the lockout before others can take the plot.",

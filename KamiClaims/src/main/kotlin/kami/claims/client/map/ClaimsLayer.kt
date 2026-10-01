@@ -6,6 +6,7 @@ import kami.libs.ui.widget.Flags
 import kami.claims.client.app.Vocabulary
 import kami.claims.client.store.ClaimsStore
 import kami.claims.service.View
+import kami.libs.ui.anim.pulse
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Ui
 import kami.libs.ui.map.ChunkMap
@@ -86,7 +87,7 @@ object ClaimsLayer {
         val xs = map.visibleX()
         val zs = map.visibleZ()
         val zoom = map.zoom
-        val phase = if (ui.reduceMotion) 0 else (ui.now / 120 % 64).toInt()
+        val phase = if (ui.reduceMotion) 0 else (ui.wallMillis / 120 % 64).toInt()
         for (x in xs) for (z in zs) {
             val e = ClientClaims.at(dim, x, z)
             val r = map.cell(x, z)

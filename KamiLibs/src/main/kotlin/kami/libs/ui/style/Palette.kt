@@ -7,6 +7,8 @@ import net.minecraft.server.packs.resources.ResourceManager
 import kotlin.reflect.KProperty
 
 object Palette {
+    const val MIN_VISIBLE_ALPHA = 0x08
+
     private val defaults = LinkedHashMap<String, Int>()
     private val values = HashMap<String, Int>()
 
@@ -90,6 +92,11 @@ object Palette {
     }
 
     fun alpha(color: Int, alpha: Int) = (alpha.coerceIn(0, 255) shl 24) or (color and 0xFFFFFF)
+    fun fade(color: Int, t: Float): Int {
+        val a = ((color ushr 24) * t.coerceIn(0f, 1f)).toInt()
+        return if (a < MIN_VISIBLE_ALPHA) 0 else (a shl 24) or (color and 0xFFFFFF)
+    }
+
     fun opaque(rgb: Int) = 0xFF000000.toInt() or (rgb and 0xFFFFFF)
 
     fun mix(a: Int, b: Int, t: Float): Int {

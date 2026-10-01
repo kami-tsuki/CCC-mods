@@ -6,6 +6,10 @@ import kami.claims.ProvinceOffer
 import kami.claims.Realm
 import kami.claims.TaxMode
 import kami.claims.now
+import kami.claims.research.Capacity
+import kami.claims.research.Features
+import kami.claims.research.Levels
+import kami.claims.research.Progress
 import kami.claims.social.Mail
 import kami.libs.chat.Tone
 import kami.claims.service.Words.v
@@ -30,7 +34,10 @@ object Provinces {
 
     private fun ownProvince(parent: Country, child: Country) { if (child.parent != parent.id) throw Fail("kami_claims.error.not_province") }
 
-    private fun canHold(parent: Country) { if (parent.parent != null) throw Fail("kami_claims.error.province_nested") }
+    private fun canHold(parent: Country) {
+        if (parent.parent != null) throw Fail("kami_claims.error.province_nested")
+        Features.requireRoom(parent, Capacity.PROVINCES, parent.provinces.size)
+    }
 
     fun agreementLines(child: Country, parent: Country, offer: ProvinceOffer): List<Phrase> =
         listOf(
@@ -95,6 +102,7 @@ object Provinces {
         child.provinceInvites.clear()
         child.provinceRequests.clear()
         parent.provinces += child.id
+        Progress.report(parent, "province", child.id, 1, "province:${child.id}")
         Realm.syncAllies()
         Mail.broadcast(child, Phrase.of("kami_claims.mail.province_joined", v(child.name), v(parent.name), Words.tribute(mode, amount)))
         Mail.broadcast(parent, Phrase.of("kami_claims.mail.province_added", v(child.name)))
@@ -150,6 +158,7 @@ object Provinces {
         if (newParent.id == child.id) throw Fail("kami_claims.error.province_self")
         if (newParent.id == parent.id) throw Fail("kami_claims.error.already_yours_named", v(child.name))
         if (newParent.parent != null) throw Fail("kami_claims.error.province_holder", v(newParent.name))
+        canHold(newParent)
     }
 
     fun give(parent: Country, child: Country, newParent: Country) {
@@ -158,6 +167,7 @@ object Provinces {
         child.parent = newParent.id
         child.independenceRequested = false
         newParent.provinces += child.id
+        Progress.report(newParent, "province", child.id, 1, "province:${child.id}")
         Realm.syncAllies()
         Mail.broadcast(child, Phrase.of("kami_claims.mail.province_given", v(child.name), v(newParent.name)))
         Mail.broadcast(newParent, Phrase.of("kami_claims.mail.province_received", v(child.name)))

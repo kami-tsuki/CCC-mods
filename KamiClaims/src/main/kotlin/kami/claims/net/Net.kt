@@ -94,6 +94,8 @@ object Net {
         r.playToServer(Act.type, Act.codec) { a, ctx -> (ctx.player() as? ServerPlayer)?.let { handle(it, a) } }
         r.playToClient(Snapshot.type, Snapshot.codec) { s, _ -> ClientHooks.snapshot(s) }
         r.playToClient(ClaimsPacket.TYPE, ClaimsPacket.CODEC) { c, _ -> ClientHooks.claims(c.data) }
+        r.playToClient(ResearchDefsPacket.TYPE, ResearchDefsPacket.CODEC) { d, _ -> ClientHooks.researchDefs(d.defs) }
+        r.playToClient(ResearchStatePacket.TYPE, ResearchStatePacket.CODEC) { s, _ -> ClientHooks.researchState(s.state) }
         r.playToClient(Denied.TYPE, Denied.CODEC) { d, _ -> ClientHooks.denied(d) }
     }
 
@@ -108,6 +110,7 @@ object Net {
     fun deny(p: ServerPlayer, d: Denied) = PacketDistributor.sendToPlayer(p, d)
 
     fun push(server: MinecraftServer) {
+        ResearchSync.flush(server)
         if (server.tickCount - lastPush < 20) return
         lastPush = server.tickCount
         pushTo(server.playerList.players)
@@ -134,6 +137,7 @@ object Net {
         lastAct.forget(p.uuid)
         lastPreview.forget(p.uuid)
         sent.remove(p.uuid)
+        ResearchSync.forget(p)
         openPlayers.remove(p.uuid)
         Sync.forget(p)
     }

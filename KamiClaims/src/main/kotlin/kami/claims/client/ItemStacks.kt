@@ -1,0 +1,50 @@
+package kami.claims.client
+
+import kami.libs.mc.Selectors
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.core.registries.Registries
+import net.minecraft.resources.ResourceLocation
+import net.minecraft.tags.TagKey
+import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.Items
+
+private const val MAX_SELECTORS = 3
+
+private val stacks = HashMap<String, ItemStack>()
+private val members = HashMap<String, List<List<ItemStack>>>()
+private val shown = HashMap<String, MutableList<ItemStack>>()
+private const val CYCLE_MS = 1000L
+
+fun stackOf(selector: String): ItemStack = stacks.getOrPut(selector) { firstItem(selector)?.let { ItemStack(it) } ?: ItemStack.EMPTY }
+
+fun cyclingStacksOf(subject: String, now: Long): List<ItemStack> {
+    val options = members.getOrPut(subject) {
+        subject.split(',').map { allItems(it.trim()).map(::ItemStack) }.filter { it.isNotEmpty() }.take(MAX_SELECTORS)
+    }
+    val out = shown.getOrPut(subject) { options.mapTo(ArrayList()) { it.first() } }
+    val tick = now / CYCLE_MS
+    options.forEachIndexed { i, items -> out[i] = items[(tick % items.size).toInt()] }
+    return out
+}
+
+fun forgetStacks() {
+    stacks.clear()
+    members.clear()
+    shown.clear()
+}
+
+private fun allItems(selector: String): List<Item> =
+    if (selector.startsWith("#")) ResourceLocation.tryParse(selector.drop(1))
+        ?.let { BuiltInRegistries.ITEM.getTag(TagKey.create(Registries.ITEM, it)).orElse(null) }
+        ?.map { it.value() }?.filter { it != Items.AIR }.orEmpty()
+    else listOfNotNull(firstItem(selector))
+
+private fun firstItem(selector: String): Item? = when {
+    selector.startsWith("#") -> ResourceLocation.tryParse(selector.drop(1))
+        ?.let { BuiltInRegistries.ITEM.getTag(TagKey.create(Registries.ITEM, it)).orElse(null) }
+        ?.firstOrNull { it.value() != Items.AIR }?.value()
+    '*' in selector || '?' in selector -> BuiltInRegistries.ITEM.keySet().filter { Selectors.glob(selector, it.toString()) }.minOrNull()
+        ?.let { BuiltInRegistries.ITEM.get(it) }?.takeIf { it != Items.AIR }
+    else -> ResourceLocation.tryParse(selector)?.let { BuiltInRegistries.ITEM.getOptional(it).orElse(null) }?.takeIf { it != Items.AIR }
+}

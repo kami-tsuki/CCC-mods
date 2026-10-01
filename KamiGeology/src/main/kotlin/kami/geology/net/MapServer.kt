@@ -2,14 +2,18 @@ package kami.geology.net
 
 import kami.geology.KamiGeology
 import kami.geology.client.ClientHooks
+import kami.geology.command.GeoText
 import kami.geology.config.Distribution
 import kami.geology.map.Heatmap
 import kami.geology.map.MapColors
 import kami.geology.map.Sparse
 import kami.geology.map.Workers
+import kami.geology.world.Discovery
 import kami.geology.world.Prospector
 import kami.geology.world.WorldContext
 import kami.geology.world.Worlds
+import kami.libs.chat.Theme
+import kami.libs.text.Phrase
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
 import net.neoforged.neoforge.network.PacketDistributor
@@ -30,6 +34,7 @@ object MapServer {
         latestMap.remove(player.uuid)
         latestProbe.remove(player.uuid)
         scans.remove(player.uuid)
+        Discovery.forget(player)
     }
 
     fun scan(player: ServerPlayer, tier: Int) {
@@ -37,7 +42,7 @@ object MapServer {
         val world = Worlds.of(level) ?: return
         val chunkX = Math.floorDiv(player.blockX, 16)
         val chunkZ = Math.floorDiv(player.blockZ, 16)
-        val region = Prospector.region(tier, player.blockX, player.blockZ, chunkX, chunkZ)
+        val region = Prospector.region(world.settings.general, tier, player.blockX, player.blockZ, chunkX, chunkZ)
         scans[player.uuid] = ScanLock(level.dimension().location(), region.x0, region.z0, region.w, region.h)
         val (ores, provinces) = legend(world)
         PacketDistributor.sendToPlayer(
@@ -48,6 +53,10 @@ object MapServer {
                 region.x0, region.z0, region.w, region.h
             )
         )
+        val sites = world.settings.ores.flatMap { world.sitesIn(it, region.x0, region.z0, region.x0 + region.w - 1, region.z0 + region.h - 1) }
+        if (Discovery.report(player, tier, sites)) {
+            player.sendSystemMessage(GeoText.chat.msg { add(Phrase.of("kami_geology.prospector.discovered"), Theme.MUTED) })
+        }
     }
 
     private fun legend(world: WorldContext): Pair<List<OreInfo>, List<ProvinceInfo>> {

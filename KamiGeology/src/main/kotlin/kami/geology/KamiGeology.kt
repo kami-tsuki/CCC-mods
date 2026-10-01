@@ -12,9 +12,12 @@ import kami.geology.world.GeologyBiomeModifier
 import kami.geology.world.GeologyFeature
 import kami.geology.world.Worlds
 import kami.libs.config.Configs
+import kami.libs.geology.DepositInfo
 import kami.libs.geology.GeologyApi
+import kami.libs.geology.GeologyProvider
 import kami.libs.log.Log
 import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.item.CreativeModeTabs
 import net.minecraft.world.item.Item
@@ -57,12 +60,21 @@ object KamiGeology {
         MOD_BUS.addListener<FMLCommonSetupEvent> {
             ConfigStore.load()
             Configs.onReload("geology", GeologyCommand::reload)
-            GeologyApi.register { level, x, z, y0, y1, callback ->
-                val world = Worlds.of(level)
-                if (world == null) callback(emptyList()) else Workers.pool.execute {
-                    callback(runCatching { Heatmap.probe(world, x, z, y0, y1) }.getOrElse { emptyList() })
+            GeologyApi.register(object : GeologyProvider {
+                override fun probe(level: ServerLevel, x: Int, z: Int, y0: Int, y1: Int, callback: (List<String>) -> Unit) {
+                    val world = Worlds.of(level)
+                    if (world == null) callback(emptyList()) else Workers.pool.execute {
+                        callback(runCatching { Heatmap.probe(world, x, z, y0, y1) }.getOrElse { emptyList() })
+                    }
                 }
-            }
+
+                override fun deposits(level: ServerLevel, x: Int, z: Int): List<DepositInfo> {
+                    val world = Worlds.of(level) ?: return emptyList()
+                    return world.settings.ores.flatMap { ore ->
+                        world.sitesIn(ore, x, z, x, z).map { DepositInfo(ore.id, it.id.toString(), ore.tiers.indexOf(it.tier), it.grade.drops) }
+                    }
+                }
+            })
         }
         MOD_BUS.addListener<BuildCreativeModeTabContentsEvent> { event ->
             if (event.tabKey == CreativeModeTabs.TOOLS_AND_UTILITIES) PROSPECTORS_BY_TIER.forEach { event.accept(it.get()) }

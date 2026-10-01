@@ -4,6 +4,9 @@ import com.mojang.blaze3d.platform.InputConstants
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.hud.Hud
 import kami.claims.client.store.ClaimsStore
+import kami.claims.client.store.ClientResearch
+import kami.claims.net.DefsView
+import kami.claims.net.StateView
 import kami.claims.client.world.BlockHint
 import kami.claims.client.world.Borders
 import kami.claims.net.Denied
@@ -35,6 +38,7 @@ object ClientHooks {
 
     fun init() {
         Highlights.register(KamiHighlighter())
+        ResearchTooltip.init()
         MOD_BUS.addListener<RegisterKeyMappingsEvent> { it.register(open); it.register(borders) }
         MOD_BUS.addListener<RegisterGuiLayersEvent> {
             it.registerAboveAll(ResourceLocation.fromNamespaceAndPath("kami_claims", "territory")) { g, _ -> Hud.render(g) }
@@ -46,7 +50,7 @@ object ClientHooks {
             applyPrefs()
             ClaimsStore.quiet("watch")
         }
-        FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> { TerrainCache.clear() }
+        FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> { TerrainCache.clear(); ClientResearch.clear() }
     }
 
     private fun applyPrefs() {
@@ -79,4 +83,8 @@ object ClientHooks {
     fun claims(payload: View.Payload) = ClientClaims.update(payload)
 
     fun denied(d: Denied) = BlockHint.denied(d)
+
+    fun researchDefs(defs: DefsView) = ClientResearch.receive(defs)
+
+    fun researchState(state: StateView) = ClientResearch.receive(state)
 }

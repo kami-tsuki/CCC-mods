@@ -58,6 +58,7 @@
   "kami_libs.pager.label": "%1$s / %2$s",
   "kami_libs.pager.next.tooltip": "Nächste Seite",
   "kami_libs.pager.prev.tooltip": "Vorherige Seite",
+  "kami_libs.progress.paused": "Pausiert",
   "kami_libs.table.empty": "Keine Einträge",
   "kami_libs.time.ago": "vor %s",
   "kami_libs.time.date_pattern": "d. MMM, HH:mm",
@@ -76,5 +77,19 @@
   "kami_libs.unit.per_day": "%s/Tag",
   "kami_libs.unit.percent": "%s %%",
   "kami_libs.unit.thousand": "%s Tsd.",
-  "kami_libs.unit.trillion": "%s Bio."
+  "kami_libs.unit.trillion": "%s Bio.",
+  "kami_libs.lock.level": "%s wird ab Level %s freigeschaltet.",
+  "kami_libs.lock.capacity": "%s Limit erreicht (%s).",
+  "kami_libs.lock.capacity_next": "%s Limit erreicht (%s). Level %s erhöht es auf %s.",
+  "kami_libs.lock.no_country": "Dafür brauchst du ein Land.",
+  "kami_libs.lock.research": "Benötigt Forschung: %s.",
+  "kami_libs.lock.embargo": "Handel blockiert: Embargo mit %s.",
+  "kami_libs.lock.ui.level": "Level %s",
+  "kami_libs.lock.ui.level.how": "Erreiche Level %s, um das freizuschalten.",
+  "kami_libs.lock.ui.level.how_for": "%2$s wird mit Level %1$s frei.",
+  "kami_libs.lock.ui.research": "Forschung: %s",
+  "kami_libs.lock.ui.research.how": "Schließe die Forschung %s ab, um das freizuschalten.",
+  "kami_libs.lock.ui.raise": "Level %1$s erhöht auf %2$s",
+  "kami_libs.lock.ui.raise.how": "Erreiche Level %1$s, um dieses Limit auf %2$s zu erhöhen.",
+  "kami_libs.lock.ui.full": "Voll"
 }

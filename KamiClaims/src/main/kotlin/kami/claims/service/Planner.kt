@@ -6,6 +6,9 @@ import kami.claims.Country
 import kami.claims.Key
 import kami.claims.Realm
 import kami.claims.now
+import kami.claims.research.Capacity
+import kami.claims.research.Features
+import kami.claims.research.Levels
 import kami.libs.text.Phrase
 import kotlin.math.max
 import kotlin.math.min
@@ -29,7 +32,9 @@ object Planner {
         val def = s.types[type] ?: return Phrase.of("kami_claims.block.unknown_type")
         Realm.index[k]?.let { cl -> return if (cl.country == c.id) Phrase.of("kami_claims.block.yours") else Phrase.of("kami_claims.block.owned", Realm.data.countries[cl.country]?.name ?: cl.country) }
         Realm.reservedFor(k.dim, k.x, k.z)?.let { if (it != c.id) return Phrase.of("kami_claims.block.reserved", Realm.data.countries[it]?.name ?: it) }
+        Features.lockReason(c, Features.claimType(type))?.let { return it }
         if (owned.isNotEmpty() && neighbours(k).none { it in owned }) return Phrase.of("kami_claims.block.not_connected")
+        Features.limit(c, Capacity.CHUNKS, count)?.let { return it }
         if (count >= Realm.freeAllowed(c) && treasury < def.price) return Phrase.of("kami_claims.block.treasury", Phrase.of("kami_libs.unit.money", def.price.toString()))
         return null
     }
@@ -107,11 +112,13 @@ object Planner {
 
     fun retype(c: Country, type: String, keys: List<Key>): Plan {
         val def = s.types[type]
+        val lock = Features.lockReason(c, Features.claimType(type))
         val cells = keys.distinct().map { k ->
             val cl = Realm.index[k]
             when {
                 cl == null || cl.country != c.id -> PlannedCell(k, Outcome.SKIP, Phrase.of("kami_claims.block.not_yours"))
                 cl.type == type -> PlannedCell(k, Outcome.SKIP, Phrase.of("kami_claims.block.same_type"))
+                lock != null -> PlannedCell(k, Outcome.BLOCKED, lock)
                 else -> PlannedCell(k, Outcome.RETYPE, if (cl.owner != null && type != "residential") Phrase.of("kami_claims.block.tenant_loses") else null, def?.price ?: 0, max(1, def?.period ?: 1))
             }
         }

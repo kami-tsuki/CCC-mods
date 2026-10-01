@@ -3,6 +3,9 @@ package kami.essentials.trade
 import kami.essentials.Config
 import kami.essentials.chat.Talk
 import kami.libs.chat.tell
+import kami.libs.claims.ClaimsApi
+import kami.libs.economy.MarketApi
+import kami.libs.progress.KamiProgress
 import kami.libs.text.Phrase
 import kami.libs.text.Text
 import net.minecraft.server.level.ServerPlayer
@@ -81,6 +84,14 @@ class Trade(val players: List<ServerPlayer>) {
         val items = offers.map { it.removeAllItems() }
         players.forEachIndexed { side, p -> give(p, items[1 - side]) }
         end()
+        if (items.none { it.isEmpty() } && players.map { ClaimsApi.countryOf(it.uuid) }.distinct().size == players.size) {
+            val value = items.flatten().sumOf { MarketApi.value(it) * it.count }
+            val count = items.sumOf { list -> list.sumOf { it.count } }.toLong()
+            players.forEach {
+                KamiProgress.post(it, "trade", "", count)
+                if (value > 0) KamiProgress.post(it, "trade_value", "", value)
+            }
+        }
         players.forEachIndexed { side, p ->
             p.tell(Talk.chat.ok(Phrase.of("kami_essentials.trade.done", Phrase.value(name(1 - side)), Phrase.value(items[1 - side].sumOf { it.count }), Phrase.value(items[side].sumOf { it.count }))))
         }

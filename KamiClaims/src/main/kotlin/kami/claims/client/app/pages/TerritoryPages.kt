@@ -4,6 +4,8 @@ import kami.libs.ui.text.trJson
 import kami.libs.ui.text.trn
 import kami.libs.ui.text.tr
 import kami.claims.client.app.ClaimsApp
+import kami.claims.client.app.ClientLocks
+import kami.claims.research.Capacity
 import kami.claims.client.app.ClaimsPage
 import kami.libs.ui.app.Consequence
 import kami.claims.client.app.Dialogs
@@ -143,7 +145,7 @@ class ChunksPage(app: ClaimsApp) : ClaimsPage(app) {
         if (bulkType.isEmpty()) bulkType = snap.types.firstOrNull()?.name ?: ""
         val retype = tr("kami_claims.chunks.retype")
         val retyped = ui.edgeButton(row, retype, enabled = can("claim"), disabledReason = lock("claim"), key = "bulk-type-go")
-        ui.select(row.takeFromRight(120), snap.types.map { Option(it.name, Vocabulary.type(it.name).label, Vocabulary.type(it.name).icon, null, Vocabulary.type(it.name).color) }, bulkType, key = "bulk-type")?.let { bulkType = it }
+        ui.select(row.takeFromRight(120), snap.types.map { Option(it.name, Vocabulary.type(it.name).label, Vocabulary.type(it.name).icon, null, Vocabulary.type(it.name).color, lock = ClientLocks.claimType(it.name)) }, bulkType, key = "bulk-type")?.let { bulkType = it }
         if (retyped) {
             val t = snap.types.firstOrNull { it.name == bulkType }
             val delta = selected.filter { !it.free }.sumOf { (t?.let { it.price.toDouble() / max(1, it.period) } ?: 0.0) - price(it) }
@@ -191,7 +193,10 @@ class PlotsPage(app: ClaimsApp) : ClaimsPage(app) {
             TabItem(tr("kami_claims.plots.tab.free"), Icons.ADD, free.size, Severity.SUCCESS),
             TabItem(tr("kami_claims.plots.tab.all"), Icons.LEDGER, taken.count { it.lapse > 0 }, Severity.WARNING, lock("details"))
         ), tab, "plot-tabs")?.let { tab = it }
-        Draw.textRight(ui.g, tr("kami_claims.plots.rented", Format.number(mine.size), Format.number(snap.maxPlots)), r.right, r.y + 5, Palette.textMuted)
+        val plotRaise = ClientLocks.raise(Capacity.PLOTS)?.takeIf { mine.size >= snap.maxPlots }
+        val plotChip = plotRaise?.let { lockChipWidth(it) + 4 } ?: 0
+        Draw.textRight(ui.g, tr("kami_claims.plots.rented", Format.number(mine.size), Format.number(snap.maxPlots)), r.right - plotChip, r.y + 5, if (plotRaise == null) Palette.textMuted else Palette.warning)
+        plotRaise?.let { ui.lockChip(r.right - plotChip + 4, r.y + 2, it, "plots-raise") }
         val body = r.dropTop(CONTROL_H + 6)
         ui.anchor("plots:list", body)
         when (tab) {
