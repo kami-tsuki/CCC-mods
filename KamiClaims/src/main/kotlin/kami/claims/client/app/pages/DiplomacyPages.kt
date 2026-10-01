@@ -33,7 +33,7 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
     override val title get() = tr("kami_claims.nav.relations")
     override val help get() = listOf(
         Callout("relations:lists", tr("kami_claims.nav.relations"), tr("kami_claims.relations.help.lists.desc")),
-        Callout("relations:add", tr("kami_claims.relations.help.add"), tr("kami_claims.relations.help.add.desc"))
+        Callout("relations:add", tr("kami_libs.common.add"), tr("kami_claims.relations.help.add.desc"))
     )
     override val sections = listOf("world")
     private val name = TextState()
@@ -63,11 +63,11 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
     private fun trade(ui: Ui, r: Rect, rows: List<Line>) {
         val detailW = if (app.compact) 0 else (r.w * 0.45).toInt().coerceIn(170, 240)
         ui.table(r.dropRight(detailW, if (detailW > 0) 8 else 0), listOf(
-            Column<Line>(tr("kami_claims.world.col.country"), -1, sort = compareBy { it.name.lowercase() }) { _, c, l ->
+            Column<Line>(tr("kami_libs.common.country"), -1, sort = compareBy { it.name.lowercase() }) { _, c, l ->
                 Flags.draw(g, Rect(c.x, c.y + 2, 14, 10), l.color, l.flag.pattern, l.flag.emblem, l.flag.secondary)
                 Draw.text(g, Draw.fit(l.name, c.w - 18), c.x + 18, c.y + 3, Palette.text)
             },
-            Column.text<Line>(tr("kami_claims.trade.col.status"), 80, color = { tradeColor(it) }) { tradeLabel(it) },
+            Column.text<Line>(tr("kami_libs.common.status"), 80, color = { tradeColor(it) }) { tradeLabel(it) },
             Column.text<Line>(tr("kami_claims.trade.tariff"), 50) { if (it.tariff > 0) "${it.tariff}%" else "-" }
         ), rows, countries, { it.name }, emptyText = tr("kami_claims.world.empty.countries"))
         if (detailW > 0) (rows.firstOrNull { it.name in countries.selected } ?: rows.firstOrNull())?.let { tradeDetail(ui, r.right(detailW), it) }
@@ -83,7 +83,7 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
         Flags.draw(ui.g, Rect(head.x, head.y + 2, 36, 26), l.color, l.flag.pattern, l.flag.emblem, l.flag.secondary)
         Draw.text(ui.g, Draw.fit(l.name, head.w - 44), head.x + 44, head.y + 4, TextStyle.HEADING)
         Draw.text(ui.g, tradeLabel(l), head.x + 44, head.y + 16, tradeColor(l))
-        ui.property(f.take(11), tr("kami_claims.trade.rate"), tr(if (l.trade == "family" || l.alliance == "allied") "kami_claims.trade.rate.ally" else "kami_claims.trade.rate.normal"))
+        ui.property(f.take(11), tr("kami_claims.trade.rate"), tr(if (l.trade == "family" || l.alliance == "allied") "kami_claims.trade.rate.ally" else "kami_libs.common.normal"))
         ui.property(f.take(11), tr("kami_claims.trade.their_tariff"), if (l.theirTariff > 0) "${l.theirTariff}%" else "-")
         val reason = lock("trade") ?: if (l.trade == "family") tr("kami_claims.trade.family") else null
         ui.section(f.take(14), tr("kami_claims.trade.alliance"))
@@ -97,13 +97,13 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
             }
             "offer_in" -> {
                 val half = row.rest.w / 2 - 2
-                if (ui.lockedButton(row.take(half), tr("kami_claims.trade.alliance.accept"), ClientLocks.feature("alliances"), Icons.HANDSHAKE, ButtonStyle.PRIMARY, reason == null, reason, pending = pending("alliance"), key = "alliance-accept")) act("alliance", "accept", l.name, key = "alliance")
-                if (ui.button(row.rest, tr("kami_claims.trade.alliance.decline"), Icons.REMOVE, enabled = reason == null, disabledReason = reason, key = "alliance-decline")) act("alliance", "decline", l.name, key = "alliance")
+                if (ui.lockedButton(row.take(half), tr("kami_libs.common.accept"), ClientLocks.feature("alliances"), Icons.HANDSHAKE, ButtonStyle.PRIMARY, reason == null, reason, pending = pending("alliance"), key = "alliance-accept")) act("alliance", "accept", l.name, key = "alliance")
+                if (ui.button(row.rest, tr("kami_libs.common.decline"), Icons.REMOVE, enabled = reason == null, disabledReason = reason, key = "alliance-decline")) act("alliance", "decline", l.name, key = "alliance")
             }
             else -> {
                 val why = reason ?: when {
                     l.alliance == "offer_out" -> tr("kami_claims.trade.offer_out")
-                    l.trade == "embargo" -> tr("kami_claims.trade.alliance.embargo")
+                    l.trade == "embargo" -> tr("kami_claims.error.alliance_embargo")
                     else -> null
                 }
                 if (ui.lockedButton(row.rest, tr("kami_claims.trade.alliance.propose"), ClientLocks.feature("alliances"), Icons.HANDSHAKE, ButtonStyle.PRIMARY, why == null, why, pending = pending("alliance"), key = "alliance-propose")) {
@@ -121,7 +121,7 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
         val same = tariff.value.toInt() == l.tariff
         if (ui.button(trow.rest, apply, Icons.SCALES, enabled = reason == null && !same, disabledReason = reason ?: tr("kami_claims.trade.tariff.same"), pending = pending("tariff"), key = "tariff-apply")) act("tariff", l.name, tariff.value.toString())
         f.take(11).let { Draw.text(ui.g, Draw.fit(tr("kami_claims.trade.tariff.hint"), it.w), it.x, it.y, Palette.textMuted) }
-        ui.section(f.take(14), tr("kami_claims.trade.embargo"))
+        ui.section(f.take(14), tr("kami_libs.common.embargo"))
         val erow = f.take(CONTROL_H)
         val allied = l.alliance == "allied"
         val embargoLock = ClientLocks.feature("embargoes")
@@ -215,7 +215,7 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
         if (tab == 0) {
             val rows = snap.countries.filter { search.text.isBlank() || it.name.contains(search.text, true) }
             ui.table(list, listOf(
-                Column<Line>(tr("kami_claims.world.col.country"), -1, sort = compareBy { it.name.lowercase() }) { _, c, l ->
+                Column<Line>(tr("kami_libs.common.country"), -1, sort = compareBy { it.name.lowercase() }) { _, c, l ->
                     Flags.draw(g, Rect(c.x, c.y + 2, 14, 10), l.color, l.flag.pattern, l.flag.emblem, l.flag.secondary)
                     Draw.text(g, Draw.fit(l.name, c.w - 18), c.x + 18, c.y + 3, Palette.text)
                 },
@@ -228,7 +228,7 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
             val rows = snap.players.filter { search.text.isBlank() || it.name.contains(search.text, true) }
             ui.table(list, listOf(
                 Column<PlayerLine>(tr("kami_claims.relations.col.player"), -1, sort = compareBy { it.name.lowercase() }) { _, c, p -> avatar(p.id, c.x, c.y + 1, 12, p.online); Draw.text(g, p.name, c.x + 16, c.y + 3, Palette.text) },
-                Column.text<PlayerLine>(tr("kami_claims.world.col.country"), 110, color = { if (it.citizenships.none { c -> c.via.isEmpty() }) Palette.textMuted else Palette.money }) { p -> p.citizenships.firstOrNull { it.via.isEmpty() }?.country ?: "-" }
+                Column.text<PlayerLine>(tr("kami_libs.common.country"), 110, color = { if (it.citizenships.none { c -> c.via.isEmpty() }) Palette.textMuted else Palette.money }) { p -> p.citizenships.firstOrNull { it.via.isEmpty() }?.country ?: "-" }
             ), rows, players, { it.id }, emptyText = tr("kami_claims.world.empty.players"))
             if (detailW > 0) rows.firstOrNull { it.id in players.selected }?.let { player(ui, detail, it) }
         }
@@ -259,7 +259,7 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
                 Dialogs.confirm(app, tr("kami_claims.world.join.confirm.title", l.name), null, Icons.INVITE, listOf(
                     Consequence(tr("kami_claims.world.join.review", l.name)),
                     Consequence(tr("kami_claims.join.confirm.single"))
-                ), tr("kami_claims.world.join.action"), "join", arrayOf(l.name))
+                ), tr("kami_libs.common.send_request"), "join", arrayOf(l.name))
             }
         }
     }
@@ -269,9 +269,9 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
         val head = f.take(28)
         ui.avatar(p.id, head.x, head.y, 24, p.online)
         Draw.text(ui.g, p.name, head.x + 30, head.y + 4, TextStyle.HEADING)
-        Draw.text(ui.g, tr(if (p.online) "kami_claims.citizens.online" else "kami_claims.world.offline"), head.x + 30, head.y + 15, if (p.online) Palette.success else Palette.textMuted)
+        Draw.text(ui.g, tr(if (p.online) "kami_libs.common.online" else "kami_claims.world.offline"), head.x + 30, head.y + 15, if (p.online) Palette.success else Palette.textMuted)
         ui.section(f.take(14), tr("kami_claims.world.citizenships"))
-        if (p.citizenships.isEmpty()) f.take(12).let { Draw.text(ui.g, tr("kami_claims.topbar.no_country"), it.x, it.y, Palette.textMuted) }
+        if (p.citizenships.isEmpty()) f.take(12).let { Draw.text(ui.g, tr("kami_libs.common.no_country"), it.x, it.y, Palette.textMuted) }
         p.citizenships.forEach { c ->
             val row = f.take(20)
             val look = Vocabulary.rank(c.role)

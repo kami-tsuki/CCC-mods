@@ -1,5 +1,6 @@
 package kami.claims.client.app
 
+import kami.claims.client.rankOf
 import kami.claims.Rank
 import kami.claims.client.store.ClaimsStore
 import kami.claims.net.Info
@@ -31,5 +32,5 @@ abstract class ClaimsPage(val app: ClaimsApp) : Page() {
         return true
     }
 
-    fun minRank(cap: String): Rank = snap.caps[cap]?.let { runCatching { Rank.valueOf(it.uppercase()) }.getOrNull() } ?: Rank.PRESIDENT
+    fun minRank(cap: String): Rank = snap.caps[cap]?.let(::rankOf) ?: Rank.PRESIDENT
 }

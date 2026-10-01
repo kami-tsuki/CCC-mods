@@ -4,6 +4,7 @@ import kami.claims.service.View
 import kami.libs.config.KamiConfig
 import kami.libs.config.Section
 import kami.libs.log.Log
+import kami.libs.ui.core.UiScale
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -32,6 +33,7 @@ class Prefs(
     var tooltipDelay: Int = 400,
     var holdSeconds: Float = 1.5f,
     var tourDone: Boolean = false,
+    var uiScale: Float = UiScale.DEFAULT,
     var skipClaimConfirm: Boolean = false,
     var dismissed: MutableSet<String> = mutableSetOf(),
     var hiddenSteps: Boolean = false,
@@ -67,6 +69,7 @@ object ClientClaims {
                     "tooltipDelay" to "Milliseconds before a tooltip shows.",
                     "holdSeconds" to "Seconds to hold a button for dangerous actions.",
                     "tourDone" to "The guided tour was finished or skipped.",
+                    "uiScale" to "Size of the interface: 0.8, 0.9 or 1.0.",
                     "skipClaimConfirm" to "Claim without a confirmation when the treasury lasts at least 7 more days.",
                     "dismissed" to "Alerts you dismissed.",
                     "hiddenSteps" to "The goals checklist is hidden.",

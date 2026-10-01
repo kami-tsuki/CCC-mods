@@ -49,7 +49,7 @@ class NodeView(
 ) {
     val key get() = "$tree:$id"
     fun label() = nodeLabel(tree, id, title)
-    fun summary() = Phrase.or("kami_claims.research.node.$tree.$id.desc", description)
+    fun summary() = Phrase.or("kami_claims.research.node.$tree.$id.desc", Phrase.literal(description))
     fun conditionTexts() = conditions.mapNotNull { Phrase.parse(it) }
 }
 

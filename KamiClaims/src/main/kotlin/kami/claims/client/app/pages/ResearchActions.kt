@@ -38,7 +38,7 @@ class ResearchActions(private val page: ClaimsPage) {
         return when {
             !s.canManage -> tr("kami_claims.research.reason.rights")
             status == NodeStatus.LOCKED -> tr("kami_claims.research.reason.locked")
-            s.used(Capacity.QUEUE_SLOTS) >= s.max(Capacity.QUEUE_SLOTS) -> tr("kami_claims.research.reason.queue_full")
+            s.used(Capacity.QUEUE_SLOTS) >= s.max(Capacity.QUEUE_SLOTS) -> tr("kami_claims.research.error.queue_full")
             else -> null
         }
     }
@@ -48,7 +48,7 @@ class ResearchActions(private val page: ClaimsPage) {
         return when {
             !s.canManage -> tr("kami_claims.research.reason.rights")
             queue.state == NodeState.QUEUED -> tr("kami_claims.research.reason.tasks")
-            !queue.paid && s.treasury < node.cost -> tr("kami_claims.research.reason.treasury", Format.money(node.cost))
+            !queue.paid && s.treasury < node.cost -> tr("kami_claims.loans.reason.funds", Format.money(node.cost))
             s.used(Capacity.RESEARCH_SLOTS) >= s.max(Capacity.RESEARCH_SLOTS) -> tr("kami_claims.research.reason.slots")
             else -> null
         }

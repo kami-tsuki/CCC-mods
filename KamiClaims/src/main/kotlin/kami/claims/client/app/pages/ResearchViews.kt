@@ -133,7 +133,7 @@ fun barFor(node: NodeView, queue: QueueView, nobodyOnline: Boolean, now: Long): 
             when {
                 queue.state == NodeState.RESEARCHING && nobodyOnline -> tr("kami_claims.research.queue.offline_short")
                 left == 0L && queue.state == NodeState.RESEARCHING -> tr("kami_claims.research.queue.finishing")
-                else -> tr("kami_claims.research.queue.left", Format.duration(left))
+                else -> tr("kami_libs.common.left", Format.duration(left))
             },
             stalled
         )
@@ -152,7 +152,7 @@ fun xpText(xp: Long = ClientResearch.state.xp): String = when {
 
 fun Ui.levelBar(r: Rect) {
     val s = ClientResearch.state
-    val label = tr("kami_claims.research.level", s.level)
+    val label = tr("kami_libs.lock.ui.level", s.level)
     val tracked = ClientResearch.xpTracked
     val value = if (tracked) s.xp - s.xpFloor else if (ClientResearch.atMaxLevel) 1L else 0L
     progressBar(r, value, if (tracked) s.xpCeiling - s.xpFloor else 1L, label, xpText(), key = "level-bar")

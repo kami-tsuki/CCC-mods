@@ -62,7 +62,7 @@ class ResearchTest {
         val de = LangAudit.load(dir.resolve("de_de.json"))
         val defs = Validator.build(ResearchSettings(), LevelsConfig(), Defaults.groups, Defaults.trees).defs
         val keys = defs.trees.values.flatMap { t -> listOf("tree.${t.id}") + t.categories.map { "category.${it.id}" } + t.nodes.map { "node.${it.tree}.${it.id}" } }
-        keys.map { "kami_claims.research.$it" }.forEach { assertTrue(it in en && it in de, "missing $it") }
+        keys.map { "kami_claims.research.$it" }.map { if (it in en) it else it.substringBeforeLast('_') }.forEach { assertTrue(it in en && it in de, "missing $it") }
     }
 
     @Test

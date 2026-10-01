@@ -60,11 +60,11 @@ class MarketApp(snap: Snap) : KamiApp() {
         if (notify && next.msg.isNotEmpty()) toast(if (next.ok) Severity.SUCCESS else Severity.DANGER, trJson(next.msg))
     }
 
-    override fun buildNav() = listOf(NavGroup(tr("kami_economy.market.title"), listOf(
+    override fun buildNav() = listOf(NavGroup(tr("kami_libs.common.market"), listOf(
         NavItem("browse", tr("kami_economy.market.tab.browse"), Icons.SEARCH),
-        NavItem("sell", tr("kami_economy.market.tab.sell"), Icons.CHEST),
+        NavItem("sell", tr("kami_economy.market.mode.sell"), Icons.CHEST),
         NavItem("orders", tr("kami_economy.market.tab.orders"), Icons.LEDGER, { snap.orders.size.takeIf { it > 0 }?.let { NavBadge(it, Severity.INFO) } }),
-        NavItem("auctions", tr("kami_economy.market.tab.auctions"), Icons.SCALES)
+        NavItem("auctions", tr("kami_libs.common.auctions"), Icons.SCALES)
     )))
 
     override fun create(id: String): Page = when (id) {
@@ -84,11 +84,11 @@ class MarketApp(snap: Snap) : KamiApp() {
 
     override fun topBar(ui: Ui, r: Rect) {
         Draw.leadIcon(ui.g, Icons.COIN, r.x + 6, r.centerY, Palette.money)
-        var x = Draw.text(ui.g, tr("kami_economy.market.title"), r.x + 24, r.centerY - 4, TextStyle.HEADING) + 12
+        var x = Draw.text(ui.g, tr("kami_libs.common.market"), r.x + 24, r.centerY - 4, TextStyle.HEADING) + 12
         ui.moneyRight(r.right - 8, r.centerY - 4, snap.funds)
         val limit = r.right - 90
         x = chip(ui, x, r, tr("kami_economy.slots.orders"), snap.orderSlots, limit)
-        x = chip(ui, x, r, tr("kami_economy.slots.auctions"), snap.auctionSlots, limit)
+        x = chip(ui, x, r, tr("kami_libs.common.auctions"), snap.auctionSlots, limit)
         if (snap.goal.isNotEmpty()) {
             val text = trJson(snap.goal) + if (snap.goalMax > 0) " ${snap.goalValue}/${snap.goalMax}" else ""
             if (x + Draw.width(text, TextStyle.CAPTION) <= limit) Draw.text(ui.g, text, x, r.centerY - 4, TextStyle.CAPTION)
@@ -96,15 +96,15 @@ class MarketApp(snap: Snap) : KamiApp() {
     }
 
     fun slotLock(slot: Slot): Lock? =
-        if (slot.used < slot.max || (slot.max <= 0 && slot.hint.isEmpty())) null else Lock(tr("kami_economy.slots.full", slot.used, slot.max), slot.hint.takeIf { it.isNotEmpty() }?.let { trJson(it) })
+        if (slot.used < slot.max || (slot.max <= 0 && slot.hint.isEmpty())) null else Lock(tr("kami_libs.format.used", slot.used, slot.max), slot.hint.takeIf { it.isNotEmpty() }?.let { trJson(it) })
 
     private fun chip(ui: Ui, x: Int, r: Rect, name: String, slot: Slot, limit: Int): Int {
         if (slot.max <= 0 && slot.hint.isEmpty()) return x
         val lock = slotLock(slot)
         val text = "$name ${slot.used}/${slot.max}"
-        val w = Draw.width(text) + 10 + if (lock != null) Draw.ICON_SLOT - 1 else 0
+        val w = Draw.width(text) + 10 + if (lock != null) Draw.ICON - 1 else 0
         if (x + w > limit) return x
-        ui.chip(x, r.centerY - 6, text, if (lock != null) Palette.warning else Palette.textSecondary, if (lock != null) Icons.LOCK else null, lock?.how, "slot:$name")
+        if (lock != null) ui.chip(x, r.centerY - 6, text, Palette.warning, Icons.LOCK, lock.how, "slot:$name") else Draw.text(ui.g, text, x + 5, r.centerY - 4, Palette.textMuted)
         return x + w + 6
     }
 
@@ -134,7 +134,7 @@ class MarketApp(snap: Snap) : KamiApp() {
             else if (snap.open) {
                 val next = MarketApp(snap)
                 current = next
-                mc.setScreen(AppScreen(next, Text.msg("kami_economy.market.title")))
+                mc.setScreen(AppScreen(next, Text.msg("kami_libs.common.market")))
             }
         }
     }
@@ -154,7 +154,7 @@ private class BrowsePage(val app: MarketApp) : Page() {
             ?.let { app.request("search", search.text, it, "0") }
 
         val grid = r.dropTop(16, 6).dropBottom(16, 4)
-        if (snap.rows.isEmpty()) ui.emptyState(grid, tr("kami_economy.market.browse.empty.title"), tr("kami_economy.market.browse.empty"))
+        if (snap.rows.isEmpty()) ui.emptyState(grid, tr("kami_libs.common.nothing_found"), tr("kami_economy.market.browse.empty"))
         val cols = ((grid.w + GAP) / (CELL_W + GAP)).coerceAtLeast(1)
         val left = grid.x + (grid.w - (cols * (CELL_W + GAP) - GAP)) / 2
         snap.rows.forEachIndexed { i, row ->
@@ -182,24 +182,23 @@ private class BrowsePage(val app: MarketApp) : Page() {
 
 private class SellPage(val app: MarketApp) : Page() {
     private val table = TableState<SellEntry>()
-    override val title get() = tr("kami_economy.market.tab.sell")
+    override val title get() = tr("kami_economy.market.mode.sell")
 
     private val columns = listOf(
-        Column<SellEntry>(tr("kami_economy.market.sell.col.item"), -1, sort = compareBy { it.stack.hoverName.string.lowercase() }) { _, c, e ->
+        Column<SellEntry>(tr("kami_libs.common.item"), -1, sort = compareBy { it.stack.hoverName.string.lowercase() }) { _, c, e ->
             if (itemSlot(Rect(c.x, c.y, c.h, c.h), e.stack.copyWithCount(e.count), key = "sell:${e.slot}")) app.openSell(e)
             Draw.text(g, Draw.fit(e.stack.hoverName.string, c.w - c.h - 4), c.x + c.h + 4, c.y + (c.h - 8) / 2)
         },
         Column.number(tr("kami_economy.market.sell.col.count"), 50) { it.count.toLong() },
-        Column.number(tr("kami_economy.market.sell.col.price"), 70, tip = tr("kami_economy.market.sell.col.price.tooltip")) { (PriceCache.of(it.item)?.price ?: 0).toLong() },
+        Column.number(tr("kami_economy.market.sort.price"), 70, tip = tr("kami_economy.market.sell.col.price.tooltip")) { (PriceCache.of(it.item)?.price ?: 0).toLong() },
         Column.text(tr("kami_economy.market.sell.col.channel"), 90, color = { if (it.cls == Classification.AUCTION_ONLY) Palette.warning else Palette.textSecondary }) {
-            tr(if (it.cls == Classification.AUCTION_ONLY) "kami_economy.market.sell.channel.auction" else "kami_economy.market.sell.channel.market")
+            tr(if (it.cls == Classification.AUCTION_ONLY) "kami_economy.market.sell.channel.auction" else "kami_libs.common.market")
         }
     )
 
     override fun draw(ui: Ui, r: Rect) {
-        val events = ui.table(r.dropBottom(10, 4), columns, entries(), table, { it.slot }, rowHeight = 18, emptyText = tr("kami_economy.market.sell.empty"))
+        val events = ui.table(r, columns, entries(), table, { it.slot }, rowHeight = 18, emptyText = tr("kami_economy.market.sell.empty"))
         events.opened?.let(app::openSell)
-        Draw.text(ui.g, Draw.fit(tr("kami_economy.market.sell.hint"), r.w), r.x, r.bottom - 8, TextStyle.CAPTION)
     }
 
     override fun actionsWidth() = buttonWidth(tr("kami_economy.market.sell.open"))

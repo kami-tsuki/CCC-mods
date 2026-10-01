@@ -30,7 +30,7 @@ object Effects {
         server.playerList.getPlayer(UUID.fromString(id))?.tell(Mail.chat.msg {
             add(Phrase.of("kami_claims.mail.invited", Phrase.value(c.name)).component())
             text("  ")
-            button(Phrase.of("kami_claims.chat.accept").component(), "/claims accept ${c.id}", Phrase.of("kami_claims.chat.accept.tooltip", c.name).component())
+            button(Phrase.of("kami_libs.common.accept").component(), "/claims accept ${c.id}", Phrase.of("kami_claims.common.join_x", c.name).component())
             text(" ")
             button(Phrase.of("kami_claims.chat.info").component(), "/claims info ${c.id}", Phrase.of("kami_claims.chat.info.tooltip", c.name).component())
         })

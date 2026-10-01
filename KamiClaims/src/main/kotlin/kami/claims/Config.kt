@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Rule(
     val access: Map<Action, Access>, val machines: Boolean = false, val pvp: Boolean = false,
-    val explosions: Boolean = false, val fire: Boolean = false, val fluid: Boolean = false
+    val explosions: Boolean = false, val fire: Boolean = false
 )
 
 @Serializable
@@ -37,9 +37,11 @@ data class Settings(
     val capitalCooldownDays: Int = 7,
     val renameCost: Long = 50_000,
     val capitalMoveCost: Long = 10_000,
-    val residentialTax: Int = 5,
-    val shutdownDays: Int = 3,
-    val releaseDays: Int = 3,
+    val rentDefaults: Map<Claimant, Int> = mapOf(Claimant.CITIZEN to 5, Claimant.PARENT to 3, Claimant.PROVINCE to 8, Claimant.ALLIED to 8, Claimant.RANDOM to 10),
+    val rentXp: Map<Claimant, Int> = mapOf(Claimant.CITIZEN to 100, Claimant.PARENT to 50, Claimant.PROVINCE to 50, Claimant.ALLIED to 50, Claimant.RANDOM to 1),
+    val rankPlots: Map<Rank, Int> = mapOf(Rank.CITIZEN to 2, Rank.OFFICER to 4, Rank.CHANCELLOR to 9, Rank.PRESIDENT to 25),
+    val guestPlots: Map<Claimant, Int> = mapOf(Claimant.PARENT to 2, Claimant.PROVINCE to 2, Claimant.ALLIED to 2, Claimant.RANDOM to 1),
+    val maxRent: Int = 100,
     val jobShare: Double = 0.6,
     val maxRect: Int = 400,
     val maxJobPay: Int = 100,
@@ -57,7 +59,7 @@ data class Settings(
     val caps: Map<Cap, Rank> = mapOf(
         Cap.CLAIM to Rank.CHANCELLOR, Cap.CAPITAL to Rank.PRESIDENT, Cap.TAX to Rank.CHANCELLOR, Cap.RULES to Rank.CHANCELLOR,
         Cap.WITHDRAW to Rank.CHANCELLOR, Cap.INVITE to Rank.OFFICER, Cap.MEMBERS to Rank.OFFICER, Cap.RANK to Rank.CHANCELLOR,
-        Cap.JOBS to Rank.OFFICER, Cap.PLOT to Rank.CITIZEN, Cap.DETAILS to Rank.CHANCELLOR, Cap.PROVINCE to Rank.CHANCELLOR, Cap.TRADE to Rank.CHANCELLOR, Cap.RESEARCH to Rank.CHANCELLOR
+        Cap.JOBS to Rank.OFFICER, Cap.PLOT to Rank.CITIZEN, Cap.DETAILS to Rank.CHANCELLOR, Cap.PROVINCE to Rank.CHANCELLOR, Cap.TRADE to Rank.CHANCELLOR, Cap.RESEARCH to Rank.CHANCELLOR, Cap.HOUSING to Rank.OFFICER
     ),
     val provinceTaxRateBounds: List<Double> = listOf(0.0, 0.5),
     val maxProvinceDebt: Int = 3,
@@ -88,6 +90,7 @@ data class Settings(
     )
 ) {
     fun min(cap: Cap) = caps[cap] ?: Rank.PRESIDENT
+    fun can(rank: Rank?, cap: Cap) = rank != null && rank >= min(cap)
 
     val dimensionSet: Set<String> by lazy { dimensions.toHashSet() }
     val freeBlockSet: Set<String> by lazy { freeBlocks.toHashSet() }
@@ -156,8 +159,7 @@ private val sections = listOf(
             "types.*.rule.machines" to "Create machines may break blocks here.",
             "types.*.rule.pvp" to "Players may fight here.",
             "types.*.rule.explosions" to "Explosions break blocks here.",
-            "types.*.rule.fire" to "Fire may spread into this chunk.",
-            "types.*.rule.fluid" to "Fluids may flow into this chunk."
+            "types.*.rule.fire" to "Fire may spread into this chunk."
         )
     ),
     Section(
@@ -173,9 +175,11 @@ private val sections = listOf(
     Section(
         "plots.json", "Player plots inside residential chunks.",
         mapOf(
-            "residentialTax" to "Default daily rent of a plot.",
-            "shutdownDays" to "Unpaid days before the owner is locked out.",
-            "releaseDays" to "Days after the lockout before others can take the plot.",
+            "rentDefaults" to "Default daily rent of a plot per group: CITIZEN, PARENT, PROVINCE, ALLIED, RANDOM.",
+            "rentXp" to "Level XP a country earns per rent payment, per group.",
+            "rankPlots" to "Default plot limit per rank.",
+            "guestPlots" to "Default plot limit per group of non-citizens.",
+            "maxRent" to "Highest daily rent a country can set.",
             "plotAllied" to "What allied players may do on a plot."
         )
     ),

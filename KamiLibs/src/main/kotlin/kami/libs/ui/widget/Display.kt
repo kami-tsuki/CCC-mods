@@ -8,6 +8,7 @@ import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Stack
 import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Ui
+import kami.libs.ui.core.UiScale
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
 import kami.libs.ui.style.Glyphs
@@ -115,7 +116,7 @@ fun Ui.chip(
     x: Int, y: Int, label: String, color: Int = Palette.textSecondary, icon: Icon? = null, tip: String? = null, key: Any = "chip:$label",
     selected: Boolean = false, interactive: Boolean = false
 ): Int {
-    val w = Draw.width(label) + 10 + (if (icon != null) Draw.ICON_SLOT - 1 else 0)
+    val w = Draw.width(label) + 10 + (if (icon != null) Draw.ICON - 1 else 0)
     val r = Rect(x, y, w, 13)
     val fill = when {
         selected -> 0x50
@@ -260,7 +261,7 @@ fun Ui.itemSlot(r: Rect, stack: ItemStack, count: String? = null, selected: Bool
     val y = r.y + (r.h - 16) / 2
     g.renderItem(stack, x, y)
     g.renderItemDecorations(Draw.font, stack, x, y, count)
-    if (hover && !stack.isEmpty) overlay(5) { g.renderTooltip(Draw.font, stack, mouseX, mouseY) }
+    if (hover && !stack.isEmpty) itemTooltip(stack)
     if (hover && enabled) cursor = Cursor.HAND
     return enabled && pressed(r) != null
 }
@@ -268,10 +269,19 @@ fun Ui.itemSlot(r: Rect, stack: ItemStack, count: String? = null, selected: Bool
 fun Ui.itemIcon(x: Int, y: Int, stack: ItemStack, key: Any) {
     if (stack.isEmpty) return
     g.renderItem(stack, x, y)
-    if (hover(key, Rect(x, y, ITEM_ICON, ITEM_ICON))) overlay(5) { g.renderTooltip(Draw.font, stack, mouseX, mouseY) }
+    if (hover(key, Rect(x, y, ITEM_ICON, ITEM_ICON))) itemTooltip(stack)
 }
 
 const val ITEM_ICON = 16
+
+private fun Ui.itemTooltip(stack: ItemStack) = overlay(5) {
+    val scale = UiScale.factor
+    g.pose().pushPose()
+    g.pose().setIdentity()
+    g.pose().translate(0f, 0f, 100f * layer)
+    g.renderTooltip(Draw.font, stack, (mouseX * scale).toInt(), (mouseY * scale).toInt())
+    g.pose().popPose()
+}
 
 class ChipSpec(val label: String, val color: Int = Palette.textSecondary, val icon: Icon? = null, val selected: Boolean = false)
 
@@ -280,7 +290,7 @@ fun Ui.chipFlow(stack: Stack, chips: List<ChipSpec>, key: String): Int? {
     var row = stack.take(CHIP_H)
     var x = row.x
     chips.forEachIndexed { i, chip ->
-        val width = Draw.width(chip.label) + 12 + if (chip.icon != null) Draw.ICON_SLOT else 0
+        val width = Draw.width(chip.label) + 12 + if (chip.icon != null) Draw.ICON else 0
         if (x + width > row.right && x > row.x) { row = stack.take(CHIP_H); x = row.x }
         val box = Rect(x, row.y, width, CHIP_H)
         val hit = clickable("$key:$i", box)

@@ -9,8 +9,8 @@ fun duration(seconds: Long): Phrase {
     val hours = seconds % 86_400 / 3600
     val minutes = seconds % 3600 / 60
     return when {
-        days > 0 -> Phrase.of("kami_libs.common.join", unit("day", days), unit("hour", hours))
-        hours > 0 -> Phrase.of("kami_libs.common.join", unit("hour", hours), unit("minute", minutes))
+        days > 0 -> Phrase.of("kami_libs.format.join", unit("day", days), unit("hour", hours))
+        hours > 0 -> Phrase.of("kami_libs.format.join", unit("hour", hours), unit("minute", minutes))
         else -> unit("minute", minutes)
     }
 }

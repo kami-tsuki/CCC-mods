@@ -34,7 +34,7 @@ class ResearchLevelsPage(app: ClaimsApp) : ClaimsPage(app) {
     override val title get() = tr("kami_claims.nav.levels")
 
     override val subtitle: String?
-        get() = if (ClientResearch.state.country.isEmpty()) null else tr("kami_claims.research.level", ClientResearch.state.level) + " · " + xpText()
+        get() = if (ClientResearch.state.country.isEmpty()) null else tr("kami_libs.lock.ui.level", ClientResearch.state.level) + " · " + xpText()
 
     private var selected: Int? = null
     private var centered = false
@@ -130,7 +130,7 @@ class ResearchLevelsPage(app: ClaimsApp) : ClaimsPage(app) {
         val icon = when { isCurrent -> Icons.STAR; reached -> Icons.CHECK; else -> Icons.LOCK }
         Draw.leadIcon(ui.g, icon, card.right - STATE_ICON_X, card.y + STATE_ICON_Y, if (reached) accent else Palette.textMuted)
         Draw.text(ui.g, content.title, card.x + CARD_PAD, card.y + TITLE_Y, if (reached) Palette.text else Palette.textSecondary)
-        Draw.text(ui.g, Draw.fit(content.xp, CARD_W - 2 * CARD_PAD - Draw.ICON_SLOT), card.x + CARD_PAD, card.y + XP_Y, Palette.textMuted)
+        Draw.text(ui.g, Draw.fit(content.xp, CARD_W - 2 * CARD_PAD - Draw.ICON), card.x + CARD_PAD, card.y + XP_Y, Palette.textMuted)
         rewards(ui, card, content, if (compact) 1 else LINES, if (compact) REQUIREMENT_LINES_COMPACT else REQUIREMENT_LINES)
         if (isCurrent && (ClientResearch.xpTracked || ClientResearch.atMaxLevel)) progressStrip(ui, card)
         if (!reached) Draw.fill(ui.g, card.inset(1), Palette.alpha(Palette.surface, 0x70))
@@ -164,7 +164,7 @@ class ResearchLevelsPage(app: ClaimsApp) : ClaimsPage(app) {
         val requirements = ClientResearch.levelRequirements(level.level).map { (phrase, met) -> phrase.resolve() to met }
         val shownItems = items.take(ITEMS_PER_CARD)
         val xp = if (level.xp == 0L) tr("kami_claims.research.levels.requirements_only") else tr("kami_claims.research.levels.xp_needed", Format.number(level.xp))
-        return CardContent(tr("kami_claims.research.level", level.level), xp, "level-card:${level.level}", "level:${level.level}", shownItems, shownItems.indices.map { "level-item:${level.level}:$it" }, others + items.drop(ITEMS_PER_CARD), requirements)
+        return CardContent(tr("kami_libs.lock.ui.level", level.level), xp, "level-card:${level.level}", "level:${level.level}", shownItems, shownItems.indices.map { "level-item:${level.level}:$it" }, others + items.drop(ITEMS_PER_CARD), requirements)
     }
 
     private fun nodeChips(level: LevelView): NodeChips { freshLocale(); return unlockedNodes.getOrPut(level.level) {
@@ -185,7 +185,7 @@ class ResearchLevelsPage(app: ClaimsApp) : ClaimsPage(app) {
         val (stateLabel, severity) = when {
             level.level < current -> tr("kami_claims.research.levels.reached") to Severity.SUCCESS
             level.level == current -> tr("kami_claims.research.levels.current") to Severity.INFO
-            else -> tr("kami_claims.research.levels.locked") to Severity.NEUTRAL
+            else -> tr("kami_libs.common.locked") to Severity.NEUTRAL
         }
         val content = content(level)
         val title = content.title
@@ -249,9 +249,9 @@ private class NodeChips(val nodes: List<NodeView>, val chips: List<ChipSpec>)
 
 private const val PAD = 4
 private const val CARD_W = 104
-private const val CARD_H = 116
-private const val CARD_H_COMPACT = 84
-private const val COMPACT_H = 260
+private const val CARD_H = 78
+private const val CARD_H_COMPACT = 64
+private const val COMPACT_H = 240
 private const val CARD_GAP = 6
 private const val CARD_PAD = 5
 private const val TITLE_Y = 4
@@ -263,8 +263,8 @@ private const val ITEM_STEP = 22
 private const val REQUIREMENT_Y = 28
 private const val REQUIREMENT_STEP = 10
 private const val REQUIREMENT_GAP = 3
-private const val REQUIREMENT_LINES = 3
-private const val REQUIREMENT_LINES_COMPACT = 2
+private const val REQUIREMENT_LINES = 0
+private const val REQUIREMENT_LINES_COMPACT = 0
 private const val ITEM_GAP = 4
 private const val STRIP_INSET = 4
 private const val STRIP_BOTTOM = 6
@@ -275,7 +275,7 @@ private const val TRACK_DOT = 5
 private const val NOTCH_H = 4
 private const val STRIP_BAR_H = 6
 private const val ITEMS_PER_CARD = 4
-private const val LINES = 3
+private const val LINES = 2
 private const val HEADING_H = 16
 private const val HEADING_TEXT_Y = 1
 private const val HEADING_XP_Y = 3

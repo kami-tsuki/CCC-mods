@@ -46,7 +46,9 @@ object Research {
     fun load(folder: ConfigFolder): List<String> {
         folder.startLoad()
         val settings = folder.file("research.json", ResearchSettings.serializer(), ResearchSettings(), Docs.settings, "Research settings")
-        val levels = folder.file("levels.json", LevelsConfig.serializer(), LevelsConfig(), Docs.levels, "Country levels and capacities")
+        val stored = folder.file("levels.json", LevelsConfig.serializer(), LevelsConfig(version = LevelDefaults.VERSION), Docs.levels, "Country levels and capacities")
+        val levels = LevelDefaults.upgrade(stored)
+        if (levels !== stored) log.info("levels.json upgraded in memory; set version: {} to keep your edits", LevelDefaults.VERSION)
         val groups = folder.files("groups", Group.serializer(), Defaults.groups, Docs.group, "Research group")
         val trees = folder.files("trees", TreeFile.serializer(), Defaults.trees, Docs.tree, "Research tree")
         val built = Validator.build(settings, levels, groups, trees, defs.trees, Defaults.trees)

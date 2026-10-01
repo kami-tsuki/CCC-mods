@@ -34,7 +34,7 @@ class XpCurve(val from: Int = 11, val peak: Int = 50, val base: Double = 100.0, 
 }
 
 @Serializable
-class LevelsConfig(
+data class LevelsConfig(
     val curve: XpCurve = XpCurve(),
     val table: List<Long> = emptyList(),
     val maxLevel: Int = 1000,
@@ -44,7 +44,8 @@ class LevelsConfig(
     val capacities: Map<Capacity, Int> = LevelDefaults.capacities,
     val rules: Map<Int, LevelRule> = LevelDefaults.rules,
     val rewards: Map<Int, List<Unlock>> = LevelDefaults.rewards,
-    val announce: Boolean = true
+    val announce: Boolean = true,
+    val version: Int = 0
 ) {
     val top get() = minOf(Limits.MAX_LEVELS, if (table.isEmpty()) max(1, maxLevel) else max(1, minOf(maxLevel, table.size + 1)))
 
@@ -108,7 +109,7 @@ object Levels {
         return true
     }
 
-    fun advanceAll() = Realm.data.countries.values.forEach(::advance)
+    fun advanceAll() = Realm.data.countries.values.filter { it.active }.forEach(::advance)
 
     fun used(country: Country, key: Capacity) = when (key) {
         Capacity.CHUNKS -> Realm.claims(country.id).size
@@ -120,6 +121,7 @@ object Levels {
         Capacity.OFFICERS -> country.members.values.count { it.rank == Rank.OFFICER }
         Capacity.FREE_CHUNKS -> Realm.claims(country.id).count { it.free }
         Capacity.PLOTS -> Realm.claims(country.id).filter { it.owner != null }.groupingBy { it.owner }.eachCount().values.maxOrNull() ?: 0
+        Capacity.JOB_SLOTS -> country.members.values.maxOfOrNull { it.jobs.size } ?: 0
         Capacity.MARKET_SLOTS, Capacity.AUCTION_SLOTS -> 0
     }
 

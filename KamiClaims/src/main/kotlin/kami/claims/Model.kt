@@ -5,6 +5,8 @@ import kami.claims.research.Buffs
 import kami.claims.research.Capacity
 import kami.claims.research.Levels
 import kami.claims.research.ResearchState
+import kami.claims.service.Housing
+import kami.claims.service.Work
 import kami.libs.config.WorldStore
 import kotlinx.serialization.Serializable
 import net.minecraft.server.MinecraftServer
@@ -15,7 +17,7 @@ import kotlin.math.max
 enum class Rank { BANISHED, ALLIED, CITIZEN, OFFICER, CHANCELLOR, PRESIDENT }
 
 @Serializable
-enum class Cap { CLAIM, CAPITAL, TAX, RULES, WITHDRAW, INVITE, MEMBERS, RANK, JOBS, PLOT, DETAILS, PROVINCE, TRADE, RESEARCH }
+enum class Cap { CLAIM, CAPITAL, TAX, RULES, WITHDRAW, INVITE, MEMBERS, RANK, JOBS, PLOT, DETAILS, PROVINCE, TRADE, RESEARCH, HOUSING }
 
 @Serializable
 enum class TaxMode { PERCENT, FLAT }
@@ -29,6 +31,23 @@ enum class Action { BREAK, PLACE, INTERACT, CONTAINER }
 @Serializable
 enum class Role { OWNER, HOUSEHOLD, ALLIED, BANISHED }
 
+@Serializable
+enum class Claimant { CITIZEN, PARENT, PROVINCE, ALLIED, RANDOM }
+
+@Serializable
+enum class Tenancy { ACTIVE, REMOVED, MOVING_OUT }
+
+@Serializable
+enum class CountryState { ACTIVE, DISBANDED }
+
+enum class Leave { LEAVE, KICK, BAN }
+
+@Serializable
+class Offer(val open: MutableSet<Claimant> = mutableSetOf(), val rent: MutableMap<Claimant, Int> = mutableMapOf())
+
+@Serializable
+class Job(var progress: Int = 0, var start: Long = today())
+
 data class Key(val dim: String, val x: Int, val z: Int) {
     override fun toString() = "$dim|$x|$z"
 }
@@ -39,13 +58,14 @@ fun today() = now() / Config.s.dayMillis
 @Serializable
 class Member(
     var rank: Rank,
-    var job: String? = null,
+    val jobs: MutableMap<String, Job> = mutableMapOf(),
     val since: Long = now(),
     var seen: Long = now(),
-    var progress: Int = 0,
-    var start: Long = today(),
-    val zone: MutableSet<String> = mutableSetOf(),
-    val mail: MutableList<String> = mutableListOf()
+    val mail: MutableList<String> = mutableListOf(),
+    var job: String? = null,
+    var progress: Int? = null,
+    var start: Long? = null,
+    var zone: MutableSet<String>? = null
 )
 
 @Serializable
@@ -88,12 +108,29 @@ class Claim(
     var upkeepCycles: Int = 0,
     var unclaimWarned: Boolean = false,
     var owner: String? = null,
-    var tax: Int = -1,
-    var lapse: Int = 0,
-    val roles: MutableMap<String, Role> = mutableMapOf()
+    val roles: MutableMap<String, Role> = mutableMapOf(),
+    var state: Tenancy = Tenancy.ACTIVE,
+    var rentDebt: Long = 0,
+    var until: Long = 0,
+    var category: Claimant? = null,
+    var offer: Offer? = null,
+    val workers: MutableSet<String> = mutableSetOf(),
+    var tax: Int? = null,
+    var lapse: Int? = null
 ) {
     val key get() = Key(dim, x, z)
     val def get() = Config.s.types[type]
+    val plot get() = type == Housing.RESIDENTIAL
+    val tenant get() = if (plot && Housing.tenanted(this)) owner else null
+
+    fun vacate() {
+        owner = null
+        roles.clear()
+        state = Tenancy.ACTIVE
+        rentDebt = 0
+        until = 0
+        category = null
+    }
 }
 
 @Serializable
@@ -108,15 +145,11 @@ class Country(
     var lastActive: Long = now(),
     var moved: Long = 0,
     var color: Int = 0,
-    var tax: Int = Config.s.residentialTax,
-    var shutdown: Int = Config.s.shutdownDays,
-    var release: Int = Config.s.releaseDays,
     val members: MutableMap<String, Member> = mutableMapOf(),
     val outsiders: MutableMap<String, Rank> = mutableMapOf(),
     val rules: MutableMap<String, MutableMap<Action, Access>> = mutableMapOf(),
     val machines: MutableMap<String, Boolean> = mutableMapOf(),
     val fire: MutableMap<String, Boolean> = mutableMapOf(),
-    val fluid: MutableMap<String, Boolean> = mutableMapOf(),
     val jobs: MutableMap<String, JobDef> = mutableMapOf(),
     val invites: MutableMap<String, Long> = mutableMapOf(),
     val requests: MutableMap<String, Long> = mutableMapOf(),
@@ -148,9 +181,21 @@ class Country(
     val counters: MutableMap<String, Long> = mutableMapOf(),
     val buffs: BuffState = BuffState(),
     val loans: MutableList<Loan> = mutableListOf(),
-    val loanCooldowns: MutableMap<String, Long> = mutableMapOf()
+    val loanCooldowns: MutableMap<String, Long> = mutableMapOf(),
+    val offer: Offer = Offer(mutableSetOf(Claimant.CITIZEN), Config.s.rentDefaults.toMutableMap()),
+    var rentDebtLimit: Long = 50,
+    var moveOutDays: Int = 3,
+    val reclaimLocks: MutableMap<String, Long> = mutableMapOf(),
+    val rankPlots: MutableMap<Rank, Int> = Config.s.rankPlots.toMutableMap(),
+    val guestPlots: MutableMap<Claimant, Int> = Config.s.guestPlots.toMutableMap(),
+    val playerPlots: MutableMap<String, Int> = mutableMapOf(),
+    var state: CountryState = CountryState.ACTIVE,
+    var tax: Int? = null,
+    var shutdown: Int? = null,
+    var release: Int? = null
 ) {
     val id get() = slug.ifEmpty { name.lowercase() }
+    val active get() = state == CountryState.ACTIVE
     fun rank(id: String) = members[id]?.rank ?: outsiders[id]
     fun president() = members.entries.firstOrNull { it.value.rank == Rank.PRESIDENT }?.key
     fun job(name: String): JobDef? = jobs[name] ?: Config.s.jobs[name]?.let { JobDef(it.pay, it.quota, it.period) }
@@ -164,11 +209,17 @@ class Data(
     val countries: MutableMap<String, Country> = mutableMapOf(),
     val claims: MutableList<Claim> = mutableListOf(),
     val reserves: MutableList<Reserve> = mutableListOf(),
-    var day: Long = -1
-)
+    var day: Long = -1,
+    var schema: Int = 0,
+    val letters: MutableMap<String, MutableList<String>> = mutableMapOf()
+) {
+    companion object {
+        const val CURRENT = 1
+    }
+}
 
 object Realm {
-    private val store = WorldStore(Data.serializer(), ::Data)
+    private val store = WorldStore(Data.serializer(), { Data(schema = Data.CURRENT) })
     var data = Data()
     val index = HashMap<Key, Claim>()
     private val byCountry = HashMap<String, MutableList<Claim>>()
@@ -202,7 +253,8 @@ object Realm {
         home.clear()
         byCountry.clear()
         data.claims.forEach { index[it.key] = it; byCountry.getOrPut(it.country) { mutableListOf() } += it }
-        data.countries.values.forEach { c -> c.members.keys.forEach { home[it] = c.id }; c.level = c.level.coerceAtLeast(1) }
+        data.countries.values.filter { it.active }.forEach { c -> c.members.keys.forEach { home[it] = c.id }; c.level = c.level.coerceAtLeast(1) }
+        migrate(data)
         data.countries.values.forEach { c -> if (c.parent != null && country(c.parent) == null) { c.parent = null; c.provinceDebt = 0; c.independenceRequested = false } }
         data.countries.values.forEach { c -> c.provinces.removeAll { it !in data.countries || country(it)?.parent != c.id } }
         data.countries.values.forEach { c ->
@@ -213,9 +265,50 @@ object Realm {
         syncAllies()
     }
 
+    private fun migrate(data: Data) {
+        if (data.schema >= 1) return
+        val citizen = Claimant.CITIZEN
+        data.countries.values.forEach { c ->
+            c.tax?.let { c.offer.rent[citizen] = it }
+            val shutdown = c.shutdown ?: 3
+            val release = c.release ?: 3
+            if (shutdown != 3 || release != 3) c.rentDebtLimit = (shutdown + release).toLong() * (c.offer.rent[citizen] ?: 0)
+            c.tax = null
+            c.shutdown = null
+            c.release = null
+            c.members.forEach { (id, m) ->
+                m.job?.let { job ->
+                    m.jobs[job] = Job(m.progress ?: 0, m.start ?: today())
+                    val zone = m.zone.orEmpty()
+                    claims(c.id).filter { it.type == Config.s.jobs[job]?.type && (zone.isEmpty() || it.key.toString() in zone) }.forEach { it.workers += id }
+                }
+                m.job = null
+                m.progress = null
+                m.start = null
+                m.zone = null
+            }
+        }
+        data.claims.forEach { cl ->
+            val c = data.countries.getValue(cl.country)
+            cl.tax?.takeIf { it >= 0 }?.let { cl.offer = Offer(mutableSetOf(citizen), mutableMapOf(citizen to it)) }
+            if (cl.owner != null) cl.category = citizen
+            val rent = cl.offer?.rent?.get(citizen) ?: c.offer.rent[citizen] ?: 0
+            cl.rentDebt = (cl.lapse ?: 0).toLong() * rent
+            if (cl.owner != null && cl.rentDebt > c.rentDebtLimit) {
+                cl.state = Tenancy.MOVING_OUT
+                cl.until = now() + c.moveOutDays * Config.s.dayMillis
+            }
+            cl.tax = null
+            cl.lapse = null
+        }
+        data.schema = Data.CURRENT
+    }
+
     fun country(name: String?) = name?.let { n -> data.countries[n.lowercase()] ?: data.countries.values.firstOrNull { it.name.equals(n, true) } }
-    fun of(id: String) = country(home[id])
+    fun of(id: String) = live(home[id])
+    fun live(name: String?) = country(name)?.takeIf { it.active }
     fun claims(name: String): List<Claim> = byCountry[name]?.toList() ?: emptyList()
+    fun held(name: String): Map<String, List<Key>> = byCountry[name].orEmpty().asSequence().filter { it.owner != null }.groupBy({ it.owner!! }, { it.key })
     fun at(dim: String, x: Int, z: Int) = index[Key(dim, x, z)]
 
     fun reservedFor(dim: String, x: Int, z: Int): String? {
@@ -254,25 +347,43 @@ object Realm {
         changed()
     }
 
-    fun leave(c: Country, id: String) {
+    fun leave(c: Country, id: String, reason: Leave) {
         c.members.remove(id)
         home.remove(id)
-        claims(c.id).filter { it.owner == id || it.roles.containsKey(id) }.forEach {
-            if (it.owner == id) { it.owner = null; it.roles.clear(); it.lapse = 0 } else it.roles.remove(id)
-        }
+        claims(c.id).forEach { it.roles.remove(id) }
+        Work.forget(c, id)
         syncAllies()
+        Housing.departed(c, id, reason)
         changed()
     }
 
     fun disband(c: Country) {
-        claims(c.id).forEach { unclaim(it, false) }
+        if (!c.active) return
+        val tenants = claims(c.id).filter { it.owner != null }
+        claims(c.id).filter { it.owner == null }.forEach { unclaim(it, false) }
         c.members.keys.forEach { home.remove(it) }
+        c.members.clear()
+        c.invites.clear()
+        c.requests.clear()
         c.parent?.let { country(it)?.provinces?.remove(c.id) }
+        c.parent = null
         c.provinces.forEach { pid -> country(pid)?.let { it.parent = null; it.provinceDebt = 0; it.independenceRequested = false } }
+        c.provinces.clear()
+        c.alliances.clear()
+        c.allianceOffers.clear()
+        data.countries.values.forEach { it.alliances.remove(c.id); it.allianceOffers.remove(c.id); it.tradePolicy.remove(c.id) }
+        if (tenants.isEmpty()) return erase(c)
+        c.state = CountryState.DISBANDED
+        tenants.forEach { Housing.moveOut(c, it, "dissolved") }
+        syncAllies()
+        changed()
+    }
+
+    fun erase(c: Country) {
+        claims(c.id).forEach { unclaim(it, false) }
         data.countries.remove(c.id)
         Buffs.dropBorders(c.id)
         Levels.forget(c.id)
-        data.countries.values.forEach { it.alliances.remove(c.id); it.allianceOffers.remove(c.id); it.tradePolicy.remove(c.id) }
         syncAllies()
         changed()
     }

@@ -8,6 +8,7 @@ import java.nio.file.Files
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -33,5 +34,6 @@ class PrefsTest {
         val second = config()
         assertTrue(second.load())
         assertTrue(second.value.tourDone)
+        assertEquals(0.9f, second.value.uiScale)
     }
 }

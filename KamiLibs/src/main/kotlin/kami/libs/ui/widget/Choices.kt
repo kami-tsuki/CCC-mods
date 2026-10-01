@@ -107,7 +107,7 @@ fun <T> Ui.segmented(r: Rect, options: List<Option<T>>, selected: T, enabled: Bo
         if (clickable("$key:$i", cell, usable)) result = o.value
         if (chosen) Draw.sprite(g, Sprites.Look.SECONDARY.of(hover, false, true), cell.inset(1))
         else if (hover) Draw.fill(g, cell.inset(1), Palette.hover)
-        val iconW = if (o.icon == null && o.lock == null) 0 else if (o.label.isEmpty()) Draw.ICON - 4 else Draw.ICON_SLOT
+        val iconW = if (o.icon == null && o.lock == null) 0 else if (o.label.isEmpty()) Draw.ICON - 4 else Draw.ICON
         val content = iconW + Draw.width(o.label)
         var x = cell.x + max(3, (cell.w - content) / 2)
         (if (o.lock != null) Icons.LOCK else o.icon)?.let { Draw.leadIcon(g, it, x, cell.centerY, if (usable) null else Palette.alpha(0xFFFFFF, 0x60)) }

@@ -40,9 +40,9 @@ object Trades {
         to.tell(Talk.chat.msg {
             add(Phrase.of("kami_essentials.trade.request.received", Phrase.value(from.gameProfile.name)))
             text("  ")
-            button(Phrase.of("kami_essentials.trade.request.accept"), "/trade accept ${from.gameProfile.name}", Phrase.of("kami_essentials.trade.request.accept.tooltip"))
+            button(Phrase.of("kami_libs.common.accept"), "/trade accept ${from.gameProfile.name}", Phrase.of("kami_essentials.trade.request.accept.tooltip"))
             text(" ")
-            button(Phrase.of("kami_essentials.trade.request.deny"), "/trade deny ${from.gameProfile.name}", Phrase.of("kami_essentials.trade.request.deny.tooltip"))
+            button(Phrase.of("kami_libs.common.decline"), "/trade deny ${from.gameProfile.name}", Phrase.of("kami_essentials.trade.request.deny.tooltip"))
         })
     }
 

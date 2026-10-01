@@ -31,10 +31,12 @@ private class BuffCard(
     val key: String, val effect: String, val title: String, val mode: String, val stats: String, val enabled: Boolean,
     val buff: BuffView?, val lock: Lock?, val toggleLock: Lock?
 ) {
+    val detail = if (buff != null) "$mode, $stats" else stats
     val revealKey = "buff-reveal:$key"
     val lockKey = "buff-lock:$key"
     val buttonKey = "buff-toggle:$key"
     val exampleKey = "buff-example:$key"
+    val detailKey = "buff-detail:$key"
 }
 
 private class Group(val title: String, val cards: List<BuffCard>)
@@ -62,9 +64,10 @@ class ResearchBuffsPage(app: ClaimsApp) : ClaimsPage(app) {
         ui.scroll("buffs-page", r, scrollHeight) { area ->
             rebuild(buffs, area.w)
             val stack = Stack(area.x, area.y, area.w, CARD_GAP)
-            ui.progressBar(stack.take(PROGRESS_LABELLED_H), buffs.used.toLong(), buffs.points.toLong(), tr("kami_claims.buffs.points"), key = "buffs-points")
+            val pointsBar = stack.take(PROGRESS_LABELLED_H)
+            ui.progressBar(pointsBar, buffs.used.toLong(), buffs.points.toLong(), tr("kami_claims.buffs.points"), key = "buffs-points")
+            ui.tooltip("buffs-explain", pointsBar, explainText)
             Draw.paragraph(ui.g, surchargeText, stack.x, stack.take(surchargeH).y, stack.w, if (buffs.surchargePerBorderChunk > 0) Palette.warning else Palette.textSecondary)
-            Draw.paragraph(ui.g, explainText, stack.x, stack.take(explainH).y, stack.w, Palette.textMuted)
             val cols = cardColumns(stack.w, MIN_CARD_W, MAX_COLUMNS)
             var index = 0
             groups.forEach { group ->
@@ -109,7 +112,7 @@ class ResearchBuffsPage(app: ClaimsApp) : ClaimsPage(app) {
             val lock = if (state.level < node.level) Lock.level(node.level, node.label().resolve()) else Lock.research(node.label().resolve())
             val card = BuffCard(
                 node.key, unlock.id, name(unlock.id, unlock.amplifier), modeText(unlock.id == PULSE_EFFECT, if (unlock.cooldownSeconds > 0) unlock.cooldownSeconds.toLong() else DEFAULT_COOLDOWN),
-                tr("kami_claims.buffs.locked.level", node.level), false, null, lock, null
+                tr("kami_libs.lock.ui.level", node.level), false, null, lock, null
             )
             cards += node.category to card
             locked += card
@@ -145,15 +148,15 @@ class ResearchBuffsPage(app: ClaimsApp) : ClaimsPage(app) {
         ui.panel(slot, sunken = true)
         ui.effectIcon(slot, card.effect, if (muted) DIM else 0f)
         val x = slot.right + PAD
-        val reserve = if (card.enabled) Draw.ICON_SLOT else if (muted) CHIP_RESERVE else 0
-        Draw.text(ui.g, Draw.fit(card.title, box.right - x - PAD - reserve), x, box.y + PAD, if (muted) Palette.textSecondary else Palette.text)
-        if (card.enabled) Draw.leadIcon(ui.g, Icons.CHECK, box.right - PAD - Draw.ICON_SLOT + 2, box.y + PAD + 4, Palette.success)
+        val reserve = if (card.enabled) Draw.ICON else if (muted) CHIP_RESERVE else 0
+        Draw.text(ui.g, Draw.fit(card.title, box.right - x - PAD - reserve - if (card.buff != null && !dim) BUTTON_W else 0), x, box.y + PAD, if (muted) Palette.textSecondary else Palette.text)
+        if (card.enabled) Draw.leadIcon(ui.g, Icons.CHECK, box.right - PAD - Draw.ICON + 2, box.y + PAD + 4, Palette.success)
         val textW = box.right - x - PAD
-        Draw.text(ui.g, Draw.fit(card.mode, textW), x, box.y + PAD + Draw.LINE + 1, Palette.textMuted)
-        Draw.text(ui.g, Draw.fit(card.stats, textW), x, box.y + PAD + 2 * Draw.LINE + 2, if (muted) Palette.textMuted else Palette.textSecondary)
+        Draw.text(ui.g, Draw.fit(if (card.buff != null) card.mode else card.stats, textW - if (card.buff != null && !dim) BUTTON_W else 0), x, box.y + PAD + Draw.LINE + 1, Palette.textMuted)
+        ui.tooltip(card.detailKey, box, card.detail)
         val buff = card.buff
         if (buff != null && !dim) {
-            val button = Rect(box.right - PAD - BUTTON_W, box.bottom - PAD - SMALL_H, BUTTON_W, SMALL_H)
+            val button = Rect(box.right - PAD - BUTTON_W, box.y + (box.h - SMALL_H) / 2, BUTTON_W, SMALL_H)
             val label = tr(if (buff.enabled) "kami_claims.buffs.disable" else "kami_claims.buffs.enable")
             val busy = pending("buff_toggle")
             val style = if (buff.enabled) ButtonStyle.SECONDARY else ButtonStyle.PRIMARY
@@ -177,7 +180,7 @@ class ResearchBuffsPage(app: ClaimsApp) : ClaimsPage(app) {
     }
 }
 
-private const val CARD_H = 62
+private const val CARD_H = 36
 private const val MIN_CARD_W = 190
 private const val MAX_COLUMNS = 3
 private const val PAD = 5

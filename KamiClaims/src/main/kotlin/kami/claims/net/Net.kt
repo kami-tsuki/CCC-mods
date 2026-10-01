@@ -65,7 +65,7 @@ class ClaimsPacket(val data: View.Payload) : CustomPacketPayload {
                 b.writeVarInt(d.countries.size)
                 d.countries.forEach { b.writeUtf(it.name, 64); b.writeInt(it.color); b.writeByte(it.relation); b.writeVarInt(it.flag); b.writeInt(it.secondary) }
                 b.writeVarInt(d.entries.size)
-                d.entries.forEach { b.writeByte(it.dim); b.writeInt(it.x); b.writeInt(it.z); b.writeVarInt(it.country); b.writeByte(it.type); b.writeByte(it.flags) }
+                d.entries.forEach { b.writeByte(it.dim); b.writeInt(it.x); b.writeInt(it.z); b.writeVarInt(it.country); b.writeByte(it.type); b.writeShort(it.flags) }
                 b.writeVarInt(d.reserved.size)
                 d.reserved.forEach { b.writeByte(it.dim); b.writeInt(it.x); b.writeInt(it.z) }
             },
@@ -74,7 +74,7 @@ class ClaimsPacket(val data: View.Payload) : CustomPacketPayload {
                 val dims = List(b.count(16)) { b.readUtf(64) }
                 val types = List(b.count(64)) { b.readUtf(32) }
                 val countries = List(b.count(8192)) { View.CountryView(b.readUtf(64), b.readInt(), b.readByte().toInt(), b.readVarInt(), b.readInt()) }
-                val entries = List(b.count(400_000)) { View.Entry(b.readByte().toInt(), b.readInt(), b.readInt(), b.readVarInt(), b.readByte().toInt(), b.readByte().toInt() and 0xFF) }
+                val entries = List(b.count(400_000)) { View.Entry(b.readByte().toInt(), b.readInt(), b.readInt(), b.readVarInt(), b.readByte().toInt(), b.readShort().toInt() and 0xFFFF) }
                 val reserved = List(b.count(100_000)) { View.Reserved(b.readByte().toInt(), b.readInt(), b.readInt()) }
                 ClaimsPacket(View.Payload(rev, dims, types, countries, entries, reserved))
             }
@@ -90,7 +90,7 @@ object Net {
     private val openPlayers = HashSet<UUID>()
 
     fun register(e: RegisterPayloadHandlersEvent) {
-        val r = e.registrar("2").optional()
+        val r = e.registrar("3").optional()
         r.playToServer(Act.type, Act.codec) { a, ctx -> (ctx.player() as? ServerPlayer)?.let { handle(it, a) } }
         r.playToClient(Snapshot.type, Snapshot.codec) { s, _ -> ClientHooks.snapshot(s) }
         r.playToClient(ClaimsPacket.TYPE, ClaimsPacket.CODEC) { c, _ -> ClientHooks.claims(c.data) }

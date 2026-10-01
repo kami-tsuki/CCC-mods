@@ -62,7 +62,7 @@ object Hud {
             lastDim = dim
         }
         val country = e?.let { ClientClaims.country(it) }
-        val name = country?.name ?: tr("kami_claims.world.nomansland")
+        val name = country?.name ?: tr("kami_claims.help.term.nomansland")
         val type = e?.let { ClientClaims.typeName(it) }?.let { Vocabulary.type(it) }
         val extra = when {
             e == null -> tr("kami_claims.guard.no_building")
@@ -103,7 +103,7 @@ object Hud {
     private fun enterBanner(dim: String, e: View.Entry?, now: Long): Banner {
         val bx = Minecraft.getInstance().player?.blockX ?: 0
         val bz = Minecraft.getInstance().player?.blockZ ?: 0
-        if (e == null) return Banner(tr("kami_claims.world.nomansland"), tr("kami_claims.guard.no_building"), Palette.textMuted, now)
+        if (e == null) return Banner(tr("kami_claims.help.term.nomansland"), tr("kami_claims.guard.no_building"), Palette.textMuted, now)
         val c = ClientClaims.country(e)
         val relation = c?.relation ?: 0
         val may = AccessGuess.actions.filter { AccessGuess.allowed(dim, bx, bz, it) }.map { tr("kami_claims.action.$it") }
@@ -120,7 +120,7 @@ object Hud {
         if (hint == Hint.BLOCKED) Draw.marker(g, Icons.LOCK, cx + 12, cy + 12)
         if (!BlockHint.showDetails()) return
         val e = ClientClaims.at(dim, pos.x shr 4, pos.z shr 4)
-        val title = e?.let { ClientClaims.country(it)?.name } ?: tr("kami_claims.world.nomansland")
+        val title = e?.let { ClientClaims.country(it)?.name } ?: tr("kami_claims.help.term.nomansland")
         val type = e?.let { ClientClaims.typeName(it) }?.let { Vocabulary.type(it).label } ?: ""
         val parts = AccessGuess.actions.map { a -> tr("kami_claims.action.$a") to AccessGuess.allowed(dim, pos.x, pos.z, a) }
         val w = 140

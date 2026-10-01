@@ -126,7 +126,7 @@ fun Ui.subTabs(r: Rect, tabs: List<TabItem>, selected: Int, key: Any = "tabs"): 
     Draw.hline(g, r.x, r.bottom - 1, r.w, Palette.borderSubtle)
     val remainingMin = { index: Int -> ((tabs.size - index - 1) * 36).coerceAtLeast(0) }
     tabs.forEachIndexed { i, t ->
-        val natural = Draw.width(t.label) + 14 + (if (t.icon != null) Draw.ICON_SLOT else 0) + (if (t.badge > 0) Draw.width(t.badge.toString()) + 10 else 0)
+        val natural = Draw.width(t.label) + 14 + (if (t.icon != null) Draw.ICON else 0) + (if (t.badge > 0) Draw.width(t.badge.toString()) + 10 else 0)
         val maxW = (r.right - x - remainingMin(i)).coerceAtLeast(36)
         val w = natural.coerceIn(36, maxW)
         val cell = Rect(x, r.y, w, r.h)

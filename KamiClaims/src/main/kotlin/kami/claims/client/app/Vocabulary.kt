@@ -74,8 +74,7 @@ object Vocabulary {
 
     val flags = listOf(
         "machines" to Look("kami_claims.flag.machines", 0, Icons.GEAR),
-        "fire" to Look("kami_claims.flag.fire", 0, Icons.FIRE),
-        "fluid" to Look("kami_claims.flag.fluid", 0, Icons.WATER)
+        "fire" to Look("kami_claims.flag.fire", 0, Icons.FIRE)
     )
 
     private fun cap(id: String, icon: Icon) = id to Look("kami_claims.cap.$id", 0, icon)
@@ -91,6 +90,7 @@ object Vocabulary {
         cap("rank", Icons.STAR),
         cap("jobs", Icons.TOOL),
         cap("plot", Icons.HOUSE),
+        cap("housing", Icons.HOUSE),
         cap("details", Icons.LEDGER),
         cap("province", Icons.CHAIN),
         cap("trade", Icons.SCALES),
@@ -141,7 +141,7 @@ object Vocabulary {
 
     fun trade(trade: String, alliance: String) = when {
         trade == "family" -> Palette.geoProvince to tr("kami_claims.relation.3")
-        trade == "embargo" -> Palette.danger to tr("kami_claims.trade.embargo")
+        trade == "embargo" -> Palette.danger to tr("kami_libs.common.embargo")
         alliance == "allied" -> Palette.geoAlly to tr("kami_claims.relation.2")
         alliance == "offer_in" -> Palette.warning to tr("kami_claims.trade.offer_in")
         alliance == "offer_out" -> Palette.textMuted to tr("kami_claims.trade.offer_out")

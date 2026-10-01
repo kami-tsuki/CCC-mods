@@ -109,21 +109,21 @@ object InlineFeatures {
         }
         val click = if (!stack.isEmpty && Config.s.inlineGeneral.itemViewer) ClickEvent(ClickEvent.Action.RUN_COMMAND, "/essentials inline open ${register(Type.ITEM, sender, stack.copy())}") else null
         val note = Phrase.of(if (click == null) "kami_essentials.inline.hover_inspect" else "kami_essentials.inline.click_inspect")
-        val card = lineCard(Phrase.of("kami_essentials.inline.item") to Config.s.inlineStyle.valueColor, note to Config.s.inlineStyle.textColor)
+        val card = lineCard(Phrase.of("kami_libs.common.item") to Config.s.inlineStyle.valueColor, note to Config.s.inlineStyle.textColor)
         return InlineChat.pill(label, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, card), click)
             .withStyle { it.withHoverEvent(hover) }
     }
 
     private fun inventoryToken(sender: ServerPlayer) = openToken(
         label = Phrase.of("kami_essentials.inline.inventory"),
-        tip = Phrase.of("kami_essentials.inline.inventory.tooltip", sender.gameProfile.name),
+        tip = Phrase.of("kami_essentials.views.inventory.other", sender.gameProfile.name),
         on = Config.s.inlineGeneral.inventoryViewer,
         key = { register(Type.INVENTORY, sender) }
     )
 
     private fun enderChestToken(sender: ServerPlayer) = openToken(
         label = Phrase.of("kami_essentials.inline.ender_chest"),
-        tip = Phrase.of("kami_essentials.inline.ender_chest.tooltip", sender.gameProfile.name),
+        tip = Phrase.of("kami_essentials.views.ender_chest.other", sender.gameProfile.name),
         on = Config.s.inlineGeneral.enderChestViewer,
         key = { register(Type.ENDER_CHEST, sender) }
     )
@@ -168,7 +168,7 @@ object InlineFeatures {
     }
 
     private fun levelToken(sender: ServerPlayer): Component =
-        InlineChat.pill(Text.msg("kami_essentials.inline.level.short", sender.experienceLevel).withColor(Config.s.inlineStyle.positiveColor), Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, lineCard(Phrase.of("kami_essentials.inline.level") to Theme.VALUE)))
+        InlineChat.pill(Text.msg("kami_essentials.inline.level.short", sender.experienceLevel).withColor(Config.s.inlineStyle.positiveColor), Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, lineCard(Phrase.of("kami_libs.common.level") to Theme.VALUE)))
 
     private fun posToken(sender: ServerPlayer): Component {
         val p = sender.blockPosition()
@@ -189,9 +189,9 @@ object InlineFeatures {
 
     private fun countryToken(sender: ServerPlayer): Component {
         val c = Names.citizenship(sender.uuid)
-        val label = c?.let { Component.literal(it.name) } ?: Text.msg("kami_essentials.inline.no_country")
+        val label = c?.let { Component.literal(it.name) } ?: Text.msg("kami_libs.common.no_country")
         val color = c?.let(Names::color) ?: Config.s.inlineStyle.warningColor
-        return InlineChat.pill(label.withColor(color), Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, lineCard(Phrase.of("kami_essentials.inline.country") to Theme.VALUE)))
+        return InlineChat.pill(label.withColor(color), Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, lineCard(Phrase.of("kami_libs.common.country") to Theme.VALUE)))
     }
 
     private fun rankToken(sender: ServerPlayer): Component {
@@ -202,7 +202,7 @@ object InlineFeatures {
     }
 
     private fun pingToken(sender: ServerPlayer): Component =
-        InlineChat.pill("${sender.connection.latency()} ms", Config.s.inlineStyle.valueColor, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, lineCard(Phrase.of("kami_essentials.inline.ping") to Theme.VALUE)))
+        InlineChat.pill("${sender.connection.latency()} ms", Config.s.inlineStyle.valueColor, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, lineCard(Phrase.of("kami_essentials.sidebar.ping") to Theme.VALUE)))
 
     private fun tpsToken(sender: ServerPlayer): Component =
         InlineChat.pill("${"%.1f".format(Tab.tps(sender.server))} TPS", Config.s.inlineStyle.valueColor, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, lineCard(Phrase.of("kami_essentials.inline.tps") to Theme.VALUE)))

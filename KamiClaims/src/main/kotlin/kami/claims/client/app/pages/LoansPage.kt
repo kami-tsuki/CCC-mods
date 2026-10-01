@@ -14,6 +14,7 @@ import kami.libs.ui.app.Route
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Memo
 import kami.libs.ui.core.Stack
+import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
@@ -35,6 +36,8 @@ private class OfferCard(
     val offer: LoanOfferView, val title: String, val lines: Array<String>, val colors: IntArray, val twoCol: Boolean, val h: Int,
     val lock: Lock?, val take: Lock?, val node: String?, val confirm: List<Consequence>
 ) {
+    val tip = Tip(title, lines.indices.map { lines[it] to colors[it] })
+    val tipKey = "loan-offer-tip:${offer.id}"
     val revealKey = "loan-offer-reveal:${offer.id}"
     val lockKey = "loan-offer-lock:${offer.id}"
     val buttonKey = "loan-take:${offer.id}"
@@ -82,12 +85,12 @@ class LoansPage(app: ClaimsApp) : ClaimsPage(app) {
                 val lead = Draw.leadIcon(ui.g, Icons.WARNING, box.x + PAD, box.y + PAD + 4, Palette.danger)
                 Draw.paragraph(ui.g, defaultText, box.x + PAD + lead + 2, box.y + PAD, box.w - 2 * PAD - lead - 2, Palette.danger)
             }
-            ui.section(stack, tr("kami_claims.loans.explain.title"))
-            Draw.paragraph(ui.g, explainText, stack.x, stack.take(explainH).y, stack.w, Palette.textMuted)
             ui.section(stack, tr("kami_claims.loans.active.title"), active.size.toString())
             if (active.isEmpty()) Draw.text(ui.g, emptyText, stack.x, stack.take(Draw.LINE).y, Palette.textMuted)
             active.forEachIndexed { i, card -> drawActive(ui, stack.take(card.h), card, i) }
-            ui.section(stack, tr("kami_claims.loans.offers.title"), offers.size.toString())
+            val offersHead = stack.take(14)
+            ui.section(offersHead, tr("kami_libs.common.offers"), offers.size.toString())
+            ui.tooltip("loans-explain", offersHead, explainText)
             stack.cardGrid(offers.size, cols, { offers[it].h }) { rect, i -> drawOffer(ui, rect, offers[i], i) }
             scrollHeight = stack.bottom - area.y
         }
@@ -107,7 +110,7 @@ class LoansPage(app: ClaimsApp) : ClaimsPage(app) {
         slotNext = nodes.asSequence().filter { n -> n.key !in state.done && n.unlocks.any { it.kind == "loan_slots" } }.minByOrNull { it.level }
             ?.let { n -> Lock.raise(n.level, slots + n.unlocks.filter { it.kind == "loan_slots" }.sumOf { it.count }) }
         defaultText = tr("kami_claims.loans.default")
-        defaultH = Draw.paragraphHeight(defaultText, width - 2 * PAD - Draw.ICON_SLOT - 2)
+        defaultH = Draw.paragraphHeight(defaultText, width - 2 * PAD - Draw.ICON - 2)
         explainText = tr("kami_claims.loans.explain")
         explainH = Draw.paragraphHeight(explainText, width)
         emptyText = tr("kami_claims.loans.active.empty")
@@ -116,8 +119,8 @@ class LoansPage(app: ClaimsApp) : ClaimsPage(app) {
             val overdue = loan.overdue
             val repay = rights ?: if (state.treasury < remaining) Lock(tr("kami_claims.loans.reason.funds", Format.money(remaining))) else null
             ActiveCard(
-                loan, tr("kami_claims.loans.offer", Format.money(loan.principal)), tr("kami_claims.loans.paid"),
-                tr("kami_claims.loans.left", trn("kami_claims.unit.day", loan.daysLeft.toLong())),
+                loan, tr("kami_claims.research.unlock.loan", Format.money(loan.principal)), tr("kami_libs.common.paid"),
+                tr("kami_libs.common.left", trn("kami_claims.unit.day", loan.daysLeft.toLong())),
                 if (overdue > 0) tr("kami_claims.loans.overdue", Format.money(overdue)) else null,
                 2 * PAD + TITLE_H + PROGRESS_LABELLED_H + if (overdue > 0) ROW_H + 2 else 0, repay,
                 listOf(
@@ -150,9 +153,9 @@ class LoansPage(app: ClaimsApp) : ClaimsPage(app) {
                 cap > 0 && state.treasury + amount > cap -> Lock(tr("kami_claims.loans.reason.cap", Format.money(cap.toLong())))
                 else -> null
             }
-            val rows = if (twoCol) 3 else lines.size
+            val rows = 1
             OfferCard(
-                offer, tr("kami_claims.loans.offer", Format.money(amount)), lines.toTypedArray(), colors.toIntArray(), twoCol, 2 * PAD + TITLE_H + rows * ROW_H + 2, lock, take, node?.key,
+                offer, tr("kami_claims.research.unlock.loan", Format.money(amount)), lines.toTypedArray(), colors.toIntArray(), twoCol, 2 * PAD + TITLE_H + rows * ROW_H + 2, lock, take, node?.key,
                 listOf(
                     Consequence(tr("kami_claims.loans.received", Format.money(amount))),
                     Consequence(tr("kami_claims.loans.payback", Format.money(total))),
@@ -177,15 +180,8 @@ class LoansPage(app: ClaimsApp) : ClaimsPage(app) {
             val busy = pending("loan_take")
             if (ui.lockedButton(button, tr("kami_claims.loans.take"), card.take, Icons.COIN, ButtonStyle.PRIMARY, !busy, pending = busy, key = card.buttonKey)) take(card)
         }
-        val top = box.y + PAD + TITLE_H
-        val left = box.x + PAD
-        val colW = (box.w - 2 * PAD) / 2
-        card.lines.forEachIndexed { i, text ->
-            val inRight = card.twoCol && i >= 3
-            val x = if (inRight) left + colW + CARD_GAP else left
-            val row = if (card.twoCol) i % 3 else i
-            Draw.text(ui.g, Draw.fit(text, if (card.twoCol) colW - CARD_GAP else box.w - 2 * PAD), x, top + row * ROW_H, card.colors[i])
-        }
+        Draw.text(ui.g, Draw.fit(card.lines[1], box.w - 2 * PAD), box.x + PAD, box.y + PAD + TITLE_H, if (dim) Palette.textMuted else Palette.textSecondary)
+        ui.tooltip(card.tipKey, Rect(box.x, box.y, box.w - if (dim) 0 else BUTTON_W + 2 * PAD, box.h), card.tip)
     }
 
     private fun drawActive(ui: Ui, r: Rect, card: ActiveCard, index: Int) = ui.staggered(r, card.revealKey, index) { box ->

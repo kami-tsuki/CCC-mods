@@ -152,7 +152,7 @@ class ResearchPage(app: ClaimsApp) : ClaimsPage(app) {
         else if (result.submitted && matches.isNotEmpty()) { matchIndex = (matchIndex + 1) % matches.size; jump(matches[matchIndex]) }
         val hint = when {
             search.text.isBlank() -> tr("kami_claims.research.hint")
-            matches.isEmpty() -> tr("kami_claims.research.no_match")
+            matches.isEmpty() -> tr("kami_libs.common.nothing_found")
             else -> tr("kami_claims.research.match", matchIndex + 1, matches.size)
         }
         Draw.text(ui.g, Draw.fit(hint, row.rest.w), row.rest.x + 2, bar.y + 5, Palette.textMuted)

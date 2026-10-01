@@ -47,12 +47,12 @@ internal class OrdersPage(val app: MarketApp) : Page() {
     private fun mode(o: OrderLine) = if (o.bid) "bid" else "edit"
 
     private val columns = listOf(
-        Column<OrderLine>(tr("kami_economy.market.sell.col.item"), -1, sort = compareBy { app.stack(it.item).hoverName.string.lowercase() }) { _, c, o ->
+        Column<OrderLine>(tr("kami_libs.common.item"), -1, sort = compareBy { app.stack(it.item).hoverName.string.lowercase() }) { _, c, o ->
             val name = app.stack(o.item).hoverName.string.let { if (o.bid) tr("kami_economy.market.orders.bid", it) else it }
             if (itemCell(c, app.stack(o.item), name, "order:${key(o)}", if (o.bid) Palette.success else Palette.text)) app.openItem(o.item, mode(o))
         },
         Column.number(tr("kami_economy.market.sell.col.count"), 50) { it.amount.toLong() },
-        Column.number(tr("kami_economy.market.sell.col.price"), 80, format = { Format.money(it) }) { it.price.toLong() },
+        Column.number(tr("kami_economy.market.sort.price"), 80, format = { Format.money(it) }) { it.price.toLong() },
         Column<OrderLine>("", 2 * ROW_H + 2) { _, c, o ->
             if (iconButton(Rect(c.x, c.y, c.h, c.h), Icons.EDIT, tr("kami_economy.market.orders.edit.tooltip"), key = "edit:${key(o)}")) app.openItem(o.item, mode(o))
             if (iconButton(Rect(c.right - c.h, c.y, c.h, c.h), Icons.CROSS, tr(if (o.bid) "kami_economy.market.bid.cancel.tooltip" else "kami_economy.market.orders.cancel.tooltip"), key = "cancel:${key(o)}"))
@@ -61,9 +61,8 @@ internal class OrdersPage(val app: MarketApp) : Page() {
     )
 
     override fun draw(ui: Ui, r: Rect) {
-        val events = ui.table(r.dropBottom(10, 4), columns, app.snap.orders, table, ::key, rowHeight = ROW_H, emptyText = tr("kami_economy.market.orders.empty"))
+        val events = ui.table(r, columns, app.snap.orders, table, ::key, rowHeight = ROW_H, emptyText = tr("kami_economy.market.orders.empty"))
         events.opened?.let { app.openItem(it.item, mode(it)) }
-        Draw.text(ui.g, Draw.fit(tr("kami_economy.market.orders.hint"), r.w), r.x, r.bottom - 8, TextStyle.CAPTION)
     }
 }
 
@@ -72,7 +71,7 @@ internal class AuctionsPage(val app: MarketApp) : Page() {
     private val stacks = HashMap<Long, ItemStack>()
     private val bid = NumberState(1)
     private var bidFor = -1L
-    override val title get() = tr("kami_economy.market.tab.auctions")
+    override val title get() = tr("kami_libs.common.auctions")
 
     private fun stack(a: AuctionLine) = stacks.getOrPut(a.id) {
         Minecraft.getInstance().level?.registryAccess()?.let { runCatching { StackCodec.decode(a.stackData, it) }.getOrNull() } ?: ItemStack.EMPTY
@@ -81,7 +80,7 @@ internal class AuctionsPage(val app: MarketApp) : Page() {
     private fun minBid(a: AuctionLine) = maxOf(a.startPrice, a.currentBid + 1).toLong()
 
     private val columns = listOf(
-        Column<AuctionLine>(tr("kami_economy.market.sell.col.item"), -1, sort = compareBy { it.label.lowercase() }) { _, c, a ->
+        Column<AuctionLine>(tr("kami_libs.common.item"), -1, sort = compareBy { it.label.lowercase() }) { _, c, a ->
             val name = if (a.mine) "${a.label} ${tr("kami_economy.market.auctions.mine")}" else a.label
             itemCell(c, stack(a), name, "auction:${a.id}", if (a.mine) Palette.textMuted else Palette.text)
         },
@@ -99,7 +98,6 @@ internal class AuctionsPage(val app: MarketApp) : Page() {
         val row = bar.dropRight(pagerW, 8)
         val a = snap.auctions.firstOrNull { it.id in table.selected }
         if (a == null) {
-            Draw.text(ui.g, Draw.fit(tr("kami_economy.market.auctions.hint"), row.w), row.x, row.y + 4, TextStyle.CAPTION)
             return
         }
         if (a.mine) {
@@ -220,7 +218,7 @@ internal class ItemPage(val app: MarketApp) : Page() {
                 if (v.embargo) ui.tooltip("vendor:$i", Rect(c.x, y - 1, c.w * 3 / 10, 10), tr("kami_economy.market.embargo.vendor", v.country))
                 val where = "${v.x}, ${v.y}, ${v.z}"
                 Draw.text(ui.g, where, c.x + c.w * 3 / 10, y, Palette.textSecondary)
-                val dist = if (player != null && here == v.dim) tr("kami_economy.market.vendors.distance", Format.number(player.position().distanceTo(net.minecraft.world.phys.Vec3(v.x + 0.5, v.y + 0.5, v.z + 0.5)).toLong()))
+                val dist = if (player != null && here == v.dim) tr("kami_libs.common.distance", Format.number(player.position().distanceTo(net.minecraft.world.phys.Vec3(v.x + 0.5, v.y + 0.5, v.z + 0.5)).toLong()))
                     else tr("kami_economy.market.vendors.far")
                 Draw.text(ui.g, Draw.fit(dist, c.w / 6), c.x + c.w * 11 / 20, y, Palette.textMuted)
                 ui.money(c.x + c.w * 7 / 10, y, v.price.toLong())
@@ -243,8 +241,8 @@ internal class ItemPage(val app: MarketApp) : Page() {
             level.flag?.let { Flags.draw(ui.g, Rect(r.x, y, 11, 8), level.color, it.pattern, it.emblem, it.secondary) }
             Draw.text(ui.g, Format.money(level.price.toLong()), r.x + 14, y, if (embargo) Palette.textMuted else color)
             val amount = when {
-                level.market -> tr("kami_economy.market.book.market")
-                embargo -> tr("kami_economy.market.embargo")
+                level.market -> tr("kami_libs.common.market")
+                embargo -> tr("kami_libs.common.embargo")
                 else -> Format.number(level.amount)
             }
             Draw.text(ui.g, amount, r.right - Draw.width(amount), y, if (embargo) Palette.danger else Palette.textMuted)
@@ -363,8 +361,8 @@ internal class ItemPage(val app: MarketApp) : Page() {
     }
 
     private fun actionLabel(d: Detail?) = tr(when (mode) {
-        "buy" -> "kami_economy.market.buy"
-        "sell" -> "kami_economy.market.sell"
+        "buy" -> "kami_economy.market.mode.buy"
+        "sell" -> "kami_economy.market.mode.sell"
         "market" -> "kami_economy.market.sell_market"
         "bid" -> if (hasBid(d)) "kami_economy.market.bid.cancel" else "kami_economy.market.bid.place"
         else -> "kami_economy.market.update_price"

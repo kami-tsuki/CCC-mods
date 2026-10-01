@@ -5,6 +5,7 @@ import kami.claims.Config
 import kami.claims.Country
 import kami.claims.Rank
 import kami.claims.Realm
+import kami.claims.Tenancy
 import kami.claims.now
 import kami.claims.research.Buffs
 import kami.claims.research.Loans
@@ -44,9 +45,9 @@ object Alerts {
         val me = p.stringUUID
         val out = ArrayList<AlertLine>()
         if (c == null) {
-            Realm.data.countries.values.filter { (it.invites[me] ?: 0) > now() }.forEach {
+            Realm.data.countries.values.filter { it.active && (it.invites[me] ?: 0) > now() }.forEach {
                 out += alert("invite:${it.id}", "INFO", t("kami_claims.alert.invite.title", it.name), t("kami_claims.alert.invite.body"),
-                    t("kami_claims.alert.invite.action", it.name), "accept", listOf(it.name), "welcome")
+                    t("kami_claims.common.join_x", it.name), "accept", listOf(it.name), "welcome")
             }
             return out
         }
@@ -62,16 +63,16 @@ object Alerts {
                 val detail = if (worst >= s.maxDebt - 1) t("kami_claims.alert.debt.body_final")
                 else t("kami_claims.alert.debt.body", days(s.maxDebt), worst.toString(), s.maxDebt.toString())
                 out += alert("debt", "DANGER", t("kami_claims.alert.debt.title", debt.size.toString()), detail,
-                    t("kami_claims.alert.deposit", money(shortfall)), "deposit", listOf(shortfall.toString()), "chunks", "debt")
+                    t("kami_claims.common.deposit_x", money(shortfall)), "deposit", listOf(shortfall.toString()), "chunks", "debt")
             } else {
                 val bill = nextBill(c)
                 if (bill > c.treasury) out += alert("bill", "WARNING", t("kami_claims.alert.bill.title"), t("kami_claims.alert.bill.body", money(bill), money(c.treasury)),
-                    t("kami_claims.alert.deposit", money(bill - c.treasury)), "deposit", listOf((bill - c.treasury).toString()), "budget")
+                    t("kami_claims.common.deposit_x", money(bill - c.treasury)), "deposit", listOf((bill - c.treasury).toString()), "budget")
             }
-            if (Loans.inDefault(c)) out += alert("loan_default", "DANGER", t("kami_claims.alert.loan_default.title"),
+            if (Loans.inDefault(c)) out += alert("loan_default", "DANGER", t("kami_claims.loans.reason.default"),
                 t("kami_claims.alert.loan_default.body", money(c.loans.sumOf { it.overdue })), t("kami_claims.alert.open.loans"), page = "loans")
             else if (c.loans.isNotEmpty() && Loans.dueNext(c) > c.treasury) out += alert("loan_due", "WARNING", t("kami_claims.alert.loan_due.title"),
-                t("kami_claims.alert.loan_due.body", money(Loans.dueNext(c)), money(c.treasury)), t("kami_claims.alert.deposit", money(Loans.dueNext(c) - c.treasury)),
+                t("kami_claims.alert.loan_due.body", money(Loans.dueNext(c)), money(c.treasury)), t("kami_claims.common.deposit_x", money(Loans.dueNext(c) - c.treasury)),
                 "deposit", listOf((Loans.dueNext(c) - c.treasury).toString()), "loans")
             val net = sum.upkeep + sum.jobs - sum.income
             if (net > 0 && claims.any { !it.free }) {
@@ -84,16 +85,16 @@ object Alerts {
                 t("kami_claims.alert.wages.body", money(sum.jobs), "${(s.jobShare * 100).toInt()}", money(wageBudget)), t("kami_claims.alert.open.jobs"), page = "jobs")
             if (claims.isNotEmpty() && claims.none { it.capital }) out += alert("capital", "DANGER", t("kami_claims.alert.capital.title"),
                 t("kami_claims.alert.capital.body"), t("kami_claims.alert.open.map"), page = "map")
-            val lapsing = claims.count { it.owner != null && it.lapse > 0 }
-            if (lapsing > 0) out += alert("plots", "INFO", t("kami_claims.alert.plots.title", lapsing.toString()), t("kami_claims.alert.plots.body", days(c.shutdown), days(c.release)),
-                t("kami_claims.alert.open.plots"), page = "plots", focus = "lapse")
+            val lapsing = claims.count { it.owner != null && it.rentDebt > 0 }
+            if (lapsing > 0) out += alert("plots", "INFO", t("kami_claims.alert.plots.title", lapsing.toString()), t("kami_claims.alert.plots.body", money(c.rentDebtLimit)),
+                t("kami_claims.alert.open.plots"), page = "plots", focus = "moving")
         }
-        if (!delegated) claims.filter { it.owner == me && it.lapse > 0 }.forEach { cl ->
-            val locked = cl.lapse >= c.shutdown
+        if (!delegated) claims.filter { it.owner == me && it.rentDebt > 0 }.forEach { cl ->
+            val locked = cl.state == Tenancy.MOVING_OUT
             out += alert(
                 "myplot:${cl.x}:${cl.z}", if (locked) "DANGER" else "WARNING",
                 t(if (locked) "kami_claims.alert.myplot.locked" else "kami_claims.alert.myplot.unpaid", cl.x.toString(), cl.z.toString()),
-                t("kami_claims.alert.myplot.body", days(cl.lapse), days(c.shutdown + c.release)),
+                t("kami_claims.alert.myplot.body", money(cl.rentDebt), money(c.rentDebtLimit)),
                 t("kami_claims.alert.myplot.action"), page = "plots", focus = "${cl.x}:${cl.z}"
             )
         }

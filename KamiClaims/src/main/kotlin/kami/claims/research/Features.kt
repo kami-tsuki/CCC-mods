@@ -14,6 +14,9 @@ object Features {
     const val EMBARGOES = "embargoes"
     const val LOANS = "loans"
     const val BUFFS = "buffs"
+    const val PLOTS_FAMILY = "plots:family"
+    const val PLOTS_ALLIES = "plots:allies"
+    const val PLOTS_PUBLIC = "plots:public"
 
     fun claimType(type: String) = "claim_type:$type"
 

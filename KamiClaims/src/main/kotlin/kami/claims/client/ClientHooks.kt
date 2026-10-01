@@ -1,5 +1,6 @@
 package kami.claims.client
 
+import kami.libs.ui.core.UiScale
 import com.mojang.blaze3d.platform.InputConstants
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.hud.Hud
@@ -56,6 +57,7 @@ object ClientHooks {
     private fun applyPrefs() {
         val p = ClientClaims.prefs
         TerrainCache.enabled = p.terrain
+        UiScale.factor = p.uiScale
         TerrainCache.diskLimitMb = p.terrainCacheMb
         Palette.vision = runCatching { Palette.Vision.valueOf(p.vision) }.getOrDefault(Palette.Vision.NORMAL)
     }

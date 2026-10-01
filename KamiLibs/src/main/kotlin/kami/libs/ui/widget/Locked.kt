@@ -36,7 +36,7 @@ private const val VEIL_ALPHA = 0x98
 private const val HINT_H = 13
 private const val CHIP_H = 13
 
-fun lockChipWidth(lock: Lock) = Draw.width(lock.label) + Draw.ICON_SLOT + 9
+fun lockChipWidth(lock: Lock) = Draw.width(lock.label) + Draw.ICON + 9
 
 fun Ui.lockChip(x: Int, y: Int, lock: Lock, key: Any = "lock:${lock.label}"): Int =
     chip(x, y, lock.label, Palette.warning, Icons.LOCK, lock.how, key)

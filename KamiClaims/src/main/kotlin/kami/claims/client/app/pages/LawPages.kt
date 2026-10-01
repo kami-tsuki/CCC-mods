@@ -1,8 +1,15 @@
 package kami.claims.client.app.pages
 
 import kami.claims.client.app.ClaimsApp
+import kami.claims.client.app.OfferRows
 import kami.claims.client.app.tokenOffer
 import kami.claims.client.app.Dialogs
+import kami.claims.client.app.ClientLocks
+import kami.claims.client.store.ClientResearch
+import kami.claims.net.Info
+import kami.claims.research.Capacity
+import kami.libs.ui.core.Memo
+import kami.libs.ui.style.Icon
 import kami.claims.client.store.ClaimsStore
 import kami.claims.research.Tokens
 import kami.claims.Rank
@@ -49,7 +56,7 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
     override val title get() = tr("kami_claims.nav.protection")
     override val subtitle get() = tr("kami_claims.law.protection.subtitle")
     override val help get() = listOf(
-        Callout("protect:grid", tr("kami_claims.law.help.grid"), tr("kami_claims.law.help.grid.desc")),
+        Callout("protect:grid", tr("kami_claims.common.rules"), tr("kami_claims.law.help.grid.desc")),
         Callout("protect:explain", tr("kami_claims.law.explain.title"), tr("kami_claims.law.help.explain.desc")),
         Callout("protect:apply", tr("kami_libs.common.apply"), tr("kami_claims.law.help.apply.desc"))
     )
@@ -60,7 +67,6 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
     private fun raw(t: TypeLine, field: String): String = when (field) {
         "machines" -> t.machines.toString()
         "fire" -> t.fire.toString()
-        "fluid" -> t.fluid.toString()
         else -> t.access[ACTIONS.indexOf(field)]
     }
     private fun current(t: TypeLine, field: String) = staged[key(t.name, field)] ?: raw(t, field)
@@ -102,7 +108,7 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
         val grid = r.dropBottom(bottom.h, 6)
         ui.anchor("protect:grid", grid)
         val actions = ACTIONS
-        val flags = listOf("machines", "fire", "fluid")
+        val flags = listOf("machines", "fire")
         val labelW = (grid.w * 0.24).toInt().coerceIn(96, 150)
         val actionW = (grid.w - labelW - flags.size * 34) / actions.size
         val header = grid.top(HEAD_H)
@@ -145,7 +151,7 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
                 flags.forEachIndexed { i, f ->
                     val cell = Rect(line.x + labelW + actions.size * actionW + i * 34 + 5, y + 2, 26, SMALL_H)
                     val on = current(t, f) == "true"
-                    ui.toggle(cell, on, "", editable, lock("rules"), tr("kami_claims.law.flag.state", Vocabulary.flags[i].second.label, tr(if (on) "kami_claims.law.on" else "kami_claims.law.off")), key = "flag:${t.name}:$f")?.let {
+                    ui.toggle(cell, on, "", editable, lock("rules"), tr("kami_libs.format.pair", Vocabulary.flags[i].second.label, tr(if (on) "kami_claims.law.on" else "kami_libs.common.off")), key = "flag:${t.name}:$f")?.let {
                         stage(t, f, it.toString())
                         focusCell = t.name to f
                     }
@@ -196,52 +202,169 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
 
 class PlotLawPage(app: ClaimsApp) : ClaimsPage(app) {
     override val title get() = tr("kami_claims.nav.plotlaw")
-    override val subtitle get() = tr("kami_claims.law.plot.subtitle")
+    override val subtitle get() = tr("kami_claims.law.housing.subtitle")
     override val help get() = listOf(
-        Callout("plotlaw:tax", tr("kami_claims.ledger.plot_tax"), tr("kami_claims.law.help.tax.desc")),
-        Callout("plotlaw:chain", tr("kami_claims.law.chain"), tr("kami_claims.law.help.chain.desc"))
+        Callout("plotlaw:offer", tr("kami_claims.law.offer.title"), tr("kami_claims.law.help.offer.desc")),
+        Callout("plotlaw:limits", tr("kami_claims.law.limits.title"), tr("kami_claims.law.help.limits.desc")),
+        Callout("plotlaw:chain", tr("kami_claims.common.rent_debt"), tr("kami_claims.law.help.chain.desc"))
     )
-    private var tax = NumberState(0)
-    private var shutdown = NumberState(0)
-    private var release = NumberState(0)
+    private val cats = OfferRows.CATS
+    private val ranks = listOf("citizen", "officer", "chancellor", "president")
+    private val guests = listOf("parent", "province", "allied", "random")
+    private val features = mapOf("parent" to "plots:family", "province" to "plots:family", "allied" to "plots:allies", "random" to "plots:public")
+    private val rents = cats.associateWith { NumberState(0) }
+    private val open = HashMap<String, Boolean>()
+    private val rankLimits = ranks.associateWith { NumberState(0) }
+    private val guestLimits = guests.associateWith { NumberState(0) }
+    private val debtLimit = NumberState(0)
+    private val moveOut = NumberState(0)
     private var synced = false
+    private var offerExpanded = true
+    private var rentExpanded = false
+    private var limitsExpanded = false
+    private val looks = Memo()
+
+    private class Look(val labels: Map<String, String>, val ranks: Map<String, String>, val locks: Map<String, Lock>)
+
+    private fun rent(info: Info, cat: String) = (info.offer.rent[cat] ?: 0).toLong()
+    private fun isOpen(info: Info, cat: String) = cat == "citizen" || cat in info.offer.open
+
+    private fun offerChanges(info: Info) = cats.count { rents.getValue(it).value != rent(info, it) || open[it] != isOpen(info, it) }
+    private fun limitChanges(info: Info) =
+        ranks.count { rankLimits.getValue(it).value != (info.rankPlots[it] ?: 0).toLong() } + guests.count { guestLimits.getValue(it).value != (info.guestPlots[it] ?: 0).toLong() }
+    private fun lawChanges(info: Info) = (if (debtLimit.value != info.rentDebtLimit) 1 else 0) + (if (moveOut.value != info.moveOutDays.toLong()) 1 else 0)
+
+    private fun load(info: Info) {
+        cats.forEach { rents.getValue(it).sync(rent(info, it)); open[it] = isOpen(info, it) }
+        ranks.forEach { rankLimits.getValue(it).sync((info.rankPlots[it] ?: 0).toLong()) }
+        guests.forEach { guestLimits.getValue(it).sync((info.guestPlots[it] ?: 0).toLong()) }
+        debtLimit.sync(info.rentDebtLimit)
+        moveOut.sync(info.moveOutDays.toLong())
+    }
+
+    private fun discard(info: Info) {
+        cats.forEach { rents.getValue(it).commit(rent(info, it)); open[it] = isOpen(info, it) }
+        ranks.forEach { rankLimits.getValue(it).commit((info.rankPlots[it] ?: 0).toLong()) }
+        guests.forEach { guestLimits.getValue(it).commit((info.guestPlots[it] ?: 0).toLong()) }
+        debtLimit.commit(info.rentDebtLimit)
+        moveOut.commit(info.moveOutDays.toLong())
+    }
 
     override fun draw(ui: Ui, r: Rect) {
         val info = info ?: return
-        val dirty = tax.value != info.tax.toLong() || shutdown.value != info.shutdown.toLong() || release.value != info.release.toLong()
-        if (!dirty || !synced) { tax.sync(info.tax.toLong()); shutdown.sync(info.shutdown.toLong()); release.sync(info.release.toLong()); synced = true }
-        val editable = can("tax")
-        val (left, right) = r.dropBottom(34).columns(2, 10)
-        val tb = ui.card(left.top(96), tr("kami_claims.ledger.plot_tax"), Icons.TAX, help = tr("kami_claims.law.tax.override"))
-        ui.anchor("plotlaw:tax", left.top(96))
-        val f = Flow(tb, 4)
-        ui.fieldLabel(f.take(9), tr("kami_claims.law.tax.field"))
-        ui.numberField(f.take(CONTROL_H).left(160), tax, 0, 10_000, unit = "◎", enabled = editable, key = "tax")
-        val plots = info.claimList.count { it.owner.isNotEmpty() }
-        ui.property(f.take(11), tr("kami_claims.stats.rented_plots"), Format.number(plots))
-        ui.property(f.take(11), tr("kami_claims.law.tax.income"), "${Format.number(info.income)} → ${Format.money(tax.value * plots)}", Palette.success)
-        val chainHelp = tr("kami_claims.law.chain.desc", trn("kami_claims.unit.day", shutdown.value), trn("kami_claims.unit.day", release.value))
-        val cb = ui.card(right.top(130), tr("kami_claims.law.chain"), Icons.CLOCK, help = chainHelp)
-        ui.anchor("plotlaw:chain", right.top(130))
-        val g2 = Flow(cb, 4)
-        val cols = g2.take(30).columns(2, 8)
-        ui.fieldLabel(cols[0].top(9), tr("kami_claims.law.chain.lock"))
-        ui.numberField(Rect(cols[0].x, cols[0].y + 10, cols[0].w, CONTROL_H), shutdown, 0, 60, enabled = editable, key = "shutdown")
-        ui.fieldLabel(cols[1].top(9), tr("kami_claims.law.chain.lose"))
-        ui.numberField(Rect(cols[1].x, cols[1].y + 10, cols[1].w, CONTROL_H), release, 0, 60, enabled = editable, key = "release")
-        g2.skip(4)
-        ui.timeline(g2.take(34), listOf(
-            Step(tr("kami_claims.plots.unpaid"), tr("kami_claims.chart.day", 1), StepState.CURRENT),
-            Step(tr("kami_claims.plots.step.locked"), tr("kami_claims.chart.day", shutdown.value), StepState.PENDING),
-            Step(tr("kami_claims.law.chain.free"), tr("kami_claims.chart.day", shutdown.value + release.value), StepState.DANGER)
-        ))
-        if (shutdown.value == 0L) g2.take(ui.callout(g2.rest, Severity.WARNING, tr("kami_claims.law.chain.zero")))
-        val changes = listOf(tax.value != info.tax.toLong(), shutdown.value != info.shutdown.toLong(), release.value != info.release.toLong()).count { it }
-        ui.applyBar(r.bottom(28), changes, tr("kami_claims.law.summary", Format.money(tax.value), Format.days(shutdown.value), Format.days(shutdown.value + release.value)), editable, lock("tax"), pending("plot_law"), "plotlaw", {
-            act("plot_law", tax.value.toString(), shutdown.value.toString(), release.value.toString(), key = "plot_law")
-        }, { synced = false; tax.commit(info.tax.toLong()); shutdown.commit(info.shutdown.toLong()); release.commit(info.release.toLong()) })
+        val offerChanges = offerChanges(info)
+        val limitChanges = limitChanges(info)
+        val lawChanges = lawChanges(info)
+        val changes = offerChanges + limitChanges + lawChanges
+        if (!synced || changes == 0) { load(info); synced = true }
+        val look = looks.of(info.offer.levels, Format.locale) {
+            Look(cats.associateWith { tr("kami_claims.claimant.$it") }, ranks.associateWith { Vocabulary.rank(it).label },
+                features.mapNotNull { (cat, id) -> info.offer.levels[cat]?.let { cat to Lock.level(it, ClientLocks.featureName(id)) } }.toMap())
+        }
+        val ceiling = ClientResearch.state.max(Capacity.PLOTS).toLong()
+        val offerReason = lock("housing")
+        val offerEdit = offerReason == null
+        val limitEdit = can("tax")
+        val content = r.dropBottom(34, 4)
+        val offerOpen = cats.count { open[it] == true }
+        val wide = content.w >= 380
+        val group = LIMIT_SUB_H + 4 * ROW_H
+        val limitsBody = if (wide) group else 2 * group + 4
+        val total = 3 * SEC_H + 2 * SEC_GAP + (if (offerExpanded) cats.size * ROW_H + BODY_PAD else 0) + (if (rentExpanded) RENT_H + BODY_PAD else 0) + (if (limitsExpanded) limitsBody + BODY_PAD else 0)
+        ui.scroll("housing", content, total) { area ->
+            val col = Rect(area.x, area.y, area.w.coerceAtMost(MAX_W), area.h)
+            var y = area.y
+            val offerHead = Rect(col.x, y, col.w, SEC_H)
+            ui.anchor("plotlaw:offer", offerHead)
+            if (head(ui, offerHead, "plotlaw:h:offer", tr("kami_claims.law.offer.title"), tr("kami_claims.law.offer.open", offerOpen), offerChanges > 0, offerExpanded, tr("kami_claims.law.offer.help"))) offerExpanded = !offerExpanded
+            y += SEC_H
+            if (offerExpanded) {
+                cats.forEachIndexed { i, cat ->
+                    val row = Rect(col.x, y + 2 + i * ROW_H, col.w, ROW_H - 2)
+                    OfferRows.draw(ui, row, cat, look.labels.getValue(cat), look.locks[cat], open[cat] == true, offerEdit, offerReason, 104, "plotlaw:$cat") { field ->
+                        ui.numberField(field, rents.getValue(cat), 0, info.maxRent.toLong(), unit = "◎", enabled = offerEdit && look.locks[cat] == null, key = "plotlaw:rent:$cat")
+                    }?.let { open[cat] = it }
+                }
+                if (!offerEdit) ui.tooltip("plotlaw:tip", Rect(col.x, y, col.w, cats.size * ROW_H), offerReason)
+                y += cats.size * ROW_H + BODY_PAD
+            }
+            y += SEC_GAP
+            val rentHead = Rect(col.x, y, col.w, SEC_H)
+            ui.anchor("plotlaw:chain", rentHead)
+            if (head(ui, rentHead, "plotlaw:h:rent", tr("kami_claims.common.rent_debt"), "${Format.money(debtLimit.value)} · ${trn("kami_claims.unit.day", moveOut.value)}", lawChanges > 0, rentExpanded, tr("kami_claims.law.chain.desc", Format.money(debtLimit.value), trn("kami_claims.unit.day", moveOut.value)))) rentExpanded = !rentExpanded
+            y += SEC_H
+            if (rentExpanded) {
+                val cols = Rect(col.x, y + 2, col.w, 30).columns(2, 8)
+                ui.fieldLabel(cols[0].top(9), tr("kami_claims.law.debt_limit"))
+                ui.numberField(Rect(cols[0].x, cols[0].y + 10, cols[0].w, CONTROL_H), debtLimit, 0, 100_000, unit = "◎", enabled = limitEdit, key = "debtlimit")
+                ui.fieldLabel(cols[1].top(9), tr("kami_claims.law.move_out"))
+                ui.numberField(Rect(cols[1].x, cols[1].y + 10, cols[1].w, CONTROL_H), moveOut, 1, 30, enabled = limitEdit, key = "moveout")
+                if (!limitEdit) ui.tooltip("plotlaw:tip:law", Rect(col.x, y, col.w, RENT_H), lock("tax"))
+                y += RENT_H + BODY_PAD
+            }
+            y += SEC_GAP
+            val limitsHead = Rect(col.x, y, col.w, SEC_H)
+            ui.anchor("plotlaw:limits", limitsHead)
+            val raise = ClientLocks.raise(Capacity.PLOTS)
+            val chip = raise?.let { lockChipWidth(it) + 6 } ?: 0
+            if (head(ui, Rect(limitsHead.x, limitsHead.y, limitsHead.w - chip, SEC_H), "plotlaw:h:limits", tr("kami_claims.law.limits.title"), "${tr("kami_claims.law.ceiling")} ${Format.number(ceiling)}", limitChanges > 0, limitsExpanded, tr("kami_claims.law.limits.help"))) limitsExpanded = !limitsExpanded
+            raise?.let { ui.lockChip(limitsHead.right - chip + 3, limitsHead.y + 3, it, "plotlaw:ceiling") }
+            y += SEC_H
+            if (limitsExpanded) {
+                y += 2
+                val groups = if (wide) Rect(col.x, y, col.w, group).columns(2, 12) else listOf(Rect(col.x, y, col.w, group), Rect(col.x, y + group + 4, col.w, group))
+                val rankSec = ui.section(Rect(groups[0].x, groups[0].y, groups[0].w, 12), tr("kami_claims.law.limits.ranks"))
+                ranks.forEachIndexed { i, k ->
+                    limitRow(ui, Rect(rankSec.x, rankSec.y + i * ROW_H, rankSec.w, ROW_H - 2), look.ranks.getValue(k), null, null, rankLimits.getValue(k), ceiling, limitEdit, "plotlaw:rank:$k")
+                }
+                val guestSec = ui.section(Rect(groups[1].x, groups[1].y, groups[1].w, 12), tr("kami_claims.law.limits.guests"))
+                guests.forEachIndexed { i, k ->
+                    limitRow(ui, Rect(guestSec.x, guestSec.y + i * ROW_H, guestSec.w, ROW_H - 2), look.labels.getValue(k), OfferRows.ICONS.getValue(k), look.locks[k], guestLimits.getValue(k), ceiling, limitEdit, "plotlaw:guest:$k")
+                }
+            }
+        }
+        val summary = if (changes == 0) "" else tr("kami_claims.law.housing.summary", Format.number(offerChanges), Format.number(limitChanges), Format.number(lawChanges))
+        ui.applyBar(r.bottom(28), changes, summary, offerEdit || limitEdit, null, pending("plot_law"), "plotlaw", {
+            cats.forEach { cat ->
+                if (rents.getValue(cat).value != rent(info, cat) || open[cat] != isOpen(info, cat)) act("plot_offer", cat, if (cat == "citizen" || open[cat] == true) "on" else "off", rents.getValue(cat).value.toString(), "default", key = "plot_offer:$cat")
+            }
+            ranks.forEach { k -> if (rankLimits.getValue(k).value != (info.rankPlots[k] ?: 0).toLong()) act("plot_limit", k, rankLimits.getValue(k).value.coerceIn(0, ceiling).toString(), key = "plot_limit:$k") }
+            guests.forEach { k -> if (guestLimits.getValue(k).value != (info.guestPlots[k] ?: 0).toLong()) act("plot_limit", k, guestLimits.getValue(k).value.coerceIn(0, ceiling).toString(), key = "plot_limit:$k") }
+            if (lawChanges > 0) act("plot_law", debtLimit.value.toString(), moveOut.value.toString(), key = "plot_law")
+        }, { discard(info) })
+    }
+
+    private fun head(ui: Ui, r: Rect, key: String, title: String, summary: String, changed: Boolean, expanded: Boolean, tip: String): Boolean {
+        val hit = ui.clickable(key, r)
+        if (ui.hovering(r)) Draw.fill(ui.g, r, Palette.hover)
+        val x = r.x + 2 + Draw.leadIcon(ui.g, if (expanded) Icons.CHEVRON_DOWN else Icons.CHEVRON_RIGHT, r.x + 2, r.centerY) + 2
+        Draw.text(ui.g, title, x, r.y + 6, TextStyle.HEADING)
+        val titleW = Draw.width(title, TextStyle.HEADING)
+        Draw.textRight(ui.g, Draw.fit(summary, (r.right - x - titleW - 24).coerceAtLeast(20)), r.right - 6, r.y + 6, Palette.textMuted)
+        if (changed) Draw.fill(ui.g, Rect(x + titleW + 4, r.centerY - 2, 4, 4), Palette.brass)
+        Draw.hline(ui.g, r.x, r.bottom - 1, r.w, Palette.borderSubtle)
+        ui.tooltip("$key:tip", r, tip)
+        return hit
+    }
+
+    private fun limitRow(ui: Ui, row: Rect, label: String, icon: Icon?, gate: Lock?, state: NumberState, ceiling: Long, edit: Boolean, key: String) {
+        ui.locked(row, gate, "$key:lock") {
+            val field = Row(row, 6).takeFromRight(104)
+            val x = row.x + (icon?.let { Draw.leadIcon(ui.g, it, row.x, row.centerY) + 2 } ?: 0)
+            Draw.text(ui.g, Draw.fit(label, field.x - x - 4), x, row.y + 5, Palette.text)
+            ui.numberField(field, state, 0, ceiling, enabled = edit && gate == null, key = key)
+        }
+        if (!edit) ui.tooltip("$key:tip", row, lock("tax"))
     }
 }
+
+private const val ROW_H = 22
+private const val SEC_H = 20
+private const val SEC_GAP = 4
+private const val BODY_PAD = 6
+private const val RENT_H = 34
+private const val LIMIT_SUB_H = 13
+private const val MAX_W = 440
 
 class IdentityPage(app: ClaimsApp) : ClaimsPage(app) {
     override val title get() = tr("kami_claims.nav.identity")
@@ -298,12 +421,12 @@ class IdentityPage(app: ClaimsApp) : ClaimsPage(app) {
     }
 
     private fun nameCard(ui: Ui, r: Rect) {
-        val f = Flow(ui.card(r, tr("kami_claims.identity.name"), Icons.EDIT), 3)
+        val f = Flow(ui.card(r, tr("kami_libs.common.name"), Icons.EDIT), 3)
         val offer = tokenOffer(Tokens.RENAME)
         val line = f.take(10)
         Draw.text(ui.g, Draw.fit(offer.text, line.w), line.x, line.y + 1, offer.severity.color)
         val president = ClaimsStore.rank == Rank.PRESIDENT
-        if (ui.button(f.take(CONTROL_H), tr("kami_claims.identity.rename"), Icons.EDIT, enabled = president, disabledReason = tr("kami_claims.identity.rename.president"), key = "rename")) Dialogs.rename(app)
+        if (ui.button(f.take(CONTROL_H), tr("kami_claims.common.rename_country"), Icons.EDIT, enabled = president, disabledReason = tr("kami_claims.identity.rename.president"), key = "rename")) Dialogs.rename(app)
     }
 
     private fun swatch(ui: Ui, r: Rect, value: Int, chosen: Boolean, enabled: Boolean, onPick: () -> Unit) {

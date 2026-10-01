@@ -9,6 +9,7 @@ import kami.libs.ui.app.Route
 import kami.libs.ui.core.Flow
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Tip
+import kami.libs.ui.core.UiScale
 import kami.libs.ui.core.Ui
 import kami.libs.ui.map.TerrainCache
 import kami.libs.ui.style.Draw
@@ -107,8 +108,10 @@ class SettingsPage(app: ClaimsApp) : ClaimsPage(app) {
         ui.toggle(mf.take(14), p.skipClaimConfirm, tr("kami_claims.settings.map.skip_confirm"), key = "skip-confirm")?.let { p.skipClaimConfirm = it; save() }
         if (ui.button(mf.take(CONTROL_H).left(150), tr("kami_claims.settings.map.wipe"), Icons.REMOVE, key = "wipe")) { TerrainCache.wipe(); app.toast(Severity.SUCCESS, tr("kami_claims.settings.map.wiped")) }
         val rf = Flow(right, 6)
-        val look = ui.card(rf.take(150), tr("kami_claims.settings.display"), Icons.BRUSH)
+        val look = ui.card(rf.take(182), tr("kami_claims.settings.display"), Icons.BRUSH)
         val lf2 = Flow(look, 4)
+        ui.fieldLabel(lf2.take(9), tr("kami_claims.settings.display.scale"))
+        ui.segmented(lf2.take(CONTROL_H), UiScale.choices.map { Option(it, Format.percent(it.toDouble())) }, UiScale.snap(p.uiScale), key = "ui-scale")?.let { p.uiScale = it; UiScale.factor = it; save() }
         ui.fieldLabel(lf2.take(9), tr("kami_claims.settings.display.colours"))
         ui.select(lf2.take(CONTROL_H), Palette.Vision.entries.map { Option(it.name, tr("kami_claims.settings.vision.${it.name.lowercase()}"), description = tr("kami_claims.settings.vision.${it.name.lowercase()}.desc")) }, p.vision, key = "vision")?.let {
             p.vision = it; Palette.vision = Palette.Vision.valueOf(it); save()
@@ -125,6 +128,6 @@ class SettingsPage(app: ClaimsApp) : ClaimsPage(app) {
         if (ui.button(gf.take(CONTROL_H), tr("kami_claims.settings.guidance.goals"), Icons.CHECK, enabled = p.hiddenSteps, disabledReason = tr("kami_claims.settings.guidance.goals.disabled"), key = "goals")) { p.hiddenSteps = false; save() }
         val keys = ui.card(rf.remaining(), tr("kami_claims.settings.keys"), Icons.GENERIC)
         val kf = Flow(keys, 3)
-        listOf("K" to tr("key.kami_claims.open"), "B" to tr("key.kami_claims.borders"), "M" to tr("kami_claims.nav.map"), "?" to tr("kami_claims.tour.help"), "Esc" to tr("kami_claims.settings.keys.escape"), "Alt+←" to tr("kami_claims.settings.keys.previous"), tr("kami_claims.settings.keys.groups.key") to tr("kami_claims.settings.keys.groups")).forEach { (k, v) -> ui.keyHints(keys.x, kf.take(13).y, listOf(k to v)) }
+        listOf("K" to tr("key.kami_claims.open"), "B" to tr("key.kami_claims.borders"), "M" to tr("kami_claims.nav.map"), "?" to tr("kami_claims.tour.help"), "Esc" to tr("kami_claims.settings.keys.escape"), "Alt+←" to tr("kami_libs.pager.prev.tooltip"), tr("kami_claims.settings.keys.groups.key") to tr("kami_claims.settings.keys.groups")).forEach { (k, v) -> ui.keyHints(keys.x, kf.take(13).y, listOf(k to v)) }
     }
 }

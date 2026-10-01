@@ -36,12 +36,12 @@ class BudgetPage(app: ClaimsApp) : ClaimsPage(app) {
     )
     private var whatIfTax = -1
 
-    override fun actionsWidth() = buttonWidth(tr("kami_claims.money.deposit"), Icons.DEPOSIT) + buttonWidth(tr("kami_claims.money.withdraw"), Icons.WITHDRAW) + 4
+    override fun actionsWidth() = buttonWidth(tr("kami_claims.money.deposit"), Icons.DEPOSIT) + buttonWidth(tr("kami_libs.common.withdraw"), Icons.WITHDRAW) + 4
 
     override fun actions(ui: Ui, r: Rect) {
         val row = Row(r)
         if (ui.edgeButton(row, tr("kami_claims.money.deposit"), Icons.DEPOSIT, ButtonStyle.PRIMARY, key = "b-dep")) Dialogs.money(app, true)
-        if (ui.edgeButton(row, tr("kami_claims.money.withdraw"), Icons.WITHDRAW, enabled = can("withdraw"), disabledReason = lock("withdraw"), key = "b-wd")) Dialogs.money(app, false)
+        if (ui.edgeButton(row, tr("kami_libs.common.withdraw"), Icons.WITHDRAW, enabled = can("withdraw"), disabledReason = lock("withdraw"), key = "b-wd")) Dialogs.money(app, false)
     }
 
     override fun draw(ui: Ui, r: Rect) {
@@ -55,7 +55,7 @@ class BudgetPage(app: ClaimsApp) : ClaimsPage(app) {
             KpiTile(tr("kami_claims.budget.income_day"), Format.number(income), Icons.INCOME, Palette.success),
             KpiTile(tr("kami_claims.budget.spending_day"), Format.number(spending), Icons.EXPENSE, Palette.danger),
             KpiTile(tr("kami_claims.kpi.net"), Format.signed(net), Icons.SCALES, if (net >= 0) Palette.success else Palette.danger),
-            KpiTile(tr("kami_claims.kpi.runway"), app.runwayText(info.treasury, net), Icons.CLOCK, app.runwayColor(info.treasury, net))
+            KpiTile(tr("kami_claims.help.term.runway"), app.runwayText(info.treasury, net), Icons.CLOCK, app.runwayColor(info.treasury, net))
         ), key = "budget-kpi")
         val rest = r.dropTop(50)
         val (left, right) = rest.columns(2, 6)
@@ -64,7 +64,7 @@ class BudgetPage(app: ClaimsApp) : ClaimsPage(app) {
         ui.anchor("budget:income", inc)
         val ib = ui.card(inc, tr("kami_claims.budget.income"), Icons.INCOME)
         val fi = Flow(ib, 1)
-        line(ui, fi.take(TABLE_ROW_H), Icons.HOUSE, tr("kami_claims.ledger.plot_tax"), tr("kami_claims.budget.plot_tax.detail", trn("kami_claims.unit.plot", info.claimList.count { it.owner.isNotEmpty() }), Format.money(info.tax.toLong())), info.income, Palette.success)
+        line(ui, fi.take(TABLE_ROW_H), Icons.HOUSE, tr("kami_claims.ledger.plot_tax"), tr("kami_claims.budget.plot_tax.detail", trn("kami_claims.unit.plot", info.claimList.count { it.owner.isNotEmpty() }), Format.money(info.citizenRent.toLong())), info.income, Palette.success)
         line(ui, fi.take(TABLE_ROW_H), Icons.CHAIN, tr("kami_claims.ledger.tribute_in"), trn("kami_claims.unit.province", info.provinces.size), tributeIn, Palette.success)
         info.provinces.forEach { p -> sub(ui, fi.take(10), p.name, Vocabulary.tribute(p.mode, p.amount), if (p.mode == "percent") (p.income * p.amount).toLong() else p.amount.toLong()) }
         val spend = lf.take(24 + 3 * (TABLE_ROW_H + 1) + info.breakdown.size * 11)
@@ -78,14 +78,14 @@ class BudgetPage(app: ClaimsApp) : ClaimsPage(app) {
         val what = lf.remaining()
         ui.anchor("budget:whatif", what)
         val wb = ui.card(what, tr("kami_claims.budget.whatif"), Icons.SEARCH, help = tr("kami_claims.budget.whatif.help"))
-        if (whatIfTax < 0) whatIfTax = info.tax
+        if (whatIfTax < 0) whatIfTax = info.citizenRent
         val wf = Flow(wb, 4)
         ui.fieldLabel(wf.take(9), tr("kami_claims.ledger.plot_tax"), tr("kami_claims.budget.whatif.rate", Format.perDay(Format.money(whatIfTax.toLong()))))
-        ui.slider(wf.take(CONTROL_H), whatIfTax.toDouble(), 0.0, max(20.0, info.tax * 3.0), 1.0, format = { Format.money(it.toLong()) }, key = "whatif")?.let { whatIfTax = it.toInt() }
+        ui.slider(wf.take(CONTROL_H), whatIfTax.toDouble(), 0.0, max(20.0, info.citizenRent * 3.0), 1.0, format = { Format.money(it.toLong()) }, key = "whatif")?.let { whatIfTax = it.toInt() }
         val plots = info.claimList.count { it.owner.isNotEmpty() }
-        val newNet = net + (whatIfTax - info.tax).toLong() * plots
+        val newNet = net + (whatIfTax - info.citizenRent).toLong() * plots
         ui.property(wf.take(11), tr("kami_claims.kpi.net"), "${Format.signed(net)} → ${Format.signed(newNet)}", if (newNet >= 0) Palette.success else Palette.danger)
-        ui.property(wf.take(11), tr("kami_claims.kpi.runway"), "${app.runwayText(info.treasury, net)} → ${app.runwayText(info.treasury, newNet)}", app.runwayColor(info.treasury, newNet))
+        ui.property(wf.take(11), tr("kami_claims.help.term.runway"), "${app.runwayText(info.treasury, net)} → ${app.runwayText(info.treasury, newNet)}", app.runwayColor(info.treasury, newNet))
         if (ui.link(wb.x, wf.rest.y + 2, tr("kami_claims.budget.whatif.link"), key = "to-plotlaw")) app.navigate(Route("plotlaw"))
         val rf = Flow(right, 6)
         val fc = rf.take((right.h * 0.55).toInt())

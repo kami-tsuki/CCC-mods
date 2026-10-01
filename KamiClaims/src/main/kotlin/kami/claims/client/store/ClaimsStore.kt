@@ -1,5 +1,6 @@
 package kami.claims.client.store
 
+import kami.claims.client.rankOf
 import kami.claims.Rank
 import kami.claims.client.ClientClaims
 import kami.claims.net.Act
@@ -30,7 +31,7 @@ object ClaimsStore {
 
     val info: Info? get() = snap?.info
     val delegated get() = info?.delegated == true
-    val rank: Rank get() = info?.let { runCatching { Rank.valueOf(it.rank.uppercase()) }.getOrNull() } ?: Rank.BANISHED
+    val rank: Rank get() = info?.let { rankOf(it.rank) } ?: Rank.BANISHED
 
     fun onOutcome(listener: (Outcome) -> Unit) { listeners += listener }
 

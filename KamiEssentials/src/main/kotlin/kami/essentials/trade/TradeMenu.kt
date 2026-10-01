@@ -59,9 +59,9 @@ class TradeMenu(id: Int, inv: Inventory, private val trade: Trade, private val s
         display.setItem(
             ACCEPT,
             if (trade.accepted(side)) icon(Items.LIME_CONCRETE, text("kami_essentials.trade.menu.accepted", color = Theme.OK), text("kami_essentials.trade.menu.accepted.tooltip"))
-            else icon(Items.YELLOW_CONCRETE, text("kami_essentials.trade.menu.accept", color = Theme.WARN), text("kami_essentials.trade.menu.accept.tooltip"), text("kami_essentials.trade.menu.accept.reset"))
+            else icon(Items.YELLOW_CONCRETE, text("kami_libs.common.accept", color = Theme.WARN), text("kami_essentials.trade.menu.accept.tooltip"), text("kami_essentials.trade.menu.accept.reset"))
         )
-        display.setItem(CANCEL, icon(Items.BARRIER, text("kami_essentials.trade.menu.cancel", color = Theme.BAD), text("kami_essentials.trade.menu.cancel.tooltip")))
+        display.setItem(CANCEL, icon(Items.BARRIER, text("kami_libs.common.cancel", color = Theme.BAD), text("kami_essentials.trade.menu.cancel.tooltip")))
         display.setItem(
             STATUS,
             if (seconds > 0) icon(Items.CLOCK, text("kami_essentials.trade.menu.countdown", seconds, color = Theme.OK), text("kami_essentials.trade.menu.countdown.tooltip"), count = seconds)

@@ -1,6 +1,8 @@
 package kami.claims.client.app
 
 import kami.claims.client.app.pages.ResearchLook
+import kami.claims.client.rankOf
+import kami.claims.client.store.ClaimsStore
 import kami.claims.client.store.ClientResearch
 import kami.claims.net.LevelView
 import kami.claims.Rank
@@ -20,6 +22,15 @@ import kami.libs.ui.widget.capacityLine
 
 object ClientLocks {
     const val CLAIM_TYPE = "claim_type:"
+
+    fun cap(cap: String): String? {
+        val info = ClaimsStore.info ?: return tr("kami_claims.lock.no_country")
+        val snap = ClaimsStore.snap ?: return tr("kami_claims.lock.loading")
+        if (info.delegated && cap !in snap.delegable) return tr("kami_claims.lock.province_only")
+        val min = snap.caps[cap]?.let(::rankOf) ?: Rank.PRESIDENT
+        if (ClaimsStore.rank < min) return tr("kami_claims.lock.rank", Vocabulary.rank(min.name).label)
+        return null
+    }
 
     fun featureName(id: String) =
         if (id.startsWith(CLAIM_TYPE)) tr("kami_claims.feature.claim_type", Vocabulary.type(id.removePrefix(CLAIM_TYPE)).label)
@@ -91,7 +102,7 @@ object ClientLocks {
         fresh()
         if (cap in fulls) return fulls[cap]
         val state = ClientResearch.state
-        val lock = if (state.used(cap) < state.max(cap)) null else Lock(tr("kami_claims.lock.slots", state.used(cap), state.max(cap)), raise(cap)?.how)
+        val lock = if (state.used(cap) < state.max(cap)) null else Lock(tr("kami_libs.format.used", state.used(cap), state.max(cap)), raise(cap)?.how)
         return lock.also { fulls[cap] = it }
     }
 

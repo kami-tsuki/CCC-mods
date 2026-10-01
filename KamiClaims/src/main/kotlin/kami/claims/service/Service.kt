@@ -34,12 +34,14 @@ class Fail(val phrase: Phrase, val reason: String = "", val target: Key? = null)
     constructor(key: String, vararg args: Any) : this(Phrase.of(key, *args))
 }
 
+private val DELEGATE_RANK = Rank.CHANCELLOR
+
 class NeedsConfirm(val lines: List<Phrase>) : RuntimeException()
 
 object Service {
     private val s get() = Config.s
     private var acting: String? = null
-    val delegableCaps = setOf(Cap.CLAIM, Cap.CAPITAL, Cap.TAX, Cap.RULES, Cap.JOBS)
+    val delegableCaps = setOf(Cap.CLAIM, Cap.CAPITAL, Cap.TAX, Cap.RULES, Cap.JOBS, Cap.HOUSING)
 
     fun here(p: ServerPlayer) = Key(p.level().dimension().location().toString(), p.chunkPosition().x, p.chunkPosition().z)
     fun home(p: ServerPlayer) = Realm.of(p.stringUUID) ?: throw Fail("kami_claims.error.no_country")
@@ -54,14 +56,18 @@ object Service {
         }
     }
 
-    private fun need(p: ServerPlayer, min: Rank): Country {
+    internal fun need(p: ServerPlayer, min: Rank): Country {
         val c = home(p)
         if (rankOf(c, p) < min) throw Fail("kami_claims.error.rank", Words.rank(min))
         return c
     }
 
-    private fun need(p: ServerPlayer, cap: Cap): Country {
+    private fun permit(p: ServerPlayer, cap: Cap) {
         if (!Perms.has(p, Perms.capNode(cap))) throw Fail("kami_claims.error.permission")
+    }
+
+    internal fun need(p: ServerPlayer, cap: Cap): Country {
+        permit(p, cap)
         val target = acting
         if (cap in delegableCaps && target != null) {
             val own = home(p)
@@ -77,8 +83,9 @@ object Service {
 
     private fun arg(a: List<String>, i: Int) = a.getOrNull(i) ?: throw Fail("kami_claims.error.missing_argument")
     private fun num(a: List<String>, i: Int) = arg(a, i).toIntOrNull() ?: throw Fail("kami_claims.error.number")
+    private fun <T : Enum<T>> find(values: Array<T>, text: String): T? = values.firstOrNull { it.name.equals(text, true) }
     private fun <T : Enum<T>> parse(values: Array<T>, text: String): T =
-        values.firstOrNull { it.name.equals(text, true) } ?: throw Fail("kami_claims.error.choice", v(values.joinToString { it.name.lowercase() }))
+        find(values, text) ?: throw Fail("kami_claims.error.choice", v(values.joinToString { it.name.lowercase() }))
 
     private fun spot(p: ServerPlayer, a: List<String>, i: Int) =
         if (a.size > i + 1) Key(here(p).dim, num(a, i), num(a, i + 1)) else here(p)
@@ -135,23 +142,21 @@ object Service {
             "rename" -> Naming.rename(need(p, Rank.PRESIDENT), arg(a, 0), p.stringUUID)
             "deposit" -> deposit(p, num(a, 0))
             "withdraw" -> withdraw(p, num(a, 0))
-            "tax" -> need(p, Cap.TAX).let { it.tax = max(0, num(a, 0)); Phrase.of("kami_claims.done.tax", Words.rate(it.tax, 1)) }
-            "plot_tax" -> mine(need(p, Cap.TAX), spot(p, a, 1)).let { it.tax = num(a, 0); Phrase.of("kami_claims.done.plot_tax") }
-            "lapse" -> need(p, Cap.TAX).let { it.shutdown = max(0, num(a, 0)); it.release = max(0, num(a, 1)); Phrase.of("kami_claims.done.lapse") }
+            "tax" -> need(p, Cap.TAX).let { Housing.edit(it, null, Claimant.CITIZEN, true, num(a, 0)); Phrase.of("kami_claims.done.tax", Words.rate(Housing.rent(it), 1)) }
             "rule" -> rule(p, arg(a, 0), arg(a, 1), arg(a, 2))
             "rules" -> arg(a, 0).split(';').filter { it.isNotBlank() }.let { changes ->
                 changes.forEach { change -> change.split(':').takeIf { it.size == 3 }?.let { (t, f, v) -> rule(p, t, f, v) } ?: throw Fail("kami_claims.error.rule_format") }
                 Phrase.of("kami_claims.done.rules", count("kami_claims.unit.change", changes.size))
             }
-            "plot_law" -> need(p, Cap.TAX).let { c ->
-                c.tax = max(0, num(a, 0)); c.shutdown = max(0, num(a, 1)); c.release = max(0, num(a, 2))
-                Phrase.of("kami_claims.done.plot_law", Words.rate(c.tax, 1), days(c.shutdown), days(c.release))
-            }
+            "plot_law" -> plotLaw(need(p, Cap.TAX), num(a, 0), num(a, 1))
+            "plot_offer" -> plotOffer(p, a)
+            "plot_limit" -> plotLimit(p, need(p, Cap.TAX), arg(a, 0), num(a, 1))
             "job_set" -> jobSet(p, arg(a, 0), arg(a, 1), num(a, 2))
             "job_edit" -> { jobSet(p, arg(a, 0), "pay", num(a, 1)); jobSet(p, arg(a, 0), "quota", num(a, 2)); jobSet(p, arg(a, 0), "period", num(a, 3)) }
-            "job_assign" -> jobAssign(p, who(p, a, 0), arg(a, 1))
-            "job_unassign" -> need(p, Cap.JOBS).let { c -> member(c, who(p, a, 0)).let { it.job = null; it.progress = 0; it.zone.clear() }; Phrase.of("kami_claims.done.job_removed") }
-            "zone" -> zone(p, who(p, a, 0), a.getOrNull(1) == "clear")
+            "job_add" -> Work.jobAdd(need(p, Cap.JOBS), who(p, a, 0), arg(a, 1))
+            "job_remove" -> Work.jobRemove(need(p, Cap.JOBS), who(p, a, 0), arg(a, 1))
+            "assign" -> need(p, Cap.JOBS).let { Work.assign(it, who(p, a, 0), mine(it, spot(p, a, 1))) }
+            "unassign" -> need(p, Cap.JOBS).let { Work.unassign(it, delegatedRank(it, p), p.stringUUID, who(p, a, 0), mine(it, spot(p, a, 1))) }
             "flag" -> need(p, Cap.RULES).let {
                 fun hex(i: Int) = arg(a, i).removePrefix("#").toIntOrNull(16)?.and(0xFFFFFF) ?: throw Fail("kami_claims.error.hex", v("ffffff"))
                 it.color = hex(0)
@@ -162,8 +167,8 @@ object Service {
             "typecells" -> typeRect(p, arg(a, 0), cells(p, a, 1))
             "unclaimcells" -> unclaimRect(p, cells(p, a, 0))
             "plot_claim" -> plotClaim(p, spot(p, a, 0))
-            "plot_evict" -> mine(need(p, Cap.CLAIM), spot(p, a, 0)).let { cl -> cl.owner = null; cl.roles.clear(); cl.lapse = 0; Phrase.of("kami_claims.done.plot_evicted") }
-            "plot_release" -> plotOwner(p, spot(p, a, 0)).let { cl -> cl.owner = null; cl.roles.clear(); cl.lapse = 0; Phrase.of("kami_claims.done.plot_released") }
+            "plot_remove" -> plotRemove(p, spot(p, a, 0), confirmed(a))
+            "plot_release" -> plotRelease(p, spot(p, a, 0))
             "plot_trust" -> plotOwner(p, spot(p, a, 2)).let { cl ->
                 who(p, a, 0).let { id -> if (id == cl.owner) throw Fail("kami_claims.error.plot_owner_self"); cl.roles[id] = parse(Role.values(), arg(a, 1)) }
                 Phrase.of("kami_claims.done.role_set")
@@ -195,18 +200,18 @@ object Service {
         Realm.join(c, p.stringUUID, Rank.PRESIDENT)
         addClaim(c, here(p), s.defaultType, true)
         Effects.founded(p, c)
-        return Phrase.of("kami_libs.common.join", Phrase.of("kami_claims.done.founded", v(n), chunks(Realm.freeAllowed(c))), Phrase.of("kami_claims.notice.release_lock"))
+        return Phrase.of("kami_libs.format.join", Phrase.of("kami_claims.done.founded", v(n), chunks(Realm.freeAllowed(c))), Phrase.of("kami_claims.notice.release_lock"))
     }
 
     private fun disband(p: ServerPlayer, confirmed: Boolean): Phrase {
         val c = need(p, Rank.PRESIDENT)
         Loans.requireNoLoans(c, "kami_claims.loans.error.disband")
         if (!confirmed) throw NeedsConfirm(listOf(
-            Phrase.of("kami_claims.confirm.disband.title", v(c.name)),
+            Phrase.of("kami_claims.common.disband_x", v(c.name)),
             Phrase.of("kami_claims.confirm.disband.land", chunks(Realm.claims(c.id).size)),
             Phrase.of("kami_claims.confirm.disband.members", count("kami_claims.unit.member", c.members.size)),
             Phrase.of("kami_claims.confirm.disband.treasury", money(c.treasury))
-        ))
+        ) + Realm.claims(c.id).count { it.owner != null }.takeIf { it > 0 }?.let { listOf(Phrase.of("kami_claims.confirm.disband.tenants", count("kami_claims.unit.plot", it))) }.orEmpty())
         Realm.disband(c)
         Effects.chime(p, false)
         return Phrase.of("kami_claims.done.disbanded")
@@ -216,7 +221,7 @@ object Service {
         val c = home(p)
         if (rankOf(c, p) == Rank.PRESIDENT && c.members.size > 1) throw Fail("kami_claims.error.transfer_first")
         if (c.members.size == 1) Loans.requireNoLoans(c, "kami_claims.loans.error.disband")
-        Realm.leave(c, p.stringUUID)
+        Realm.leave(c, p.stringUUID, Leave.LEAVE)
         ResearchSync.refresh(c)
         if (c.members.isEmpty()) Realm.disband(c)
         return Phrase.of("kami_claims.done.left", v(c.name))
@@ -233,7 +238,7 @@ object Service {
     }
 
     private fun accept(p: ServerPlayer, country: String): Phrase {
-        val c = Realm.country(country) ?: throw Fail("kami_claims.error.unknown_country")
+        val c = Realm.live(country) ?: throw Fail("kami_claims.error.unknown_country")
         if (Realm.of(p.stringUUID) != null) throw Fail("kami_claims.error.leave_first")
         if ((c.invites[p.stringUUID] ?: 0) < now()) throw Fail("kami_claims.error.no_invite")
         citizenRoom(c)
@@ -244,7 +249,7 @@ object Service {
     }
 
     private fun join(p: ServerPlayer, country: String): Phrase {
-        val c = Realm.country(country) ?: throw Fail("kami_claims.error.unknown_country")
+        val c = Realm.live(country) ?: throw Fail("kami_claims.error.unknown_country")
         if (Realm.of(p.stringUUID) != null) throw Fail("kami_claims.error.leave_first")
         if (c.outsiders[p.stringUUID] == Rank.BANISHED) throw Fail("kami_claims.error.you_banished", v(c.name))
         c.requests[p.stringUUID] = now() + s.inviteDays * s.dayMillis
@@ -266,13 +271,17 @@ object Service {
     private fun kick(p: ServerPlayer, id: String, banish: Boolean): Phrase {
         val c = need(p, Cap.MEMBERS)
         if (banish) Features.require(c, Features.BANISH)
-        c.members[id]?.let {
+        val member = c.members[id]
+        member?.let {
             if (it.rank >= rankOf(c, p)) throw Fail("kami_claims.error.lower_ranks")
-            Realm.leave(c, id)
+            Realm.leave(c, id, if (banish) Leave.BAN else Leave.KICK)
             ResearchSync.refresh(c)
             Mail.direct(id, Phrase.of(if (banish) "kami_claims.mail.banished" else "kami_claims.mail.removed", v(c.name)), Tone.BAD)
         }
-        if (banish) c.outsiders[id] = Rank.BANISHED
+        if (banish) {
+            c.outsiders[id] = Rank.BANISHED
+            if (member == null) Housing.departed(c, id, Leave.BAN)
+        }
         return Phrase.of(if (banish) "kami_claims.done.banished" else "kami_claims.done.removed")
     }
 
@@ -326,7 +335,7 @@ object Service {
     private fun claimReport(c: Country, type: String, count: Int, before: Long, first: Boolean): Phrase {
         if (count == 0) return Phrase.of("kami_claims.error.nothing_claimed")
         val report = Phrase.of("kami_claims.done.claimed", chunks(count), Words.type(type), money(before - c.treasury), money(c.treasury))
-        return if (first) Phrase.of("kami_libs.common.join", report, Phrase.of("kami_claims.notice.release_lock")) else report
+        return if (first) Phrase.of("kami_libs.format.join", report, Phrase.of("kami_claims.notice.release_lock")) else report
     }
 
     private fun ensureUnclaimUnlocked(cl: Claim) {
@@ -403,13 +412,18 @@ object Service {
         if (s.types[type] == null) throw Fail("kami_claims.error.unknown_type")
         val set = r.cells.toHashSet()
         val hit = Realm.claims(c.id).filter { it.key in set }
+        hit.filter { it.type != type }.forEach(::requireFree)
         if (hit.any { it.type != type }) Features.require(c, Features.claimType(type))
         hit.forEach { applyType(it, type) }
         return Phrase.of("kami_claims.done.retyped", chunks(hit.size), Words.type(type))
     }
 
+    private fun requireFree(cl: Claim) {
+        if (cl.owner != null) throw Fail("kami_claims.error.plot_tenanted")
+    }
+
     private fun applyType(cl: Claim, type: String) {
-        if (cl.type == "residential" && type != "residential") { cl.owner = null; cl.roles.clear(); cl.lapse = 0 }
+        if (cl.type != type) Work.retyped(cl)
         cl.type = type
     }
 
@@ -417,6 +431,7 @@ object Service {
         val c = need(p, Cap.CLAIM)
         val cl = mine(c, k)
         if (cl.capital) throw Fail("kami_claims.error.capital")
+        requireFree(cl)
         ensureUnclaimUnlocked(cl)
         if (!Realm.removable(cl)) throw Fail("kami_claims.error.split")
         Realm.unclaim(cl, false)
@@ -428,7 +443,10 @@ object Service {
         val c = need(p, Cap.CLAIM)
         val cl = mine(c, k)
         if (s.types[type] == null) throw Fail("kami_claims.error.unknown_type")
-        if (cl.type != type) Features.require(c, Features.claimType(type))
+        if (cl.type != type) {
+            requireFree(cl)
+            Features.require(c, Features.claimType(type))
+        }
         applyType(cl, type)
         return Phrase.of("kami_claims.done.chunk_retyped", Words.type(type), Words.rate(Realm.price(cl), Realm.period(cl)))
     }
@@ -472,7 +490,6 @@ object Service {
         when (field) {
             "machines" -> c.machines[type] = flag()
             "fire" -> c.fire[type] = flag()
-            "fluid" -> c.fluid[type] = flag()
             else -> c.rules.getOrPut(type) { mutableMapOf() }[parse(Action.values(), field)] = parse(Access.values(), value)
         }
         return Phrase.of("kami_claims.done.rule")
@@ -490,48 +507,82 @@ object Service {
         return Phrase.of("kami_claims.done.job", Words.job(job), money(def.pay), num(def.quota), days(def.period))
     }
 
-    private fun jobAssign(p: ServerPlayer, id: String, job: String): Phrase {
-        val m = member(need(p, Cap.JOBS), id)
-        if (job !in s.jobs) throw Fail("kami_claims.error.unknown_job")
-        m.job = job
-        m.progress = 0
-        m.start = today()
-        m.zone.clear()
-        Mail.direct(id, Phrase.of("kami_claims.mail.job", Words.job(job)))
-        return Phrase.of("kami_claims.done.job_assigned", Words.job(job))
-    }
-
-    private fun zone(p: ServerPlayer, id: String, clear: Boolean): Phrase {
-        val c = need(p, Cap.JOBS)
-        val m = member(c, id)
-        if (clear) { m.zone.clear(); return Phrase.of("kami_claims.done.zone_cleared") }
-        val cl = mine(c, here(p))
-        if (s.jobs[m.job]?.type != cl.type) throw Fail("kami_claims.error.zone_type")
-        m.zone += cl.key.toString()
-        return Phrase.of("kami_claims.done.zone_added")
-    }
-
     private fun plotClaim(p: ServerPlayer, k: Key): Phrase {
-        val c = need(p, Cap.PLOT)
-        val cl = mine(c, k)
-        if (cl.type != "residential") throw Fail("kami_claims.error.plot_type")
-        if (cl.owner != null) throw Fail("kami_claims.error.plot_taken")
-        Features.requireRoom(c, Capacity.PLOTS, Realm.claims(c.id).count { it.owner == p.stringUUID })
-        cl.owner = p.stringUUID
-        cl.lapse = 0
-        cl.roles.clear()
-        Progress.report(c, "plot", "", 1)
-        return Phrase.of("kami_claims.done.plot_claimed", Words.rate(if (cl.tax >= 0) cl.tax else c.tax, 1))
+        permit(p, Cap.PLOT)
+        val cl = Realm.index[k] ?: throw Fail("kami_claims.error.plot_none")
+        val c = Realm.live(cl.country) ?: throw Fail("kami_claims.error.unknown_country")
+        Housing.claim(c, cl, p.stringUUID)
+        if (p.stringUUID !in c.members) Mail.officers(c, Phrase.of("kami_claims.mail.plot_rented", v(p.name.string), v("${cl.x}, ${cl.z}")))
+        return Phrase.of("kami_claims.done.plot_claimed", Words.rate(Housing.rate(c, cl), 1))
     }
 
     private fun plotOwner(p: ServerPlayer, k: Key): Claim {
-        val cl = mine(home(p), k)
+        val cl = Realm.index[k] ?: throw Fail("kami_claims.error.plot_none")
         if (cl.owner == null) throw Fail("kami_claims.error.plot_free")
         if (cl.owner != p.stringUUID && cl.roles[p.stringUUID] != Role.OWNER) throw Fail("kami_claims.error.plot_owner_only")
         return cl
     }
 
-    private fun country(name: String) = Realm.country(name) ?: throw Fail("kami_claims.error.unknown_country")
+    private fun plotRelease(p: ServerPlayer, k: Key): Phrase {
+        val cl = plotOwner(p, k)
+        val c = Realm.data.countries.getValue(cl.country)
+        val tenant = cl.owner!!
+        Housing.release(c, cl)
+        if (tenant !in c.members) Mail.officers(c, Phrase.of("kami_claims.mail.plot_returned", v(Names.of(p.server, tenant)), v("${cl.x}, ${cl.z}")))
+        return Phrase.of("kami_claims.done.plot_released")
+    }
+
+    private fun delegatedRank(c: Country, p: ServerPlayer) = if (c === Realm.of(p.stringUUID)) rankOf(c, p) else DELEGATE_RANK
+
+    private fun plotRemove(p: ServerPlayer, k: Key, confirmed: Boolean): Phrase {
+        val c = need(p, Cap.HOUSING)
+        val cl = mine(c, k)
+        val actor = delegatedRank(c, p)
+        val tenant = Housing.checkRemove(c, cl, actor)
+        if (!confirmed) throw NeedsConfirm(listOf(
+            Phrase.of("kami_claims.confirm.plot_remove.title", v(Names.of(p.server, tenant))),
+            Phrase.of("kami_claims.confirm.plot_remove.body", days(c.moveOutDays))
+        ))
+        Housing.moveOut(c, cl, "removed")
+        return Phrase.of("kami_claims.done.plot_removed")
+    }
+
+    private fun plotLaw(c: Country, debt: Int, out: Int): Phrase {
+        c.rentDebtLimit = max(0, debt).toLong()
+        c.moveOutDays = out.coerceIn(1, 30)
+        return Phrase.of("kami_claims.done.plot_law", money(c.rentDebtLimit), days(c.moveOutDays))
+    }
+
+    private fun plotOffer(p: ServerPlayer, a: List<String>): Phrase {
+        val c = need(p, Cap.HOUSING)
+        if (arg(a, 0) == "reset") {
+            Housing.reset(c, mine(c, spot(p, a, 1)))
+            return Phrase.of("kami_claims.done.plot_offer")
+        }
+        val cat = parse(Claimant.values(), arg(a, 0))
+        val on = when (arg(a, 1)) {
+            "on" -> true
+            "off" -> false
+            else -> throw Fail("kami_claims.error.bool")
+        }
+        val target = if (a.getOrNull(3) == "default") null else mine(c, spot(p, a, 3))
+        Housing.edit(c, target, cat, on, num(a, 2).takeIf { it >= 0 })
+        return Phrase.of("kami_claims.done.plot_offer")
+    }
+
+    private fun plotLimit(p: ServerPlayer, c: Country, target: String, n: Int): Phrase {
+        val value = n.takeIf { it >= 0 }?.coerceAtMost(Levels.capacity(c, Capacity.PLOTS))
+        val rank = find(Rank.values(), target)?.takeIf { it >= Rank.CITIZEN }
+        val group = find(Claimant.values(), target)?.takeIf { it != Claimant.CITIZEN }
+        when {
+            rank != null -> c.rankPlots[rank] = value ?: s.rankPlots[rank] ?: 0
+            group != null -> c.guestPlots[group] = value ?: s.guestPlots[group] ?: 0
+            else -> who(p, listOf(target), 0).let { id -> if (value == null) c.playerPlots.remove(id) else c.playerPlots[id] = value }
+        }
+        return Phrase.of("kami_claims.done.plot_limit")
+    }
+
+    private fun country(name: String) = Realm.live(name) ?: throw Fail("kami_claims.error.unknown_country")
 
     private fun researchAct(p: ServerPlayer, name: String, a: List<String>): Phrase {
         if (name == "research_deposit") {

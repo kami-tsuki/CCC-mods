@@ -7,7 +7,7 @@ import net.minecraft.server.level.ServerPlayer
 
 object Progress {
     fun onEvent(event: ProgressEvent) {
-        val country = event.country?.let { Realm.country(it) } ?: event.player?.let { Realm.of(it.stringUUID) } ?: return
+        val country = event.country?.let { Realm.live(it) } ?: event.player?.let { Realm.of(it.stringUUID) } ?: return
         report(country, event.kind, event.subject, event.amount, event.once)
     }
 
@@ -15,13 +15,13 @@ object Progress {
         Realm.of(player.stringUUID)?.let { report(it, kind, subject, amount) }
     }
 
-    fun report(country: Country, kind: String, subject: String, amount: Long, once: String? = null) {
+    fun report(country: Country, kind: String, subject: String, amount: Long, once: String? = null, units: Double = amount.toDouble()) {
         if (amount <= 0) return
         if (once != null) {
             if (!country.research.visited.add("once:$once")) return
             Realm.dirty = true
         }
-        if (kind != Kinds.TRADE_VALUE) Levels.add(country, kind, amount.toDouble())
+        if (kind != Kinds.TRADE_VALUE) Levels.add(country, kind, units)
         if (kind == Kinds.TAXES) Counters.add(country, Counters.TAXES_COLLECTED, amount)
         else if (kind in Research.defs.levels.counted) Counters.event(country, kind, subject, amount)
         if (country.research.queue.isEmpty()) return

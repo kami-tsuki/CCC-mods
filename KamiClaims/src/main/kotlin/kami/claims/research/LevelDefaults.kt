@@ -14,7 +14,8 @@ object LevelDefaults {
         Capacity.MARKET_SLOTS to 5,
         Capacity.AUCTION_SLOTS to 5,
         Capacity.FREE_CHUNKS to 0,
-        Capacity.PLOTS to 4
+        Capacity.PLOTS to 25,
+        Capacity.JOB_SLOTS to 1
     )
 
     val sources: Map<String, XpSource> = mapOf(
@@ -49,7 +50,32 @@ object LevelDefaults {
         10 to rule(MinCitizens(2), FlagSet, MinTreasury(1000))
     )
 
-    val rewards: Map<Int, List<Unlock>> = mapOf(
+    const val VERSION = 1
+
+    private val housingRewards: Map<Int, List<Unlock>> = mapOf(
+        13 to listOf(FeatureUnlock(Features.PLOTS_FAMILY)),
+        23 to listOf(FeatureUnlock(Features.PLOTS_ALLIES)),
+        27 to listOf(FeatureUnlock(Features.PLOTS_PUBLIC))
+    )
+
+    private val jobSlotRewards: Map<Int, List<Unlock>> = listOf(16, 61, 125).associateWith { listOf(add(Capacity.JOB_SLOTS, 1)) }
+
+    private fun merge(base: Map<Int, List<Unlock>>, extra: Map<Int, List<Unlock>>) =
+        (base.keys + extra.keys).sorted().associateWith { base[it].orEmpty() + extra[it].orEmpty() }
+
+    val rewards: Map<Int, List<Unlock>> = merge(merge(baseRewards(), housingRewards), jobSlotRewards)
+
+    fun upgrade(config: LevelsConfig): LevelsConfig {
+        if (config.version >= VERSION) return config
+        val unlocks = config.rewards.values.flatten()
+        val features = unlocks.filterIsInstance<FeatureUnlock>().map { it.id }.toSet()
+        val housing = housingRewards.filterValues { list -> list.filterIsInstance<FeatureUnlock>().none { it.id in features } }
+        val jobSlots = if (unlocks.any { it is CapacityUnlock && it.key == Capacity.JOB_SLOTS }) emptyMap() else jobSlotRewards
+        val plots = if (config.capacities[Capacity.PLOTS] == 4) Capacity.PLOTS to 25 else null
+        return config.copy(version = VERSION, capacities = config.capacities + listOfNotNull(plots), rewards = merge(merge(config.rewards, housing), jobSlots))
+    }
+
+    private fun baseRewards(): Map<Int, List<Unlock>> = mapOf(
         2 to listOf(add(Capacity.CITIZENS, 3)),
         3 to listOf(add(Capacity.QUEUE_SLOTS, 1), FeatureUnlock(Features.claimType("residential"))),
         4 to listOf(add(Capacity.CITIZENS, 6), FeatureUnlock(Features.claimType("factory"))),

@@ -112,7 +112,7 @@ object GeologyCommand {
                 .minByOrNull { distance(origin, it) }
         }
         val filters = listOfNotNull(tier?.let(GeoText::tier), core?.let { Phrase.of(if (it) "kami_geology.find.with_core" else "kami_geology.find.without_core") })
-        val filter = filters.reduceOrNull { a, b -> Phrase.of("kami_geology.find.filters", a, b) }
+        val filter = filters.reduceOrNull { a, b -> Phrase.of("kami_libs.format.list", a, b) }
         val range = Phrase.value(searchRadii.last())
         if (site == null) fail(if (filter == null) Phrase.of("kami_geology.find.none", GeoText.orePhrase(id), range) else Phrase.of("kami_geology.find.none_filtered", GeoText.orePhrase(id), filter, range))
         ctx.msg { add(Phrase.of("kami_geology.find.nearest", GeoText.orePhrase(id).asValue())); filter?.let { muted(" ("); add(it, Theme.MUTED); muted(")") } }

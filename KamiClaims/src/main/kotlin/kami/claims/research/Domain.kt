@@ -31,7 +31,8 @@ enum class Capacity {
     @SerialName("marketSlots") MARKET_SLOTS,
     @SerialName("auctionSlots") AUCTION_SLOTS,
     @SerialName("freeChunks") FREE_CHUNKS,
-    @SerialName("plots") PLOTS;
+    @SerialName("plots") PLOTS,
+    @SerialName("jobSlots") JOB_SLOTS;
 
     val id: String get() = Capacity.serializer().descriptor.getElementName(ordinal)
 }
@@ -42,7 +43,13 @@ object DurationText : KSerializer<Duration> {
     override fun deserialize(decoder: Decoder): Duration = Duration.parse(decoder.decodeString())
 }
 
-fun nodeLabel(tree: String, id: String, title: String) = Phrase.or("kami_claims.research.node.$tree.$id", title)
+private val numbered = Regex("""(.+)_(\d+)""")
+
+fun nodeLabel(tree: String, id: String, title: String): Phrase {
+    val key = "kami_claims.research.node.$tree.$id"
+    val n = numbered.matchEntire(id) ?: return Phrase.or(key, title)
+    return Phrase.or(key, Phrase.of("kami_libs.format.join", Phrase.or("kami_claims.research.node.$tree.${n.groupValues[1]}", title), n.groupValues[2]))
+}
 
 @Serializable
 class Category(val id: String, val title: String = "", val icon: String = "", val order: Int = 0)

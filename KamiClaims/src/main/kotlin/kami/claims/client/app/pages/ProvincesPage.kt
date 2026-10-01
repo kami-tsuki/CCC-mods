@@ -40,8 +40,8 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
     override val title get() = tr("kami_claims.nav.provinces")
     override val sections = listOf("world")
     override val help get() = listOf(
-        Callout("provinces:status", tr("kami_claims.provinces.help.status"), tr("kami_claims.provinces.help.status.desc")),
-        Callout("provinces:tabs", tr("kami_claims.provinces.tab.offers"), tr("kami_claims.provinces.help.offers.desc")),
+        Callout("provinces:status", tr("kami_libs.common.status"), tr("kami_claims.provinces.help.status.desc")),
+        Callout("provinces:tabs", tr("kami_libs.common.offers"), tr("kami_claims.provinces.help.offers.desc")),
         Callout("provinces:family", tr("kami_claims.provinces.help.bloc"), tr("kami_claims.provinces.help.bloc.desc"))
     )
 
@@ -62,7 +62,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
         val offers = info.provinceInvites.size + info.provinceRequests.size
         val tabsRect = r.top(CONTROL_H)
         ui.anchor("provinces:tabs", tabsRect)
-        ui.subTabs(tabsRect, listOf(TabItem(tr("kami_claims.nav.dashboard"), Icons.CHAIN), TabItem(tr("kami_claims.provinces.tab.offers"), Icons.SCROLL, offers, Severity.WARNING), TabItem(tr("kami_claims.provinces.tab.start"), Icons.HANDSHAKE)), tab, "province-tabs")?.let { tab = it }
+        ui.subTabs(tabsRect, listOf(TabItem(tr("kami_claims.nav.dashboard"), Icons.CHAIN), TabItem(tr("kami_libs.common.offers"), Icons.SCROLL, offers, Severity.WARNING), TabItem(tr("kami_claims.provinces.tab.start"), Icons.HANDSHAKE)), tab, "province-tabs")?.let { tab = it }
         val body = r.dropTop(CONTROL_H + 6)
         when (tab) {
             0 -> overview(ui, body)
@@ -101,7 +101,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
             GraphNode(p.name, p.name, when {
                 p.wantsIndependence -> tr("kami_claims.province.wants_independence")
                 p.debt > 0 -> tr("kami_claims.provinces.missed_count", p.debt)
-                else -> tr("kami_claims.welcome.invite.row", trn("kami_claims.unit.citizen", p.members), trn("kami_claims.unit.chunk", p.chunks))
+                else -> tr("kami_libs.format.dot", trn("kami_claims.unit.citizen", p.members), trn("kami_claims.unit.chunk", p.chunks))
             }, Vocabulary.tribute(p.mode, p.amount), if (p.debt > 0) Palette.danger else Palette.geoProvince, if (p.wantsIndependence) Severity.WARNING else if (p.debt > 0) Severity.DANGER else null) { g, b -> Flags.draw(g, b, p.color, p.flag.pattern, p.flag.emblem, p.flag.secondary) }
         }
         ui.clip(tree) { ui.hierarchy(tree, root, nodes, selected)?.let { if (it != info.name) selected = it } }
@@ -109,7 +109,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
         provinceDetail(ui, rest.dropTop(treeH, 6), chosen)
     }
 
-    private fun countryOption(c: Line) = Option(c.name, c.name, null, tr("kami_claims.welcome.invite.row", trn("kami_claims.unit.citizen", c.members), trn("kami_claims.unit.chunk", c.chunks)), c.color)
+    private fun countryOption(c: Line) = Option(c.name, c.name, null, tr("kami_libs.format.dot", trn("kami_claims.unit.citizen", c.members), trn("kami_claims.unit.chunk", c.chunks)), c.color)
 
     private fun estimate(mode: String, amount: Double, income: Long) = Vocabulary.perDay(if (mode == "percent") income * amount else amount).toLong()
 
@@ -117,7 +117,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
         val body = ui.card(r, p.name, Icons.CHAIN, if (p.wantsIndependence) Severity.WARNING else null, key = "province-card")
         val cols = body.columns(2, 10)
         val f = Flow(cols[0], 2)
-        ui.property(f.take(11), tr("kami_claims.provinces.tribute"), Vocabulary.tribute(p.mode, p.amount))
+        ui.property(f.take(11), tr("kami_claims.help.term.tribute"), Vocabulary.tribute(p.mode, p.amount))
         ui.property(f.take(11), tr("kami_claims.provinces.estimate"), "≈ ${Format.perDay(Format.money(estimate(p.mode, p.amount, p.income)))}")
         ui.property(f.take(11), tr("kami_claims.provinces.missed"), "${p.debt} / ${snap.maxProvinceDebt}", if (p.debt > 0) Palette.danger else Palette.text)
         ui.property(f.take(11), tr("kami_claims.nav.citizens"), Format.number(p.members))
@@ -133,11 +133,11 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
         }
         if (p.wantsIndependence) {
             action(tr("kami_claims.provinces.grant"), Icons.BROKEN_CHAIN, ButtonStyle.PRIMARY, "province_release") { release(p, true) }
-            action(tr("kami_claims.provinces.decline"), Icons.CROSS, key = "province_decline") {
+            action(tr("kami_libs.common.decline"), Icons.CROSS, key = "province_decline") {
                 Dialogs.confirm(app, tr("kami_claims.provinces.decline.confirm.title", p.name), tr("kami_claims.provinces.decline.confirm.subtitle", p.name), Icons.CHAIN, listOf(
                     Consequence(tr("kami_claims.provinces.decline.notified", p.name)),
                     Consequence(tr("kami_claims.provinces.decline.cooldown", trn("kami_claims.unit.day", limits?.independenceCooldownDays ?: 3)), Severity.WARNING)
-                ), tr("kami_claims.provinces.decline"), "province_decline", arrayOf(p.name))
+                ), tr("kami_libs.common.decline"), "province_decline", arrayOf(p.name))
             }
         }
         action(tr("kami_claims.provinces.manage", p.name), Icons.EDIT, if (p.wantsIndependence) ButtonStyle.SECONDARY else ButtonStyle.PRIMARY, "view") { ClaimsStore.send("view", p.name); app.navigate(Route("dashboard")) }
@@ -173,11 +173,11 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
                 Consequence(target?.let { tr("kami_claims.provinces.give.takes_over", it, p.name) } ?: tr("kami_claims.provinces.give.takes_over.any", p.name), Severity.WARNING),
                 Consequence(tr("kami_claims.provinces.give.final"), Severity.DANGER)
             )) + 4
-            fieldLabel(Rect(s.body.x, y, s.body.w, 9), tr("kami_claims.dialog.type_to_confirm", p.name)); y += 11
+            fieldLabel(Rect(s.body.x, y, s.body.w, 9), tr("kami_libs.dialog.type_to_confirm", p.name)); y += 11
             textField(Rect(s.body.x, y, s.body.w, CONTROL_H), typed, p.name, key = "give-typed"); y += CONTROL_H + 4
             s.used = y - s.body.y
             val ready = target != null && typed.text.equals(p.name, true)
-            dialogButtons(s, tr("kami_claims.provinces.give.action"), ready, if (target == null) tr("kami_claims.provinces.choose_country.first") else tr("kami_claims.dialog.type_required", p.name), hold = true) {
+            dialogButtons(s, tr("kami_claims.provinces.give.action"), ready, if (target == null) tr("kami_claims.provinces.choose_country.first") else tr("kami_libs.dialog.type_required", p.name), hold = true) {
                 ClaimsStore.send("province_give", p.name, target!!, "confirm", key = "province_give")
                 s.close()
             }
@@ -210,7 +210,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
                     Dialogs.confirm(app, tr("kami_claims.provinces.independence.confirm.title", info.parent), tr("kami_claims.provinces.independence.confirm.subtitle"), Icons.BROKEN_CHAIN, listOf(
                         Consequence(tr("kami_claims.provinces.independence.decides", info.parent)),
                         Consequence(tr("kami_claims.provinces.independence.wait", trn("kami_claims.unit.day", limits?.independenceCooldownDays ?: 3)), Severity.WARNING)
-                    ), tr("kami_claims.world.join.action"), "province_independence", emptyArray())
+                    ), tr("kami_libs.common.send_request"), "province_independence", emptyArray())
                 }
             }
         }
@@ -316,7 +316,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
                 0 -> {
                     g.blitSprite(Illustrations.PROVINCE, b.x, y, 32, 32)
                     y += maxOf(36, Draw.paragraph(g, tr("kami_claims.provinces.sign.intro", o.name, info.name), b.x + 40, y + 2, b.w - 40) + 6)
-                    property(Rect(b.x, y, b.w, 11), tr("kami_claims.provinces.tribute"), Vocabulary.tribute(o.mode, o.amount), Palette.money); y += 13
+                    property(Rect(b.x, y, b.w, 11), tr("kami_claims.help.term.tribute"), Vocabulary.tribute(o.mode, o.amount), Palette.money); y += 13
                     property(Rect(b.x, y, b.w, 11), tr("kami_claims.provinces.terms.today"), tr("kami_claims.provinces.sign.estimate", Format.perDay(Format.money(estimate(o.mode, o.amount, info.income))), Format.money(info.income)), Palette.money); y += 13
                     property(Rect(b.x, y, b.w, 11), tr("kami_claims.provinces.sign.unpaid"), tr("kami_claims.provinces.sign.unpaid.value", o.name), Palette.warning); y += 13
                     property(Rect(b.x, y, b.w, 11), tr("kami_claims.provinces.sign.expires"), Format.until(o.until)); y += 17
@@ -338,7 +338,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
                 }
                 else -> {
                     Draw.paragraph(g, tr("kami_claims.provinces.sign.howto"), b.x, y, b.w); y += 16
-                    fieldLabel(Rect(b.x, y, b.w, 9), tr("kami_claims.dialog.type_to_confirm", info.name)); y += 11
+                    fieldLabel(Rect(b.x, y, b.w, 9), tr("kami_libs.dialog.type_to_confirm", info.name)); y += 11
                     textField(Rect(b.x, y, b.w, CONTROL_H), typed, info.name, key = "sign-name", autoFocus = true); y += CONTROL_H + 6
                     y += consequences(b.x, y, b.w, listOf(Consequence(tr("kami_claims.provinces.sign.notified")))) + 2
                 }
@@ -346,7 +346,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
             s.used = y - b.y
             val reason = when (s.step) {
                 1 -> if (!understood) tr("kami_claims.provinces.sign.tick") else null
-                2 -> if (!typed.text.equals(info.name, true)) tr("kami_claims.dialog.type_required", info.name) else null
+                2 -> if (!typed.text.equals(info.name, true)) tr("kami_libs.dialog.type_required", info.name) else null
                 else -> null
             }
             wizardButtons(s, tr("kami_claims.provinces.sign.action"), reason == null, reason, hold = s.step == 2) {
@@ -366,7 +366,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
         if (ui.button(Rect(a.x, a.bottom - CONTROL_H, a.w, CONTROL_H), tr("kami_claims.provinces.start.invite.action"), Icons.INVITE, ButtonStyle.PRIMARY, staff == null && !isProvince, staff ?: tr("kami_claims.error.province_nested"), key = "invite-country")) inviteDialog()
         val b = ui.card(cards[1], tr("kami_claims.provinces.start.request"), Icons.CHAIN, Severity.WARNING)
         Draw.paragraph(ui.g, tr("kami_claims.provinces.start.request.desc"), b.x, b.y, b.w)
-        if (ui.button(Rect(b.x, b.bottom - CONTROL_H, b.w, CONTROL_H), tr("kami_claims.provinces.start.request.action"), Icons.CHAIN, enabled = staff == null && !isProvince, disabledReason = staff ?: tr("kami_claims.error.already_province"), key = "request-country")) requestDialog()
+        if (ui.button(Rect(b.x, b.bottom - CONTROL_H, b.w, CONTROL_H), tr("kami_libs.common.send_request"), Icons.CHAIN, enabled = staff == null && !isProvince, disabledReason = staff ?: tr("kami_claims.error.already_province"), key = "request-country")) requestDialog()
         val explain = r.dropTop(START_CARD_H + 6)
         ui.card(explain, tr("kami_claims.provinces.how"), Icons.INFO).let { c ->
             var y = c.y
@@ -382,7 +382,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
         app.open(Dialog(tr("kami_claims.provinces.start.invite"), null, Icons.INVITE, DialogKind.CONFIRM, 300) { s ->
             val candidates = snap.countries.filter { it.parent.isEmpty() && it.name != info?.name }
             var y = s.body.y
-            fieldLabel(Rect(s.body.x, y, s.body.w, 9), tr("kami_claims.world.col.country")); y += 11
+            fieldLabel(Rect(s.body.x, y, s.body.w, 9), tr("kami_libs.common.country")); y += 11
             select(Rect(s.body.x, y, s.body.w, CONTROL_H), candidates.map { countryOption(it) }, target, tr("kami_claims.provinces.choose_country"), key = "invite-target")?.let { target = it }
             y += CONTROL_H + 8
             y += consequences(s.body.x, y, s.body.w, listOf(Consequence(tr("kami_claims.provinces.invite.next")))) + 4
@@ -409,7 +409,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
                 Consequence(tr("kami_claims.provinces.request.sign"), Severity.SUCCESS)
             )) + 4
             s.used = y - s.body.y
-            dialogButtons(s, tr("kami_claims.world.join.action"), target != null, tr("kami_claims.provinces.choose_country.first")) {
+            dialogButtons(s, tr("kami_libs.common.send_request"), target != null, tr("kami_claims.provinces.choose_country.first")) {
                 ClaimsStore.send("province_request", target!!, key = "province_request")
                 s.close()
             }

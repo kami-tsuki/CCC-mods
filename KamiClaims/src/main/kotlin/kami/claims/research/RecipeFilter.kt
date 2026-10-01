@@ -61,7 +61,7 @@ object RecipeFilter {
     @JvmStatic
     fun denyCraft(player: ServerPlayer, recipe: ResourceLocation): Boolean {
         if (allowedFor(player, recipe)) return false
-        player.bar(Chat.bar(Tone.BAD, Phrase.of("kami_claims.research.locked.recipe", recipe.toString()).component()))
+        player.bar(Chat.bar(Tone.BAD, Phrase.of("kami_claims.research.locked.block", recipe.toString()).component()))
         return true
     }
 }

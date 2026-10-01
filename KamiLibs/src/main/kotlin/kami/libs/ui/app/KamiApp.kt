@@ -58,6 +58,7 @@ private const val TOPBAR_H = 24
 const val CRUMBS_H = 16
 const val NAV_ROW_H = 16
 private const val GROUP_H = 14
+private const val GROUP_GAP = 7
 private const val PAGE_SHIFT = 10
 private const val PAGE_VEIL = 0.6f
 
@@ -135,7 +136,7 @@ abstract class KamiApp {
     fun render(g: GuiGraphics, mx: Int, my: Int, width: Int, height: Int) {
         if (route.page.isEmpty()) navigate(home, record = false, sound = false)
         beforeFrame()
-        ui.frame(g, mx, my, width, height) { frame(width, height) }
+        ui.frame(g, mx, my, width, height) { frame(ui.screen.w, ui.screen.h) }
     }
 
     private fun frame(width: Int, height: Int) {
@@ -186,7 +187,7 @@ abstract class KamiApp {
         val groups = nav()
         val opens = groups.map { ui.anim(it.openKey, if (isCollapsed(it)) 0f else 1f, 14f) }
         val height = groups.withIndex().sumOf { (i, group) ->
-            (if (!compact) GROUP_H else if (i > 0) 4 else 0) + group.items.sumOf { rowHeight(it, opens[i]) } + 4
+            (if (!compact) GROUP_H else if (i > 0) 4 else 0) + group.items.sumOf { rowHeight(it, opens[i]) } + GROUP_GAP
         }
         val indicator = navY[route.page]
         val state = ui.scroll("sidebar", r.inset(0, 4, 0, 2), height) { c ->
@@ -211,7 +212,7 @@ abstract class KamiApp {
                     else if (shown > 0) ui.clip(Rect(c.x, y, c.w - 1, shown)) { navItem(Rect(c.x, y, c.w - 1, NAV_ROW_H), item) }
                     y += shown
                 }
-                y += 4
+                y += GROUP_GAP
             }
         }
         revealPage?.let { page -> navY[page]?.let { state.scrollTo(it); revealPage = null } }

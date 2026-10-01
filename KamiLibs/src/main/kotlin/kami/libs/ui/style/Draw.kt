@@ -3,6 +3,7 @@ package kami.libs.ui.style
 import com.mojang.blaze3d.systems.RenderSystem
 import kami.libs.KamiLibs
 import kami.libs.ui.core.Rect
+import kami.libs.ui.core.UiScale
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
 import net.minecraft.client.gui.GuiGraphics
@@ -88,8 +89,8 @@ enum class TextStyle(val color: () -> Int, val bold: Boolean = false, val upper:
 object Draw {
     val font: Font get() = Minecraft.getInstance().font
     const val LINE = 10
-    const val ICON = 16
-    const val ICON_SLOT = 14
+    const val ICON = 14
+    private const val NATIVE = 16
 
     fun fill(g: GuiGraphics, r: Rect, color: Int) { if (!r.isEmpty) g.fill(r.x, r.y, r.right, r.bottom, color) }
     fun hline(g: GuiGraphics, x: Int, y: Int, w: Int, color: Int) = g.fill(x, y, x + w, y + 1, color)
@@ -112,7 +113,7 @@ object Draw {
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
     }
 
-    private fun native(size: Int) = if (size % ICON == 0 && size > 0) size else ICON
+    private fun native(size: Int) = if (size % NATIVE == 0 && size > 0) size else ICON
 
     fun icon(g: GuiGraphics, icon: Icon, x: Int, y: Int, size: Int = ICON) {
         val s = native(size)
@@ -126,7 +127,7 @@ object Draw {
 
     fun leadIcon(g: GuiGraphics, icon: Icon, x: Int, centerY: Int, color: Int? = null): Int {
         if (color == null) icon(g, icon, x - 2, centerY - ICON / 2) else tintedIcon(g, icon, x - 2, centerY - ICON / 2, ICON, color)
-        return ICON_SLOT
+        return ICON
     }
 
     fun marker(g: GuiGraphics, icon: Icon, centerX: Int, centerY: Int) {
@@ -252,7 +253,7 @@ object Draw {
 
     fun hatch(g: GuiGraphics, r: Rect, color: Int, spacing: Int = 4, phase: Int = 0) {
         if (r.isEmpty) return
-        g.enableScissor(r.x, r.y, r.right, r.bottom)
+        UiScale.enableScissor(g, r)
         var k = -r.h + (phase % spacing)
         while (k < r.w) {
             for (i in 0 until r.h) {

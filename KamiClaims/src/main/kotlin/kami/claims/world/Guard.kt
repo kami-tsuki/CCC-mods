@@ -10,7 +10,9 @@ import kami.claims.net.Denied
 import kami.claims.net.Net
 import kami.claims.research.Gate
 import kami.claims.research.RecipeFilter
+import kami.claims.service.Housing
 import kami.claims.service.View
+import kami.claims.service.Work
 import kami.libs.text.Phrase
 import kami.claims.social.Perms
 
@@ -68,19 +70,15 @@ object Guard {
 
     private fun granted(a: Access, c: Country, cl: Claim, who: String): Boolean {
         val rank = c.rank(who) ?: return a == Access.ANY
-        val job = c.members[who]?.job
         return when (a) {
             Access.NONE -> false
             Access.ANY -> true
             Access.ALLIED -> rank >= Rank.ALLIED
             Access.CITIZEN -> rank >= Rank.CITIZEN
-            Access.WORKER -> rank >= Rank.OFFICER || (rank >= Rank.CITIZEN && job != null)
-            Access.JOB -> rank >= Rank.OFFICER || (rank >= Rank.CITIZEN && job != null && (cl.def?.job == null || cl.def?.job == job))
+            Access.WORKER, Access.JOB -> rank >= Rank.OFFICER || Work.fits(c, cl, who)
             Access.OFFICER -> rank >= Rank.OFFICER
         }
     }
-
-    fun plotOpen(cl: Claim, c: Country) = cl.lapse < c.shutdown
 
     fun allowed(level: LevelAccessor, pos: BlockPos, who: Entity?, action: Action, block: Block? = null): Boolean {
         val dim = dim(level)?.takeIf { it in Config.s.dimensionSet } ?: return true
@@ -92,15 +90,9 @@ object Guard {
         val p = who as? Player
         if (p == null || p is FakePlayer) return c.machines[cl.type] ?: cl.def?.rule?.machines ?: false
         val me = p.stringUUID
-        if (c.outsiders[me] == Rank.BANISHED) return false
-        if (cl.type == "residential" && cl.owner != null) {
-            if (!plotOpen(cl, c)) return false
-            return when (if (me == cl.owner) Role.OWNER else cl.roles[me]) {
-                Role.OWNER, Role.HOUSEHOLD -> true
-                Role.ALLIED -> action in Config.s.plotAlliedSet
-                else -> false
-            }
-        }
+        val banned = c.outsiders[me] == Rank.BANISHED
+        if (cl.tenant != null) return Housing.plotAccess(cl, me, action, banned)
+        if (banned) return false
         return granted(access(c, cl, action), c, cl, me)
     }
 
@@ -119,13 +111,21 @@ object Guard {
         val cl = Realm.index[key(dim, pos)]
         val c = cl?.let { Realm.data.countries[it.country] } ?: return Phrase.of("kami_claims.guard.denied.nomansland", verb(action))
         val me = p.stringUUID
-        if (c.outsiders[me] == Rank.BANISHED) return Phrase.of("kami_claims.error.you_banished", c.name)
-        if (cl.type == "residential" && cl.owner != null) {
-            if (!plotOpen(cl, c)) return Phrase.of("kami_claims.guard.denied.plot_locked", Phrase.plural("kami_claims.unit.day", cl.lapse.toLong()))
-            return Phrase.of("kami_claims.guard.denied.plot", Names.of(p.server, cl.owner!!))
+        val banned = c.outsiders[me] == Rank.BANISHED
+        if (cl.tenant != null) {
+            val member = me == cl.owner || cl.roles[me] == Role.HOUSEHOLD
+            return when {
+                cl.state == Tenancy.MOVING_OUT && member -> Phrase.of("kami_claims.guard.denied.plot_no_place")
+                banned && me != cl.owner -> Phrase.of("kami_claims.error.you_banished", c.name)
+                cl.state == Tenancy.MOVING_OUT -> Phrase.of("kami_claims.guard.denied.plot_moving_out", Names.of(p.server, cl.owner!!))
+                else -> Phrase.of("kami_claims.guard.denied.plot", Names.of(p.server, cl.owner!!))
+            }
         }
+        if (banned) return Phrase.of("kami_claims.error.you_banished", c.name)
         val type = Phrase.or("kami_claims.chunk_type.${cl.type}", cl.type)
-        return Phrase.of("kami_claims.guard.denied.access.${access(c, cl, action).name.lowercase()}", c.name, verb(action), type)
+        val access = access(c, cl, action)
+        val unassigned = (access == Access.WORKER || access == Access.JOB) && c.members[me]?.let { Work.holds(it, cl.type) } == true && me !in cl.workers
+        return Phrase.of(if (unassigned) "kami_claims.guard.denied.job_unassigned" else "kami_claims.guard.denied.access.${access.name.lowercase()}", c.name, verb(action), type)
     }
 
     private fun borderDistance(dim: String, pos: BlockPos, standing: BlockPos): Int {
@@ -163,15 +163,14 @@ object Guard {
     private fun credit(p: ServerPlayer, pos: BlockPos, action: Action, state: BlockState) {
         val cl = Realm.index[key(p.level().dimension().location().toString(), pos)] ?: return
         val me = p.stringUUID
-        val m = Realm.data.countries[cl.country]?.members?.get(me) ?: return
-        val cfg = Config.s.jobs[m.job] ?: return
-        if (cl.type != cfg.type || action !in cfg.actions) return
-        if (m.zone.isNotEmpty() && cl.key.toString() !in m.zone) return
-        if (cfg.blocks.isNotEmpty() && cfg.blocks.none { matches(state, it) }) return
+        val c = Realm.data.countries[cl.country] ?: return
         val crop = state.block as? CropBlock
         if (crop != null && !crop.isMaxAge(state)) return
-        m.progress++
-        Realm.dirty = true
+        Work.matching(c, me, cl).forEach { (cfg, job) ->
+            if (action !in cfg.actions || (cfg.blocks.isNotEmpty() && cfg.blocks.none { matches(state, it) })) return@forEach
+            job.progress++
+            Realm.dirty = true
+        }
     }
 
     fun onBreak(e: BlockEvent.BreakEvent) {
@@ -275,10 +274,10 @@ object Guard {
         if (!Config.s.pistonProtection) return
         val level = e.level
         val dim = dim(level)?.takeIf { it in Config.s.dimensionSet } ?: return
-        val origin = Realm.index[key(dim, e.pos)]?.country
+        val origin = Realm.index[key(dim, e.pos)]
         val helper = e.structureHelper ?: return
         val moved = helper.toPush + helper.toDestroy + e.faceOffsetPos
-        if (moved.any { Realm.index[key(dim, it)]?.country != origin }) e.isCanceled = true
+        if (moved.any { val target = Realm.index[key(dim, it)]; target?.country != origin?.country || target?.tenant != origin?.tenant }) e.isCanceled = true
     }
 
     fun fireAllowed(level: LevelAccessor, pos: BlockPos): Boolean {
@@ -289,12 +288,9 @@ object Guard {
         return c.fire[cl.type] ?: cl.def?.rule?.fire == true
     }
 
-    fun fluidAllowed(level: LevelAccessor, pos: BlockPos): Boolean {
+    fun fluidAllowed(level: LevelAccessor, from: BlockPos, to: BlockPos): Boolean {
         val dim = dim(level)?.takeIf { it in Config.s.dimensionSet } ?: return true
-        val cl = Realm.index[key(dim, pos)]
-        val c = cl?.let { Realm.data.countries[it.country] }
-        if (cl == null || c == null) return Config.s.nomanslandFluid
-        return c.fluid[cl.type] ?: cl.def?.rule?.fluid == true
+        return Housing.fluidFlows(Realm.index[key(dim, from)], Realm.index[key(dim, to)], Config.s.nomanslandFluid)
     }
 
     fun onDamage(e: LivingIncomingDamageEvent) {
@@ -319,9 +315,9 @@ object Guard {
         val name = to?.let { Realm.data.countries[it.country]?.name }
         val detail = to?.let { cl ->
             val type = Phrase.or("kami_claims.chunk_type.${cl.type}", cl.type)
-            cl.owner?.let { o -> Phrase.of("kami_claims.guard.plot_of", type, Names.of(p.server, o)) } ?: type
+            cl.owner?.let { o -> Phrase.of("kami_libs.format.dot", type, Names.of(p.server, o)) } ?: type
         }?.component() ?: Phrase.of("kami_claims.guard.no_building").component()
-        val nomansland = Phrase.of("kami_claims.world.nomansland").component()
+        val nomansland = Phrase.of("kami_claims.help.term.nomansland").component()
         if (Config.s.titles && from?.country != to?.country) {
             p.connection.send(ClientboundSetTitlesAnimationPacket(8, 40, 12))
             p.connection.send(ClientboundSetSubtitleTextPacket(detail.copy().withColor(Theme.MUTED)))

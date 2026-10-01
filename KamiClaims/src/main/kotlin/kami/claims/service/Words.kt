@@ -1,5 +1,6 @@
 package kami.claims.service
 
+import kami.claims.Claimant
 import kami.claims.Rank
 import kami.claims.TaxMode
 import kami.libs.text.Phrase
@@ -19,6 +20,8 @@ object Words {
         else Phrase.of("kami_claims.feature.${id.replace(':', '.')}").asValue()
 
     fun rank(r: Rank) = Phrase.of("kami_claims.rank.${r.name.lowercase()}").asValue()
+
+    fun claimant(c: Claimant): Phrase = Phrase.of("kami_claims.claimant.${c.name.lowercase()}").asValue()
 
     fun rate(price: Number, period: Int): Phrase {
         val amount = Phrase.of("kami_libs.unit.money", Format.number(price.toLong()))

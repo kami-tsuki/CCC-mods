@@ -491,7 +491,7 @@ private fun Ui.drawBands(r: Rect, state: TechTreeState, bands: TechBands) {
         if (i > 0) g.fill(left, r.y, left + 1, r.bottom, if (reached) Palette.borderStrong else Palette.border)
         val label = bands.labels[band.id] ?: continue
         val color = when { current -> Palette.brass; reached -> Palette.textSecondary; else -> Palette.textMuted }
-        val room = Draw.width(label) + if (reached) 0 else Draw.ICON_SLOT
+        val room = Draw.width(label) + if (reached) 0 else Draw.ICON
         val x = minOf(max(left + BAND_LABEL_PAD, r.x + BAND_LABEL_PAD), right - room - BAND_LABEL_PAD)
         if (x < left) continue
         val after = if (reached) x else x + Draw.leadIcon(g, Icons.LOCK, x, r.y + BAND_LOCK_Y, Palette.warning)

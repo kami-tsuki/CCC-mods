@@ -80,17 +80,17 @@ object KamiClaims {
                     Citizenship(c.id, c.name, c.color, Realm.country(c.parent)?.name, c.rank(player.toString())?.name ?: Rank.CITIZEN.name)
                 }
 
-                override fun country(id: String): CountryInfo? = Realm.country(id)?.let { CountryInfo(it.id, it.name, View.color(it), FlagInfo(it.flag.pattern, it.flag.emblem, it.flag.secondary)) }
+                override fun country(id: String): CountryInfo? = Realm.live(id)?.let { CountryInfo(it.id, it.name, View.color(it), FlagInfo(it.flag.pattern, it.flag.emblem, it.flag.secondary)) }
 
                 override fun relation(a: String, b: String): Relation {
-                    val x = Realm.country(a) ?: return Relation.NEUTRAL
-                    val y = Realm.country(b) ?: return Relation.NEUTRAL
+                    val x = Realm.live(a) ?: return Relation.NEUTRAL
+                    val y = Realm.live(b) ?: return Relation.NEUTRAL
                     return Relation.valueOf(Diplomacy.relation(x, y).uppercase())
                 }
 
                 override fun tariff(buyerCountry: String, sellerCountry: String): Int {
-                    val x = Realm.country(buyerCountry) ?: return 0
-                    val y = Realm.country(sellerCountry) ?: return 0
+                    val x = Realm.live(buyerCountry) ?: return 0
+                    val y = Realm.live(sellerCountry) ?: return 0
                     return Diplomacy.tariff(x, y)
                 }
 
@@ -108,15 +108,15 @@ object KamiClaims {
 
                 override fun goals(player: UUID): List<Goal> = Realm.of(player.toString())?.let(Goals::of).orEmpty()
 
-                override fun allowedRecipe(country: String?, recipe: ResourceLocation) = Gate.recipe(Realm.country(country), recipe)
+                override fun allowedRecipe(country: String?, recipe: ResourceLocation) = Gate.recipe(Realm.live(country), recipe)
 
-                override fun allowedBlock(country: String?, block: ResourceLocation) = Gate.block(Realm.country(country), block)
+                override fun allowedBlock(country: String?, block: ResourceLocation) = Gate.block(Realm.live(country), block)
 
                 override fun capacity(player: UUID, key: String): Int? = Realm.of(player.toString())?.let { c ->
                     Goals.capacity(key)?.let { Levels.capacity(c, it) }
                 }
 
-                override fun creditTariff(country: String, amount: Long): Long = Realm.country(country)?.let { Diplomacy.creditTariff(it, amount) } ?: 0
+                override fun creditTariff(country: String, amount: Long): Long = Realm.live(country)?.let { Diplomacy.creditTariff(it, amount) } ?: 0
             })
         }
         MOD_BUS.addListener<RegisterPayloadHandlersEvent> { Net.register(it) }

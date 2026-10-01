@@ -23,12 +23,12 @@ class Input {
     fun isDown(button: Int) = button in down.indices && down[button]
 
     fun press(x: Int, y: Int, button: Int) {
-        presses += Click(x, y, button)
+        presses += Click(UiScale.unscale(x), UiScale.unscale(y), button)
         if (button in down.indices) down[button] = true
     }
 
     fun release(x: Int, y: Int, button: Int) {
-        releases += Click(x, y, button)
+        releases += Click(UiScale.unscale(x), UiScale.unscale(y), button)
         if (button in down.indices) down[button] = false
     }
 

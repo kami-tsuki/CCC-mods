@@ -28,7 +28,7 @@ const val CONTROL_H = 18
 const val SMALL_H = 16
 private const val HOVER_LIGHTEN = 0x1C
 
-fun buttonWidth(label: String, icon: Icon? = null) = Draw.width(label) + (if (icon != null) Draw.ICON_SLOT else 0) + 14
+fun buttonWidth(label: String, icon: Icon? = null) = Draw.width(label) + (if (icon != null) Draw.ICON else 0) + 14
 
 fun Ui.edgeButton(
     r: Rect, label: String, icon: Icon? = null, style: ButtonStyle = ButtonStyle.SECONDARY, enabled: Boolean = true,
@@ -66,7 +66,7 @@ fun Ui.button(
     if (usable) hoverWash(r, feel)
     val sink = if (feel.press > 0.5f) 1 else 0
     val color = if (usable) style.text() else Palette.textDisabled
-    val iconSlot = if (icon != null || pending) (if (label.isEmpty()) Draw.ICON - 4 else Draw.ICON_SLOT) else 0
+    val iconSlot = if (icon != null || pending) (if (label.isEmpty()) Draw.ICON - 4 else Draw.ICON) else 0
     val content = iconSlot + Draw.width(label)
     var x = r.x + maxOf(2, (r.w - content) / 2)
     if (pending) spinner(x, r.centerY - 4 + sink, color)
@@ -170,6 +170,17 @@ fun Ui.pager(r: Rect, page: Int, pages: Int, key: Any = "pager"): Int? {
     var result: Int? = null
     if (iconButton(prev, Icons.BACK, tr("kami_libs.pager.prev.tooltip"), enabled = page > 0, key = "$key:prev")) result = page - 1
     if (iconButton(next, Icons.FORWARD, tr("kami_libs.pager.next.tooltip"), enabled = page < pages - 1, key = "$key:next")) result = page + 1
-    Draw.textCentered(g, tr("kami_libs.pager.label", page + 1, pages.coerceAtLeast(1)), Rect(prev.right, r.y, next.x - prev.right, r.h), Palette.textSecondary)
+    Draw.textCentered(g, tr("kami_libs.format.ratio", page + 1, pages.coerceAtLeast(1)), Rect(prev.right, r.y, next.x - prev.right, r.h), Palette.textSecondary)
     return result
+}
+
+fun Ui.disclosure(r: Rect, label: String, open: Boolean, trailing: String? = null, key: Any = "disclosure:$label", hairline: Boolean = false): Boolean {
+    val hover = hover(key, r)
+    if (hover) Draw.fill(g, r, Palette.hover)
+    val color = if (hover) Palette.text else Palette.textSecondary
+    Draw.tintedIcon(g, if (open) Icons.CHEVRON_DOWN else Icons.CHEVRON_RIGHT, r.x - 2, r.centerY - Draw.ICON / 2, Draw.ICON, color)
+    Draw.text(g, label, r.x + 11, r.centerY - 4, color)
+    trailing?.let { Draw.textRight(g, it, r.right - 2, r.centerY - 4, Palette.textMuted) }
+    if (hairline) Draw.hline(g, r.x, r.bottom - 1, r.w, Palette.borderSubtle)
+    return clickable(key, r)
 }

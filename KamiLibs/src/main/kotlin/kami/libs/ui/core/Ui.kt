@@ -127,9 +127,10 @@ class Ui {
         wallMillis = System.currentTimeMillis()
         frame++
         motion.sweep(frame)
-        mouseX = mx
-        mouseY = my
-        screen = Rect(0, 0, width, height)
+        val scale = UiScale.factor
+        mouseX = UiScale.unscale(mx, scale)
+        mouseY = UiScale.unscale(my, scale)
+        screen = Rect(0, 0, UiScale.layout(width), UiScale.layout(height))
         layer = 0
         cursor = Cursor.ARROW
         tip = null
@@ -138,10 +139,14 @@ class Ui {
         anchorsNext.clear()
         nextBlockers = ArrayList()
         if (input.presses.isNotEmpty()) keyboardMode = false
-        draw()
-        runOverlays()
-        drawParticles()
-        drawTooltip()
+        g.pose().pushPose()
+        g.pose().scale(scale, scale, 1f)
+        try {
+            draw()
+            runOverlays()
+            drawParticles()
+            drawTooltip()
+        } finally { g.pose().popPose() }
         handleTabbing()
         blockers = nextBlockers
         escapes = nextEscapes.sortedByDescending { it.first }
@@ -241,7 +246,7 @@ class Ui {
     fun clip(r: Rect, draw: () -> Unit) {
         val effective = if (clips.isEmpty()) r else clips.last().intersect(r)
         clips += effective
-        g.enableScissor(r.x, r.y, r.right, r.bottom)
+        UiScale.enableScissor(g, r)
         try { draw() } finally {
             g.disableScissor()
             clips.removeAt(clips.lastIndex)

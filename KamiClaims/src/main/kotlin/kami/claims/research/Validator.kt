@@ -81,7 +81,7 @@ object Validator {
             }
         }
         if (problems.size == before) return levels
-        return LevelsConfig(levels.curve, levels.table, levels.maxLevel, levels.xpFromLevel, levels.sources, levels.counted, levels.capacities, levels.rules, rewards, levels.announce)
+        return levels.copy(rewards = rewards)
     }
 
     private fun Unlock.oversized() = when (this) {

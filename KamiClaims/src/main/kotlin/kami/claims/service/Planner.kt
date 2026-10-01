@@ -32,9 +32,9 @@ object Planner {
 
     fun blockReason(c: Country, k: Key, type: String, owned: Set<Key>, treasury: Long, count: Int): Phrase? {
         if (k.dim !in s.dimensionSet) return Phrase.of("kami_claims.block.dimension")
-        val def = s.types[type] ?: return Phrase.of("kami_claims.block.unknown_type")
+        val def = s.types[type] ?: return Phrase.of("kami_claims.error.unknown_type")
         Realm.index[k]?.let { cl -> return if (cl.country == c.id) Phrase.of("kami_claims.block.yours") else Phrase.of("kami_claims.block.owned", Realm.data.countries[cl.country]?.name ?: cl.country) }
-        Realm.reservedFor(k.dim, k.x, k.z)?.let { if (it != c.id) return Phrase.of("kami_claims.block.reserved", Realm.data.countries[it]?.name ?: it) }
+        Realm.reservedFor(k.dim, k.x, k.z)?.let { if (it != c.id) return Phrase.of("kami_claims.detail.reserved", Realm.data.countries[it]?.name ?: it) }
         Features.lockReason(c, Features.claimType(type))?.let { return it }
         if (owned.isNotEmpty() && neighbours(k).none { it in owned }) return Phrase.of("kami_claims.block.not_connected")
         Features.limit(c, Capacity.CHUNKS, count)?.let { return it }
@@ -72,6 +72,7 @@ object Planner {
     }
 
     fun unclaimLock(cl: Claim): Phrase? {
+        if (cl.owner != null) return Phrase.of("kami_claims.error.plot_tenanted")
         val age = now() - cl.at
         if (age < s.dayMillis) return Phrase.of("kami_claims.block.new", Phrase.of("kami_libs.unit.hour.short", ((s.dayMillis - age) / 3_600_000 + 1).toString()))
         if (cl.upkeepCycles < 1) return Phrase.of("kami_claims.block.upkeep_day")
@@ -123,7 +124,7 @@ object Planner {
                 cl == null || cl.country != c.id -> PlannedCell(k, Outcome.SKIP, Phrase.of("kami_claims.block.not_yours"))
                 cl.type == type -> PlannedCell(k, Outcome.SKIP, Phrase.of("kami_claims.block.same_type"))
                 lock != null -> PlannedCell(k, Outcome.BLOCKED, lock)
-                else -> PlannedCell(k, Outcome.RETYPE, if (cl.owner != null && type != "residential") Phrase.of("kami_claims.block.tenant_loses") else null, def?.price ?: 0, max(1, def?.period ?: 1))
+                else -> PlannedCell(k, Outcome.RETYPE, if (cl.owner != null && type != Housing.RESIDENTIAL) Phrase.of("kami_claims.block.tenant_loses") else null, def?.price ?: 0, max(1, def?.period ?: 1))
             }
         }
         val borderTax = Buffs.tax(c)

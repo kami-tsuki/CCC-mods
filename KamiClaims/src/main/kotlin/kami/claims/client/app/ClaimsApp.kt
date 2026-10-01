@@ -4,7 +4,6 @@ import kami.libs.ui.widget.Flags
 import kami.libs.ui.text.trJson
 import kami.libs.ui.text.trn
 import kami.libs.ui.text.tr
-import kami.claims.Rank
 import kami.claims.client.ClientClaims
 import kami.claims.client.app.pages.*
 import kami.claims.client.store.ClaimsStore
@@ -30,6 +29,7 @@ import kami.libs.ui.app.Route
 import kami.libs.ui.app.Toast
 import kami.libs.ui.app.Tour
 import kami.libs.ui.core.Cursor
+import kami.libs.ui.core.UiScale
 import kami.libs.ui.core.Key
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Row
@@ -109,14 +109,7 @@ class ClaimsApp : KamiApp() {
         else -> DashboardPage(this)
     }
 
-    fun lock(cap: String): String? {
-        val info = ClaimsStore.info ?: return tr("kami_claims.lock.no_country")
-        val snap = ClaimsStore.snap ?: return tr("kami_claims.lock.loading")
-        if (info.delegated && cap !in DELEGABLE) return tr("kami_claims.lock.province_only")
-        val min = snap.caps[cap]?.let { runCatching { Rank.valueOf(it.uppercase()) }.getOrNull() } ?: Rank.PRESIDENT
-        if (ClaimsStore.rank < min) return tr("kami_claims.lock.rank", Vocabulary.rank(min.name).label)
-        return null
-    }
+    fun lock(cap: String) = ClientLocks.cap(cap)
 
     private fun alertsFor(page: String) = visibleAlerts().filter { it.page == page }
 
@@ -184,6 +177,7 @@ class ClaimsApp : KamiApp() {
         ui.reduceMotion = p.reduceMotion
         ui.tooltipDelay = p.tooltipDelay.toLong()
         UiSound.volume = p.sounds
+        UiScale.factor = p.uiScale
         if (ClaimsStore.info == null && route.page != "welcome" && page(route.page).let { it is ClaimsPage && it.needsCountry }) navigate(Route("welcome"), record = false, sound = false)
         if (route.page != lastRoute) {
             lastRoute = route.page
@@ -198,12 +192,12 @@ class ClaimsApp : KamiApp() {
     fun startTour() {
         tour = Tour(listOf(
             Callout("topbar", tr("kami_claims.tour.topbar"), tr("kami_claims.tour.topbar.desc"), Route("dashboard")),
-            Callout("bell", tr("kami_claims.tour.bell"), tr("kami_claims.tour.bell.desc")),
+            Callout("bell", tr("kami_claims.common.alerts"), tr("kami_claims.tour.bell.desc")),
             Callout("dashboard:attention", tr("kami_claims.tour.attention"), tr("kami_claims.tour.attention.desc")),
-            Callout("nav:map", tr("kami_claims.tour.map"), tr("kami_claims.tour.map.desc")),
-            Callout("nav:budget", tr("kami_claims.tour.budget"), tr("kami_claims.tour.budget.desc")),
-            Callout("nav:protection", tr("kami_claims.tour.protection"), tr("kami_claims.tour.protection.desc")),
-            Callout("nav:provinces", tr("kami_claims.tour.provinces"), tr("kami_claims.tour.provinces.desc")),
+            Callout("nav:map", tr("kami_claims.nav.map"), tr("kami_claims.tour.map.desc")),
+            Callout("nav:budget", tr("kami_claims.nav.budget"), tr("kami_claims.tour.budget.desc")),
+            Callout("nav:protection", tr("kami_claims.nav.protection"), tr("kami_claims.tour.protection.desc")),
+            Callout("nav:provinces", tr("kami_claims.cap.province"), tr("kami_claims.tour.provinces.desc")),
             Callout("page-help", tr("kami_claims.tour.help"), tr("kami_claims.tour.help.desc"))
         )) {
             ClientClaims.finishTour()
@@ -222,8 +216,8 @@ class ClaimsApp : KamiApp() {
             Draw.text(ui.g, Draw.fit(look.label, identity.w - 22), identity.x + 21, identity.y + 13, look.color)
         } else {
             Draw.leadIcon(ui.g, Icons.FLAG, identity.x, identity.centerY, Palette.textMuted)
-            Draw.text(ui.g, tr("kami_claims.topbar.no_country"), identity.x + 18, identity.y + 3, TextStyle.HEADING, Palette.textMuted)
-            Draw.text(ui.g, tr("kami_claims.world.nomansland"), identity.x + 18, identity.y + 13, Palette.textMuted)
+            Draw.text(ui.g, tr("kami_libs.common.no_country"), identity.x + 18, identity.y + 3, TextStyle.HEADING, Palette.textMuted)
+            Draw.text(ui.g, tr("kami_claims.help.term.nomansland"), identity.x + 18, identity.y + 13, Palette.textMuted)
         }
         if (ui.iconButton(row.iconSlot(), Icons.CLOSE, tr("kami_libs.common.close.tooltip"), key = "app-close")) Minecraft.getInstance().setScreen(null)
         bell(ui, row.iconSlot())
@@ -235,36 +229,27 @@ class ClaimsApp : KamiApp() {
             if (compact) levelCell(ui, row.takeFromRight(LEVEL_COMPACT_W)) else levelKpi(ui, row.takeFromRight(LEVEL_W))
         }
         val kpis = row.rest
-        val cells = kpis.columns(if (compact) 3 else 5, 3)
+        val cells = kpis.columns(if (compact) 1 else 2, 6)
         val net = info.income - info.upkeep - info.jobs
         val history = snap.history
         val weekAgo = history.getOrNull(history.size - 8)?.treasury
         val trend = weekAgo?.let { info.treasury - it }
         kpi(ui, cells[0], Icons.TREASURY, tr("kami_claims.kpi.treasury"), Format.money(ui.countUp("treasury", info.treasury), compact = true), Palette.money,
             { Tip(tr("kami_claims.kpi.treasury"), listOf(tr("kami_claims.kpi.treasury.balance", Format.money(info.treasury)) to Palette.money,
-                (trend?.let { tr("kami_claims.kpi.treasury.week", Format.signedMoney(it)) } ?: tr("kami_claims.kpi.treasury.no_history")) to Palette.textSecondary), keys = tr("kami_claims.kpi.open_budget")) }, "budget", info.treasury)
-        kpi(ui, cells[1], if (net >= 0) Icons.INCOME else Icons.EXPENSE, tr("kami_claims.kpi.net"), Format.signedMoney(net), if (net >= 0) Palette.success else Palette.danger,
-            { Tip(tr("kami_claims.kpi.net.title"), listOf(tr("kami_claims.kpi.net.tax", Format.signedMoney(info.income)) to Palette.success,
-                tr("kami_claims.kpi.net.upkeep", Format.signedMoney(-info.upkeep)) to Palette.danger, tr("kami_claims.kpi.net.wages", Format.signedMoney(-info.jobs)) to Palette.danger), keys = tr("kami_claims.kpi.open_budget")) }, "budget")
-        if (!compact) {
-            val runwayColor = runwayColor(info.treasury, net)
-            kpi(ui, cells[2], Icons.CLOCK, tr("kami_claims.kpi.runway"), runwayText(info.treasury, net), runwayColor,
-                { Tip(tr("kami_claims.kpi.runway"), listOf((if (net >= 0) tr("kami_claims.kpi.runway.positive") else tr("kami_claims.kpi.runway.negative", Format.perDay(Format.money(-net)), Format.days(info.treasury / -net))) to Palette.textSecondary,
-                    tr("kami_claims.kpi.runway.next_bill", Format.duration(info.nextBilling), Format.money(info.nextBill)) to Palette.textMuted)) }, "budget")
-        }
-        val debt = info.claimList.count { it.debt > 0 }
-        kpi(ui, cells[if (compact) 2 else 3], Icons.AREA, tr("kami_claims.kpi.land"), Format.number(info.chunks), if (debt > 0) Palette.danger else Palette.text,
-            { Tip(tr("kami_claims.kpi.land"), listOf(tr("kami_claims.kpi.land.chunks", trn("kami_claims.unit.chunk", info.chunks), Format.number(info.free), Format.number(info.freeAllowed)) to Palette.textSecondary,
-                (if (debt > 0) tr("kami_claims.kpi.land.debt", Format.number(debt)) else tr("kami_claims.kpi.land.no_debt")) to (if (debt > 0) Palette.danger else Palette.success))) }, "chunks")
+                (trend?.let { tr("kami_claims.kpi.treasury.week", Format.signedMoney(it)) } ?: tr("kami_claims.kpi.treasury.no_history")) to Palette.textSecondary,
+                tr("kami_claims.kpi.net.tax", Format.signedMoney(info.income)) to Palette.success,
+                tr("kami_claims.kpi.net.upkeep", Format.signedMoney(-info.upkeep)) to Palette.danger,
+                tr("kami_claims.kpi.net.wages", Format.signedMoney(-info.jobs)) to Palette.danger,
+                (if (net >= 0) tr("kami_claims.kpi.runway.positive") else tr("kami_claims.kpi.runway.negative", Format.perDay(Format.money(-net)), Format.days(info.treasury / -net))) to Palette.textSecondary), keys = tr("kami_claims.kpi.open_budget")) }, "budget", info.treasury)
         if (!compact) {
             val online = info.members.count { it.online }
-            kpi(ui, cells[4], Icons.PEOPLE, tr("kami_claims.kpi.citizens"), "$online/${info.members.size}", Palette.text,
+            kpi(ui, cells[1], Icons.PEOPLE, tr("kami_claims.kpi.citizens"), "$online/${info.members.size}", Palette.text,
                 { Tip.text(tr("kami_claims.kpi.citizens.tooltip", Format.number(online), Format.number(info.members.size)), tr("kami_claims.kpi.citizens")) }, "citizens")
         }
     }
 
     private fun levelKpi(ui: Ui, r: Rect) {
-        kpi(ui, r, Icons.STAR, tr("kami_claims.kpi.level"), tr("kami_claims.research.level", ClientResearch.state.level), Palette.brass, { Tip.text(xpText(), tr("kami_claims.kpi.level")) }, "levels")
+        kpi(ui, r, Icons.STAR, tr("kami_libs.common.level"), tr("kami_libs.lock.ui.level", ClientResearch.state.level), Palette.brass, { Tip.text(xpText(), tr("kami_libs.common.level")) }, "levels")
         xpStrip(ui, r)
     }
 
@@ -274,7 +259,7 @@ class ClaimsApp : KamiApp() {
         val label = tr("kami_claims.kpi.level.short", ClientResearch.state.level)
         Draw.text(ui.g, label, r.x + (r.w - Draw.width(label)) / 2, r.y + 8, Palette.brass)
         xpStrip(ui, r)
-        ui.tooltip("kpi:level-cell", r) { Tip.text(xpText(), tr("kami_claims.kpi.level")) }
+        ui.tooltip("kpi:level-cell", r) { Tip.text(xpText(), tr("kami_libs.common.level")) }
         if (hit) navigate(Route("levels"))
     }
 
@@ -290,7 +275,7 @@ class ClaimsApp : KamiApp() {
         ui.anchor(key, r)
         if (page != null && ui.hovering(r)) Draw.fill(ui.g, r.inset(0, 2), Palette.hover)
         flashValue?.let { v -> ui.flash(key, v).takeIf { it != 0 }?.let { Draw.fill(ui.g, r.inset(0, 2), it) } }
-        val textX = r.x + 4 + Draw.leadIcon(ui.g, icon, r.x + 4, r.centerY) + 2
+        val textX = r.x + 6
         Draw.text(ui.g, Draw.fit(label.uppercase(Format.locale), r.right - textX), textX, r.y + 3, Palette.textMuted)
         Draw.text(ui.g, Draw.fit(value, r.right - textX), textX, r.y + 13, color)
         tip?.let { build -> ui.tooltip(key, r) { build() } }
@@ -318,7 +303,7 @@ class ClaimsApp : KamiApp() {
         val w = 250
         val itemsH = alerts.sumOf { alertHeight(it, w - 12) }
         ui.popover(r, w, (itemsH + 28).coerceIn(50, 300), align = PopoverAlign.END, onOutside = { bellOpen = false }) { panel ->
-            Draw.text(g, tr("kami_claims.alerts.title").uppercase(Format.locale), panel.x + 8, panel.y + 8, TextStyle.TITLE)
+            Draw.text(g, tr("kami_claims.common.alerts").uppercase(Format.locale), panel.x + 8, panel.y + 8, TextStyle.TITLE)
             if (alerts.isEmpty()) Draw.text(g, tr("kami_claims.alerts.none"), panel.x + 8, panel.y + 26, Palette.textMuted)
             scroll("bell-list", panel.inset(4, 22, 4, 4), itemsH) { area ->
                 var y = area.y
@@ -343,7 +328,7 @@ class ClaimsApp : KamiApp() {
         if (ui.pressed(dismiss) != null) { ClientClaims.prefs.dismissed += a.id; ClientClaims.savePrefs() }
         val textH = Draw.paragraph(ui.g, trJson(a.body), box.x + 24, box.y + 16, box.w - 28)
         if (a.action.isNotEmpty() || a.page.isNotEmpty()) {
-            val label = trJson(a.action).ifEmpty { tr("kami_claims.alerts.open") }
+            val label = trJson(a.action).ifEmpty { tr("kami_libs.common.open") }
             val bw = Draw.width(label) + 16
             if (ui.button(Rect(box.x + 24, box.y + 18 + textH, bw, 16), label, key = "alert:${a.id}")) { bellOpen = false; handle(a) }
         }
@@ -354,7 +339,7 @@ class ClaimsApp : KamiApp() {
         when (a.act) {
             "deposit" -> Dialogs.money(this, true, a.args.firstOrNull()?.toLongOrNull() ?: 10)
             "accept" -> Dialogs.confirm(this, tr("kami_claims.join.confirm.title", a.args.firstOrNull() ?: ""), tr("kami_claims.join.confirm.subtitle"), Icons.PEOPLE,
-                listOf(Consequence(tr("kami_claims.join.confirm.single")), Consequence(tr("kami_claims.join.confirm.laws"))), tr("kami_claims.join.confirm.action"), "accept", a.args.toTypedArray())
+                listOf(Consequence(tr("kami_claims.join.confirm.single")), Consequence(tr("kami_claims.join.confirm.laws"))), tr("kami_libs.common.join"), "accept", a.args.toTypedArray())
             "" -> {}
             else -> ClaimsStore.send(a.act, *a.args.toTypedArray())
         }
@@ -405,11 +390,10 @@ class ClaimsApp : KamiApp() {
         private const val LEVEL_W = 84
         private const val LEVEL_COMPACT_W = 36
         private const val MAX_COMPLETE_TOASTS = 3
-        val DELEGABLE = setOf("claim", "capital", "tax", "rules", "jobs")
         val instance by lazy { ClaimsApp() }
 
         fun open() {
-            Minecraft.getInstance().setScreen(AppScreen(instance, Component.translatable("kami_claims.screen.title")))
+            Minecraft.getInstance().setScreen(AppScreen(instance, Component.translatable("kami_libs.common.country")))
         }
     }
 }

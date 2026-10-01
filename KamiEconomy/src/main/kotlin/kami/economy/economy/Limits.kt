@@ -22,7 +22,7 @@ object Limits {
 
     fun marketDenial(player: String): Phrase = denial(player, CountryCapacity.MARKET_SLOTS, "kami_economy.slots.orders", marketUsed(player), marketSlots(player))
 
-    fun auctionDenial(player: String): Phrase = denial(player, CountryCapacity.AUCTION_SLOTS, "kami_economy.slots.auctions", auctionUsed(player), auctionSlots(player))
+    fun auctionDenial(player: String): Phrase = denial(player, CountryCapacity.AUCTION_SLOTS, "kami_libs.common.auctions", auctionUsed(player), auctionSlots(player))
 
     fun hint(player: String, key: String, used: Int): String = limit(player, key, used)?.json() ?: ""
 

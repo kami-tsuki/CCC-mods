@@ -15,7 +15,7 @@ object Tooltips {
     private const val RISE = 2
 
     private fun layout(t: Tip): Pair<Int, List<Pair<List<FormattedCharSequence>, Int>>> {
-        val titleW = t.title?.let { Draw.width(it, TextStyle.HEADING) + if (t.icon != null) Draw.ICON_SLOT else 0 } ?: 0
+        val titleW = t.title?.let { Draw.width(it, TextStyle.HEADING) + if (t.icon != null) Draw.ICON else 0 } ?: 0
         val natural = t.lines.maxOfOrNull { Draw.font.width(it.first) } ?: 0
         val keysW = t.keys?.let { Draw.font.width(it) } ?: 0
         val width = min(MAX_WIDTH, max(max(titleW, natural), max(keysW, if (t.extra != null) 120 else 0)))

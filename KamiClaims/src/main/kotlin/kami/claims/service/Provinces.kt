@@ -20,7 +20,7 @@ import kotlin.math.max
 object Provinces {
     private val s get() = Config.s
 
-    val delegatedRights = listOf("land", "capital", "tax", "laws", "jobs").map { "kami_claims.province.right.delegated.$it" }
+    val delegatedRights = listOf("land", "capital", "tax", "laws", "jobs", "housing").map { "kami_claims.province.right.delegated.$it" }
 
     val keptRights = listOf("treasury", "members", "name").map { "kami_claims.province.right.kept.$it" }
 

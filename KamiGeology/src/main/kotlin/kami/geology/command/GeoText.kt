@@ -36,6 +36,6 @@ object GeoText {
         muted(" · ${site.length}×${site.width}×${site.thickness}  ")
         pos(site.x.toInt(), site.y.toInt(), site.z.toInt(), dim)
         muted("  ")
-        add(Phrase.of("kami_geology.site.distance", distance(origin, site).roundToInt()), Theme.MUTED)
+        add(Phrase.of("kami_libs.common.distance", distance(origin, site).roundToInt()), Theme.MUTED)
     }
 }

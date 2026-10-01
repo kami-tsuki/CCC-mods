@@ -105,7 +105,7 @@ fun Ui.lineChart(r: Rect, series: List<Series>, labels: List<String>, format: (L
             Draw.vline(g, x, plot.y, plot.h, Palette.alpha(Palette.text, 0x60))
             series.forEach { s -> s.values.getOrNull(i)?.let { v -> Draw.fill(g, Rect(x - 1, py(v.toDouble()) - 1, 3, 3), s.color) } }
             tooltip(key, plot) {
-                Tip(labels.getOrNull(i), series.mapNotNull { s -> s.values.getOrNull(i)?.let { tr(if (i > s.dashedFrom) "kami_libs.chart.point.forecast" else "kami_libs.chart.point", s.label, format(it)) to s.color } })
+                Tip(labels.getOrNull(i), series.mapNotNull { s -> s.values.getOrNull(i)?.let { tr(if (i > s.dashedFrom) "kami_libs.chart.point.forecast" else "kami_libs.format.pair", s.label, format(it)) to s.color } })
             }
         }
     }
@@ -141,7 +141,7 @@ fun Ui.stackedBar(r: Rect, slices: List<Slice>, key: Any = "stack") {
         val w = if (i == slices.lastIndex) r.right - x else (r.w * s.value / total).toInt()
         val cell = Rect(x, r.y, w, r.h)
         Draw.fill(g, cell, s.color)
-        tooltip("$key:$i", cell) { Tip.text(tr("kami_libs.chart.share", Format.number(s.value), Format.percent(s.value.toDouble() / total)), s.label) }
+        tooltip("$key:$i", cell) { Tip.text(tr("kami_libs.format.paren", Format.number(s.value), Format.percent(s.value.toDouble() / total)), s.label) }
         x += w
     }
 }
@@ -177,7 +177,7 @@ fun Ui.donut(r: Rect, slices: List<Slice>, center: String? = null, key: Any = "d
     center?.let { Draw.textCentered(g, it, Rect(r.x, r.y, size, size), Palette.text) }
     if (hovered >= 0) {
         val s = slices[hovered]
-        tooltip(key, r) { Tip.text(tr("kami_libs.chart.share", Format.number(s.value), Format.percent(s.value / total)), s.label) }
+        tooltip(key, r) { Tip.text(tr("kami_libs.format.paren", Format.number(s.value), Format.percent(s.value / total)), s.label) }
     }
 }
 

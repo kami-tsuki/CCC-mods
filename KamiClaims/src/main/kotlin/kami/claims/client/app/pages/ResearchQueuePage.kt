@@ -34,24 +34,8 @@ class ResearchQueuePage(app: ClaimsApp) : ClaimsPage(app) {
     private var running = emptyList<QueueView>()
     private var waiting = emptyList<QueueView>()
 
-    private fun slotTile(cap: Capacity, icon: Icon): KpiTile {
-        val state = ClientResearch.state
-        val full = state.used(cap) >= state.max(cap)
-        val raise = ClientLocks.raise(cap)
-        return KpiTile(
-            ResearchLook.capacity(cap.id), "${state.used(cap)}/${state.max(cap)}", icon, if (full) Palette.warning else Palette.text,
-            sub = raise?.label, tip = raise?.how?.let { Tip.text(it) }
-        )
-    }
-
     override fun draw(ui: Ui, r: Rect) {
         val state = ClientResearch.state
-        ui.kpiRow(r.top(TILE_H), listOf(
-            slotTile(Capacity.RESEARCH_SLOTS, Icons.TOOL),
-            slotTile(Capacity.QUEUE_SLOTS, Icons.SCROLL),
-            KpiTile(tr("kami_claims.kpi.treasury"), Format.number(ui.countUp("queue-treasury", state.treasury)), Icons.TREASURY, Palette.money, flashValue = state.treasury)
-        ), key = "queue-kpi")
-        val body = r.dropTop(TILE_H + 6)
         val offline = nobodyOnline
         if (state.queue !== splitFor) {
             splitFor = state.queue
@@ -61,14 +45,16 @@ class ResearchQueuePage(app: ClaimsApp) : ClaimsPage(app) {
         }
         val runningSlots = maxOf(state.max(Capacity.RESEARCH_SLOTS), running.size)
         val waitingSlots = maxOf(state.max(Capacity.QUEUE_SLOTS), waiting.size)
-        val height = SECTION_H + runningSlots * ROW_H + SECTION_H + waitingSlots * ROW_H + (if (offline && running.isNotEmpty()) NOTICE_H else 0) + (if (state.queue.isEmpty()) EMPTY_H else 0)
-        ui.scroll("research-queue", body, height) { area ->
+        val runningRows = running.size + if (running.size < runningSlots) 1 else 0
+        val waitingRows = waiting.size + if (waiting.size < waitingSlots) 1 else 0
+        val height = SECTION_H + runningRows * ROW_H + SECTION_H + waitingRows * ROW_H + (if (offline && running.isNotEmpty()) NOTICE_H else 0) + (if (state.queue.isEmpty()) EMPTY_H else 0)
+        ui.scroll("research-queue", r, height) { area ->
             val stack = Stack(area.x, area.y, area.w, 0)
             if (offline && running.isNotEmpty()) ui.callout(stack.take(NOTICE_H), Severity.WARNING, tr("kami_claims.research.queue.offline"))
             ui.section(stack.take(SECTION_H), tr("kami_claims.research.status.researching"), "${running.size}/$runningSlots")
-            repeat(runningSlots) { i -> slot(ui, stack.take(ROW_H), area.y, running.getOrNull(i), "running:$i", offline) }
+            repeat(runningRows) { i -> slot(ui, stack.take(ROW_H), area.y, running.getOrNull(i), "running:$i", offline) }
             ui.section(stack.take(SECTION_H), tr("kami_claims.research.queue.waiting"), "${waiting.size}/$waitingSlots")
-            repeat(waitingSlots) { i -> slot(ui, stack.take(ROW_H), area.y, waiting.getOrNull(i), "waiting:$i", offline) }
+            repeat(waitingRows) { i -> slot(ui, stack.take(ROW_H), area.y, waiting.getOrNull(i), "waiting:$i", offline) }
             if (state.queue.isEmpty() && ui.emptyState(stack.take(EMPTY_H), tr("kami_claims.research.queue.empty.title"), tr("kami_claims.research.queue.empty"), action = tr("kami_claims.research.queue.open_tree"), key = "queue-empty")) {
                 app.navigate(Route("research"))
             }
@@ -124,8 +110,7 @@ class ResearchQueuePage(app: ClaimsApp) : ClaimsPage(app) {
     }
 }
 
-private const val TILE_H = 44
-private const val ROW_H = 30
+private const val ROW_H = 28
 private const val SECTION_H = 16
 private const val NOTICE_H = 28
 private const val EMPTY_H = 96

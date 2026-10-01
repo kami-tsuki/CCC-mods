@@ -21,7 +21,7 @@ object ResearchGraph {
         return tree.nodes.map { techNode(it, groups[it.category] ?: 0, it.key in matches, category != null && it.category != category, ticking) }
     }
 
-    fun bands(tree: TreeView) = TechBands(tree.nodes.map { it.level.coerceAtLeast(1) }.distinct().associateWith { tr("kami_claims.research.band", it) }, ClientResearch.state.level)
+    fun bands(tree: TreeView) = TechBands(tree.nodes.map { it.level.coerceAtLeast(1) }.distinct().associateWith { tr("kami_libs.lock.ui.level", it) }, ClientResearch.state.level)
 
     fun available(tree: TreeView) = ClientResearch.state.available.count { it.startsWith("${tree.id}:") }
 
@@ -59,7 +59,7 @@ object ResearchGraph {
                 ResearchLook.label(status) to ResearchLook.color(status),
                 lockText?.let { it to Palette.warning },
                 lock?.how?.let { it to Palette.textSecondary },
-                tr("kami_claims.research.detail.cost") + ": " + Format.money(node.cost) to Palette.textSecondary,
+                tr("kami_libs.common.cost") + ": " + Format.money(node.cost) to Palette.textSecondary,
                 tr("kami_claims.research.detail.time") + ": " + Format.duration(node.timeMs) to Palette.textSecondary
             )) }
         )

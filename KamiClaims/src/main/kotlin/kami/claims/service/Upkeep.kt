@@ -2,7 +2,6 @@ package kami.claims.service
 
 import kami.claims.net.ResearchSync
 import kami.claims.*
-import kami.claims.economy.Bank
 import kami.claims.economy.Treasury
 import kami.claims.research.Buffs
 import kami.claims.research.Features
@@ -18,14 +17,21 @@ import kami.claims.service.Words.v
 import kami.libs.text.Phrase
 
 import net.minecraft.server.MinecraftServer
-import java.util.UUID
 import kotlin.math.floor
 
 object Upkeep {
     private val s get() = Config.s
 
+    private const val SWEEP_MS = 60_000L
+
+    private var swept = 0L
+
     fun tick(server: MinecraftServer) {
         val t = now()
+        if (t - swept >= SWEEP_MS) {
+            swept = t
+            if (Housing.sweep()) Realm.changed()
+        }
         server.playerList.players.forEach { p ->
             val c = Realm.of(p.stringUUID) ?: return@forEach
             c.lastActive = t
@@ -56,17 +62,20 @@ object Upkeep {
         c.provinceInvites.values.removeAll { it.until < t }
         c.provinceRequests.values.removeAll { it < t }
         c.allianceOffers.values.removeAll { it < t }
+        c.reclaimLocks.values.removeAll { it < t }
+        if (day >= today()) Housing.warn(c)
+        if (!c.active) return
         if (c.members.isEmpty()) return Realm.disband(c)
         succession(c)
         expire(c)
-        val income = taxes(c) + c.pending
+        val income = Housing.collect(c) + c.pending
         c.pending = 0
         Loans.collect(c, day)
         Realm.refreshFree(c)
         Levels.add(c, "claims", Realm.claims(c.id).size.toDouble())
         bill(c, day)
         provinceTax(c, income)
-        jobs(c, day, income)
+        Work.pay(c, day, income)
         Treasury.snapshot(c, day)
     }
 
@@ -87,35 +96,9 @@ object Upkeep {
     private fun expire(c: Country) {
         if (now() - c.lastActive <= s.inactiveDays * s.dayMillis) return
         val claims = Realm.claims(c.id).sortedByDescending { it.at }
-        claims.filter { it.free && !it.capital }.forEach { if (Realm.removable(it)) Realm.unclaim(it, true) }
-        claims.firstOrNull { it.capital }?.let { if (Realm.claims(c.id).size == 1) Realm.unclaim(it, true) }
+        claims.filter { it.free && !it.capital && it.owner == null }.forEach { if (Realm.removable(it)) Realm.unclaim(it, true) }
+        claims.firstOrNull { it.capital && it.owner == null }?.let { if (Realm.claims(c.id).size == 1) Realm.unclaim(it, true) }
         ResearchSync.refresh(c)
-    }
-
-    private fun taxes(c: Country): Long {
-        var income = 0L
-        var room = Treasury.room(c)
-        Realm.claims(c.id).filter { it.owner != null }.forEach { cl ->
-            val tax = if (cl.tax >= 0) cl.tax else c.tax
-            if (tax > room) return@forEach
-            if (tax <= 0 || Bank.take(UUID.fromString(cl.owner), tax)) {
-                cl.lapse = 0
-                income += tax
-                room -= tax
-                if (tax > 0 && cl.type == "residential") Progress.report(c, "rent", cl.type, 1)
-            } else {
-                val owner = cl.owner!!
-                if (++cl.lapse >= c.shutdown + c.release) {
-                    cl.owner = null
-                    cl.roles.clear()
-                    cl.lapse = 0
-                    Mail.direct(owner, Phrase.of("kami_claims.mail.plot_lost"), Tone.BAD)
-                } else Mail.direct(owner, Phrase.of("kami_claims.mail.plot_tax_unpaid", money(tax)), Tone.BAD)
-            }
-        }
-        Treasury.move(c, LedgerKind.PLOT_TAX, income)
-        Progress.report(c, "taxes", "", income)
-        return income
     }
 
     private fun bill(c: Country, day: Long) {
@@ -138,8 +121,13 @@ object Upkeep {
         }
         Treasury.record(c, LedgerKind.UPKEEP, -paid)
         Buffs.settle(c)
-        val lost = claims.filter { it.debt >= s.maxDebt }.sortedByDescending { it.at }.count {
-            (!it.capital && Realm.removable(it)).also { ok -> if (ok) Realm.unclaim(it, true) }
+        val lost = claims.filter { it.debt >= s.maxDebt }.sortedWith(compareBy<Claim> { it.owner != null }.thenByDescending { it.at }).count {
+            val ok = !it.capital && Realm.removable(it)
+            if (ok) {
+                it.owner?.let { owner -> Mail.direct(owner, Phrase.of("kami_claims.mail.plot_lost", v("${it.x}, ${it.z}")), Tone.BAD) }
+                Realm.unclaim(it, true)
+            }
+            ok
         }
         val indebt = Realm.claims(c.id).count { it.debt > 0 }
         if (lost > 0) Mail.broadcast(c, Phrase.of("kami_claims.mail.debt_lost", chunks(lost)), Tone.BAD)
@@ -166,25 +154,6 @@ object Upkeep {
         }
     }
 
-    private fun jobs(c: Country, day: Long, income: Long) {
-        var budget = floor(income * s.jobShare).toLong()
-        c.members.forEach { (id, m) ->
-            val name = m.job ?: return@forEach
-            val def = c.job(name) ?: return@forEach
-            if (day - m.start < def.period) return@forEach
-            val due = m.progress >= def.quota
-            m.progress = 0
-            m.start = day
-            if (!due) return@forEach
-            if (def.pay <= budget && def.pay <= c.treasury && Bank.give(UUID.fromString(id), def.pay)) {
-                Treasury.move(c, LedgerKind.JOB_PAY, -def.pay.toLong(), id, name)
-                budget -= def.pay
-                if (def.pay > 0) Progress.report(c, "wage", "", 1)
-                Mail.direct(id, Phrase.of("kami_claims.mail.wage_paid", money(def.pay), Words.job(name)), Tone.OK)
-            } else Mail.direct(id, Phrase.of("kami_claims.mail.wage_unpaid", Words.job(name)), Tone.BAD)
-        }
-    }
-
     class Summary(val upkeep: Long, val income: Long, val jobs: Long) {
         private val net get() = upkeep + jobs - income
         fun runway(treasury: Long): Phrase = if (net <= 0) Phrase.of("kami_claims.runway.stable") else Words.days(treasury / net)
@@ -195,8 +164,8 @@ object Upkeep {
         val borderTax = Buffs.tax(c)
         return Summary(
             claims.filter { !it.free }.sumOf { Buffs.price(c, it, borderTax).toLong() * 1000 / Realm.period(it) } / 1000,
-            claims.filter { it.owner != null }.sumOf { (if (it.tax >= 0) it.tax else c.tax).toLong() },
-            c.members.values.sumOf { m -> (m.job?.let { j -> c.job(j)?.pay } ?: 0).toLong() }
+            Housing.income(c),
+            Work.payroll(c)
         )
     }
 }

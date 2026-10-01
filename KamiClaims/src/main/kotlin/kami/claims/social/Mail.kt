@@ -15,8 +15,12 @@ object Mail {
 
     fun direct(id: String, text: Phrase, tone: Tone = Tone.INFO) {
         val online = runCatching { UUID.fromString(id) }.getOrNull()?.let { server?.playerList?.getPlayer(it) }
-        if (online != null) online.tell(chat.say(tone, text.component()))
-        else Realm.of(id)?.members?.get(id)?.mail?.let { if (it.size < Config.s.mailLimit) it += "${tone.name}|${text.json()}" }
+        if (online != null) {
+            online.tell(chat.say(tone, text.component()))
+            return
+        }
+        val box = Realm.of(id)?.members?.get(id)?.mail ?: Realm.data.letters.getOrPut(id) { mutableListOf() }
+        if (box.size < Config.s.mailLimit) box += "${tone.name}|${text.json()}"
     }
 
     fun broadcast(c: Country, text: Phrase, tone: Tone = Tone.INFO) = c.members.keys.forEach { direct(it, text, tone) }
@@ -24,15 +28,18 @@ object Mail {
     fun officers(c: Country, text: Phrase, tone: Tone = Tone.INFO) = c.members.filterValues { it.rank >= Rank.OFFICER }.keys.forEach { direct(it, text, tone) }
 
     fun deliver(p: ServerPlayer) {
-        val m = Realm.of(p.stringUUID)?.members?.get(p.stringUUID) ?: return
-        if (m.mail.isEmpty()) return
+        val id = p.stringUUID
+        val own = Realm.of(id)?.members?.get(id)?.mail
+        val lines = own.orEmpty() + Realm.data.letters[id].orEmpty()
+        if (lines.isEmpty()) return
         p.tell(chat.info(Phrase.of("kami_claims.mail.away").component()))
-        m.mail.forEach { line ->
+        lines.forEach { line ->
             val tone = Tone.of(line.substringBefore('|', "INFO"))
             val body = line.substringAfter('|')
             p.tell(Chat.row { text("• ", tone.mark); Phrase.parse(body)?.let { add(it.component()) } ?: markup(body) })
         }
-        m.mail.clear()
+        own?.clear()
+        Realm.data.letters.remove(id)
         Realm.dirty = true
     }
 }

@@ -13,6 +13,9 @@ object View {
     const val DEBT = 32
     const val TAKEN = 64
     const val FREE = 128
+    const val OFFER = 256
+    const val MOVING = 512
+    const val ASSIGNED = 1024
 
     class Entry(val dim: Int, val x: Int, val z: Int, val country: Int, val type: Int, val flags: Int)
     class CountryView(val name: String, val color: Int, val relation: Int, val flag: Int = 0, val secondary: Int = 0xFFFFFF) {
@@ -65,25 +68,32 @@ object View {
         else -> 1
     }
 
-    fun privileged(c: Country, viewer: String) = c.members[viewer]?.let { it.rank >= Config.s.min(Cap.DETAILS) } == true
+    fun privileged(c: Country, viewer: String) = Config.s.can(c.members[viewer]?.rank, Cap.DETAILS)
 
-    fun flags(cl: Claim, c: Country, viewer: String): Int {
+    fun flags(cl: Claim, c: Country, viewer: String, held: Collection<Key> = Realm.held(c.id)[viewer].orEmpty()): Int {
         val rel = relation(c, viewer)
-        if (rel == 0) return 0
-        var f = if (rel == 1) OWN else ALLY
-        if (cl.capital) f = f or CAPITAL
-        val rank = c.members[viewer]?.rank ?: return f
-        if (cl.type == "residential") f = f or when {
-            cl.owner == viewer -> MINE
-            cl.owner == null && rank >= Config.s.min(Cap.PLOT) -> CLAIMABLE
-            cl.owner != null -> TAKEN
-            else -> 0
-        }
+        val member = c.members[viewer]
+        var f = if (rel == 0) 0 else if (rel == 1) OWN else ALLY
+        if (cl.capital && rel != 0) f = f or CAPITAL
+        if (member != null && viewer in cl.workers && Work.holds(member, cl.type)) f = f or ASSIGNED
+        if (cl.plot) f = f or plot(cl, c, viewer, held)
+        if (rel == 0) return f
         if (privileged(c, viewer)) {
             if (cl.debt > 0) f = f or DEBT
             if (cl.free) f = f or FREE
         }
         return f
+    }
+
+    private fun plot(cl: Claim, c: Country, viewer: String, held: Collection<Key>): Int {
+        if (!Housing.tenanted(cl)) {
+            return (if (Config.s.can(c.members[viewer]?.rank, Cap.PLOT)) CLAIMABLE else 0) or (if (Housing.blocker(c, cl, viewer, held) == null) OFFER else 0)
+        }
+        return when {
+            cl.owner == viewer -> MINE or (if (cl.state == Tenancy.MOVING_OUT) MOVING else 0)
+            cl.roles[viewer] == Role.HOUSEHOLD -> MINE
+            else -> TAKEN
+        }
     }
 
     fun build(viewer: String): Payload {
@@ -92,12 +102,13 @@ object View {
         val index = HashMap<String, Int>()
         val countries = ArrayList<CountryView>()
         val entries = ArrayList<Entry>(Realm.data.claims.size)
+        val held = Realm.data.claims.filter { it.owner == viewer }.groupBy({ it.country }, { it.key })
         Realm.data.claims.forEach { cl ->
             val dim = dims.indexOf(cl.dim)
             val c = Realm.data.countries[cl.country]
             if (dim < 0 || c == null) return@forEach
             val idx = index.getOrPut(c.id) { countries += CountryView(c.name, color(c), mapRelation(c, viewer), (c.flag.pattern shl 8) or c.flag.emblem, c.flag.secondary); countries.size - 1 }
-            val flags = flags(cl, c, viewer)
+            val flags = flags(cl, c, viewer, held[c.id].orEmpty())
             entries += Entry(dim, cl.x, cl.z, idx, if (flags == 0) -1 else types.indexOf(cl.type), flags)
         }
         val reserved = Realm.data.reserves.filter { it.until > kami.claims.now() }.mapNotNull { r -> dims.indexOf(r.dim).takeIf { it >= 0 }?.let { Reserved(it, r.x, r.z) } }

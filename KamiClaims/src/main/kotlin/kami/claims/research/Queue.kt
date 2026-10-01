@@ -82,9 +82,9 @@ object Queue {
         val node = node(country, key)
         if (entry.state != NodeState.READY && entry.state != NodeState.PAUSED) throw Fail("kami_claims.research.error.not_ready", node.label().asValue())
         if (Loans.inDefault(country)) throw Fail("kami_claims.loans.error.default")
-        if (researching(country) >= Levels.capacity(country, Capacity.RESEARCH_SLOTS)) throw Fail("kami_claims.research.error.no_slot")
+        if (researching(country) >= Levels.capacity(country, Capacity.RESEARCH_SLOTS)) throw Fail("kami_claims.research.reason.slots")
         if (!entry.paid) {
-            if (country.treasury < node.cost) throw Fail("kami_claims.research.error.treasury", Words.money(node.cost))
+            if (country.treasury < node.cost) throw Fail("kami_claims.loans.reason.funds", Words.money(node.cost))
             Treasury.move(country, LedgerKind.RESEARCH, -node.cost, actor, key)
             entry.paid = true
         }
@@ -119,7 +119,7 @@ object Queue {
         val elapsed = minOf(time - lastTick, 2 * interval)
         lastTick = time
         playtime.keys.retainAll(Realm.data.countries.keys)
-        Realm.data.countries.values.toList().forEach { tick(it, elapsed) }
+        Realm.data.countries.values.filter { it.active }.forEach { tick(it, elapsed) }
     }
 
     internal fun tick(country: Country, elapsed: Long) {
@@ -140,7 +140,7 @@ object Queue {
         ResearchSync.refresh(country)
     }
 
-    fun dropOrphans() = Realm.data.countries.values.forEach { country ->
+    fun dropOrphans() = Realm.data.countries.values.filter { it.active }.forEach { country ->
         val orphans = country.research.queue.filter { Research.defs.node(it.node) == null }
         if (orphans.isEmpty()) return@forEach
         country.research.queue.removeAll(orphans)

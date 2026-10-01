@@ -1,6 +1,8 @@
 package kami.claims.client.map
 
 import kami.libs.ui.text.tr
+import kami.claims.client.app.ClientLocks
+import kami.claims.net.ClaimLine
 import kami.claims.client.ClientClaims
 import kami.libs.ui.widget.Flags
 import kami.claims.client.app.Vocabulary
@@ -33,19 +35,44 @@ enum class MapMode(val key: String, val icon: Icon) {
     }
 }
 
+private class Cells {
+    private var keys = LongArray(0)
+    private var values = IntArray(0)
+
+    fun fill(lines: List<ClaimLine>, value: (ClaimLine) -> Int) {
+        val kept = lines.map { it to value(it) }.filter { it.second >= 0 }.sortedBy { ClientClaims.key(it.first.x, it.first.z) }
+        keys = LongArray(kept.size) { ClientClaims.key(kept[it].first.x, kept[it].first.z) }
+        values = IntArray(kept.size) { kept[it].second }
+    }
+
+    fun get(key: Long): Int {
+        val i = keys.binarySearch(key)
+        return if (i >= 0) values[i] else -1
+    }
+}
+
+private const val MAX_COUNT = 99
+
 object ClaimsLayer {
     private var debtRevision = -1
-    private val debt = HashMap<Long, Int>()
-    private val lapse = HashMap<Long, Int>()
+    private val debt = Cells()
+    private val rentDebt = Cells()
+    private val staffed = Cells()
+    private var jobTypes: Set<String> = emptySet()
+    private var officer = false
+    private val counts = Array(MAX_COUNT + 1) { it.toString() }
+    private val overflow = "$MAX_COUNT+"
 
     private fun refresh() {
         if (debtRevision == ClaimsStore.revision) return
         debtRevision = ClaimsStore.revision
-        debt.clear(); lapse.clear()
-        ClaimsStore.info?.claimList?.forEach {
-            if (it.debt > 0) debt[ClientClaims.key(it.x, it.z)] = it.debt
-            if (it.lapse > 0) lapse[ClientClaims.key(it.x, it.z)] = it.lapse
-        }
+        val snap = ClaimsStore.snap
+        jobTypes = snap?.types?.filter { it.job.isNotEmpty() }?.map { it.name }?.toSet().orEmpty()
+        officer = ClaimsStore.info != null && ClientLocks.cap("jobs") == null
+        val lines = ClaimsStore.info?.claimList.orEmpty()
+        debt.fill(lines) { if (it.debt > 0) it.debt else -1 }
+        rentDebt.fill(lines) { if (it.rentDebt > 0) 0 else -1 }
+        staffed.fill(lines) { if (it.type in jobTypes) it.workers else -1 }
     }
 
     private fun price(e: View.Entry): Double {
@@ -102,13 +129,13 @@ object ClaimsLayer {
         if (mode == MapMode.RISK || mode == MapMode.POLITICAL) for (x in xs) for (z in zs) {
             val e = ClientClaims.at(dim, x, z) ?: continue
             if (e.flags and View.DEBT == 0 || zoom < 6) continue
-            val level = debt[ClientClaims.key(x, z)] ?: 1
+            val level = debt.get(ClientClaims.key(x, z)).coerceAtLeast(1)
             Draw.hatch(g, map.cell(x, z), Palette.alpha(Palette.danger, 0x60 + level * 0x30), 5 - level.coerceAtMost(3), phase)
         }
         if (mode == MapMode.RISK) for (x in xs) for (z in zs) {
-            val level = lapse[ClientClaims.key(x, z)] ?: continue
-            Draw.outline(g, map.cell(x, z), Palette.alpha(Palette.warning, 0x60 + level * 0x30))
+            if (rentDebt.get(ClientClaims.key(x, z)) >= 0) Draw.outline(g, map.cell(x, z), Palette.alpha(Palette.warning, 0x90))
         }
+        if ("work" in layers) work(ui, map, dim, xs, zs)
         if ("borders" in layers || mode == MapMode.TERRAIN) borders(ui, map, dim, xs, zs)
         if ("markers" in layers && zoom >= 8) markers(ui, map, dim, xs, zs)
         if ("labels" in layers && zoom <= 16) labels(ui, map, dim, xs, zs)
@@ -117,6 +144,37 @@ object ClaimsLayer {
             if (zoom >= 10) Draw.head(g, ClaimsStore.snap?.me ?: "", r.centerX - 4, r.centerY - 4, 8)
             Draw.outline(g, r, Palette.alpha(Palette.focus, (0x80 + 0x7F * ui.pulse()).toInt()))
         }
+    }
+
+    private fun work(ui: Ui, map: ChunkMap, dim: String, xs: IntRange, zs: IntRange) {
+        val g = ui.g
+        val zoom = map.zoom
+        for (x in xs) for (z in zs) {
+            val e = ClientClaims.at(dim, x, z) ?: continue
+            val flags = e.flags
+            val mine = flags and View.ASSIGNED != 0
+            val offer = flags and View.OFFER != 0
+            val staff = officer && ClientClaims.typeName(e) in jobTypes
+            if (!mine && !offer && !staff) continue
+            val r = map.cell(x, z)
+            if (mine) {
+                Draw.fill(g, r, Palette.alpha(Palette.focus, 0x30))
+                Draw.outline(g, r, Palette.alpha(Palette.focus, 0x90))
+            } else if (offer) {
+                Draw.outline(g, r, Palette.alpha(Palette.success, 0x60))
+                if (zoom >= 12) Draw.marker(g, Icons.ADD, r.centerX, r.centerY)
+            }
+            if (!staff || zoom < 8) continue
+            val n = staffed.get(ClientClaims.key(x, z)).takeIf { it >= 0 } ?: continue
+            if (n == 0) Draw.hatch(g, r, Palette.alpha(Palette.warning, 0x50), 4)
+            else {
+                val label = if (n <= MAX_COUNT) counts[n] else overflow
+                val w = Draw.width(label) + 4
+                Draw.fill(g, Rect(r.right - w - 1, r.y + 1, w, 10), Palette.alpha(0x0C0E12, 0xC8))
+                Draw.text(g, label, r.right - w + 1, r.y + 2, Palette.text)
+            }
+        }
+        g.flush()
     }
 
     private fun borders(ui: Ui, map: ChunkMap, dim: String, xs: IntRange, zs: IntRange) {

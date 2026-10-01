@@ -57,7 +57,7 @@ class ResearchDetail(private val page: ClaimsPage) {
         val index = tree?.nodes?.indexOf(node)
         return NodeFacts(
             node, trees,
-            node.summary().resolve().takeIf { it.isNotEmpty() && !it.startsWith("kami_") },
+            node.summary().resolve().ifEmpty { null },
             tree?.let { t -> node.requires.map { t.nodes[it] } },
             node.conditionTexts().withIndex().filter { it.value.key != NODE_CONDITION }.map { it.index to it.value.resolve() },
             tree?.nodes?.filter { index in it.requires }.orEmpty(),
@@ -76,9 +76,9 @@ class ResearchDetail(private val page: ClaimsPage) {
     private fun completed(ui: Ui, r: Rect) {
         Draw.box(ui.g, r, Severity.SUCCESS.tint, Severity.SUCCESS.edge)
         val label = tr("kami_claims.research.detail.completed")
-        val x = r.centerX - (Draw.width(label) + Draw.ICON_SLOT) / 2
+        val x = r.centerX - (Draw.width(label) + Draw.ICON) / 2
         Draw.leadIcon(ui.g, Icons.CHECK, x, r.centerY, Palette.success)
-        Draw.text(ui.g, label, x + Draw.ICON_SLOT, r.y + (r.h - 8) / 2, Palette.success)
+        Draw.text(ui.g, label, x + Draw.ICON, r.y + (r.h - 8) / 2, Palette.success)
     }
 
     private fun content(ui: Ui, area: Rect, node: NodeView, status: NodeStatus, queue: QueueView?, closable: Boolean, select: (String) -> Unit): Int {
@@ -104,11 +104,18 @@ class ResearchDetail(private val page: ClaimsPage) {
     }
 
     private fun properties(ui: Ui, stack: Stack, node: NodeView) {
+        val row = stack.take(INFO_H)
         val locked = node.level > ClientResearch.state.level
-        ui.property(stack, tr("kami_claims.research.detail.level"), node.level.toString(), if (locked) Palette.warning else Palette.text)
-        ui.property(stack, tr("kami_claims.research.detail.cost"), Format.money(node.cost), Palette.money)
-        ui.property(stack, tr("kami_claims.research.detail.time"), Format.duration(node.timeMs))
-        if (node.xp >= 0) ui.property(stack, tr("kami_claims.research.detail.xp"), Format.number(node.xp))
+        val level = tr("kami_libs.common.level") + " " + node.level
+        var x = row.x
+        Draw.text(ui.g, level, x, row.y + 2, if (locked) Palette.warning else Palette.textSecondary)
+        x += Draw.width(level) + 10
+        val cost = Format.money(node.cost)
+        Draw.text(ui.g, cost, x, row.y + 2, Palette.money)
+        x += Draw.width(cost) + 10
+        val time = Format.duration(node.timeMs)
+        Draw.text(ui.g, time, x, row.y + 2, Palette.textSecondary)
+        if (node.xp >= 0) Draw.textRight(ui.g, Format.number(node.xp) + " " + tr("kami_claims.research.detail.xp"), row.right, row.y + 2, Palette.textMuted)
     }
 
     private fun requirements(ui: Ui, stack: Stack, node: NodeView, status: NodeStatus, facts: NodeFacts, select: (String) -> Unit) {
@@ -135,7 +142,7 @@ class ResearchDetail(private val page: ClaimsPage) {
             icons.forEachIndexed { k, item -> ui.itemIcon(slot.x + k * TASK_ICON_STEP, slot.y + (slot.h - ITEM_ICON) / 2, item, "task-icon:${node.key}:$i:$k") }
             val row = slot.dropLeft(icons.size * TASK_ICON_STEP)
             val progress = if (status == NodeStatus.DONE) task.target else (queue?.tasks?.getOrNull(i) ?: 0L).coerceAtMost(task.target)
-            Draw.text(ui.g, Draw.fit(texts[i], row.w), row.x, row.y, Palette.textSecondary)
+            Draw.text(ui.g, Draw.fit(texts[i], row.w), row.x, row.y - 1, Palette.textSecondary)
             val line = Rect(row.x, row.bottom - SMALL_H, row.w, SMALL_H)
             val showDeposit = task.kind == "deposit" && status != NodeStatus.DONE
             val label = tr("kami_claims.research.action.deposit")
@@ -193,7 +200,8 @@ private class NodeFacts(
 private const val NODE_CONDITION = "kami_claims.research.cond.node"
 private const val HEADER_H = 26
 private const val CHIP_GAP = 3
-private const val TASK_H = 28
+private const val INFO_H = 12
+private const val TASK_H = 24
 private const val TASK_ICON_STEP = ITEM_ICON + 3
 private const val EMPTY_H = 90
 private const val CLOSE_SIZE = 16

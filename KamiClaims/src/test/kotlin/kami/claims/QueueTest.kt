@@ -225,7 +225,7 @@ class QueueTest {
         val c = country("alpha")
         Realm.join(c, "second", Rank.CITIZEN)
         Queue.grant(c, "t:a")
-        Realm.leave(c, "second")
+        Realm.leave(c, "second", Leave.LEAVE)
         assertTrue("t:a" in c.research.done)
     }
 
