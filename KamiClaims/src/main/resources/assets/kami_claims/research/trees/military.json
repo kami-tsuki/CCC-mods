@@ -76,6 +76,14 @@
         {
           "type": "output",
           "id": "moredelight:stone_knife"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:wooden_sword"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:stone_sword"
         }
       ]
     },
@@ -221,6 +229,10 @@
         {
           "type": "node",
           "id": "iron_melee"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:bronze"
         }
       ],
       "tasks": [
@@ -307,13 +319,15 @@
       "id": "aluminum_sword",
       "category": "melee",
       "icon": "tfmg:aluminum_sword",
-      "level": 28,
-      "cost": 7055,
-      "time": "4h25m",
+      "level": 40,
       "requires": [
         {
           "type": "node",
           "id": "diamond_melee"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:aluminum"
         }
       ],
       "tasks": [
@@ -328,7 +342,9 @@
           "type": "output",
           "id": "tfmg:aluminum_sword"
         }
-      ]
+      ],
+      "cost": 14400,
+      "time": "5h30m"
     },
     {
       "id": "steel_melee",
@@ -340,7 +356,11 @@
       "requires": [
         {
           "type": "node",
-          "id": "aluminum_sword"
+          "id": "diamond_melee"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:steel"
         }
       ],
       "tasks": [
@@ -354,6 +374,14 @@
         {
           "type": "output",
           "id": "create_ironworks:steel_sword"
+        },
+        {
+          "type": "output",
+          "id": "tfmg:steel_sword"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:mace"
         }
       ]
     },
@@ -372,6 +400,10 @@
         {
           "type": "node",
           "id": "metallurgy:netherite"
+        },
+        {
+          "type": "node",
+          "id": "aluminum_sword"
         }
       ],
       "tasks": [
@@ -396,9 +428,7 @@
       "id": "adv_iron_sword",
       "category": "melee",
       "icon": "advancednetherite:netherite_iron_sword",
-      "level": 50,
-      "cost": 22500,
-      "time": "6h",
+      "level": 105,
       "requires": [
         {
           "type": "node",
@@ -406,7 +436,7 @@
         },
         {
           "type": "node",
-          "id": "tools_armor:advanced_netherite_iron"
+          "id": "metallurgy:netherite_iron"
         }
       ],
       "tasks": [
@@ -421,15 +451,15 @@
           "type": "output",
           "id": "advancednetherite:netherite_iron_sword"
         }
-      ]
+      ],
+      "cost": 39000,
+      "time": "11h"
     },
     {
       "id": "adv_gold_sword",
       "category": "melee",
       "icon": "advancednetherite:netherite_gold_sword",
-      "level": 60,
-      "cost": 25500,
-      "time": "6h30m",
+      "level": 205,
       "requires": [
         {
           "type": "node",
@@ -437,7 +467,7 @@
         },
         {
           "type": "node",
-          "id": "tools_armor:advanced_netherite_gold"
+          "id": "metallurgy:netherite_gold"
         }
       ],
       "tasks": [
@@ -452,15 +482,15 @@
           "type": "output",
           "id": "advancednetherite:netherite_gold_sword"
         }
-      ]
+      ],
+      "cost": 69275,
+      "time": "12h"
     },
     {
       "id": "adv_emerald_sword",
       "category": "melee",
       "icon": "advancednetherite:netherite_emerald_sword",
-      "level": 70,
-      "cost": 28500,
-      "time": "7h",
+      "level": 305,
       "requires": [
         {
           "type": "node",
@@ -468,7 +498,7 @@
         },
         {
           "type": "node",
-          "id": "tools_armor:advanced_netherite_emerald"
+          "id": "metallurgy:netherite_emerald"
         }
       ],
       "tasks": [
@@ -483,15 +513,15 @@
           "type": "output",
           "id": "advancednetherite:netherite_emerald_sword"
         }
-      ]
+      ],
+      "cost": 99775,
+      "time": "12h"
     },
     {
       "id": "adv_diamond_sword",
       "category": "melee",
       "icon": "advancednetherite:netherite_diamond_sword",
-      "level": 80,
-      "cost": 31500,
-      "time": "7h30m",
+      "level": 405,
       "requires": [
         {
           "type": "node",
@@ -499,7 +529,7 @@
         },
         {
           "type": "node",
-          "id": "tools_armor:advanced_netherite_diamond"
+          "id": "metallurgy:netherite_diamond"
         }
       ],
       "tasks": [
@@ -514,7 +544,9 @@
           "type": "output",
           "id": "advancednetherite:netherite_diamond_sword"
         }
-      ]
+      ],
+      "cost": 130275,
+      "time": "12h"
     },
     {
       "id": "bow_arrows",
@@ -562,6 +594,11 @@
         {
           "type": "node",
           "id": "metallurgy:iron_smelting"
+        },
+        {
+          "type": "node",
+          "id": "technology:vt_signals",
+          "hidden": true
         }
       ],
       "tasks": [
@@ -776,24 +813,36 @@
       "id": "tnt",
       "category": "explosives",
       "icon": "minecraft:tnt",
-      "level": 45,
-      "cost": 18225,
-      "time": "5h45m",
+      "level": 20,
       "requires": [
+        {
+          "type": "node",
+          "id": "technology:mixer"
+        },
+        {
+          "type": "node",
+          "id": "technology:mechanical_press"
+        },
         {
           "type": "node",
           "id": "fire_charge"
         },
         {
           "type": "node",
-          "id": "ammo_basics"
+          "id": "technology:vt_rails",
+          "hidden": true
         }
       ],
       "tasks": [
         {
           "type": "deposit",
-          "item": "tacz_c:gunpowder_cylinder",
-          "count": 8
+          "item": "minecraft:gunpowder",
+          "count": 24
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:charcoal",
+          "count": 16
         }
       ],
       "unlocks": [
@@ -802,10 +851,28 @@
           "id": "tacz_c:tnt_recipe"
         },
         {
+          "type": "recipe",
+          "id": "tacz_c:gunpowder_cake_mix"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:gunpowder_cake_drying"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:gunpowder_cylinder_compact"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:red_paper_mix"
+        },
+        {
           "type": "output",
           "id": "minecraft:tnt_minecart"
         }
-      ]
+      ],
+      "cost": 3600,
+      "time": "2h"
     },
     {
       "id": "explosives_chem",
@@ -818,6 +885,21 @@
         {
           "type": "node",
           "id": "tnt"
+        },
+        {
+          "type": "node",
+          "id": "technology:sr_combustion_belt",
+          "hidden": true
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:aluminum",
+          "hidden": true
+        },
+        {
+          "type": "node",
+          "id": "technology:sr_infernal",
+          "hidden": true
         }
       ],
       "tasks": [
@@ -831,6 +913,22 @@
         {
           "type": "recipe",
           "id": "kami_js:explosives/*"
+        },
+        {
+          "type": "recipe",
+          "id": "sulfuricresonance:minecraft/pyroclast_bomb"
+        },
+        {
+          "type": "recipe",
+          "id": "sulfuricresonance:mixing/pyroclast_bomb_mixing"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:sulfuric/thermite_charge"
+        },
+        {
+          "type": "recipe",
+          "id": "sulfuricresonance:mixing/thermite_charge"
         }
       ]
     },
@@ -845,6 +943,31 @@
         {
           "type": "node",
           "id": "explosives_chem"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:copper_smelting",
+          "hidden": true
+        },
+        {
+          "type": "node",
+          "id": "technology:plastics",
+          "hidden": true
+        },
+        {
+          "type": "node",
+          "id": "technology:steel_fluids",
+          "hidden": true
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:aluminum",
+          "hidden": true
+        },
+        {
+          "type": "node",
+          "id": "technology:aluminum_kinetics",
+          "hidden": true
         }
       ],
       "tasks": [
@@ -866,6 +989,38 @@
         {
           "type": "recipe",
           "id": "tacz_tactical_breaching:dropped_magazine"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/pipe_bomb"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/copper_grenade"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/zinc_grenade"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/thermite_grenade"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/napalm_bomb"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/fire_extinguisher"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:filling/napalm_potato"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:filling/filled_fire_extinguisher"
         }
       ]
     },
@@ -880,6 +1035,11 @@
         {
           "type": "node",
           "id": "grenades"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:iron_deco",
+          "hidden": true
         }
       ],
       "tasks": [
@@ -916,6 +1076,20 @@
         {
           "type": "node",
           "id": "grenades"
+        },
+        {
+          "type": "node",
+          "id": "tools_armor:backpack"
+        },
+        {
+          "type": "node",
+          "id": "technology:chlor_alkali",
+          "hidden": true
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:lead_pressing",
+          "hidden": true
         }
       ],
       "tasks": [
@@ -968,6 +1142,40 @@
         {
           "type": "node",
           "id": "metallurgy:ingot_mold"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:steel"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:bronze"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:electrum"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:lead_pressing"
+        },
+        {
+          "type": "node",
+          "id": "technology:sr_thermo_kinetics"
+        },
+        {
+          "type": "node",
+          "id": "technology:gn_industrial_gears"
+        },
+        {
+          "type": "node",
+          "id": "technology:vt_redstone",
+          "hidden": true
+        },
+        {
+          "type": "node",
+          "id": "technology:vt_rails",
+          "hidden": true
         }
       ],
       "tasks": [
@@ -1040,6 +1248,10 @@
         {
           "type": "node",
           "id": "gunsmithing"
+        },
+        {
+          "type": "node",
+          "id": "tnt"
         }
       ],
       "tasks": [
@@ -1081,14 +1293,6 @@
         },
         {
           "type": "recipe",
-          "id": "tacz_c:red_paper_mix"
-        },
-        {
-          "type": "recipe",
-          "id": "tacz_c:gunpowder_*"
-        },
-        {
-          "type": "recipe",
           "id": "tacz_c:bullet_core_cutting"
         },
         {
@@ -1118,6 +1322,46 @@
         {
           "type": "recipe",
           "id": "createimmersivetacz:nitropowder*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:gunpowder_grains_recipe"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:gunpowder_pellets_recipe*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:gunpowder_charge_recipe"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:gunpowder_pellet_press"
+        },
+        {
+          "type": "recipe",
+          "id": "createimmersivetacz:ammo/pneumatic_pistol_casing"
+        },
+        {
+          "type": "recipe",
+          "id": "createimmersivetacz:ammo/pneumatic_pistol_casing_fill"
+        },
+        {
+          "type": "recipe",
+          "id": "createimmersivetacz:ammo/rimmed_blunt_ap_casing"
+        },
+        {
+          "type": "recipe",
+          "id": "createimmersivetacz:ammo/rimmed_blunt_ap_casing_fill"
+        },
+        {
+          "type": "recipe",
+          "id": "createimmersivetacz:ammo/slap_casing"
+        },
+        {
+          "type": "recipe",
+          "id": "createimmersivetacz:ammo/slap_casing_fill"
         }
       ]
     },
@@ -1223,7 +1467,7 @@
       "requires": [
         {
           "type": "node",
-          "id": "ammo_22wmr"
+          "id": "ammo_9mm"
         }
       ],
       "tasks": [
@@ -1262,6 +1506,14 @@
         {
           "type": "recipe",
           "id": "tacz_c:pellets_recipe_mechanical"
+        },
+        {
+          "type": "recipe",
+          "id": "createimmersivetacz:ammo/twelve_gauge_shell"
+        },
+        {
+          "type": "recipe",
+          "id": "createimmersivetacz:ammo/twelve_gauge_shell_fill"
         }
       ]
     },
@@ -1791,7 +2043,7 @@
       "requires": [
         {
           "type": "node",
-          "id": "ammo_6851fury"
+          "id": "ammo_308"
         }
       ],
       "tasks": [
@@ -1862,6 +2114,22 @@
         {
           "type": "recipe",
           "id": "kami_js:tacz_c/fluid_grenade_booster_charge_40mm"
+        },
+        {
+          "type": "recipe",
+          "id": "createimmersivetacz:ammo/40mmhe_casing"
+        },
+        {
+          "type": "recipe",
+          "id": "createimmersivetacz:ammo/40mmhe_casing_fill"
+        },
+        {
+          "type": "recipe",
+          "id": "createimmersivetacz:ammo/grenade_casing"
+        },
+        {
+          "type": "recipe",
+          "id": "createimmersivetacz:ammo/grenade_casing_fill"
         }
       ]
     },
@@ -2852,6 +3120,10 @@
         {
           "type": "node",
           "id": "ammo_556x45"
+        },
+        {
+          "type": "node",
+          "id": "technology:vibration_mechanism"
         }
       ],
       "tasks": [
@@ -3588,6 +3860,10 @@
         {
           "type": "node",
           "id": "ammo_308"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:nethersteel"
         }
       ],
       "tasks": [
@@ -3620,6 +3896,10 @@
         {
           "type": "node",
           "id": "ammo_50bmg"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:nethersteel"
         }
       ],
       "tasks": [
@@ -3652,6 +3932,10 @@
         {
           "type": "node",
           "id": "ammo_50bmg"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:nethersteel"
         }
       ],
       "tasks": [
@@ -3762,13 +4046,15 @@
       "id": "sights_pistol",
       "category": "attachments",
       "icon": "tacz:attachment",
-      "level": 45,
-      "cost": 18225,
-      "time": "5h45m",
+      "level": 60,
       "requires": [
         {
           "type": "node",
           "id": "gunsmithing"
+        },
+        {
+          "type": "node",
+          "id": "technology:tfmg_circuits"
         }
       ],
       "tasks": [
@@ -3812,19 +4098,23 @@
           "type": "recipe",
           "id": "tacz:attachments/sight_t1"
         }
-      ]
+      ],
+      "cost": 25500,
+      "time": "9h30m"
     },
     {
       "id": "sights_rifle",
       "category": "attachments",
       "icon": "tacz:attachment",
-      "level": 55,
-      "cost": 24000,
-      "time": "6h15m",
+      "level": 65,
       "requires": [
         {
           "type": "node",
           "id": "sights_pistol"
+        },
+        {
+          "type": "node",
+          "id": "technology:tfmg_circuits"
         }
       ],
       "tasks": [
@@ -3876,7 +4166,9 @@
           "type": "recipe",
           "id": "tacz:attachments/sight_uh1"
         }
-      ]
+      ],
+      "cost": 27000,
+      "time": "9h40m"
     },
     {
       "id": "bayonets",
@@ -3925,6 +4217,10 @@
         {
           "type": "node",
           "id": "gunsmithing"
+        },
+        {
+          "type": "node",
+          "id": "tools_armor:backpack"
         }
       ],
       "tasks": [
@@ -3985,6 +4281,10 @@
         {
           "type": "node",
           "id": "gunsmithing"
+        },
+        {
+          "type": "node",
+          "id": "tools_armor:backpack"
         }
       ],
       "tasks": [
@@ -4085,6 +4385,14 @@
         {
           "type": "node",
           "id": "gunsmithing"
+        },
+        {
+          "type": "node",
+          "id": "technology:tfmg_circuits"
+        },
+        {
+          "type": "node",
+          "id": "technology:vibration_mechanism"
         }
       ],
       "tasks": [
@@ -4125,6 +4433,10 @@
         {
           "type": "node",
           "id": "gunsmithing"
+        },
+        {
+          "type": "node",
+          "id": "technology:tfmg_circuits"
         }
       ],
       "tasks": [
@@ -4173,6 +4485,10 @@
         {
           "type": "node",
           "id": "scopes_low"
+        },
+        {
+          "type": "node",
+          "id": "technology:tfmg_electricity"
         }
       ],
       "tasks": [
@@ -4265,6 +4581,10 @@
         {
           "type": "node",
           "id": "technology:vintage_laser"
+        },
+        {
+          "type": "node",
+          "id": "technology:tfmg_circuits"
         }
       ],
       "tasks": [
@@ -4309,6 +4629,18 @@
         {
           "type": "node",
           "id": "gunsmithing"
+        },
+        {
+          "type": "node",
+          "id": "technology:tfmg_circuits"
+        },
+        {
+          "type": "node",
+          "id": "tools_armor:backpack"
+        },
+        {
+          "type": "node",
+          "id": "technology:smog_control"
         }
       ],
       "tasks": [
@@ -4581,6 +4913,18 @@
         {
           "type": "node",
           "id": "gunsmithing"
+        },
+        {
+          "type": "node",
+          "id": "technology:tfmg_circuits"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:aluminum"
+        },
+        {
+          "type": "node",
+          "id": "technology:tfmg_electronics"
         }
       ],
       "tasks": [
@@ -4704,7 +5048,19 @@
         },
         {
           "type": "node",
-          "id": "fire_charge"
+          "id": "metallurgy:lithium"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:aluminum"
+        },
+        {
+          "type": "node",
+          "id": "technology:plastics"
+        },
+        {
+          "type": "node",
+          "id": "technology:distillery"
         }
       ],
       "tasks": [
@@ -4816,6 +5172,10 @@
         {
           "type": "node",
           "id": "metallurgy:iron_deco"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:molten_cast_iron"
         }
       ],
       "tasks": [
@@ -4938,6 +5298,42 @@
         {
           "type": "recipe",
           "id": "createbigcannons:cutting/sliding_breech_cast_mould"
+        },
+        {
+          "type": "output",
+          "id": "createbigcannons:cannon_welder"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:wrought_iron_cannon_*"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:log_cannon_*"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:cast_iron_cannon_*"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:unbored_cast_iron_cannon_*"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:*cast_iron_sliding_breech"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:cast_iron_quickfiring_breech"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:cannon_cast"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:finished_cannon_cast"
         }
       ]
     },
@@ -5042,6 +5438,22 @@
         {
           "type": "recipe",
           "id": "createbigcannons:wrought_iron_drop_mortar_end"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:mixing/guncotton"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:compacting/packed_guncotton"
+        },
+        {
+          "type": "output",
+          "id": "createbigcannons:wrought_iron_drop_mortar_end"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:wrought_iron_drop_mortar_end"
         }
       ]
     },
@@ -5056,6 +5468,10 @@
         {
           "type": "node",
           "id": "drop_mortar"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:bronze"
         }
       ],
       "tasks": [
@@ -5069,6 +5485,22 @@
         {
           "type": "recipe",
           "id": "createbigcannons:bronze_sliding_breechblock"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:bronze_cannon_*"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:unbored_bronze_cannon_*"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:*bronze_sliding_breech"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:bronze_quickfiring_breech"
         }
       ]
     },
@@ -5083,6 +5515,16 @@
         {
           "type": "node",
           "id": "bronze_cannon"
+        },
+        {
+          "type": "node",
+          "id": "drop_mortar",
+          "hidden": true
+        },
+        {
+          "type": "node",
+          "id": "technology:vt_compass",
+          "hidden": true
         }
       ],
       "tasks": [
@@ -5151,6 +5593,16 @@
         {
           "type": "node",
           "id": "bronze_cannon"
+        },
+        {
+          "type": "node",
+          "id": "technology:precision_mechanism",
+          "hidden": true
+        },
+        {
+          "type": "node",
+          "id": "cannon_basics",
+          "hidden": true
         }
       ],
       "tasks": [
@@ -5205,6 +5657,14 @@
         {
           "type": "recipe",
           "id": "createbigcannons:flak_autocannon_round"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:block_armor_inspection_tool"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:*cast_iron_autocannon_*"
         }
       ]
     },
@@ -5268,6 +5728,10 @@
         {
           "type": "recipe",
           "id": "createbigcannons:sequenced_assembly/bronze_autocannon_breech_extractor"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:*bronze_autocannon_*"
         }
       ]
     },
@@ -5282,6 +5746,15 @@
         {
           "type": "node",
           "id": "bronze_autocannon"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:steel"
+        },
+        {
+          "type": "node",
+          "id": "technology:vt_redstone",
+          "hidden": true
         }
       ],
       "tasks": [
@@ -5307,6 +5780,46 @@
         {
           "type": "recipe",
           "id": "createbigcannons:sequenced_assembly/steel_autocannon_breech_extractor"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:steel_cannon_*"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:built_up_steel_cannon_*"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:thick_steel_cannon_*"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:built_up_cannon"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:*_steel_cannon_layer"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:*steel_sliding_breech"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:steel_quickfiring_breech"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:steel_autocannon_*"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:unbored_steel_autocannon_*"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:incomplete_steel_autocannon_*"
         }
       ]
     },
@@ -5375,6 +5888,10 @@
         {
           "type": "recipe",
           "id": "createbigcannons:ap_autocannon_round"
+        },
+        {
+          "type": "output",
+          "id": "createbigcannons:big_cartridge_sheet"
         }
       ]
     },
@@ -5466,6 +5983,166 @@
         {
           "type": "recipe",
           "id": "cbc_at:cutting/fume_extractor_cast_mould"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:cast_iron_muzzle_brake"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:cast_iron_fume_extractor"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:cast_iron_silencer"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:cast_iron_rifled_barrel"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:cast_iron_autocannon_muzzle_brake"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:cast_iron_autocannon_silencer"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:bronze_muzzle_brake"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:bronze_fume_extractor"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:bronze_silencer"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:bronze_rifled_barrel"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:bronze_autocannon_muzzle_brake"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:bronze_autocannon_silencer"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:steel_muzzle_brake"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:steel_fume_extractor"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:steel_silencer"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:steel_rifled_barrel"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:steel_autocannon_muzzle_brake"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:steel_autocannon_silencer"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:built_up_steel_silencer"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:built_up_steel_rifled_barrel"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:unbored_cast_iron_muzzle_brake"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:unbored_cast_iron_fume_extractor"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:unbored_cast_iron_silencer"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:unbored_cast_iron_rifled_barrel"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:unbored_cast_iron_autocannon_muzzle_brake"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:unbored_cast_iron_autocannon_silencer"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:unbored_bronze_muzzle_brake"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:unbored_bronze_fume_extractor"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:unbored_bronze_silencer"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:unbored_bronze_rifled_barrel"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:unbored_bronze_autocannon_muzzle_brake"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:unbored_bronze_autocannon_silencer"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:unbored_steel_muzzle_brake"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:unbored_steel_fume_extractor"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:unbored_steel_silencer"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:unbored_steel_rifled_barrel"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:unbored_steel_autocannon_muzzle_brake"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:unbored_steel_autocannon_silencer"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:unbored_built_up_steel_silencer"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:unbored_built_up_steel_rifled_barrel"
         }
       ]
     },
@@ -5557,10 +6234,6 @@
         },
         {
           "type": "recipe",
-          "id": "cbc_at:cutting/*autocannon*"
-        },
-        {
-          "type": "recipe",
           "id": "cbc_at:munition/heavy_autocannon_munition/heavy_autocannon_*"
         },
         {
@@ -5602,6 +6275,18 @@
         {
           "type": "recipe",
           "id": "cbc_at:munition/heavy_autocannon_munition/ha_heat_item"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:cutting/autocannon_*"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:cutting/heavy_autocannon_*"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:*heavy_autocannon_*"
         }
       ]
     },
@@ -5654,6 +6339,14 @@
         {
           "type": "recipe",
           "id": "cbc_at:munition/grapeshot_*"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:*rocket_pod_*"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:*rocket_rail*"
         }
       ]
     },
@@ -5671,7 +6364,7 @@
         },
         {
           "type": "node",
-          "id": "metallurgy:netherite"
+          "id": "metallurgy:nethersteel"
         }
       ],
       "tasks": [
@@ -5693,6 +6386,275 @@
         {
           "type": "recipe",
           "id": "createbigcannons:cutting/screw_breech_cast_mould"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:*nethersteel*"
+        },
+        {
+          "type": "block",
+          "id": "createbigcannons:*steel_screw_breech"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:*nethersteel_*"
+        }
+      ]
+    },
+    {
+      "id": "ammo_box_4",
+      "category": "firearms",
+      "icon": "tacz:ammo_box",
+      "level": 200,
+      "cost": 67750,
+      "time": "12h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "ammo_box_diamond"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:nethersteel"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "createbigcannons:nethersteel_ingot",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "tacz:ammo_box",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "kami_js:tacz/netherite_ammo_box"
+        }
+      ]
+    },
+    {
+      "id": "martian_sword",
+      "category": "melee",
+      "icon": "northstar:martian_sword",
+      "level": 195,
+      "cost": 66225,
+      "time": "12h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "netherite_melee"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:martian_steel"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "visit",
+          "dimension": "northstar:mars"
+        },
+        {
+          "type": "deposit",
+          "item": "northstar:martian_steel_ingot",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "northstar:martian_sword"
+        }
+      ]
+    },
+    {
+      "id": "quad_potato_cannon",
+      "category": "firearms",
+      "icon": "tfmg:quad_potato_cannon",
+      "level": 35,
+      "cost": 11025,
+      "time": "5h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "technology:potato_cannon"
+        },
+        {
+          "type": "node",
+          "id": "technology:steel_mechanism"
+        },
+        {
+          "type": "node",
+          "id": "technology:steel_fluids"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:steel_pipe",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:cast_iron_ingot",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tfmg:mechanical_crafting/quad_potato_cannon"
+        }
+      ]
+    },
+    {
+      "id": "advanced_potato_cannon",
+      "category": "firearms",
+      "icon": "tfmg:advanced_potato_cannon",
+      "level": 60,
+      "cost": 25500,
+      "time": "9h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "quad_potato_cannon"
+        },
+        {
+          "type": "node",
+          "id": "technology:tfmg_circuits"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:circuit_board",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:rebar",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tfmg:mechanical_crafting/advanced_potato_cannon"
+        }
+      ]
+    },
+    {
+      "id": "electro_weapons",
+      "category": "melee",
+      "icon": "powergrid:electrobaton",
+      "level": 50,
+      "cost": 22500,
+      "time": "6h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "technology:pg_storage"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "powergrid:battery",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "powergrid:electrobaton"
+        },
+        {
+          "type": "output",
+          "id": "powergrid:electrozapper"
+        }
+      ]
+    },
+    {
+      "id": "twin_autocannon",
+      "category": "artillery",
+      "icon": "cbc_at:steel_twin_autocannon_barrel",
+      "level": 120,
+      "cost": 43500,
+      "time": "11h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "steel_cannon"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/steel",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "cbc_at:cutting/twin_autocannon_*"
+        },
+        {
+          "type": "recipe",
+          "id": "cbc_at:cutting/vert_twin_autocannon_*"
+        },
+        {
+          "type": "block",
+          "id": "cbc_at:*twin_autocannon_*"
+        }
+      ]
+    },
+    {
+      "id": "flamethrower",
+      "category": "firearms",
+      "icon": "tfmg:flamethrower",
+      "level": 60,
+      "cost": 25500,
+      "time": "6h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "technology:tfmg_circuits"
+        },
+        {
+          "type": "node",
+          "id": "technology:regular_engine"
+        },
+        {
+          "type": "node",
+          "id": "explosives_chem"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:circuit_board",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:spark_plug",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "tfmg:mechanical_crafting/flamethrower"
+        },
+        {
+          "type": "output",
+          "id": "tfmg:flamethrower"
         }
       ]
     }

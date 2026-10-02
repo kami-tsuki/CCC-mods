@@ -2,10 +2,8 @@ package kami.claims.research
 
 import kami.claims.Realm
 import kami.libs.progress.ProgressEvent
-import kami.libs.util.RecentSet
-import net.minecraft.core.BlockPos
+import kami.claims.world.Placed
 import net.minecraft.core.registries.BuiltInRegistries
-import net.minecraft.resources.ResourceKey
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.Level
@@ -21,9 +19,6 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent
 import thedarkcolour.kotlinforforge.neoforge.forge.FORGE_BUS
 
 object Listeners {
-    private const val REMEMBERED_PLACEMENTS = 4096
-    private val placed = RecentSet<Pair<ResourceKey<Level>, BlockPos>>(REMEMBERED_PLACEMENTS)
-
     private fun report(entity: Any?, kind: String, subject: String, amount: Long = 1) {
         val player = entity as? ServerPlayer ?: return
         if (player is FakePlayer) return
@@ -46,12 +41,13 @@ object Listeners {
         FORGE_BUS.addListener<ServerTickEvent.Post> { Buffs.tick(it.server) }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { Buffs.forget(it.entity.uuid) }
         FORGE_BUS.addListener<BlockEvent.BreakEvent>(EventPriority.LOWEST) {
-            if (countable(it.player) && !placed.remove(it.player.level().dimension() to it.pos)) report(it.player, Kinds.MINE, BuiltInRegistries.BLOCK.getKey(it.state.block).toString())
+            val wasPlaced = Placed.remove(it.player.level().dimension().location().toString(), it.pos)
+            if (countable(it.player) && !wasPlaced) report(it.player, Kinds.MINE, BuiltInRegistries.BLOCK.getKey(it.state.block).toString())
         }
         FORGE_BUS.addListener<BlockEvent.EntityPlaceEvent>(EventPriority.LOWEST) {
             val player = it.entity as? ServerPlayer ?: return@addListener
             if (!countable(player)) return@addListener
-            placed.add(player.level().dimension() to it.pos.immutable())
+            Placed.mark(player.level().dimension().location().toString(), it.pos)
             report(player, Kinds.PLACE, BuiltInRegistries.BLOCK.getKey(it.placedBlock.block).toString())
         }
         FORGE_BUS.addListener<LivingDeathEvent>(EventPriority.LOWEST) {

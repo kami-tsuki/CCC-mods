@@ -110,8 +110,16 @@ class Ui {
 
     fun <T> filtered(key: Any, inputs: Any, compute: () -> List<T>): List<T> {
         val cache = remember(key) { FilterCache<T>() }
-        if (cache.inputs != inputs) { cache.inputs = inputs; cache.result = compute() }
+        if (!sameInputs(cache.inputs, inputs)) { cache.inputs = inputs; cache.result = compute() }
         return cache.result
+    }
+
+    private fun sameInputs(a: Any?, b: Any?): Boolean = when {
+        a === b -> true
+        a is List<*> && b is List<*> -> a.size == b.size && a.indices.all { sameInputs(a[it], b[it]) }
+        a is Set<*> && b is Set<*> || a is Map<*, *> && b is Map<*, *> -> a == b
+        a is Collection<*> || b is Collection<*> || a is Map<*, *> || b is Map<*, *> -> false
+        else -> a == b
     }
 
     fun forget(prefix: String) {
@@ -161,7 +169,7 @@ class Ui {
     private fun runOverlays() {
         while (overlays.isNotEmpty()) {
             val level = overlays.firstKey()
-            val batch = overlays.remove(level)!!
+            val batch = overlays.remove(level) ?: break
             layer = level
             g.pose().pushPose()
             g.pose().translate(0f, 0f, 100f * level)

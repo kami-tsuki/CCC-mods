@@ -102,7 +102,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 4
+          "count": 1
         }
       ],
       "unlocks": [
@@ -129,7 +129,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 8
+          "count": 1
         }
       ],
       "unlocks": [
@@ -156,7 +156,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 16
+          "count": 2
         }
       ],
       "unlocks": [
@@ -183,7 +183,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 24
+          "count": 2
         }
       ],
       "unlocks": [
@@ -240,7 +240,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 5
+          "count": 1
         }
       ],
       "unlocks": [
@@ -270,7 +270,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 16
+          "count": 8
         }
       ],
       "unlocks": [
@@ -300,7 +300,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 2
+          "count": 1
         }
       ],
       "unlocks": [
@@ -333,7 +333,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 10
+          "count": 1
         }
       ],
       "unlocks": [
@@ -362,7 +362,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 20
+          "count": 4
         }
       ],
       "unlocks": [
@@ -420,7 +420,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 6
+          "count": 2
         }
       ],
       "unlocks": [
@@ -449,7 +449,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 16
+          "count": 2
         }
       ],
       "unlocks": [
@@ -507,7 +507,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 7
+          "count": 1
         }
       ],
       "unlocks": [
@@ -536,7 +536,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 18
+          "count": 2
         }
       ],
       "unlocks": [
@@ -565,7 +565,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 2
+          "count": 1
         }
       ],
       "unlocks": [
@@ -594,7 +594,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 8
+          "count": 1
         }
       ],
       "unlocks": [
@@ -623,7 +623,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 24
+          "count": 4
         }
       ],
       "unlocks": [
@@ -652,7 +652,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 2
+          "count": 1
         }
       ],
       "unlocks": [
@@ -681,7 +681,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 8
+          "count": 2
         }
       ],
       "unlocks": [
@@ -710,7 +710,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 20
+          "count": 4
         }
       ],
       "unlocks": [
@@ -739,7 +739,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 3
+          "count": 1
         }
       ],
       "unlocks": [
@@ -768,7 +768,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 9
+          "count": 2
         }
       ],
       "unlocks": [
@@ -797,7 +797,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 28
+          "count": 4
         }
       ],
       "unlocks": [
@@ -826,7 +826,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 3
+          "count": 1
         }
       ],
       "unlocks": [
@@ -855,7 +855,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 10
+          "count": 2
         }
       ],
       "unlocks": [
@@ -884,7 +884,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 26
+          "count": 4
         }
       ],
       "unlocks": [
@@ -917,7 +917,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 3
+          "count": 2
         }
       ],
       "unlocks": [
@@ -946,7 +946,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 10
+          "count": 2
         }
       ],
       "unlocks": [
@@ -975,7 +975,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 32
+          "count": 8
         }
       ],
       "unlocks": [
@@ -1004,7 +1004,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 3
+          "count": 2
         }
       ],
       "unlocks": [
@@ -1033,7 +1033,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 8
+          "count": 2
         }
       ],
       "unlocks": [
@@ -1062,7 +1062,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 16
+          "count": 2
         }
       ],
       "unlocks": [
@@ -1120,7 +1120,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 2
+          "count": 1
         }
       ],
       "unlocks": [
@@ -1149,7 +1149,7 @@
         {
           "type": "deposit",
           "item": "minecraft:nether_star",
-          "count": 3
+          "count": 2
         }
       ],
       "unlocks": [
@@ -1168,7 +1168,13 @@
       "level": 10,
       "cost": 500,
       "time": "15m",
-      "requires": [],
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:gold_compacting",
+          "hidden": true
+        }
+      ],
       "tasks": [
         {
           "type": "deposit",
@@ -1345,7 +1351,13 @@
       "level": 2,
       "cost": 200,
       "time": "9m",
-      "requires": [],
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:silver_compacting",
+          "hidden": true
+        }
+      ],
       "tasks": [
         {
           "type": "deposit",
@@ -2737,10 +2749,16 @@
       "id": "land_1",
       "category": "invest_land",
       "icon": "minecraft:copper_block",
-      "level": 1,
+      "level": 2,
       "cost": 200,
       "time": "7m",
-      "requires": [],
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:copper_compacting",
+          "hidden": true
+        }
+      ],
       "tasks": [
         {
           "type": "deposit",
@@ -4135,7 +4153,13 @@
       "level": 5,
       "cost": 200,
       "time": "15m",
-      "requires": [],
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:nickel_compacting",
+          "hidden": true
+        }
+      ],
       "tasks": [
         {
           "type": "deposit",
@@ -4519,7 +4543,13 @@
       "level": 15,
       "cost": 1000,
       "time": "35m",
-      "requires": [],
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:tin_compacting",
+          "hidden": true
+        }
+      ],
       "tasks": [
         {
           "type": "deposit",

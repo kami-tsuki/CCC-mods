@@ -20,6 +20,8 @@ class ActPayload(
     }
 
     companion object {
+        const val MAX_COUNTRY = 48
+
         fun channel(net: Packets.ModPackets, path: String = "act", maxArgs: Int = 8, maxArg: Int = 4096, withCountry: Boolean = true): Channel {
             val type = CustomPacketPayload.Type<ActPayload>(net.id(path))
             val codec = net.codec<ActPayload>(
@@ -28,7 +30,7 @@ class ActPayload(
                     b.writeVarInt(v.args.size)
                     v.args.forEach { b.writeUtf(it, maxArg) }
                     if (withCountry) {
-                        b.writeUtf(v.asCountry, 24)
+                        b.writeUtf(v.asCountry, MAX_COUNTRY)
                         b.writeVarInt(v.rid)
                     }
                 },
@@ -36,7 +38,7 @@ class ActPayload(
                     val name = b.readUtf(32)
                     val count = b.readVarInt().also { require(it in 0..maxArgs) { "list too long" } }
                     val args = List(count) { b.readUtf(maxArg) }
-                    val asCountry = if (withCountry) b.readUtf(24) else ""
+                    val asCountry = if (withCountry) b.readUtf(MAX_COUNTRY) else ""
                     val rid = if (withCountry) b.readVarInt() else 0
                     ActPayload(name, args, asCountry, rid, type)
                 }

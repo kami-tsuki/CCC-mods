@@ -6,6 +6,7 @@ import kami.libs.claims.Locks
 import kami.libs.text.Phrase
 import kami.economy.Config
 import kami.economy.KamiEconomy
+import kami.economy.Market
 import kami.economy.economy.Blacklist
 import kami.economy.economy.BidResult
 import kami.economy.economy.BuyNowResult
@@ -14,6 +15,8 @@ import kami.economy.economy.Classification
 import kami.economy.economy.Gate
 import kami.economy.economy.Ledger
 import kami.economy.economy.Limits
+import kami.economy.economy.Matching
+import kami.economy.economy.Stocks
 import kami.economy.economy.SellResult
 import kami.economy.economy.BuyResult
 import kami.economy.economy.OrderResult
@@ -64,9 +67,9 @@ object Net {
     }
 
     private fun allPrices(): List<PriceEntry> {
-        val items = (kami.economy.Market.data.books.keys + kami.economy.economy.Stocks.items()).distinct()
+        val items = (Market.data.books.keys + Stocks.items()).distinct()
         return items.mapNotNull { item ->
-            val price = kami.economy.economy.Matching.effectiveSellPrice(item) ?: return@mapNotNull null
+            val price = Matching.effectiveSellPrice(item) ?: return@mapNotNull null
             PriceEntry(item, price)
         }
     }
@@ -131,6 +134,7 @@ object Net {
             else -> {
                 val tick = p.server.tickCount
                 if (!lastAct.ready(p.uuid, tick, Config.s.guiCooldown)) return
+                val revision = Market.revision
                 val (msg, ok) = try {
                     act(p, a.name, a.args)
                 } catch (e: Exception) {
@@ -138,7 +142,7 @@ object Net {
                     Phrase.of("kami_economy.action.error") to false
                 }
                 send(p, msg.json(), ok)
-                if (ok) broadcastOpen(p.server, except = p.uuid)
+                if (ok && Market.revision != revision) broadcastOpen(p.server, except = p.uuid)
             }
         }
     }
@@ -178,13 +182,9 @@ object Net {
             remaining -= take
         }
         fun restore(count: Int) {
-            val resolved = KamiEconomy.registry.findItem(item) ?: return
-            var left = count
-            while (left > 0) {
-                val n = left.coerceAtMost(resolved.defaultMaxStackSize)
-                val restore = net.minecraft.world.item.ItemStack(resolved, n)
-                if (!p.inventory.add(restore)) p.drop(restore, false)
-                left -= n
+            if (count > 0 && !KamiEconomy.give(p, item, count)) {
+                LOG.error("Could not restore {} x{} to {}, queued as delivery", item, count, p.name.string)
+                Market.queueDelivery(me, item, count, parked = true)
             }
         }
         val attempt = runCatching { if (market) Ledger.sellNow(me, item, qty) else Ledger.sell(me, item, qty, price) }
@@ -207,6 +207,7 @@ object Net {
                     else -> Phrase.of("kami_economy.action.listed_part", result.filled, item, qty - result.filled, Phrase.money(price.toLong())) to true
                 }
             }
+            SellResult.IntentOpen -> Phrase.of("kami_economy.action.sell_processing") to false
             else -> {
                 restore(qty)
                 when (result) {
@@ -220,11 +221,13 @@ object Net {
         }
     }
 
+    private fun known(item: String): Boolean = Stocks.good(item) != null || Blacklist.sellable(item)
+
     private fun bid(me: String, args: List<String>): Pair<Phrase, Boolean> {
         val item = args.itemArg()
         val qty = args.intArg(1, "kami_economy.action.invalid_quantity")
         val price = args.intArg(2, "kami_economy.action.invalid_price")
-        if (item !in kami.economy.Market.data.books && kami.economy.economy.Stocks.good(item) == null) return Phrase.of("kami_economy.action.invalid_item") to false
+        if (!known(item)) return Phrase.of("kami_economy.action.invalid_item") to false
         return orderReply(me, Ledger.bid(me, item, qty, price)) { Phrase.of("kami_economy.action.bid_order", qty, item, Phrase.money(price.toLong())) to true }
     }
 
@@ -288,6 +291,7 @@ object Net {
     private fun buy(p: ServerPlayer, me: String, args: List<String>): Pair<Phrase, Boolean> {
         val item = args.itemArg()
         val qty = args.intArg(1, "kami_economy.action.invalid_quantity")
+        if (!known(item)) return Phrase.of("kami_economy.action.invalid_item") to false
         return when (val result = Ledger.buy(me, item, qty)) {
             is BuyResult.Ok -> {
                 KamiEconomy.deliver(p)

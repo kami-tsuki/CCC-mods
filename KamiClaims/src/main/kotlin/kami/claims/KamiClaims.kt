@@ -3,6 +3,9 @@ package kami.claims
 import kami.claims.client.ClientHooks
 import kami.claims.command.ClaimsCommands
 import kami.claims.net.Net
+import kami.claims.net.ResearchSync
+import kami.claims.net.Sync
+import kami.claims.service.Work
 import kami.claims.research.Features
 import kami.claims.research.Gate
 import kami.claims.research.Goals
@@ -34,6 +37,7 @@ import kami.libs.log.Log
 import kami.libs.text.Phrase
 import net.minecraft.server.level.ServerPlayer
 import net.neoforged.api.distmarker.Dist
+import net.neoforged.bus.api.EventPriority
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
 import net.neoforged.fml.loading.FMLEnvironment
@@ -48,6 +52,7 @@ import net.neoforged.neoforge.event.level.PistonEvent
 import net.neoforged.neoforge.event.OnDatapackSyncEvent
 import net.neoforged.neoforge.event.server.ServerStartedEvent
 import net.neoforged.neoforge.event.server.ServerStartingEvent
+import net.neoforged.neoforge.event.server.ServerStoppedEvent
 import net.neoforged.neoforge.event.server.ServerStoppingEvent
 import net.neoforged.neoforge.event.tick.ServerTickEvent
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
@@ -124,12 +129,26 @@ object KamiClaims {
         if (FMLEnvironment.dist == Dist.CLIENT) ClientHooks.init()
         FORGE_BUS.addListener<PermissionGatherEvent.Nodes> { Perms.register(it) }
         ClaimsCommands.register()
+        FORGE_BUS.addListener<BlockEvent.BreakEvent>(EventPriority.LOWEST) { Guard.onBreakCredit(it) }
         Listeners.register()
         Sky.register()
         FORGE_BUS.addListener<ServerStartingEvent> { RecipeContext.bind(Thread.currentThread()) }
         FORGE_BUS.addListener<ServerStartedEvent> { Realm.load(it.server); Research.reload() }
         FORGE_BUS.addListener<OnDatapackSyncEvent> { if (it.player == null) Research.resolve(it.playerList.server) }
-        FORGE_BUS.addListener<ServerStoppingEvent> { Realm.save(true); RecipeContext.bind(null) }
+        FORGE_BUS.addListener<ServerStoppingEvent> {
+            Realm.save(true)
+            RecipeContext.bind(null)
+            Realm.resetSaveClock()
+            Net.reset()
+            Sync.reset()
+            ResearchSync.reset()
+            Queue.reset()
+            Levels.reset()
+            Guard.reset()
+            Work.reset()
+            Upkeep.reset()
+        }
+        FORGE_BUS.addListener<ServerStoppedEvent> { Realm.save(true, rotate = false) }
         FORGE_BUS.addListener<ServerTickEvent.Post> {
             val t = it.server.tickCount
             if (t % 20 == 0) it.server.playerList.players.forEach(Guard::announce)
@@ -139,7 +158,7 @@ object KamiClaims {
             if (t % 20 == 0) Queue.tick()
             if (t % 100 == 0) Levels.advanceAll()
             if (t % 1200 == 0) Upkeep.tick(it.server)
-            if (t % 6000 == 0) Realm.save()
+            runCatching { Realm.autosave(t) }.onFailure { e -> LOG.error("Periodic claims save failed", e) }
         }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { (it.entity as? ServerPlayer)?.let { p -> touch(p); Mail.deliver(p) } }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { (it.entity as? ServerPlayer)?.let { p -> touch(p); Guard.forget(p); Net.forget(p); Structures.forget(p) } }

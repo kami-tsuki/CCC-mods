@@ -27,8 +27,10 @@ class WorldContext(val level: ServerLevel, val settings: Settings) {
     val noise = ImprovedNoise(XoroshiroRandomSource(seed xor NOISE_SALT))
     private val generator = level.chunkSource.generator
     private val randomState = level.chunkSource.randomState()
-    private val cache = ConcurrentHashMap<Long, Any>()
     private val limit = settings.general.siteCache.coerceAtLeast(64)
+    private val cache = object : LinkedHashMap<Long, Any>(256, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Long, Any>) = size > limit
+    }
 
     fun surface(x: Int, z: Int): Int = generator.getBaseHeight(x, z, Heightmap.Types.OCEAN_FLOOR_WG, level, randomState)
 
@@ -70,10 +72,9 @@ class WorldContext(val level: ServerLevel, val settings: Settings) {
     }
 
     private inline fun cached(key: Long, compute: () -> Site?): Site? {
-        cache[key]?.let { return it as? Site }
+        synchronized(cache) { cache[key] }?.let { return it as? Site }
         val site = compute()
-        if (cache.size >= limit) cache.clear()
-        cache[key] = site ?: NONE
+        synchronized(cache) { cache[key] = site ?: NONE }
         return site
     }
 

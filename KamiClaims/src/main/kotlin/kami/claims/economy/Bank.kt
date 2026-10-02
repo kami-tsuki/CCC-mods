@@ -19,19 +19,23 @@ object Bank {
     fun take(id: UUID, amount: Int): Boolean {
         if (amount <= 0) return true
         if (funds(id) < amount) return false
-        var rest = amount - Numismatics.deduct(id, amount)
-        if (rest > 0) Numismatics.online(id)?.let { p ->
-            var removed = 0L
-            p.inventory.items.filter { value(it) > 0 }.sortedBy { value(it) }.forEach { stack ->
-                val unit = value(stack)
-                while (removed < rest && !stack.isEmpty) {
-                    stack.shrink(1)
-                    removed += unit
-                }
-            }
-            if (removed > rest) coins(p, (removed - rest).toInt())
+        val deducted = Numismatics.deduct(id, amount)
+        val rest = amount - deducted
+        if (rest <= 0) return true
+        val p = Numismatics.online(id)
+        if (p == null || carried(p) < rest) {
+            if (deducted > 0) Numismatics.deposit(id, deducted)
+            return false
         }
-        return true
+        var removed = 0L
+        p.inventory.items.map { it to value(it) }.filter { it.second > 0 }.sortedBy { it.second }.forEach { (stack, unit) ->
+            while (removed < rest && !stack.isEmpty) {
+                stack.shrink(1)
+                removed += unit
+            }
+        }
+        if (removed > rest) coins(p, (removed - rest).toInt())
+        return removed >= rest
     }
 
     fun give(id: UUID, amount: Int): Boolean {
@@ -44,7 +48,7 @@ object Bank {
 
     private fun coins(p: ServerPlayer, amount: Int) {
         var rest = amount
-        Coins.values.entries.sortedByDescending { it.value }.forEach { (item, unit) ->
+        Coins.values.entries.filter { it.value > 0 }.sortedByDescending { it.value }.forEach { (item, unit) ->
             val n = rest / unit
             if (n <= 0) return@forEach
             rest -= n * unit

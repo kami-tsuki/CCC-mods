@@ -13,14 +13,14 @@ import kami.libs.chat.Tone
 import kami.libs.log.Log
 import kami.libs.text.Phrase
 import net.neoforged.neoforge.server.ServerLifecycleHooks
-import java.util.UUID
 import kotlin.math.min
 
 object Queue {
     var clock: () -> Long = ::now
     var onlineCount: (Country) -> Int = { country ->
         val players = ServerLifecycleHooks.getCurrentServer()?.playerList
-        country.members.keys.count { id -> runCatching { UUID.fromString(id) }.getOrNull()?.let { players?.getPlayer(it) } != null }
+        val online = players?.players?.mapTo(HashSet()) { it.stringUUID }.orEmpty()
+        country.members.keys.count { it in online }
     }
 
     private const val HOUR = 3_600_000L
@@ -28,6 +28,8 @@ object Queue {
     private val log = Log.of("research")
     private var lastTick = 0L
     private val playtime = HashMap<String, Long>()
+
+    fun reset() { lastTick = 0L; playtime.clear() }
     private val settings get() = Research.defs.settings
 
     fun key(country: Country, id: String): String =
@@ -81,6 +83,7 @@ object Queue {
         val entry = entry(country, key)
         val node = node(country, key)
         if (entry.state != NodeState.READY && entry.state != NodeState.PAUSED) throw Fail("kami_claims.research.error.not_ready", node.label().asValue())
+        if (entry.state == NodeState.READY) node.conditions().firstOrNull { !it.met(country) }?.let { throw Fail("kami_claims.research.error.condition", it.describe()) }
         if (Loans.inDefault(country)) throw Fail("kami_claims.loans.error.default")
         if (researching(country) >= Levels.capacity(country, Capacity.RESEARCH_SLOTS)) throw Fail("kami_claims.research.reason.slots")
         if (!entry.paid) {

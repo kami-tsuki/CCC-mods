@@ -28,6 +28,7 @@
   "kami_economy.action.out_of_range": "Zu viel auf einmal. Höchstens %s Stück und %s pro Stück.",
   "kami_economy.action.purchased": "Gekauft.",
   "kami_economy.action.repriced": "Preis auf %s pro Stück geändert.",
+  "kami_economy.action.sell_processing": "Verkauf wird verarbeitet und beim Serverneustart abgeschlossen.",
   "kami_economy.action.sell_failed": "Verkauf fehlgeschlagen.",
   "kami_economy.action.sold": "%1$s × %2$s verkauft.",
   "kami_economy.action.unknown": "Unbekannte Aktion.",

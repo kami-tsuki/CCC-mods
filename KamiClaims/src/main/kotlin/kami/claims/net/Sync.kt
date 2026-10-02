@@ -16,6 +16,7 @@ import kami.claims.service.Alerts
 import kami.claims.service.Plan
 import kami.claims.service.Planner
 import kami.claims.service.Provinces
+import kami.claims.service.DELEGATE_RANK
 import kami.claims.service.Service
 import kami.claims.service.Upkeep
 import kami.claims.service.View
@@ -107,10 +108,10 @@ import java.util.UUID
     val alerts: List<AlertLine> = emptyList(), val goals: List<GoalLine> = emptyList(), val ledger: List<LedgerLine> = emptyList(),
     val history: List<DayLine> = emptyList(), val preview: PreviewLine? = null, val limits: Limits? = null,
     val delegable: List<String> = emptyList(), val kept: List<String> = emptyList(), val me: String = "", val dim: String = "", val rank: String = "",
-    val homes: List<HomeLine> = emptyList()
+    val homes: List<HomeLine> = emptyList(), val extraRids: List<Int> = emptyList()
 )
 
-class Reply(val msg: String = "", val ok: Boolean = true, val rid: Int = 0, val reason: String = "", val target: Key? = null)
+class Reply(val msg: String = "", val ok: Boolean = true, val rid: Int = 0, val reason: String = "", val target: Key? = null, val extraRids: List<Int> = emptyList())
 
 object Sync {
     private val json = Json { encodeDefaults = false }
@@ -122,6 +123,7 @@ object Sync {
     fun focus(p: ServerPlayer, x: Int, z: Int) { focus[p.uuid] = Key(Service.here(p).dim, x, z) }
     fun view(p: ServerPlayer, name: String) { if (name.isBlank()) viewing.remove(p.uuid) else viewing[p.uuid] = name }
     fun watch(p: ServerPlayer, sections: List<String>) { watching[p.uuid] = sections.toSet() }
+    fun reset() { focus.clear(); viewing.clear(); watching.clear(); previews.clear() }
     fun forget(p: ServerPlayer) { focus.remove(p.uuid); viewing.remove(p.uuid); watching.remove(p.uuid); previews.remove(p.uuid) }
 
     fun preview(p: ServerPlayer, kind: String, type: String, plan: Plan, key: String) {
@@ -306,7 +308,7 @@ object Sync {
         val me = p.stringUUID
         val own = Realm.of(me)
         val viewed = viewing[p.uuid]?.let { Realm.country(it) }
-            ?.takeIf { own != null && it.parent == own.id && Service.rankOf(own, p) >= Rank.CHANCELLOR }
+            ?.takeIf { own != null && it.parent == own.id && Service.rankOf(own, p) >= DELEGATE_RANK }
         val delegated = viewed != null
         val c = viewed ?: own
         val here = Service.here(p)
@@ -346,7 +348,7 @@ object Sync {
             players, reply.msg, reply.ok, open, here.x, here.z,
             reply.rid, reply.reason, reply.target?.x ?: 0, reply.target?.z ?: 0, reply.target != null,
             Alerts.of(p, c, delegated), if (c != null && lead && !delegated) Goals.of(c).map { GoalLine(it.text.json(), it.value, it.max, it.page.orEmpty()) } else emptyList(), ledger, history, previews.remove(p.uuid), limits(s),
-            Provinces.delegatedRights, Provinces.keptRights, me, here.dim, own?.let { Service.rankOf(it, p).name.lowercase() } ?: "", homes(me)
+            Provinces.delegatedRights, Provinces.keptRights, me, here.dim, own?.let { Service.rankOf(it, p).name.lowercase() } ?: "", homes(me), reply.extraRids
         )
         return json.encodeToString(snap)
     }

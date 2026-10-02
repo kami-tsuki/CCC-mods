@@ -197,18 +197,21 @@ private class SellPage(val app: MarketApp) : Page() {
     )
 
     override fun draw(ui: Ui, r: Rect) {
-        val events = ui.table(r, columns, entries(), table, { it.slot }, rowHeight = 18, emptyText = tr("kami_economy.market.sell.empty"))
+        shown = entries()
+        val events = ui.table(r, columns, shown, table, { it.slot }, rowHeight = 18, emptyText = tr("kami_economy.market.sell.empty"))
         events.opened?.let(app::openSell)
     }
 
     override fun actionsWidth() = buttonWidth(tr("kami_economy.market.sell.open"))
 
     override fun actions(ui: Ui, r: Rect) {
-        val selected = entries().firstOrNull { it.slot in table.selected }
+        val selected = shown.firstOrNull { it.slot in table.selected }
         val label = tr("kami_economy.market.sell.open")
         if (ui.edgeButton(r, label, style = ButtonStyle.PRIMARY, enabled = app.snap.citizen && selected != null, disabledReason = if (!app.snap.citizen) tr("kami_libs.lock.no_country") else tr("kami_economy.market.sell.open.none")))
             selected?.let(app::openSell)
     }
+
+    private var shown: List<SellEntry> = emptyList()
 
     private fun entries(): List<SellEntry> {
         val inv = Minecraft.getInstance().player?.inventory ?: return emptyList()

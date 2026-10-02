@@ -63,7 +63,17 @@ data class LevelsConfig(
 
     fun capacity(key: Capacity) = capacities[key] ?: LevelDefaults.capacities[key] ?: 0
 
-    fun rewardsUpTo(level: Int): List<Unlock> = rewards.filterKeys { it <= level }.values.flatten()
+    private val rewardCapacity: Map<Capacity, IntArray> by lazy {
+        val adds = rewards.filterKeys { it in 0..Limits.MAX_LEVELS }.flatMap { (level, list) -> list.filterIsInstance<CapacityUnlock>().map { level to it } }
+        adds.groupBy({ it.second.key }, { it.first to it.second.add }).mapValues { (_, list) ->
+            IntArray(Limits.MAX_LEVELS + 1).also { sums ->
+                list.forEach { (level, add) -> sums[level] += add }
+                for (level in 1..Limits.MAX_LEVELS) sums[level] += sums[level - 1]
+            }
+        }
+    }
+
+    fun rewardedCapacity(level: Int, key: Capacity): Int = rewardCapacity[key]?.get(level.coerceIn(0, Limits.MAX_LEVELS)) ?: 0
 
     private val featureLevels: Map<String, Int> by lazy {
         rewards.entries.sortedByDescending { it.key }.flatMap { (level, list) -> list.filterIsInstance<FeatureUnlock>().map { it.id to level } }.toMap()
@@ -75,6 +85,8 @@ data class LevelsConfig(
 object Levels {
     private val blocked = HashMap<String, Int>()
 
+    fun reset() = blocked.clear()
+
     var day: () -> Long = ::today
     var announce: (Phrase) -> Unit = { text ->
         ServerLifecycleHooks.getCurrentServer()?.playerList?.broadcastSystemMessage(Mail.chat.info(text.component()), false)
@@ -82,7 +94,7 @@ object Levels {
 
     fun capacity(country: Country, key: Capacity): Int = Research.defs.levels.capacity(key) +
         Research.unlocks<CapacityUnlock>(country).added(key) +
-        Research.defs.levels.rewardsUpTo(Research.level(country)).filterIsInstance<CapacityUnlock>().added(key)
+        Research.defs.levels.rewardedCapacity(Research.level(country), key)
 
     private fun List<CapacityUnlock>.added(key: Capacity) = filter { it.key == key }.sumOf { it.add }
 
@@ -162,10 +174,11 @@ object Levels {
         settleRewards(country)
         if (country.level == before) return
         Realm.dirty = true
-        leveledUp(country, country.level)
+        leveledUp(country)
     }
 
-    private fun leveledUp(country: Country, level: Int) {
+    private fun leveledUp(country: Country) {
+        val level = country.level
         Mail.broadcast(country, Phrase.of("kami_claims.level.mail.up", Words.v(level)), Tone.OK)
         if (Research.defs.levels.announce) announce(Phrase.of("kami_claims.level.broadcast", Words.v(country.name), Words.v(level)))
         Realm.changed()

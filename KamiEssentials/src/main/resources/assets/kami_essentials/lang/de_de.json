@@ -1,7 +1,6 @@
 {
   "kami_essentials.command.balance.other": "Kontostand von %1$s: %2$s",
   "kami_essentials.command.balance.self": "Kontostand: %s",
-  "kami_essentials.command.not_online": "%s ist nicht online.",
   "kami_essentials.command.one_player": "Gib genau einen Spieler an.",
   "kami_essentials.command.sidebar.disabled": "Die Seitenleiste ist auf diesem Server deaktiviert.",
   "kami_essentials.command.sidebar.hidden": "Seitenleiste ausgeblendet.",

@@ -239,10 +239,31 @@ object Realm {
         reset(store.load(path) { KamiClaims.LOG.error("Unreadable claims data, kept as .bad", it) })
     }
 
-    fun save(force: Boolean = false) {
+    var saveDue = false
+
+    fun saveSoon() { saveDue = true }
+
+    private var lastSave = 0
+
+    fun save(force: Boolean = false, rotate: Boolean = true): Boolean {
         store.data = data
-        store.save(force)
+        val ok = store.save(force, rotate)
+        if (ok) saveDue = false
+        return ok
     }
+
+    /** Periodic saves rotate the backups; money-triggered ones wait at least [SAVE_SOON_TICKS] after the last save and skip the rotation. */
+    fun autosave(tick: Int) {
+        val periodic = tick % 6000 == 0
+        if (!periodic && !(saveDue && tick - lastSave >= SAVE_SOON_TICKS)) return
+        // Advance the clock even on failure: saveDue stays set, so a failing save retries once per debounce window instead of every tick.
+        save(rotate = periodic)
+        lastSave = tick
+    }
+
+    fun resetSaveClock() { lastSave = 0 }
+
+    private const val SAVE_SOON_TICKS = 100
 
     fun reset(next: Data) {
         rev++
@@ -337,6 +358,19 @@ object Realm {
         changed()
     }
 
+    private fun unclaimAll(batch: List<Claim>) {
+        if (batch.isEmpty()) return
+        val gone = java.util.Collections.newSetFromMap(java.util.IdentityHashMap<Claim, Boolean>()).apply { addAll(batch) }
+        data.claims.removeAll(gone)
+        byCountry[batch.first().country]?.removeAll(gone)
+        batch.forEach { c ->
+            index.remove(c.key)
+            Buffs.dropBorders(c.country)
+            neighbors(c).forEach { k -> index[k]?.let { Buffs.dropBorders(it.country) } }
+        }
+        changed()
+    }
+
     fun join(c: Country, id: String, rank: Rank) {
         c.members[id] = Member(rank)
         c.outsiders.remove(id)
@@ -360,7 +394,7 @@ object Realm {
     fun disband(c: Country) {
         if (!c.active) return
         val tenants = claims(c.id).filter { it.owner != null }
-        claims(c.id).filter { it.owner == null }.forEach { unclaim(it, false) }
+        unclaimAll(claims(c.id).filter { it.owner == null })
         c.members.keys.forEach { home.remove(it) }
         c.members.clear()
         c.invites.clear()
@@ -380,7 +414,7 @@ object Realm {
     }
 
     fun erase(c: Country) {
-        claims(c.id).forEach { unclaim(it, false) }
+        unclaimAll(claims(c.id).toList())
         data.countries.remove(c.id)
         Buffs.dropBorders(c.id)
         Levels.forget(c.id)

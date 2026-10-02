@@ -19,7 +19,9 @@
     "research.CreateProcessingRecipeMixin",
     "research.CbcBlockRecipeFinderMixin",
     "research.FurnaceBlockEntityMixin",
-    "research.TaczGunSmithMixin"
+    "research.TaczGunSmithMixin",
+    "DynamicTreesSoilMixin",
+    "CroptopiaLeafCropMixin"
   ],
   "client": [],
   "injectors": { "defaultRequire": 0 }

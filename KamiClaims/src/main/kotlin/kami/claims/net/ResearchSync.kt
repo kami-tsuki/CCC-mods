@@ -39,6 +39,8 @@ object ResearchSync {
         defsPacket = null
     }
 
+    fun reset() { dirty.clear(); sentCountry.clear(); sentDefs.clear() }
+
     fun forget(p: ServerPlayer) {
         sentCountry.remove(p.uuid)
         sentDefs.remove(p.uuid)

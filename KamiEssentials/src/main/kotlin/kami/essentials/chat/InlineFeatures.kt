@@ -34,8 +34,10 @@ object InlineFeatures {
         val expiresAt: Long,
     )
 
+    private const val LIVE_VIEW_TTL_MS = 60_000L
     private val actions = ConcurrentHashMap<String, Action>()
     private val keyChars = "abcdefghijklmnopqrstuvwxyz0123456789"
+    private val rng = java.security.SecureRandom()
 
     fun render(sender: ServerPlayer, text: String): Component {
         val g = Config.s.inlineGeneral
@@ -58,7 +60,7 @@ object InlineFeatures {
 
     fun open(viewer: ServerPlayer, key: String) {
         val now = System.currentTimeMillis()
-        val action = actions.remove(key)?.takeIf { it.expiresAt > now } ?: fail(Phrase.of("kami_essentials.inline.expired"))
+        val action = actions[key]?.takeIf { it.expiresAt > now } ?: fail(Phrase.of("kami_essentials.inline.expired"))
         val profile = GameProfile(action.owner, action.ownerName)
         when (action.type) {
             Type.ITEM -> ItemPeek.open(viewer, Text.msg("kami_essentials.inline.item_of", action.ownerName), action.stack)
@@ -109,7 +111,7 @@ object InlineFeatures {
         }
         val click = if (!stack.isEmpty && Config.s.inlineGeneral.itemViewer) ClickEvent(ClickEvent.Action.RUN_COMMAND, "/essentials inline open ${register(Type.ITEM, sender, stack.copy())}") else null
         val note = Phrase.of(if (click == null) "kami_essentials.inline.hover_inspect" else "kami_essentials.inline.click_inspect")
-        val card = lineCard(Phrase.of("kami_libs.common.item") to Config.s.inlineStyle.valueColor, note to Config.s.inlineStyle.textColor)
+        val card = Text.lineCard(Phrase.of("kami_libs.common.item") to Config.s.inlineStyle.valueColor, note to Config.s.inlineStyle.textColor)
         return InlineChat.pill(label, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, card), click)
             .withStyle { it.withHoverEvent(hover) }
     }
@@ -118,14 +120,14 @@ object InlineFeatures {
         label = Phrase.of("kami_essentials.inline.inventory"),
         tip = Phrase.of("kami_essentials.views.inventory.other", sender.gameProfile.name),
         on = Config.s.inlineGeneral.inventoryViewer,
-        key = { register(Type.INVENTORY, sender) }
+        key = { register(Type.INVENTORY, sender, live = true) }
     )
 
     private fun enderChestToken(sender: ServerPlayer) = openToken(
         label = Phrase.of("kami_essentials.inline.ender_chest"),
         tip = Phrase.of("kami_essentials.views.ender_chest.other", sender.gameProfile.name),
         on = Config.s.inlineGeneral.enderChestViewer,
-        key = { register(Type.ENDER_CHEST, sender) }
+        key = { register(Type.ENDER_CHEST, sender, live = true) }
     )
 
     private fun healthToken(sender: ServerPlayer): Component {
@@ -136,7 +138,7 @@ object InlineFeatures {
             else -> Config.s.inlineStyle.negativeColor
         }
         val label = "${num(sender.health)}/${num(sender.maxHealth)} ${Config.s.inlineStyle.healthIcon}"
-        return InlineChat.pill(label, color, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, lineCard(Phrase.of("kami_essentials.inline.health") to Theme.VALUE)))
+        return InlineChat.pill(label, color, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.lineCard(Phrase.of("kami_essentials.inline.health") to Theme.VALUE)))
     }
 
     private fun hungerToken(sender: ServerPlayer): Component {
@@ -147,7 +149,7 @@ object InlineFeatures {
             else -> Config.s.inlineStyle.negativeColor
         }
         val label = "$food/20 ${Config.s.inlineStyle.hungerIcon}"
-        return InlineChat.pill(label, color, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, lineCard(Phrase.of("kami_essentials.inline.hunger") to Theme.VALUE)))
+        return InlineChat.pill(label, color, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.lineCard(Phrase.of("kami_essentials.inline.hunger") to Theme.VALUE)))
     }
 
     private fun armorToken(sender: ServerPlayer): Component {
@@ -157,18 +159,18 @@ object InlineFeatures {
             armor >= 7 -> Config.s.inlineStyle.warningColor
             else -> Config.s.inlineStyle.valueColor
         }
-        return InlineChat.pill("$armor ${Config.s.inlineStyle.armorIcon}", color, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, lineCard(Phrase.of("kami_essentials.inline.armor") to Theme.VALUE)))
+        return InlineChat.pill("$armor ${Config.s.inlineStyle.armorIcon}", color, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.lineCard(Phrase.of("kami_essentials.inline.armor") to Theme.VALUE)))
     }
 
     private fun xpToken(sender: ServerPlayer): Component {
         val need = sender.getXpNeededForNextLevel().coerceAtLeast(1)
         val now = (sender.experienceProgress * need).toInt().coerceIn(0, need)
         val label = "$now/$need ${Config.s.inlineStyle.xpIcon}"
-        return InlineChat.pill(label, Config.s.inlineStyle.valueColor, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, lineCard(Phrase.of("kami_essentials.inline.xp") to Theme.VALUE)))
+        return InlineChat.pill(label, Config.s.inlineStyle.valueColor, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.lineCard(Phrase.of("kami_essentials.inline.xp") to Theme.VALUE)))
     }
 
     private fun levelToken(sender: ServerPlayer): Component =
-        InlineChat.pill(Text.msg("kami_essentials.inline.level.short", sender.experienceLevel).withColor(Config.s.inlineStyle.positiveColor), Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, lineCard(Phrase.of("kami_libs.common.level") to Theme.VALUE)))
+        InlineChat.pill(Text.msg("kami_essentials.inline.level.short", sender.experienceLevel).withColor(Config.s.inlineStyle.positiveColor), Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.lineCard(Phrase.of("kami_libs.common.level") to Theme.VALUE)))
 
     private fun posToken(sender: ServerPlayer): Component {
         val p = sender.blockPosition()
@@ -176,7 +178,7 @@ object InlineFeatures {
         val label = "${p.x}, ${p.y}, ${p.z} @ $dim"
         val click = if (Config.s.inlineGeneral.posSuggestTp) ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/execute in $dim run tp @s ${p.x} ${p.y} ${p.z}") else null
         val hint = Phrase.of(if (click == null) "kami_essentials.inline.location" else "kami_essentials.inline.location.tooltip")
-        return InlineChat.pill(label, Config.s.inlineStyle.linkColor, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, lineCard(hint to Config.s.inlineStyle.textColor)), click)
+        return InlineChat.pill(label, Config.s.inlineStyle.linkColor, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.lineCard(hint to Config.s.inlineStyle.textColor)), click)
     }
 
     private fun balanceToken(sender: ServerPlayer): Component {
@@ -184,43 +186,45 @@ object InlineFeatures {
         val text = Component.empty()
             .append(Component.literal(compact.amount).withColor(Config.s.inlineStyle.positiveColor))
             .append(Component.literal(compact.glyph.toString()).withColor(Theme.VALUE))
-        return InlineChat.pill(text, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, lineCard(Phrase.of("kami_essentials.inline.balance") to Theme.VALUE)))
+        return InlineChat.pill(text, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.lineCard(Phrase.of("kami_essentials.inline.balance") to Theme.VALUE)))
     }
 
     private fun countryToken(sender: ServerPlayer): Component {
         val c = Names.citizenship(sender.uuid)
         val label = c?.let { Component.literal(it.name) } ?: Text.msg("kami_libs.common.no_country")
         val color = c?.let(Names::color) ?: Config.s.inlineStyle.warningColor
-        return InlineChat.pill(label.withColor(color), Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, lineCard(Phrase.of("kami_libs.common.country") to Theme.VALUE)))
+        return InlineChat.pill(label.withColor(color), Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.lineCard(Phrase.of("kami_libs.common.country") to Theme.VALUE)))
     }
 
     private fun rankToken(sender: ServerPlayer): Component {
         val c = Names.citizenship(sender.uuid)
         val label = c?.let { Names.title(it.rank) } ?: Text.msg("kami_essentials.inline.no_rank")
         val color = c?.let(Names::color) ?: Config.s.inlineStyle.warningColor
-        return InlineChat.pill(label.withColor(color), Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, lineCard(Phrase.of("kami_essentials.names.country_rank") to Theme.VALUE)))
+        return InlineChat.pill(label.withColor(color), Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.lineCard(Phrase.of("kami_essentials.names.country_rank") to Theme.VALUE)))
     }
 
     private fun pingToken(sender: ServerPlayer): Component =
-        InlineChat.pill("${sender.connection.latency()} ms", Config.s.inlineStyle.valueColor, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, lineCard(Phrase.of("kami_essentials.sidebar.ping") to Theme.VALUE)))
+        InlineChat.pill("${sender.connection.latency()} ms", Config.s.inlineStyle.valueColor, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.lineCard(Phrase.of("kami_essentials.sidebar.ping") to Theme.VALUE)))
 
     private fun tpsToken(sender: ServerPlayer): Component =
-        InlineChat.pill("${"%.1f".format(Tab.tps(sender.server))} TPS", Config.s.inlineStyle.valueColor, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, lineCard(Phrase.of("kami_essentials.inline.tps") to Theme.VALUE)))
+        InlineChat.pill("${"%.1f".format(Tab.tps(sender.server))} TPS", Config.s.inlineStyle.valueColor, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.lineCard(Phrase.of("kami_essentials.inline.tps") to Theme.VALUE)))
 
     private fun openToken(label: Phrase, tip: Phrase, on: Boolean, key: () -> String): Component {
         val click = if (on) ClickEvent(ClickEvent.Action.RUN_COMMAND, "/essentials inline open ${key()}") else null
-        return InlineChat.pill(label.component().withColor(Config.s.inlineStyle.linkColor), Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, lineCard(tip to Config.s.inlineStyle.textColor)), click)
+        return InlineChat.pill(label.component().withColor(Config.s.inlineStyle.linkColor), Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.lineCard(tip to Config.s.inlineStyle.textColor)), click)
     }
 
-    private fun register(type: Type, sender: ServerPlayer, stack: ItemStack = ItemStack.EMPTY): String {
+    // Inventory and ender chest pills open a live view of the owner, so their lifetime is capped at LIVE_VIEW_TTL_MS
+    // instead of the full action TTL (a snapshot would need a copied container plus a separate view path).
+    private fun register(type: Type, sender: ServerPlayer, stack: ItemStack = ItemStack.EMPTY, live: Boolean = false): String {
         val key = randomKey(14)
-        val ttl = Config.s.inlineGeneral.actionTtlSeconds.coerceAtLeast(10) * 1000L
+        val ttl = (Config.s.inlineGeneral.actionTtlSeconds.coerceAtLeast(10) * 1000L).let { if (live) minOf(it, LIVE_VIEW_TTL_MS) else it }
         actions[key] = Action(type, sender.uuid, sender.gameProfile.name, stack, System.currentTimeMillis() + ttl)
         return key
     }
 
     private fun randomKey(len: Int): String = buildString(len) {
-        repeat(len) { append(keyChars[(Math.random() * keyChars.length).toInt()]) }
+        repeat(len) { append(keyChars[rng.nextInt(keyChars.length)]) }
     }
 
     private fun num(v: Float): String = if (v % 1f == 0f) v.toInt().toString() else "%.1f".format(v)
@@ -241,9 +245,6 @@ object InlineFeatures {
         val keys = listOf("DisplayName", "displayName", "GunName", "gunName", "Name", "name", "ShortName", "shortName", "AmmoId")
         return keys.firstNotNullOfOrNull { key -> tag.getString(key).takeIf { it.isNotBlank() } }
     }
-
-    private fun lineCard(vararg lines: Pair<Phrase, Int>): Component =
-        lines.foldIndexed(Component.empty()) { i, out, (text, color) -> out.append(Component.literal(if (i == 0) "" else "\n").append(text.component()).withColor(color)) }
 
     private fun link(url: String, color: Int): Component = Component.literal(url).withStyle {
         it.withColor(color).withUnderlined(true).withClickEvent(ClickEvent(ClickEvent.Action.OPEN_URL, url))

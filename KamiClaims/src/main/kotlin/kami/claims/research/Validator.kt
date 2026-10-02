@@ -61,7 +61,7 @@ object Validator {
     }
 
     private fun treasuryCap(levels: LevelsConfig, level: Int) =
-        levels.capacity(Capacity.TREASURY) + levels.rewardsUpTo(level).filterIsInstance<CapacityUnlock>().filter { it.key == Capacity.TREASURY }.sumOf { it.add }
+        levels.capacity(Capacity.TREASURY) + levels.rewardedCapacity(level, Capacity.TREASURY)
 
     private fun costProblems(levels: LevelsConfig, nodes: List<Node>) = nodes.mapNotNull { node ->
         val cap = treasuryCap(levels, node.level)

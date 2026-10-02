@@ -89,7 +89,6 @@ class Provinces(map: Map<String, List<String>>, private val fallback: String? = 
 
 class Ore(
     val id: String,
-    val index: Int,
     val config: OreConfig,
     val stone: BlockState,
     val deepslate: BlockState,
@@ -130,8 +129,7 @@ class Ore(
 class Settings(
     val general: GeneralConfig,
     val provinces: Provinces,
-    val ores: List<Ore>,
-    val version: Int
+    val ores: List<Ore>
 ) {
     val dimensions: Set<ResourceLocation> = general.dimensions.mapNotNull { ResourceLocation.tryParse(it) }.toSet()
     val removeIds: Set<ResourceLocation> = general.removeFeatures.mapNotNull { ResourceLocation.tryParse(it) }.toSet()

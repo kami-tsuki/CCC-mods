@@ -60,6 +60,17 @@ object ClaimsApi {
     fun tariff(buyerCountry: String, sellerCountry: String): Int = provider?.tariff(buyerCountry, sellerCountry) ?: 0
     fun capacity(player: UUID, key: String, fallback: Int): Int = provider?.capacity(player, key) ?: fallback
     fun canTrade(a: String, b: String): Boolean = relation(a, b) != Relation.EMBARGO
+    fun neutralForeign(a: String, b: String): Boolean = a != b && relation(a, b) == Relation.NEUTRAL
+    fun neutralForeign(a: UUID, b: UUID): Boolean {
+        val ca = countryOf(a) ?: return false
+        val cb = countryOf(b) ?: return false
+        return neutralForeign(ca, cb)
+    }
+    fun embargoed(a: UUID, b: UUID): Boolean {
+        val ca = countryOf(a) ?: return false
+        val cb = countryOf(b) ?: return false
+        return !canTrade(ca, cb)
+    }
     fun creditTariff(country: String, amount: Long): Long = provider?.creditTariff(country, amount) ?: 0
     fun level(player: UUID): Int? = provider?.level(player)
     fun lock(player: UUID, feature: String): Phrase? = provider?.lock(player, feature)

@@ -15,7 +15,7 @@ class LevelUpgradeTest {
     )
 
     private fun jobSlots(config: LevelsConfig, level: Int) =
-        config.rewardsUpTo(level).filterIsInstance<CapacityUnlock>().filter { it.key == Capacity.JOB_SLOTS }.sumOf { it.add }
+        config.rewardedCapacity(level, Capacity.JOB_SLOTS)
 
     @Test
     fun legacyFileGainsPlotFeaturesPlotCeilingAndJobSlots() {

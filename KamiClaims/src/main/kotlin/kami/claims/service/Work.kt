@@ -15,6 +15,10 @@ import java.util.UUID
 import kotlin.math.floor
 
 object Work {
+    private val unpaidMailed = HashMap<String, Long>()
+
+    fun reset() = unpaidMailed.clear()
+
     fun holds(m: Member, type: String) = m.jobs.keys.any { Config.s.jobs[it]?.type == type }
 
     fun fits(c: Country, cl: Claim, id: String): Boolean {
@@ -86,11 +90,19 @@ object Work {
                 val def = c.job(name) ?: return@forEach
                 if (day - job.start < def.period) return@forEach
                 val due = job.progress >= def.quota
+                val affordable = def.pay <= budget && def.pay <= c.treasury
+                val paid = due && affordable && run {
+                    Treasury.move(c, LedgerKind.JOB_PAY, -def.pay.toLong(), id, name)
+                    Bank.give(UUID.fromString(id), def.pay).also { ok -> if (!ok) Treasury.move(c, LedgerKind.JOB_PAY, def.pay.toLong(), id, name) }
+                }
+                if (due && affordable && !paid) {
+                    if (unpaidMailed.put(id, today()) != today()) Mail.direct(id, Phrase.of("kami_claims.mail.wage_unpaid", Words.job(name)), Tone.BAD)
+                    return@forEach
+                }
                 job.progress = 0
                 job.start = day
                 if (!due) return@forEach
-                if (def.pay <= budget && def.pay <= c.treasury && Bank.give(UUID.fromString(id), def.pay)) {
-                    Treasury.move(c, LedgerKind.JOB_PAY, -def.pay.toLong(), id, name)
+                if (paid) {
                     budget -= def.pay
                     if (def.pay > 0) Progress.report(c, "wage", "", 1)
                     Mail.direct(id, Phrase.of("kami_claims.mail.wage_paid", money(def.pay), Words.job(name)), Tone.OK)

@@ -73,7 +73,7 @@ object EssentialsCommands {
     private fun Ctx.target(name: String = "player"): ServerPlayer {
         val p = EntityArgument.getPlayer(this, name)
         val viewer = source.player
-        if (viewer != null && Vanish.hides(p, viewer)) fail(Phrase.of("kami_essentials.command.not_online", Phrase.value(p.gameProfile.name)))
+        if (viewer != null && Vanish.hides(p, viewer)) throw EntityArgument.NO_PLAYERS_FOUND.create()
         return p
     }
 

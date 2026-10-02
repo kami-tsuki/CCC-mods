@@ -79,7 +79,6 @@ object Icons {
     val BRUSH = lib("brush")
     val AREA = lib("area")
     val CURSOR = lib("cursor")
-    val PAN = lib("pan")
     val RULER = lib("ruler")
     val LAYERS = lib("layers")
     val PERCENT = lib("percent")

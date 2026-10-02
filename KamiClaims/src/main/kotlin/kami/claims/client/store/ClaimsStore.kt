@@ -77,6 +77,7 @@ object ClaimsStore {
         snap = next
         revision++
         ClientClaims.viewingAs = next.info?.takeIf { it.delegated }?.name ?: ""
+        next.extraRids.forEach { pending.remove(it) }
         val done = pending.remove(next.rid) ?: return
         if (next.msg.isEmpty()) return
         val outcome = Outcome(done.name, done.key, next.ok, trJson(next.msg), next.reason, if (next.hasTarget) next.targetX else null, if (next.hasTarget) next.targetZ else null)

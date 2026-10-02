@@ -1,7 +1,6 @@
 {
   "kami_essentials.command.balance.other": "Balance of %1$s: %2$s",
   "kami_essentials.command.balance.self": "Balance: %s",
-  "kami_essentials.command.not_online": "%s is not online.",
   "kami_essentials.command.one_player": "Name exactly one player.",
   "kami_essentials.command.sidebar.disabled": "The sidebar is turned off on this server.",
   "kami_essentials.command.sidebar.hidden": "Sidebar hidden.",

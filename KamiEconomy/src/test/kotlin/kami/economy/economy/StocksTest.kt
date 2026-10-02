@@ -132,6 +132,5 @@ class StocksTest {
         assertEquals(19L, sale.gross)
         assertEquals(2L, sale.tax)
         assertEquals(17L, sale.net)
-        assertEquals(1, Stocks.step(item))
     }
 }

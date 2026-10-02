@@ -112,10 +112,10 @@ object Sync {
         states.remove(p.uuid)
     }
 
-    private fun rows(s: State): Pair<List<Row>, Int> {
+    private fun rows(s: State, me: String): Pair<List<Row>, Int> {
         val all = (Market.data.books.keys + Stocks.items())
             .filter { it.contains(s.text, ignoreCase = true) }
-            .map { Row(it, Matching.effectiveSellPrice(it) ?: 0, Matching.available(it)) }
+            .map { Row(it, Matching.effectiveSellPrice(it) ?: 0, Matching.available(it, me)) }
             .filter { it.available > 0 || Matching.bestBid(it.item) != null }
         val sorted = when (s.sort) {
             "price" -> all.sortedBy { it.price }
@@ -155,7 +155,7 @@ object Sync {
         val lot = Config.s.lotOf(item)
         val price = Matching.effectiveSellPrice(item) ?: 0
         val ask = Stocks.ask(item)
-        val stock = Stocks.stock(item)?.let { StockLine(Stocks.price(item).roundToInt(), it.lots, Stocks.capLeft(me, item), Stocks.cap(item), Stocks.step(item) * lot, Stocks.room(item)) }
+        val stock = Stocks.stock(item)?.let { StockLine(Stocks.price(item).roundToInt(), it.lots, Stocks.capLeft(me, item), Stocks.cap(item), lot, Stocks.room(item)) }
         val buyStep = if (stock != null && ask != null && ask <= price) stock.step else Matching.step(price.coerceAtLeast(1)) * lot
         val book = Matching.bookFor(item)
         val stockAsk = ask?.let { Level(it, (stock?.lots ?: 0) * lot, market = true) }
@@ -163,7 +163,7 @@ object Sync {
         val asks = (levels(book.sells.filter { it.amount > 0 }) { Trade.terms(me, it) } + listOfNotNull(stockAsk)).sortedBy { it.price }.take(5)
         val bids = (levels(Matching.bids(item)) { Trade.terms(it, me) } + listOfNotNull(stockBid)).sortedByDescending { it.price }.take(5)
         val myBid = book.buys.firstOrNull { it.owner == me }
-        return Detail(item, price, Matching.available(item), myPrice, myAmount, maxAffordable, history, lot, buyStep, stock, asks, bids, myBid?.price ?: 0, myBid?.amount ?: 0,
+        return Detail(item, price, Matching.available(item, me), myPrice, myAmount, maxAffordable, history, lot, buyStep, stock, asks, bids, myBid?.price ?: 0, myBid?.amount ?: 0,
             vendors(item, lot, me), Stocks.vendorPrice(item) ?: 0)
     }
 
@@ -176,11 +176,12 @@ object Sync {
 
     private fun auctions(s: State, me: String): Triple<List<AuctionLine>, Int, Int> {
         val all = Auctions.open().sortedBy { it.expiresAt }
-            .map { AuctionLine(it.id, it.label, it.stackData, it.startPrice, it.buyNowPrice ?: -1, it.currentBid, it.currentBidder, it.expiresAt, it.seller == me) }
         val pageSize = Config.s.pageSize
         val pages = ((all.size + pageSize - 1) / pageSize).coerceAtLeast(1)
         val page = s.auctionPage.coerceIn(0, pages - 1)
-        return Triple(all.drop(page * pageSize).take(pageSize), page, pages)
+        val lines = all.drop(page * pageSize).take(pageSize)
+            .map { AuctionLine(it.id, it.label, it.stackData, it.startPrice, it.buyNowPrice ?: -1, it.currentBid, it.currentBidder, it.expiresAt, it.seller == me) }
+        return Triple(lines, page, pages)
     }
 
     private fun slot(me: String, key: String, used: Int, max: Int) = Slot(used, max, if (used >= max) Limits.hint(me, key, used) else "")
@@ -188,7 +189,7 @@ object Sync {
     fun encode(p: ServerPlayer, msg: String, ok: Boolean, open: Boolean): String {
         val s = states.getOrPut(p.uuid) { State() }
         s.quote?.let { quote(p, it.item, it.qty, it.market) }
-        val (rowList, pages) = rows(s)
+        val (rowList, pages) = rows(s, p.stringUUID)
         val (auctionList, auctionPage, auctionPages) = auctions(s, p.stringUUID)
         val funds = Numismatics.balance(p.uuid)
         val me = p.stringUUID

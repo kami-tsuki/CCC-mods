@@ -5,6 +5,7 @@ import kami.economy.Fill
 import kami.economy.Market
 import kami.economy.StarterGood
 import kami.economy.Stock
+import kami.economy.Vendor
 import kami.economy.now
 import java.time.Instant
 import java.time.LocalDateTime
@@ -23,6 +24,7 @@ class StockSale(val lots: Int, val guaranteed: Int, val gross: Long, val tax: Lo
 object Stocks {
     const val ORDER_ID = -1L
     private const val ALL = "*"
+    private const val BASE_SPREAD = 3.0
     private var goods: Map<String, StarterGood> = emptyMap()
 
     fun index(resolve: (String) -> List<String>) {
@@ -61,9 +63,12 @@ object Stocks {
         return s.base * exp((g.target - (lots ?: s.lots)).toDouble() / g.depth).coerceIn(Config.s.bandLow, Config.s.bandHigh)
     }
 
-    fun basePrice(item: String): Int = (stock(item)?.base ?: 0.0).roundToInt().coerceAtLeast(1)
+    private fun clampBase(g: StarterGood, base: Double): Double = base.coerceIn(g.base / BASE_SPREAD, g.base * BASE_SPREAD)
 
-    fun step(item: String): Int = 1
+    fun basePrice(item: String): Int {
+        val g = goods[item] ?: return 1
+        return clampBase(g, stock(item)?.base ?: g.base.toDouble()).roundToInt().coerceAtLeast(1)
+    }
 
     fun limit(item: String): Int {
         val g = goods[item] ?: return 0
@@ -102,7 +107,7 @@ object Stocks {
     fun plan(item: String, qty: Int): FillLinePlan? {
         val s = stock(item) ?: return null
         val lot = goods.getValue(item).lot
-        val lots = minOf(qty / lot, s.lots).let { it - it % step(item) }
+        val lots = minOf(qty / lot, s.lots)
         if (lots <= 0) return null
         val cost = ceilSpurs(value(item, s.lots - lots, s.lots))
         return FillLinePlan(ORDER_ID, "", lots * lot, (cost / lots).toInt(), lot, cost, tax(cost))
@@ -126,13 +131,17 @@ object Stocks {
 
     fun observe(item: String, perLot: Int) {
         val s = stock(item) ?: return
-        s.observed = if (s.observed <= 0.0) perLot.toDouble() else s.observed * 0.8 + perLot * 0.2
+        val sample = perLot.toDouble().coerceIn(s.base * Config.s.bandLow, s.base * Config.s.bandHigh)
+        s.observed = if (s.observed <= 0.0) sample else s.observed * 0.8 + sample * 0.2
     }
 
-    fun vendorPrice(item: String): Int? {
+    fun vendorPrice(item: String): Int? = vendorPrice(item, Market.data.vendors.filter { it.item == item })
+
+    private fun vendorPrice(item: String, vendors: List<Vendor>): Int? {
         val lot = Config.s.lotOf(item)
-        val prices = Market.data.vendors.filter { it.item == item && it.price > 0 && it.count > 0 }
-            .map { (it.price.toLong() * lot / it.count.toDouble()).roundToInt().coerceAtLeast(1) }.sorted()
+        val prices = vendors.filter { it.price > 0 && it.count > 0 }
+            .groupBy { it.owner.ifEmpty { "${it.dim}:${it.x},${it.y},${it.z}" } }
+            .map { (_, list) -> list.minOf { (it.price.toLong() * lot / it.count.toDouble()).roundToInt().coerceAtLeast(1) } }.sorted()
         if (prices.isEmpty()) return null
         val mid = prices.size / 2
         return if (prices.size % 2 == 1) prices[mid] else (prices[mid - 1] + prices[mid] + 1) / 2
@@ -152,13 +161,16 @@ object Stocks {
     }
 
     private fun recover() {
+        val byItem = Market.data.vendors.groupBy { it.item }
         Market.data.stocks.forEach { (item, s) ->
             val g = goods[item] ?: return@forEach
-            vendorPrice(item)?.let { observe(item, it) }
+            byItem[item]?.let { vendorPrice(item, it) }?.let { observe(item, it) }
             val gap = g.target - s.lots
             val move = (gap * Config.s.recoveryPct / 100.0).roundToInt()
             s.lots += if (move == 0 && Config.s.recoveryPct > 0) gap.sign else move
-            if (s.observed > 0.0) s.base += (s.observed - s.base).coerceIn(-s.base * 0.1, s.base * 0.1)
+            val moved = if (s.observed > 0.0) s.base + (s.observed - s.base).coerceIn(-s.base * 0.1, s.base * 0.1) else s.base
+            s.base = clampBase(g, moved)
+            if (s.observed > 0.0) s.observed = s.base + (s.observed - s.base) * 0.95
         }
     }
 }

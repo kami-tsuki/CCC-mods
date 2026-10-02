@@ -220,7 +220,7 @@ class HeatmapScreen(private val info: OpenMap) : KamiScreen(Component.translatab
         if (p.seq != seq) return
         computing = false
         finished = p
-        tile = incoming ?: tile
+        if (layersDone > 0) tile = incoming ?: tile
         rebuildDue = true
     }
 

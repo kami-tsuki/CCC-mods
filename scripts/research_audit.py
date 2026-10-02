@@ -19,7 +19,8 @@ from collections import defaultdict
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 RES = os.path.join(ROOT, 'KamiClaims', 'src', 'main', 'resources', 'assets', 'kami_claims', 'research')
 SERVER = os.path.join(ROOT, 'Test-Server-NeoForge-1.21.1')
-TREES = ['metallurgy', 'technology', 'tools_armor', 'military']
+TREES = ['metallurgy', 'technology', 'tools_armor', 'military', 'buffs']
+CACHE_VERSION = 2
 IGNORE_PRODUCERS = {'technology:wood_building', 'technology:crafting_table'}
 
 OWNER = {
@@ -192,6 +193,43 @@ def read_jar(zf, data, depth=0):
             data['namespaces'].add(m.group(1))
 
 
+class DirPack:
+    def __init__(self, root):
+        self.root = root
+
+    def namelist(self):
+        out = []
+        for base, _, files in os.walk(self.root):
+            for f in files:
+                out.append(os.path.relpath(os.path.join(base, f), self.root).replace(os.sep, '/'))
+        return out
+
+    def read(self, name):
+        with open(os.path.join(self.root, name), 'rb') as fh:
+            return fh.read()
+
+
+def gunpack_sources():
+    out = []
+    tdir = os.path.join(SERVER, 'tacz')
+    if os.path.isdir(tdir):
+        for f in sorted(os.listdir(tdir)):
+            full = os.path.join(tdir, f)
+            if os.path.isdir(full) or f.endswith('.zip'):
+                out.append(full)
+    return out
+
+
+def dir_mtime(path):
+    if not os.path.isdir(path):
+        return int(os.path.getmtime(path))
+    latest = int(os.path.getmtime(path))
+    for base, _, files in os.walk(path):
+        for f in files:
+            latest = max(latest, int(os.path.getmtime(os.path.join(base, f))))
+    return latest
+
+
 def load_pack():
     mods = os.path.join(SERVER, 'mods')
     libs = os.path.join(SERVER, 'libraries', 'net')
@@ -202,6 +240,9 @@ def load_pack():
                 jars.append(os.path.join(base, f))
     jars += [os.path.join(mods, f) for f in sorted(os.listdir(mods)) if f.endswith('.jar')]
     sig = [(f, os.path.getsize(f), int(os.path.getmtime(f))) for f in jars]
+    packs = gunpack_sources()
+    sig += [(f, 0, dir_mtime(f)) for f in packs]
+    jars = jars + packs
     cache = os.path.join(tempfile.gettempdir(), 'research_audit_cache.pkl')
     if os.path.exists(cache):
         try:
@@ -215,8 +256,11 @@ def load_pack():
     for jar in jars:
         data = {'recipes': {}, 'tags': {'item': [], 'block': []}, 'lang': [], 'blocks': set(), 'items': set(), 'namespaces': set(), '_raw': {}}
         try:
-            with zipfile.ZipFile(jar) as zf:
-                read_jar(zf, data)
+            if os.path.isdir(jar):
+                read_jar(DirPack(jar), data)
+            else:
+                with zipfile.ZipFile(jar) as zf:
+                    read_jar(zf, data)
         except zipfile.BadZipFile:
             print('unreadable jar', jar, file=sys.stderr)
             continue
@@ -807,7 +851,8 @@ def report_e(m):
                     check(key, spec, 'task ' + t['type'])
         if n.get('icon') and n['icon'] not in known:
             lines.append(f"{key}: icon {n['icon']} is not in the pack")
-        if not any(m.sel[key]) and not m.sel_blocks[key]:
+        gating = any(u['type'] in ('recipe', 'recipe_type', 'recipes', 'output', 'mod', 'block', 'group') for u in n.get('unlocks', []))
+        if gating and not any(m.sel[key]) and not m.sel_blocks[key]:
             lines.append(f'{key}: unlocks select no recipe and no block')
     return lines
 
@@ -820,7 +865,8 @@ def report_f(m):
             continue
         mt = re.match(r'(?:(\d+)h)?(?:(\d+)m)?$', n['time'])
         minutes = int(mt.group(1) or 0) * 60 + int(mt.group(2) or 0)
-        cap = 10000 if n['level'] <= 6 else 50000
+        lvl = n['level']
+        cap = 10000 if lvl <= 6 else max(50000, 300 * lvl + 7500 if lvl <= 150 else 52500 + 305 * (lvl - 150))
         if n['cost'] > cap:
             lines.append(f"{mark(key)} {key} L{n['level']}: cost {n['cost']} above cap {cap}")
         for lo, hi, c0, c1, t0, t1 in bands:

@@ -26,10 +26,10 @@ class SellPlan(val fills: List<FillLinePlan>, val filled: Int, val capLots: Int,
 }
 
 object Matching {
-    private class Taker(var remaining: Int, val terms: (String) -> Terms) {
+    private class Taker(var remaining: Int, val self: String, val terms: (String) -> Terms) {
         val fills = mutableListOf<FillLinePlan>()
         fun take(order: Order) {
-            if (remaining <= 0) return
+            if (remaining <= 0 || order.owner == self) return
             val t = terms(order.owner)
             if (t.blocked) return
             val lot = order.lot.coerceAtLeast(1)
@@ -45,8 +45,8 @@ object Matching {
 
     fun plan(item: String, qty: Int, buyer: String = ""): BuyPlan {
         val ask = Stocks.ask(item)
-        val (cheap, dear) = Market.book(item).sells.filter { it.amount > 0 }.sortedBy { it.price }.partition { ask == null || it.price <= ask }
-        val t = Taker(qty) { Trade.terms(buyer, it) }
+        val (cheap, dear) = bookFor(item).sells.filter { it.amount > 0 }.sortedBy { it.price }.partition { ask == null || it.price <= ask }
+        val t = Taker(qty, buyer) { Trade.terms(buyer, it) }
         cheap.forEach(t::take)
         if (t.remaining > 0) Stocks.plan(item, t.remaining)?.let { t.fills += it; t.remaining -= it.qty }
         dear.forEach(t::take)
@@ -54,12 +54,12 @@ object Matching {
     }
 
     fun bids(item: String): List<Order> =
-        Market.book(item).buys.filter { it.amount > 0 }.sortedWith(compareByDescending<Order> { it.price }.thenBy { it.placedAt })
+        bookFor(item).buys.filter { it.amount > 0 }.sortedWith(compareByDescending<Order> { it.price }.thenBy { it.placedAt })
 
     fun sellPlan(seller: String, item: String, qty: Int, minPrice: Int? = null): SellPlan {
         val stockBid = if (minPrice == null) Stocks.bid(seller, item) else null
         val (good, poor) = bids(item).filter { minPrice == null || it.price >= minPrice }.partition { stockBid == null || it.price >= stockBid }
-        val t = Taker(qty) { Trade.terms(it, seller) }
+        val t = Taker(qty, seller) { Trade.terms(it, seller) }
         good.forEach(t::take)
         var capLots = 0
         var after = 0
@@ -84,7 +84,7 @@ object Matching {
             bid.amount -= f.qty
             Market.queueDelivery(bid.owner, item, f.qty)
             val perLot = (f.gross * lot / f.qty.coerceAtLeast(1)).toInt()
-            Stocks.observe(item, perLot)
+            if (!Trade.sameCountry(seller, bid.owner)) Stocks.observe(item, perLot)
             book.lastFill = perLot
             book.recentFills += Fill(perLot, f.qty, now())
         }
@@ -109,17 +109,15 @@ object Matching {
 
     fun escrow(order: Order): Long = order.amount.toLong() / order.lot.coerceAtLeast(1) * order.price
 
-    fun bestBid(item: String): Int? = bids(item).firstOrNull()?.price
+    fun bestBid(item: String): Int? = bookFor(item).buys.filter { it.amount > 0 }.maxOfOrNull { it.price }
 
-    fun rates(): List<Int> = listOf(Config.s.taxPct)
+    fun step(lotPrice: Int): Int = CleanStep.step(lotPrice.toLong(), listOf(Config.s.taxPct))
 
-    fun step(lotPrice: Int): Int = CleanStep.step(lotPrice.toLong(), rates())
-
-    fun isClean(lots: Int, lotPrice: Int): Boolean = CleanStep.isClean(lots.toLong() * lotPrice, rates())
+    fun isClean(lots: Int, lotPrice: Int): Boolean = CleanStep.isClean(lots.toLong() * lotPrice, listOf(Config.s.taxPct))
 
     fun tax(gross: Long): Long = CleanStep.charge(gross, Config.s.taxPct)
 
-    fun applyFills(item: String, fills: List<FillLinePlan>) {
+    fun applyFills(item: String, fills: List<FillLinePlan>, buyer: String = "") {
         val book = Market.book(item)
         val lot = Config.s.lotOf(item)
         fills.forEach { f ->
@@ -128,7 +126,7 @@ object Matching {
             else {
                 val order = book.sells.firstOrNull { it.id == f.orderId } ?: return@forEach
                 order.amount -= f.qty
-                Stocks.observe(item, perLot)
+                if (!Trade.sameCountry(buyer, order.owner)) Stocks.observe(item, perLot)
             }
             book.lastFill = perLot
             book.recentFills += Fill(perLot, f.qty, now())
@@ -152,17 +150,17 @@ object Matching {
         return order
     }
 
-    fun bestPrice(item: String): Int? = Market.book(item).sells.filter { it.amount > 0 }.minOfOrNull { it.price }
+    fun bestPrice(item: String): Int? = bookFor(item).sells.filter { it.amount > 0 }.minOfOrNull { it.price }
 
     fun effectiveSellPrice(item: String): Int? = listOfNotNull(bestPrice(item), Stocks.ask(item)).minOrNull()
 
-    fun available(item: String): Int {
+    fun available(item: String, viewer: String = ""): Int {
         val stock = Stocks.stock(item)?.let { it.lots.toLong() * Config.s.lotOf(item) } ?: 0L
-        return (Market.book(item).sells.sumOf { it.amount.toLong() } + stock).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        return (bookFor(item).sells.sumOf { if (it.owner == viewer) 0L else it.amount.toLong() } + stock).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
     }
 
     fun maxAffordable(item: String, funds: Long, buyer: String = ""): Int {
-        val stock = available(item)
+        val stock = available(item, buyer)
         if (stock <= 0 || funds <= 0) return 0
         var lo = 0
         var hi = stock
@@ -174,5 +172,5 @@ object Matching {
         return lo
     }
 
-    fun bookFor(item: String): Book = Market.book(item)
+    fun bookFor(item: String): Book = Market.peek(item) ?: Book(item)
 }

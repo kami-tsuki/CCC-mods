@@ -17,6 +17,7 @@ object Treasury {
     fun move(c: Country, kind: LedgerKind, delta: Long, actor: String? = null, note: String = ""): Long {
         val applied = if (delta > 0 && kind != LedgerKind.ADJUST) minOf(delta, room(c)) else delta
         c.treasury += applied
+        if (applied != 0L) Realm.saveSoon()
         record(c, kind, applied, actor, note)
         return applied
     }

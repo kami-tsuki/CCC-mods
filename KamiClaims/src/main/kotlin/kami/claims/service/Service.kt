@@ -34,7 +34,7 @@ class Fail(val phrase: Phrase, val reason: String = "", val target: Key? = null)
     constructor(key: String, vararg args: Any) : this(Phrase.of(key, *args))
 }
 
-private val DELEGATE_RANK = Rank.CHANCELLOR
+internal val DELEGATE_RANK = Rank.CHANCELLOR
 
 class NeedsConfirm(val lines: List<Phrase>) : RuntimeException()
 
@@ -74,7 +74,7 @@ object Service {
             if (Realm.country(target) !== own) {
                 val delegate = Realm.country(target) ?: throw Fail("kami_claims.error.unknown_country")
                 if (delegate.parent != own.id) throw Fail("kami_claims.error.not_your_province")
-                if (rankOf(own, p) < Rank.CHANCELLOR) throw Fail("kami_claims.error.delegate_rank")
+                if (rankOf(own, p) < DELEGATE_RANK) throw Fail("kami_claims.error.delegate_rank")
                 return delegate
             }
         }
@@ -240,6 +240,7 @@ object Service {
     private fun accept(p: ServerPlayer, country: String): Phrase {
         val c = Realm.live(country) ?: throw Fail("kami_claims.error.unknown_country")
         if (Realm.of(p.stringUUID) != null) throw Fail("kami_claims.error.leave_first")
+        if (c.outsiders[p.stringUUID] == Rank.BANISHED) throw Fail("kami_claims.error.you_banished", v(c.name))
         if ((c.invites[p.stringUUID] ?: 0) < now()) throw Fail("kami_claims.error.no_invite")
         citizenRoom(c)
         Realm.join(c, p.stringUUID, Rank.CITIZEN)
@@ -259,9 +260,11 @@ object Service {
 
     private fun approve(p: ServerPlayer, id: String): Phrase {
         val c = need(p, Cap.INVITE)
-        if (c.requests.remove(id) == null) throw Fail("kami_claims.error.no_request")
+        if (c.requests[id] == null) throw Fail("kami_claims.error.no_request")
         if (Realm.of(id) != null) throw Fail("kami_claims.error.already_member")
+        if (c.outsiders[id] == Rank.BANISHED) throw Fail("kami_claims.error.target_banished")
         citizenRoom(c)
+        c.requests.remove(id)
         Realm.join(c, id, Rank.CITIZEN)
         Progress.citizenJoined(c, id)
         Mail.broadcast(c, Phrase.of("kami_claims.mail.joined", v(Names.of(p.server, id))), Tone.OK)

@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.Pseudo;
 @Pseudo
 @Mixin(targets = "com.tacz.guns.inventory.GunSmithTableMenu")
 public abstract class TaczGunSmithMixin {
-    @WrapMethod(method = "doCraft(Lnet/minecraft/resources/ResourceLocation;Lnet/minecraft/world/entity/player/Player;)V", require = 0)
+    @WrapMethod(method = "doCraft(Lnet/minecraft/resources/ResourceLocation;Lnet/minecraft/world/entity/player/Player;)V", require = 1)
     private void kami$unlockedCraft(ResourceLocation recipe, Player player, Operation<Void> original) {
         if (player instanceof ServerPlayer serverPlayer && RecipeFilter.denyCraft(serverPlayer, recipe)) return;
         original.call(recipe, player);

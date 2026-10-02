@@ -81,7 +81,8 @@ object Painter {
         for (x in x0..x1) for (z in z0..z1) {
             val top = chunk.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, x, z) - 1
             val from = min(top, site.maxY)
-            val to = max(site.minY, top - config.maxDepth)
+            val maxDepth = config.maxDepth.coerceAtLeast(1)
+            val to = max(site.minY, top - maxDepth)
             var gap = -1
             var y = from
             while (y >= to) {
@@ -93,7 +94,7 @@ object Painter {
             }
             if (gap < 0) continue
             val hash = Hash.at(site.id xor OUTCROP_SALT, x, 0, z)
-            if (Hash.unit(hash) >= config.density * (1.0 - gap.toDouble() / config.maxDepth)) continue
+            if (Hash.unit(hash) >= config.density * (1.0 - gap.toDouble() / maxDepth)) continue
             pos.set(x, top, z)
             val host = chunk.getBlockState(pos)
             if (!ore.outcropRule.test(host) || !chunk.getBlockState(pos.above()).fluidState.isEmpty) continue
@@ -141,8 +142,8 @@ object Painter {
         }
     }
 
-    private fun fringe(r: Double, body: Double, edge: Double) =
-        if (r <= body) 1.0 else 1.0 - (1.0 - edge) * (r - body) / (1.0 - body)
+    internal fun fringe(r: Double, body: Double, edge: Double) =
+        if (r <= body) 1.0 else if (body >= 1.0) edge else 1.0 - (1.0 - edge) * (r - body) / (1.0 - body)
 
     private fun exposed(level: WorldGenLevel, chunk: ChunkAccess, x: Int, y: Int, z: Int): Boolean {
         val pos = BlockPos.MutableBlockPos()

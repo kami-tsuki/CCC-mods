@@ -1,11 +1,13 @@
 package kami.economy.economy
 
 import kami.economy.Config
+import kami.economy.KamiEconomy
 import kami.libs.economy.Coins
 import net.minecraft.core.component.DataComponents
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.item.ItemStack
-import net.minecraft.world.item.Items
+import net.minecraft.world.item.component.CustomData
+import net.minecraft.nbt.CompoundTag
 
 enum class Classification { ALLOWED, AUCTION_ONLY, BLOCKED }
 
@@ -29,7 +31,7 @@ object Blacklist {
         if (id in Coins.values.keys) return Classification.BLOCKED
         if (id in Config.s.creativeItemSet) return Classification.BLOCKED
 
-        if (stack.has(DataComponents.CUSTOM_DATA) && !stack.get(DataComponents.CUSTOM_DATA)!!.isEmpty) return Classification.AUCTION_ONLY
+        if (stack.get(DataComponents.CUSTOM_DATA)?.isEmpty == false) return Classification.AUCTION_ONLY
         if (stack.has(DataComponents.BLOCK_ENTITY_DATA)) return Classification.AUCTION_ONLY
         if (stack.has(DataComponents.CONTAINER)) return Classification.AUCTION_ONLY
         if (stack.has(DataComponents.BUNDLE_CONTENTS)) return Classification.AUCTION_ONLY
@@ -42,18 +44,20 @@ object Blacklist {
         if (stack.has(DataComponents.CUSTOM_NAME)) return Classification.AUCTION_ONLY
         if (id in Config.s.storageItemSet) return Classification.AUCTION_ONLY
 
-        val stored = stack.get(DataComponents.STORED_ENCHANTMENTS)
-        val normal = stack.get(DataComponents.ENCHANTMENTS)
-        val enchantments = if (stored != null && !stored.isEmpty) stored else normal
-        if (enchantments != null && !enchantments.isEmpty) {
-            val entries = enchantments.entrySet()
-            if (stack.`is`(Items.ENCHANTED_BOOK) && entries.size == 1) {
-                val entry = entries.iterator().next()
-                if (entry.intValue <= entry.key.value().maxLevel) return Classification.ALLOWED
-            }
-            return Classification.AUCTION_ONLY
-        }
+        return if (stack.componentsPatch.isEmpty()) Classification.ALLOWED else Classification.AUCTION_ONLY
+    }
 
-        return Classification.ALLOWED
+    fun sellable(id: String): Boolean {
+        val stack = prototype(id)?.takeUnless { it.isEmpty } ?: return false
+        return classify(stack) == Classification.ALLOWED
+    }
+
+    fun prototype(id: String): ItemStack? {
+        val baseId = id.substringBefore('#')
+        val item = KamiEconomy.registry.findItem(baseId) ?: return null
+        val stack = ItemStack(item)
+        val ammoId = id.substringAfter('#', "")
+        if (baseId == TACZ_AMMO && ammoId.isNotEmpty()) stack.set(DataComponents.CUSTOM_DATA, CustomData.of(CompoundTag().apply { putString("AmmoId", ammoId) }))
+        return stack
     }
 }

@@ -4,7 +4,6 @@ import kami.essentials.Config
 import kami.essentials.chat.Talk
 import kami.libs.chat.tell
 import kami.libs.claims.ClaimsApi
-import kami.libs.claims.Relation
 import kami.libs.economy.MarketApi
 import kami.libs.progress.KamiProgress
 import kami.libs.text.Phrase
@@ -41,7 +40,11 @@ class Trade(val players: List<ServerPlayer>) {
         if (!open) return
         accepted[side] = !accepted[side]
         countdown = if (accepted.all { it }) Config.s.tradeConfirmSeconds * 20 else -1
-        if (countdown == 0) finish()
+        if (countdown == 0) {
+            if (players.any { it.hasDisconnected() || !it.isAlive }) cancel(null, Phrase.of("kami_essentials.trade.reason.player_left"))
+            else if (!Trades.inRange(players[0], players[1])) cancel(null, Phrase.of("kami_essentials.trade.reason.distance"))
+            else finish()
+        }
     }
 
     fun tick() {
@@ -76,7 +79,7 @@ class Trade(val players: List<ServerPlayer>) {
     }
 
     private fun finish() {
-        if (embargoed()) return cancel(null, Phrase.of("kami_essentials.trade.reason.embargo"))
+        if (ClaimsApi.embargoed(players[0].uuid, players[1].uuid)) return cancel(null, Phrase.of("kami_essentials.trade.reason.embargo"))
         val full = players.indices.firstOrNull { side -> !fits(players[side], offers[1 - side].items) }
         if (full != null) {
             changed()
@@ -86,7 +89,7 @@ class Trade(val players: List<ServerPlayer>) {
         val items = offers.map { it.removeAllItems() }
         players.forEachIndexed { side, p -> give(p, items[1 - side]) }
         end()
-        if (items.none { it.isEmpty() } && neutralCountries()) {
+        if (items.none { it.isEmpty() } && ClaimsApi.neutralForeign(players[0].uuid, players[1].uuid) && Trades.claimXp(players[0].uuid, players[1].uuid)) {
             val value = items.flatten().sumOf { MarketApi.value(it) }
             val count = items.sumOf { list -> list.sumOf { it.count } }.toLong()
             players.forEach {
@@ -97,16 +100,6 @@ class Trade(val players: List<ServerPlayer>) {
         players.forEachIndexed { side, p ->
             p.tell(Talk.chat.ok(Phrase.of("kami_essentials.trade.done", Phrase.value(name(1 - side)), Phrase.value(items[1 - side].sumOf { it.count }), Phrase.value(items[side].sumOf { it.count }))))
         }
-    }
-
-    private fun neutralCountries(): Boolean {
-        val (a, b) = players.map { ClaimsApi.countryOf(it.uuid) }
-        return a != null && b != null && a != b && ClaimsApi.relation(a, b) == Relation.NEUTRAL
-    }
-
-    private fun embargoed(): Boolean {
-        val (a, b) = players.map { ClaimsApi.countryOf(it.uuid) }
-        return a != null && b != null && !ClaimsApi.canTrade(a, b)
     }
 
     private fun end() {

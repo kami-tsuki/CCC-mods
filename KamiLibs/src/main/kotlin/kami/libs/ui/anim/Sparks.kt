@@ -71,7 +71,7 @@ class Floaters(val capacity: Int = 8) {
         }
     }
 
-    fun fade(i: Int) = (1f - age[i] / LIFE).coerceIn(0f, 1f)
+    fun fade(i: Int) = ageFade(age[i], LIFE)
 
     companion object {
         const val LIFE = 1.1f
@@ -93,7 +93,9 @@ class Glows(val capacity: Int = 8) {
 
     fun update(dt: Float) { for (i in 0 until capacity) if (age[i] < LIFE) age[i] += dt }
 
-    fun fade(i: Int) = (1f - age[i] / LIFE).coerceIn(0f, 1f)
+    fun fade(i: Int) = ageFade(age[i], LIFE)
 
     companion object { const val LIFE = 0.3f }
 }
+
+private fun ageFade(age: Float, life: Float) = (1f - age / life).coerceIn(0f, 1f)

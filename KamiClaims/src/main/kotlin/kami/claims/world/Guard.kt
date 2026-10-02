@@ -14,6 +14,7 @@ import kami.claims.service.Housing
 import kami.claims.service.View
 import kami.claims.service.Work
 import kami.libs.text.Phrase
+import kami.libs.util.RecentSet
 import kami.claims.social.Perms
 
 import net.minecraft.core.BlockPos
@@ -58,9 +59,19 @@ import net.neoforged.neoforge.event.level.ExplosionEvent
 import net.neoforged.neoforge.event.level.PistonEvent
 
 object Guard {
+    private const val REMEMBERED_PLACEMENTS = 8192
     private val tags = HashMap<String, TagKey<Block>>()
+    // Separate from Placed on purpose: Placed is marked by research for countable players only, this one by every in-claim placement that reached credit().
+    private val paidPlaces =RecentSet<Pair<String, Long>>(REMEMBERED_PLACEMENTS)
     private val last = HashMap<String, Key?>()
     private val lastDenied = HashMap<String, Pair<String, Long>>()
+
+    fun reset() {
+        paidPlaces.clear()
+        Placed.reset()
+        last.clear()
+        lastDenied.clear()
+    }
 
     private fun dim(level: LevelAccessor) = (level as? Level)?.dimension()?.location()?.toString()
     private fun key(dim: String, pos: BlockPos) = Key(dim, pos.x shr 4, pos.z shr 4)
@@ -161,7 +172,14 @@ object Guard {
         else id(state.block) == spec
 
     private fun credit(p: ServerPlayer, pos: BlockPos, action: Action, state: BlockState) {
-        val cl = Realm.index[key(p.level().dimension().location().toString(), pos)] ?: return
+        val dim = p.level().dimension().location().toString()
+        val cl = Realm.index[key(dim, pos)] ?: return
+        val spot = dim to pos.asLong()
+        val repeat = when (action) {
+            Action.PLACE -> paidPlaces.remove(spot).also { paidPlaces.add(spot); Placed.mark(dim, pos) }
+            else -> Placed.contains(dim, pos) && state.block !is CropBlock
+        }
+        if (repeat) return
         val me = p.stringUUID
         val c = Realm.data.countries[cl.country] ?: return
         val crop = state.block as? CropBlock
@@ -175,7 +193,11 @@ object Guard {
 
     fun onBreak(e: BlockEvent.BreakEvent) {
         if (!check(e.level, e.pos, e.player, Action.BREAK, e.state.block)) e.isCanceled = true
-        else (e.player as? ServerPlayer)?.let { if (it !is FakePlayer) credit(it, e.pos, Action.BREAK, e.state) }
+    }
+
+    /** Registered at LOWEST (before the research listener that clears [Placed]) and skipped for cancelled breaks, so only breaks that happen pay. */
+    fun onBreakCredit(e: BlockEvent.BreakEvent) {
+        (e.player as? ServerPlayer)?.let { if (it !is FakePlayer) credit(it, e.pos, Action.BREAK, e.state) }
     }
 
     fun onPlace(e: BlockEvent.EntityPlaceEvent) {
@@ -276,7 +298,9 @@ object Guard {
         val dim = dim(level)?.takeIf { it in Config.s.dimensionSet } ?: return
         val origin = Realm.index[key(dim, e.pos)]
         val helper = e.structureHelper ?: return
-        val moved = helper.toPush + helper.toDestroy + e.faceOffsetPos
+        val pushed = helper.toPush + helper.toPush.map { it.relative(helper.pushDirection) }
+        // a retracting piston must always be allowed to pull its own head back (cancelling would leave it stuck extended), so only the pulled blocks are checked then
+        val moved = if (e.pistonMoveType.isExtend) pushed + helper.toDestroy + e.faceOffsetPos else pushed
         if (moved.any { val target = Realm.index[key(dim, it)]; target?.country != origin?.country || target?.tenant != origin?.tenant }) e.isCanceled = true
     }
 

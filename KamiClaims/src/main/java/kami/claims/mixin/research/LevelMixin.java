@@ -16,11 +16,21 @@ public abstract class LevelMixin {
     @WrapOperation(method = "tickBlockEntities", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/world/level/block/entity/TickingBlockEntity;tick()V"), require = 1)
     private void kami$blockEntityContext(TickingBlockEntity ticker, Operation<Void> original) {
-        RecipeContext.run((Level) (Object) this, ticker.getPos().asLong(), () -> original.call(ticker));
+        boolean pushed = RecipeContext.push((Level) (Object) this, ticker.getPos().asLong());
+        try {
+            original.call(ticker);
+        } finally {
+            RecipeContext.pop(pushed);
+        }
     }
 
     @WrapMethod(method = "guardEntityTick", require = 1)
     private <T extends Entity> void kami$entityContext(Consumer<T> action, T entity, Operation<Void> original) {
-        RecipeContext.run(entity, 0L, () -> original.call(action, entity));
+        boolean pushed = RecipeContext.push(entity, 0L);
+        try {
+            original.call(action, entity);
+        } finally {
+            RecipeContext.pop(pushed);
+        }
     }
 }

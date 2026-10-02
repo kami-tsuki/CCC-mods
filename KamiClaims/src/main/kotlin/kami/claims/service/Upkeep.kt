@@ -44,16 +44,28 @@ object Upkeep {
         if (Realm.data.day < 0) Realm.data.day = today
         var d = Realm.data.day
         var n = 0
-        while (d < today && n++ < s.maxCatchUp) process(++d)
+        while (d < today && n++ < s.maxCatchUp) {
+            process(d + 1)
+            d++
+        }
         if (d != Realm.data.day) Realm.dirty = true
         Realm.data.day = d
     }
 
+    /** Settles [day] for every country; a failing country is logged and skipped, the day is never retried (no double billing). */
     fun process(day: Long) {
-        Realm.data.countries.values.toList().forEach { runCatching { country(it, day) }.onFailure { e -> KamiClaims.LOG.error("Upkeep failed for ${it.name}", e) } }
+        Realm.data.countries.values.toList().forEach {
+            val pending = it.pending
+            runCatching { country(it, day) }.onFailure { e ->
+                if (it.pending < pending) it.pending = pending
+                KamiClaims.LOG.error("Upkeep failed for country ${it.id} (${it.name})", e)
+            }
+        }
         Realm.data.reserves.removeAll { it.until < now() }
         Realm.changed()
     }
+
+    fun reset() { swept = 0L }
 
     private fun country(c: Country, day: Long) {
         val t = now()
@@ -114,6 +126,7 @@ object Upkeep {
             val cost = Buffs.price(c, cl, borderTax).toLong() * (1 + cl.debt)
             if (c.treasury >= cost) {
                 c.treasury -= cost
+                Realm.saveSoon()
                 paid += cost
                 cl.debt = 0
                 cl.upkeepCycles++

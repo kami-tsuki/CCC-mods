@@ -15,6 +15,11 @@ object Trade {
 
     fun country(player: String): String? = uuid(player)?.let { ClaimsApi.countryOf(it) }
 
+    fun sameCountry(a: String, b: String): Boolean {
+        val x = country(a) ?: return false
+        return x == country(b)
+    }
+
     fun terms(buyer: String, seller: String): Terms {
         val a = country(buyer)
         val b = country(seller)

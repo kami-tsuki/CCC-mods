@@ -42,7 +42,7 @@ class ContextStack(private val resolve: (source: Any, pos: Long) -> String?) {
         val top = depth - 1
         if (top < 0) return null
         if (!resolved[top]) {
-            countries[top] = resolve(sources[top]!!, positions[top])
+            countries[top] = runCatching { resolve(sources[top]!!, positions[top]) }.getOrNull()
             resolved[top] = true
         }
         return countries[top]

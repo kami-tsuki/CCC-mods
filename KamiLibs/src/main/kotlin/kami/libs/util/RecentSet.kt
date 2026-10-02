@@ -10,4 +10,6 @@ class RecentSet<T>(private val capacity: Int) {
     }
 
     fun remove(item: T) = entries.remove(item) != null
+
+    fun clear() = entries.clear()
 }

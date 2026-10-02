@@ -3,6 +3,7 @@ package kami.geology.map
 import kami.geology.config.Kind
 import kami.geology.config.Ore
 import kami.geology.util.Hash
+import kami.geology.world.Painter
 import kami.geology.world.Site
 import kami.geology.world.WorldContext
 import java.util.concurrent.atomic.AtomicLong
@@ -123,7 +124,7 @@ object Heatmap {
         val weight = 1.0 / (sub * sub)
         val density = min(1.0, deposit.density * site.grade.density)
         val coreRadius = if (site.hasCore) site.ore.config.core?.radius ?: 0.0 else 0.0
-        val chance = DoubleUnaryOperator { r -> if (r < coreRadius) 1.0 else density * fringe(r, deposit.bodyRadius, deposit.fringe) }
+        val chance = DoubleUnaryOperator { r -> if (r < coreRadius) 1.0 else density * Painter.fringe(r, deposit.bodyRadius, deposit.fringe) }
         val analytic = cell >= ANALYTIC_CELL && deposit.shape.kind != Kind.PIPE
         val step = if (cell <= 4) 2 else 4
         val noise = world.noise
@@ -148,8 +149,6 @@ object Heatmap {
             out[j * q.w + i] += (sum * weight).toFloat()
         }
     }
-
-    private fun fringe(r: Double, body: Double, edge: Double) = if (r <= body) 1.0 else 1.0 - (1.0 - edge) * (r - body) / (1.0 - body)
 
     fun probe(world: WorldContext, x: Int, z: Int, y0: Int, y1: Int): List<String> {
         val lines = ArrayList<String>()

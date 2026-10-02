@@ -52,20 +52,32 @@ object Buffs {
     private val tracker = PulseTracker()
     private val borders = HashMap<String, Set<Key>>()
 
-    fun unlocked(country: Country): List<Buff> = Research.defs.nodes.values.filter { it.key in country.research.done }.mapNotNull { node ->
-        node.unlocks.filterIsInstance<BuffUnlock>().firstOrNull()?.let { Buff(node.key, node, it) }
+    private fun buff(key: String): Buff? {
+        val node = Research.defs.nodes[key] ?: return null
+        return node.unlocks.filterIsInstance<BuffUnlock>().firstOrNull()?.let { Buff(key, node, it) }
     }
 
-    fun enabled(country: Country): List<Buff> = unlocked(country).filter { it.key in country.buffs.enabled }
+    fun unlocked(country: Country): List<Buff> = Research.defs.nodes.values.filter { it.key in country.research.done }.mapNotNull { buff(it.key) }
+
+    fun enabled(country: Country): List<Buff> = country.buffs.enabled.filter { it in country.research.done }.mapNotNull { key ->
+        Research.defs.nodeFor(country, key)?.let { node -> node.unlocks.filterIsInstance<BuffUnlock>().firstOrNull()?.let { Buff(key, node, it) } }
+    }
 
     fun points(country: Country): Int = Research.unlocks<BuffPointsUnlock>(country).sumOf { it.add }
 
     fun used(country: Country): Int = enabled(country).sumOf { it.cost }
 
+    // drops the newest enabled buffs first (insertion order) when points no longer cover them
     fun prune(country: Country) {
-        country.buffs.enabled.retainAll(unlocked(country).map { it.key }.toSet())
+        val active = enabled(country)
+        country.buffs.enabled.retainAll(active.mapTo(HashSet()) { it.key })
         val points = points(country)
-        enabled(country).reversed().forEach { if (used(country) > points) country.buffs.enabled.remove(it.key) }
+        var used = active.sumOf { it.cost }
+        active.asReversed().forEach {
+            if (used <= points) return
+            country.buffs.enabled.remove(it.key)
+            used -= it.cost
+        }
     }
 
     fun toggle(country: Country, key: String): Phrase {
@@ -75,13 +87,14 @@ object Buffs {
         val unlock = node.unlocks.filterIsInstance<BuffUnlock>().firstOrNull() ?: throw unknown()
         if (key !in country.research.done) throw Fail(Locks.research(node.label().asValue()))
         val buff = Buff(key, node, unlock)
-        val on = country.buffs.enabled.add(key)
-        if (!on) country.buffs.enabled.remove(key)
-        else (points(country) - used(country)).takeIf { it < 0 }?.let { free ->
-            country.buffs.enabled.remove(key)
-            throw Fail("kami_claims.buffs.error.points", Words.num(free), Words.num(buff.cost))
-        }
-        if (on) country.buffs.billed += key
+        val on = key !in country.buffs.enabled
+        if (on) {
+            (points(country) - used(country) - buff.cost).takeIf { it < 0 }?.let { free ->
+                throw Fail("kami_claims.buffs.error.points", Words.num(free), Words.num(buff.cost))
+            }
+            country.buffs.enabled += key
+            country.buffs.billed += key
+        } else country.buffs.enabled.remove(key)
         Realm.changed()
         ResearchSync.refresh(country)
         return Phrase.of(if (on) "kami_claims.buffs.done.on" else "kami_claims.buffs.done.off", node.label().asValue())

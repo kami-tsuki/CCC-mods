@@ -23,7 +23,6 @@ class AlertLine(
 
 object Alerts {
     private val s get() = Config.s
-    private const val DAY = 86_400_000L
 
     private fun t(key: String, vararg args: Any) = Phrase.of(key, *args)
     private fun days(n: Number) = Phrase.plural("kami_claims.unit.day", n.toLong())
@@ -133,10 +132,10 @@ object Alerts {
         }
         if (!delegated) {
             val president = c.president()?.let { c.members[it] }
-            val idle = president?.let { (now() - it.seen) / DAY } ?: 0
+            val idle = president?.let { (now() - it.seen) / s.dayMillis } ?: 0
             if (president != null && idle >= s.successionDays - 7) out += alert("succession", "WARNING", t("kami_claims.alert.succession.title", days(idle)),
                 t("kami_claims.alert.succession.body", days(s.successionDays)), page = "citizens")
-            val quiet = (now() - c.lastActive) / DAY
+            val quiet = (now() - c.lastActive) / s.dayMillis
             if (quiet >= s.inactiveDays - 7) out += alert("inactive", "DANGER", t("kami_claims.alert.inactive.title"),
                 t("kami_claims.alert.inactive.body", days(quiet), days(s.inactiveDays)))
         }

@@ -15,18 +15,18 @@ import kami.claims.social.Mail
 import kami.libs.chat.Tone
 import kami.claims.service.Words.v
 import kami.libs.text.Phrase
-import kotlin.math.max
 
 object Provinces {
     private val s get() = Config.s
+    private const val MAX_FLAT = 1_000_000_000.0
 
     val delegatedRights = listOf("land", "capital", "tax", "laws", "jobs", "housing").map { "kami_claims.province.right.delegated.$it" }
 
     val keptRights = listOf("treasury", "members", "name").map { "kami_claims.province.right.kept.$it" }
 
     fun tribute(text: String, mode: TaxMode): Double {
-        val v = text.toDoubleOrNull() ?: throw Fail("kami_claims.error.number")
-        return if (mode == TaxMode.PERCENT) (v / 100).coerceIn(s.provinceTaxRateBounds[0], s.provinceTaxRateBounds[1]) else max(0.0, v)
+        val v = text.toDoubleOrNull()?.takeIf { it.isFinite() } ?: throw Fail("kami_claims.error.number")
+        return if (mode == TaxMode.PERCENT) (v / 100).coerceIn(s.provinceTaxRateBounds[0], s.provinceTaxRateBounds[1]) else v.coerceIn(0.0, MAX_FLAT)
     }
 
     fun cooldown(c: Country) = (c.independenceDeclinedAt + s.independenceCooldownDays * s.dayMillis - now()).coerceAtLeast(0)

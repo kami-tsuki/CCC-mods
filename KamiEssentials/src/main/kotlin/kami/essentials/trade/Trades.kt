@@ -17,6 +17,18 @@ object Trades {
 
     private val requests = HashMap<UUID, Request>()
     private val active = HashMap<UUID, Trade>()
+    private const val XP_PAIR_COOLDOWN_MS = 10 * 60_000L
+    private val xpPairs = HashMap<Pair<UUID, UUID>, Long>()
+
+    /** Trade XP is granted once per player pair per 10 minutes, so two alts cannot farm it by swapping items. */
+    fun claimXp(a: UUID, b: UUID): Boolean {
+        val key = if (a < b) a to b else b to a
+        val t = now()
+        if (xpPairs[key]?.let { t - it < XP_PAIR_COOLDOWN_MS } == true) return false
+        xpPairs.values.removeIf { t - it >= XP_PAIR_COOLDOWN_MS }
+        xpPairs[key] = t
+        return true
+    }
 
     fun busy(p: Player) = p.uuid in active
 
@@ -79,7 +91,10 @@ object Trades {
         requests.values.removeIf { it.until < now() }
     }
 
-    fun stop() = active.values.toSet().forEach { it.cancel(null, Phrase.of("kami_essentials.trade.reason.stopping")) }
+    fun stop() {
+        active.values.toSet().forEach { it.cancel(null, Phrase.of("kami_essentials.trade.reason.stopping")) }
+        xpPairs.clear()
+    }
 
     private fun check(me: ServerPlayer, other: ServerPlayer) {
         val name = other.gameProfile.name

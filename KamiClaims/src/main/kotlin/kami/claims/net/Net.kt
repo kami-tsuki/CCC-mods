@@ -83,11 +83,58 @@ class ClaimsPacket(val data: View.Payload) : CustomPacketPayload {
 }
 
 object Net {
-    private val lastAct = TickCooldown(0)
-    private val lastPreview = TickCooldown(2)
+    private var lastAct = TickCooldown(0)
+    private var lastPreview = TickCooldown(2)
     private val sent = HashMap<UUID, Int>()
     private var lastPush = 0
     private val openPlayers = HashSet<UUID>()
+    private val lastSnapshot = HashMap<UUID, Int>()
+    private val deferred = HashMap<UUID, ArrayDeque<Deferred>>()
+    private const val SNAPSHOT_GAP = 2
+
+    private class Deferred(val kind: String, val rids: MutableList<Int>, var open: Boolean)
+
+    fun reset() {
+        lastAct = TickCooldown(0)
+        lastPreview = TickCooldown(2)
+        sent.clear()
+        lastPush = 0
+        openPlayers.clear()
+        lastSnapshot.clear()
+        deferred.clear()
+    }
+
+    private fun recentlySent(uuid: UUID, tick: Int) = lastSnapshot[uuid]?.let { tick - it in 0 until SNAPSHOT_GAP } == true
+
+    /**
+     * Answers a navigation request (open/chunk/view/watch/preview) without ever dropping a reply: the state change is already applied, and the reply is a fresh snapshot.
+     * At most one snapshot per player per [SNAPSHOT_GAP] ticks is built. Requests inside that window are queued, keeping only the latest per kind;
+     * the rids of superseded requests ride along on the newer reply ([Reply.extraRids]), so the queue holds at most one entry per kind and every rid is answered.
+     */
+    private fun answer(p: ServerPlayer, kind: String, rid: Int, open: Boolean = false) {
+        val queue = deferred[p.uuid]
+        if (queue == null && !recentlySent(p.uuid, p.server.tickCount)) return send(p, Reply(rid = rid), open)
+        val pending = queue ?: ArrayDeque<Deferred>().also { deferred[p.uuid] = it }
+        val older = pending.firstOrNull { it.kind == kind }?.also { pending.remove(it) }
+        val rids = older?.rids ?: mutableListOf()
+        if (rid != 0) rids += rid
+        pending += Deferred(kind, rids, open || older?.open == true)
+    }
+
+    private fun drain(server: MinecraftServer) {
+        if (deferred.isEmpty()) return
+        val tick = server.tickCount
+        val entries = deferred.entries.iterator()
+        while (entries.hasNext()) {
+            val (uuid, queue) = entries.next()
+            val p = server.playerList.getPlayer(uuid)
+            if (p == null) { entries.remove(); continue }
+            if (recentlySent(uuid, tick)) continue
+            val next = queue.removeFirst()
+            send(p, Reply(rid = next.rids.lastOrNull() ?: 0, extraRids = next.rids.dropLast(1)), next.open)
+            if (queue.isEmpty()) entries.remove()
+        }
+    }
 
     fun register(e: RegisterPayloadHandlersEvent) {
         val r = e.registrar("3").optional()
@@ -104,24 +151,26 @@ object Net {
     fun send(p: ServerPlayer, msg: String = "", ok: Boolean = true, open: Boolean = false) = send(p, Reply(msg, ok), open)
 
     fun send(p: ServerPlayer, reply: Reply, open: Boolean = false) {
-        if (canOpen(p)) PacketDistributor.sendToPlayer(p, Snapshot(Sync.encode(p, reply, open)))
+        if (!canOpen(p)) return
+        lastSnapshot[p.uuid] = p.server.tickCount
+        PacketDistributor.sendToPlayer(p, Snapshot(Sync.encode(p, reply, open)))
     }
 
     fun deny(p: ServerPlayer, d: Denied) = PacketDistributor.sendToPlayer(p, d)
 
     fun push(server: MinecraftServer) {
         ResearchSync.flush(server)
-        if (server.tickCount - lastPush < 20) return
+        drain(server)
+        // lastPush is reset with the server but tickCount can restart lower (integrated server), so a negative gap must not block pushes.
+        if (server.tickCount - lastPush in 0..19) return
         lastPush = server.tickCount
         pushTo(server.playerList.players)
         broadcastOpen(server)
     }
 
     fun broadcastOpen(server: MinecraftServer, except: UUID? = null) {
-        if (openPlayers.isEmpty()) return
         openPlayers.forEach { uuid ->
-            if (uuid == except) return@forEach
-            server.playerList.getPlayer(uuid)?.let { send(it) }
+            if (uuid != except) server.playerList.getPlayer(uuid)?.let { send(it) }
         }
     }
 
@@ -136,6 +185,8 @@ object Net {
     fun forget(p: ServerPlayer) {
         lastAct.forget(p.uuid)
         lastPreview.forget(p.uuid)
+        lastSnapshot.remove(p.uuid)
+        deferred.remove(p.uuid)
         sent.remove(p.uuid)
         ResearchSync.forget(p)
         openPlayers.remove(p.uuid)
@@ -158,7 +209,7 @@ object Net {
 
     private fun preview(p: ServerPlayer, a: ActPayload) {
         val tick = p.server.tickCount
-        if (!lastPreview.ready(p.uuid, tick)) return
+        if (!lastPreview.ready(p.uuid, tick)) return answer(p, "preview", a.rid)
         val own = Realm.of(p.stringUUID) ?: return send(p, Reply(rid = a.rid))
         val target = a.asCountry.takeIf { it.isNotBlank() }?.let { Realm.country(it) }?.takeIf { it.parent == own.id } ?: own
         val kind = a.name.removePrefix("preview_")
@@ -178,24 +229,32 @@ object Net {
             "open" -> {
                 openPlayers += p.uuid
                 Sync.focus(p, Service.here(p).x, Service.here(p).z)
-                send(p, Reply(rid = a.rid), open = true)
+                answer(p, "open", a.rid, open = true)
             }
-            "close" -> openPlayers -= p.uuid
+            "close" -> close(p)
             "chunk" -> {
                 Sync.focus(p, a.args.getOrNull(0)?.toIntOrNull() ?: return, a.args.getOrNull(1)?.toIntOrNull() ?: return)
-                send(p, Reply(rid = a.rid))
+                answer(p, a.name, a.rid)
             }
             "view" -> {
                 Sync.view(p, a.args.getOrNull(0) ?: "")
-                send(p, Reply(rid = a.rid))
+                answer(p, a.name, a.rid)
             }
             "watch" -> {
                 Sync.watch(p, a.args)
-                send(p, Reply(rid = a.rid))
+                answer(p, a.name, a.rid)
             }
             "preview_claim", "preview_unclaim", "preview_type" -> preview(p, a)
             else -> perform(p, a)
         }
+    }
+
+    private fun close(p: ServerPlayer) {
+        openPlayers -= p.uuid
+        val queue = deferred[p.uuid] ?: return
+        queue.removeAll { it.kind == "open" && it.rids.isEmpty() }
+        queue.filter { it.kind == "open" }.forEach { it.open = false }
+        if (queue.isEmpty()) deferred.remove(p.uuid)
     }
 
     private fun perform(p: ServerPlayer, a: ActPayload) {

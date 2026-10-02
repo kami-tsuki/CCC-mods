@@ -12,6 +12,7 @@ import net.minecraft.world.item.ItemStack
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.Base64
+import java.util.concurrent.TimeUnit
 
 enum class AuctionState { OPEN, SOLD, EXPIRED, CANCELLED }
 
@@ -47,6 +48,8 @@ object StackCodec {
 }
 
 object Auctions {
+    private val RETENTION_MILLIS = TimeUnit.DAYS.toMillis(7)
+
     fun minBid(a: Auction) = maxOf(a.startPrice, a.currentBid + 1)
 
     fun open(): List<Auction> = Market.data.auctions.filter { it.state == AuctionState.OPEN }
@@ -89,7 +92,6 @@ object Auctions {
         open().filter { it.expiresAt <= t }.forEach { a ->
             if (a.currentBidder.isNotEmpty()) Ledger.auctionSweepSettle(a.id) else Ledger.auctionSweepExpireUnsold(a.id)
         }
-        Market.data.auctions.removeAll { it.state != AuctionState.OPEN && it.expiresAt < t - 7L * 24 * 60 * 60 * 1000 }
-        Market.dirty = true
+        if (Market.data.auctions.removeAll { it.state != AuctionState.OPEN && it.expiresAt < t - RETENTION_MILLIS }) Market.dirty = true
     }
 }

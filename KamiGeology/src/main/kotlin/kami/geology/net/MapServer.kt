@@ -22,10 +22,11 @@ import java.util.concurrent.atomic.AtomicInteger
 
 object MapServer {
     private const val MAX_CELLS = 160_000
+    private const val SCAN_LOCK_MS = 60_000L
     private val latestMap = ConcurrentHashMap<UUID, Int>()
     private val latestProbe = ConcurrentHashMap<UUID, Int>()
 
-    private class ScanLock(val dimension: ResourceLocation, val x0: Int, val z0: Int, val w: Int, val h: Int)
+    private class ScanLock(val dimension: ResourceLocation, val x0: Int, val z0: Int, val w: Int, val h: Int, val expiresAt: Long)
     private val scans = ConcurrentHashMap<UUID, ScanLock>()
 
     fun forget(player: ServerPlayer) {
@@ -41,7 +42,7 @@ object MapServer {
         val chunkX = Math.floorDiv(player.blockX, 16)
         val chunkZ = Math.floorDiv(player.blockZ, 16)
         val region = Prospector.region(world.settings.general, tier, player.blockX, player.blockZ, chunkX, chunkZ)
-        scans[player.uuid] = ScanLock(level.dimension().location(), region.x0, region.z0, region.w, region.h)
+        scans[player.uuid] = ScanLock(level.dimension().location(), region.x0, region.z0, region.w, region.h, System.currentTimeMillis() + SCAN_LOCK_MS)
         val (ores, provinces) = legend(world)
         PacketDistributor.sendToPlayer(
             player,
@@ -103,7 +104,11 @@ object MapServer {
         if (allowed(player)) {
             if (r.cell !in 1..256 || r.w < 1 || r.h < 1 || r.w.toLong() * r.h > MAX_CELLS || y0 > y1) return
         } else {
-            val lock = scans[player.uuid] ?: return
+            val lock = scans[player.uuid]?.takeIf { it.expiresAt > System.currentTimeMillis() }
+            if (lock == null) {
+                PacketDistributor.sendToPlayer(player, MapDone(r.seq, 0, 0, 0, 0))
+                return
+            }
             if (lock.dimension != level.dimension().location()) return
             if (r.cell != 1 || r.w != lock.w || r.h != lock.h || r.x0 != lock.x0 || r.z0 != lock.z0 || y0 > y1) return
         }
@@ -116,9 +121,9 @@ object MapServer {
         val remaining = AtomicInteger(ores.size + 1)
         fun stale() = latestMap[player.uuid] != r.seq
 
-        fun deliver(layer: Int, data: ByteArray) {
+        fun deliver(layer: Int, data: ByteArray?) {
             server.execute {
-                PacketDistributor.sendToPlayer(player, MapLayer(r.seq, layer, data))
+                if (data != null) PacketDistributor.sendToPlayer(player, MapLayer(r.seq, layer, data))
                 if (remaining.decrementAndGet() == 0) {
                     fun ms(nanos: Long) = (nanos / 1_000_000L).toInt()
                     PacketDistributor.sendToPlayer(
@@ -129,18 +134,19 @@ object MapServer {
             }
         }
 
-        fun task(work: () -> Unit) = Workers.pool.execute {
+        fun task(layer: Int, work: () -> ByteArray?) = Workers.pool.execute {
             if (stale()) return@execute
             try {
-                work()
+                work()?.let { deliver(layer, it) }
             } catch (e: Exception) {
                 KamiGeology.LOG.error("Map layer failed", e)
+                deliver(layer, null)
             }
         }
 
-        task { Heatmap.provinces(world, query, ::stale, timing)?.let { deliver(-1, it) } }
+        task(-1) { Heatmap.provinces(world, query, ::stale, timing) }
         ores.forEachIndexed { index, ore ->
-            task { Heatmap.deposits(world, query, ore, ::stale, timing)?.let { deliver(index, Sparse.pack(it)) } }
+            task(index) { Heatmap.deposits(world, query, ore, ::stale, timing)?.let { Sparse.pack(it) } }
         }
     }
 

@@ -17,7 +17,6 @@ object ConfigStore {
     private const val HINT = "Save, then run /geology reload. New chunks use the change."
     private val dir: Path get() = Configs.dir("geology")
     val problems = ArrayList<String>()
-    private var version = 0
 
     @Volatile
     private var settings: Settings? = null
@@ -72,11 +71,11 @@ object ConfigStore {
                 .map { it.key to it.value }
         } else emptyList()
 
-        val resolved = (parsed + found).mapIndexedNotNull { index, (id, config) ->
-            config?.let { resolve(id, index, it, provinceMap.keys, replaceable, deepslate, fixed.ring) }
+        val resolved = (parsed + found).mapNotNull { (id, config) ->
+            config?.let { resolve(id, it, provinceMap.keys, replaceable, deepslate, fixed.ring) }
         }
 
-        return Settings(fixed, Provinces(provinceMap, fixed.fallbackProvince), link(resolved), ++version)
+        return Settings(fixed, Provinces(provinceMap, fixed.fallbackProvince), link(resolved))
     }
 
     private fun link(ores: List<Ore>): List<Ore> {
@@ -94,7 +93,7 @@ object ConfigStore {
         }.onEach { ore -> ore.anchor = ore.deposit?.anchor?.let { byId[it.ore] } }
     }
 
-    private fun resolve(id: String, index: Int, config: OreConfig, provinces: Set<String>, replaceable: BlockRule, deepslate: BlockRule, ring: Ring): Ore? {
+    private fun resolve(id: String, config: OreConfig, provinces: Set<String>, replaceable: BlockRule, deepslate: BlockRule, ring: Ring): Ore? {
         if (!config.enabled) return null
         val context = "ore '$id'"
         return try {
@@ -108,7 +107,7 @@ object ConfigStore {
             val own = hosts.values.mapTo(hashSetOf(stone, deep)) { it.block }
             val strip = (config.blocks.strip.mapNotNull { Blocks.find(it) } + Compat.material(id)).filterNot { it in own }.toSet()
             Ore(
-                id, index, config, stone.defaultBlockState(), deep.defaultBlockState(), hosts, core?.defaultBlockState(),
+                id, config, stone.defaultBlockState(), deep.defaultBlockState(), hosts, core?.defaultBlockState(),
                 config.halo?.let { Palette(it.blocks, context) }?.takeUnless { it.isEmpty },
                 config.outcrop?.let { Palette(it.blocks, context) }?.takeUnless { it.isEmpty },
                 replaceable,

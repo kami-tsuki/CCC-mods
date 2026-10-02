@@ -28,6 +28,7 @@
   "kami_economy.action.out_of_range": "Too much at once. Up to %s items and %s per item.",
   "kami_economy.action.purchased": "Purchased.",
   "kami_economy.action.repriced": "Price updated to %s each.",
+  "kami_economy.action.sell_processing": "Sale is processing and completes on server restart.",
   "kami_economy.action.sell_failed": "Sale failed.",
   "kami_economy.action.sold": "Sold %1$s × %2$s.",
   "kami_economy.action.unknown": "Unknown action.",
