@@ -412,7 +412,7 @@ class RanksPage(app: ClaimsApp) : ClaimsPage(app) {
         Vocabulary.caps.entries.forEachIndexed { row, (cap, look) ->
             val y = r.y + 38 + row * MATRIX_ROW_H
             val line = Rect(r.x, y, r.w, MATRIX_ROW_H)
-            if (row % 2 == 0) Draw.fill(ui.g, line, Palette.alpha(0xFFFFFF, 0x06))
+            if (row % 2 == 0) Draw.fill(ui.g, line, Palette.alpha(0x000000, 0x0C))
             val labelX = r.x + 2 + Draw.leadIcon(ui.g, look.icon, r.x + 2, line.centerY) + 2
             Draw.text(ui.g, Draw.fit(look.label, r.x + labelW - labelX - 4), labelX, y + 4, Palette.text)
             ui.tooltip("cap:$cap", line.left(labelW), Tip.text(look.description, look.label))

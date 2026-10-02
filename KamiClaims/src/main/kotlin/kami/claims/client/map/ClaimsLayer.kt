@@ -171,7 +171,7 @@ object ClaimsLayer {
                 val label = if (n <= MAX_COUNT) counts[n] else overflow
                 val w = Draw.width(label) + 4
                 Draw.fill(g, Rect(r.right - w - 1, r.y + 1, w, 10), Palette.alpha(0x0C0E12, 0xC8))
-                Draw.text(g, label, r.right - w + 1, r.y + 2, Palette.text)
+                Draw.text(g, label, r.right - w + 1, r.y + 2, Palette.tipText)
             }
         }
         g.flush()
@@ -227,7 +227,7 @@ object ClaimsLayer {
             placed += box
             Draw.fill(ui.g, box, Palette.alpha(0x0C0E12, 0xB0))
             Flags.draw(ui.g, Rect(box.x + 2, box.y + 2, 12, 9), country.color, country.pattern, country.emblem, country.secondary)
-            Draw.text(ui.g, country.name, box.x + 16, box.y + 3, Palette.text)
+            Draw.text(ui.g, country.name, box.x + 16, box.y + 3, Palette.tipText)
         }
     }
 }

@@ -55,7 +55,7 @@ object PriceChart {
     }
 
     fun draw(g: GuiGraphics, x: Int, y: Int, w: Int, h: Int, rawData: List<Ohlc>, style: ChartStyle, mouseX: Int, mouseY: Int, readout: Boolean = true): Ohlc? {
-        g.fill(x, y, x + w, y + h, Palette.sunken)
+        g.fill(x, y, x + w, y + h, Palette.field)
 
         val plotW = (w - AXIS_W).coerceAtLeast(10)
         val plotBottom = y + h - TIME_AXIS_H
@@ -101,7 +101,7 @@ object PriceChart {
             if (i in 1 until GRID_LINES) dottedH(g, x, x + plotW, gy, Palette.borderSubtle)
             val value = hi - (hi - lo) * frac
             val label = Format.number(value.roundToInt())
-            g.drawString(font, label, x + plotW + 4, (gy - 4).coerceIn(y, priceBottom - 8), Palette.textSecondary, true)
+            g.drawString(font, label, x + plotW + 4, (gy - 4).coerceIn(y, priceBottom - 8), Palette.textSecondary, false)
         }
     }
 
@@ -109,10 +109,10 @@ object PriceChart {
         val labelY = plotBottom + 2
         val first = data.first()
         val last = data.last()
-        if (first.at > 0) g.drawString(font, Format.ago(first.at), x, labelY, Palette.textSecondary, true)
+        if (first.at > 0) g.drawString(font, Format.ago(first.at), x, labelY, Palette.textSecondary, false)
         if (last.at > 0) {
             val text = Format.ago(last.at)
-            g.drawString(font, text, x + plotW - font.width(text), labelY, Palette.textSecondary, true)
+            g.drawString(font, text, x + plotW - font.width(text), labelY, Palette.textSecondary, false)
         }
     }
 
@@ -208,7 +208,7 @@ object PriceChart {
         val plw = font.width(priceLabel) + 5
         val ply = (cy - 4).coerceIn(y, priceBottom - 8)
         g.fill(x + plotW, ply - 1, x + plotW + plw, ply + 9, Palette.brass)
-        g.drawString(font, priceLabel, x + plotW + 2, ply, 0xFF101014.toInt(), false)
+        g.drawString(font, priceLabel, x + plotW + 2, ply, Palette.textInverse, false)
 
         if (!showReadout) return
         val tooltip = readout(c)
@@ -217,9 +217,9 @@ object PriceChart {
         var tx = cx + 6
         if (tx + tw > x + plotW) tx = cx - tw - 6
         val ty = y + 2
-        g.fill(tx, ty, tx + tw, ty + th, 0xF0101014.toInt())
+        g.fill(tx, ty, tx + tw, ty + th, Palette.tipBg)
         frame(g, tx, ty, tw, th)
-        tooltip.forEachIndexed { i, line -> g.drawString(font, line, tx + 4, ty + 3 + i * 10, Palette.text, true) }
+        tooltip.forEachIndexed { i, line -> g.drawString(font, line, tx + 4, ty + 3 + i * 10, Palette.tipText, false) }
     }
 
     private fun dottedV(g: GuiGraphics, x: Int, y0: Int, y1: Int, color: Int) {

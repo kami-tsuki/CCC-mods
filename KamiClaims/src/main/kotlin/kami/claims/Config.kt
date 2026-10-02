@@ -55,6 +55,8 @@ data class Settings(
     val nomanslandFire: Boolean = false,
     val nomanslandFluid: Boolean = false,
     val pistonProtection: Boolean = true,
+    val skyRule: Boolean = true,
+    val skyFreeDimensions: List<String> = listOf("minecraft:the_nether", "minecraft:the_end"),
     val plotAllied: List<Action> = listOf(Action.INTERACT),
     val caps: Map<Cap, Rank> = mapOf(
         Cap.CLAIM to Rank.CHANCELLOR, Cap.CAPITAL to Rank.PRESIDENT, Cap.TAX to Rank.CHANCELLOR, Cap.RULES to Rank.CHANCELLOR,
@@ -94,6 +96,7 @@ data class Settings(
 
     val dimensionSet: Set<String> by lazy { dimensions.toHashSet() }
     val freeBlockSet: Set<String> by lazy { freeBlocks.toHashSet() }
+    val skyFreeSet: Set<String> by lazy { skyFreeDimensions.toHashSet() }
     val nomanslandAllowSet: Set<Action> by lazy { nomanslandAllow.toHashSet() }
     val plotAlliedSet: Set<Action> by lazy { plotAllied.toHashSet() }
 }
@@ -193,7 +196,9 @@ private val sections = listOf(
             "nomanslandExplosions" to "Explosions break blocks in unclaimed land.",
             "nomanslandFire" to "Fire spreads in unclaimed land.",
             "nomanslandFluid" to "Fluids flow in unclaimed land.",
-            "pistonProtection" to "Stop pistons from pushing blocks across claim borders."
+            "pistonProtection" to "Stop pistons from pushing blocks across claim borders.",
+            "skyRule" to "Crops and saplings only grow with open sky above them. Only air, fluids and glass from the kami_claims:sky_transparent tag may be above. Applies everywhere, claimed or not.",
+            "skyFreeDimensions" to "Dimensions where the open sky rule is not applied, like the Nether."
         )
     ),
     Section(

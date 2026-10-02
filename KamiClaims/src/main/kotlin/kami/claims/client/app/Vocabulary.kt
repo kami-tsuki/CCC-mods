@@ -18,15 +18,15 @@ object Vocabulary {
     private fun type(id: String, color: Long, icon: Icon) = id to Look("kami_claims.chunk_type.$id", color.toInt(), icon)
 
     private val types = mapOf(
-        type("civic", 0xFFC9CED8, Icons.TOWN),
-        type("mining", 0xFFE0A050, Icons.PICKAXE),
-        type("farming", 0xFF8BCB6B, Icons.WHEAT),
-        type("forestry", 0xFF3E9B63, Icons.TREE),
-        type("factory", 0xFF6AA9FF, Icons.GEAR),
-        type("market", 0xFFE07B9B, Icons.SCALES),
-        type("residential", 0xFFC9A0F0, Icons.HOUSE),
-        type("infrastructure", 0xFF8A8FA3, Icons.RAIL),
-        type("wilderness", 0xFF6FA36B, Icons.PINE)
+        type("civic", 0xFF5F6678, Icons.TOWN),
+        type("mining", 0xFFA8650F, Icons.PICKAXE),
+        type("farming", 0xFF4A8F2A, Icons.WHEAT),
+        type("forestry", 0xFF1F7A45, Icons.TREE),
+        type("factory", 0xFF2A6FD0, Icons.GEAR),
+        type("market", 0xFFB83F68, Icons.SCALES),
+        type("residential", 0xFF8A4FC8, Icons.HOUSE),
+        type("infrastructure", 0xFF5E6378, Icons.RAIL),
+        type("wilderness", 0xFF3F7A3B, Icons.PINE)
     )
 
     fun type(name: String): Look = types[name] ?: Look(
@@ -37,12 +37,12 @@ object Vocabulary {
     private fun rank(id: String, color: Long, icon: Icon) = id to Look("kami_claims.rank.$id", color.toInt(), icon)
 
     private val ranks = mapOf(
-        rank("president", 0xFFF2C94C, Icons.CROWN),
-        rank("chancellor", 0xFFC9A0F0, Icons.SCROLL),
-        rank("officer", 0xFF7FB2FF, Icons.SHIELD),
-        rank("citizen", 0xFF4CC38A, Icons.PERSON),
-        rank("allied", 0xFF38BDF8, Icons.HANDSHAKE),
-        rank("banished", 0xFFF2555A, Icons.BAN)
+        rank("president", 0xFFA87A00, Icons.CROWN),
+        rank("chancellor", 0xFF8A4FC8, Icons.SCROLL),
+        rank("officer", 0xFF2F68C8, Icons.SHIELD),
+        rank("citizen", 0xFF1E8A58, Icons.PERSON),
+        rank("allied", 0xFF0F78B0, Icons.HANDSHAKE),
+        rank("banished", 0xFFB02A2E, Icons.BAN)
     )
 
     fun rank(name: String): Look = ranks[name.lowercase()] ?: Look("kami_claims.rank.${name.lowercase()}", Palette.textMuted, Icons.PERSON, name)
@@ -52,13 +52,13 @@ object Vocabulary {
     private fun access(id: String, color: Long, icon: Icon) = id to Look("kami_claims.access.$id", color.toInt(), icon)
 
     val access = listOf(
-        access("none", 0xFFF2555A, Icons.BAN),
-        access("officer", 0xFFF08A4B, Icons.SHIELD),
-        access("job", 0xFFF5A524, Icons.PICKAXE),
-        access("worker", 0xFFD9C36A, Icons.TOOL),
-        access("citizen", 0xFF8BCB6B, Icons.PEOPLE),
-        access("allied", 0xFF38BDF8, Icons.HANDSHAKE),
-        access("any", 0xFF4CC38A, Icons.GLOBE)
+        access("none", 0xFFB02A2E, Icons.BAN),
+        access("officer", 0xFFB85A1E, Icons.SHIELD),
+        access("job", 0xFFA8680A, Icons.PICKAXE),
+        access("worker", 0xFF8A7418, Icons.TOOL),
+        access("citizen", 0xFF4A8F2A, Icons.PEOPLE),
+        access("allied", 0xFF0F78B0, Icons.HANDSHAKE),
+        access("any", 0xFF1E8A58, Icons.GLOBE)
     )
 
     fun access(name: String) = access.firstOrNull { it.first == name }?.second ?: access.first().second

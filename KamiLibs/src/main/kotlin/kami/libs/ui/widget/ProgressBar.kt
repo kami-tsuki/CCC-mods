@@ -37,5 +37,5 @@ fun Ui.progressBar(
     if (shown > 0f) Draw.tinted(g, Sprites.FILL, filled, fill)
     if (shimmer && !paused && shown > 0f && fraction < 1f) shimmer(filled, Palette.alpha(0xFFFFFF, SHIMMER_ALPHA))
     if (paused) Draw.hatch(g, bar.inset(1), Palette.alpha(Palette.warning, PAUSED_HATCH_ALPHA))
-    if (!labelled && bar.h >= 10) Draw.textCentered(g, count, bar, Palette.text)
+    if (!labelled && bar.h >= 10) Draw.textCentered(g, count, bar, Palette.textInverse)
 }

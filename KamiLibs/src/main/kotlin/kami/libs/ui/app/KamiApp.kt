@@ -145,11 +145,11 @@ abstract class KamiApp {
         window = Rect((width - w) / 2, (height - h) / 2, w, h)
         Draw.shadow(ui.g, window, 2)
         Draw.sprite(ui.g, Sprites.WINDOW, window)
-        val top = window.top(TOPBAR_H + 1).inset(1, 1, 1, 0)
+        val top = window.top(TOPBAR_H + 2).inset(2, 2, 2, 0)
         Draw.sprite(ui.g, Sprites.TOPBAR, top)
         ui.anchor("topbar", top)
         topBar(ui, top)
-        val body = window.dropTop(TOPBAR_H + 1).inset(1, 0, 1, 1)
+        val body = window.dropTop(TOPBAR_H + 2).inset(2, 0, 2, 2)
         val sideW = if (compact) 22 else 108
         val side = body.left(sideW)
         sidebar(side)
@@ -267,7 +267,7 @@ abstract class KamiApp {
         if (hover && !active) Draw.fill(ui.g, r, Palette.hover)
         val iconX = if (compact) r.x + (r.w - Draw.ICON) / 2 else r.x + 4
         val iconY = r.y + (r.h - Draw.ICON) / 2
-        if (lock != null) Draw.tintedIcon(ui.g, item.icon, iconX, iconY, Draw.ICON, Palette.alpha(0xFFFFFF, 0x60)) else Draw.icon(ui.g, item.icon, iconX, iconY)
+        if (lock != null) Draw.tintedIcon(ui.g, item.icon, iconX, iconY, Draw.ICON, Palette.iconOff) else Draw.icon(ui.g, item.icon, iconX, iconY)
         var shown = item.label
         if (!compact) {
             val color = when {

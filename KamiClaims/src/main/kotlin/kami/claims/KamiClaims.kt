@@ -17,6 +17,7 @@ import kami.claims.social.Mail
 import kami.claims.social.Perms
 import kami.claims.world.Effects
 import kami.claims.world.Guard
+import kami.claims.world.Sky
 import kami.libs.claims.Citizenship
 import kami.libs.claims.ClaimInfo
 import kami.libs.claims.ClaimsApi
@@ -124,6 +125,7 @@ object KamiClaims {
         FORGE_BUS.addListener<PermissionGatherEvent.Nodes> { Perms.register(it) }
         ClaimsCommands.register()
         Listeners.register()
+        Sky.register()
         FORGE_BUS.addListener<ServerStartingEvent> { RecipeContext.bind(Thread.currentThread()) }
         FORGE_BUS.addListener<ServerStartedEvent> { Realm.load(it.server); Research.reload() }
         FORGE_BUS.addListener<OnDatapackSyncEvent> { if (it.player == null) Research.resolve(it.playerList.server) }

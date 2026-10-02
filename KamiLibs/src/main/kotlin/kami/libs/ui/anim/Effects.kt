@@ -33,7 +33,7 @@ object Effects {
         for (i in 0 until floaters.capacity) {
             val label = floaters.text[i] ?: continue
             val color = Palette.fade(floaters.color[i], floaters.fade(i))
-            if (color != 0) Draw.text(g, label, floaters.x[i] - Draw.font.width(label) / 2, floaters.y[i].toInt(), color, true)
+            if (color != 0) Draw.text(g, label, floaters.x[i] - Draw.font.width(label) / 2, floaters.y[i].toInt(), color, false)
         }
     }
 

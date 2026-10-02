@@ -15,6 +15,7 @@ import kotlin.math.roundToInt
 internal object HeatmapDraw {
     val ramp = intArrayOf(0x440154, 0x3B528B, 0x21918C, 0x5EC962, 0xFDE725)
     const val BRIGHT = 0xC0C8D0
+    val MAP_BG = 0xFF101216.toInt()
     private const val GRID = 0x30FFFFFF
     private const val AXIS = 0x70FFFFFF
 
@@ -42,14 +43,14 @@ internal object HeatmapDraw {
         while (gx <= view.worldX(r.right.toDouble())) {
             val sx = view.screenX(gx.toDouble()).roundToInt()
             Draw.vline(g, sx, r.y, r.h, if (gx == 0) AXIS else GRID)
-            Draw.text(g, gx.toString(), sx + 3, r.y + 3, Palette.textMuted)
+            Draw.text(g, gx.toString(), sx + 3, r.y + 3, Palette.tipMuted)
             gx += step
         }
         var gz = Math.floorDiv(floor(view.worldZ(r.y.toDouble())).toInt(), step) * step
         while (gz <= view.worldZ(r.bottom.toDouble())) {
             val sy = view.screenY(gz.toDouble()).roundToInt()
             Draw.hline(g, r.x, sy, r.w, if (gz == 0) AXIS else GRID)
-            Draw.text(g, gz.toString(), r.x + 3, sy + 3, Palette.textMuted)
+            Draw.text(g, gz.toString(), r.x + 3, sy + 3, Palette.tipMuted)
             gz += step
         }
     }
@@ -74,6 +75,6 @@ internal object HeatmapDraw {
         val sx = view.screenX(player.x).roundToInt()
         val sy = view.screenY(player.z).roundToInt()
         Draw.box(g, Rect(sx - 3, sy - 3, 7, 7), 0xFFFFFFFF.toInt(), 0xFF000000.toInt())
-        Draw.text(g, tr("kami_geology.map.you"), sx + 6, sy - 4, Palette.text, shadow = true)
+        Draw.text(g, tr("kami_geology.map.you"), sx + 6, sy - 4, Palette.tipText, shadow = true)
     }
 }

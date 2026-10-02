@@ -137,7 +137,7 @@ fun <T> Ui.table(
             Draw.fill(g, rr, when {
                 chosen -> Palette.selected
                 over -> Palette.hover
-                index % 2 == 1 -> Palette.alpha(0xFFFFFF, 0x04)
+                index % 2 == 1 -> Palette.alpha(0x000000, 0x0C)
                 else -> 0
             })
             Draw.hline(g, rr.x, rr.bottom - 1, rr.w, Palette.alpha(Palette.borderSubtle, 0xA0))

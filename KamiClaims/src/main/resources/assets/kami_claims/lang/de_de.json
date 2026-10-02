@@ -426,6 +426,7 @@
   "kami_claims.flag_pattern.saltire": "Andreaskreuz",
   "kami_claims.flag_pattern.stripes": "Streifen",
   "kami_claims.flag_pattern.top_half": "Obere Hälfte",
+  "kami_claims.guard.sky": "Braucht freien Himmel: darüber darf nur Glas sein.",
   "kami_claims.guard.denied.access.allied": "Hier dürfen nur Bürger und Verbündete von %1$s %2$s (%3$s).",
   "kami_claims.guard.denied.access.any": "Hier dürfen alle %2$s (%3$s).",
   "kami_claims.guard.denied.access.citizen": "Hier dürfen nur Bürger von %1$s %2$s (%3$s).",

@@ -18,9 +18,9 @@ import kami.libs.ui.style.TextStyle
 import kami.libs.ui.style.UiSound
 
 enum class ButtonStyle(val look: Sprites.Look, val text: () -> Int) {
-    PRIMARY(Sprites.Look.PRIMARY, { Palette.text }),
+    PRIMARY(Sprites.Look.PRIMARY, { Palette.textInverse }),
     SECONDARY(Sprites.Look.SECONDARY, { Palette.text }),
-    DANGER(Sprites.Look.DANGER, { Palette.text }),
+    DANGER(Sprites.Look.DANGER, { Palette.textInverse }),
     GHOST(Sprites.Look.GHOST, { Palette.textSecondary })
 }
 
@@ -70,7 +70,7 @@ fun Ui.button(
     val content = iconSlot + Draw.width(label)
     var x = r.x + maxOf(2, (r.w - content) / 2)
     if (pending) spinner(x, r.centerY - 4 + sink, color)
-    else if (icon != null) Draw.leadIcon(g, icon, x, r.centerY + sink, if (usable) null else Palette.alpha(0xFFFFFF, 0x60))
+    else if (icon != null) Draw.leadIcon(g, icon, x, r.centerY + sink, if (!usable) Palette.iconOff else if (style == ButtonStyle.PRIMARY || style == ButtonStyle.DANGER) Palette.textInverse else null)
     x += iconSlot
     val shown = Draw.fit(label, r.w - 6 - (x - r.x))
     if (label.isNotEmpty()) Draw.text(g, shown, x, r.y + (r.h - 8) / 2 + sink, TextStyle.BODY, color)
@@ -96,7 +96,7 @@ fun Ui.iconButton(r: Rect, icon: Icon, tip: String, enabled: Boolean = true, sel
     if (selected) Draw.hline(g, r.x + 2, r.bottom - 1, r.w - 4, Palette.brass)
     val x = r.x + (r.w - Draw.ICON) / 2
     val y = r.y + (r.h - Draw.ICON) / 2 + if (feel.press > 0.5f) 1 else 0
-    if (enabled) Draw.icon(g, icon, x, y) else Draw.tintedIcon(g, icon, x, y, Draw.ICON, Palette.alpha(0xFFFFFF, 0x60))
+    if (enabled) Draw.icon(g, icon, x, y) else Draw.tintedIcon(g, icon, x, y, Draw.ICON, Palette.iconOff)
     controlTip(key, r, enabled, disabledReason, tip)
     focusRing(key, r)
     val released = active == id && released() != null
@@ -118,7 +118,7 @@ fun Ui.holdButton(r: Rect, label: String, holdMs: Long = 1500, enabled: Boolean 
     Draw.sprite(g, Sprites.Look.DANGER.of(hover && enabled, holding, enabled), r)
     if (progress > 0f) Draw.fill(g, Rect(r.x + 1, r.y + 1, ((r.w - 2) * progress).toInt(), r.h - 2), Palette.alpha(0xFFFFFF, 0x28))
     val text = if (holding) tr("kami_libs.common.keep_holding") else label
-    Draw.textCentered(g, Draw.fit(text, r.w - 8), r, if (enabled) Palette.text else Palette.textDisabled)
+    Draw.textCentered(g, Draw.fit(text, r.w - 8), r, if (enabled) Palette.textInverse else Palette.textDisabled)
     controlTip(key, r, enabled, disabledReason, tr("kami_libs.common.hold_to_confirm.tooltip", Format.decimal(holdMs / 1000.0)))
     if (released() != null && active == id) active = null
     if (progress >= 1f) {

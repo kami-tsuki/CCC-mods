@@ -69,7 +69,7 @@ class ResearchQueuePage(app: ClaimsApp) : ClaimsPage(app) {
         }
         val y = originY + ui.spring("queue-row:${node.key}", (r.y - originY).toFloat(), stiffness = ROW_STIFFNESS).toInt()
         val row = Rect(r.x, y, r.w, r.h).inset(0, 1)
-        ui.panel(row, sunken = true)
+        ui.panel(row)
         val inner = row.inset(3)
         val line = Row(inner, 4)
         val stack = stackOf(node.icon)

@@ -51,7 +51,7 @@ private fun niceStep(range: Double, ticks: Int): Double {
 fun Ui.lineChart(r: Rect, series: List<Series>, labels: List<String>, format: (Long) -> String = { Format.compact(it) }, zeroLine: Boolean = true, key: Any = "chart") {
     val all = series.flatMap { it.values }
     val count = series.maxOfOrNull { it.values.size } ?: 0
-    Draw.fill(g, r, Palette.sunken)
+    Draw.fill(g, r, Palette.field)
     if (count < 2 || all.isEmpty()) {
         Draw.textCentered(g, tr("kami_libs.chart.no_history"), r, Palette.textMuted)
         return
@@ -113,7 +113,7 @@ fun Ui.lineChart(r: Rect, series: List<Series>, labels: List<String>, format: (L
 
 fun Ui.barChart(r: Rect, positive: List<Long>, negative: List<Long>, labels: List<String>, format: (Long) -> String = { Format.compact(it) }, key: Any = "bars") {
     val count = max(positive.size, negative.size)
-    Draw.fill(g, r, Palette.sunken)
+    Draw.fill(g, r, Palette.field)
     if (count == 0) { Draw.textCentered(g, tr("kami_libs.chart.no_data"), r, Palette.textMuted); return }
     val top = max(1L, max(positive.maxOrNull() ?: 0, negative.maxOrNull() ?: 0))
     val plot = r.inset(6, 4, 6, 4)

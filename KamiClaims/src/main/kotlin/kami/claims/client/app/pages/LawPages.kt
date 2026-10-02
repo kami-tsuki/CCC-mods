@@ -131,7 +131,7 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
                 val y = area.y + row * RULE_H
                 val line = Rect(area.x, y, area.w, RULE_H - 1)
                 if (focusCell?.first == t.name) Draw.fill(ui.g, line, Palette.alpha(Palette.brass, 0x14))
-                else if (row % 2 == 1) Draw.fill(ui.g, line, Palette.alpha(0xFFFFFF, 0x05))
+                else if (row % 2 == 1) Draw.fill(ui.g, line, Palette.alpha(0x000000, 0x0C))
                 val look = Vocabulary.type(t.name)
                 val labelX = line.x + 2 + Draw.leadIcon(ui.g, look.icon, line.x + 2, line.centerY) + 2
                 Draw.text(ui.g, Draw.fit(look.label, line.x + labelW - labelX - 4), labelX, y + 5, look.color)
@@ -436,7 +436,7 @@ class IdentityPage(app: ClaimsApp) : ClaimsPage(app) {
 
     private fun pick(ui: Ui, r: Rect, chosen: Boolean, enabled: Boolean, tip: String, onPick: () -> Unit) {
         if (chosen) { Draw.outline(ui.g, r.grow(1), Palette.text); Draw.outline(ui.g, r.grow(2), Palette.brass) }
-        if (ui.hovering(r) && enabled) { Draw.outline(ui.g, r, Palette.alpha(0xFFFFFF, 0x90)); ui.cursor = Cursor.HAND }
+        if (ui.hovering(r) && enabled) { Draw.outline(ui.g, r, Palette.alpha(Palette.text, 0x90)); ui.cursor = Cursor.HAND }
         ui.tooltip("pick:$tip", r, if (enabled) tip else lock("rules"))
         if (enabled && ui.pressed(r) != null) onPick()
     }

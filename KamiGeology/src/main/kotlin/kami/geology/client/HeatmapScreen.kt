@@ -279,7 +279,7 @@ class HeatmapScreen(private val info: OpenMap) : KamiScreen(Component.translatab
         val image = if (existing != null && existing.width == t.w && existing.height == t.h) existing else NativeImage(NativeImage.Format.RGBA, t.w, t.h, false)
         val heat = enabled.count { it } == 1
         val span = max(1, 255 - floor).toDouble()
-        val background = Palette.sunken
+        val background = HeatmapDraw.MAP_BG
         for (j in 0 until t.h) for (i in 0 until t.w) {
             val k = j * t.w + i
             var color = background
@@ -368,7 +368,7 @@ class HeatmapScreen(private val info: OpenMap) : KamiScreen(Component.translatab
         if (locked) view.fit(info.lockX0!!.toDouble(), info.lockZ0!!.toDouble(), info.lockW!!.toDouble(), info.lockH!!.toDouble(), LOCK_FILL)
         val t = tile
         ui.clip(r) {
-            Draw.fill(g, r, Palette.sunken)
+            Draw.fill(g, r, HeatmapDraw.MAP_BG)
             if (t != null && texture != null) {
                 val scale = (t.cell / view.unitsPerPx).toFloat()
                 g.pose().pushPose()
@@ -514,7 +514,7 @@ class HeatmapScreen(private val info: OpenMap) : KamiScreen(Component.translatab
         val single = enabled.count { it } == 1
         val floor = max(1, threshold)
         val colors = if (single) HeatmapDraw.ramp.map { Palette.opaque(it) }
-        else listOf(0.55, 1.0).map { blend(Palette.sunken, HeatmapDraw.BRIGHT, it) }
+        else listOf(0.55, 1.0).map { blend(HeatmapDraw.MAP_BG, HeatmapDraw.BRIGHT, it) }
         ui.gradientLegend(
             r, colors, floor.toDouble(), 255.0,
             format = { short(Heatmap.decode(it.roundToInt())) },

@@ -426,6 +426,7 @@
   "kami_claims.flag_pattern.saltire": "Saltire",
   "kami_claims.flag_pattern.stripes": "Stripes",
   "kami_claims.flag_pattern.top_half": "Top half",
+  "kami_claims.guard.sky": "Needs open sky: only glass may be above.",
   "kami_claims.guard.denied.access.allied": "Only citizens and allies of %1$s may %2$s here (%3$s).",
   "kami_claims.guard.denied.access.any": "Everyone may %2$s here (%3$s).",
   "kami_claims.guard.denied.access.citizen": "Only citizens of %1$s may %2$s here (%3$s).",

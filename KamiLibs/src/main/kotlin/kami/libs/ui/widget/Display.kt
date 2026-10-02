@@ -255,7 +255,7 @@ fun Ui.legendItem(x: Int, y: Int, color: Int, label: String, hatched: Boolean = 
 fun Ui.itemSlot(r: Rect, stack: ItemStack, count: String? = null, selected: Boolean = false, enabled: Boolean = true, key: Any = "slot:${r.x}:${r.y}"): Boolean {
     val hover = hover(key, r)
     panel(r, sunken = true)
-    if (hover && enabled) Draw.fill(g, r.inset(1), Palette.alpha(0xFFFFFF, 0x1C))
+    if (hover && enabled) Draw.fill(g, r.inset(1), Palette.alpha(0xFFFFFF, 0x60))
     if (selected) Draw.outline(g, r, Palette.brass)
     val x = r.x + (r.w - 16) / 2
     val y = r.y + (r.h - 16) / 2

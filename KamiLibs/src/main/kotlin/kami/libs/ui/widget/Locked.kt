@@ -80,7 +80,7 @@ fun Ui.lockedButton(
 }
 
 fun Ui.lockedPanel(r: Rect, title: String, teaser: String, lock: Lock, icon: Icon = Icons.LOCK, key: Any = "locked-panel") {
-    panel(r, sunken = true)
+    panel(r)
     val w = (r.w - 24).coerceAtMost(260)
     val teaserH = Draw.paragraphHeight(teaser, w)
     val how = lock.how?.let { Draw.paragraphHeight(it, w) } ?: 0

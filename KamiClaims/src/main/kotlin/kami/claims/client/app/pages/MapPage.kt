@@ -384,7 +384,7 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
         val w = 130
         val h = if (legendOpen) entries.size * 11 + 18 else 14
         val box = Rect(r.x + 4, r.bottom - h - 4, w, h)
-        Draw.fill(ui.g, box, Palette.alpha(0x0C0E12, 0xC8))
+        Draw.fill(ui.g, box, Palette.alpha(Palette.surface, 0xE6))
         Draw.text(ui.g, tr("kami_claims.map.legend", mode.label).uppercase(Format.locale), box.x + 4, box.y + 3, Palette.textMuted)
         if (ui.hovering(box.top(12))) ui.cursor = Cursor.HAND
         if (ui.pressed(box.top(12)) != null) legendOpen = !legendOpen

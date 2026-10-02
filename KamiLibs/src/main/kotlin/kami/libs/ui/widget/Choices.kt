@@ -110,7 +110,7 @@ fun <T> Ui.segmented(r: Rect, options: List<Option<T>>, selected: T, enabled: Bo
         val iconW = if (o.icon == null && o.lock == null) 0 else if (o.label.isEmpty()) Draw.ICON - 4 else Draw.ICON
         val content = iconW + Draw.width(o.label)
         var x = cell.x + max(3, (cell.w - content) / 2)
-        (if (o.lock != null) Icons.LOCK else o.icon)?.let { Draw.leadIcon(g, it, x, cell.centerY, if (usable) null else Palette.alpha(0xFFFFFF, 0x60)) }
+        (if (o.lock != null) Icons.LOCK else o.icon)?.let { Draw.leadIcon(g, it, x, cell.centerY, if (usable) null else Palette.iconOff) }
         x += iconW
         val shown = Draw.fit(o.label, cell.right - x - 3)
         if (o.label.isNotEmpty()) Draw.text(g, shown, x, cell.y + (cell.h - 8) / 2, when {

@@ -117,7 +117,11 @@ object Draw {
 
     fun icon(g: GuiGraphics, icon: Icon, x: Int, y: Int, size: Int = ICON) {
         val s = native(size)
+        val c = Palette.iconTint
+        RenderSystem.enableBlend()
+        RenderSystem.setShaderColor(((c shr 16) and 0xFF) / 255f, ((c shr 8) and 0xFF) / 255f, (c and 0xFF) / 255f, 1f)
         g.blitSprite(icon.sprite, x + (size - s) / 2, y + (size - s) / 2, s, s)
+        RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
     }
     fun icon(g: GuiGraphics, icon: Icon, r: Rect, size: Int = ICON) = icon(g, icon, r.x + (r.w - size) / 2, r.y + (r.h - size) / 2, size)
     fun tintedIcon(g: GuiGraphics, icon: Icon, x: Int, y: Int, size: Int, color: Int) {
@@ -131,7 +135,7 @@ object Draw {
     }
 
     fun marker(g: GuiGraphics, icon: Icon, centerX: Int, centerY: Int) {
-        box(g, Rect(centerX - 6, centerY - 6, 12, 12), Palette.alpha(Palette.sunken, 0xB3), Palette.alpha(Palette.borderStrong, 0xB3))
+        box(g, Rect(centerX - 6, centerY - 6, 12, 12), Palette.alpha(Palette.raised, 0xE0), Palette.alpha(Palette.borderStrong, 0xE0))
         icon(g, icon, centerX - ICON / 2, centerY - ICON / 2)
     }
 

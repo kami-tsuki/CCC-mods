@@ -2,7 +2,6 @@ package kami.libs.ui.core
 
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Palette
-import kami.libs.ui.style.Sprites
 import kami.libs.ui.style.TextStyle
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.util.FormattedCharSequence
@@ -37,18 +36,18 @@ object Tooltips {
         if (y + height > screen.bottom - 4) y = max(4, screen.bottom - height - 4)
         val box = Rect(max(4, x), y + ((1f - appear) * RISE).toInt(), w, height)
         Draw.shadow(g, box, 1)
-        Draw.sprite(g, Sprites.TOOLTIP, box)
-        t.severity?.let { Draw.fill(g, box.left(1).inset(0, 1), it.color) }
+        Draw.box(g, box, Palette.tipBg, Palette.tipBorder)
+        t.severity?.let { Draw.fill(g, box.left(1).inset(0, 1), Palette.forTip(it.color)) }
         var cy = box.y + PAD
         val cx = box.x + PAD
         t.title?.let { title ->
             var tx = cx
-            t.icon?.let { tx += Draw.leadIcon(g, it, cx, cy + 4) }
-            Draw.text(g, title, tx, cy, TextStyle.HEADING, t.severity?.color ?: Palette.text)
+            t.icon?.let { tx += Draw.leadIcon(g, it, cx, cy + 4, Palette.tipText) }
+            Draw.text(g, title, tx, cy, TextStyle.HEADING, t.severity?.color?.let { Palette.forTip(it) } ?: Palette.tipText)
             cy += Draw.LINE + 1
         }
         wrapped.forEach { (lines, color) ->
-            lines.forEach { line -> g.drawString(Draw.font, line, cx, cy, color, false); cy += Draw.LINE }
+            lines.forEach { line -> g.drawString(Draw.font, line, cx, cy, Palette.forTip(color), false); cy += Draw.LINE }
         }
         t.extra?.let { draw ->
             cy += 2
@@ -56,9 +55,9 @@ object Tooltips {
             cy += t.extraHeight + 2
         }
         t.keys?.let {
-            Draw.hline(g, cx, cy, width, Palette.borderSubtle)
-            Draw.text(g, it, cx, cy + 2, Palette.textMuted)
+            Draw.hline(g, cx, cy, width, Palette.tipBorder)
+            Draw.text(g, it, cx, cy + 2, Palette.tipMuted)
         }
-        Draw.veilBox(g, box.inset(1), appear)
+        Draw.veilBox(g, box.inset(1), appear, Palette.tipBg)
     }
 }
