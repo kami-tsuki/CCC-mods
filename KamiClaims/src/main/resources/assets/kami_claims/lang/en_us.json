@@ -2986,5 +2986,6 @@
   "kami_claims.research.node.technology.copycats": "Copycats",
   "kami_claims.research.node.technology.copycats.desc": "Zinc copycat blocks that mimic any block.",
   "kami_claims.research.node.technology.vt_smithing": "Smithing",
-  "kami_claims.research.node.technology.vt_smithing.desc": "Smithing table upgrades and armor trims."
+  "kami_claims.research.node.technology.vt_smithing.desc": "Smithing table upgrades and armor trims.",
+  "kami_claims.error.country_limit": "The server allows at most %s countries. Join an existing one instead."
 }

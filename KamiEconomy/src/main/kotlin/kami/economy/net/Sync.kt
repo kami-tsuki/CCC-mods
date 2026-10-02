@@ -155,11 +155,11 @@ object Sync {
         val lot = Config.s.lotOf(item)
         val price = Matching.effectiveSellPrice(item) ?: 0
         val ask = Stocks.ask(item)
-        val stock = Stocks.stock(item)?.let { StockLine(Stocks.price(item).roundToInt(), it.lots, Stocks.capLeft(me, item), Stocks.cap(item), lot, Stocks.room(item)) }
+        val stock = Stocks.stock(item)?.let { StockLine(if (Stocks.infinite(item)) Stocks.basePrice(item) else Stocks.price(item).roundToInt(), it.lots, Stocks.capLeft(me, item), Stocks.cap(item), lot, Stocks.room(item, me)) }
         val buyStep = if (stock != null && ask != null && ask <= price) stock.step else Matching.step(price.coerceAtLeast(1)) * lot
         val book = Matching.bookFor(item)
         val stockAsk = ask?.let { Level(it, (stock?.lots ?: 0) * lot, market = true) }
-        val stockBid = Stocks.bid(me, item)?.let { Level(it, Stocks.room(item) * lot, market = true) }
+        val stockBid = Stocks.bid(me, item)?.let { Level(it, Stocks.room(item, me) * lot, market = true) }
         val asks = (levels(book.sells.filter { it.amount > 0 }) { Trade.terms(me, it) } + listOfNotNull(stockAsk)).sortedBy { it.price }.take(5)
         val bids = (levels(Matching.bids(item)) { Trade.terms(it, me) } + listOfNotNull(stockBid)).sortedByDescending { it.price }.take(5)
         val myBid = book.buys.firstOrNull { it.owner == me }

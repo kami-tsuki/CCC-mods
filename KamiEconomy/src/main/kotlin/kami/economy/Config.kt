@@ -9,9 +9,99 @@ import kotlin.math.roundToInt
 data class CategoryBounds(val floor: Int? = null, val ceiling: Int? = null, val maxMovePct: Double? = null)
 
 @Serializable
-data class StarterGood(val item: String, val base: Int, val lot: Int = 64, val target: Int = 64, val depth: Int = 32, val dailyCap: Int? = null)
+data class StarterGood(val item: String, val base: Int, val lot: Int = 64, val target: Int = 64, val depth: Int = 32, val dailyCap: Int? = null, val infinite: Boolean = false)
 
 private fun starters(base: Int, vararg items: String) = items.map { StarterGood(it, base) }
+
+/** Goods the market always buys at a fixed price, up to [cap] lots per player per day; it never sells them back. */
+private fun unlimited(base: Int, lot: Int, cap: Int, vararg items: String) = items.map { StarterGood(it, base, lot = lot, dailyCap = cap, infinite = true) }
+
+private val CROPTOPIA_CROPS = arrayOf(
+    "croptopia:almond",
+    "croptopia:apricot",
+    "croptopia:artichoke",
+    "croptopia:asparagus",
+    "croptopia:avocado",
+    "croptopia:banana",
+    "croptopia:barley",
+    "croptopia:basil",
+    "croptopia:bellpepper",
+    "croptopia:blackbean",
+    "croptopia:blackberry",
+    "croptopia:blueberry",
+    "croptopia:broccoli",
+    "croptopia:cabbage",
+    "croptopia:cantaloupe",
+    "croptopia:cashew",
+    "croptopia:cauliflower",
+    "croptopia:celery",
+    "croptopia:cherry",
+    "croptopia:chile_pepper",
+    "croptopia:cinnamon",
+    "croptopia:coconut",
+    "croptopia:coffee_beans",
+    "croptopia:corn",
+    "croptopia:cranberry",
+    "croptopia:cucumber",
+    "croptopia:currant",
+    "croptopia:date",
+    "croptopia:dragonfruit",
+    "croptopia:eggplant",
+    "croptopia:elderberry",
+    "croptopia:fig",
+    "croptopia:garlic",
+    "croptopia:ginger",
+    "croptopia:grape",
+    "croptopia:grapefruit",
+    "croptopia:greenbean",
+    "croptopia:greenonion",
+    "croptopia:honeydew",
+    "croptopia:hops",
+    "croptopia:kale",
+    "croptopia:kiwi",
+    "croptopia:kumquat",
+    "croptopia:leek",
+    "croptopia:lemon",
+    "croptopia:lettuce",
+    "croptopia:lime",
+    "croptopia:mango",
+    "croptopia:mustard",
+    "croptopia:nectarine",
+    "croptopia:nutmeg",
+    "croptopia:oat",
+    "croptopia:olive",
+    "croptopia:onion",
+    "croptopia:orange",
+    "croptopia:peach",
+    "croptopia:peanut",
+    "croptopia:pear",
+    "croptopia:pecan",
+    "croptopia:pepper",
+    "croptopia:persimmon",
+    "croptopia:pineapple",
+    "croptopia:plum",
+    "croptopia:radish",
+    "croptopia:raspberry",
+    "croptopia:rhubarb",
+    "croptopia:rice",
+    "croptopia:rutabaga",
+    "croptopia:saguaro",
+    "croptopia:soybean",
+    "croptopia:spinach",
+    "croptopia:squash",
+    "croptopia:starfruit",
+    "croptopia:strawberry",
+    "croptopia:sweetpotato",
+    "croptopia:tea_leaves",
+    "croptopia:tomatillo",
+    "croptopia:tomato",
+    "croptopia:turmeric",
+    "croptopia:turnip",
+    "croptopia:vanilla",
+    "croptopia:walnut",
+    "croptopia:yam",
+    "croptopia:zucchini",
+)
 
 @Serializable
 data class Settings(
@@ -39,7 +129,10 @@ data class Settings(
         starters(5, "minecraft:wheat", "minecraft:melon_slice", "minecraft:sweet_berries") +
         starters(40, "#c:ingots/iron", "#c:ingots/copper") +
         starters(50, "#c:ingots/zinc", "#c:ingots/lead") +
-        starters(80, "#c:ingots/gold"),
+        starters(80, "#c:ingots/gold") +
+        unlimited(10, 64, 3, *CROPTOPIA_CROPS) +
+        unlimited(400, 8, 4, "tfmg:steel_mechanism") +
+        unlimited(600, 8, 4, "tfmg:circuit_board"),
     val dailySellLots: Int = 3,
     val resetHour: Int = 6,
     val recoveryPct: Int = 5,
@@ -124,7 +217,7 @@ private val sections = listOf(
     Section(
         "starter-items.json", "Basic goods the market buys and sells from its own stock, so new players can earn their first coins.",
         mapOf(
-            "starterGoods" to "Item id or #tag, base price per lot, lot size, target stock and depth in lots, optional own daily cap.",
+            "starterGoods" to "Item id or #tag, base price per lot, lot size, target stock and depth in lots, optional own daily cap. infinite = the market always buys it at the base price up to the daily cap per player and never sells it back.",
             "dailySellLots" to "Lots per player and day the market buys at the full base price.",
             "resetHour" to "Server hour, 0 to 23, when the daily cap resets.",
             "recoveryPct" to "Share of the gap to the target stock that closes each day, 0 to 100.",

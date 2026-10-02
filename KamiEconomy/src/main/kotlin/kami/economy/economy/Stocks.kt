@@ -67,6 +67,7 @@ object Stocks {
 
     fun basePrice(item: String): Int {
         val g = goods[item] ?: return 1
+        if (g.infinite) return g.base.coerceAtLeast(1)
         return clampBase(g, stock(item)?.base ?: g.base.toDouble()).roundToInt().coerceAtLeast(1)
     }
 
@@ -75,14 +76,19 @@ object Stocks {
         return ceil(g.target - g.depth * ln(Config.s.bandLow) - 1e-9).toInt().coerceAtLeast(g.target)
     }
 
-    fun room(item: String): Int = stock(item)?.let { (limit(item) - it.lots).coerceAtLeast(0) } ?: 0
+    fun infinite(item: String): Boolean = goods[item]?.infinite == true
+
+    /** Lots the market still takes; infinite goods never fill up, they are only limited per player by [capLeft]. */
+    fun room(item: String): Int = if (infinite(item)) Int.MAX_VALUE / 2 else stock(item)?.let { (limit(item) - it.lots).coerceAtLeast(0) } ?: 0
+
+    fun room(item: String, player: String): Int = if (infinite(item)) capLeft(player, item) else room(item)
 
     fun tax(gross: Long): Long = (gross * Config.s.taxPct.coerceIn(0, 100) + 99) / 100
 
-    fun ask(item: String): Int? = stock(item)?.takeIf { it.lots > 0 }?.let { (price(item) * (100 + Config.s.taxPct) / 100).roundToInt().coerceAtLeast(1) }
+    fun ask(item: String): Int? = stock(item)?.takeIf { it.lots > 0 && !infinite(item) }?.let { (price(item) * (100 + Config.s.taxPct) / 100).roundToInt().coerceAtLeast(1) }
 
     fun bid(player: String, item: String): Int? =
-        stock(item)?.takeIf { room(item) > 0 }?.let { if (capLeft(player, item) > 0) basePrice(item) else price(item).roundToInt() }
+        stock(item)?.takeIf { room(item, player) > 0 }?.let { if (capLeft(player, item) > 0) basePrice(item) else price(item).roundToInt() }
 
     private fun floorSpurs(x: Double): Long = floor(x + 1e-9).toLong()
 
@@ -100,12 +106,17 @@ object Stocks {
     fun sale(player: String, item: String, lots: Int): StockSale? {
         val s = stock(item) ?: return null
         val guaranteed = minOf(lots, capLeft(player, item))
+        if (infinite(item)) {
+            val gross = guaranteed.toLong() * basePrice(item)
+            return StockSale(lots, guaranteed, gross, tax(gross), basePrice(item), full = lots > guaranteed)
+        }
         val gross = floorSpurs(guaranteed.toDouble() * basePrice(item) + value(item, s.lots + guaranteed, s.lots + lots))
         return StockSale(lots, guaranteed, gross, tax(gross), price(item, s.lots + lots).roundToInt(), full = lots > room(item))
     }
 
     fun plan(item: String, qty: Int): FillLinePlan? {
         val s = stock(item) ?: return null
+        if (infinite(item)) return null
         val lot = goods.getValue(item).lot
         val lots = minOf(qty / lot, s.lots)
         if (lots <= 0) return null
@@ -121,7 +132,7 @@ object Stocks {
 
     fun sold(player: String, item: String, lots: Int, guaranteed: Int, perLot: Int) {
         val s = stock(item) ?: return
-        s.lots += lots
+        if (!infinite(item)) s.lots += lots
         if (guaranteed > 0) Market.data.sold.getOrPut(player) { mutableMapOf() }.merge(capKey(item), guaranteed, Int::plus)
         val book = Market.book(item)
         book.lastFill = perLot

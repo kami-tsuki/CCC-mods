@@ -194,6 +194,8 @@ object Service {
     private fun create(p: ServerPlayer, n: String): Phrase {
         if (Realm.of(p.stringUUID) != null) throw Fail("kami_claims.error.leave_first")
         Naming.check(n)
+        val independent = Realm.data.countries.values.count { it.parent == null }
+        if (s.maxCountries > 0 && independent >= s.maxCountries) throw Fail("kami_claims.error.country_limit", Words.num(s.maxCountries))
         val c = Country(n)
         claimError(c, here(p), s.defaultType)?.let { throw Fail(it) }
         Realm.data.countries[c.id] = c

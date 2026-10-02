@@ -64,7 +64,7 @@ object Matching {
         var capLots = 0
         var after = 0
         val lot = Stocks.good(item)?.lot ?: 1
-        val lots = if (stockBid == null) 0 else minOf(t.remaining / lot, Stocks.room(item))
+        val lots = if (stockBid == null) 0 else minOf(t.remaining / lot, Stocks.room(item, seller))
         if (lots > 0) Stocks.sale(seller, item, lots)?.takeIf { it.net > 0 }?.let {
             t.fills += FillLinePlan(Stocks.ORDER_ID, "", lots * lot, (it.gross / lots).toInt(), lot, it.gross, it.tax)
             t.remaining -= lots * lot
