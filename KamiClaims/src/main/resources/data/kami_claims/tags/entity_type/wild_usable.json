@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    { "id": "#lootr:containers", "required": false },
+    { "id": "#lootr:item_frames", "required": false }
+  ]
+}

@@ -436,6 +436,7 @@
   "kami_claims.guard.denied.access.worker": "Only members of %1$s with a job may %2$s here (%3$s).",
   "kami_claims.guard.denied.border": "%1$s %2$s past your border.",
   "kami_claims.guard.denied.here": "You can't do that here.",
+  "kami_claims.guard.denied.plant": "Plant this only in %s chunks.",
   "kami_claims.guard.denied.nomansland": "No man's land. Nobody may %s here.",
   "kami_claims.guard.denied.plot": "Plot of %1$s. Ask %1$s to add you to the household.",
   "kami_claims.guard.no_building": "Building not possible",
@@ -2987,5 +2988,6 @@
   "kami_claims.research.node.technology.copycats.desc": "Zinc copycat blocks that mimic any block.",
   "kami_claims.research.node.technology.vt_smithing": "Smithing",
   "kami_claims.research.node.technology.vt_smithing.desc": "Smithing table upgrades and armor trims.",
-  "kami_claims.error.country_limit": "The server allows at most %s countries. Join an existing one instead."
+  "kami_claims.error.country_limit": "The server allows at most %s countries. Join an existing one instead.",
+  "kami_claims.research.task.fell": "Fell %1$s tree(s)"
 }

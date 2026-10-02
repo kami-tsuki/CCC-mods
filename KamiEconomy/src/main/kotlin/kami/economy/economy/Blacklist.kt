@@ -1,28 +1,22 @@
 package kami.economy.economy
 
 import kami.economy.Config
-import kami.economy.KamiEconomy
 import kami.libs.economy.Coins
+import kami.libs.mc.ItemSpec
 import net.minecraft.core.component.DataComponents
-import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.item.ItemStack
-import net.minecraft.world.item.component.CustomData
-import net.minecraft.nbt.CompoundTag
 
 enum class Classification { ALLOWED, AUCTION_ONLY, BLOCKED }
 
 object Blacklist {
-    private const val TACZ_AMMO = "tacz:ammo"
-
-    private fun registryId(stack: ItemStack): String = BuiltInRegistries.ITEM.getKey(stack.item).toString()
+    private fun registryId(stack: ItemStack): String = ItemSpec.id(stack)
 
     private fun taczAmmoId(stack: ItemStack): String? {
-        if (registryId(stack) != TACZ_AMMO) return null
-        val ammoId = stack.get(DataComponents.CUSTOM_DATA)?.copyTag()?.getString("AmmoId") ?: return null
-        return ammoId.takeIf { it.isNotEmpty() }
+        if (registryId(stack) != "tacz:ammo") return null
+        return ItemSpec.spec(stack).substringAfter('#', "").takeIf { it.isNotEmpty() }
     }
 
-    fun itemId(stack: ItemStack): String = taczAmmoId(stack)?.let { "$TACZ_AMMO#$it" } ?: registryId(stack)
+    fun itemId(stack: ItemStack): String = ItemSpec.spec(stack)
 
     fun classify(stack: ItemStack): Classification {
         if (taczAmmoId(stack) != null) return Classification.ALLOWED
@@ -52,12 +46,5 @@ object Blacklist {
         return classify(stack) == Classification.ALLOWED
     }
 
-    fun prototype(id: String): ItemStack? {
-        val baseId = id.substringBefore('#')
-        val item = KamiEconomy.registry.findItem(baseId) ?: return null
-        val stack = ItemStack(item)
-        val ammoId = id.substringAfter('#', "")
-        if (baseId == TACZ_AMMO && ammoId.isNotEmpty()) stack.set(DataComponents.CUSTOM_DATA, CustomData.of(CompoundTag().apply { putString("AmmoId", ammoId) }))
-        return stack
-    }
+    fun prototype(id: String): ItemStack? = ItemSpec.stack(id).takeUnless { it.isEmpty }
 }

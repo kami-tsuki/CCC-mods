@@ -2,7 +2,7 @@ package kami.claims.research
 
 import kami.libs.mc.Selectors
 
-class RecipeFact(val id: String, val type: String, val outputs: List<String> = emptyList(), val inputs: List<String> = emptyList())
+class RecipeFact(val id: String, val type: String, val outputs: List<String> = emptyList(), val inputs: List<String> = emptyList(), val display: List<String> = outputs)
 
 class WorldFacts(
     val recipes: List<RecipeFact>,
@@ -55,7 +55,7 @@ class Resolver(private val world: WorldFacts, private val defs: ResearchDefs) {
         val levels = defs.levels.rewards.mapValues { (level, rewards) -> all(rewards, "level $level") - baseline }
         val locked = all(defs.settings.locked, "settings.locked") - baseline
         val gated = (nodes.values + levels.values + locked).merged()
-        val outputs = world.recipes.filter { it.id in gated.recipes && it.outputs.isNotEmpty() }.associate { it.id to it.outputs }
+        val outputs = world.recipes.filter { it.id in gated.recipes && it.display.isNotEmpty() }.associate { it.id to it.display }
         return Resolution(gated, nodes, levels, outputs, problems, notes)
     }
 

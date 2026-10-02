@@ -1,5 +1,6 @@
 package kami.claims.research
 
+import kami.claims.Country
 import kami.claims.Realm
 import kami.claims.social.Perms
 import kami.libs.chat.Chat
@@ -9,8 +10,10 @@ import kami.libs.text.Phrase
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.inventory.CraftingContainer
 import net.minecraft.world.item.crafting.RecipeHolder
 import net.minecraft.world.level.block.Block
+import net.neoforged.neoforge.server.ServerLifecycleHooks
 import java.lang.reflect.Method
 import java.util.Optional
 
@@ -63,5 +66,15 @@ object RecipeFilter {
         if (allowedFor(player, recipe)) return false
         player.bar(Chat.bar(Tone.BAD, Phrase.of("kami_claims.research.locked.block", recipe.toString()).component()))
         return true
+    }
+
+    /** Recomputes the crafting result of members with an open grid, so a recipe unlocked mid-craft shows up without moving an item. */
+    fun refreshCrafting(country: Country) {
+        val players = ServerLifecycleHooks.getCurrentServer()?.playerList ?: return
+        players.players.filter { it.stringUUID in country.members }.forEach { player ->
+            val menu = player.containerMenu
+            val grid = menu.slots.firstOrNull { it.container is CraftingContainer }?.container ?: return@forEach
+            runCatching { RecipeContext.run(player, 0L) { menu.slotsChanged(grid) } }
+        }
     }
 }

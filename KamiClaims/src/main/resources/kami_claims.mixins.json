@@ -21,6 +21,7 @@
     "research.FurnaceBlockEntityMixin",
     "research.TaczGunSmithMixin",
     "DynamicTreesSoilMixin",
+    "DynamicTreesGrowMixin",
     "CroptopiaLeafCropMixin"
   ],
   "client": [],

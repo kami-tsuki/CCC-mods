@@ -34,7 +34,7 @@
       "category": "armor",
       "icon": "minecraft:leather_chestplate",
       "level": 5,
-      "cost": 100,
+      "cost": 0,
       "time": "10m",
       "requires": [],
       "tasks": [
@@ -68,7 +68,7 @@
       "category": "special",
       "icon": "create:goggles",
       "level": 7,
-      "cost": 300,
+      "cost": 0,
       "time": "25m",
       "requires": [
         {
@@ -100,7 +100,7 @@
       "category": "tools",
       "icon": "create_ironworks:copper_pickaxe",
       "level": 8,
-      "cost": 400,
+      "cost": 0,
       "time": "35m",
       "requires": [
         {
@@ -139,7 +139,7 @@
       "category": "armor",
       "icon": "create_ironworks:copper_armor_chestplate",
       "level": 8,
-      "cost": 400,
+      "cost": 0,
       "time": "35m",
       "requires": [
         {
@@ -166,7 +166,7 @@
       "category": "armor",
       "icon": "create:cardboard_chestplate",
       "level": 9,
-      "cost": 450,
+      "cost": 0,
       "time": "40m",
       "requires": [
         {
@@ -205,7 +205,7 @@
       "category": "tools",
       "icon": "minecraft:iron_pickaxe",
       "level": 10,
-      "cost": 500,
+      "cost": 0,
       "time": "40m",
       "requires": [
         {
@@ -248,7 +248,7 @@
       "category": "armor",
       "icon": "minecraft:iron_chestplate",
       "level": 10,
-      "cost": 500,
+      "cost": 0,
       "time": "40m",
       "requires": [
         {
@@ -287,7 +287,7 @@
       "category": "tools",
       "icon": "minecraft:golden_pickaxe",
       "level": 10,
-      "cost": 500,
+      "cost": 0,
       "time": "40m",
       "requires": [
         {
@@ -330,7 +330,7 @@
       "category": "armor",
       "icon": "minecraft:golden_chestplate",
       "level": 10,
-      "cost": 500,
+      "cost": 0,
       "time": "40m",
       "requires": [
         {
@@ -369,7 +369,7 @@
       "category": "armor",
       "icon": "minecraft:shield",
       "level": 10,
-      "cost": 500,
+      "cost": 0,
       "time": "40m",
       "requires": [
         {
@@ -2090,7 +2090,7 @@
       "category": "tools",
       "icon": "create_ironworks:copper_hammer",
       "level": 9,
-      "cost": 725,
+      "cost": 0,
       "time": "40m",
       "requires": [
         {
@@ -3358,7 +3358,7 @@
       "category": "storage",
       "icon": "sophisticatedstorage:chest",
       "level": 5,
-      "cost": 225,
+      "cost": 0,
       "time": "10m",
       "requires": [],
       "tasks": [
@@ -3417,7 +3417,7 @@
       "category": "storage",
       "icon": "sophisticatedstorage:copper_chest",
       "level": 8,
-      "cost": 575,
+      "cost": 0,
       "time": "35m",
       "requires": [
         {
@@ -3472,7 +3472,7 @@
       "category": "storage",
       "icon": "sophisticatedstorage:iron_chest",
       "level": 10,
-      "cost": 900,
+      "cost": 0,
       "time": "40m",
       "requires": [
         {

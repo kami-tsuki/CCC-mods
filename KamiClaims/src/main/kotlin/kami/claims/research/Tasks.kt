@@ -9,6 +9,7 @@ import net.minecraft.core.registries.BuiltInRegistries
 object Kinds {
     const val DEPOSIT = "deposit"
     const val MINE = "mine"
+    const val FELL = "fell"
     const val PLACE = "place"
     const val KILL = "kill"
     const val CRAFT = "craft"
@@ -55,6 +56,13 @@ class MineTask(val block: String = "", val blocks: List<String> = emptyList(), v
     override val target get() = count
     override val subject get() = selectors.joinToString(",")
     override fun accepts(subject: String) = selectors.any { blockMatches(it, subject) }
+}
+
+@Serializable
+@SerialName(Kinds.FELL)
+class FellTask(val count: Long = 1) : Task {
+    override val kind get() = Kinds.FELL
+    override val target get() = count
 }
 
 @Serializable

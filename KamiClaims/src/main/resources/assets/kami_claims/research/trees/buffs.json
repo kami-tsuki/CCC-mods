@@ -1166,7 +1166,7 @@
       "category": "finance",
       "icon": "minecraft:gold_ingot",
       "level": 10,
-      "cost": 500,
+      "cost": 0,
       "time": "15m",
       "requires": [
         {

@@ -1,0 +1,14 @@
+{
+  "replace": false,
+  "values": [
+    "#minecraft:crops",
+    "minecraft:sweet_berry_bush",
+    "minecraft:cocoa",
+    "minecraft:nether_wart",
+    "minecraft:melon_stem",
+    "minecraft:pumpkin_stem",
+    "minecraft:sugar_cane",
+    "minecraft:cave_vines",
+    { "id": "farmersdelight:rice", "required": false }
+  ]
+}

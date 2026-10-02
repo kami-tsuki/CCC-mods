@@ -3,6 +3,7 @@ package kami.claims.research
 import kami.claims.Realm
 import kami.libs.progress.ProgressEvent
 import kami.claims.world.Placed
+import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.item.ItemStack
@@ -29,9 +30,10 @@ object Listeners {
 
     private fun id(stack: ItemStack) = BuiltInRegistries.ITEM.getKey(stack.item).toString()
 
-    private fun treeGrown(event: BlockGrowFeatureEvent) {
-        val level = event.level as? Level ?: return
-        val claim = Realm.at(level.dimension().location().toString(), event.pos.x shr 4, event.pos.z shr 4) ?: return
+    /** A vanilla sapling or a DynamicTrees growth step; counted for the country when it happens in a forestry chunk. */
+    @JvmStatic
+    fun treeGrew(level: Level, pos: BlockPos) {
+        val claim = Realm.at(level.dimension().location().toString(), pos.x shr 4, pos.z shr 4) ?: return
         if (claim.type != "forestry") return
         Realm.country(claim.country)?.let { Counters.add(it, Counters.TREES_GROWN) }
     }
@@ -42,7 +44,9 @@ object Listeners {
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { Buffs.forget(it.entity.uuid) }
         FORGE_BUS.addListener<BlockEvent.BreakEvent>(EventPriority.LOWEST) {
             val wasPlaced = Placed.remove(it.player.level().dimension().location().toString(), it.pos)
-            if (countable(it.player) && !wasPlaced) report(it.player, Kinds.MINE, BuiltInRegistries.BLOCK.getKey(it.state.block).toString())
+            if (!countable(it.player) || wasPlaced) return@addListener
+            report(it.player, Kinds.MINE, BuiltInRegistries.BLOCK.getKey(it.state.block).toString())
+            if (TreeFelling.isTree(it.state)) (it.player as? ServerPlayer)?.let { p -> TreeFelling.broke(p, it.pos) { who -> report(who, Kinds.FELL, "") } }
         }
         FORGE_BUS.addListener<BlockEvent.EntityPlaceEvent>(EventPriority.LOWEST) {
             val player = it.entity as? ServerPlayer ?: return@addListener
@@ -53,7 +57,7 @@ object Listeners {
         FORGE_BUS.addListener<LivingDeathEvent>(EventPriority.LOWEST) {
             if (countable(it.source.entity)) report(it.source.entity, Kinds.KILL, BuiltInRegistries.ENTITY_TYPE.getKey(it.entity.type).toString())
         }
-        FORGE_BUS.addListener<BlockGrowFeatureEvent>(EventPriority.LOWEST) { treeGrown(it) }
+        FORGE_BUS.addListener<BlockGrowFeatureEvent>(EventPriority.LOWEST) { (it.level as? Level)?.let { level -> treeGrew(level, it.pos) } }
         FORGE_BUS.addListener<PlayerEvent.ItemCraftedEvent> { report(it.entity, Kinds.CRAFT, id(it.crafting), it.crafting.count.toLong()) }
         FORGE_BUS.addListener<PlayerEvent.ItemSmeltedEvent> { report(it.entity, Kinds.SMELT, id(it.smelting), it.smelting.count.toLong()) }
         FORGE_BUS.addListener<PlayerEnchantItemEvent> { report(it.entity, Kinds.ENCHANT, "") }

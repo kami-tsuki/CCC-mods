@@ -15,6 +15,7 @@ import kami.claims.research.Queue
 import kami.claims.research.RecipeContext
 import kami.claims.research.Research
 import kami.claims.research.Structures
+import kami.claims.research.TreeFelling
 import kami.claims.service.Upkeep
 import kami.claims.social.Mail
 import kami.claims.social.Perms
@@ -143,6 +144,7 @@ object KamiClaims {
             Sync.reset()
             ResearchSync.reset()
             Queue.reset()
+            TreeFelling.reset()
             Levels.reset()
             Guard.reset()
             Work.reset()

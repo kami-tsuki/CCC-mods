@@ -12,6 +12,7 @@ import kami.claims.net.TaskView
 import kami.claims.net.UnlockView
 import kami.claims.research.Capacity
 import kami.claims.research.NodeState
+import kami.libs.mc.ItemSpec
 import kami.libs.ui.core.Cursor
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Stack
@@ -94,9 +95,9 @@ private fun tagName(tag: String): String {
 
 private fun selectorName(selector: String): String {
     if (selector.startsWith("#")) return tagName(selector)
-    val id = ResourceLocation.tryParse(selector) ?: return humanize(selector)
-    val item = BuiltInRegistries.ITEM.getOptional(id).filter { it != Items.AIR }.orElse(null)
-    if (item != null) return ItemStack(item).hoverName.string
+    val id = ResourceLocation.tryParse(ItemSpec.base(selector)) ?: return humanize(selector)
+    val stack = ItemSpec.stack(selector)
+    if (!stack.isEmpty && stack.item != Items.AIR) return stack.hoverName.string
     BuiltInRegistries.BLOCK.getOptional(id).orElse(null)?.let { return it.name.string }
     BuiltInRegistries.ENTITY_TYPE.getOptional(id).orElse(null)?.let { return it.description.string }
     return humanize(selector)

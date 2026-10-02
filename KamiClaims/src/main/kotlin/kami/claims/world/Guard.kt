@@ -33,10 +33,15 @@ import net.minecraft.world.InteractionResult
 import net.minecraft.world.MenuProvider
 import net.minecraft.core.Direction
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.decoration.ArmorStand
 import net.minecraft.world.entity.decoration.HangingEntity
 import net.minecraft.world.entity.vehicle.VehicleEntity
+import net.minecraft.world.item.ArmorStandItem
+import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.BucketItem
+import net.minecraft.world.item.HangingEntityItem
+import net.minecraft.world.item.Item
 import net.minecraft.world.item.FireChargeItem
 import net.minecraft.world.item.FlintAndSteelItem
 import net.minecraft.world.item.SolidBucketItem
@@ -48,8 +53,11 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.LevelAccessor
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.CropBlock
+import net.minecraft.world.level.block.SaplingBlock
+import net.minecraft.world.level.block.StemBlock
 import net.minecraft.world.level.block.state.BlockState
 import net.neoforged.neoforge.common.util.FakePlayer
+import net.neoforged.neoforge.common.util.TriState
 import net.neoforged.neoforge.event.entity.EntityMobGriefingEvent
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent
@@ -65,6 +73,15 @@ object Guard {
     private val paidPlaces =RecentSet<Pair<String, Long>>(REMEMBERED_PLACEMENTS)
     private val last = HashMap<String, Key?>()
     private val lastDenied = HashMap<String, Pair<String, Long>>()
+    /** Blocks that take items on use but only give them back when broken, so using them needs the break right too. */
+    private val breakToEmpty: TagKey<Block> by lazy { TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("kami_claims", "break_to_empty")) }
+    private val farmingPlants: TagKey<Block> by lazy { TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("kami_claims", "farming_plants")) }
+    private val forestryPlants: TagKey<Block> by lazy { TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("kami_claims", "forestry_plants")) }
+    /** Blocks and entities anyone may use in no man's land even when it allows no use at all (Lootr loot is per player). */
+    private val wildBlocks: TagKey<Block> by lazy { TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("kami_claims", "wild_usable")) }
+    private val wildEntities: TagKey<EntityType<*>> by lazy { TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath("kami_claims", "wild_usable")) }
+    private const val DT_SAPLING = "com.dtteam.dynamictrees.block.sapling.DynamicSaplingBlock"
+    private const val DT_SEED = "com.dtteam.dynamictrees.item.Seed"
 
     fun reset() {
         paidPlaces.clear()
@@ -97,7 +114,7 @@ object Guard {
         val free = block != null && action != Action.INTERACT && id(block) in Config.s.freeBlockSet
         val c = cl?.let { Realm.data.countries[it.country] }
         if (free && (action == Action.PLACE || cl == null || cl.type == "infrastructure")) return true
-        if (cl == null || c == null) return action in Config.s.nomanslandAllowSet
+        if (cl == null || c == null) return action in Config.s.nomanslandAllowSet || (usable(action) && block?.defaultBlockState()?.`is`(wildBlocks) == true)
         val p = who as? Player
         if (p == null || p is FakePlayer) return c.machines[cl.type] ?: cl.def?.rule?.machines ?: false
         val me = p.stringUUID
@@ -106,6 +123,10 @@ object Guard {
         if (banned) return false
         return granted(access(c, cl, action), c, cl, me)
     }
+
+    private fun usable(action: Action) = action == Action.INTERACT || action == Action.CONTAINER
+
+    private fun unclaimed(level: LevelAccessor, pos: BlockPos) = dim(level)?.let { Realm.index[key(it, pos)] } == null
 
     private fun check(level: LevelAccessor, pos: BlockPos, who: Entity?, action: Action, block: Block?): Boolean {
         if (allowed(level, pos, who, action, block)) return true
@@ -201,9 +222,39 @@ object Guard {
     }
 
     fun onPlace(e: BlockEvent.EntityPlaceEvent) {
-        if (!check(e.level, e.pos, e.entity, Action.PLACE, e.placedBlock.block)) e.isCanceled = true
-        else if (researchLocked(e.entity, e.level, e.pos, e.placedBlock.block)) e.isCanceled = true
-        else (e.entity as? ServerPlayer)?.let { if (it !is FakePlayer) credit(it, e.pos, Action.PLACE, e.placedBlock) }
+        val player = (e.entity as? ServerPlayer)?.takeUnless { it is FakePlayer }
+        val block = e.placedBlock.block
+        if (!check(e.level, e.pos, e.entity, Action.PLACE, block) || !plantAllowed(e.level, e.pos, e.entity, plantType(block)) ||
+            researchLocked(e.entity, e.level, e.pos, block)) {
+            e.isCanceled = true
+            player?.let { resync(it, e.pos) }
+        } else player?.let { credit(it, e.pos, Action.PLACE, e.placedBlock) }
+    }
+
+    private fun extends(type: Class<*>, name: String): Boolean = generateSequence(type) { it.superclass }.any { it.name == name }
+
+    /** The chunk type a plant may only be planted in: crops in farming, saplings (DynamicTrees too) in forestry; null for other blocks. */
+    private fun plantType(block: Block): String? {
+        val state = block.defaultBlockState()
+        return when {
+            state.`is`(farmingPlants) || block is CropBlock || block is StemBlock -> "farming"
+            state.`is`(forestryPlants) || block is SaplingBlock || extends(block.javaClass, DT_SAPLING) -> "forestry"
+            else -> null
+        }
+    }
+
+    private fun plantType(item: Item): String? =
+        if (item is BlockItem) plantType(item.block) else if (extends(item.javaClass, DT_SEED)) "forestry" else null
+
+    /** Plants only go into claimed chunks of their type; elsewhere planting is denied with a hint where it belongs. */
+    private fun plantAllowed(level: LevelAccessor, pos: BlockPos, who: Entity?, type: String?): Boolean {
+        if (type == null) return true
+        val dim = dim(level)?.takeIf { it in Config.s.dimensionSet } ?: return true
+        if (Realm.index[key(dim, pos)]?.type == type) return true
+        val p = (who as? ServerPlayer)?.takeUnless { it is FakePlayer } ?: return false
+        if (Perms.has(p, Perms.BYPASS)) return true
+        p.bar(Chat.bar(Tone.BAD, Phrase.of("kami_claims.guard.denied.plant", Phrase.or("kami_claims.chunk_type.$type", type)).component()))
+        return false
     }
 
     private fun researchLocked(who: Entity?, level: LevelAccessor, pos: BlockPos, block: Block): Boolean {
@@ -222,8 +273,15 @@ object Guard {
         if (level.isClientSide) return
         val be = level.getBlockEntity(e.pos)
         val action = if (be is MenuProvider || be is Container) Action.CONTAINER else Action.INTERACT
-        if (!check(level, e.pos, e.entity, action, level.getBlockState(e.pos).block)) return run { e.isCanceled = true }
+        val state = level.getBlockState(e.pos)
+        if (!check(level, e.pos, e.entity, action, state.block)) return run { e.isCanceled = true }
+        if (state.`is`(breakToEmpty) && !e.itemStack.isEmpty && !check(level, e.pos, e.entity, Action.BREAK, state.block)) {
+            e.isCanceled = true
+            (e.entity as? ServerPlayer)?.let { resync(it, e.pos) }
+            return
+        }
         val item = e.itemStack.item
+        if (item is BlockItem || item is HangingEntityItem || item is ArmorStandItem || plantType(item) != null) return guardPlacing(e, state)
         val empty = item is BucketItem && item.content == Fluids.EMPTY
         val ignites = item is FlintAndSteelItem || item is FireChargeItem
         if (item !is BucketItem && item !is SolidBucketItem && !ignites) return
@@ -231,6 +289,19 @@ object Guard {
         if (check(level, at, e.entity, if (empty) Action.BREAK else Action.PLACE, null)) return
         e.isCanceled = true
         (e.entity as? ServerPlayer)?.let { resync(it, at) }
+    }
+
+    /**
+     * A held block (seeds and berries included), DynamicTrees seed or placeable entity must not be used where placing or planting is denied. Only the item use is
+     * stopped, so the clicked block still opens; the inventory is resent because the client already took the item.
+     */
+    private fun guardPlacing(e: PlayerInteractEvent.RightClickBlock, clicked: BlockState) {
+        val player = e.entity as? ServerPlayer ?: return
+        val at = if (clicked.canBeReplaced()) e.pos else e.pos.relative(e.face ?: Direction.UP)
+        val item = e.itemStack.item
+        if (check(e.level, at, player, Action.PLACE, (item as? BlockItem)?.block) && plantAllowed(e.level, at, player, plantType(item))) return
+        e.useItem = TriState.FALSE
+        resync(player, at)
     }
 
     fun onUseItem(e: PlayerInteractEvent.RightClickItem) {
@@ -259,6 +330,7 @@ object Guard {
             else -> return
         }
         if (e.level.isClientSide || target is Player) return
+        if (target.type.`is`(wildEntities) && unclaimed(e.level, target.blockPosition())) return
         if (!check(e.level, target.blockPosition(), e.entity, Action.INTERACT, null)) e.isCanceled = true
     }
 
@@ -268,12 +340,9 @@ object Guard {
         if (!check(e.entity.level(), target.blockPosition(), e.entity, Action.BREAK, null)) e.isCanceled = true
     }
 
+    /** Trampling farmland is off everywhere: jumping on it would let anyone wreck fields. */
     fun onTrample(e: BlockEvent.FarmlandTrampleEvent) {
-        val level = e.level
-        val dim = dim(level)?.takeIf { it in Config.s.dimensionSet } ?: return
-        val who = e.entity
-        if (who is Player && allowed(level, e.pos, who, Action.BREAK)) return
-        if (Realm.index[key(dim, e.pos)] != null || who !is Player) e.isCanceled = true
+        e.isCanceled = true
     }
 
     fun onGrief(e: EntityMobGriefingEvent) {

@@ -22,8 +22,11 @@ object Queue {
         val online = players?.players?.mapTo(HashSet()) { it.stringUUID }.orEmpty()
         country.members.keys.count { it in online }
     }
+    var refreshCrafting: (Country) -> Unit = { RecipeFilter.refreshCrafting(it) }
 
     private const val HOUR = 3_600_000L
+    /** Longest real gap one update may count, so lag is caught up but a wall clock jump or a hang is not. */
+    internal const val MAX_STEP_MS = 60_000L
     private const val XP_PER_NODE_LEVEL = 100L
     private val log = Log.of("research")
     private var lastTick = 0L
@@ -119,7 +122,7 @@ object Queue {
         val interval = settings.tickSeconds * 1000L
         if (lastTick == 0L) lastTick = time
         if (time - lastTick < interval) return
-        val elapsed = minOf(time - lastTick, 2 * interval)
+        val elapsed = minOf(time - lastTick, maxOf(MAX_STEP_MS, 2 * interval))
         lastTick = time
         playtime.keys.retainAll(Realm.data.countries.keys)
         Realm.data.countries.values.filter { it.active }.forEach { tick(it, elapsed) }
@@ -159,6 +162,7 @@ object Queue {
         if (settings.announce) Mail.broadcast(country, Phrase.of("kami_claims.research.mail.done", node.label().asValue()), Tone.OK)
         Realm.changed()
         ResearchSync.touch(country)
+        refreshCrafting(country)
     }
 
     fun grant(country: Country, key: String) {
@@ -167,6 +171,7 @@ object Queue {
         markDone(country, key)
         Realm.changed()
         ResearchSync.touch(country)
+        refreshCrafting(country)
     }
 
     fun revoke(country: Country, key: String) {

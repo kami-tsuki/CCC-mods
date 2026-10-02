@@ -54,6 +54,7 @@ class QueueTest {
         install()
         Queue.clock = { time }
         Queue.onlineCount = { online }
+        Queue.refreshCrafting = {}
         Levels.day = { 1 }
         Levels.announce = {}
     }
@@ -182,7 +183,7 @@ class QueueTest {
     }
 
     @Test
-    fun aWallClockJumpAdvancesTheTimerByAtMostTwoIntervals() {
+    fun aWallClockJumpAdvancesTheTimerByAtMostOneStep() {
         val c = country("alpha")
         Queue.enqueue(c, "t:a", null)
         Queue.start(c, "t:a", null)
@@ -191,7 +192,7 @@ class QueueTest {
         val before = c.research.queue.single().remainingMs
         time += 3_600_000
         Queue.tick()
-        assertEquals(before - 2 * Research.defs.settings.tickSeconds * 1000L, c.research.queue.single().remainingMs)
+        assertEquals(before - Queue.MAX_STEP_MS, c.research.queue.single().remainingMs)
     }
 
     @Test

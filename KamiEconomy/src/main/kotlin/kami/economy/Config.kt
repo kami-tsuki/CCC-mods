@@ -16,92 +16,8 @@ private fun starters(base: Int, vararg items: String) = items.map { StarterGood(
 /** Goods the market always buys at a fixed price, up to [cap] lots per player per day; it never sells them back. */
 private fun unlimited(base: Int, lot: Int, cap: Int, vararg items: String) = items.map { StarterGood(it, base, lot = lot, dailyCap = cap, infinite = true) }
 
-private val CROPTOPIA_CROPS = arrayOf(
-    "croptopia:almond",
-    "croptopia:apricot",
-    "croptopia:artichoke",
-    "croptopia:asparagus",
-    "croptopia:avocado",
-    "croptopia:banana",
-    "croptopia:barley",
-    "croptopia:basil",
-    "croptopia:bellpepper",
-    "croptopia:blackbean",
-    "croptopia:blackberry",
-    "croptopia:blueberry",
-    "croptopia:broccoli",
-    "croptopia:cabbage",
-    "croptopia:cantaloupe",
-    "croptopia:cashew",
-    "croptopia:cauliflower",
-    "croptopia:celery",
-    "croptopia:cherry",
-    "croptopia:chile_pepper",
-    "croptopia:cinnamon",
-    "croptopia:coconut",
-    "croptopia:coffee_beans",
-    "croptopia:corn",
-    "croptopia:cranberry",
-    "croptopia:cucumber",
-    "croptopia:currant",
-    "croptopia:date",
-    "croptopia:dragonfruit",
-    "croptopia:eggplant",
-    "croptopia:elderberry",
-    "croptopia:fig",
-    "croptopia:garlic",
-    "croptopia:ginger",
-    "croptopia:grape",
-    "croptopia:grapefruit",
-    "croptopia:greenbean",
-    "croptopia:greenonion",
-    "croptopia:honeydew",
-    "croptopia:hops",
-    "croptopia:kale",
-    "croptopia:kiwi",
-    "croptopia:kumquat",
-    "croptopia:leek",
-    "croptopia:lemon",
-    "croptopia:lettuce",
-    "croptopia:lime",
-    "croptopia:mango",
-    "croptopia:mustard",
-    "croptopia:nectarine",
-    "croptopia:nutmeg",
-    "croptopia:oat",
-    "croptopia:olive",
-    "croptopia:onion",
-    "croptopia:orange",
-    "croptopia:peach",
-    "croptopia:peanut",
-    "croptopia:pear",
-    "croptopia:pecan",
-    "croptopia:pepper",
-    "croptopia:persimmon",
-    "croptopia:pineapple",
-    "croptopia:plum",
-    "croptopia:radish",
-    "croptopia:raspberry",
-    "croptopia:rhubarb",
-    "croptopia:rice",
-    "croptopia:rutabaga",
-    "croptopia:saguaro",
-    "croptopia:soybean",
-    "croptopia:spinach",
-    "croptopia:squash",
-    "croptopia:starfruit",
-    "croptopia:strawberry",
-    "croptopia:sweetpotato",
-    "croptopia:tea_leaves",
-    "croptopia:tomatillo",
-    "croptopia:tomato",
-    "croptopia:turmeric",
-    "croptopia:turnip",
-    "croptopia:vanilla",
-    "croptopia:walnut",
-    "croptopia:yam",
-    "croptopia:zucchini",
-)
+/** Crops sell infinitely, 3 stacks per player per day; [base] is the price of one stack of 64. */
+private fun crops(base: Int, vararg items: String) = unlimited(base, 64, 3, *items)
 
 @Serializable
 data class Settings(
@@ -123,14 +39,25 @@ data class Settings(
     val auctionDurationMillis: Long = 3 * 24 * 60 * 60 * 1000L,
     val auctionCheckIntervalTicks: Int = 20 * 60,
 
-    val starterGoods: List<StarterGood> = starters(20, "#minecraft:logs", "minecraft:baked_potato", "minecraft:apple") +
-        starters(10, "minecraft:carrot", "minecraft:potato", "minecraft:beetroot", "minecraft:pumpkin", "minecraft:sugar_cane", "minecraft:cocoa_beans") +
+    val starterGoods: List<StarterGood> = starters(20, "#minecraft:logs", "minecraft:baked_potato") +
         starters(15, "minecraft:bread") +
-        starters(5, "minecraft:wheat", "minecraft:melon_slice", "minecraft:sweet_berries") +
         starters(40, "#c:ingots/iron", "#c:ingots/copper") +
         starters(50, "#c:ingots/zinc", "#c:ingots/lead") +
         starters(80, "#c:ingots/gold") +
-        unlimited(10, 64, 3, *CROPTOPIA_CROPS) +
+        // Bulk field crops
+        crops(6, "minecraft:wheat", "minecraft:sugar_cane", "minecraft:melon_slice", "minecraft:sweet_berries", "farmersdelight:rice", "croptopia:barley", "croptopia:oat", "croptopia:corn", "croptopia:rice", "croptopia:soybean") +
+        // Staple vegetables
+        crops(8, "minecraft:carrot", "minecraft:potato", "minecraft:beetroot", "minecraft:glow_berries", "farmersdelight:cabbage", "farmersdelight:tomato", "farmersdelight:onion", "croptopia:lettuce", "croptopia:cabbage", "croptopia:onion", "croptopia:garlic", "croptopia:radish", "croptopia:turnip", "croptopia:rutabaga", "croptopia:spinach", "croptopia:kale", "croptopia:celery", "croptopia:leek", "croptopia:greenonion", "croptopia:cucumber", "croptopia:zucchini", "croptopia:squash", "croptopia:greenbean", "croptopia:blackbean", "croptopia:peanut", "croptopia:tomato", "croptopia:tomatillo", "croptopia:sweetpotato", "croptopia:yam", "croptopia:mustard") +
+        // Garden vegetables, berries and vines
+        crops(10, "croptopia:bellpepper", "croptopia:chile_pepper", "croptopia:eggplant", "croptopia:broccoli", "croptopia:cauliflower", "croptopia:asparagus", "croptopia:artichoke", "croptopia:strawberry", "croptopia:blueberry", "croptopia:blackberry", "croptopia:raspberry", "croptopia:cranberry", "croptopia:currant", "croptopia:elderberry", "croptopia:grape", "croptopia:hops", "croptopia:rhubarb", "croptopia:cantaloupe", "croptopia:honeydew", "croptopia:basil", "croptopia:pepper", "croptopia:kiwi") +
+        // Pumpkins and nether wart
+        crops(12, "minecraft:pumpkin", "minecraft:nether_wart") +
+        // Tree fruit
+        crops(14, "minecraft:apple", "minecraft:cocoa_beans", "croptopia:apricot", "croptopia:avocado", "croptopia:banana", "croptopia:cherry", "croptopia:date", "croptopia:fig", "croptopia:grapefruit", "croptopia:kumquat", "croptopia:lemon", "croptopia:lime", "croptopia:mango", "croptopia:nectarine", "croptopia:orange", "croptopia:peach", "croptopia:pear", "croptopia:persimmon", "croptopia:plum", "croptopia:starfruit", "croptopia:coconut", "croptopia:dragonfruit", "croptopia:olive", "croptopia:pineapple") +
+        // Nuts, coffee, tea and roots
+        crops(18, "croptopia:almond", "croptopia:cashew", "croptopia:pecan", "croptopia:walnut", "croptopia:coffee_beans", "croptopia:tea_leaves", "croptopia:ginger", "croptopia:turmeric", "croptopia:saguaro") +
+        // Rare spices
+        crops(24, "croptopia:cinnamon", "croptopia:nutmeg", "croptopia:vanilla") +
         unlimited(400, 8, 4, "tfmg:steel_mechanism") +
         unlimited(600, 8, 4, "tfmg:circuit_board"),
     val dailySellLots: Int = 3,

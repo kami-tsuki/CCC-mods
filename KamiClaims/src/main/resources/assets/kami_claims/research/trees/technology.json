@@ -99,14 +99,13 @@
       "category": "basics",
       "icon": "minecraft:crafting_table",
       "level": 1,
-      "cost": 10,
+      "cost": 0,
       "time": "1m",
       "requires": [],
       "tasks": [
         {
-          "type": "mine",
-          "block": "#minecraft:logs",
-          "count": 8
+          "type": "fell",
+          "count": 1
         }
       ],
       "unlocks": [
@@ -125,7 +124,7 @@
       "category": "basics",
       "icon": "minecraft:oak_stairs",
       "level": 1,
-      "cost": 15,
+      "cost": 0,
       "time": "2m",
       "requires": [
         {
@@ -135,9 +134,8 @@
       ],
       "tasks": [
         {
-          "type": "mine",
-          "block": "#minecraft:logs",
-          "count": 64
+          "type": "fell",
+          "count": 6
         }
       ],
       "unlocks": [
@@ -224,7 +222,7 @@
       "category": "basics",
       "icon": "minecraft:oak_hanging_sign",
       "level": 4,
-      "cost": 100,
+      "cost": 0,
       "time": "15m",
       "requires": [
         {
@@ -259,7 +257,7 @@
       "category": "basics",
       "icon": "create:andesite_casing",
       "level": 2,
-      "cost": 20,
+      "cost": 0,
       "time": "3m",
       "requires": [
         {
@@ -306,7 +304,7 @@
       "category": "power",
       "icon": "create:hand_crank",
       "level": 2,
-      "cost": 40,
+      "cost": 0,
       "time": "5m",
       "requires": [
         {
@@ -355,7 +353,7 @@
       "category": "transmission",
       "icon": "create:cogwheel",
       "level": 2,
-      "cost": 40,
+      "cost": 0,
       "time": "5m",
       "requires": [
         {
@@ -694,7 +692,7 @@
       "category": "power",
       "icon": "create:water_wheel",
       "level": 3,
-      "cost": 60,
+      "cost": 0,
       "time": "8m",
       "requires": [
         {
@@ -725,7 +723,7 @@
       "category": "processing",
       "icon": "create:millstone",
       "level": 3,
-      "cost": 60,
+      "cost": 0,
       "time": "8m",
       "requires": [
         {
@@ -772,7 +770,7 @@
       "category": "transmission",
       "icon": "create:belt_connector",
       "level": 3,
-      "cost": 60,
+      "cost": 0,
       "time": "8m",
       "requires": [
         {
@@ -803,7 +801,7 @@
       "category": "processing",
       "icon": "create:crushing_wheel",
       "level": 4,
-      "cost": 100,
+      "cost": 0,
       "time": "15m",
       "requires": [
         {
@@ -850,7 +848,7 @@
       "category": "transmission",
       "icon": "create:gearbox",
       "level": 4,
-      "cost": 80,
+      "cost": 0,
       "time": "10m",
       "requires": [
         {
@@ -899,7 +897,7 @@
       "category": "processing",
       "icon": "create:mechanical_press",
       "level": 4,
-      "cost": 120,
+      "cost": 0,
       "time": "15m",
       "requires": [
         {
@@ -943,7 +941,7 @@
       "category": "power",
       "icon": "create:large_water_wheel",
       "level": 5,
-      "cost": 100,
+      "cost": 0,
       "time": "12m",
       "requires": [
         {
@@ -974,7 +972,7 @@
       "category": "processing",
       "icon": "create:propeller",
       "level": 5,
-      "cost": 120,
+      "cost": 0,
       "time": "15m",
       "requires": [
         {
@@ -1010,7 +1008,7 @@
       "category": "processing",
       "icon": "create:basin",
       "level": 5,
-      "cost": 80,
+      "cost": 0,
       "time": "10m",
       "requires": [
         {
@@ -1041,7 +1039,7 @@
       "category": "logistics",
       "icon": "create:depot",
       "level": 5,
-      "cost": 80,
+      "cost": 0,
       "time": "10m",
       "requires": [
         {
@@ -1081,7 +1079,7 @@
       "category": "transmission",
       "icon": "create:speedometer",
       "level": 5,
-      "cost": 80,
+      "cost": 0,
       "time": "10m",
       "requires": [
         {
@@ -1130,7 +1128,7 @@
       "category": "transmission",
       "icon": "create:metal_girder",
       "level": 5,
-      "cost": 70,
+      "cost": 0,
       "time": "10m",
       "requires": [
         {
@@ -1182,7 +1180,7 @@
       "category": "processing",
       "icon": "create:encased_fan",
       "level": 6,
-      "cost": 250,
+      "cost": 0,
       "time": "25m",
       "requires": [
         {
@@ -1358,7 +1356,7 @@
       "category": "processing",
       "icon": "create:mechanical_mixer",
       "level": 6,
-      "cost": 250,
+      "cost": 0,
       "time": "25m",
       "requires": [
         {
@@ -1398,7 +1396,7 @@
       "category": "transmission",
       "icon": "create:encased_chain_drive",
       "level": 6,
-      "cost": 250,
+      "cost": 0,
       "time": "25m",
       "requires": [
         {
@@ -1455,7 +1453,7 @@
       "category": "processing",
       "icon": "createvintageneoforged:spring_coiling_machine",
       "level": 10,
-      "cost": 500,
+      "cost": 0,
       "time": "40m",
       "requires": [
         {
@@ -1764,7 +1762,7 @@
       "category": "transmission",
       "icon": "create_connected:six_way_gearbox",
       "level": 8,
-      "cost": 400,
+      "cost": 0,
       "time": "35m",
       "requires": [
         {
@@ -1848,7 +1846,7 @@
       "category": "transmission",
       "icon": "create_connected:centrifugal_clutch",
       "level": 9,
-      "cost": 450,
+      "cost": 0,
       "time": "40m",
       "requires": [
         {
@@ -1924,7 +1922,7 @@
       "category": "logistics",
       "icon": "create:chute",
       "level": 6,
-      "cost": 220,
+      "cost": 0,
       "time": "22m",
       "requires": [
         {
@@ -1972,7 +1970,7 @@
       "category": "logistics",
       "icon": "create:andesite_funnel",
       "level": 7,
-      "cost": 300,
+      "cost": 0,
       "time": "30m",
       "requires": [
         {
@@ -2020,7 +2018,7 @@
       "category": "logistics",
       "icon": "create:filter",
       "level": 7,
-      "cost": 300,
+      "cost": 0,
       "time": "30m",
       "requires": [
         {
@@ -2065,7 +2063,7 @@
       "category": "processing",
       "icon": "create:mechanical_drill",
       "level": 7,
-      "cost": 350,
+      "cost": 0,
       "time": "30m",
       "requires": [
         {
@@ -2121,7 +2119,7 @@
       "category": "transmission",
       "icon": "create:mechanical_bearing",
       "level": 7,
-      "cost": 300,
+      "cost": 0,
       "time": "30m",
       "requires": [
         {
@@ -2165,7 +2163,7 @@
       "category": "processing",
       "icon": "sliceanddice:slicer",
       "level": 8,
-      "cost": 400,
+      "cost": 0,
       "time": "35m",
       "requires": [
         {
@@ -2201,7 +2199,7 @@
       "category": "transmission",
       "icon": "create:wrench",
       "level": 7,
-      "cost": 300,
+      "cost": 0,
       "time": "30m",
       "requires": [
         {
@@ -2228,7 +2226,7 @@
       "category": "logistics",
       "icon": "create:brown_toolbox",
       "level": 8,
-      "cost": 400,
+      "cost": 0,
       "time": "35m",
       "requires": [
         {
@@ -2264,7 +2262,7 @@
       "category": "logistics",
       "icon": "create:clipboard",
       "level": 8,
-      "cost": 350,
+      "cost": 0,
       "time": "30m",
       "requires": [
         {
@@ -2316,7 +2314,7 @@
       "category": "logistics",
       "icon": "create:schematicannon",
       "level": 9,
-      "cost": 450,
+      "cost": 0,
       "time": "40m",
       "requires": [
         {
@@ -2387,7 +2385,7 @@
       "category": "logistics",
       "icon": "create:cardboard",
       "level": 9,
-      "cost": 450,
+      "cost": 0,
       "time": "40m",
       "requires": [
         {
@@ -2435,7 +2433,7 @@
       "category": "processing",
       "icon": "create:mechanical_harvester",
       "level": 8,
-      "cost": 400,
+      "cost": 0,
       "time": "35m",
       "requires": [
         {
@@ -2487,7 +2485,7 @@
       "category": "transmission",
       "icon": "create:mechanical_piston",
       "level": 8,
-      "cost": 400,
+      "cost": 0,
       "time": "35m",
       "requires": [
         {
@@ -2539,7 +2537,7 @@
       "category": "transmission",
       "icon": "create:rope_pulley",
       "level": 8,
-      "cost": 400,
+      "cost": 0,
       "time": "35m",
       "requires": [
         {
@@ -2579,7 +2577,7 @@
       "category": "logistics",
       "icon": "create:weighted_ejector",
       "level": 8,
-      "cost": 400,
+      "cost": 0,
       "time": "35m",
       "requires": [
         {
@@ -2619,7 +2617,7 @@
       "category": "transmission",
       "icon": "create:linear_chassis",
       "level": 9,
-      "cost": 450,
+      "cost": 0,
       "time": "40m",
       "requires": [
         {
@@ -2683,7 +2681,7 @@
       "category": "transmission",
       "icon": "create:gantry_shaft",
       "level": 9,
-      "cost": 450,
+      "cost": 0,
       "time": "40m",
       "requires": [
         {
@@ -2732,7 +2730,7 @@
       "category": "logistics",
       "icon": "create:item_vault",
       "level": 9,
-      "cost": 500,
+      "cost": 0,
       "time": "40m",
       "requires": [
         {
@@ -2797,7 +2795,7 @@
       "category": "power",
       "icon": "create:windmill_bearing",
       "level": 10,
-      "cost": 500,
+      "cost": 0,
       "time": "40m",
       "requires": [
         {
@@ -2857,7 +2855,7 @@
       "category": "power",
       "icon": "create:blaze_burner",
       "level": 10,
-      "cost": 500,
+      "cost": 0,
       "time": "40m",
       "requires": [
         {
@@ -2893,7 +2891,7 @@
       "category": "fluids",
       "icon": "create:copper_casing",
       "level": 10,
-      "cost": 500,
+      "cost": 0,
       "time": "40m",
       "requires": [
         {
@@ -2945,7 +2943,7 @@
       "category": "transmission",
       "icon": "create:cart_assembler",
       "level": 10,
-      "cost": 500,
+      "cost": 0,
       "time": "40m",
       "requires": [
         {
@@ -3002,7 +3000,7 @@
       "category": "logistics",
       "icon": "create:packager",
       "level": 10,
-      "cost": 550,
+      "cost": 0,
       "time": "45m",
       "requires": [
         {
@@ -3381,10 +3379,6 @@
         {
           "type": "output",
           "id": "create:builders_tea"
-        },
-        {
-          "type": "output",
-          "id": "create:tea"
         },
         {
           "type": "output",
@@ -6015,7 +6009,7 @@
       "category": "transmission",
       "icon": "gnkinetics:andesite_cogwheel",
       "level": 8,
-      "cost": 575,
+      "cost": 0,
       "time": "35m",
       "requires": [
         {
@@ -6108,7 +6102,7 @@
       "category": "processing",
       "icon": "createsifter:sifter",
       "level": 9,
-      "cost": 400,
+      "cost": 0,
       "time": "30m",
       "requires": [
         {
@@ -7646,6 +7640,10 @@
         {
           "type": "recipe",
           "id": "tfmg:mixing/copper_sulfate"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crushing/copper_sulfate"
         }
       ]
     },
@@ -8081,7 +8079,7 @@
         },
         {
           "type": "recipe",
-          "id": "create:crushing/sulfur"
+          "id": "tfmg:crushing/sulfur"
         }
       ]
     },
@@ -9788,7 +9786,7 @@
         },
         {
           "type": "recipe",
-          "id": "create:crushing/dirt"
+          "id": "tfmg:crushing/dirt"
         },
         {
           "type": "recipe",
@@ -9894,7 +9892,7 @@
         },
         {
           "type": "recipe",
-          "id": "chemica:compacting/seeds"
+          "id": "chemica:compacting/seed_oil"
         },
         {
           "type": "recipe",
@@ -11206,7 +11204,7 @@
         },
         {
           "type": "recipe",
-          "id": "chemica:distillation/ethylbenzene"
+          "id": "chemica:distillation/ethylenzene"
         },
         {
           "type": "recipe",
@@ -11963,11 +11961,11 @@
       "unlocks": [
         {
           "type": "recipe",
-          "id": "chemica:ethanol_engine_cylinder"
+          "id": "chemica:crafting/ethanol_engine_cylinder"
         },
         {
           "type": "recipe",
-          "id": "chemica:biodiesel_engine_cylinder"
+          "id": "chemica:crafting/biodiesel_engine_cylinder"
         }
       ]
     },
@@ -12007,7 +12005,7 @@
         },
         {
           "type": "recipe",
-          "id": "chemica:high_cetane_engine_cylinder"
+          "id": "chemica:crafting/high_cetane_engine_cylinder"
         }
       ]
     },
@@ -12058,7 +12056,7 @@
         },
         {
           "type": "recipe",
-          "id": "chemica:high_octane_engine_cylinder"
+          "id": "chemica:crafting/high_octane_engine_cylinder"
         }
       ]
     },
@@ -12093,7 +12091,7 @@
       "unlocks": [
         {
           "type": "recipe",
-          "id": "chemica:hydrogen_turbine_blade"
+          "id": "chemica:crafting/hydrogen_turbine_blade"
         }
       ]
     },
@@ -14554,7 +14552,7 @@
       "category": "vanilla_tech",
       "icon": "minecraft:redstone_torch",
       "level": 2,
-      "cost": 100,
+      "cost": 0,
       "time": "10m",
       "requires": [
         {
@@ -14615,7 +14613,7 @@
       "category": "vanilla_tech",
       "icon": "minecraft:compass",
       "level": 4,
-      "cost": 150,
+      "cost": 0,
       "time": "15m",
       "requires": [
         {
@@ -14666,7 +14664,7 @@
       "category": "vanilla_tech",
       "icon": "minecraft:comparator",
       "level": 4,
-      "cost": 150,
+      "cost": 0,
       "time": "15m",
       "requires": [
         {
@@ -14737,7 +14735,7 @@
       "category": "vanilla_tech",
       "icon": "minecraft:hopper",
       "level": 5,
-      "cost": 150,
+      "cost": 0,
       "time": "15m",
       "requires": [
         {
@@ -14788,7 +14786,7 @@
       "category": "vanilla_tech",
       "icon": "minecraft:sticky_piston",
       "level": 6,
-      "cost": 325,
+      "cost": 0,
       "time": "25m",
       "requires": [
         {
@@ -14834,7 +14832,7 @@
       "category": "vanilla_tech",
       "icon": "minecraft:observer",
       "level": 7,
-      "cost": 450,
+      "cost": 0,
       "time": "30m",
       "requires": [
         {
@@ -14893,7 +14891,7 @@
       "category": "vanilla_tech",
       "icon": "minecraft:powered_rail",
       "level": 8,
-      "cost": 575,
+      "cost": 0,
       "time": "35m",
       "requires": [
         {
@@ -14972,7 +14970,7 @@
       "category": "vanilla_tech",
       "icon": "minecraft:anvil",
       "level": 8,
-      "cost": 575,
+      "cost": 0,
       "time": "35m",
       "requires": [
         {
@@ -15031,7 +15029,7 @@
       "category": "vanilla_tech",
       "icon": "minecraft:lectern",
       "level": 10,
-      "cost": 500,
+      "cost": 0,
       "time": "40m",
       "requires": [
         {
@@ -15278,7 +15276,7 @@
       "category": "basics",
       "icon": "create:copycat_panel",
       "level": 6,
-      "cost": 325,
+      "cost": 0,
       "time": "25m",
       "requires": [
         {
@@ -15546,7 +15544,7 @@
       "category": "vanilla_tech",
       "icon": "minecraft:smithing_table",
       "level": 9,
-      "cost": 500,
+      "cost": 0,
       "time": "40m",
       "requires": [
         {

@@ -849,7 +849,9 @@ def report_e(m):
             for spec in specs:
                 if spec:
                     check(key, spec, 'task ' + t['type'])
-        if n.get('icon') and n['icon'] not in known:
+        icon = n.get('icon', '')
+        icon = icon.split('#', 1)[0] if icon.find('#') > 0 else icon  # item#pack-id specs (TACZ) check the base item
+        if icon and icon not in known:
             lines.append(f"{key}: icon {n['icon']} is not in the pack")
         gating = any(u['type'] in ('recipe', 'recipe_type', 'recipes', 'output', 'mod', 'block', 'group') for u in n.get('unlocks', []))
         if gating and not any(m.sel[key]) and not m.sel_blocks[key]:

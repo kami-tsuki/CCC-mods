@@ -436,6 +436,7 @@
   "kami_claims.guard.denied.access.worker": "Hier dürfen nur Mitglieder von %1$s mit Beruf %2$s (%3$s).",
   "kami_claims.guard.denied.border": "%1$s %2$s hinter deiner Grenze.",
   "kami_claims.guard.denied.here": "Das ist hier nicht möglich.",
+  "kami_claims.guard.denied.plant": "Das darf nur in %s-Chunks gepflanzt werden.",
   "kami_claims.guard.denied.nomansland": "Niemandsland. Hier darf niemand %s.",
   "kami_claims.guard.denied.plot": "Grundstück von %1$s. Frag %1$s nach Aufnahme in den Haushalt.",
   "kami_claims.guard.no_building": "Bauen nicht möglich",
@@ -2987,5 +2988,6 @@
   "kami_claims.research.node.technology.copycats.desc": "Zink-Copycat-Blöcke, die jeden Block nachahmen.",
   "kami_claims.research.node.technology.vt_smithing": "Schmieden",
   "kami_claims.research.node.technology.vt_smithing.desc": "Schmiedetisch-Aufwertungen und Rüstungsverzierungen.",
-  "kami_claims.error.country_limit": "Der Server erlaubt höchstens %s Staaten. Tritt stattdessen einem bestehenden bei."
+  "kami_claims.error.country_limit": "Der Server erlaubt höchstens %s Staaten. Tritt stattdessen einem bestehenden bei.",
+  "kami_claims.research.task.fell": "Fälle %1$s Baum/Bäume"
 }

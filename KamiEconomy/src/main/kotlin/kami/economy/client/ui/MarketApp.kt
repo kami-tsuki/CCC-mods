@@ -7,6 +7,7 @@ import kami.economy.economy.Classification
 import kami.economy.net.Row
 import kami.economy.net.Slot
 import kami.economy.net.Snap
+import kami.libs.mc.ItemSpec
 import kami.libs.text.Text
 import kami.libs.ui.app.AppScreen
 import kami.libs.ui.app.KamiApp
@@ -35,13 +36,7 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 import net.minecraft.world.item.component.CustomData
 
-fun marketStack(id: String): ItemStack {
-    val baseId = id.substringBefore('#')
-    val item = ResourceLocation.tryParse(baseId)?.let { BuiltInRegistries.ITEM.getOptional(it).orElse(null) } ?: Items.BARRIER
-    val stack = ItemStack(item)
-    if ('#' in id && baseId == "tacz:ammo") stack.set(DataComponents.CUSTOM_DATA, CustomData.of(CompoundTag().apply { putString("AmmoId", id.substringAfter('#')) }))
-    return stack
-}
+fun marketStack(id: String): ItemStack = ItemSpec.stack(id).let { if (it.isEmpty) ItemStack(Items.BARRIER) else it }
 
 class SellEntry(val item: String, val stack: ItemStack, val count: Int, val slot: Int, val cls: Classification)
 

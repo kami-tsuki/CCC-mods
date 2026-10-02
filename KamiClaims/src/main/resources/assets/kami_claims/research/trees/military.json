@@ -54,7 +54,7 @@
       "category": "melee",
       "icon": "farmersdelight:flint_knife",
       "level": 5,
-      "cost": 250,
+      "cost": 0,
       "time": "20m",
       "requires": [],
       "tasks": [
@@ -92,7 +92,7 @@
       "category": "melee",
       "icon": "create_ironworks:copper_sword",
       "level": 8,
-      "cost": 400,
+      "cost": 0,
       "time": "30m",
       "requires": [
         {
@@ -140,7 +140,7 @@
       "category": "melee",
       "icon": "minecraft:iron_sword",
       "level": 10,
-      "cost": 500,
+      "cost": 0,
       "time": "40m",
       "requires": [
         {
@@ -553,7 +553,7 @@
       "category": "archery",
       "icon": "minecraft:bow",
       "level": 6,
-      "cost": 300,
+      "cost": 0,
       "time": "25m",
       "requires": [],
       "tasks": [
@@ -1368,7 +1368,7 @@
     {
       "id": "ammo_9mm",
       "category": "ammo",
-      "icon": "tacz:ammo",
+      "icon": "tacz:ammo#tacz:9mm",
       "level": 40,
       "cost": 14400,
       "time": "5h30m",
@@ -1420,7 +1420,7 @@
     {
       "id": "ammo_22wmr",
       "category": "ammo",
-      "icon": "tacz:ammo",
+      "icon": "tacz:ammo#tacz:22wmr",
       "level": 42,
       "cost": 15875,
       "time": "5h35m",
@@ -1460,7 +1460,7 @@
     {
       "id": "ammo_12g",
       "category": "ammo",
-      "icon": "tacz:ammo",
+      "icon": "tacz:ammo#tacz:12g",
       "level": 44,
       "cost": 17420,
       "time": "5h40m",
@@ -1520,7 +1520,7 @@
     {
       "id": "ammo_45acp",
       "category": "ammo",
-      "icon": "tacz:ammo",
+      "icon": "tacz:ammo#tacz:45acp",
       "level": 46,
       "cost": 19040,
       "time": "5h50m",
@@ -1560,7 +1560,7 @@
     {
       "id": "ammo_45_70",
       "category": "ammo",
-      "icon": "tacz:ammo",
+      "icon": "tacz:ammo#tacz:45_70",
       "level": 52,
       "cost": 23100,
       "time": "6h5m",
@@ -1600,7 +1600,7 @@
     {
       "id": "ammo_357mag",
       "category": "ammo",
-      "icon": "tacz:ammo",
+      "icon": "tacz:ammo#tacz:357mag",
       "level": 62,
       "cost": 26100,
       "time": "6h35m",
@@ -1640,7 +1640,7 @@
     {
       "id": "ammo_762x39",
       "category": "ammo",
-      "icon": "tacz:ammo",
+      "icon": "tacz:ammo#tacz:762x39",
       "level": 68,
       "cost": 27900,
       "time": "6h55m",
@@ -1680,7 +1680,7 @@
     {
       "id": "ammo_792x57",
       "category": "ammo",
-      "icon": "tacz:ammo",
+      "icon": "tacz:ammo#tacz:792x57",
       "level": 76,
       "cost": 30300,
       "time": "7h20m",
@@ -1720,7 +1720,7 @@
     {
       "id": "ammo_556x45",
       "category": "ammo",
-      "icon": "tacz:ammo",
+      "icon": "tacz:ammo#tacz:556x45",
       "level": 82,
       "cost": 32100,
       "time": "7h35m",
@@ -1772,7 +1772,7 @@
     {
       "id": "ammo_50ae",
       "category": "ammo",
-      "icon": "tacz:ammo",
+      "icon": "tacz:ammo#tacz:50ae",
       "level": 84,
       "cost": 32700,
       "time": "7h40m",
@@ -1812,7 +1812,7 @@
     {
       "id": "ammo_30_06",
       "category": "ammo",
-      "icon": "tacz:ammo",
+      "icon": "tacz:ammo#tacz:30_06",
       "level": 86,
       "cost": 33300,
       "time": "7h50m",
@@ -1852,7 +1852,7 @@
     {
       "id": "ammo_58x42",
       "category": "ammo",
-      "icon": "tacz:ammo",
+      "icon": "tacz:ammo#tacz:58x42",
       "level": 96,
       "cost": 36300,
       "time": "8h20m",
@@ -1892,7 +1892,7 @@
     {
       "id": "ammo_57x28",
       "category": "ammo",
-      "icon": "tacz:ammo",
+      "icon": "tacz:ammo#tacz:57x28",
       "level": 102,
       "cost": 38100,
       "time": "8h35m",
@@ -1944,7 +1944,7 @@
     {
       "id": "ammo_308",
       "category": "ammo",
-      "icon": "tacz:ammo",
+      "icon": "tacz:ammo#tacz:308",
       "level": 112,
       "cost": 41100,
       "time": "9h5m",
@@ -1996,7 +1996,7 @@
     {
       "id": "ammo_6851fury",
       "category": "ammo",
-      "icon": "tacz:ammo",
+      "icon": "tacz:ammo#tacz:68x51fury",
       "level": 122,
       "cost": 44100,
       "time": "9h35m",
@@ -2036,7 +2036,7 @@
     {
       "id": "ammo_500mag",
       "category": "ammo",
-      "icon": "tacz:ammo",
+      "icon": "tacz:ammo#tacz:500mag",
       "level": 140,
       "cost": 49500,
       "time": "10h30m",
@@ -2076,7 +2076,7 @@
     {
       "id": "ammo_40mm",
       "category": "ammo",
-      "icon": "tacz:ammo",
+      "icon": "tacz:ammo#tacz:40mm",
       "level": 148,
       "cost": 51900,
       "time": "10h55m",
@@ -2136,7 +2136,7 @@
     {
       "id": "ammo_338",
       "category": "ammo",
-      "icon": "tacz:ammo",
+      "icon": "tacz:ammo#tacz:338",
       "level": 160,
       "cost": 55500,
       "time": "11h30m",
@@ -2176,7 +2176,7 @@
     {
       "id": "ammo_rpg_rocket",
       "category": "ammo",
-      "icon": "tacz:ammo",
+      "icon": "tacz:ammo#tacz:rpg_rocket",
       "level": 172,
       "cost": 59100,
       "time": "12h",
@@ -2208,7 +2208,7 @@
     {
       "id": "ammo_50bmg",
       "category": "ammo",
-      "icon": "tacz:ammo",
+      "icon": "tacz:ammo#tacz:50bmg",
       "level": 200,
       "cost": 67500,
       "time": "12h",
@@ -2248,7 +2248,7 @@
     {
       "id": "gun_glock_17",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:glock_17",
       "level": 40,
       "cost": 14400,
       "time": "5h30m",
@@ -2280,7 +2280,7 @@
     {
       "id": "gun_m9a4",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:m9a4",
       "level": 41,
       "cost": 15125,
       "time": "5h35m",
@@ -2312,7 +2312,7 @@
     {
       "id": "gun_db_short",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:db_short",
       "level": 44,
       "cost": 17420,
       "time": "5h40m",
@@ -2344,7 +2344,7 @@
     {
       "id": "gun_cz75",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:cz75",
       "level": 45,
       "cost": 18225,
       "time": "5h45m",
@@ -2376,7 +2376,7 @@
     {
       "id": "gun_m1911",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:m1911",
       "level": 47,
       "cost": 19880,
       "time": "5h50m",
@@ -2408,7 +2408,7 @@
     {
       "id": "gun_b93r",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:b93r",
       "level": 49,
       "cost": 21605,
       "time": "5h55m",
@@ -2440,7 +2440,7 @@
     {
       "id": "gun_db_long",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:db_long",
       "level": 50,
       "cost": 22500,
       "time": "6h",
@@ -2472,7 +2472,7 @@
     {
       "id": "gun_uzi",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:uzi",
       "level": 50,
       "cost": 22500,
       "time": "6h",
@@ -2504,7 +2504,7 @@
     {
       "id": "gun_springfield1873",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:springfield1873",
       "level": 52,
       "cost": 23100,
       "time": "6h5m",
@@ -2536,7 +2536,7 @@
     {
       "id": "gun_p320",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:p320",
       "level": 54,
       "cost": 23700,
       "time": "6h10m",
@@ -2568,7 +2568,7 @@
     {
       "id": "gun_hk_mp5a5",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:hk_mp5a5",
       "level": 56,
       "cost": 24300,
       "time": "6h20m",
@@ -2600,7 +2600,7 @@
     {
       "id": "gun_hk_mk23",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:hk_mk23",
       "level": 58,
       "cost": 24900,
       "time": "6h25m",
@@ -2632,7 +2632,7 @@
     {
       "id": "gun_m870",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:m870",
       "level": 60,
       "cost": 25500,
       "time": "6h30m",
@@ -2664,7 +2664,7 @@
     {
       "id": "gun_rhino357",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:rhino357",
       "level": 62,
       "cost": 26100,
       "time": "6h35m",
@@ -2696,7 +2696,7 @@
     {
       "id": "gun_ump45",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:ump45",
       "level": 64,
       "cost": 26700,
       "time": "6h40m",
@@ -2728,7 +2728,7 @@
     {
       "id": "gun_type_81",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:type_81",
       "level": 68,
       "cost": 27900,
       "time": "6h55m",
@@ -2760,7 +2760,7 @@
     {
       "id": "gun_sks_tactical",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:sks_tactical",
       "level": 72,
       "cost": 29100,
       "time": "7h5m",
@@ -2792,7 +2792,7 @@
     {
       "id": "gun_kar98",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:kar98",
       "level": 76,
       "cost": 30300,
       "time": "7h20m",
@@ -2824,7 +2824,7 @@
     {
       "id": "gun_ak47",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:ak47",
       "level": 80,
       "cost": 31500,
       "time": "7h30m",
@@ -2856,7 +2856,7 @@
     {
       "id": "gun_m16a1",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:m16a1",
       "level": 82,
       "cost": 32100,
       "time": "7h35m",
@@ -2888,7 +2888,7 @@
     {
       "id": "gun_timeless50",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:timeless50",
       "level": 84,
       "cost": 32700,
       "time": "7h40m",
@@ -2920,7 +2920,7 @@
     {
       "id": "gun_m700",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:m700",
       "level": 86,
       "cost": 33300,
       "time": "7h50m",
@@ -2952,7 +2952,7 @@
     {
       "id": "gun_m16a4",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:m16a4",
       "level": 88,
       "cost": 33900,
       "time": "7h55m",
@@ -2984,7 +2984,7 @@
     {
       "id": "gun_deagle",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:deagle",
       "level": 90,
       "cost": 34500,
       "time": "8h",
@@ -3016,7 +3016,7 @@
     {
       "id": "gun_m4a1",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:m4a1",
       "level": 92,
       "cost": 35100,
       "time": "8h5m",
@@ -3048,7 +3048,7 @@
     {
       "id": "gun_lonetrail",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:lonetrail",
       "level": 94,
       "cost": 35700,
       "time": "8h10m",
@@ -3080,7 +3080,7 @@
     {
       "id": "gun_qbz_95",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:qbz_95",
       "level": 96,
       "cost": 36300,
       "time": "8h20m",
@@ -3112,7 +3112,7 @@
     {
       "id": "gun_aug",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:aug",
       "level": 98,
       "cost": 36900,
       "time": "8h25m",
@@ -3148,7 +3148,7 @@
     {
       "id": "gun_scar_l",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:scar_l",
       "level": 100,
       "cost": 37500,
       "time": "8h30m",
@@ -3180,7 +3180,7 @@
     {
       "id": "gun_p90",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:p90",
       "level": 102,
       "cost": 38100,
       "time": "8h35m",
@@ -3212,7 +3212,7 @@
     {
       "id": "gun_m1014",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:m1014",
       "level": 104,
       "cost": 38700,
       "time": "8h40m",
@@ -3244,7 +3244,7 @@
     {
       "id": "gun_g36k",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:g36k",
       "level": 106,
       "cost": 39300,
       "time": "8h50m",
@@ -3276,7 +3276,7 @@
     {
       "id": "gun_deagle_golden",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:deagle_golden",
       "level": 106,
       "cost": 39300,
       "time": "8h50m",
@@ -3308,7 +3308,7 @@
     {
       "id": "gun_vector45",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:vector45",
       "level": 108,
       "cost": 39900,
       "time": "8h55m",
@@ -3340,7 +3340,7 @@
     {
       "id": "gun_qbz_191",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:qbz_191",
       "level": 110,
       "cost": 40500,
       "time": "9h",
@@ -3372,7 +3372,7 @@
     {
       "id": "gun_hk_g3",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:hk_g3",
       "level": 112,
       "cost": 41100,
       "time": "9h5m",
@@ -3404,7 +3404,7 @@
     {
       "id": "gun_hk416d",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:hk416d",
       "level": 114,
       "cost": 41700,
       "time": "9h10m",
@@ -3436,7 +3436,7 @@
     {
       "id": "gun_rpk",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:rpk",
       "level": 116,
       "cost": 42300,
       "time": "9h20m",
@@ -3468,7 +3468,7 @@
     {
       "id": "gun_fn_fal",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:fn_fal",
       "level": 118,
       "cost": 42900,
       "time": "9h25m",
@@ -3500,7 +3500,7 @@
     {
       "id": "gun_spr15hb",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:spr15hb",
       "level": 120,
       "cost": 43500,
       "time": "9h30m",
@@ -3532,7 +3532,7 @@
     {
       "id": "gun_scar_h",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:scar_h",
       "level": 124,
       "cost": 44700,
       "time": "9h40m",
@@ -3564,7 +3564,7 @@
     {
       "id": "gun_spas_12",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:spas_12",
       "level": 128,
       "cost": 45900,
       "time": "9h55m",
@@ -3596,7 +3596,7 @@
     {
       "id": "gun_mk14",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:mk14",
       "level": 132,
       "cost": 47100,
       "time": "10h5m",
@@ -3628,7 +3628,7 @@
     {
       "id": "gun_aa12",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:aa12",
       "level": 136,
       "cost": 48300,
       "time": "10h20m",
@@ -3660,7 +3660,7 @@
     {
       "id": "gun_taurus500",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:taurus500",
       "level": 140,
       "cost": 49500,
       "time": "10h30m",
@@ -3692,7 +3692,7 @@
     {
       "id": "gun_m249",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:m249",
       "level": 144,
       "cost": 50700,
       "time": "10h40m",
@@ -3724,7 +3724,7 @@
     {
       "id": "gun_m320",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:m320",
       "level": 148,
       "cost": 51900,
       "time": "10h55m",
@@ -3756,7 +3756,7 @@
     {
       "id": "gun_fn_evolys",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:fn_evolys",
       "level": 154,
       "cost": 53700,
       "time": "11h10m",
@@ -3788,7 +3788,7 @@
     {
       "id": "gun_ai_awp",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:ai_awp",
       "level": 160,
       "cost": 55500,
       "time": "11h30m",
@@ -3820,7 +3820,7 @@
     {
       "id": "gun_rpg7",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:rpg7",
       "level": 172,
       "cost": 59100,
       "time": "12h",
@@ -3852,7 +3852,7 @@
     {
       "id": "gun_minigun",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:minigun",
       "level": 185,
       "cost": 63000,
       "time": "12h",
@@ -3888,7 +3888,7 @@
     {
       "id": "gun_m107",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:m107",
       "level": 200,
       "cost": 67500,
       "time": "12h",
@@ -3924,7 +3924,7 @@
     {
       "id": "gun_m95",
       "category": "firearms",
-      "icon": "tacz:modern_kinetic_gun",
+      "icon": "tacz:modern_kinetic_gun#tacz:m95",
       "level": 200,
       "cost": 67500,
       "time": "12h",
@@ -4045,7 +4045,7 @@
     {
       "id": "sights_pistol",
       "category": "attachments",
-      "icon": "tacz:attachment",
+      "icon": "tacz:attachment#tacz:sight_acro_pistol",
       "level": 60,
       "requires": [
         {
@@ -4105,7 +4105,7 @@
     {
       "id": "sights_rifle",
       "category": "attachments",
-      "icon": "tacz:attachment",
+      "icon": "tacz:attachment#tacz:sight_acro_rifle",
       "level": 65,
       "requires": [
         {
@@ -4173,7 +4173,7 @@
     {
       "id": "bayonets",
       "category": "attachments",
-      "icon": "tacz:attachment",
+      "icon": "tacz:attachment#tacz:bayonet_6h3",
       "level": 60,
       "cost": 25500,
       "time": "6h30m",
@@ -4209,7 +4209,7 @@
     {
       "id": "grips_1",
       "category": "attachments",
-      "icon": "tacz:attachment",
+      "icon": "tacz:attachment#tacz:grip_rk6",
       "level": 65,
       "cost": 27000,
       "time": "6h45m",
@@ -4273,7 +4273,7 @@
     {
       "id": "stocks_1",
       "category": "attachments",
-      "icon": "tacz:attachment",
+      "icon": "tacz:attachment#tacz:oem_stock_light",
       "level": 70,
       "cost": 28500,
       "time": "7h",
@@ -4333,7 +4333,7 @@
     {
       "id": "mags_1",
       "category": "attachments",
-      "icon": "tacz:attachment",
+      "icon": "tacz:attachment#tacz:extended_mag_1",
       "level": 75,
       "cost": 30000,
       "time": "7h15m",
@@ -4377,7 +4377,7 @@
     {
       "id": "scopes_low",
       "category": "attachments",
-      "icon": "tacz:attachment",
+      "icon": "tacz:attachment#tacz:scope_retro_2x",
       "level": 80,
       "cost": 31500,
       "time": "7h30m",
@@ -4425,7 +4425,7 @@
     {
       "id": "muzzle_1",
       "category": "attachments",
-      "icon": "tacz:attachment",
+      "icon": "tacz:attachment#tacz:muzzle_brake_cyclone_d2",
       "level": 90,
       "cost": 34500,
       "time": "8h",
@@ -4477,7 +4477,7 @@
     {
       "id": "scopes_mid",
       "category": "attachments",
-      "icon": "tacz:attachment",
+      "icon": "tacz:attachment#tacz:scope_acog_ta31",
       "level": 110,
       "cost": 40500,
       "time": "9h",
@@ -4529,7 +4529,7 @@
     {
       "id": "grips_2",
       "category": "attachments",
-      "icon": "tacz:attachment",
+      "icon": "tacz:attachment#tacz:grip_rk1_b25u",
       "level": 120,
       "cost": 43500,
       "time": "9h30m",
@@ -4569,7 +4569,7 @@
     {
       "id": "lasers",
       "category": "attachments",
-      "icon": "tacz:attachment",
+      "icon": "tacz:attachment#tacz:laser_compact",
       "level": 125,
       "cost": 45000,
       "time": "9h45m",
@@ -4621,7 +4621,7 @@
     {
       "id": "silencers_1",
       "category": "attachments",
-      "icon": "tacz:attachment",
+      "icon": "tacz:attachment#tacz:muzzle_silencer_mirage",
       "level": 130,
       "cost": 46500,
       "time": "10h",
@@ -4673,7 +4673,7 @@
     {
       "id": "mags_2",
       "category": "attachments",
-      "icon": "tacz:attachment",
+      "icon": "tacz:attachment#tacz:extended_mag_2",
       "level": 135,
       "cost": 48000,
       "time": "10h15m",
@@ -4717,7 +4717,7 @@
     {
       "id": "stocks_2",
       "category": "attachments",
-      "icon": "tacz:attachment",
+      "icon": "tacz:attachment#tacz:oem_stock_heavy",
       "level": 140,
       "cost": 49500,
       "time": "10h30m",
@@ -4773,7 +4773,7 @@
     {
       "id": "muzzle_2",
       "category": "attachments",
-      "icon": "tacz:attachment",
+      "icon": "tacz:attachment#tacz:muzzle_brake_cthulhu",
       "level": 150,
       "cost": 52500,
       "time": "11h",
@@ -4813,7 +4813,7 @@
     {
       "id": "scopes_high",
       "category": "attachments",
-      "icon": "tacz:attachment",
+      "icon": "tacz:attachment#tacz:scope_standard_8x",
       "level": 170,
       "cost": 58500,
       "time": "12h",
@@ -4865,7 +4865,7 @@
     {
       "id": "silencers_2",
       "category": "attachments",
-      "icon": "tacz:attachment",
+      "icon": "tacz:attachment#tacz:muzzle_silencer_sg",
       "level": 180,
       "cost": 61500,
       "time": "12h",
@@ -4905,7 +4905,7 @@
     {
       "id": "ammo_mods_1",
       "category": "attachments",
-      "icon": "tacz:attachment",
+      "icon": "tacz:attachment#tacz:ammo_mod_fmj",
       "level": 190,
       "cost": 64500,
       "time": "12h",
@@ -4957,7 +4957,7 @@
     {
       "id": "mags_3",
       "category": "attachments",
-      "icon": "tacz:attachment",
+      "icon": "tacz:attachment#tacz:extended_mag_3",
       "level": 195,
       "cost": 66000,
       "time": "12h",
@@ -5001,7 +5001,7 @@
     {
       "id": "silencers_3",
       "category": "attachments",
-      "icon": "tacz:attachment",
+      "icon": "tacz:attachment#tacz:muzzle_silencer_phantom_s1",
       "level": 230,
       "cost": 76500,
       "time": "12h",
@@ -5037,7 +5037,7 @@
     {
       "id": "ammo_mods_2",
       "category": "attachments",
-      "icon": "tacz:attachment",
+      "icon": "tacz:attachment#tacz:ammo_mod_he",
       "level": 250,
       "cost": 82500,
       "time": "12h",
@@ -5089,7 +5089,7 @@
     {
       "id": "golden_barrel",
       "category": "attachments",
-      "icon": "tacz:attachment",
+      "icon": "tacz:attachment#tacz:deagle_golden_long_barrel",
       "level": 106,
       "cost": 39300,
       "time": "8h50m",
