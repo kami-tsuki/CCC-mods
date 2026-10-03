@@ -135,5 +135,8 @@
   "kami_libs.common.distance": "%s m entfernt",
   "kami_libs.common.item": "Gegenstand",
   "kami_libs.common.withdraw": "Auszahlen",
-  "kami_libs.common.join": "Beitreten"
+  "kami_libs.common.join": "Beitreten",
+  "kami_libs.pin.pin": "Am Bildschirm anheften",
+  "kami_libs.pin.unpin": "Lösen",
+  "kami_libs.pin.remove": "Anheftung entfernen"
 }

@@ -27,6 +27,8 @@ import kami.libs.ui.style.TextStyle
 import kami.libs.ui.style.UiSound
 import kami.libs.ui.text.tr
 import kami.libs.ui.widget.*
+import kami.libs.ui.pin.pinButton
+import kami.claims.client.app.ResearchPins
 import kotlin.math.PI
 import kotlin.math.sin
 
@@ -191,7 +193,9 @@ class ResearchLevelsPage(app: ClaimsApp) : ClaimsPage(app) {
         val title = content.title
         Draw.text(ui.g, title, heading.x, heading.y + HEADING_TEXT_Y, TextStyle.HEADING)
         ui.statusPill(heading.x + Draw.width(title, TextStyle.HEADING) + PILL_GAP, heading.y + HEADING_TEXT_Y, stateLabel, severity, key = "levels-state")
-        Draw.textRight(ui.g, content.xp, heading.right, heading.y + HEADING_XP_Y, Palette.textMuted)
+        val pin = Rect(heading.right - PIN_SIZE, heading.y, PIN_SIZE, PIN_SIZE)
+        ui.pinButton(pin, ResearchPins.LEVEL, level.level.toString(), key = "levels-pin")
+        Draw.textRight(ui.g, content.xp, pin.x - PILL_GAP, heading.y + HEADING_XP_Y, Palette.textMuted)
         ui.scroll("levels-detail", area.dropTop(HEADING_H + DETAIL_GAP), detailHeight) { view ->
             val unlocked = nodeChips(level)
             val rewards = { stack: Stack -> requirementsSection(ui, stack, level); rewardsSection(ui, stack, level) }
@@ -248,6 +252,7 @@ private class CardContent(val title: String, val xp: String, val cardKey: String
 private class NodeChips(val nodes: List<NodeView>, val chips: List<ChipSpec>)
 
 private const val PAD = 4
+private const val PIN_SIZE = 16
 private const val CARD_W = 104
 private const val CARD_H = 78
 private const val CARD_H_COMPACT = 64

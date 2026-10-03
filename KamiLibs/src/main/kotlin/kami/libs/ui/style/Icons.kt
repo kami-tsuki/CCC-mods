@@ -47,6 +47,7 @@ object Icons {
     val LOCK = lib("lock")
     val CLOCK = lib("clock")
     val STAR = lib("star")
+    val PIN = lib("pin")
     val EYE = lib("eye")
     val PENDING = lib("pending")
     val COIN = lib("coin")

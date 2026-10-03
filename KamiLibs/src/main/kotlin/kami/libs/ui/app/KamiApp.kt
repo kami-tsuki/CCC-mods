@@ -9,6 +9,7 @@ import kami.libs.ui.core.Memo
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Ui
+import kami.libs.ui.pin.Pins
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icon
@@ -85,6 +86,8 @@ abstract class KamiApp {
 
     open val collapsedGroups: MutableSet<String> = mutableSetOf()
     open fun collapseChanged() {}
+    /** Pinned HUD windows are shown above the page and can be moved, resized and removed here. */
+    open val showPins = true
     private var revealPage: String? = null
     private val navY = HashMap<String, Int>()
 
@@ -167,6 +170,7 @@ abstract class KamiApp {
             else ui.clip(content) { current.draw(ui, content.slideIn(appear, PAGE_SHIFT * pageDirection, 0)) }
         }
         Draw.veilBox(ui.g, content, appear, strength = PAGE_VEIL)
+        if (showPins) ui.overlay(4) { Pins.renderEditable(ui) }
         ui.overlay(5) { toasts.draw(ui, Rect(window.x, window.y + TOPBAR_H + 4, window.w - 8, window.h)) }
         dialogs.removeAll { !it.open }
         dialogs.lastOrNull()?.let { d -> ui.overlay(10) { ui.scope("dialog:${d.title}") { d.draw(ui, ui.screen) } } }

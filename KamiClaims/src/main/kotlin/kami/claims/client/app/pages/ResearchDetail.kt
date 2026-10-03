@@ -20,6 +20,8 @@ import kami.libs.ui.style.Severity
 import kami.libs.ui.style.TextStyle
 import kami.libs.ui.text.tr
 import kami.libs.ui.widget.*
+import kami.libs.ui.pin.pinButton
+import kami.claims.client.app.ResearchPins
 
 class ResearchDetail(private val page: ClaimsPage) {
     private val actions = ResearchActions(page)
@@ -98,7 +100,8 @@ class ResearchDetail(private val page: ClaimsPage) {
         val icon = stackOf(node.icon)
         val x = if (icon.isEmpty) row.x else row.x + 24
         if (!icon.isEmpty) ui.itemSlot(Rect(row.x, row.y + 2, 22, 22), icon, key = "research-icon")
-        val right = row.right - if (closable) CLOSE_SIZE + 2 else 0
+        val right = row.right - (if (closable) CLOSE_SIZE + 2 else 0) - PIN_SIZE - 2
+        ui.pinButton(Rect(right + 2, row.y, PIN_SIZE, PIN_SIZE), ResearchPins.RESEARCH, node.key, key = "research-pin")
         Draw.text(ui.g, Draw.fit(node.label().resolve(), right - x, TextStyle.HEADING), x, row.y + 1, TextStyle.HEADING)
         ui.statusPill(x, row.y + 12, ResearchLook.label(status), ResearchLook.severity(status), key = "research-status")
     }
@@ -200,6 +203,7 @@ private class NodeFacts(
 
 private const val NODE_CONDITION = "kami_claims.research.cond.node"
 private const val HEADER_H = 26
+private const val PIN_SIZE = 16
 private const val CHIP_GAP = 3
 private const val INFO_H = 12
 private const val TASK_H = 24

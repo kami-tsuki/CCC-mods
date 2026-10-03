@@ -3,6 +3,7 @@ package kami.claims.client
 import kami.libs.ui.core.UiScale
 import com.mojang.blaze3d.platform.InputConstants
 import kami.claims.client.app.ClaimsApp
+import kami.claims.client.app.ResearchPins
 import kami.claims.client.hud.Hud
 import kami.claims.client.store.ClaimsStore
 import kami.claims.client.store.ClientResearch
@@ -40,6 +41,7 @@ object ClientHooks {
     fun init() {
         Highlights.register(KamiHighlighter())
         ResearchTooltip.init()
+        ResearchPins.register()
         MOD_BUS.addListener<RegisterKeyMappingsEvent> { it.register(open); it.register(borders) }
         MOD_BUS.addListener<RegisterGuiLayersEvent> {
             it.registerAboveAll(ResourceLocation.fromNamespaceAndPath("kami_claims", "territory")) { g, _ -> Hud.render(g) }

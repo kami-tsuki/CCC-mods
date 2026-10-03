@@ -25,6 +25,8 @@ import kami.libs.ui.core.Tip
 import kami.libs.ui.style.Severity
 import kami.libs.ui.text.tr
 import kami.libs.ui.widget.*
+import kami.libs.ui.pin.pinButton
+import kami.claims.client.app.ResearchPins
 
 class ResearchQueuePage(app: ClaimsApp) : ClaimsPage(app) {
     override val title get() = tr("kami_claims.nav.queue")
@@ -75,6 +77,7 @@ class ResearchQueuePage(app: ClaimsApp) : ClaimsPage(app) {
         val stack = stackOf(node.icon)
         if (!stack.isEmpty) ui.itemSlot(line.take(inner.h), stack, key = "queue-icon:${node.key}")
         val manage = ClientResearch.state.canManage
+        ui.pinButton(line.iconSlot(), ResearchPins.RESEARCH, node.key, key = "queue-pin:${node.key}")
         if (ui.iconButton(line.iconSlot(), Icons.LOCATE, tr("kami_claims.research.action.show"), key = "queue-show:${node.key}")) app.navigate(Route("research", focus = node.key))
         if (manage) controls(ui, line, node, entry, inner.w < NARROW_W)
         val spec = barFor(node, entry, offline, ui.wallMillis)

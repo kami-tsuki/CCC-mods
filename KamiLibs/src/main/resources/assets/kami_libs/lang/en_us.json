@@ -135,5 +135,8 @@
   "kami_libs.common.distance": "%s m away",
   "kami_libs.common.item": "Item",
   "kami_libs.common.withdraw": "Withdraw",
-  "kami_libs.common.join": "Join"
+  "kami_libs.common.join": "Join",
+  "kami_libs.pin.pin": "Pin to screen",
+  "kami_libs.pin.unpin": "Unpin",
+  "kami_libs.pin.remove": "Remove pin"
 }

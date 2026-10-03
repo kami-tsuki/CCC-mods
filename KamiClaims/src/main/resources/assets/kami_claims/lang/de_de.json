@@ -2989,5 +2989,6 @@
   "kami_claims.research.node.technology.vt_smithing": "Schmieden",
   "kami_claims.research.node.technology.vt_smithing.desc": "Schmiedetisch-Aufwertungen und Rüstungsverzierungen.",
   "kami_claims.error.country_limit": "Der Server erlaubt höchstens %s Staaten. Tritt stattdessen einem bestehenden bei.",
-  "kami_claims.research.task.fell": "Fälle %1$s Baum/Bäume"
+  "kami_claims.research.task.fell": "Fälle %1$s Baum/Bäume",
+  "kami_claims.pin.research": "Forschung"
 }
