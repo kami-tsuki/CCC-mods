@@ -6,17 +6,17 @@ import kami.libs.chat.tell
 import kami.libs.text.Phrase
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
-import net.neoforged.neoforge.server.ServerLifecycleHooks
+import net.minecraft.server.MinecraftServer
 
 object Notify {
     private val chat = Chat.of("market")
 
-    private fun server() = ServerLifecycleHooks.getCurrentServer()
+    var server: MinecraftServer? = null
 
-    private fun online(who: String) = Trade.uuid(who)?.let { server()?.playerList?.getPlayer(it) }
+    private fun online(who: String) = Trade.uuid(who)?.let { server?.playerList?.getPlayer(it) }
 
     fun name(who: String): Phrase = Phrase.value(
-        online(who)?.name?.string ?: Trade.uuid(who)?.let { server()?.profileCache?.get(it)?.orElse(null)?.name } ?: "?"
+        online(who)?.name?.string ?: Trade.uuid(who)?.let { server?.profileCache?.get(it)?.orElse(null)?.name } ?: "?"
     )
 
     fun stack(item: String, qty: Int): Phrase {
@@ -26,8 +26,8 @@ object Notify {
 
     fun label(text: String): Phrase = Phrase.value(text)
 
-    fun tell(who: String, tone: Tone, key: String, vararg args: Any) {
-        if (who.isEmpty()) return
-        online(who)?.tell(chat.say(tone, Phrase.of("kami_economy.notify.$key", *args)))
+    fun tell(who: String, tone: Tone, key: String, args: () -> Array<out Any>) {
+        val p = online(who) ?: return
+        p.tell(chat.say(tone, Phrase.of("kami_economy.notify.$key", *args())))
     }
 }

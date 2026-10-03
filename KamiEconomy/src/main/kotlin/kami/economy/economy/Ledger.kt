@@ -299,7 +299,7 @@ object Ledger {
             LOG.error("sell-now {} left a ledger intent open for recovery", intent.id, e)
             throw IntentOpenException()
         }
-        fills.forEach { Notify.tell(it.owner, Tone.OK, "order_filled", Notify.name(seller), Notify.stack(item, it.qty), Phrase.money(gross(it))) }
+        fills.forEach { Notify.tell(it.owner, Tone.OK, "order_filled") { arrayOf(Notify.name(seller), Notify.stack(item, it.qty), Phrase.money(gross(it))) } }
         return plan.filled
     }
 
@@ -402,7 +402,7 @@ object Ledger {
         val intent = Intent(Market.nextId(), IntentType.BUY, LedgerState.PENDING, actor = buyer, item = item, qty = plan.filled, netSpurs = plan.totalSpurs, fills = fills)
         if (!debit(intent, buyerId, total)) return BuyResult.InsufficientFunds
         deliverBuy(intent.copy(state = LedgerState.DEBITED))
-        fills.forEach { Notify.tell(it.owner, Tone.OK, "sold", Notify.name(buyer), Notify.stack(item, it.qty), Phrase.money(net(it))) }
+        fills.forEach { Notify.tell(it.owner, Tone.OK, "sold") { arrayOf(Notify.name(buyer), Notify.stack(item, it.qty), Phrase.money(net(it))) } }
         Market.save()
         return BuyResult.Ok(plan.filled, plan.totalSpurs)
     }
@@ -539,8 +539,8 @@ object Ledger {
         val intent = withBalances(Intent(Market.nextId(), IntentType.AUCTION_BID, LedgerState.PENDING, actor = bidder, auctionId = auctionId, unitPrice = amount, prevBidder = a.currentBidder, prevBid = a.currentBid))
         if (!debit(intent, bidderId, amount)) return BidResult.InsufficientFunds
         applyBid(intent)
-        if (intent.prevBidder != bidder) Notify.tell(intent.prevBidder, Tone.WARN, "outbid", Notify.name(bidder), Notify.label(a.label), Phrase.money(amount.toLong()))
-        Notify.tell(a.seller, Tone.INFO, "bid", Notify.name(bidder), Notify.label(a.label), Phrase.money(amount.toLong()))
+        if (intent.prevBidder != bidder) Notify.tell(intent.prevBidder, Tone.WARN, "outbid") { arrayOf(Notify.name(bidder), Notify.label(a.label), Phrase.money(amount.toLong())) }
+        Notify.tell(a.seller, Tone.INFO, "bid") { arrayOf(Notify.name(bidder), Notify.label(a.label), Phrase.money(amount.toLong())) }
         Market.save()
         return BidResult.Ok
     }
@@ -554,8 +554,8 @@ object Ledger {
         val intent = withBalances(settleIntent(a, buyer, price).copy(prevBidder = a.currentBidder, prevBid = a.currentBid, instant = true))
         if (!debit(intent, buyerId, price)) return BuyNowResult.InsufficientFunds
         settle(intent.copy(state = LedgerState.DEBITED))
-        Notify.tell(intent.prevBidder, Tone.WARN, "bought_out", Notify.label(a.label), Notify.name(buyer))
-        Notify.tell(a.seller, Tone.OK, "auction_bought", Notify.name(buyer), Notify.label(a.label), Phrase.money(price.toLong()))
+        Notify.tell(intent.prevBidder, Tone.WARN, "bought_out") { arrayOf(Notify.label(a.label), Notify.name(buyer)) }
+        Notify.tell(a.seller, Tone.OK, "auction_bought") { arrayOf(Notify.name(buyer), Notify.label(a.label), Phrase.money(price.toLong())) }
         Market.save()
         return BuyNowResult.Ok
     }
@@ -573,8 +573,8 @@ object Ledger {
         val a = Auctions.find(auctionId) ?: return
         if (a.state != AuctionState.OPEN || a.currentBidder.isEmpty()) return
         settle(withBalances(settleIntent(a, a.currentBidder, a.currentBid)).also(::write))
-        Notify.tell(a.seller, Tone.OK, "auction_sold", Notify.label(a.label), Notify.name(a.currentBidder), Phrase.money(a.currentBid.toLong()))
-        Notify.tell(a.currentBidder, Tone.OK, "auction_won", Notify.label(a.label), Phrase.money(a.currentBid.toLong()))
+        Notify.tell(a.seller, Tone.OK, "auction_sold") { arrayOf(Notify.label(a.label), Notify.name(a.currentBidder), Phrase.money(a.currentBid.toLong())) }
+        Notify.tell(a.currentBidder, Tone.OK, "auction_won") { arrayOf(Notify.label(a.label), Phrase.money(a.currentBid.toLong())) }
         Market.save()
     }
 
@@ -584,7 +584,7 @@ object Ledger {
         val id = Market.nextId()
         val base = Intent(id, IntentType.AUCTION_CANCEL, LedgerState.PENDING, actor = a.seller, auctionId = a.id, stackData = a.stackData)
         returnToOwner(base, { Auctions.expire(a.id) }, { Market.queueStackDelivery(a.seller, a.stackData, "$id:d") })
-        Notify.tell(a.seller, Tone.INFO, "auction_expired", Notify.label(a.label))
+        Notify.tell(a.seller, Tone.INFO, "auction_expired") { arrayOf(Notify.label(a.label)) }
         Market.save()
     }
 

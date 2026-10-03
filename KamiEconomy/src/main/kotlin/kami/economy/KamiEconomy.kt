@@ -5,6 +5,7 @@ import kami.economy.command.EconomyCommands
 import kami.economy.economy.Auctions
 import kami.economy.economy.Blacklist
 import kami.economy.economy.History
+import kami.economy.economy.Notify
 import kami.economy.economy.EconomyProvider
 import kami.economy.economy.Pricing
 import kami.economy.economy.Stocks
@@ -48,8 +49,8 @@ object KamiEconomy {
         MOD_BUS.addListener<RegisterPayloadHandlersEvent> { Net.register(it) }
         if (FMLEnvironment.dist == Dist.CLIENT) ClientEconomy.init()
         EconomyCommands.register()
-        FORGE_BUS.addListener<ServerStartedEvent> { Market.load(it.server); History.load(it.server) }
-        FORGE_BUS.addListener<ServerStoppingEvent> { Market.save(true); History.save(true) }
+        FORGE_BUS.addListener<ServerStartedEvent> { Notify.server = it.server; Market.load(it.server); History.load(it.server) }
+        FORGE_BUS.addListener<ServerStoppingEvent> { Market.save(true); History.save(true); Notify.server = null }
         FORGE_BUS.addListener<LevelEvent.Save> { if ((it.level as? Level)?.dimension() == Level.OVERWORLD) { Market.save(); History.save() } }
         FORGE_BUS.addListener<ServerTickEvent.Post> {
             val server = it.server
