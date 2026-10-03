@@ -22,6 +22,7 @@ import kami.claims.social.Perms
 import kami.claims.world.Effects
 import kami.claims.world.Guard
 import kami.claims.world.Sky
+import kami.claims.world.TempBlocks
 import kami.libs.claims.Citizenship
 import kami.libs.claims.ClaimInfo
 import kami.libs.claims.ClaimsApi
@@ -160,6 +161,7 @@ object KamiClaims {
             if (t % 10 == 0) it.server.playerList.players.forEach(Effects::borders)
             Net.push(it.server)
             if (t % 20 == 0) Queue.tick()
+            if (t % 4 == 0) TempBlocks.tick(it.server)
             if (t % 100 == 0) Levels.advanceAll()
             if (t % 1200 == 0) Upkeep.tick(it.server)
             runCatching { Realm.autosave(t) }.onFailure { e -> LOG.error("Periodic claims save failed", e) }

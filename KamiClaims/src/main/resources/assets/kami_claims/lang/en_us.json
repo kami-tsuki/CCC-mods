@@ -430,6 +430,7 @@
   "kami_claims.flag_pattern.stripes": "Stripes",
   "kami_claims.flag_pattern.top_half": "Top half",
   "kami_claims.guard.sky": "Needs open sky: no solid block, slab or stair may be above, only glass, leaves or thin blocks.",
+  "kami_claims.guard.temp": "Temporary block: crumbles in %s s",
   "kami_claims.guard.denied.access.allied": "Only citizens and allies of %1$s may %2$s here (%3$s).",
   "kami_claims.guard.denied.access.any": "Everyone may %2$s here (%3$s).",
   "kami_claims.guard.denied.access.assigned": "Only assigned workers of %1$s may %2$s here (%3$s).",

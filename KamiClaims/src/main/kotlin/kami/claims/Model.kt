@@ -207,13 +207,17 @@ class Country(
 class Reserve(val dim: String, val x: Int, val z: Int, val country: String, val until: Long)
 
 @Serializable
+class TempBlock(val dim: String, val pos: Long, val start: Long, val due: Long)
+
+@Serializable
 class Data(
     val countries: MutableMap<String, Country> = mutableMapOf(),
     val claims: MutableList<Claim> = mutableListOf(),
     val reserves: MutableList<Reserve> = mutableListOf(),
     var day: Long = -1,
     var schema: Int = 0,
-    val letters: MutableMap<String, MutableList<String>> = mutableMapOf()
+    val letters: MutableMap<String, MutableList<String>> = mutableMapOf(),
+    val temp: MutableList<TempBlock> = mutableListOf()
 ) {
     companion object {
         const val CURRENT = 1

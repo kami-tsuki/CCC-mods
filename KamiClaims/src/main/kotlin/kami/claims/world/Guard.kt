@@ -26,6 +26,7 @@ import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket
 import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket
 import net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.tags.TagKey
 import net.minecraft.world.Container
@@ -118,7 +119,8 @@ object Guard {
         val free = block != null && action != Action.INTERACT && id(block) in Config.s.freeBlockSet
         val c = cl?.let { Realm.data.countries[it.country] }
         if (free && (action == Action.PLACE || cl == null || cl.type == "infrastructure")) return true
-        if (cl == null || c == null) return action in Config.s.nomanslandAllowSet && block?.defaultBlockState()?.`is`(wildBlocks) != true
+        if (cl == null || c == null) return action in Config.s.nomanslandAllowSet && block?.defaultBlockState()?.`is`(wildBlocks) != true ||
+            action == Action.PLACE && block?.defaultBlockState()?.let(TempBlocks::fits) == true
         val p = who as? Player
         if (p == null || p is FakePlayer) return c.machines[cl.type] ?: cl.def?.rule?.machines ?: false
         val me = p.stringUUID
@@ -230,7 +232,18 @@ object Guard {
             researchLocked(e.entity, e.level, e.pos, block)) {
             e.isCanceled = true
             player?.let { resync(it, e.pos) }
-        } else player?.let { credit(it, e.pos, Action.PLACE, e.placedBlock) }
+        } else {
+            player?.let { credit(it, e.pos, Action.PLACE, e.placedBlock) }
+            temporary(e.level, e.pos, e.placedBlock, player)
+        }
+    }
+
+    private fun temporary(level: LevelAccessor, pos: BlockPos, state: BlockState, player: ServerPlayer?) {
+        val world = level as? ServerLevel ?: return
+        if (!TempBlocks.fits(state) || Action.PLACE in Config.s.nomanslandAllowSet || dim(level) !in Config.s.dimensionSet || !unclaimed(level, pos)) return
+        if (player != null && Perms.has(player, Perms.BYPASS)) return
+        TempBlocks.place(world, pos, state)
+        player?.bar(Chat.bar(Tone.WARN, Phrase.of("kami_claims.guard.temp", "%.0f".format(TempBlocks.seconds(world, pos, state))).component()))
     }
 
     private fun extends(type: Class<*>, name: String): Boolean = generateSequence(type) { it.superclass }.any { it.name == name }
@@ -368,11 +381,12 @@ object Guard {
     }
 
     fun onPiston(e: PistonEvent.Pre) {
-        if (!Config.s.pistonProtection) return
         val level = e.level
         val dim = dim(level)?.takeIf { it in Config.s.dimensionSet } ?: return
-        val origin = Realm.index[key(dim, e.pos)]
         val helper = e.structureHelper ?: return
+        if (Realm.data.temp.isNotEmpty() && (helper.toPush + helper.toDestroy).any { TempBlocks.at(dim, it) }) return run { e.isCanceled = true }
+        if (!Config.s.pistonProtection) return
+        val origin = Realm.index[key(dim, e.pos)]
         val pushed = helper.toPush + helper.toPush.map { it.relative(helper.pushDirection) }
         // a retracting piston must always be allowed to pull its own head back (cancelling would leave it stuck extended), so only the pulled blocks are checked then
         val moved = if (e.pistonMoveType.isExtend) pushed + helper.toDestroy + e.faceOffsetPos else pushed

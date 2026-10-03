@@ -55,6 +55,8 @@ data class Settings(
     val nomanslandExplosions: Boolean = false,
     val nomanslandFire: Boolean = false,
     val nomanslandFluid: Boolean = false,
+    val tempBlockSecondsPerHardness: Double = 3.0,
+    val tempBlockMinSeconds: Double = 2.0,
     val pistonProtection: Boolean = true,
     val skyRule: Boolean = true,
     val skyFreeDimensions: List<String> = listOf("minecraft:the_nether", "minecraft:the_end"),
@@ -198,6 +200,8 @@ private val sections = listOf(
             "nomanslandExplosions" to "Explosions break blocks in unclaimed land.",
             "nomanslandFire" to "Fire spreads in unclaimed land.",
             "nomanslandFluid" to "Fluids flow in unclaimed land.",
+            "tempBlockSecondsPerHardness" to "Blocks in the kami_claims:temp_blocks tag (dirt, stone, deepslate) may be placed in unclaimed land when placing is not allowed there, but crumble after hardness times this many seconds. Pistons cannot move them.",
+            "tempBlockMinSeconds" to "The shortest time a temporary block lasts, in seconds.",
             "pistonProtection" to "Stop pistons from pushing blocks across claim borders.",
             "skyRule" to "Crops and saplings only grow with open sky above them. Only blocks with a full top or bottom face block it, like full blocks, slabs, stairs and farmland. Thin blocks like torches, chains and fences, leaves, DynamicTrees branches, any glass block or variant and the kami_claims:sky_transparent tag let light through. Applies everywhere, claimed or not.",
             "skyFreeDimensions" to "Dimensions where the open sky rule is not applied, like the Nether."
