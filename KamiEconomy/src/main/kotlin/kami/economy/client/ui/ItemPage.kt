@@ -169,6 +169,8 @@ internal class ItemPage(val app: MarketApp) : Page() {
         ui.tooltip("book:$key", r, Tip(lines = listOfNotNull(
             kind to Palette.textSecondary,
             l.country.takeIf { it.isNotEmpty() }?.let { app.countryTip(it, l.relation) to Palette.textMuted },
+            (if (bid || l.market) tr("kami_economy.book.tip.tax.you", if (l.market) app.snap.taxPct else app.taxFor(l.relation)) to Palette.warning
+            else tr("kami_economy.book.tip.tax.seller", app.taxFor(l.relation)) to Palette.success).takeIf { !l.mine && !embargo },
             (tr("kami_economy.book.tip.mine") to Palette.brass).takeIf { l.mine }
         )))
     }

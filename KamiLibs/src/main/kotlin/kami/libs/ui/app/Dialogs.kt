@@ -77,7 +77,7 @@ fun Ui.numberDialogBody(s: DialogScope, y: Int, state: NumberState, label: Strin
 
 enum class ReceiptKind { LINE, CHARGE, TOTAL, NOTE }
 
-class ReceiptLine(val label: String, val value: String, val kind: ReceiptKind = ReceiptKind.LINE, val tip: String? = null)
+class ReceiptLine(val label: String, val value: String, val kind: ReceiptKind = ReceiptKind.LINE, val tip: String? = null, val color: Int? = null)
 
 fun receiptDialog(
     open: (Dialog) -> Unit, title: String, icon: Icon, lines: List<ReceiptLine>, primary: String,
@@ -88,7 +88,9 @@ fun receiptDialog(
         var y = b.y
         lines.forEachIndexed { i, l ->
             if (l.kind == ReceiptKind.NOTE) {
-                y += Draw.paragraph(g, l.label, b.x, y, b.w, Palette.textMuted) + 3
+                val h = Draw.paragraph(g, l.label, b.x, y, b.w, l.color ?: Palette.textMuted)
+                tooltip("receipt:$i", Rect(b.x, y, b.w, h), l.tip)
+                y += h + 3
                 return@forEachIndexed
             }
             val total = l.kind == ReceiptKind.TOTAL
@@ -105,7 +107,7 @@ fun receiptDialog(
             val rowH = if (total) 12 else 11
             val value = Draw.width(l.value, style)
             Draw.text(g, Draw.fit(l.label, b.w - value - 8, style), b.x, y, style, color)
-            Draw.textRight(g, l.value, b.right, y, Palette.text, style)
+            Draw.textRight(g, l.value, b.right, y, l.color ?: Palette.text, style)
             tooltip("receipt:$i", Rect(b.x, y, b.w, rowH), l.tip)
             y += rowH
         }

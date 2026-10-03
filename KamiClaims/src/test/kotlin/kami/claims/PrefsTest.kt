@@ -34,6 +34,6 @@ class PrefsTest {
         val second = config()
         assertTrue(second.load())
         assertTrue(second.value.tourDone)
-        assertEquals(0.9f, second.value.uiScale)
+        assertEquals(300, second.value.borderDensity)
     }
 }

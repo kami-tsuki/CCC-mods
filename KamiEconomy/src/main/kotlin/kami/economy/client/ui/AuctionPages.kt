@@ -105,7 +105,7 @@ internal class AuctionsPage(app: MarketApp) : ListPage(app, "auctions") {
             add(ReceiptLine(tr("kami_libs.common.item"), a.label))
             add(ReceiptLine(tr(if (buyNow) "kami_economy.auction.buy_price" else "kami_economy.auction.your_bid"), Format.money(amount.toLong())))
             add(ReceiptLine(tr("kami_economy.receipt.pay"), Format.money(amount.toLong()), ReceiptKind.TOTAL))
-            if (!buyNow) add(ReceiptLine("", tr("kami_economy.auction.refund"), ReceiptKind.NOTE))
+            if (!buyNow) add(ReceiptLine(tr("kami_economy.auction.refund"), "", ReceiptKind.NOTE))
             add(ReceiptLine(tr("kami_economy.receipt.balance"), Format.money(funds) + " → " + Format.money(funds - amount)))
         }
         receiptDialog(
@@ -176,7 +176,7 @@ internal class AuctionCreatePage(val app: MarketApp) : Page() {
             add(ReceiptLine(e.stack.hoverName.string, unitsText(e.stack.count, e.stack.maxStackSize)))
             add(ReceiptLine(tr("kami_economy.market.auction.start_price"), Format.money(startPrice)))
             if (buy > 0) add(ReceiptLine(tr("kami_economy.auction.buy_price"), Format.money(buy)))
-            add(ReceiptLine("", tr("kami_economy.market.auction.fee", app.snap.auctionFeePct), ReceiptKind.NOTE))
+            add(ReceiptLine(tr("kami_economy.market.auction.fee", app.snap.auctionFeePct), "", ReceiptKind.NOTE))
         }
         receiptDialog(app::open, tr("kami_economy.auction.receipt.list"), Icons.SCALES, lines, tr("kami_economy.market.auction.list")) {
             app.request("auction_list", Blacklist.itemId(e.stack), e.stack.count.toString(), startPrice.toString(), buy.toString())

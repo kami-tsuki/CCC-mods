@@ -69,7 +69,7 @@ import kotlin.math.roundToInt
     val filled: Int, val listed: Int, val returned: Int, val reason: String,
     val gross: Long, val tax: Long, val tariff: Long, val total: Long, val avg: Int, val worst: Int, val levels: Int,
     val listGross: Long, val listTax: Long, val step: Int, val taxPct: Int, val tariffPct: Int, val relation: String,
-    val guaranteed: Int, val after: Int
+    val guaranteed: Int, val after: Int, val otherTax: Long = 0, val otherTaxPct: Int = 0
 )
 @Serializable class AuctionLine(
     val id: Long, val label: String, val stackData: String, val startPrice: Int, val buyNowPrice: Int, val currentBid: Int,
@@ -270,7 +270,8 @@ object Sync {
                 Quote(
                     r.mode, r.item, r.qty, 0, plan.filled, 0, r.qty - plan.filled, lotReason(plan.filled),
                     gross, stock.sumOf { it.tax }, plan.fills.sumOf { it.tariff }, plan.totalSpurs, avg(gross, plan.filled, lot), plan.fills.maxOfOrNull { it.unitPrice } ?: 0, plan.fills.size,
-                    0, 0, lot, if (stock.isEmpty()) 0 else Config.s.taxPct, terms.maxOfOrNull { it.tariffPct } ?: 0, relation(terms), 0, clamp(funds - plan.totalSpurs)
+                    0, 0, lot, if (stock.isEmpty()) 0 else Config.s.taxPct, terms.maxOfOrNull { it.tariffPct } ?: 0, relation(terms), 0, clamp(funds - plan.totalSpurs),
+                    plan.fills.filterNot { it.market }.sumOf { it.tax }, terms.maxOfOrNull { it.taxPct } ?: 0
                 )
             }
             "sell_market" -> {
@@ -304,8 +305,8 @@ object Sync {
                 val listed = if (refusal == null) amount else 0
                 val reason = refusal ?: if (amount < r.qty) "step" else ""
                 Quote(
-                    r.mode, r.item, r.qty, r.price, 0, listed, r.qty - listed, reason, total, 0, 0, total, 0, 0, 0, 0, 0, step,
-                    Config.s.taxPct, 0, "", 0, clamp(funds - total)
+                    r.mode, r.item, r.qty, r.price, 0, listed, r.qty - listed, reason, total, 0, 0, total, 0, 0, 0, total, 0, step,
+                    Config.s.taxPct, 0, "", 0, clamp(funds - total), if (listed > 0) Matching.tax(total) else 0, Config.s.taxPct
                 )
             }
             else -> null

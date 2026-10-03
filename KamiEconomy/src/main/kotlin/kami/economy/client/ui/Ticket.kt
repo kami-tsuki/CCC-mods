@@ -38,24 +38,32 @@ internal fun returnReason(q: Quote, lot: Int) = when (q.reason) {
 
 private fun Quote.sig() = listOf(mode, item, qty, price, filled, listed, returned, total, tax, tariff)
 
+private val Quote.buying get() = mode == "buy" || mode == "bid"
+
+internal fun Quote.listValue() = if (mode == "bid") listGross + listTax else listGross - listTax
+
+private fun Quote.sellersKey() = if (mode == "bid") "kami_economy.receipt.tax.sellers.bid" else "kami_economy.receipt.tax.sellers"
+
+private fun Quote.myTaxTip() = tr("kami_economy.receipt.tax.you.tip.$mode") + relation.takeIf { it.isNotEmpty() && mode != "buy" }?.let { " " + tr("kami_economy.market.rate.$it.tip") }.orEmpty()
+
 internal fun confirmQuote(app: MarketApp, q: Quote, lot: Int, warning: String? = null) {
     val stack = app.stack(q.item)
     val size = stack.maxStackSize
-    val buying = q.mode == "buy" || q.mode == "bid"
-    val sign = if (buying) "+" else "-"
+    val sign = if (q.buying) "+" else "-"
     val reason = returnReason(q, lot).let { if (it.isEmpty()) "" else " ($it)" }
     val lines = buildList {
         add(ReceiptLine(stack.hoverName.string, unitsText(q.qty, size)))
-        if (q.filled > 0) {
-            add(ReceiptLine(tr("kami_economy.receipt.avg"), Format.money(q.avg.toLong()), tip = tr("kami_economy.receipt.avg.tip") + " " + tr("kami_economy.receipt.sweep", Format.money(q.worst.toLong()), q.levels)))
+        if (q.filled > 0 || q.mode == "bid") {
+            if (q.filled > 0) add(ReceiptLine(tr("kami_economy.receipt.avg"), Format.money(q.avg.toLong()), tip = tr("kami_economy.receipt.avg.tip") + " " + tr("kami_economy.receipt.sweep", Format.money(q.worst.toLong()), q.levels)))
             add(ReceiptLine(tr("kami_economy.receipt.subtotal"), Format.money(q.gross), tip = tr("kami_economy.receipt.subtotal.tip")))
-            if (q.tax > 0) add(ReceiptLine(tr("kami_economy.receipt.tax", q.taxPct), sign + Format.money(q.tax), ReceiptKind.CHARGE,
-                tr("kami_economy.receipt.tax.tip") + q.relation.takeIf { it.isNotEmpty() }?.let { " " + tr("kami_economy.market.rate.$it.tip") }.orEmpty()))
-            if (q.tariff > 0) add(ReceiptLine(tr("kami_economy.receipt.tariff", q.tariffPct), sign + Format.money(q.tariff), ReceiptKind.CHARGE, tr("kami_economy.receipt.tariff.tip")))
+            if (q.tax > 0) add(ReceiptLine(tr("kami_economy.receipt.tax.you", q.taxPct), sign + Format.money(q.tax), ReceiptKind.CHARGE, q.myTaxTip(), Palette.warning))
+            if (q.tariff > 0) add(ReceiptLine(tr("kami_economy.receipt.tariff", q.tariffPct), sign + Format.money(q.tariff), ReceiptKind.CHARGE, tr("kami_economy.receipt.tariff.tip"), Palette.warning))
         }
-        add(ReceiptLine(tr(if (buying) "kami_economy.receipt.pay" else "kami_economy.receipt.receive"), Format.money(q.total), ReceiptKind.TOTAL, tr("kami_economy.receipt.total.tip")))
-        if (q.listed > 0) add(ReceiptLine("", tr("kami_economy.receipt.listed.${q.mode}", unitsText(q.listed, size), Format.money(q.price.toLong()), Format.money(q.listGross - q.listTax)), ReceiptKind.NOTE, tr("kami_economy.ticket.tip.rest")))
-        if (q.returned > 0) add(ReceiptLine("", tr("kami_economy.receipt.returned", unitsText(q.returned, size)) + reason, ReceiptKind.NOTE, tr("kami_economy.ticket.tip.returned")))
+        add(ReceiptLine(tr(if (q.buying) "kami_economy.receipt.pay" else "kami_economy.receipt.receive"), Format.money(q.total), ReceiptKind.TOTAL, tr("kami_economy.receipt.total.tip"), if (q.buying) Palette.danger else Palette.success))
+        if (q.mode == "sell" && q.listed > 0) add(ReceiptLine(tr("kami_economy.receipt.tax.listing", q.taxPct), "-" + Format.money(q.listTax), ReceiptKind.CHARGE, tr("kami_economy.receipt.tax.listing.tip"), Palette.warning))
+        if (q.otherTax > 0) add(ReceiptLine(tr(q.sellersKey(), q.otherTaxPct), Format.money(q.otherTax), ReceiptKind.CHARGE, tr("kami_economy.receipt.tax.sellers.tip"), Palette.textMuted))
+        if (q.listed > 0) add(ReceiptLine(tr("kami_economy.receipt.listed.${q.mode}", unitsText(q.listed, size), Format.money(q.price.toLong()), Format.money(q.listValue())), "", ReceiptKind.NOTE, tr("kami_economy.ticket.tip.rest")))
+        if (q.returned > 0) add(ReceiptLine(tr("kami_economy.receipt.returned", unitsText(q.returned, size)) + reason, "", ReceiptKind.NOTE, tr("kami_economy.ticket.tip.returned")))
         add(ReceiptLine(tr("kami_economy.receipt.balance"), Format.money(app.snap.funds) + " → " + Format.money(q.after.toLong()), tip = tr("kami_economy.ticket.tip.after")))
     }
     val sig = q.sig()
@@ -156,7 +164,10 @@ internal class Ticket(private val app: MarketApp) {
                 add(Line(tr("kami_economy.ticket.now.${q.mode}", unitsText(q.filled, size), Format.money(q.total)), Palette.text, tr("kami_economy.ticket.tip.now")))
                 add(Line(tr("kami_economy.ticket.sweep", Format.money(q.avg.toLong()), Format.money(q.worst.toLong()), q.levels), Palette.textMuted, tr("kami_economy.ticket.tip.sweep")))
             }
-            if (q.listed > 0) add(Line(tr("kami_economy.ticket.rest.${q.mode}", unitsText(q.listed, size), Format.money(q.price.toLong()), Format.money(q.listGross - q.listTax)), Palette.textSecondary, tr("kami_economy.ticket.tip.rest")))
+            if (q.listed > 0) add(Line(tr("kami_economy.ticket.rest.${q.mode}", unitsText(q.listed, size), Format.money(q.price.toLong()), Format.money(q.listValue())), Palette.textSecondary, tr("kami_economy.ticket.tip.rest")))
+            if (q.tax > 0) add(Line(tr("kami_economy.ticket.tax.you", Format.money(q.tax), q.taxPct), Palette.warning, q.myTaxTip()))
+            if (q.mode == "sell" && q.listed > 0) add(Line(tr("kami_economy.ticket.tax.listing", Format.money(q.listTax), q.taxPct), Palette.warning, tr("kami_economy.receipt.tax.listing.tip")))
+            if (q.otherTax > 0) add(Line(tr(if (q.mode == "bid") "kami_economy.ticket.tax.sellers.bid" else "kami_economy.ticket.tax.sellers", Format.money(q.otherTax), q.otherTaxPct), Palette.textMuted, tr("kami_economy.receipt.tax.sellers.tip")))
             if (q.returned > 0) add(Line(tr("kami_economy.receipt.returned", unitsText(q.returned, size)) + returnReason(q, d.lot).let { if (it.isEmpty()) "" else " ($it)" }, Palette.warning, tr("kami_economy.ticket.tip.returned")))
             if (q.mode == "sell" && q.price > 0 && q.price != price.value.toInt()) add(Line(tr("kami_economy.ticket.forced", Format.money(q.price.toLong())), Palette.warning, tr("kami_economy.ticket.tip.forced")))
             add(Line(tr("kami_economy.ticket.after", Format.money(q.after.toLong())), Palette.textMuted, tr("kami_economy.ticket.tip.after")))
