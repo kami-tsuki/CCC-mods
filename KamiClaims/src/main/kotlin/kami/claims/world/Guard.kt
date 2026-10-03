@@ -36,6 +36,7 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.decoration.ArmorStand
 import net.minecraft.world.entity.decoration.HangingEntity
+import net.minecraft.world.entity.vehicle.Boat
 import net.minecraft.world.entity.vehicle.VehicleEntity
 import net.minecraft.world.item.ArmorStandItem
 import net.minecraft.world.item.BlockItem
@@ -80,6 +81,7 @@ object Guard {
     /** Blocks and entities nobody may use in no man's land because items put into them are lost (pots, depots, item frames). */
     private val wildBlocks: TagKey<Block> by lazy { TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("kami_claims", "wild_blocked")) }
     private val wildEntities: TagKey<EntityType<*>> by lazy { TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath("kami_claims", "wild_blocked")) }
+    private const val BOAT_OWNER = "kami_claims_owner"
     private const val DT_SAPLING = "com.dtteam.dynamictrees.block.sapling.DynamicSaplingBlock"
     private const val DT_SEED = "com.dtteam.dynamictrees.item.Seed"
 
@@ -332,9 +334,15 @@ object Guard {
         if (wild || !check(e.level, target.blockPosition(), e.entity, Action.INTERACT, null)) e.isCanceled = true
     }
 
+    /** Tags a freshly placed boat with its placer. */
+    @JvmStatic
+    fun ownBoat(boat: Boat, player: Player) = boat.persistentData.putString(BOAT_OWNER, player.stringUUID)
+
     fun onAttack(e: AttackEntityEvent) {
         val target = e.target
         if (e.entity.level().isClientSide || !(target is HangingEntity || target is ArmorStand || target is VehicleEntity)) return
+        // Boats are free in no man's land and their placer may always take them back, so nobody gets stranded.
+        if (target is Boat && (unclaimed(target.level(), target.blockPosition()) || target.persistentData.getString(BOAT_OWNER) == e.entity.stringUUID)) return
         if (!check(e.entity.level(), target.blockPosition(), e.entity, Action.BREAK, null)) e.isCanceled = true
     }
 

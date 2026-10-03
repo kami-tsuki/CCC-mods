@@ -4,6 +4,7 @@
   "package": "kami.claims.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "BoatItemMixin",
     "FireBlockMixin",
     "FlowingFluidMixin",
     "TfmgSparkMixin",
