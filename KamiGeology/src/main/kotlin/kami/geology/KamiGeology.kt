@@ -18,6 +18,7 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.item.CreativeModeTabs
 import net.minecraft.world.item.Item
+import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.loading.FMLEnvironment
@@ -75,8 +76,10 @@ object KamiGeology {
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { event ->
             val player = event.entity as? ServerPlayer ?: return@addListener
             Hardness.send(player)
-            val tag = player.persistentData
-            if (!tag.getBoolean(STARTER_KIT_TAG)) {
+            // Plain persistentData is dropped on death; only the PERSISTED_NBT_TAG part survives respawns.
+            val data = player.persistentData
+            val tag = data.getCompound(Player.PERSISTED_NBT_TAG).also { data.put(Player.PERSISTED_NBT_TAG, it) }
+            if (!tag.getBoolean(STARTER_KIT_TAG) && !data.getBoolean(STARTER_KIT_TAG)) {
                 tag.putBoolean(STARTER_KIT_TAG, true)
                 player.addItem(ItemStack(PROSPECTORS_BY_TIER[0].get()))
             }
