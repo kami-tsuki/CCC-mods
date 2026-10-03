@@ -77,9 +77,9 @@ object Guard {
     private val breakToEmpty: TagKey<Block> by lazy { TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("kami_claims", "break_to_empty")) }
     private val farmingPlants: TagKey<Block> by lazy { TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("kami_claims", "farming_plants")) }
     private val forestryPlants: TagKey<Block> by lazy { TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("kami_claims", "forestry_plants")) }
-    /** Blocks and entities anyone may use in no man's land even when it allows no use at all (Lootr loot is per player). */
-    private val wildBlocks: TagKey<Block> by lazy { TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("kami_claims", "wild_usable")) }
-    private val wildEntities: TagKey<EntityType<*>> by lazy { TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath("kami_claims", "wild_usable")) }
+    /** Blocks and entities nobody may use in no man's land because items put into them are lost (pots, depots, item frames). */
+    private val wildBlocks: TagKey<Block> by lazy { TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("kami_claims", "wild_blocked")) }
+    private val wildEntities: TagKey<EntityType<*>> by lazy { TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath("kami_claims", "wild_blocked")) }
     private const val DT_SAPLING = "com.dtteam.dynamictrees.block.sapling.DynamicSaplingBlock"
     private const val DT_SEED = "com.dtteam.dynamictrees.item.Seed"
 
@@ -114,7 +114,7 @@ object Guard {
         val free = block != null && action != Action.INTERACT && id(block) in Config.s.freeBlockSet
         val c = cl?.let { Realm.data.countries[it.country] }
         if (free && (action == Action.PLACE || cl == null || cl.type == "infrastructure")) return true
-        if (cl == null || c == null) return action in Config.s.nomanslandAllowSet || (usable(action) && block?.defaultBlockState()?.`is`(wildBlocks) == true)
+        if (cl == null || c == null) return action in Config.s.nomanslandAllowSet && block?.defaultBlockState()?.`is`(wildBlocks) != true
         val p = who as? Player
         if (p == null || p is FakePlayer) return c.machines[cl.type] ?: cl.def?.rule?.machines ?: false
         val me = p.stringUUID
@@ -123,8 +123,6 @@ object Guard {
         if (banned) return false
         return granted(access(c, cl, action), c, cl, me)
     }
-
-    private fun usable(action: Action) = action == Action.INTERACT || action == Action.CONTAINER
 
     private fun unclaimed(level: LevelAccessor, pos: BlockPos) = dim(level)?.let { Realm.index[key(it, pos)] } == null
 
@@ -330,8 +328,8 @@ object Guard {
             else -> return
         }
         if (e.level.isClientSide || target is Player) return
-        if (target.type.`is`(wildEntities) && unclaimed(e.level, target.blockPosition())) return
-        if (!check(e.level, target.blockPosition(), e.entity, Action.INTERACT, null)) e.isCanceled = true
+        val wild = target.type.`is`(wildEntities) && unclaimed(e.level, target.blockPosition())
+        if (wild || !check(e.level, target.blockPosition(), e.entity, Action.INTERACT, null)) e.isCanceled = true
     }
 
     fun onAttack(e: AttackEntityEvent) {

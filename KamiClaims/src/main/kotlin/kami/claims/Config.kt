@@ -49,7 +49,7 @@ data class Settings(
     val maxCatchUp: Int = 4000,
     val nameLength: List<Int> = listOf(3, 24),
     val freeBlocks: List<String> = listOf("create:track"),
-    val nomanslandAllow: List<Action> = emptyList(),
+    val nomanslandAllow: List<Action> = listOf(Action.INTERACT, Action.CONTAINER),
     val nomanslandPvp: Boolean = false,
     val mobGriefing: Boolean = false,
     val nomanslandExplosions: Boolean = false,
@@ -192,7 +192,7 @@ private val sections = listOf(
         "protection.json", "Protection outside of countries and a few global rules.",
         mapOf(
             "freeBlocks" to "Blocks anyone may place anywhere, like train tracks.",
-            "nomanslandAllow" to "What players may do in unclaimed land: BREAK, PLACE, INTERACT or CONTAINER. Blocks and entities in the kami_claims:wild_usable tags (Lootr loot) stay usable regardless.",
+            "nomanslandAllow" to "What players may do in unclaimed land: BREAK, PLACE, INTERACT or CONTAINER. Blocks and entities in the kami_claims:wild_blocked tags (pots, depots, item frames) stay unusable regardless.",
             "nomanslandPvp" to "Players may fight in unclaimed land.",
             "mobGriefing" to "Mobs like creepers and endermen may change blocks in the claim dimensions.",
             "nomanslandExplosions" to "Explosions break blocks in unclaimed land.",

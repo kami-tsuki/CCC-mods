@@ -13,7 +13,7 @@ object AccessGuess {
 
     fun allowed(dim: String, blockX: Int, blockZ: Int, action: String): Boolean {
         if (!ClientClaims.active(dim)) return true
-        val e = ClientClaims.at(dim, blockX shr 4, blockZ shr 4) ?: return false
+        val e = ClientClaims.at(dim, blockX shr 4, blockZ shr 4) ?: return action == "interact" || action == "container"
         val relation = ClientClaims.country(e)?.relation ?: View.REL_NONE
         val type = ClientClaims.typeName(e)
         if (type == "residential") {

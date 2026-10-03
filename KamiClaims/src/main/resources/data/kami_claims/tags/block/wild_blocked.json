@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:decorated_pot",
+    { "id": "create:depot", "required": false },
+    { "id": "create:weighted_ejector", "required": false },
+    { "id": "farmersdelight:cutting_board", "required": false }
+  ]
+}
