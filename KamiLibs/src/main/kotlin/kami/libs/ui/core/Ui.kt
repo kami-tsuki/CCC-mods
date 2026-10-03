@@ -34,6 +34,9 @@ class Tip(
 }
 
 private const val TIP_FADE_MS = 90
+/** Above every overlay layer (100 z each), so tooltips and particles stay on top of notifications. */
+private const val TIP_Z = 5000f
+private const val PARTICLE_Z = 4900f
 
 class Ui {
     lateinit var g: GuiGraphics
@@ -279,7 +282,7 @@ class Ui {
         if (tipKey != shownTipKey) { shownTipKey = tipKey; tipEpoch++ }
         val appear = reveal("tooltip", tipEpoch, ms = TIP_FADE_MS)
         g.pose().pushPose()
-        g.pose().translate(0f, 0f, 900f)
+        g.pose().translate(0f, 0f, TIP_Z)
         Tooltips.draw(g, t, mouseX, mouseY, screen, appear)
         g.pose().popPose()
     }
@@ -289,7 +292,7 @@ class Ui {
         floaters.update(dt)
         glows.update(dt)
         g.pose().pushPose()
-        g.pose().translate(0f, 0f, 850f)
+        g.pose().translate(0f, 0f, PARTICLE_Z)
         Effects.drawParticles(g, sparks, floaters, glows)
         g.pose().popPose()
     }

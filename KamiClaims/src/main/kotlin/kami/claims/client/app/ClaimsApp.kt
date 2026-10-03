@@ -21,6 +21,7 @@ import kami.libs.ui.app.AppScreen
 import kami.libs.ui.app.Callout
 import kami.libs.ui.app.Consequence
 import kami.libs.ui.app.KamiApp
+import kami.libs.ui.app.NOTICE_LAYER
 import kami.libs.ui.app.NavBadge
 import kami.libs.ui.app.NavGroup
 import kami.libs.ui.app.NavItem
@@ -302,14 +303,14 @@ class ClaimsApp : KamiApp() {
         ui.onEscape(60) { bellOpen = false }
         val w = 250
         val itemsH = alerts.sumOf { alertHeight(it, w - 12) }
-        ui.popover(r, w, (itemsH + 28).coerceIn(50, 300), align = PopoverAlign.END, onOutside = { bellOpen = false }) { panel ->
+        ui.overlay(NOTICE_LAYER) { ui.popover(r, w, (itemsH + 28).coerceIn(50, 300), align = PopoverAlign.END, onOutside = { bellOpen = false }) { panel ->
             Draw.text(g, tr("kami_claims.common.alerts").uppercase(Format.locale), panel.x + 8, panel.y + 8, TextStyle.TITLE)
             if (alerts.isEmpty()) Draw.text(g, tr("kami_claims.alerts.none"), panel.x + 8, panel.y + 26, Palette.textMuted)
             scroll("bell-list", panel.inset(4, 22, 4, 4), itemsH) { area ->
                 var y = area.y
                 alerts.forEach { a -> y += alertCard(ui, Rect(area.x, y, area.w, alertHeight(a, area.w)), a, compactCard = true) }
             }
-        }
+        } }
     }
 
     fun alertHeight(a: AlertLine, w: Int) = 16 + Draw.paragraphHeight(trJson(a.body), w - 26) + (if (a.action.isNotEmpty() || a.page.isNotEmpty()) 20 else 2) + 4

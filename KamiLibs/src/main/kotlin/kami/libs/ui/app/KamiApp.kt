@@ -56,6 +56,8 @@ abstract class Page {
 }
 
 private const val TOPBAR_H = 24
+/** Overlay layer of notifications and alerts: above pages, pins, dialogs, help and the tour. */
+const val NOTICE_LAYER = 30
 const val CRUMBS_H = 16
 const val NAV_ROW_H = 16
 private const val GROUP_H = 14
@@ -171,7 +173,7 @@ abstract class KamiApp {
         }
         Draw.veilBox(ui.g, content, appear, strength = PAGE_VEIL)
         if (showPins) ui.overlay(4) { Pins.renderEditable(ui) }
-        ui.overlay(5) { toasts.draw(ui, Rect(window.x, window.y + TOPBAR_H + 4, window.w - 8, window.h)) }
+        ui.overlay(NOTICE_LAYER) { toasts.draw(ui, Rect(window.x, window.y + TOPBAR_H + 4, window.w - 8, window.h)) }
         dialogs.removeAll { !it.open }
         dialogs.lastOrNull()?.let { d -> ui.overlay(10) { ui.scope("dialog:${d.title}") { d.draw(ui, ui.screen) } } }
         help?.let { h -> ui.overlay(15) { h.draw(ui) { help = null } } }
