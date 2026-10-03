@@ -23,10 +23,12 @@ enum class Cap { CLAIM, CAPITAL, TAX, RULES, WITHDRAW, INVITE, MEMBERS, RANK, JO
 enum class TaxMode { PERCENT, FLAT }
 
 @Serializable
-enum class Access { NONE, OFFICER, JOB, WORKER, CITIZEN, ALLIED, ANY }
+enum class Access { NONE, OFFICER, ASSIGNED, JOB, WORKER, CITIZEN, ALLIED, ANY }
 
 @Serializable
 enum class Action { BREAK, PLACE, INTERACT, CONTAINER }
+
+fun ruleLocked(type: String, a: Action) = type == "wilderness" && (a == Action.BREAK || a == Action.PLACE)
 
 @Serializable
 enum class Role { OWNER, HOUSEHOLD, ALLIED, BANISHED }

@@ -13,6 +13,9 @@ import kami.libs.ui.style.Icon
 import kami.claims.client.store.ClaimsStore
 import kami.claims.research.Tokens
 import kami.claims.Rank
+import kami.claims.Action
+import kami.claims.ruleLocked
+import kami.claims.client.app.Look
 import kami.claims.client.app.ClaimsPage
 import kami.libs.ui.widget.Flags
 import kami.claims.client.app.Vocabulary
@@ -62,6 +65,7 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
     )
     private val staged = LinkedHashMap<String, String>()
     private var focusCell: Pair<String, String>? = null
+    private var legend = false
 
     private fun key(type: String, field: String) = "$type:$field"
     private fun raw(t: TypeLine, field: String): String = when (field) {
@@ -78,9 +82,10 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
         return false
     }
 
-    override fun actionsWidth() = Draw.width(tr("kami_claims.law.preset.label")) + 134
+    override fun actionsWidth() = Draw.width(tr("kami_claims.law.preset.label")) + 158
 
     override fun actions(ui: Ui, r: Rect) {
+        if (ui.iconButton(Rect(r.x, r.y, r.h, r.h), Icons.HELP, tr("kami_claims.law.legend"), selected = legend, key = "legend")) legend = !legend
         val presets = listOf("private" to Icons.LOCK, "workers" to Icons.TOOL, "public" to Icons.SCALES, "default" to Icons.UNDO).map { (id, icon) -> Option(id, tr("kami_claims.law.preset.$id"), icon, tr("kami_claims.law.preset.$id.desc")) }
         Draw.textRight(ui.g, tr("kami_claims.law.preset.label"), r.right - 134, r.y + 4, Palette.textMuted)
         ui.select(Rect(r.right - 130, r.y, 130, r.h), presets, null, tr("kami_claims.law.preset.placeholder"), can("rules"), lock("rules"), key = "preset")?.let { preset -> applyPreset(preset) }
@@ -98,7 +103,10 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
         ACTIONS.forEachIndexed { i, f -> stage(t, f, values[i]) }
     }
 
+    private fun locked(type: String, field: String) = ACTIONS.indexOf(field).let { it >= 0 && ruleLocked(type, Action.entries[it]) }
+
     private fun stage(t: TypeLine, field: String, value: String) {
+        if (locked(t.name, field)) return
         if (value == original(t, field)) staged.remove(key(t.name, field)) else staged[key(t.name, field)] = value
     }
 
@@ -107,6 +115,41 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
         val bottom = r.bottom(EXPLAIN_H + if (staged.isEmpty()) 0 else 28)
         val grid = r.dropBottom(bottom.h, 6)
         ui.anchor("protect:grid", grid)
+        if (legend) legend(ui, grid)
+        else rules(ui, grid, editable)
+        explanation(ui, bottom.top(EXPLAIN_H - 6))
+        val bar = bottom.dropTop(EXPLAIN_H - 2)
+        ui.anchor("protect:apply", bar)
+        ui.applyBar(bar, staged.size, staged.entries.take(3).joinToString(" · ") { (k, v) -> "${Vocabulary.type(k.substringBefore(':')).label} ${fieldLabel(k.substringAfter(':'))} → ${valueLabel(v)}" },
+            editable, lock("rules"), pending("rules"), "rules", {
+                act("rules", staged.entries.joinToString(";") { (k, v) -> "$k:$v" }, key = "rules")
+                staged.clear()
+            }, { staged.clear() })
+    }
+
+    private fun legend(ui: Ui, r: Rect) {
+        val groups = listOf(
+            tr("kami_claims.law.legend.who") to Vocabulary.access.map { it.second },
+            tr("kami_claims.law.legend.actions") to Vocabulary.actions + Vocabulary.flags.map { it.second },
+            tr("kami_claims.law.legend.types") to snap.types.map { Vocabulary.type(it.name) } + Look("kami_claims.law.legend.nomansland", Palette.textMuted, Icons.GLOBE)
+        )
+        val labelW = groups.flatMap { it.second }.maxOf { Draw.width(it.label) } + 24
+        ui.scroll("legend", r, groups.sumOf { LEGEND_HEAD + it.second.size * LEGEND_H }) { area ->
+            var y = area.y
+            groups.forEach { (title, looks) ->
+                ui.section(Rect(area.x, y + 2, area.w, 12), title)
+                y += LEGEND_HEAD
+                looks.forEach { look ->
+                    val x = area.x + 4 + Draw.leadIcon(ui.g, look.icon, area.x + 4, y + LEGEND_H / 2) + 2
+                    Draw.text(ui.g, look.label, x, y + 2, if (look.color != 0) look.color else Palette.text)
+                    Draw.text(ui.g, Draw.fit(look.description, area.right - area.x - labelW - 4), area.x + labelW, y + 2, Palette.textSecondary)
+                    y += LEGEND_H
+                }
+            }
+        }
+    }
+
+    private fun rules(ui: Ui, grid: Rect, editable: Boolean) {
         val actions = ACTIONS
         val flags = listOf("machines", "fire")
         val labelW = (grid.w * 0.24).toInt().coerceIn(96, 150)
@@ -140,7 +183,8 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
                     val cell = Rect(line.x + labelW + i * actionW + 1, y + 2, actionW - 3, SMALL_H)
                     val value = current(t, a)
                     val changed = staged.containsKey(key(t.name, a))
-                    ui.select(cell, Vocabulary.accessOptions(), value, enabled = editable, disabledReason = lock("rules"), key = "cell:${t.name}:$a", menuWidth = 220)?.let {
+                    val fixed = locked(t.name, a)
+                    ui.select(cell, Vocabulary.accessOptions(), value, enabled = editable && !fixed, disabledReason = if (fixed) tr("kami_claims.law.locked") else lock("rules"), key = "cell:${t.name}:$a", menuWidth = 220)?.let {
                         stage(t, a, it)
                         focusCell = t.name to a
                     }
@@ -159,14 +203,6 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
                 }
             }
         }
-        explanation(ui, bottom.top(EXPLAIN_H - 6))
-        val bar = bottom.dropTop(EXPLAIN_H - 2)
-        ui.anchor("protect:apply", bar)
-        ui.applyBar(bar, staged.size, staged.entries.take(3).joinToString(" · ") { (k, v) -> "${Vocabulary.type(k.substringBefore(':')).label} ${fieldLabel(k.substringAfter(':'))} → ${valueLabel(v)}" },
-            editable, lock("rules"), pending("rules"), "rules", {
-                act("rules", staged.entries.joinToString(";") { (k, v) -> "$k:$v" }, key = "rules")
-                staged.clear()
-            }, { staged.clear() })
     }
 
     private fun fieldLabel(field: String) = Vocabulary.flags.firstOrNull { it.first == field }?.second?.label ?: tr("kami_claims.action.$field")
@@ -445,4 +481,6 @@ class IdentityPage(app: ClaimsApp) : ClaimsPage(app) {
 private const val HEAD_H = 18
 private const val RULE_H = 20
 private const val EXPLAIN_H = 60
+private const val LEGEND_HEAD = 16
+private const val LEGEND_H = 12
 private const val NAME_CARD_H = 62

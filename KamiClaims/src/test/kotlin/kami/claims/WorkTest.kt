@@ -34,6 +34,7 @@ class WorkTest {
         assertTrue(Work.fits(c, claim(0), "p"))
         assertFalse(Work.fits(c, claim(1), "p"))
         assertEquals(1, Work.matching(c, "p", claim(0)).size)
+        assertEquals(1, Work.matching(c, "p", claim(1)).size)
     }
 
     @Test

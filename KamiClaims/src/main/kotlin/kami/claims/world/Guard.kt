@@ -96,7 +96,7 @@ object Guard {
     private fun key(dim: String, pos: BlockPos) = Key(dim, pos.x shr 4, pos.z shr 4)
     private fun id(block: Block) = BuiltInRegistries.BLOCK.getKey(block).toString()
 
-    private fun access(c: Country, cl: Claim, a: Action) = c.rules[cl.type]?.get(a) ?: cl.def?.rule?.access?.get(a) ?: Access.NONE
+    private fun access(c: Country, cl: Claim, a: Action) = c.rules[cl.type]?.get(a)?.takeUnless { ruleLocked(cl.type, a) } ?: cl.def?.rule?.access?.get(a) ?: Access.NONE
 
     private fun granted(a: Access, c: Country, cl: Claim, who: String): Boolean {
         val rank = c.rank(who) ?: return a == Access.ANY
@@ -105,7 +105,9 @@ object Guard {
             Access.ANY -> true
             Access.ALLIED -> rank >= Rank.ALLIED
             Access.CITIZEN -> rank >= Rank.CITIZEN
-            Access.WORKER, Access.JOB -> rank >= Rank.OFFICER || Work.fits(c, cl, who)
+            Access.ASSIGNED -> rank >= Rank.OFFICER || Work.fits(c, cl, who)
+            Access.JOB -> rank >= Rank.OFFICER || c.members[who]?.let { Work.holds(it, cl.type) } == true
+            Access.WORKER -> rank >= Rank.OFFICER || c.members[who]?.jobs?.isNotEmpty() == true
             Access.OFFICER -> rank >= Rank.OFFICER
         }
     }
@@ -156,7 +158,7 @@ object Guard {
         if (banned) return Phrase.of("kami_claims.error.you_banished", c.name)
         val type = Phrase.or("kami_claims.chunk_type.${cl.type}", cl.type)
         val access = access(c, cl, action)
-        val unassigned = (access == Access.WORKER || access == Access.JOB) && c.members[me]?.let { Work.holds(it, cl.type) } == true && me !in cl.workers
+        val unassigned = access == Access.ASSIGNED && c.members[me]?.let { Work.holds(it, cl.type) } == true && me !in cl.workers
         return Phrase.of(if (unassigned) "kami_claims.guard.denied.job_unassigned" else "kami_claims.guard.denied.access.${access.name.lowercase()}", c.name, verb(action), type)
     }
 

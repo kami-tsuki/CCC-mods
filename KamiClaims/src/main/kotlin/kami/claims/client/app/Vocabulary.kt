@@ -54,6 +54,7 @@ object Vocabulary {
     val access = listOf(
         access("none", 0xFFB02A2E, Icons.BAN),
         access("officer", 0xFFB85A1E, Icons.SHIELD),
+        access("assigned", 0xFFB0761A, Icons.PIN),
         access("job", 0xFFA8680A, Icons.PICKAXE),
         access("worker", 0xFF8A7418, Icons.TOOL),
         access("citizen", 0xFF4A8F2A, Icons.PEOPLE),

@@ -28,7 +28,6 @@ object Work {
 
     fun matching(c: Country, id: String, cl: Claim): List<Pair<JobCfg, Job>> {
         val m = c.members[id] ?: return emptyList()
-        if (!fits(c, cl, id)) return emptyList()
         return m.jobs.mapNotNull { (name, job) -> Config.s.jobs[name]?.takeIf { it.type == cl.type }?.let { it to job } }
     }
 

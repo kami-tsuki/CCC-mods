@@ -76,9 +76,9 @@ data class Settings(
     val mailLimit: Int = 10,
     val types: Map<String, TypeDef> = linkedMapOf(
         "civic" to type(1, rule = rule(Access.CITIZEN, Access.CITIZEN, Access.ALLIED, Access.CITIZEN)),
-        "mining" to type(3, job = "miner", rule = rule(Access.JOB, Access.WORKER, Access.ALLIED, Access.WORKER, true)),
-        "farming" to type(2, job = "farmer", rule = rule(Access.JOB, Access.JOB, Access.ALLIED, Access.WORKER, true)),
-        "forestry" to type(2, job = "forester", rule = rule(Access.JOB, Access.JOB, Access.ALLIED, Access.WORKER, true)),
+        "mining" to type(3, job = "miner", rule = rule(Access.JOB, Access.JOB, Access.ALLIED, Access.JOB, true)),
+        "farming" to type(2, job = "farmer", rule = rule(Access.JOB, Access.JOB, Access.ALLIED, Access.JOB, true)),
+        "forestry" to type(2, job = "forester", rule = rule(Access.JOB, Access.JOB, Access.ALLIED, Access.JOB, true)),
         "factory" to type(3, job = "worker", rule = rule(Access.WORKER, Access.WORKER, Access.WORKER, Access.WORKER, true)),
         "market" to type(4, rule = rule(Access.CITIZEN, Access.CITIZEN, Access.ANY, Access.CITIZEN)),
         "residential" to type(5, rule = rule(Access.OFFICER, Access.OFFICER, Access.OFFICER, Access.OFFICER)),
@@ -157,7 +157,7 @@ private val sections = listOf(
         "chunk-types.json", "Chunk types, their daily price and who may do what.",
         mapOf(
             "defaultType" to "Type of a freshly claimed chunk.",
-            "types" to "price is paid every period days. Access: NONE, OFFICER, JOB, WORKER, CITIZEN, ALLIED or ANY.",
+            "types" to "price is paid every period days. Access: NONE, OFFICER, ASSIGNED, JOB, WORKER, CITIZEN, ALLIED or ANY.",
             "types.*.period" to "Days between two payments.",
             "types.*.job" to "Job that works in this chunk type, or null.",
             "types.*.rule" to "Default rules. Countries can change them in game.",

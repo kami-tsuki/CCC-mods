@@ -492,6 +492,7 @@ object Service {
         val c = need(p, Cap.RULES)
         if (s.types[type] == null) throw Fail("kami_claims.error.unknown_type")
         val flag = { value.toBooleanStrictOrNull() ?: throw Fail("kami_claims.error.bool") }
+        if (Action.entries.any { it.name.equals(field, true) && ruleLocked(type, it) }) throw Fail("kami_claims.error.rule_locked")
         when (field) {
             "machines" -> c.machines[type] = flag()
             "fire" -> c.fire[type] = flag()

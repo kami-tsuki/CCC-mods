@@ -316,7 +316,7 @@ object Sync {
         val lead = c != null && (delegated || s.can(Service.rankOf(c, p), Cap.CLAIM))
         val types = s.types.map { (n, d) ->
             TypeLine(
-                n, d.price, d.period, Action.entries.map { a -> (c?.rules?.get(n)?.get(a) ?: d.rule.access[a] ?: Access.NONE).name.lowercase() },
+                n, d.price, d.period, Action.entries.map { a -> (c?.rules?.get(n)?.get(a)?.takeUnless { ruleLocked(n, a) } ?: d.rule.access[a] ?: Access.NONE).name.lowercase() },
                 c?.machines?.get(n) ?: d.rule.machines, c?.fire?.get(n) ?: d.rule.fire,
                 d.job ?: "", Action.entries.map { a -> (d.rule.access[a] ?: Access.NONE).name.lowercase() }
             )

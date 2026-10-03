@@ -27,13 +27,17 @@ object AccessGuess {
         val access = if (relation == View.REL_MEMBER) line.access.getOrNull(index) else line.defaults.getOrNull(index) ?: line.access.getOrNull(index)
         val rank = if (relation == View.REL_MEMBER) ClaimsStore.snap?.rank?.let(::rankOf) ?: Rank.CITIZEN
         else if (relation == View.REL_ALLY || relation == View.REL_FAMILY) Rank.ALLIED else null
+        val jobs = snap.info?.members?.firstOrNull { it.id == snap.me }?.jobs.orEmpty()
+        val officer = rank != null && rank >= Rank.OFFICER
         return when (access) {
             "none" -> false
             "any" -> true
             "allied" -> rank != null && rank >= Rank.ALLIED
             "citizen" -> rank != null && rank >= Rank.CITIZEN
-            "worker", "job" -> rank != null && (rank >= Rank.OFFICER || e.flags and View.ASSIGNED != 0)
-            "officer" -> rank != null && rank >= Rank.OFFICER
+            "assigned" -> officer || e.flags and View.ASSIGNED != 0
+            "job" -> officer || relation == View.REL_MEMBER && line.job in jobs
+            "worker" -> officer || relation == View.REL_MEMBER && jobs.isNotEmpty()
+            "officer" -> officer
             else -> false
         }
     }
