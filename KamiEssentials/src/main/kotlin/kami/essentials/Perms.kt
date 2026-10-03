@@ -24,6 +24,7 @@ object Perms : PermissionSet(KamiEssentials.ID) {
     val TRADE_ANYWHERE = node("trade.anywhere", false)
     val COUNTRYCHAT = node("countrychat", true)
     val ADMINCHAT = node("adminchat", false)
+    val UNSTUCK = node("unstuck", true)
 
     fun gate(n: PermissionNode<Boolean>): (CommandSourceStack) -> Boolean = { has(it, n) }
 }

@@ -76,7 +76,6 @@ object KamiGeology {
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { event ->
             val player = event.entity as? ServerPlayer ?: return@addListener
             Hardness.send(player)
-            // Plain persistentData is dropped on death; only the PERSISTED_NBT_TAG part survives respawns.
             val data = player.persistentData
             val tag = data.getCompound(Player.PERSISTED_NBT_TAG).also { data.put(Player.PERSISTED_NBT_TAG, it) }
             if (!tag.getBoolean(STARTER_KIT_TAG) && !data.getBoolean(STARTER_KIT_TAG)) {

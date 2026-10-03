@@ -56,7 +56,6 @@ abstract class Page {
 }
 
 private const val TOPBAR_H = 24
-/** Overlay layer of notifications and alerts: above pages, pins, dialogs, help and the tour. */
 const val NOTICE_LAYER = 30
 const val CRUMBS_H = 16
 const val NAV_ROW_H = 16
@@ -88,7 +87,6 @@ abstract class KamiApp {
 
     open val collapsedGroups: MutableSet<String> = mutableSetOf()
     open fun collapseChanged() {}
-    /** Pinned HUD windows are shown above the page and can be moved, resized and removed here. */
     open val showPins = true
     private var revealPage: String? = null
     private val navY = HashMap<String, Int>()

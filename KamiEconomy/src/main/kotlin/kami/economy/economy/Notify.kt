@@ -8,7 +8,6 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.neoforged.neoforge.server.ServerLifecycleHooks
 
-/** Short chat notes to the other side of a market trade or auction; only online players are told. */
 object Notify {
     private val chat = Chat.of("market")
 

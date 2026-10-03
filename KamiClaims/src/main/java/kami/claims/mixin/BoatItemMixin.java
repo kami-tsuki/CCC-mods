@@ -12,7 +12,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Remembers who placed a boat so they can always break it again, even inside a claim that denies them breaking. */
 @Mixin(BoatItem.class)
 public abstract class BoatItemMixin {
     @Inject(method = "getBoat", at = @At("RETURN"))

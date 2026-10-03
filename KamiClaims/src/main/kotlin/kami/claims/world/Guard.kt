@@ -334,14 +334,12 @@ object Guard {
         if (wild || !check(e.level, target.blockPosition(), e.entity, Action.INTERACT, null)) e.isCanceled = true
     }
 
-    /** Tags a freshly placed boat with its placer. */
     @JvmStatic
     fun ownBoat(boat: Boat, player: Player) = boat.persistentData.putString(BOAT_OWNER, player.stringUUID)
 
     fun onAttack(e: AttackEntityEvent) {
         val target = e.target
         if (e.entity.level().isClientSide || !(target is HangingEntity || target is ArmorStand || target is VehicleEntity)) return
-        // Boats are free in no man's land and their placer may always take them back, so nobody gets stranded.
         if (target is Boat && (unclaimed(target.level(), target.blockPosition()) || target.persistentData.getString(BOAT_OWNER) == e.entity.stringUUID)) return
         if (!check(e.entity.level(), target.blockPosition(), e.entity, Action.BREAK, null)) e.isCanceled = true
     }

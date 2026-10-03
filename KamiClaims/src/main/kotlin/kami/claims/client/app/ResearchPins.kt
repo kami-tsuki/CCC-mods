@@ -19,7 +19,6 @@ import kami.libs.ui.widget.PROGRESS_LABELLED_H
 import kami.libs.ui.widget.iconButton
 import kami.libs.ui.widget.progressBar
 
-/** Country level and research pins for the HUD. */
 object ResearchPins {
     const val LEVEL = "kami_claims:level"
     const val RESEARCH = "kami_claims:research"
@@ -31,7 +30,6 @@ object ResearchPins {
 
     private val inCountry get() = ClientResearch.state.country.isNotEmpty()
 
-    /** Shows the pinned level, or the next one once the country got there, so the pin keeps pointing ahead. */
     private object Level : PinWindow(LEVEL, width = 150, height = 74) {
         private fun target(items: List<String>): Int {
             val pinned = items.firstOrNull()?.toIntOrNull() ?: 0
@@ -61,7 +59,6 @@ object ResearchPins {
         }
     }
 
-    /** Up to five research nodes with their queue progress or status. */
     private object Research : PinWindow(RESEARCH, maxItems = 5, width = 150, height = 96) {
         override fun shown(items: List<String>) = items.isNotEmpty() && inCountry
 

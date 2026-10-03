@@ -118,5 +118,10 @@
   "kami_essentials.views.offline": "offline",
   "kami_essentials.views.opened": "Opened %s.",
   "kami_essentials.views.read_failed": "Could not read the saved player data.",
-  "kami_essentials.views.read_only": "read only"
+  "kami_essentials.views.read_only": "read only",
+  "kami_essentials.unstuck.hint": "Stuck? Use %s to get free.",
+  "kami_essentials.unstuck.done": "You are free again.",
+  "kami_essentials.unstuck.cooldown": "You can use this again in %s.",
+  "kami_essentials.unstuck.own": "This is your own country, you can dig yourself out here.",
+  "kami_essentials.unstuck.nowhere": "No safe spot found nearby."
 }

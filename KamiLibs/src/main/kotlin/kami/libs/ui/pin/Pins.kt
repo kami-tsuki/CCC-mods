@@ -15,14 +15,9 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import java.nio.file.Files
 
-/**
- * A small window pinned beside the HUD. The owner only draws the content; [Pins] keeps what is pinned and where the window sits.
- * Ids should be namespaced (`mod:name`) since every mod shares one store.
- */
 abstract class PinWindow(val id: String, val maxItems: Int = 1, val width: Int = 140, val height: Int = 70) {
     abstract fun title(items: List<String>): String
 
-    /** Draws the content into [r]. [editing] is true inside a menu, where rows may offer removal through [Pins.unpin]. */
     abstract fun draw(ui: Ui, r: Rect, items: List<String>, editing: Boolean)
 
     open fun shown(items: List<String>) = items.isNotEmpty()
@@ -34,7 +29,6 @@ class PinGeo(var x: Int, var y: Int, var w: Int, var h: Int)
 @Serializable
 class PinData(val geo: MutableMap<String, PinGeo> = mutableMapOf(), val items: MutableMap<String, MutableList<String>> = mutableMapOf())
 
-/** Pinned HUD windows: shown read-only while playing, and movable, resizable and removable while a menu draws [renderEditable]. */
 object Pins {
     private const val TITLE_H = 11
     private const val GRIP = 6
@@ -57,7 +51,6 @@ object Pins {
 
     fun pinned(id: String, item: String) = item in items(id)
 
-    /** Pins [item]; once the window is full the oldest pin makes room. */
     fun pin(id: String, item: String) {
         val list = data.items.getOrPut(id) { mutableListOf() }
         if (item in list) return
@@ -72,14 +65,12 @@ object Pins {
 
     fun clear(id: String) { if (data.items.remove(id) != null) save() }
 
-    /** HUD layer: every shown window, no input. */
     fun renderHud(g: GuiGraphics) {
         val mc = Minecraft.getInstance()
         if (mc.options.hideGui || mc.screen != null || mc.player == null || windows.isEmpty()) return
         hud.frame(g, -1, -1, g.guiWidth(), g.guiHeight()) { windows.values.forEach { window(hud, it, false) } }
     }
 
-    /** Menu pass, drawn above the page: windows take input there. */
     fun renderEditable(ui: Ui) = windows.values.forEach { window(ui, it, true) }
 
     private fun window(ui: Ui, w: PinWindow, editing: Boolean) {
@@ -110,7 +101,6 @@ object Pins {
             ?: ui.pressed(move)?.let { drag = Drag(w.id, false, it.x - r.x, it.y - r.y) }
     }
 
-    /** Applies the drag in progress to [w]'s geometry and saves once the mouse is let go. */
     private fun follow(ui: Ui, w: PinWindow) {
         val d = drag?.takeIf { it.id == w.id } ?: return
         if (!ui.isDown()) {
@@ -127,7 +117,6 @@ object Pins {
         }
     }
 
-    /** Stored geometry clamped to the screen, or a default slot on the right, stacked in registration order. */
     private fun rect(w: PinWindow, screen: Rect): Rect {
         val geo = data.geo[w.id]
         val width = (geo?.w ?: w.width).coerceIn(MIN_W, maxOf(MIN_W, screen.w))
@@ -143,7 +132,6 @@ object Pins {
     }
 }
 
-/** Toggles [item] in pin window [id]; highlighted while pinned. */
 fun Ui.pinButton(r: Rect, id: String, item: String, key: Any = "pin:$id:$item"): Boolean {
     val pinned = Pins.pinned(id, item)
     val fired = iconButton(r, Icons.PIN, tr(if (pinned) "kami_libs.pin.unpin" else "kami_libs.pin.pin"), selected = pinned, key = key)

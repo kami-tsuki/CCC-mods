@@ -118,5 +118,10 @@
   "kami_essentials.views.offline": "offline",
   "kami_essentials.views.opened": "%s geöffnet.",
   "kami_essentials.views.read_failed": "Die gespeicherten Spielerdaten konnten nicht gelesen werden.",
-  "kami_essentials.views.read_only": "nur lesen"
+  "kami_essentials.views.read_only": "nur lesen",
+  "kami_essentials.unstuck.hint": "Feststeckend? Mit %s kommst du frei.",
+  "kami_essentials.unstuck.done": "Du bist wieder frei.",
+  "kami_essentials.unstuck.cooldown": "Wieder möglich in %s.",
+  "kami_essentials.unstuck.own": "Das ist dein eigener Staat, hier kannst du dich selbst freigraben.",
+  "kami_essentials.unstuck.nowhere": "Kein sicherer Platz in der Nähe gefunden."
 }

@@ -96,7 +96,6 @@ class StateView(
     val tokens: Map<String, Int> = emptyMap(), val tokenCosts: Map<String, Long> = emptyMap(), val counters: Map<String, Long> = emptyMap(),
     val buffs: BuffsView = BuffsView.NONE,
     val loans: LoansView = LoansView.NONE,
-    /** Current value and target of each level requirement, matching [levelMet]. */
     val levelProgress: List<List<Pair<Long, Long>>> = emptyList()
 ) {
     fun used(key: Capacity) = used.getOrElse(key.ordinal) { 0 }

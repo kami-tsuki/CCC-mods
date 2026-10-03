@@ -34,7 +34,6 @@ class Tip(
 }
 
 private const val TIP_FADE_MS = 90
-/** Above every overlay layer (100 z each), so tooltips and particles stay on top of notifications. */
 private const val TIP_Z = 5000f
 private const val PARTICLE_Z = 4900f
 

@@ -10,6 +10,7 @@ import kami.essentials.display.Tab
 import kami.essentials.inv.Offline
 import kami.essentials.trade.Trades
 import kami.essentials.vanish.Vanish
+import kami.essentials.world.Unstuck
 import kami.libs.chat.tell
 import kami.libs.log.Log
 import net.minecraft.server.level.ServerPlayer
@@ -46,6 +47,7 @@ object KamiEssentials {
                 Tab.tick(it.server)
                 Sidebar.tick(it.server)
                 InlineFeatures.prune()
+                Unstuck.tick(it.server)
             }
             if (it.server.tickCount % 40 == 0) Vanish.tick(it.server)
         }
