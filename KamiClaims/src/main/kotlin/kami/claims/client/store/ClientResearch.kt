@@ -69,6 +69,9 @@ object ClientResearch {
         return defs.levels.firstOrNull { it.level == level }?.requires.orEmpty().mapIndexedNotNull { i, text -> Phrase.parse(text)?.let { it to met.getOrElse(i) { false } } }
     }
 
+    /** Value and target of a countable level requirement (trees grown, chunks, ...), or null when it is a plain yes/no. */
+    fun levelProgress(level: Int, index: Int): Pair<Long, Long>? = state.levelProgress.getOrNull(level - 1)?.getOrNull(index)?.takeIf { it.second > 1 }
+
     fun unlockLevel(featureId: String): Int? =
         defs.levels.firstOrNull { level -> level.rewards.any { it.kind == "feature" && it.id == featureId } }?.level
 

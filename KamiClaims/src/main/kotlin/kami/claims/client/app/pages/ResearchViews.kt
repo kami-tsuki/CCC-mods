@@ -46,6 +46,7 @@ private val UPPERCASE = Regex("[A-Z]")
 private val capacityKeys = HashMap<String, String>()
 private const val ITEM_CELL = 22
 const val REQUIREMENT_ROW_H = 11
+private const val REQUIREMENT_BAR_H = 2
 private const val STACK_GAP = 4
 private const val LEVEL_BAR_SPACER = 2
 private const val CARD_BODY_MARGIN = 12
@@ -160,7 +161,16 @@ fun Ui.levelBar(r: Rect) {
 }
 
 fun Ui.levelRequirements(stack: Stack, level: Int) {
-    ClientResearch.levelRequirements(level).forEach { (phrase, met) -> requirementRow(stack.take(REQUIREMENT_ROW_H), phrase.resolve(), met) }
+    ClientResearch.levelRequirements(level).forEachIndexed { i, (phrase, met) ->
+        val row = stack.take(REQUIREMENT_ROW_H)
+        val progress = ClientResearch.levelProgress(level, i)?.takeIf { !met }
+        if (progress == null) return@forEachIndexed requirementRow(row, phrase.resolve(), met)
+        val (value, max) = progress
+        val count = "${Format.number(value.coerceIn(0, max))}/${Format.number(max)}"
+        requirementRow(row.withWidth(row.w - Draw.width(count) - 4), phrase.resolve(), met)
+        Draw.textRight(g, count, row.right, row.y + 1, Palette.textMuted)
+        Draw.thinBar(g, stack.take(REQUIREMENT_BAR_H), value.toFloat() / max, Palette.brass)
+    }
 }
 
 fun Ui.requirementRow(r: Rect, text: String, met: Boolean?, onClick: (() -> Unit)? = null) {

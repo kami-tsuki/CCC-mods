@@ -75,7 +75,7 @@ object Goals {
         Goal(Phrase.of("kami_claims.goal.capacity", label(key), Words.v(raise.level), Words.v(raise.max)), used.toLong(), max.toLong(), page(key))
     }
 
-    private fun progress(country: Country, cond: Condition): Pair<Long, Long> = when (cond) {
+    internal fun progress(country: Country, cond: Condition): Pair<Long, Long> = when (cond) {
         is MinChunks -> Realm.claims(country.id).count { cond.chunkType == null || it.type == cond.chunkType }.toLong() to cond.min.toLong()
         is MinCitizens -> country.members.size.toLong() to cond.min.toLong()
         is MinTreasury -> country.treasury.coerceAtLeast(0) to cond.min

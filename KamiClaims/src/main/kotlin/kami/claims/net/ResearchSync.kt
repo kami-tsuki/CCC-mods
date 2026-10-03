@@ -96,7 +96,8 @@ object ResearchSync {
             mapOf(Tokens.RENAME to Config.s.renameCost, Tokens.CAPITAL_MOVE to Config.s.capitalMoveCost),
             country.counters.filterKeys { it in Research.defs.counterKeys }.entries.sortedBy { it.key }.take(MAX_COUNTERS).associate { it.toPair() },
             Buffs.view(country),
-            Loans.view(country)
+            Loans.view(country),
+            (1..levels.top).map { next -> levels.requirements(next).take(MAX_LINKS).map { Goals.progress(country, it) } }
         )
     }
 

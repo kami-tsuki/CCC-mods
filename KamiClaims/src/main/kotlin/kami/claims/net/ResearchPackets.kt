@@ -95,7 +95,9 @@ class StateView(
     val trees: List<String> = emptyList(), val met: Map<String, List<Boolean>> = emptyMap(), val levelMet: List<List<Boolean>> = emptyList(),
     val tokens: Map<String, Int> = emptyMap(), val tokenCosts: Map<String, Long> = emptyMap(), val counters: Map<String, Long> = emptyMap(),
     val buffs: BuffsView = BuffsView.NONE,
-    val loans: LoansView = LoansView.NONE
+    val loans: LoansView = LoansView.NONE,
+    /** Current value and target of each level requirement, matching [levelMet]. */
+    val levelProgress: List<List<Pair<Long, Long>>> = emptyList()
 ) {
     fun used(key: Capacity) = used.getOrElse(key.ordinal) { 0 }
     fun max(key: Capacity) = max.getOrElse(key.ordinal) { 0 }
@@ -208,6 +210,7 @@ object ResearchWire {
         list(s.counters.entries.toList()) { utf(it.key, MAX_ID); varLong(it.value) }
         buffs(s.buffs)
         loans(s.loans)
+        list(s.levelProgress) { row -> list(row) { varLong(it.first); varLong(it.second) } }
     }.toBytes()
 
     fun decodeState(data: ByteArray): StateView = WireReader(data).let { r ->
@@ -225,7 +228,8 @@ object ResearchWire {
             r.list(MAX_LINKS) { r.utf(MAX_ID) to r.varLong() }.toMap(),
             r.list(MAX_COUNTERS) { r.utf(MAX_ID) to r.varLong() }.toMap(),
             r.buffs(),
-            r.loans()
+            r.loans(),
+            r.list(MAX_LEVELS) { r.list(MAX_LINKS) { r.varLong() to r.varLong() } }
         )
     }
 
