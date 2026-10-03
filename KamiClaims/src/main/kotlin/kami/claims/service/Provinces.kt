@@ -1,11 +1,15 @@
 package kami.claims.service
 
+import kami.claims.Cap
 import kami.claims.Config
+import kami.claims.Rank
 import kami.claims.Country
 import kami.claims.ProvinceOffer
 import kami.claims.Realm
 import kami.claims.TaxMode
+import kami.claims.net.ResearchSync
 import kami.claims.now
+import kami.claims.overlordRanks
 import kami.claims.research.Capacity
 import kami.claims.research.Features
 import kami.claims.research.Levels
@@ -20,9 +24,9 @@ object Provinces {
     private val s get() = Config.s
     private const val MAX_FLAT = 1_000_000_000.0
 
-    val delegatedRights = listOf("land", "capital", "tax", "laws", "jobs", "housing").map { "kami_claims.province.right.delegated.$it" }
+    val delegatedRights = listOf("view", "tribute", "release", "granted").map { "kami_claims.province.right.delegated.$it" }
 
-    val keptRights = listOf("treasury", "members", "name").map { "kami_claims.province.right.kept.$it" }
+    val keptRights = listOf("control", "treasury", "members", "name").map { "kami_claims.province.right.kept.$it" }
 
     fun tribute(text: String, mode: TaxMode): Double {
         val v = text.toDoubleOrNull()?.takeIf { it.isFinite() } ?: throw Fail("kami_claims.error.number")
@@ -96,13 +100,14 @@ object Provinces {
     }
 
     fun finalize(child: Country, parent: Country, mode: TaxMode, amount: Double) {
-        child.provinces.forEach { pid -> Realm.country(pid)?.let { it.parent = parent.id }; parent.provinces += pid }
+        child.provinces.forEach { pid -> Realm.country(pid)?.let { it.parent = parent.id; it.resetOverlord() }; parent.provinces += pid }
         child.provinces.clear()
         child.parent = parent.id
         child.taxMode = mode
         child.taxAmount = amount
         child.provinceDebt = 0
         child.independenceRequested = false
+        child.resetOverlord()
         child.provinceInvites.clear()
         child.provinceRequests.clear()
         parent.provinces += child.id
@@ -117,6 +122,7 @@ object Provinces {
         child.parent = null
         child.provinceDebt = 0
         child.independenceRequested = false
+        child.resetOverlord()
         parent.provinces.remove(child.id)
         Realm.syncAllies()
         Mail.broadcast(child, Phrase.of("kami_claims.mail.independent", v(child.name)), Tone.OK)
@@ -150,6 +156,20 @@ object Provinces {
         Mail.officers(child, Phrase.of("kami_claims.mail.independence_declined", v(parent.name)), Tone.WARN)
     }
 
+    fun setManage(child: Country, on: Boolean) {
+        val parent = child.parent?.let { Realm.country(it) } ?: throw Fail("kami_claims.error.not_a_province")
+        child.overlordManage = on
+        ResearchSync.refresh(child)
+        Mail.officers(parent, Phrase.of(if (on) "kami_claims.mail.overlord_manage.on" else "kami_claims.mail.overlord_manage.off", v(child.name)))
+    }
+
+    fun setAccess(child: Country, cap: Cap, rank: Rank?) {
+        if (child.parent == null) throw Fail("kami_claims.error.not_a_province")
+        if (cap !in Oversight.grantable || (rank != null && rank !in overlordRanks)) throw Fail("kami_claims.error.unknown_province_action")
+        if (rank == null) child.overlordCaps.remove(cap) else child.overlordCaps[cap] = rank
+        ResearchSync.refresh(child)
+    }
+
     fun setTribute(parent: Country, child: Country, mode: TaxMode, amount: Double) {
         ownProvince(parent, child)
         child.taxMode = mode
@@ -170,6 +190,7 @@ object Provinces {
         parent.provinces.remove(child.id)
         child.parent = newParent.id
         child.independenceRequested = false
+        child.resetOverlord()
         newParent.provinces += child.id
         Progress.report(newParent, "province", child.id, 1, "province:${child.id}")
         Realm.syncAllies()

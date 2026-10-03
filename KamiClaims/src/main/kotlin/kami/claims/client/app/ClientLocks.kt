@@ -26,7 +26,7 @@ object ClientLocks {
     fun cap(cap: String): String? {
         val info = ClaimsStore.info ?: return tr("kami_claims.lock.no_country")
         val snap = ClaimsStore.snap ?: return tr("kami_claims.lock.loading")
-        if (info.delegated && cap !in snap.delegable) return tr("kami_claims.lock.province_only")
+        if (info.delegated) return if (cap == "details" || cap in info.granted) null else tr("kami_claims.lock.read_only")
         val min = snap.caps[cap]?.let(::rankOf) ?: Rank.PRESIDENT
         if (ClaimsStore.rank < min) return tr("kami_claims.lock.rank", Vocabulary.rank(min.name).label)
         return null
@@ -115,6 +115,8 @@ object ClientLocks {
         val next = nextRaise(cap) ?: return null
         return Lock.raise(next.level, ClientResearch.state.max(cap) + capacityRewards(next, cap).sumOf { it.count })
     }
+
+    fun provinces(): Lock? = ClaimsStore.info?.takeIf { it.parent.isEmpty() && it.provinceInvites.isEmpty() }?.let { unlock(Capacity.PROVINCES, tr("kami_claims.nav.provinces")) }
 
     fun unlock(cap: Capacity, what: String): Lock? {
         val state = ClientResearch.state

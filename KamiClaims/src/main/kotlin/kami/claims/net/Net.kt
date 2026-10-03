@@ -4,6 +4,7 @@ import kami.libs.text.Phrase
 import kami.claims.*
 import kami.claims.service.Fail
 import kami.claims.service.NeedsConfirm
+import kami.claims.service.Oversight
 import kami.claims.service.Planner
 import kami.claims.service.Service
 import kami.claims.service.View
@@ -210,8 +211,9 @@ object Net {
     private fun preview(p: ServerPlayer, a: ActPayload) {
         val tick = p.server.tickCount
         if (!lastPreview.ready(p.uuid, tick)) return answer(p, "preview", a.rid)
-        val own = Realm.of(p.stringUUID) ?: return send(p, Reply(rid = a.rid))
-        val target = a.asCountry.takeIf { it.isNotBlank() }?.let { Realm.country(it) }?.takeIf { it.parent == own.id } ?: own
+        val own = Realm.of(p.stringUUID)
+        val target = (if (a.asCountry.isBlank()) own else Realm.country(a.asCountry)?.takeIf { it === own || Oversight.granted(it, p, Cap.CLAIM) })
+            ?: return send(p, Reply(rid = a.rid))
         val kind = a.name.removePrefix("preview_")
         val type = a.args.getOrNull(0).orEmpty()
         val keys = cells(p, a.args, if (kind == "unclaim") 0 else 1)

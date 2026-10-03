@@ -8,7 +8,6 @@ import kami.claims.client.ClientClaims
 import kami.claims.client.app.pages.*
 import kami.claims.client.store.ClaimsStore
 import kami.claims.client.store.ClientResearch
-import kami.claims.research.Capacity
 import kami.claims.client.store.Outcome
 import kami.claims.service.AlertLine
 import kami.claims.client.store.ResearchChange
@@ -167,7 +166,7 @@ class ClaimsApp : KamiApp() {
             )),
             group("diplomacy", tr("kami_claims.nav.group.diplomacy"), listOf(
                 NavItem("relations", tr("kami_claims.nav.relations"), Icons.HANDSHAKE, lock = ::needsCountry),
-                NavItem("provinces", tr("kami_claims.nav.provinces"), Icons.CHAIN, badge("provinces"), ::needsCountry, { ClientLocks.unlock(Capacity.PROVINCES, tr("kami_claims.nav.provinces")) }),
+                NavItem("provinces", tr("kami_claims.nav.provinces"), Icons.CHAIN, badge("provinces"), ::needsCountry, ClientLocks::provinces),
                 NavItem("world", tr("kami_claims.nav.world"), Icons.GLOBE)
             )),
             group("system", tr("kami_claims.nav.group.system"), listOf(NavItem("help", tr("kami_claims.nav.help"), Icons.HELP), NavItem("settings", tr("kami_claims.nav.settings"), Icons.SETTINGS)))
@@ -352,8 +351,8 @@ class ClaimsApp : KamiApp() {
         Draw.leadIcon(ui.g, Icons.CHAIN, box.x + 6, box.centerY)
         val exit = tr("kami_claims.delegated.exit")
         val exitW = buttonWidth(exit, Icons.CLOSE)
-        Draw.text(ui.g, Draw.fit(tr("kami_claims.delegated.banner", info.name), box.w - exitW - 32), box.x + 22, box.y + 6, Palette.warning)
-        if (ui.edgeButton(Rect(box.x, box.y + 2, box.w - 2, SMALL_H), exit, Icons.CLOSE, key = "exit-province")) ClaimsStore.send("view", "")
+        Draw.text(ui.g, Draw.fit(tr(if (info.granted.isEmpty()) "kami_claims.delegated.banner.read_only" else "kami_claims.delegated.banner", info.name), box.w - exitW - 32), box.x + 22, box.y + 6, Palette.warning)
+        if (ui.edgeButton(Rect(box.x, box.y + 2, box.w - 2, SMALL_H), exit, Icons.CLOSE, key = "exit-province")) { ClientClaims.viewingAs = ""; ClaimsStore.send("view", "") }
         return 20
     }
 

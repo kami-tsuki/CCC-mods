@@ -37,27 +37,30 @@ import java.util.function.Consumer
 object Sky {
     private val transparent: TagKey<Block> by lazy { TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("kami_claims", "sky_transparent")) }
     private val branches: TagKey<Block> by lazy { TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("dynamictrees", "branches")) }
+    private val glass = HashMap<Block, Boolean>()
 
     private fun cover(level: Level, pos: BlockPos, state: BlockState, self: (BlockState) -> Boolean): Cover = when {
-        state.isAir || state.block is LiquidBlock || state.block is LeavesBlock || state.`is`(BlockTags.LEAVES) || state.`is`(transparent) || state.`is`(branches) || glass(state.block) -> Cover.CLEAR
+        see(state) -> Cover.CLEAR
         self(state) -> Cover.SELF
         !covers(state.getCollisionShape(level, pos)) -> Cover.CLEAR
         else -> Cover.SOLID
     }
 
-    private fun glass(block: Block): Boolean = "glass" in BuiltInRegistries.BLOCK.getKey(block).path
+    private fun see(state: BlockState): Boolean {
+        val block = state.block
+        return state.isAir || block is LiquidBlock || block is LeavesBlock || state.`is`(BlockTags.LEAVES) ||
+            state.`is`(transparent) || state.`is`(branches) || glass.getOrPut(block) { "glass" in BuiltInRegistries.BLOCK.getKey(block).path }
+    }
 
     private fun covers(shape: VoxelShape): Boolean = Block.isFaceFull(shape, Direction.DOWN) || Block.isFaceFull(shape, Direction.UP)
 
-    /** Sky check for a DynamicTrees tree growing from its rooty soil at [pos]. */
     @JvmStatic
-    fun tree(level: LevelAccessor, pos: BlockPos): Boolean = open(level, pos) { false }
+    fun tree(level: LevelAccessor, pos: BlockPos): Boolean = open(level, pos)
 
-    /** Sky check for a plant block (used by mixins of mods that grow without CropGrowEvent). */
     @JvmStatic
     fun plant(level: LevelAccessor, pos: BlockPos, plant: Block): Boolean = open(level, pos) { it.block === plant }
 
-    private fun open(level: LevelAccessor, pos: BlockPos, self: (BlockState) -> Boolean): Boolean {
+    private fun open(level: LevelAccessor, pos: BlockPos, self: (BlockState) -> Boolean = { false }): Boolean {
         if (!Config.s.skyRule) return true
         val world = level as? Level ?: return true
         if (world.isClientSide || world.dimension().location().toString() in Config.s.skyFreeSet) return true

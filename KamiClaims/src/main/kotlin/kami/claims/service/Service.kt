@@ -34,17 +34,21 @@ class Fail(val phrase: Phrase, val reason: String = "", val target: Key? = null)
     constructor(key: String, vararg args: Any) : this(Phrase.of(key, *args))
 }
 
-internal val DELEGATE_RANK = Rank.CHANCELLOR
-
 class NeedsConfirm(val lines: List<Phrase>) : RuntimeException()
 
 object Service {
     private val s get() = Config.s
     private var acting: String? = null
-    val delegableCaps = setOf(Cap.CLAIM, Cap.CAPITAL, Cap.TAX, Cap.RULES, Cap.JOBS, Cap.HOUSING)
 
     fun here(p: ServerPlayer) = Key(p.level().dimension().location().toString(), p.chunkPosition().x, p.chunkPosition().z)
-    fun home(p: ServerPlayer) = Realm.of(p.stringUUID) ?: throw Fail("kami_claims.error.no_country")
+    fun home(p: ServerPlayer): Country {
+        viewed(p)?.let { throw Fail("kami_claims.error.read_only", v(it.name)) }
+        return Realm.of(p.stringUUID) ?: throw Fail("kami_claims.error.no_country")
+    }
+
+    private fun viewed(p: ServerPlayer): Country? =
+        acting?.let { Realm.country(it) ?: throw Fail("kami_claims.error.unknown_country") }?.takeIf { it !== Realm.of(p.stringUUID) }
+
     fun rankOf(c: Country, p: ServerPlayer) = c.members[p.stringUUID]?.rank ?: Rank.CITIZEN
 
     fun act(p: ServerPlayer, name: String, a: List<String>, asCountry: String = ""): Phrase {
@@ -68,17 +72,9 @@ object Service {
 
     internal fun need(p: ServerPlayer, cap: Cap): Country {
         permit(p, cap)
-        val target = acting
-        if (cap in delegableCaps && target != null) {
-            val own = home(p)
-            if (Realm.country(target) !== own) {
-                val delegate = Realm.country(target) ?: throw Fail("kami_claims.error.unknown_country")
-                if (delegate.parent != own.id) throw Fail("kami_claims.error.not_your_province")
-                if (rankOf(own, p) < DELEGATE_RANK) throw Fail("kami_claims.error.delegate_rank")
-                return delegate
-            }
-        }
-        return need(p, s.min(cap))
+        val viewed = viewed(p) ?: return need(p, s.min(cap))
+        if (!Oversight.granted(viewed, p, cap)) throw Fail("kami_claims.error.read_only", v(viewed.name))
+        return viewed
     }
 
     private fun arg(a: List<String>, i: Int) = a.getOrNull(i) ?: throw Fail("kami_claims.error.missing_argument")
@@ -538,7 +534,7 @@ object Service {
         return Phrase.of("kami_claims.done.plot_released")
     }
 
-    private fun delegatedRank(c: Country, p: ServerPlayer) = if (c === Realm.of(p.stringUUID)) rankOf(c, p) else DELEGATE_RANK
+    private fun delegatedRank(c: Country, p: ServerPlayer) = if (c === Realm.of(p.stringUUID)) rankOf(c, p) else Oversight.actingRank
 
     private fun plotRemove(p: ServerPlayer, k: Key, confirmed: Boolean): Phrase {
         val c = need(p, Cap.HOUSING)
@@ -655,6 +651,8 @@ object Service {
             "province_forgive" -> Provinces.forgive(c, t).let { done("province_forgiven") }
             "province_decline" -> Provinces.decline(c, t).let { done("independence_declined") }
             "province_tax" -> Provinces.setTribute(c, t, m, amount).let { done("tribute_changed") }
+            "province_manage" -> (arg(a, 0) == "on").let { on -> Provinces.setManage(c, on); Phrase.of("kami_claims.done.overlord_manage.${if (on) "on" else "off"}") }
+            "province_access" -> Provinces.setAccess(c, parse(Cap.values(), arg(a, 0)), arg(a, 1).takeUnless { it == "off" }?.let { parse(Rank.values(), it) }).let { Phrase.of("kami_claims.done.overlord_access") }
             "province_independence" -> Provinces.askIndependence(c).let { Phrase.of("kami_claims.done.independence_requested") }
             "province_withdraw" -> Provinces.withdrawIndependence(c).let { Phrase.of("kami_claims.done.independence_withdrawn") }
             else -> throw Fail("kami_claims.error.unknown_province_action")

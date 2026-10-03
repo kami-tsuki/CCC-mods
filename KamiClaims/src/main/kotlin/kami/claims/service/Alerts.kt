@@ -3,7 +3,6 @@ package kami.claims.service
 import kami.claims.Cap
 import kami.claims.Config
 import kami.claims.Country
-import kami.claims.Rank
 import kami.claims.Realm
 import kami.claims.Tenancy
 import kami.claims.now
@@ -50,7 +49,7 @@ object Alerts {
             }
             return out
         }
-        val rank = if (delegated) Rank.CHANCELLOR else Service.rankOf(c, p)
+        val rank = if (delegated) Oversight.actingRank else Service.rankOf(c, p)
         fun can(cap: Cap) = delegated || rank >= s.min(cap)
         val claims = Realm.claims(c.id)
         val sum = Upkeep.summary(c)

@@ -5,6 +5,7 @@ import kami.libs.ui.text.tr
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ClientLocks
 import kami.claims.client.app.ClaimsPage
+import kami.claims.client.store.ClaimsStore
 import kami.libs.ui.app.Consequence
 import kami.claims.client.app.Dialogs
 import kami.libs.ui.widget.Flags
@@ -219,6 +220,8 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
                     Flags.draw(g, Rect(c.x, c.y + 2, 14, 10), l.color, l.flag.pattern, l.flag.emblem, l.flag.secondary)
                     Draw.text(g, Draw.fit(l.name, c.w - 18), c.x + 18, c.y + 3, Palette.text)
                 },
+                Column.number<Line>(tr("kami_claims.world.level"), 40) { it.level.toLong() },
+                Column.number<Line>(tr("kami_claims.world.researched"), 64) { it.researched.toLong() },
                 Column.number<Line>(tr("kami_claims.nav.citizens"), 56) { it.members.toLong() },
                 Column.number<Line>(tr("kami_claims.nav.chunks"), 50) { it.chunks.toLong() },
                 Column.text<Line>(tr("kami_claims.relations.col.relation"), 70, color = { relationColor(it.relation) }) { relationLabel(it.relation) }
@@ -244,6 +247,8 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
         Draw.text(ui.g, Draw.fit(l.name, head.w - 44), head.x + 44, head.y + 4, TextStyle.HEADING)
         Draw.text(ui.g, relationLabel(l.relation), head.x + 44, head.y + 16, relationColor(l.relation))
         ui.property(f.take(11), tr("kami_claims.rank.president"), l.president.ifEmpty { "-" })
+        ui.property(f.take(11), tr("kami_claims.world.level"), Format.number(l.level))
+        ui.property(f.take(11), tr("kami_claims.world.researched"), Format.number(l.researched))
         ui.property(f.take(11), tr("kami_claims.nav.citizens"), Format.number(l.members))
         ui.property(f.take(11), tr("kami_claims.kpi.land"), trn("kami_claims.unit.chunk", l.chunks))
         ui.property(f.take(11), tr("kami_claims.world.founded"), if (l.founded > 0) Format.ago(l.founded) else "-")
@@ -254,6 +259,10 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
         var y = rest.bottom - CONTROL_H
         if (ui.button(Rect(rest.x, y, rest.w, CONTROL_H), tr("kami_claims.toast.show_on_map"), Icons.MAP, key = "country-map")) app.openMapAt(l.capitalX, l.capitalZ, false)
         y -= CONTROL_H + 3
+        if (snap.admin && l.name != info?.name) {
+            if (ui.button(Rect(rest.x, y, rest.w, CONTROL_H), tr("kami_claims.world.inspect"), Icons.EYE, key = "inspect-country")) { ClaimsStore.send("view", l.name); app.navigate(Route("dashboard")) }
+            y -= CONTROL_H + 3
+        }
         if (info == null && l.relation != "banished") {
             if (ui.button(Rect(rest.x, y, rest.w, CONTROL_H), tr("kami_claims.world.join"), Icons.INVITE, ButtonStyle.PRIMARY, pending = pending("join"), key = "join-country")) {
                 Dialogs.confirm(app, tr("kami_claims.world.join.confirm.title", l.name), null, Icons.INVITE, listOf(

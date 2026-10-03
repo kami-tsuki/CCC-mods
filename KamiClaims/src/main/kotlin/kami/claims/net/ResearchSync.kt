@@ -8,6 +8,7 @@ import kami.claims.research.*
 import kami.claims.research.Limits.MAX_COUNTERS
 import kami.claims.research.Limits.MAX_LINKS
 import kami.claims.research.Limits.MAX_UNLOCKS
+import kami.claims.service.Oversight
 import kami.claims.service.Service
 import kami.claims.social.Perms
 import kami.libs.log.Log
@@ -54,7 +55,7 @@ object ResearchSync {
     }
 
     private fun send(p: ServerPlayer) {
-        val home = Realm.of(p.stringUUID)
+        val home = Sync.viewed(p) ?: Realm.of(p.stringUUID)
         val sendDefs = sentDefs[p.uuid] != defsRev
         if (sendDefs) {
             PacketDistributor.sendToPlayer(p, defsPacket ?: ResearchDefsPacket(ResearchWire.encodeDefs(defs())).also { defsPacket = it })
@@ -80,7 +81,7 @@ object ResearchSync {
         val open = trees.flatMap { it.nodes }.filter { it.key !in country.research.done }
         return StateView(
             country.id, level, country.xp, levels.xpFor(level), if (level >= levels.top) 0 else levels.xpFor(level + 1), country.treasury,
-            Perms.has(p, Perms.capNode(Cap.RESEARCH)) && Service.rankOf(country, p) >= Config.s.min(Cap.RESEARCH),
+            Perms.has(p, Perms.capNode(Cap.RESEARCH)) && Oversight.may(country, p, Cap.RESEARCH),
             country.research.done.keys.toList(),
             country.research.queue.map { entry ->
                 val tasks = Research.defs.node(entry.node)?.tasks.orEmpty()

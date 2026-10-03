@@ -13,13 +13,14 @@ import kami.claims.service.Diplomacy
 import kami.claims.service.Housing
 import kami.claims.service.PlotBlock
 import kami.claims.service.Alerts
+import kami.claims.service.Oversight
 import kami.claims.service.Plan
 import kami.claims.service.Planner
 import kami.claims.service.Provinces
-import kami.claims.service.DELEGATE_RANK
 import kami.claims.service.Service
 import kami.claims.service.Upkeep
 import kami.claims.service.View
+import kami.claims.social.Perms
 import kami.claims.world.Guard
 import kami.libs.text.Phrase
 import kotlinx.serialization.Serializable
@@ -33,7 +34,8 @@ import java.util.UUID
 @Serializable class Line(
     val name: String, val members: Int, val chunks: Int, val color: Int = 0, val flag: FlagLine = FlagLine(), val parent: String = "",
     val provinces: Int = 0, val president: String = "", val founded: Long = 0, val relation: String = "", val capitalX: Int = 0, val capitalZ: Int = 0, val income: Long = 0,
-    val trade: String = "neutral", val alliance: String = "", val tariff: Int = 0, val theirTariff: Int = 0, val embargo: Boolean = false
+    val trade: String = "neutral", val alliance: String = "", val tariff: Int = 0, val theirTariff: Int = 0, val embargo: Boolean = false,
+    val level: Int = 1, val researched: Int = 0
 )
 @Serializable class Mem(
     val id: String, val name: String, val rank: String, val jobs: List<String> = emptyList(), val progress: Map<String, Int> = emptyMap(), val seen: Long = 0,
@@ -62,7 +64,7 @@ import java.util.UUID
 @Serializable class ProvinceOfferLine(val name: String, val mode: String, val amount: Double, val until: Long = 0, val answered: Boolean = false, val color: Int = 0, val members: Int = 0, val chunks: Int = 0)
 @Serializable class ProvinceLine(
     val name: String, val mode: String, val amount: Double, val debt: Int, val wantsIndependence: Boolean,
-    val color: Int = 0, val members: Int = 0, val chunks: Int = 0, val income: Long = 0, val flag: FlagLine = FlagLine()
+    val color: Int = 0, val members: Int = 0, val chunks: Int = 0, val income: Long = 0, val flag: FlagLine = FlagLine(), val manage: Boolean = false
 )
 @Serializable class Citizen(val country: String, val role: String, val via: String = "")
 @Serializable class PlayerLine(val id: String, val name: String, val citizenships: List<Citizen>, val online: Boolean = false)
@@ -84,7 +86,8 @@ import java.util.UUID
     val flag: FlagLine = FlagLine(), val parentColor: Int = 0, val independenceCooldown: Long = 0, val nextBill: Long = 0, val freeAllowed: Int = 0,
     val created: Long = 0, val capitalMoved: Long = 0, val invitesSent: List<Mem> = emptyList(), val pendingDeposits: Long = 0,
     val offer: OfferLine = OfferLine(emptyList(), emptyMap()), val rankPlots: Map<String, Int> = emptyMap(), val guestPlots: Map<String, Int> = emptyMap(),
-    val rentDebtLimit: Long = 0, val moveOutDays: Int = 0, val jobSlots: Int = 0, val maxRent: Int = 0
+    val rentDebtLimit: Long = 0, val moveOutDays: Int = 0, val jobSlots: Int = 0, val maxRent: Int = 0,
+    val granted: List<String> = emptyList(), val overlordManage: Boolean = false, val overlordAccess: Map<String, String> = emptyMap()
 ) {
     val citizenRent get() = offer.rent["citizen"] ?: 0
 }
@@ -107,8 +110,8 @@ import java.util.UUID
     val rid: Int = 0, val reason: String = "", val targetX: Int = 0, val targetZ: Int = 0, val hasTarget: Boolean = false,
     val alerts: List<AlertLine> = emptyList(), val goals: List<GoalLine> = emptyList(), val ledger: List<LedgerLine> = emptyList(),
     val history: List<DayLine> = emptyList(), val preview: PreviewLine? = null, val limits: Limits? = null,
-    val delegable: List<String> = emptyList(), val kept: List<String> = emptyList(), val me: String = "", val dim: String = "", val rank: String = "",
-    val homes: List<HomeLine> = emptyList(), val extraRids: List<Int> = emptyList()
+    val rights: List<String> = emptyList(), val kept: List<String> = emptyList(), val me: String = "", val dim: String = "", val rank: String = "",
+    val homes: List<HomeLine> = emptyList(), val extraRids: List<Int> = emptyList(), val admin: Boolean = false
 )
 
 class Reply(val msg: String = "", val ok: Boolean = true, val rid: Int = 0, val reason: String = "", val target: Key? = null, val extraRids: List<Int> = emptyList())
@@ -121,6 +124,9 @@ object Sync {
     private val previews = HashMap<UUID, PreviewLine>()
 
     fun focus(p: ServerPlayer, x: Int, z: Int) { focus[p.uuid] = Key(Service.here(p).dim, x, z) }
+    fun viewed(p: ServerPlayer): Country? =
+        viewing[p.uuid]?.let { Realm.country(it) }?.takeIf { it !== Realm.of(p.stringUUID) && Oversight.canView(it, p) }
+
     fun view(p: ServerPlayer, name: String) { if (name.isBlank()) viewing.remove(p.uuid) else viewing[p.uuid] = name }
     fun watch(p: ServerPlayer, sections: List<String>) { watching[p.uuid] = sections.toSet() }
     fun reset() { focus.clear(); viewing.clear(); watching.clear(); previews.clear() }
@@ -272,9 +278,9 @@ object Sync {
         val sum = Upkeep.summary(c)
         val borderTax = Buffs.tax(c)
         val priv = delegated || View.privileged(c, me)
-        val rank = Service.rankOf(if (delegated) own!! else c, p)
-        val staff = !delegated && s.can(rank, Cap.INVITE)
-        val provStaff = !delegated && s.can(rank, Cap.PROVINCE)
+        val rank = if (delegated) Oversight.actingRank else Service.rankOf(c, p)
+        val staff = s.can(rank, Cap.INVITE)
+        val provStaff = s.can(rank, Cap.PROVINCE)
         val held = Realm.held(c.id)
         return Info(
             c.name, rank.name.lowercase(), c.treasury, sum.upkeep, sum.income, sum.jobs,
@@ -295,11 +301,13 @@ object Sync {
             } else emptyList(),
             if (provStaff) c.provinceRequests.filterValues { it > now() }.keys.mapNotNull { Realm.country(it)?.name } else emptyList(),
             c.provinces.mapNotNull { pid ->
-                Realm.country(pid)?.let { pr -> ProvinceLine(pr.name, pr.taxMode.name.lowercase(), pr.taxAmount, pr.provinceDebt, pr.independenceRequested, View.color(pr), pr.members.size, Realm.claims(pr.id).size, Upkeep.summary(pr).income, flag(pr)) }
+                Realm.country(pid)?.let { pr -> ProvinceLine(pr.name, pr.taxMode.name.lowercase(), pr.taxAmount, pr.provinceDebt, pr.independenceRequested, View.color(pr), pr.members.size, Realm.claims(pr.id).size, Upkeep.summary(pr).income, flag(pr), Oversight.canManage(pr)) }
             },
             delegated, flag(c), Realm.country(c.parent)?.let { View.color(it) } ?: 0, Provinces.cooldown(c), Alerts.nextBill(c), Realm.freeAllowed(c),
             c.created, c.moved, if (staff) pendingMembers(p, c.invites) else emptyList(), c.pending,
-            offer(c, null), c.rankPlots.mapKeys { it.key.name.lowercase() }, c.guestPlots.mapKeys { it.key.name.lowercase() }, c.rentDebtLimit, c.moveOutDays, Levels.capacity(c, Capacity.JOB_SLOTS), s.maxRent
+            offer(c, null), c.rankPlots.mapKeys { it.key.name.lowercase() }, c.guestPlots.mapKeys { it.key.name.lowercase() }, c.rentDebtLimit, c.moveOutDays, Levels.capacity(c, Capacity.JOB_SLOTS), s.maxRent,
+            if (delegated) Oversight.caps(c, p) else emptyList(), c.overlordManage,
+            if (c.parent == null) emptyMap() else Oversight.grantable.associate { it.name.lowercase() to (c.overlordCaps[it]?.name?.lowercase() ?: "off") }
         )
     }
 
@@ -307,8 +315,7 @@ object Sync {
         val s = Config.s
         val me = p.stringUUID
         val own = Realm.of(me)
-        val viewed = viewing[p.uuid]?.let { Realm.country(it) }
-            ?.takeIf { own != null && it.parent == own.id && Service.rankOf(own, p) >= DELEGATE_RANK }
+        val viewed = viewed(p)
         val delegated = viewed != null
         val c = viewed ?: own
         val here = Service.here(p)
@@ -330,7 +337,8 @@ object Sync {
                 trade = own?.let { Diplomacy.relation(it, x) } ?: "neutral",
                 alliance = own?.let { o -> when { Diplomacy.allied(o, x) -> "allied"; x.id in o.allianceOffers -> "offer_in"; o.id in x.allianceOffers -> "offer_out"; else -> "" } } ?: "",
                 tariff = own?.let { Diplomacy.policy(it, x).tariffPct } ?: 0, theirTariff = own?.let { Diplomacy.policy(x, it).tariffPct } ?: 0,
-                embargo = own?.let { Diplomacy.policy(it, x).embargo } ?: false
+                embargo = own?.let { Diplomacy.policy(it, x).embargo } ?: false,
+                level = Research.level(x), researched = x.research.done.size
             )
         } else emptyList()
         val players = if (world) Realm.home.keys.map { id -> PlayerLine(id, Names.of(p.server, id), citizenships(id), online(p, id)) }.sortedBy { it.name } else emptyList()
@@ -347,8 +355,9 @@ object Sync {
             focus[p.uuid]?.let { detail(p, it) }, Bank.funds(p.uuid), s.freeChunks, (s.jobShare * 100).toInt(), c?.let { Levels.capacity(it, Capacity.PLOTS) } ?: 0, s.maxProvinceDebt,
             players, reply.msg, reply.ok, open, here.x, here.z,
             reply.rid, reply.reason, reply.target?.x ?: 0, reply.target?.z ?: 0, reply.target != null,
-            Alerts.of(p, c, delegated), if (c != null && lead && !delegated) Goals.of(c).map { GoalLine(it.text.json(), it.value, it.max, it.page.orEmpty()) } else emptyList(), ledger, history, previews.remove(p.uuid), limits(s),
-            Provinces.delegatedRights, Provinces.keptRights, me, here.dim, own?.let { Service.rankOf(it, p).name.lowercase() } ?: "", homes(me), reply.extraRids
+            Alerts.of(p, c, delegated), if (c != null && lead) Goals.of(c).map { GoalLine(it.text.json(), it.value, it.max, it.page.orEmpty()) } else emptyList(), ledger, history, previews.remove(p.uuid), limits(s),
+            Provinces.delegatedRights, Provinces.keptRights, me, here.dim, own?.let { Service.rankOf(it, p).name.lowercase() } ?: "", homes(me), reply.extraRids,
+            Perms.has(p, Perms.ADMIN)
         )
         return json.encodeToString(snap)
     }

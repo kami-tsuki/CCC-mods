@@ -119,8 +119,10 @@ object Guard {
         val free = block != null && action != Action.INTERACT && id(block) in Config.s.freeBlockSet
         val c = cl?.let { Realm.data.countries[it.country] }
         if (free && (action == Action.PLACE || cl == null || cl.type == "infrastructure")) return true
-        if (cl == null || c == null) return action in Config.s.nomanslandAllowSet && block?.defaultBlockState()?.`is`(wildBlocks) != true ||
-            action == Action.PLACE && block?.defaultBlockState()?.let(TempBlocks::fits) == true
+        if (cl == null || c == null) {
+            val state = block?.defaultBlockState()
+            return (action in Config.s.nomanslandAllowSet && state?.`is`(wildBlocks) != true) || (action == Action.PLACE && cl == null && state != null && TempBlocks.fits(state))
+        }
         val p = who as? Player
         if (p == null || p is FakePlayer) return c.machines[cl.type] ?: cl.def?.rule?.machines ?: false
         val me = p.stringUUID
@@ -232,18 +234,20 @@ object Guard {
             researchLocked(e.entity, e.level, e.pos, block)) {
             e.isCanceled = true
             player?.let { resync(it, e.pos) }
-        } else {
-            player?.let { credit(it, e.pos, Action.PLACE, e.placedBlock) }
-            temporary(e.level, e.pos, e.placedBlock, player)
-        }
+        } else if (!temporary(e.level, e.pos, e.placedBlock, e.blockSnapshot.state, player)) {
+            e.isCanceled = true
+            player?.let { resync(it, e.pos) }
+        } else player?.let { credit(it, e.pos, Action.PLACE, e.placedBlock) }
     }
 
-    private fun temporary(level: LevelAccessor, pos: BlockPos, state: BlockState, player: ServerPlayer?) {
-        val world = level as? ServerLevel ?: return
-        if (!TempBlocks.fits(state) || Action.PLACE in Config.s.nomanslandAllowSet || dim(level) !in Config.s.dimensionSet || !unclaimed(level, pos)) return
-        if (player != null && Perms.has(player, Perms.BYPASS)) return
-        TempBlocks.place(world, pos, state)
-        player?.bar(Chat.bar(Tone.WARN, Phrase.of("kami_claims.guard.temp", "%.0f".format(TempBlocks.seconds(world, pos, state))).component()))
+    private fun temporary(level: LevelAccessor, pos: BlockPos, state: BlockState, replaced: BlockState, player: ServerPlayer?): Boolean {
+        val world = level as? ServerLevel ?: return true
+        if (!TempBlocks.fits(state) || Action.PLACE in Config.s.nomanslandAllowSet || dim(level) !in Config.s.dimensionSet || !unclaimed(level, pos)) return true
+        if (player != null && Perms.has(player, Perms.BYPASS)) return true
+        val placed = TempBlocks.place(world, pos, state, replaced)
+        val text = if (placed) Phrase.of("kami_claims.guard.temp", "%.0f".format(TempBlocks.seconds(world, pos, state))) else Phrase.of("kami_claims.guard.temp.full")
+        player?.bar(Chat.bar(if (placed) Tone.WARN else Tone.BAD, text.component()))
+        return placed
     }
 
     private fun extends(type: Class<*>, name: String): Boolean = generateSequence(type) { it.superclass }.any { it.name == name }
@@ -384,7 +388,7 @@ object Guard {
         val level = e.level
         val dim = dim(level)?.takeIf { it in Config.s.dimensionSet } ?: return
         val helper = e.structureHelper ?: return
-        if (Realm.data.temp.isNotEmpty() && (helper.toPush + helper.toDestroy).any { TempBlocks.at(dim, it) }) return run { e.isCanceled = true }
+        if ((helper.toPush + helper.toDestroy).any { TempBlocks.at(dim, it) }) return run { e.isCanceled = true }
         if (!Config.s.pistonProtection) return
         val origin = Realm.index[key(dim, e.pos)]
         val pushed = helper.toPush + helper.toPush.map { it.relative(helper.pushDirection) }

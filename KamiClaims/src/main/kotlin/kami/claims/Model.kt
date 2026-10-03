@@ -9,6 +9,7 @@ import kami.claims.service.Housing
 import kami.claims.service.Work
 import kami.libs.config.WorldStore
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.storage.LevelResource
 import kotlin.math.max
@@ -27,6 +28,8 @@ enum class Access { NONE, OFFICER, ASSIGNED, JOB, WORKER, CITIZEN, ALLIED, ANY }
 
 @Serializable
 enum class Action { BREAK, PLACE, INTERACT, CONTAINER }
+
+val overlordRanks = listOf(Rank.OFFICER, Rank.CHANCELLOR, Rank.PRESIDENT)
 
 fun ruleLocked(type: String, a: Action) = type == "wilderness" && (a == Action.BREAK || a == Action.PLACE)
 
@@ -161,6 +164,8 @@ class Country(
     var provinceDebt: Int = 0,
     var independenceRequested: Boolean = false,
     var independenceDeclinedAt: Long = 0,
+    var overlordManage: Boolean = false,
+    val overlordCaps: MutableMap<Cap, Rank> = mutableMapOf(),
     var flag: Flag = Flag(),
     val ledger: MutableList<LedgerEntry> = mutableListOf(),
     val history: MutableList<DayStat> = mutableListOf(),
@@ -200,6 +205,11 @@ class Country(
     val active get() = state == CountryState.ACTIVE
     fun rank(id: String) = members[id]?.rank ?: outsiders[id]
     fun president() = members.entries.firstOrNull { it.value.rank == Rank.PRESIDENT }?.key
+
+    fun resetOverlord() {
+        overlordManage = false
+        overlordCaps.clear()
+    }
     fun job(name: String): JobDef? = jobs[name] ?: Config.s.jobs[name]?.let { JobDef(it.pay, it.quota, it.period) }
 }
 
@@ -207,7 +217,9 @@ class Country(
 class Reserve(val dim: String, val x: Int, val z: Int, val country: String, val until: Long)
 
 @Serializable
-class TempBlock(val dim: String, val pos: Long, val start: Long, val due: Long)
+class TempBlock(val dim: String, val pos: Long, val start: Long, val due: Long, val fluid: String = "") {
+    @Transient var stage = -1
+}
 
 @Serializable
 class Data(

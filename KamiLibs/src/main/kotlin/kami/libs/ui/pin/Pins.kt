@@ -47,7 +47,7 @@ object Pins {
 
     fun register(window: PinWindow) { windows[window.id] = window }
 
-    fun items(id: String): List<String> = data.items[id].orEmpty()
+    fun items(id: String): List<String> = data.items[id]?.toList().orEmpty()
 
     fun pinned(id: String, item: String) = item in items(id)
 

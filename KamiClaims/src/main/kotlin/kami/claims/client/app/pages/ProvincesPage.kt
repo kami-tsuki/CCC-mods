@@ -1,6 +1,7 @@
 package kami.claims.client.app.pages
 
 import kami.claims.client.app.ClaimsApp
+import kami.claims.overlordRanks
 import kami.claims.client.app.ClientLocks
 import kami.claims.research.Capacity
 import kami.claims.client.app.ClaimsPage
@@ -23,6 +24,7 @@ import kami.libs.ui.app.wizardButtons
 import kami.libs.ui.core.Flow
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Row
+import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
@@ -58,7 +60,6 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
 
     override fun draw(ui: Ui, r: Rect) {
         val info = info ?: return
-        ClientLocks.unlock(Capacity.PROVINCES, tr("kami_claims.nav.provinces"))?.takeIf { info.parent.isEmpty() }?.let { return ui.lockedPanel(r, tr("kami_claims.nav.provinces"), tr("kami_claims.provinces.locked.teaser"), it, Icons.CHAIN, "provinces-locked") }
         val offers = info.provinceInvites.size + info.provinceRequests.size
         val tabsRect = r.top(CONTROL_H)
         ui.anchor("provinces:tabs", tabsRect)
@@ -77,6 +78,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
             val box = r.top(250)
             ui.anchor("provinces:status", box)
             provinceStatus(ui, box)
+            access(ui, r.dropTop(256))
             return
         }
         if (info.provinces.isEmpty()) {
@@ -140,7 +142,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
                 ), tr("kami_libs.common.decline"), "province_decline", arrayOf(p.name))
             }
         }
-        action(tr("kami_claims.provinces.manage", p.name), Icons.EDIT, if (p.wantsIndependence) ButtonStyle.SECONDARY else ButtonStyle.PRIMARY, "view") { ClaimsStore.send("view", p.name); app.navigate(Route("dashboard")) }
+        action(tr(if (p.manage) "kami_claims.provinces.manage" else "kami_claims.provinces.view", p.name), if (p.manage) Icons.EDIT else Icons.EYE, if (p.wantsIndependence) ButtonStyle.SECONDARY else ButtonStyle.PRIMARY, "view") { ClaimsStore.send("view", p.name); app.navigate(Route("dashboard")) }
         action(tr("kami_claims.provinces.change_tribute"), Icons.PERCENT, key = "province_tax") { termsDialog(tr("kami_claims.provinces.change_tribute.title", p.name), "province_tax", p.name, p.mode, p.amount, p.income) }
         if (p.debt > 0) action(tr("kami_claims.provinces.forgive"), Icons.UNDO, key = "province_forgive") {
             Dialogs.confirm(app, tr("kami_claims.provinces.forgive.confirm.title", p.name), null, Icons.UNDO, listOf(
@@ -150,6 +152,8 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
         action(tr("kami_claims.provinces.give"), Icons.FORWARD, key = "province_give") { giveDialog(p) }
         if (!p.wantsIndependence) action(tr("kami_claims.provinces.release"), Icons.BROKEN_CHAIN, ButtonStyle.DANGER, "province_release") { release(p, false) }
     }
+
+    private fun hold() = ClientLocks.unlock(Capacity.PROVINCES, tr("kami_claims.nav.provinces"))?.reason
 
     private fun release(p: ProvinceLine, requested: Boolean) {
         Dialogs.confirm(app, tr(if (requested) "kami_claims.provinces.grant.confirm.title" else "kami_claims.provinces.release.confirm.title", p.name), tr("kami_claims.provinces.release.confirm.subtitle"), Icons.BROKEN_CHAIN, listOf(
@@ -184,6 +188,29 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
         })
     }
 
+    private fun access(ui: Ui, r: Rect) {
+        val info = info ?: return
+        val body = ui.card(r, tr("kami_claims.provinces.access.title", info.parent), Icons.SHIELD, key = "overlord-access")
+        val staff = lock("province")
+        val f = Flow(body, 3)
+        ui.toggle(f.take(14), info.overlordManage, tr("kami_claims.provinces.access.manage", info.parent), staff == null, staff, tr("kami_claims.provinces.access.manage.tip", info.parent), key = "overlord-manage")
+            ?.let { act("province_manage", if (it) "on" else "off") }
+        f.take(Draw.paragraph(ui.g, tr(if (info.overlordManage) "kami_claims.provinces.access.hint" else "kami_claims.provinces.access.off"), f.rest.x, f.rest.y, f.rest.w, Palette.textMuted))
+        val options = listOf(Option("off", tr("kami_libs.common.off"), Icons.EYE, tr("kami_claims.provinces.access.read_only"))) +
+            overlordRanks.map { it.name.lowercase() }.map { id -> Vocabulary.rank(id).let { Option(id, it.label, it.icon, tr("kami_claims.provinces.access.rank", it.label)) } }
+        val rows = info.overlordAccess.entries.toList()
+        ui.scroll("overlord-access", f.rest, rows.size * ACCESS_H) { area ->
+            rows.forEachIndexed { i, (cap, rank) ->
+                val row = Rect(area.x, area.y + i * ACCESS_H, area.w, ACCESS_H - 1)
+                if (i % 2 == 1) Draw.fill(ui.g, row, Palette.alpha(0x000000, 0x0C))
+                Draw.text(ui.g, Draw.fit(tr("kami_claims.cap.$cap"), row.w - ACCESS_SELECT_W - 8), row.x + 3, row.y + 5, if (rank == "off") Palette.textMuted else Palette.text)
+                ui.tooltip("access:$cap", Rect(row.x, row.y, row.w - ACCESS_SELECT_W, row.h), Tip.text(tr("kami_claims.cap.$cap.desc"), tr("kami_claims.cap.$cap")))
+                ui.select(Rect(row.right - ACCESS_SELECT_W, row.y + 2, ACCESS_SELECT_W, SMALL_H), options, rank, enabled = staff == null, disabledReason = staff, key = "access-cell:$cap", menuWidth = 200)
+                    ?.let { act("province_access", cap, it, key = "province_access:$cap") }
+            }
+        }
+    }
+
     private fun provinceStatus(ui: Ui, r: Rect) {
         val info = info ?: return
         val body = ui.card(r, tr("kami_claims.provinces.status.title", info.parent), Icons.CHAIN, Severity.WARNING, key = "status")
@@ -193,7 +220,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
         Draw.text(ui.g, tr("kami_claims.confirm.province.tribute", Vocabulary.tribute(info.taxMode, info.taxAmount)), top.x + 44, top.y + 4, TextStyle.HEADING)
         Draw.text(ui.g, tr("kami_claims.provinces.status.estimate", Format.perDay(Format.money(estimate(info.taxMode, info.taxAmount, info.income))), info.provinceDebt, snap.maxProvinceDebt), top.x + 44, top.y + 16, if (info.provinceDebt > 0) Palette.danger else Palette.textMuted)
         val cols = f.take(100).columns(2, 10)
-        rightsList(ui, cols[0], tr("kami_claims.provinces.rights.may", info.parent), snap.delegable, Palette.warning, Icons.WARNING)
+        rightsList(ui, cols[0], tr("kami_claims.provinces.rights.may", info.parent), snap.rights, Palette.warning, Icons.WARNING)
         rightsList(ui, cols[1], tr("kami_claims.provinces.rights.keep"), snap.kept, Palette.success, Icons.CHECK)
         f.take(ui.callout(f.rest, Severity.DANGER, tr("kami_claims.confirm.province.bound", info.parent)))
         val row = f.take(CONTROL_H)
@@ -252,7 +279,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
             Draw.sprite(ui.g, Sprites.CARD, row)
             ui.attention(row, app.isFocus("request:$name"))
             Flags.draw(ui.g, Rect(row.x + 6, row.y + 7, 22, 16), line?.color ?: 0x888888, line?.flag?.pattern ?: 0, line?.flag?.emblem ?: 0, line?.flag?.secondary ?: 0xFFFFFF)
-            val staff = lock("province")
+            val staff = lock("province") ?: hold()
             val terms = tr("kami_claims.provinces.set_terms")
             val deny = tr("kami_claims.chat.deny")
             val tw = buttonWidth(terms, Icons.PERCENT)
@@ -328,7 +355,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
                     Draw.text(g, tr("kami_claims.provinces.sign.warning").uppercase(Format.locale), b.x + 20, y + 4, TextStyle.TITLE, Palette.danger)
                     y += 22
                     val cols = Rect(b.x, y, b.w, 118).columns(listOf(1.2f, 1f), 8)
-                    rightsList(this, cols[0], tr("kami_claims.provinces.rights.may", o.name), snap.delegable, Palette.danger, Icons.WARNING)
+                    rightsList(this, cols[0], tr("kami_claims.provinces.rights.may", o.name), snap.rights, Palette.danger, Icons.WARNING)
                     rightsList(this, cols[1], tr("kami_claims.provinces.rights.keep"), snap.kept, Palette.success, Icons.CHECK)
                     y += 124
                     y += callout(Rect(b.x, y, b.w, 0), Severity.DANGER, tr("kami_claims.provinces.sign.bound", o.name)) + 4
@@ -363,7 +390,8 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
         val isProvince = info.parent.isNotEmpty()
         val a = ui.card(cards[0], tr("kami_claims.provinces.start.invite"), Icons.INVITE)
         Draw.paragraph(ui.g, tr("kami_claims.provinces.start.invite.desc"), a.x, a.y, a.w)
-        if (ui.button(Rect(a.x, a.bottom - CONTROL_H, a.w, CONTROL_H), tr("kami_claims.provinces.start.invite.action"), Icons.INVITE, ButtonStyle.PRIMARY, staff == null && !isProvince, staff ?: tr("kami_claims.error.province_nested"), key = "invite-country")) inviteDialog()
+        val inviteLock = staff ?: hold()
+        if (ui.button(Rect(a.x, a.bottom - CONTROL_H, a.w, CONTROL_H), tr("kami_claims.provinces.start.invite.action"), Icons.INVITE, ButtonStyle.PRIMARY, inviteLock == null && !isProvince, inviteLock ?: tr("kami_claims.error.province_nested"), key = "invite-country")) inviteDialog()
         val b = ui.card(cards[1], tr("kami_claims.provinces.start.request"), Icons.CHAIN, Severity.WARNING)
         Draw.paragraph(ui.g, tr("kami_claims.provinces.start.request.desc"), b.x, b.y, b.w)
         if (ui.button(Rect(b.x, b.bottom - CONTROL_H, b.w, CONTROL_H), tr("kami_libs.common.send_request"), Icons.CHAIN, enabled = staff == null && !isProvince, disabledReason = staff ?: tr("kami_claims.error.already_province"), key = "request-country")) requestDialog()
@@ -418,4 +446,6 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
 }
 
 private const val OFFER_H = 30
+private const val ACCESS_H = 20
+private const val ACCESS_SELECT_W = 96
 private const val START_CARD_H = 112
