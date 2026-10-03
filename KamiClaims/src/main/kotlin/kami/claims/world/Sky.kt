@@ -7,6 +7,8 @@ import kami.libs.chat.bar
 import kami.libs.log.Log
 import kami.libs.text.Phrase
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
@@ -16,9 +18,11 @@ import net.minecraft.world.level.LevelAccessor
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.BonemealableBlock
+import net.minecraft.world.level.block.LeavesBlock
 import net.minecraft.world.level.block.LiquidBlock
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.Heightmap
+import net.minecraft.world.phys.shapes.VoxelShape
 import net.neoforged.bus.api.Event
 import net.neoforged.bus.api.EventPriority
 import net.neoforged.bus.api.ICancellableEvent
@@ -34,15 +38,20 @@ object Sky {
     private val transparent: TagKey<Block> by lazy { TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("kami_claims", "sky_transparent")) }
     private val branches: TagKey<Block> by lazy { TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("dynamictrees", "branches")) }
 
-    private fun cover(state: BlockState, self: (BlockState) -> Boolean): Cover = when {
-        state.isAir || state.block is LiquidBlock || state.`is`(transparent) -> Cover.CLEAR
+    private fun cover(level: Level, pos: BlockPos, state: BlockState, self: (BlockState) -> Boolean): Cover = when {
+        state.isAir || state.block is LiquidBlock || state.block is LeavesBlock || state.`is`(BlockTags.LEAVES) || state.`is`(transparent) || state.`is`(branches) || glass(state.block) -> Cover.CLEAR
         self(state) -> Cover.SELF
+        !covers(state.getCollisionShape(level, pos)) -> Cover.CLEAR
         else -> Cover.SOLID
     }
 
-    /** Sky check for a DynamicTrees tree growing from its rooty soil at [pos]; its own branches do not block it. */
+    private fun glass(block: Block): Boolean = "glass" in BuiltInRegistries.BLOCK.getKey(block).path
+
+    private fun covers(shape: VoxelShape): Boolean = Block.isFaceFull(shape, Direction.DOWN) || Block.isFaceFull(shape, Direction.UP)
+
+    /** Sky check for a DynamicTrees tree growing from its rooty soil at [pos]. */
     @JvmStatic
-    fun tree(level: LevelAccessor, pos: BlockPos): Boolean = open(level, pos) { it.`is`(branches) }
+    fun tree(level: LevelAccessor, pos: BlockPos): Boolean = open(level, pos) { false }
 
     /** Sky check for a plant block (used by mixins of mods that grow without CropGrowEvent). */
     @JvmStatic
@@ -56,7 +65,7 @@ object Sky {
         val top = minOf(world.getHeight(Heightmap.Types.WORLD_SURFACE, pos.x, pos.z), world.maxBuildHeight)
         if (top <= from) return true
         val at = BlockPos.MutableBlockPos(pos.x, from, pos.z)
-        return SkyColumn.clear(from, top) { y -> cover(world.getBlockState(at.setY(y)), self) }
+        return SkyColumn.clear(from, top) { y -> cover(world, at.setY(y), world.getBlockState(at), self) }
     }
 
     private fun growable(state: BlockState): Boolean {

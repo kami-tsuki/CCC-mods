@@ -199,7 +199,7 @@ private val sections = listOf(
             "nomanslandFire" to "Fire spreads in unclaimed land.",
             "nomanslandFluid" to "Fluids flow in unclaimed land.",
             "pistonProtection" to "Stop pistons from pushing blocks across claim borders.",
-            "skyRule" to "Crops and saplings only grow with open sky above them. Only air, fluids and glass from the kami_claims:sky_transparent tag may be above. Applies everywhere, claimed or not.",
+            "skyRule" to "Crops and saplings only grow with open sky above them. Only blocks with a full top or bottom face block it, like full blocks, slabs, stairs and farmland. Thin blocks like torches, chains and fences, leaves, DynamicTrees branches, any glass block or variant and the kami_claims:sky_transparent tag let light through. Applies everywhere, claimed or not.",
             "skyFreeDimensions" to "Dimensions where the open sky rule is not applied, like the Nether."
         )
     ),
