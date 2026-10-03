@@ -72,7 +72,7 @@ internal class DashboardPage(val app: MarketApp) : Page() {
     private fun top(ui: Ui, r: Rect, title: String, rows: List<Row>, units: (Row) -> Long) {
         val inner = ui.card(r, title)
         if (rows.isEmpty()) Draw.text(ui.g, tr("kami_economy.dash.nothing"), inner.x, inner.y + 2, Palette.textMuted)
-        rows.take(5).forEachIndexed { i, row ->
+        rows.forEachIndexed { i, row ->
             val line = Rect(inner.x, inner.y + i * ROW_H, inner.w, ROW_H)
             val key = "dash:$title:${row.item}"
             if (ui.hovering(line)) Draw.fill(ui.g, line, Palette.hover)
@@ -96,7 +96,7 @@ internal class DashboardPage(val app: MarketApp) : Page() {
     private fun group(ui: Ui, inner: Rect, top: Int, title: String, list: List<Leader>): Int {
         Draw.text(ui.g, title, inner.x, top, Palette.textMuted)
         var y = top + 11
-        list.take(3).forEachIndexed { i, l ->
+        list.forEachIndexed { i, l ->
             Draw.leadIcon(ui.g, Icons.STAR, inner.x, y + 4, MEDALS[i])
             var x = inner.x + 16
             if (l.flag != null || l.color != 0) { ui.flag(Rect(x, y, 11, 8), l.color, l.flag); x += 14 }

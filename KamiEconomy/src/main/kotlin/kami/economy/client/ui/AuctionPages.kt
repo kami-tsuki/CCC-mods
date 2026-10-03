@@ -1,7 +1,6 @@
 package kami.economy.client.ui
 
 import kami.economy.economy.Blacklist
-import kami.economy.economy.Classification
 import kami.economy.economy.StackCodec
 import kami.economy.net.AuctionLine
 import kami.libs.ui.app.Callout
@@ -23,7 +22,8 @@ import kami.libs.ui.widget.*
 import net.minecraft.client.Minecraft
 import net.minecraft.world.item.ItemStack
 
-private const val PANEL_W = 150
+private const val AUCTION_PANEL_W = 150
+private const val SCOPE_W = 150
 private const val SOON_MS = 300_000L
 
 internal class AuctionsPage(app: MarketApp) : ListPage(app, "auctions") {
@@ -33,7 +33,7 @@ internal class AuctionsPage(app: MarketApp) : ListPage(app, "auctions") {
     private val bid = NumberState(1)
     private var bidFor = -1L
     override val title get() = tr("kami_libs.common.auctions")
-    override val help get() = help("auctions:table", "kami_economy.help.auctions")
+    override val help get() = helpFor("auctions:table", "kami_economy.help.auctions")
 
     private fun stack(a: AuctionLine) = stacks.getOrPut(a.id) {
         Minecraft.getInstance().level?.registryAccess()?.let { runCatching { StackCodec.decode(a.stackData, it) }.getOrNull() } ?: ItemStack.EMPTY
@@ -64,15 +64,15 @@ internal class AuctionsPage(app: MarketApp) : ListPage(app, "auctions") {
 
     override fun draw(ui: Ui, r: Rect) {
         val bar = r.top(SMALL_H)
-        searchBar(ui, bar.dropRight(150, 6))
-        ui.segmented(bar.right(150), listOf(Option(false, tr("kami_libs.common.all")), Option(true, tr("kami_economy.scope.mine"))), mine, key = "scope")?.let { mine = it; table.clear() }
-        val rows = app.snap.auctions.filter { !mine || it.mine }
+        searchBar(ui, bar.dropRight(SCOPE_W, 6))
+        ui.segmented(bar.right(SCOPE_W), listOf(Option(false, tr("kami_libs.common.all")), Option(true, tr("kami_economy.scope.mine"))), mine, key = "scope")?.let { mine = it; table.clear() }
+        val rows = if (ready) app.snap.auctions.filter { !mine || it.mine } else emptyList()
         val area = body(ui, r.dropTop(SMALL_H, 6))
         val selected = rows.firstOrNull { it.id in table.selected }
-        val tableArea = if (selected != null) area.dropRight(PANEL_W, 6) else area
+        val tableArea = if (selected != null) area.dropRight(AUCTION_PANEL_W, 6) else area
         ui.anchor("auctions:table", tableArea)
         ui.table(tableArea, columns, rows, table, { it.id }, rowHeight = ROW_H, emptyText = tr("kami_economy.market.auctions.empty"))
-        selected?.let { panel(ui, area.right(PANEL_W), it) }
+        selected?.let { panel(ui, area.right(AUCTION_PANEL_W), it) }
     }
 
     private fun panel(ui: Ui, r: Rect, a: AuctionLine) {
@@ -125,40 +125,33 @@ internal class AuctionsPage(app: MarketApp) : ListPage(app, "auctions") {
 }
 
 internal class AuctionCreatePage(val app: MarketApp) : Page() {
-    private class Entry(val slot: Int, val stack: ItemStack)
-
-    private val table = TableState<Entry>()
+    private val table = TableState<Stored>()
     private val start = NumberState(1)
     private val buyNow = NumberState(0)
     private var chosen = -1
-    override val title get() = tr("kami_economy.nav.auction_create")
+    override val title get() = tr("kami_economy.nav.create")
     override val help get() = listOf(Callout("create:table", tr("kami_economy.help.create"), tr("kami_economy.help.create.desc")))
 
     private val columns = listOf(
-        Column<Entry>(tr("kami_libs.common.item"), -1, sort = compareBy { it.stack.hoverName.string.lowercase() }) { _, c, e ->
+        Column<Stored>(tr("kami_libs.common.item"), -1, sort = compareBy { it.stack.hoverName.string.lowercase() }) { _, c, e ->
             if (itemCell(c, e.stack, e.stack.hoverName.string, "create:${e.slot}")) table.selected.apply { clear(); add(e.slot) }
         },
-        Column.number<Entry>(tr("kami_libs.common.amount"), 60) { it.stack.count.toLong() }
+        Column.number<Stored>(tr("kami_libs.common.amount"), 60) { it.stack.count.toLong() }
     )
 
-    private val entries = Throttled {
-        Minecraft.getInstance().player?.inventory?.items.orEmpty()
-            .withIndex().filter { (_, s) -> !s.isEmpty && Blacklist.classify(s) == Classification.AUCTION_ONLY }.map { Entry(it.index, it.value) }
-    }
-
     override fun draw(ui: Ui, r: Rect) {
-        val rows = entries.get()
+        val rows = app.carried.get().auctionOnly
         val selected = rows.firstOrNull { it.slot in table.selected }
         if ((selected?.slot ?: -1) != chosen) { chosen = selected?.slot ?: -1; start.commit(1); buyNow.commit(0) }
         Draw.text(ui.g, Draw.fit(tr("kami_economy.market.auction_only"), r.w), r.x, r.y, Palette.textSecondary)
         val area = r.dropTop(16)
-        val tableArea = if (selected != null) area.dropRight(PANEL_W + 20, 6) else area
+        val tableArea = if (selected != null) area.dropRight(AUCTION_PANEL_W + 20, 6) else area
         ui.anchor("create:table", tableArea)
         ui.table(tableArea, columns, rows, table, { it.slot }, rowHeight = ROW_H, emptyText = tr("kami_economy.create.empty"))
-        selected?.let { form(ui, area.right(PANEL_W + 20), it) }
+        selected?.let { form(ui, area.right(AUCTION_PANEL_W + 20), it) }
     }
 
-    private fun form(ui: Ui, r: Rect, e: Entry) {
+    private fun form(ui: Ui, r: Rect, e: Stored) {
         val flow = ui.sidePanel(r)
         val head = flow.take(22)
         ui.itemSlot(head.left(22), e.stack, key = "create-item")
@@ -176,7 +169,7 @@ internal class AuctionCreatePage(val app: MarketApp) : Page() {
                 disabledReason = if (!app.snap.citizen) tr("kami_libs.lock.no_country") else tr("kami_economy.market.auction.buy_now.invalid"), key = "create-go")) confirm(e)
     }
 
-    private fun confirm(e: Entry) {
+    private fun confirm(e: Stored) {
         val startPrice = start.value
         val buy = buyNow.value.takeIf { it > startPrice } ?: 0L
         val lines = buildList {

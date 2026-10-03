@@ -15,11 +15,16 @@ import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr
 import kami.libs.ui.widget.*
+import java.time.Instant
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 import kotlin.math.max
 
 private const val QUOTE_DELAY = 200L
 private const val FAT_FINGER_PCT = 15L
+private val RESET_FORMAT = DateTimeFormatter.ofPattern("HH:mm")
 
 internal fun returnReason(q: Quote, lot: Int) = when (q.reason) {
     "lot" -> tr("kami_economy.action.return.lot", lot)
@@ -179,7 +184,7 @@ internal class Ticket(private val app: MarketApp) {
             return
         }
         if (order) return
-        val reset = "%02d:00".format(d.resetHour)
+        val reset = LocalTime.ofInstant(Instant.ofEpochMilli(d.resetAt), ZoneId.systemDefault()).format(RESET_FORMAT)
         val text = when {
             d.stockBid > 0 && s.capLeft > 0 -> tr("kami_economy.stock.guaranteed", Format.number(minOf(s.room, s.capLeft) * d.lot), Format.money(d.stockBid.toLong()), reset)
             d.stockBid > 0 -> tr("kami_economy.stock.curve", Format.money(d.stockBid.toLong()))

@@ -1,6 +1,7 @@
 {
   "title": "Buffs",
   "scope": "country",
+  "strict": true,
   "categories": [
     {
       "id": "view",

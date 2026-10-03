@@ -20,8 +20,6 @@ import kami.libs.ui.style.Sprites
 import kami.libs.ui.style.TextStyle
 import kami.libs.ui.style.UiSound
 import kami.libs.ui.widget.Lock
-import kami.libs.ui.widget.ButtonStyle
-import kami.libs.ui.widget.button
 import kami.libs.ui.widget.badge
 import kami.libs.ui.widget.clickable
 import kami.libs.ui.widget.iconButton
@@ -198,8 +196,9 @@ abstract class KamiApp {
             (if (!compact) GROUP_H else if (i > 0) 4 else 0) + group.items.sumOf { rowHeight(it, opens[i]) } + GROUP_GAP
         }
         val indicator = navY[route.page]
-        val stripH = if (module == null || Modules.all.size < 2) 0 else if (compact) Modules.all.size * MODULES_H else MODULES_H
-        if (stripH > 0) moduleStrip(Rect(r.x + 2, r.y + 3, r.w - 4, stripH))
+        val perRow = ((r.w - 4) / MODULES_H).coerceAtLeast(1)
+        val stripH = if (module == null || Modules.all.size < 2) 0 else (Modules.all.size + perRow - 1) / perRow * MODULES_H
+        if (stripH > 0) moduleStrip(Rect(r.x + 2, r.y + 3, r.w - 4, stripH), perRow)
         val state = ui.scroll("sidebar", r.inset(0, 4 + stripH, 0, 2), height) { c ->
             indicator?.let { rel ->
                 val top = c.y + ui.anim("nav:ind", rel.toFloat(), 20f).roundToInt()
@@ -228,15 +227,12 @@ abstract class KamiApp {
         revealPage?.let { page -> navY[page]?.let { state.scrollTo(it); revealPage = null } }
     }
 
-    private fun moduleStrip(r: Rect) {
+    private fun moduleStrip(r: Rect, perRow: Int) {
         ui.anchor("modules", r)
-        val all = Modules.all
-        val cells = if (compact) all.indices.map { Rect(r.x, r.y + it * MODULES_H, r.w, MODULES_H - 2) } else r.columns(all.size, 2)
-        cells.forEachIndexed { i, cell ->
-            val m = all[i]
-            val label = tr(m.label)
+        Modules.all.forEachIndexed { i, m ->
+            val cell = Rect(r.x + i % perRow * MODULES_H, r.y + i / perRow * MODULES_H, MODULES_H - 2, MODULES_H - 2)
             val active = m.id == module
-            if (ui.button(cell, if (compact) "" else label, m.icon, if (active) ButtonStyle.PRIMARY else ButtonStyle.SECONDARY, tip = if (compact) label else null, key = "module:${m.id}") && !active) m.open()
+            if (ui.iconButton(cell, m.icon, tr(m.label), selected = active, key = "module:${m.id}") && !active) m.open()
         }
     }
 

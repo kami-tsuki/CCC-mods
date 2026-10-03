@@ -9,6 +9,7 @@ import kami.claims.research.Gate
 import kami.claims.research.Levels
 import kami.claims.research.Node as ResearchNode
 import kami.claims.research.NodeState
+import kami.claims.research.Penalty
 import kami.claims.research.Queue
 import kami.claims.research.Research
 import kami.claims.service.Service

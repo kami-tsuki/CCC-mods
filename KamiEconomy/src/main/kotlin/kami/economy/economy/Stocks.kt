@@ -8,6 +8,7 @@ import kami.economy.Stock
 import kami.economy.Vendor
 import kami.economy.now
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import kotlin.math.ceil
@@ -96,7 +97,7 @@ object Stocks {
 
     private fun capKey(item: String) = if (goods[item]?.dailyCap != null) item else ALL
 
-    fun cap(item: String): Int = goods[item]?.dailyCap ?: Config.s.dailySellLots
+    private fun cap(item: String): Int = goods[item]?.dailyCap ?: Config.s.dailySellLots
 
     fun capLeft(player: String, item: String): Int {
         if (item !in goods) return 0
@@ -160,6 +161,9 @@ object Stocks {
 
     fun day(millis: Long): Long =
         LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneId.systemDefault()).minusHours(Config.s.resetHour.toLong()).toLocalDate().toEpochDay()
+
+    fun nextReset(): Long =
+        LocalDate.ofEpochDay(day(now()) + 1).atTime(Config.s.resetHour, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
     fun rollover(millis: Long = now()) {
         val today = day(millis)

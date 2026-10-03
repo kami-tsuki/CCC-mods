@@ -53,6 +53,21 @@ object ClientResearch {
 
     fun total(node: NodeView) = node.timeMs + penalty(node.key)
 
+    fun missing(node: NodeView): List<NodeView> {
+        val memo = HashMap<String, Set<String>>()
+        fun time(keys: Set<String>) = keys.sumOf { nodes[it]?.timeMs ?: 0L }
+        fun deps(n: NodeView): Set<String> = memo[n.key] ?: run {
+            memo[n.key] = emptySet()
+            val tree = trees.firstOrNull { it.id == n.tree }
+            fun chain(key: String) = setOf(key) + (nodes[key]?.let(::deps) ?: emptySet())
+            val any = n.anyRequires.mapNotNull { tree?.nodes?.getOrNull(it)?.key }
+            val hard = n.requires.mapNotNull { tree?.nodes?.getOrNull(it)?.key }.filter { it !in any } + n.external
+            val choice = if (any.isEmpty() || any.any { it in state.done }) emptySet() else any.map(::chain).minBy(::time)
+            hard.filter { it !in state.done }.fold(choice) { acc, key -> acc + chain(key) }.also { memo[n.key] = it }
+        }
+        return deps(node).mapNotNull { nodes[it] }.sortedByDescending { it.timeMs }
+    }
+
     fun countdown(queue: QueueView, node: NodeView, ticking: Boolean): Countdown {
         val left = 100 - state.speedPct
         return Countdown(total(node) * left / 100, queue.remainingMs * left / 100, receivedAt, ticking && queue.state == NodeState.RESEARCHING)

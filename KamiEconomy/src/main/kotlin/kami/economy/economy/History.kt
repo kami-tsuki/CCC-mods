@@ -33,7 +33,7 @@ enum class Range(val arg: String, val span: Long, val step: Long) {
     }
 }
 
-class Series(val from: Long, val to: Long, val step: Long, val start: Long, val open: Double, val buckets: List<Bucket>)
+class Series(val start: Long, val open: Double, val buckets: List<Bucket>)
 
 @Serializable
 class ItemHistory(
@@ -170,7 +170,7 @@ object History {
         val firstReal = groups.indexOfFirst { it != null }
         val ref = t.before(from)?.close ?: mid.takeIf { it > 0 }
         val skip = if (ref != null) 0 else firstReal
-        if (skip < 0) return Series(now, now, step, 0L, 0.0, emptyList())
+        if (skip < 0) return Series(0L, 0.0, emptyList())
         var prev = ref ?: groups[skip]!!.open
         val open = prev
         val buckets = (skip until count).map { i ->
@@ -178,6 +178,6 @@ object History {
             val g = groups[i]
             (if (g != null) Bucket(g.open, g.high, g.low, g.close, g.volume, at) else Bucket(prev, prev, prev, prev, 0L, at)).also { prev = it.close }
         }
-        return Series(from + skip * step, now, step, if (firstReal < 0) 0L else from + firstReal * step, open, buckets)
+        return Series(if (firstReal < 0) 0L else from + firstReal * step, open, buckets)
     }
 }

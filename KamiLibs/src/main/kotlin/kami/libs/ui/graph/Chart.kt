@@ -36,7 +36,7 @@ object PriceChart {
 
     private fun slotX(plot: Rect, i: Int, count: Int) = plot.x + (2 * i + 1) * plot.w / (2 * count)
 
-    fun draw(ui: Ui, r: Rect, data: List<Ohlc>, style: ChartStyle, reference: Double?, start: Long, timeFormat: (Long) -> String, key: Any): Ohlc? {
+    internal fun draw(ui: Ui, r: Rect, data: List<Ohlc>, style: ChartStyle, reference: Double?, start: Long, timeFormat: (Long) -> String, key: Any): Ohlc? {
         val g = ui.g
         val line = style == ChartStyle.LINE
         val n = data.size

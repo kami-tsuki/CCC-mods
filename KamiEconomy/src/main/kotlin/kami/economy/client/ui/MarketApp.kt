@@ -2,6 +2,8 @@ package kami.economy.client.ui
 
 import kami.economy.client.ClientHooks
 import kami.economy.client.MarketPrefs
+import kami.economy.economy.Blacklist
+import kami.economy.economy.Classification
 import kami.economy.net.FlagView
 import kami.economy.net.OrderRow
 import kami.economy.net.Slot
@@ -53,7 +55,11 @@ internal class Throttled<T>(private val load: () -> T) {
     }
 }
 
-fun marketStack(id: String): ItemStack = ItemSpec.stack(id).let { if (it.isEmpty) ItemStack(Items.BARRIER) else it }
+internal class Stored(val slot: Int, val stack: ItemStack)
+
+internal class Carried(val held: Map<String, Int>, val auctionOnly: List<Stored>)
+
+private fun marketStack(id: String): ItemStack = ItemSpec.stack(id).let { if (it.isEmpty) ItemStack(Items.BARRIER) else it }
 
 internal fun Ui.itemCell(c: Rect, stack: ItemStack, name: String, key: String, color: Int = Palette.text): Boolean {
     val clicked = itemSlot(Rect(c.x, c.y, c.h, c.h), stack, key = key)
@@ -92,6 +98,20 @@ class MarketApp private constructor() : KamiApp() {
     override val home = Route("dashboard")
     private val stacks = HashMap<String, ItemStack>()
 
+    internal val carried = Throttled {
+        val held = HashMap<String, Int>()
+        val auctionOnly = ArrayList<Stored>()
+        Minecraft.getInstance().player?.inventory?.items?.forEachIndexed { slot, stack ->
+            if (stack.isEmpty) return@forEachIndexed
+            when (Blacklist.classify(stack)) {
+                Classification.ALLOWED -> held.merge(Blacklist.itemId(stack), stack.count, Int::plus)
+                Classification.AUCTION_ONLY -> auctionOnly += Stored(slot, stack)
+                else -> {}
+            }
+        }
+        Carried(held, auctionOnly)
+    }
+
     fun stack(id: String): ItemStack = stacks.getOrPut(id) { marketStack(id) }
 
     fun request(name: String, vararg args: String) = ClientHooks.request(name, *args)
@@ -109,35 +129,39 @@ class MarketApp private constructor() : KamiApp() {
 
     private fun group(id: String, items: List<NavItem>) = NavGroup(tr("kami_economy.nav.group.$id"), items, id, collapsible = true)
 
-    private fun badge(bid: Boolean): () -> NavBadge? = { snap.mine.count { it.bid == bid }.takeIf { it > 0 }?.let { NavBadge(it, Severity.INFO) } }
+    private fun badge(bid: Boolean?): () -> NavBadge? = { snap.mine.count { bid == null || it.bid == bid }.takeIf { it > 0 }?.let { NavBadge(it, Severity.INFO) } }
 
     override fun buildNav() = listOf(
         group("overview", listOf(
             NavItem("dashboard", tr("kami_economy.nav.dashboard"), Icons.DASHBOARD),
-            NavItem("market", tr("kami_libs.common.market"), Icons.SEARCH)
+            NavItem("market", tr("kami_libs.common.market"), Icons.SEARCH),
+            NavItem("my_orders", tr("kami_economy.nav.my_orders"), Icons.SCROLL, badge(null))
         )),
         group("sell", listOf(
-            NavItem("instant", tr("kami_economy.nav.instant"), Icons.COIN),
-            NavItem("sell_orders", tr("kami_economy.nav.sell_orders"), Icons.LEDGER, badge(false)),
-            NavItem("vendors", tr("kami_economy.nav.vendors"), Icons.PEOPLE)
+            NavItem("instant", tr("kami_economy.nav.inventory"), Icons.CHEST),
+            NavItem("infinite", tr("kami_economy.nav.infinite"), Icons.COIN),
+            NavItem("sell_orders", tr("kami_economy.nav.orders"), Icons.LEDGER, badge(false)),
+            NavItem("sell_vendors", tr("kami_economy.nav.vendors"), Icons.PEOPLE)
         )),
         group("buy", listOf(
-            NavItem("buy_orders", tr("kami_economy.nav.buy_orders"), Icons.CHEST),
-            NavItem("my_bids", tr("kami_economy.nav.my_bids"), Icons.SCROLL, badge(true))
+            NavItem("buy_orders", tr("kami_economy.nav.orders"), Icons.LEDGER, badge(true)),
+            NavItem("buy_vendors", tr("kami_economy.nav.vendors"), Icons.PEOPLE)
         )),
         group("auction", listOf(
-            NavItem("auction_create", tr("kami_economy.nav.auction_create"), Icons.ADD),
-            NavItem("auctions", tr("kami_libs.common.auctions"), Icons.SCALES)
+            NavItem("auctions", tr("kami_libs.common.auctions"), Icons.SCALES),
+            NavItem("auction_create", tr("kami_economy.nav.create"), Icons.ADD)
         ))
     )
 
     override fun create(id: String): Page = when (id) {
         "market" -> MarketPage(this)
+        "my_orders" -> OrdersPage(this, bid = null)
         "instant" -> InstantPage(this)
-        "sell_orders" -> OrdersPage(this, bid = false, mine = false)
-        "buy_orders" -> OrdersPage(this, bid = true, mine = false)
-        "my_bids" -> OrdersPage(this, bid = true, mine = true)
-        "vendors" -> VendorsPage(this)
+        "infinite" -> InfinitePage(this)
+        "sell_orders" -> OrdersPage(this, bid = false)
+        "buy_orders" -> OrdersPage(this, bid = true)
+        "sell_vendors" -> VendorsPage(this, sells = false)
+        "buy_vendors" -> VendorsPage(this, sells = true)
         "auctions" -> AuctionsPage(this)
         "auction_create" -> AuctionCreatePage(this)
         "item" -> ItemPage(this)
@@ -163,13 +187,15 @@ class MarketApp private constructor() : KamiApp() {
             Callout("modules", tr("kami_economy.tour.modules"), tr("kami_economy.tour.modules.desc"), dashboard).takeIf { Modules.all.size > 1 },
             Callout("nav:dashboard", tr("kami_economy.nav.dashboard"), tr("kami_economy.tour.dashboard.desc"), dashboard),
             Callout("nav:market", tr("kami_libs.common.market"), tr("kami_economy.tour.market.desc")),
-            Callout("nav:instant", tr("kami_economy.nav.instant"), tr("kami_economy.tour.instant.desc")),
-            Callout("nav:sell_orders", tr("kami_economy.nav.sell_orders"), tr("kami_economy.tour.sell_orders.desc")),
-            Callout("nav:buy_orders", tr("kami_economy.nav.buy_orders"), tr("kami_economy.tour.buy_orders.desc")),
+            Callout("nav:my_orders", tr("kami_economy.nav.my_orders"), tr("kami_economy.tour.my_orders.desc")),
+            Callout("nav:instant", tr("kami_economy.nav.inventory"), tr("kami_economy.tour.instant.desc")),
+            Callout("nav:infinite", tr("kami_economy.nav.infinite"), tr("kami_economy.tour.infinite.desc")),
+            Callout("nav:sell_orders", tr("kami_economy.nav.orders"), tr("kami_economy.tour.sell_orders.desc")),
+            Callout("nav:buy_orders", tr("kami_economy.nav.orders"), tr("kami_economy.tour.buy_orders.desc")),
             Callout("nav:auctions", tr("kami_libs.common.auctions"), tr("kami_economy.tour.auctions.desc")),
             Callout("topbar", tr("kami_economy.tour.topbar"), tr("kami_economy.tour.topbar.desc")),
             Callout("page-help", tr("kami_economy.tour.help"), tr("kami_economy.tour.help.desc"))
-        )) { MarketPrefs.finishTour() }
+        )) {}
     }
 
     override fun topBar(ui: Ui, r: Rect) {

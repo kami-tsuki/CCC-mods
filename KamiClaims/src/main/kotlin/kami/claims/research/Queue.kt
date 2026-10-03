@@ -149,7 +149,7 @@ object Queue {
         if (online == 0 && settings.onlineRequired) return
         val running = queue.filter { it.state == NodeState.RESEARCHING }
         if (running.isEmpty()) return
-        val step = (elapsed * 100 / (100 - Levels.researchSpeed(country, online))).toLong()
+        val step = elapsed * 100 / (100 - Levels.researchSpeed(country, online))
         running.forEach { entry ->
             entry.remainingMs -= step
             if (entry.remainingMs <= 0) Research.defs.node(entry.node)?.let { complete(country, it) }

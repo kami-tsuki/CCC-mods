@@ -21,7 +21,8 @@ class TreeFile(
     val title: String = "",
     val scope: Scope = Scope.ANY,
     val categories: List<Category> = emptyList(),
-    val nodes: List<JsonElement> = emptyList()
+    val nodes: List<JsonElement> = emptyList(),
+    val strict: Boolean = false
 )
 
 class ResearchDefs(val settings: ResearchSettings, val levels: LevelsConfig, val groups: Map<String, Group>, val trees: Map<String, Tree>) {
@@ -81,6 +82,6 @@ object Docs {
     val tree = mapOf(
         "scope" to "country, province or any: which countries get this tree, a country uses every matching tree",
         "categories" to "Tabs of the tree",
-        "nodes" to "Nodes: id, category, level, cost (spurs), time (like 1h30m), requires (node requirements are optional: each missing one adds its time, recursively), tasks, unlocks"
+        "nodes" to "Nodes: id, category, level, cost (spurs), time (like 1h30m), requires (node requirements are optional unless the tree sets strict: each missing one adds its time, recursively), tasks, unlocks"
     )
 }

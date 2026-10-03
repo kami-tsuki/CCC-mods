@@ -10,6 +10,7 @@ import kami.claims.net.TreeView
 import kami.claims.research.NodeState
 import kami.libs.ui.anim.reveal
 import kami.libs.ui.core.Rect
+import kami.libs.ui.core.Cursor
 import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Stack
 import kami.libs.ui.core.Ui
@@ -30,6 +31,8 @@ class ResearchDetail(private val page: ClaimsPage) {
     private var shownNode: String? = null
     private var facts: NodeFacts? = null
 
+    private var penaltyOpen = false
+
     fun draw(ui: Ui, r: Rect, node: NodeView?, onClose: (() -> Unit)?, select: (String) -> Unit) {
         val appear = ui.reveal("research-detail-open", (node?.key ?: "").hashCode().toLong())
         val box = r.slideIn(appear, APPEAR_SHIFT, 0)
@@ -41,6 +44,7 @@ class ResearchDetail(private val page: ClaimsPage) {
         }
         if (shownNode != node.key) {
             shownNode = node.key
+            penaltyOpen = false
             ui.forget(ui.id("scroll:research-detail"))
             contentHeight = 0
         }
@@ -89,7 +93,7 @@ class ResearchDetail(private val page: ClaimsPage) {
         val facts = factsOf(node)
         header(ui, stack.take(HEADER_H), node, status, closable)
         facts.summary?.let { text -> stack.take(Draw.paragraph(ui.g, text, stack.x, stack.bottom, area.w, Palette.textSecondary)) }
-        properties(ui, stack, node)
+        properties(ui, stack, node, status, select)
         requirements(ui, stack, node, status, facts, select)
         tasks(ui, stack, node, status, queue, facts.taskTexts)
         unlocks(ui, stack, node)
@@ -107,7 +111,7 @@ class ResearchDetail(private val page: ClaimsPage) {
         ui.statusPill(x, row.y + 12, ResearchLook.label(status), ResearchLook.severity(status), key = "research-status")
     }
 
-    private fun properties(ui: Ui, stack: Stack, node: NodeView) {
+    private fun properties(ui: Ui, stack: Stack, node: NodeView, status: NodeStatus, select: (String) -> Unit) {
         val row = stack.take(INFO_H)
         val locked = node.level > ClientResearch.state.level
         val level = tr("kami_libs.common.level") + " " + node.level
@@ -117,11 +121,43 @@ class ResearchDetail(private val page: ClaimsPage) {
         val cost = Format.money(node.cost)
         Draw.text(ui.g, cost, x, row.y + 2, Palette.money)
         x += Draw.width(cost) + 10
-        val penalty = ClientResearch.penalty(node.key)
-        val time = Format.duration(ClientResearch.total(node))
-        Draw.text(ui.g, time, x, row.y + 2, if (penalty > 0) Palette.warning else Palette.textSecondary)
-        if (penalty > 0) ui.tooltip("research-time", Rect(x, row.y, Draw.width(time), row.h), Tip.text(tr("kami_claims.research.penalty.tip", Format.duration(node.timeMs), Format.duration(penalty)), tr("kami_claims.research.detail.time")))
+        val time = Format.duration(node.timeMs)
+        Draw.text(ui.g, time, x, row.y + 2, Palette.textSecondary)
+        x += Draw.width(time)
+        val penalty = ClientResearch.penalty(node.key).takeIf { status != NodeStatus.DONE } ?: 0L
+        if (penalty > 0) penalty(ui, Rect(x, row.y, Draw.width(" + " + Format.duration(penalty)), row.h), node, penalty, select)
         if (node.xp >= 0) Draw.textRight(ui.g, Format.number(node.xp) + " " + tr("kami_claims.research.detail.xp"), row.right, row.y + 2, Palette.textMuted)
+    }
+
+    private fun penalty(ui: Ui, r: Rect, node: NodeView, ms: Long, select: (String) -> Unit) {
+        val hover = ui.hovering(r)
+        Draw.text(ui.g, " + " + Format.duration(ms), r.x, r.y + 2, if (hover) Palette.lighten(Palette.warning, 0.2f) else Palette.warning)
+        if (hover) ui.cursor = Cursor.HAND
+        if (!penaltyOpen) ui.tooltip("research-penalty", r, Tip.text(tr("kami_claims.research.penalty.tip"), tr("kami_claims.research.penalty.title")))
+        if (ui.pressed(r) != null) penaltyOpen = !penaltyOpen
+        if (!penaltyOpen) return
+        val rows = ClientResearch.missing(node)
+        val h = PENALTY_HEAD + rows.size.coerceAtMost(PENALTY_ROWS) * PENALTY_ROW + 4
+        ui.overlay(PENALTY_LAYER) {
+            ui.popover(r, PENALTY_W, h, onOutside = { penaltyOpen = false }) { box ->
+                Draw.text(ui.g, tr("kami_claims.research.penalty.title"), box.x + 5, box.y + 4, Palette.textMuted)
+                Draw.textRight(ui.g, "+" + Format.duration(ms), box.right - 5, box.y + 4, Palette.warning)
+                rows.take(PENALTY_ROWS).forEachIndexed { i, dep ->
+                    val line = Rect(box.x + 2, box.y + PENALTY_HEAD + i * PENALTY_ROW, box.w - 4, PENALTY_ROW)
+                    if (ui.hovering(line)) {
+                        Draw.fill(ui.g, line, Palette.selected)
+                        ui.cursor = Cursor.HAND
+                    }
+                    val t = Format.duration(dep.timeMs)
+                    Draw.text(ui.g, Draw.fit(dep.label().resolve(), line.w - Draw.width(t) - 10), line.x + 3, line.y + 2, Palette.text)
+                    Draw.textRight(ui.g, t, line.right - 3, line.y + 2, Palette.warning)
+                    if (ui.pressed(line) != null) {
+                        penaltyOpen = false
+                        select(dep.key)
+                    }
+                }
+            }
+        }
     }
 
     private fun requirements(ui: Ui, stack: Stack, node: NodeView, status: NodeStatus, facts: NodeFacts, select: (String) -> Unit) {
@@ -216,3 +252,9 @@ private const val EMPTY_H = 90
 private const val CLOSE_SIZE = 16
 private const val APPEAR_SHIFT = 8
 private const val APPEAR_VEIL = 0.6f
+
+private const val PENALTY_W = 170
+private const val PENALTY_HEAD = 15
+private const val PENALTY_ROW = 12
+private const val PENALTY_ROWS = 14
+private const val PENALTY_LAYER = 20

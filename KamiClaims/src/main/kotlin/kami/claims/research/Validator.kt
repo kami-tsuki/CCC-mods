@@ -47,7 +47,7 @@ object Validator {
         settle(drafts, reused, previous, cleanGroups.keys, levels.top, problems)
         val trees = LinkedHashMap<String, Tree>()
         (fallback.keys + files.keys).forEach { id ->
-            val tree = drafts[id]?.let { Tree(id, it.file.title, it.file.scope, it.file.categories, it.nodes) } ?: reused[id]
+            val tree = drafts[id]?.let { Tree(id, it.file.title, it.file.scope, it.file.categories, it.nodes, it.file.strict) } ?: reused[id]
             when {
                 tree == null -> Unit
                 trees.size >= MAX_TREES -> problems += "trees/$id.json: ignored, at most $MAX_TREES trees are supported"

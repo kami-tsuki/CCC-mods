@@ -100,8 +100,7 @@ object Levels {
     fun researchSpeed(country: Country, online: Int): Int {
         val level = Research.level(country)
         val tiers = Research.defs.levels.rewards.filterKeys { it <= level }.values.flatten().filterIsInstance<ResearchSpeedUnlock>() + Research.unlocks<ResearchSpeedUnlock>(country)
-        val best = tiers.maxByOrNull { it.cap } ?: return 0
-        return minOf(best.cap, best.perCitizen * online).coerceIn(0, MAX_SPEED)
+        return tiers.maxOfOrNull { minOf(it.cap, it.perCitizen * online) }?.coerceIn(0, MAX_SPEED) ?: 0
     }
 
     private fun List<CapacityUnlock>.added(key: Capacity) = filter { it.key == key }.sumOf { it.add }

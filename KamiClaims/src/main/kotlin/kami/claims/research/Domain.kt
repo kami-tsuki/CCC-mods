@@ -85,7 +85,7 @@ data class Node(
     fun placed(tree: String) = copy(requires = requires.map { it.qualified(tree) }, tasks = tasks.map { it.qualified(tree) }, tree = tree)
 }
 
-class Tree(val id: String, val title: String, val scope: Scope, val categories: List<Category>, val nodes: List<Node>) {
+class Tree(val id: String, val title: String, val scope: Scope, val categories: List<Category>, val nodes: List<Node>, val strict: Boolean = false) {
     fun serves(country: Country) = when (scope) {
         Scope.ANY -> true
         Scope.COUNTRY -> country.parent == null
