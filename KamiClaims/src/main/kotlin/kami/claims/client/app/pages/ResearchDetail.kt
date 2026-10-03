@@ -10,6 +10,7 @@ import kami.claims.net.TreeView
 import kami.claims.research.NodeState
 import kami.libs.ui.anim.reveal
 import kami.libs.ui.core.Rect
+import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Stack
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
@@ -116,8 +117,10 @@ class ResearchDetail(private val page: ClaimsPage) {
         val cost = Format.money(node.cost)
         Draw.text(ui.g, cost, x, row.y + 2, Palette.money)
         x += Draw.width(cost) + 10
-        val time = Format.duration(node.timeMs)
-        Draw.text(ui.g, time, x, row.y + 2, Palette.textSecondary)
+        val penalty = ClientResearch.penalty(node.key)
+        val time = Format.duration(ClientResearch.total(node))
+        Draw.text(ui.g, time, x, row.y + 2, if (penalty > 0) Palette.warning else Palette.textSecondary)
+        if (penalty > 0) ui.tooltip("research-time", Rect(x, row.y, Draw.width(time), row.h), Tip.text(tr("kami_claims.research.penalty.tip", Format.duration(node.timeMs), Format.duration(penalty)), tr("kami_claims.research.detail.time")))
         if (node.xp >= 0) Draw.textRight(ui.g, Format.number(node.xp) + " " + tr("kami_claims.research.detail.xp"), row.right, row.y + 2, Palette.textMuted)
     }
 
@@ -133,6 +136,7 @@ class ResearchDetail(private val page: ClaimsPage) {
         deps.forEach { dep ->
             ui.requirementRow(stack.take(REQUIREMENT_ROW_H), dep.label().resolve(), dep.key in state.done) { select(dep.key) }
         }
+        if (deps.any { it.key !in state.done } && status != NodeStatus.DONE) stack.take(REQUIREMENT_ROW_H).let { Draw.text(ui.g, Draw.fit(tr("kami_claims.research.optional"), it.w), it.x, it.y + 2, Palette.textMuted) }
         node.external.forEach { key -> ui.requirementRow(stack.take(REQUIREMENT_ROW_H), ResearchGraph.externalLabel(key), key in state.done) { select(key) } }
         facts.conditions.forEach { (index, text) -> ui.requirementRow(stack.take(REQUIREMENT_ROW_H), text, flags?.getOrNull(index + 1) ?: unknown) }
     }

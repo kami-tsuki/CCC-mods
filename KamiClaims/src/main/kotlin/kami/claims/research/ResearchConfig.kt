@@ -81,6 +81,6 @@ object Docs {
     val tree = mapOf(
         "scope" to "country, province or any: which countries get this tree, a country uses every matching tree",
         "categories" to "Tabs of the tree",
-        "nodes" to "Nodes: id, category, level, cost (spurs), time (like 1h30m), requires, tasks, unlocks"
+        "nodes" to "Nodes: id, category, level, cost (spurs), time (like 1h30m), requires (node requirements are optional: each missing one adds its time, recursively), tasks, unlocks"
     )
 }

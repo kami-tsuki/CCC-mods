@@ -83,6 +83,7 @@ data class LevelsConfig(
 }
 
 object Levels {
+    private const val MAX_SPEED = 90
     private val blocked = HashMap<String, Int>()
 
     fun reset() = blocked.clear()
@@ -95,6 +96,13 @@ object Levels {
     fun capacity(country: Country, key: Capacity): Int = Research.defs.levels.capacity(key) +
         Research.unlocks<CapacityUnlock>(country).added(key) +
         Research.defs.levels.rewardedCapacity(Research.level(country), key)
+
+    fun researchSpeed(country: Country, online: Int): Int {
+        val level = Research.level(country)
+        val tiers = Research.defs.levels.rewards.filterKeys { it <= level }.values.flatten().filterIsInstance<ResearchSpeedUnlock>() + Research.unlocks<ResearchSpeedUnlock>(country)
+        val best = tiers.maxByOrNull { it.cap } ?: return 0
+        return minOf(best.cap, best.perCitizen * online).coerceIn(0, MAX_SPEED)
+    }
 
     private fun List<CapacityUnlock>.added(key: Capacity) = filter { it.key == key }.sumOf { it.add }
 

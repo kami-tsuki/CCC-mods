@@ -28,7 +28,7 @@ class ResearchActions(private val page: ClaimsPage) {
         if (queue.paid) { page.act("research_start", node.key, key = "research:${node.key}"); return }
         Dialogs.confirm(
             page.app, tr("kami_claims.research.start.title", node.label().resolve()), tr("kami_claims.research.start.subtitle"), Icons.TREE,
-            listOf(Consequence(tr("kami_claims.research.start.pay", Format.money(node.cost))), Consequence(tr("kami_claims.research.start.time", Format.duration(node.timeMs)))),
+            listOf(Consequence(tr("kami_claims.research.start.pay", Format.money(node.cost))), Consequence(tr("kami_claims.research.start.time", Format.duration(ClientResearch.total(node))))),
             tr("kami_claims.research.action.start"), "research_start", arrayOf(node.key)
         )
     }

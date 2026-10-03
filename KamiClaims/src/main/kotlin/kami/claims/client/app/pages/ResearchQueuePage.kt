@@ -53,7 +53,7 @@ class ResearchQueuePage(app: ClaimsApp) : ClaimsPage(app) {
         ui.scroll("research-queue", r, height) { area ->
             val stack = Stack(area.x, area.y, area.w, 0)
             if (offline && running.isNotEmpty()) ui.callout(stack.take(NOTICE_H), Severity.WARNING, tr("kami_claims.research.queue.offline"))
-            ui.section(stack.take(SECTION_H), tr("kami_claims.research.status.researching"), "${running.size}/$runningSlots")
+            ui.section(stack.take(SECTION_H), tr("kami_claims.research.status.researching"), state.speedPct.takeIf { it > 0 }?.let { tr("kami_claims.research.queue.speed", it, "${running.size}/$runningSlots") } ?: "${running.size}/$runningSlots")
             repeat(runningRows) { i -> slot(ui, stack.take(ROW_H), area.y, running.getOrNull(i), "running:$i", offline) }
             ui.section(stack.take(SECTION_H), tr("kami_claims.research.queue.waiting"), "${waiting.size}/$waitingSlots")
             repeat(waitingRows) { i -> slot(ui, stack.take(ROW_H), area.y, waiting.getOrNull(i), "waiting:$i", offline) }

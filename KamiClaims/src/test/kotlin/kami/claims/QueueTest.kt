@@ -28,6 +28,7 @@ class QueueTest {
             "country",
             node("a"),
             node("b", ""","requires":[{"type":"node","id":"a"}],"tasks":[$iron]"""),
+            node("c", ""","requires":[{"type":"node","id":"b"}]"""),
             node("late", ""","level":2"""),
             node("hold", ""","tasks":[{"type":"hold","condition":{"type":"treasury","min":50}}]"""),
             node("mine", ""","tasks":[{"type":"mine","block":"minecraft:stone","count":3}]"""),
@@ -69,7 +70,6 @@ class QueueTest {
     @Test
     fun enqueueChecksDependenciesLevelAndSlots() {
         val c = country("alpha")
-        assertFailsWith<Fail> { Queue.enqueue(c, "t:b", null) }
         assertFailsWith<Fail> { Queue.enqueue(c, "t:late", null) }
         assertFailsWith<Fail> { Queue.enqueue(c, "t:nothing", null) }
         Queue.enqueue(c, "t:a", "alpha_p")
@@ -100,6 +100,30 @@ class QueueTest {
         assertEquals(10L, c.research.queue.single().tasks[0])
         assertEquals(0, Queue.credit(c, "t:b", 0, 5))
         assertEquals(NodeState.READY, c.research.queue.single().state)
+    }
+
+    @Test
+    fun missingDependenciesAddTheirTimeRecursively() {
+        val c = country("alpha")
+        Queue.enqueue(c, "t:c", null)
+        assertEquals(1_800_000L, c.research.queue.single().remainingMs)
+        Queue.grant(c, "t:a")
+        Queue.tick(c, 0)
+        assertEquals(1_200_000L, c.research.queue.single().remainingMs)
+        Queue.grant(c, "t:b")
+        Queue.tick(c, 0)
+        assertEquals(600_000L, c.research.queue.single().remainingMs)
+    }
+
+    @Test
+    fun onlineCitizensShortenResearchUpToTheCap() {
+        install(LevelsConfig(xpFromLevel = 0, capacities = mapOf(Capacity.RESEARCH_SLOTS to 1, Capacity.QUEUE_SLOTS to 2), rewards = mapOf(1 to listOf(ResearchSpeedUnlock(10, 30)))))
+        val c = country("alpha")
+        Queue.enqueue(c, "t:a", null)
+        Queue.start(c, "t:a", null)
+        online = 5
+        Queue.tick(c, 210_000)
+        assertEquals(300_000L, c.research.queue.single().remainingMs)
     }
 
     @Test

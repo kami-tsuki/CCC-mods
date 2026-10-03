@@ -96,7 +96,9 @@ class StateView(
     val tokens: Map<String, Int> = emptyMap(), val tokenCosts: Map<String, Long> = emptyMap(), val counters: Map<String, Long> = emptyMap(),
     val buffs: BuffsView = BuffsView.NONE,
     val loans: LoansView = LoansView.NONE,
-    val levelProgress: List<List<Pair<Long, Long>>> = emptyList()
+    val levelProgress: List<List<Pair<Long, Long>>> = emptyList(),
+    val penalty: Map<String, Long> = emptyMap(),
+    val speedPct: Int = 0
 ) {
     fun used(key: Capacity) = used.getOrElse(key.ordinal) { 0 }
     fun max(key: Capacity) = max.getOrElse(key.ordinal) { 0 }
@@ -210,6 +212,8 @@ object ResearchWire {
         buffs(s.buffs)
         loans(s.loans)
         list(s.levelProgress) { row -> list(row) { varLong(it.first); varLong(it.second) } }
+        list(s.penalty.entries.toList()) { utf(it.key, MAX_ID); varLong(it.value) }
+        varInt(s.speedPct)
     }.toBytes()
 
     fun decodeState(data: ByteArray): StateView = WireReader(data).let { r ->
@@ -228,7 +232,9 @@ object ResearchWire {
             r.list(MAX_COUNTERS) { r.utf(MAX_ID) to r.varLong() }.toMap(),
             r.buffs(),
             r.loans(),
-            r.list(MAX_LEVELS) { r.list(MAX_LINKS) { r.varLong() to r.varLong() } }
+            r.list(MAX_LEVELS) { r.list(MAX_LINKS) { r.varLong() to r.varLong() } },
+            r.list(MAX_STATE_NODES) { r.utf(MAX_ID) to r.varLong() }.toMap(),
+            r.varInt()
         )
     }
 

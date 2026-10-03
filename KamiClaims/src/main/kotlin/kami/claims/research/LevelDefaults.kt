@@ -50,7 +50,7 @@ object LevelDefaults {
         10 to rule(MinCitizens(2), FlagSet, MinTreasury(1000))
     )
 
-    const val VERSION = 1
+    const val VERSION = 2
 
     private val housingRewards: Map<Int, List<Unlock>> = mapOf(
         13 to listOf(FeatureUnlock(Features.PLOTS_FAMILY)),
@@ -60,24 +60,40 @@ object LevelDefaults {
 
     private val jobSlotRewards: Map<Int, List<Unlock>> = listOf(16, 61, 125).associateWith { listOf(add(Capacity.JOB_SLOTS, 1)) }
 
+    private val researchRewards: Map<Int, List<Unlock>> = merge(
+        merge(
+            listOf(3, 5, 12, 20, 40, 75, 150, 300, 500).associateWith { listOf(add(Capacity.QUEUE_SLOTS, 1)) },
+            listOf(10, 30, 100, 500).associateWith { listOf(add(Capacity.RESEARCH_SLOTS, 1)) }
+        ),
+        mapOf(10 to speed(1, 10), 20 to speed(1, 20), 25 to speed(2, 30), 50 to speed(2, 50), 100 to speed(2, 60))
+    )
+
+    private fun researchReward(unlock: Unlock) =
+        unlock is ResearchSpeedUnlock || unlock is CapacityUnlock && (unlock.key == Capacity.QUEUE_SLOTS || unlock.key == Capacity.RESEARCH_SLOTS)
+
     private fun merge(base: Map<Int, List<Unlock>>, extra: Map<Int, List<Unlock>>) =
         (base.keys + extra.keys).sorted().associateWith { base[it].orEmpty() + extra[it].orEmpty() }
 
-    val rewards: Map<Int, List<Unlock>> = merge(merge(baseRewards(), housingRewards), jobSlotRewards)
+    val rewards: Map<Int, List<Unlock>> = merge(merge(merge(baseRewards(), housingRewards), jobSlotRewards), researchRewards)
 
-    fun upgrade(config: LevelsConfig): LevelsConfig {
-        if (config.version >= VERSION) return config
+    fun upgrade(config: LevelsConfig): LevelsConfig = when {
+        config.version < 1 -> upgrade(housingAndJobs(config))
+        config.version < 2 -> config.copy(version = 2, rewards = merge(config.rewards.mapValues { (_, list) -> list.filterNot(::researchReward) }.filterValues { it.isNotEmpty() }, researchRewards))
+        else -> config
+    }
+
+    private fun housingAndJobs(config: LevelsConfig): LevelsConfig {
         val unlocks = config.rewards.values.flatten()
         val features = unlocks.filterIsInstance<FeatureUnlock>().map { it.id }.toSet()
         val housing = housingRewards.filterValues { list -> list.filterIsInstance<FeatureUnlock>().none { it.id in features } }
         val jobSlots = if (unlocks.any { it is CapacityUnlock && it.key == Capacity.JOB_SLOTS }) emptyMap() else jobSlotRewards
         val plots = if (config.capacities[Capacity.PLOTS] == 4) Capacity.PLOTS to 25 else null
-        return config.copy(version = VERSION, capacities = config.capacities + listOfNotNull(plots), rewards = merge(merge(config.rewards, housing), jobSlots))
+        return config.copy(version = 1, capacities = config.capacities + listOfNotNull(plots), rewards = merge(merge(config.rewards, housing), jobSlots))
     }
 
     private fun baseRewards(): Map<Int, List<Unlock>> = mapOf(
         2 to listOf(add(Capacity.CITIZENS, 3)),
-        3 to listOf(add(Capacity.QUEUE_SLOTS, 1), FeatureUnlock(Features.claimType("residential"))),
+        3 to listOf(FeatureUnlock(Features.claimType("residential"))),
         4 to listOf(add(Capacity.CITIZENS, 6), FeatureUnlock(Features.claimType("factory"))),
         5 to listOf(TokenUnlock(Tokens.RENAME)),
         6 to listOf(add(Capacity.FREE_CHUNKS, 1), add(Capacity.CHUNKS, 12)),
@@ -88,7 +104,6 @@ object LevelDefaults {
             add(Capacity.CITIZENS, 16), add(Capacity.CHUNKS, 32), FeatureUnlock(Features.claimType("wilderness")), FeatureUnlock(Features.claimType("infrastructure")), FeatureUnlock(Features.BANISH)
         ),
         11 to listOf(add(Capacity.OFFICERS, 1), add(Capacity.PROVINCES, 1)),
-        12 to listOf(add(Capacity.QUEUE_SLOTS, 1)),
         13 to listOf(add(Capacity.CITIZENS, 5)),
         14 to listOf(add(Capacity.CHUNKS, 64)),
         16 to listOf(TokenUnlock(Tokens.CAPITAL_MOVE)),
@@ -101,13 +116,13 @@ object LevelDefaults {
         23 to listOf(FeatureUnlock(Features.EMBARGOES)),
         24 to listOf(add(Capacity.FREE_CHUNKS, 3)),
         25 to listOf(FeatureUnlock(Features.claimType("market")), FeatureUnlock(FeatureIds.VENDORS)),
-        30 to listOf(add(Capacity.RESEARCH_SLOTS, 1), add(Capacity.TREASURY, 500_000)),
+        30 to listOf(add(Capacity.TREASURY, 500_000)),
         35 to listOf(add(Capacity.TREASURY, 500_000)),
         40 to listOf(add(Capacity.TREASURY, 500_000)),
         45 to listOf(add(Capacity.TREASURY, 250_000)),
         50 to listOf(add(Capacity.TREASURY, 250_000)),
         55 to listOf(add(Capacity.TREASURY, 2_500_000)),
-        60 to listOf(add(Capacity.RESEARCH_SLOTS, 1), add(Capacity.TREASURY, 5_000_000)),
+        60 to listOf(add(Capacity.TREASURY, 5_000_000)),
         65 to listOf(add(Capacity.TREASURY, 10_000_000)),
         70 to listOf(add(Capacity.TREASURY, 20_000_000)),
         75 to listOf(add(Capacity.TREASURY, 35_000_000)),
@@ -121,4 +136,6 @@ object LevelDefaults {
     private fun rule(vararg requires: Condition) = LevelRule(requires = requires.toList())
 
     private fun add(key: Capacity, amount: Int) = CapacityUnlock(key, amount)
+
+    private fun speed(perCitizen: Int, cap: Int) = listOf(ResearchSpeedUnlock(perCitizen, cap))
 }

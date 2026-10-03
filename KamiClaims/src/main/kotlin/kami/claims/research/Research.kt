@@ -20,7 +20,7 @@ object Research {
     fun level(country: Country) = country.level.coerceAtLeast(1)
 
     fun available(country: Country): List<Node> = defs.treesFor(country).flatMap { it.nodes }.filter { node ->
-        node.key !in country.research.done && country.research.queue.none { it.node == node.key } && node.conditions().all { it.met(country) }
+        node.key !in country.research.done && country.research.queue.none { it.node == node.key } && Penalty.hard(node).all { it.met(country) }
     }
 
     fun reload(): String? {

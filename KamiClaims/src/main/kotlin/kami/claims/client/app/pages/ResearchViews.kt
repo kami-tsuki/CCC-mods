@@ -131,7 +131,7 @@ fun barFor(node: NodeView, queue: QueueView, nobodyOnline: Boolean, now: Long): 
         val left = countdown.remaining(now)
         val stalled = queue.state == NodeState.PAUSED || nobodyOnline
         BarSpec(
-            node.timeMs - left, node.timeMs,
+            countdown.totalMs - left, countdown.totalMs,
             when {
                 queue.state == NodeState.RESEARCHING && nobodyOnline -> tr("kami_claims.research.queue.offline_short")
                 left == 0L && queue.state == NodeState.RESEARCHING -> tr("kami_claims.research.queue.finishing")
@@ -205,11 +205,12 @@ fun unlockText(unlock: UnlockView) = when (unlock.kind) {
     "buff_points" -> tr("kami_claims.research.unlock.buff_points", unlock.count)
     "loan" -> tr("kami_claims.research.unlock.loan", Format.money(unlock.amount))
     "loan_slots" -> tr("kami_claims.research.unlock.loan_slots", unlock.count)
+    "research_speed" -> tr("kami_claims.research.unlock.research_speed", unlock.count, unlock.amount)
     else -> tr("kami_claims.research.unlock.${unlock.kind}", unlock.id.substringAfter(':').replace('_', ' '))
 }
 
 fun unlockColor(unlock: UnlockView) = when (unlock.kind) {
-    "capacity", "buff_points", "loan_slots" -> Palette.success
+    "capacity", "buff_points", "loan_slots", "research_speed" -> Palette.success
     "money", "token", "loan" -> Palette.money
     "feature", "buff" -> Palette.brass
     else -> Palette.textSecondary

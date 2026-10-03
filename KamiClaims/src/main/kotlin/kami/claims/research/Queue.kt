@@ -56,9 +56,10 @@ object Queue {
         val node = node(country, key)
         if (key in country.research.done) throw Fail("kami_claims.research.error.done", node.label().asValue())
         if (country.research.queue.any { it.node == key }) throw Fail("kami_claims.research.error.queued", node.label().asValue())
-        node.conditions().firstOrNull { !it.met(country) }?.let { throw Fail("kami_claims.research.error.condition", it.describe()) }
+        Penalty.hard(node).firstOrNull { !it.met(country) }?.let { throw Fail("kami_claims.research.error.condition", it.describe()) }
         if (waiting(country) >= Levels.capacity(country, Capacity.QUEUE_SLOTS)) throw Fail("kami_claims.research.error.queue_full")
-        val entry = QueueEntry(key, remainingMs = node.time.inWholeMilliseconds, by = by, since = clock())
+        val penalty = Penalty(country).ms(node)
+        val entry = QueueEntry(key, remainingMs = node.time.inWholeMilliseconds + penalty, penaltyMs = penalty, by = by, since = clock())
         country.research.queue += entry
         settle(country, entry, node)
         Realm.changed()
@@ -86,7 +87,7 @@ object Queue {
         val entry = entry(country, key)
         val node = node(country, key)
         if (entry.state != NodeState.READY && entry.state != NodeState.PAUSED) throw Fail("kami_claims.research.error.not_ready", node.label().asValue())
-        if (entry.state == NodeState.READY) node.conditions().firstOrNull { !it.met(country) }?.let { throw Fail("kami_claims.research.error.condition", it.describe()) }
+        if (entry.state == NodeState.READY) Penalty.hard(node).firstOrNull { !it.met(country) }?.let { throw Fail("kami_claims.research.error.condition", it.describe()) }
         if (Loans.inDefault(country)) throw Fail("kami_claims.loans.error.default")
         if (researching(country) >= Levels.capacity(country, Capacity.RESEARCH_SLOTS)) throw Fail("kami_claims.research.reason.slots")
         if (!entry.paid) {
@@ -134,12 +135,23 @@ object Queue {
         Levels.advance(country)
         val queue = country.research.queue
         if (queue.isEmpty() || !settings.enabled) return
-        queue.filter { it.state == NodeState.QUEUED }.forEach { entry -> Research.defs.node(entry.node)?.let { settle(country, entry, it) } }
+        val penalty = Penalty(country)
+        queue.forEach { entry ->
+            val node = Research.defs.node(entry.node) ?: return@forEach
+            val ms = penalty.ms(node)
+            if (ms != entry.penaltyMs) {
+                entry.remainingMs += ms - entry.penaltyMs
+                entry.penaltyMs = ms
+                Realm.dirty = true
+            }
+            settle(country, entry, node)
+        }
         if (online == 0 && settings.onlineRequired) return
         val running = queue.filter { it.state == NodeState.RESEARCHING }
         if (running.isEmpty()) return
+        val step = (elapsed * 100 / (100 - Levels.researchSpeed(country, online))).toLong()
         running.forEach { entry ->
-            entry.remainingMs -= elapsed
+            entry.remainingMs -= step
             if (entry.remainingMs <= 0) Research.defs.node(entry.node)?.let { complete(country, it) }
         }
         Realm.dirty = true

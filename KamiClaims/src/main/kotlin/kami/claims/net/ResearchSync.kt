@@ -97,7 +97,9 @@ object ResearchSync {
             country.counters.filterKeys { it in Research.defs.counterKeys }.entries.sortedBy { it.key }.take(MAX_COUNTERS).associate { it.toPair() },
             Buffs.view(country),
             Loans.view(country),
-            (1..levels.top).map { next -> levels.requirements(next).take(MAX_LINKS).map { Goals.progress(country, it) } }
+            (1..levels.top).map { next -> levels.requirements(next).take(MAX_LINKS).map { Goals.progress(country, it) } },
+            Penalty(country).let { penalty -> open.associate { it.key to penalty.ms(it) }.filterValues { it > 0 } },
+            Levels.researchSpeed(country, Queue.onlineCount(country))
         )
     }
 
@@ -149,6 +151,7 @@ object ResearchSync {
             is LoanSlotsUnlock -> listOf(UnlockView("loan_slots", "", count = unlock.add))
             is BuffPointsUnlock -> listOf(UnlockView("buff_points", "", count = unlock.add))
             is TokenUnlock -> listOf(UnlockView("token", unlock.id, count = unlock.count))
+            is ResearchSpeedUnlock -> listOf(UnlockView("research_speed", "", count = unlock.perCitizen, amount = unlock.cap.toLong()))
         }
     }
 }

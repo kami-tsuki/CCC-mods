@@ -49,8 +49,14 @@ object ClientResearch {
         return { changeListeners -= listener }
     }
 
-    fun countdown(queue: QueueView, node: NodeView, ticking: Boolean) =
-        Countdown(node.timeMs, queue.remainingMs, receivedAt, ticking && queue.state == NodeState.RESEARCHING)
+    fun penalty(key: String) = state.penalty[key] ?: 0L
+
+    fun total(node: NodeView) = node.timeMs + penalty(node.key)
+
+    fun countdown(queue: QueueView, node: NodeView, ticking: Boolean): Countdown {
+        val left = 100 - state.speedPct
+        return Countdown(total(node) * left / 100, queue.remainingMs * left / 100, receivedAt, ticking && queue.state == NodeState.RESEARCHING)
+    }
 
     fun node(key: String) = nodes[key]
 

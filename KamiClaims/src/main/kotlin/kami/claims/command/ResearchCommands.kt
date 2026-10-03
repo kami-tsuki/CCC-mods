@@ -36,7 +36,7 @@ private fun status(country: Country, node: ResearchNode): Phrase {
     val state = when {
         node.key in country.research.done -> "done"
         else -> country.research.queue.firstOrNull { it.node == node.key }?.state?.name?.lowercase()
-            ?: if (node.conditions().all { it.met(country) }) "available" else "locked"
+            ?: if (Penalty.hard(node).all { it.met(country) }) "available" else "locked"
     }
     return Phrase.of("kami_claims.research.status.$state")
 }

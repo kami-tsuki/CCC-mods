@@ -11,6 +11,7 @@ class QueueEntry(
     val node: String,
     var state: NodeState = NodeState.QUEUED,
     var remainingMs: Long = 0,
+    var penaltyMs: Long = 0,
     var paid: Boolean = false,
     val tasks: MutableMap<Int, Long> = mutableMapOf(),
     val by: String? = null,
