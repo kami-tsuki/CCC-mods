@@ -4,7 +4,9 @@ import kami.libs.claims.ClaimsApi
 import kami.libs.claims.Locks
 import kami.libs.text.Phrase
 import kami.essentials.Config
+import kami.essentials.Flag
 import kami.essentials.Perms
+import kami.essentials.Store
 import kami.essentials.chat.Talk
 import kami.libs.chat.tell
 import kami.libs.command.fail
@@ -104,6 +106,7 @@ object Trades {
         val mine = ClaimsApi.countryOf(me.uuid)
         val theirs = ClaimsApi.countryOf(other.uuid)
         if (mine != null && theirs != null && !ClaimsApi.canTrade(mine, theirs)) fail(Locks.embargo(ClaimsApi.country(theirs)?.name ?: theirs))
+        if (Store[Flag.NO_TRADES, other.uuid]) fail(Phrase.of("kami_essentials.trade.closed", Phrase.value(name)))
         if (busy(me)) fail(Phrase.of("kami_essentials.trade.busy"))
         if (busy(other)) fail(Phrase.of("kami_essentials.trade.other_busy", Phrase.value(name)))
         if (!inRange(me, other)) fail(

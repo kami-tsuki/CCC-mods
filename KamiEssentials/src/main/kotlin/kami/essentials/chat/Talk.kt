@@ -49,7 +49,7 @@ object Talk {
         val sender = from?.let { Names.player(it) } ?: Text.msg("kami_essentials.talk.server").withColor(Theme.ACCENT)
         val you = Text.msg("kami_essentials.talk.you").withColor(Theme.MUTED)
         to.tell(dm(sender, you, text, from).withStyle { it.withClickEvent(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/r ")).withHoverEvent(hover(Phrase.of("kami_essentials.talk.reply"))) })
-        to.playNotifySound(SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.4f, 1.6f)
+        if (!Store[Flag.QUIET_DM, to.uuid]) to.playNotifySound(SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.4f, 1.6f)
         from?.tell(dm(you, Names.player(to), text, from))
         KamiEssentials.LOG.info("{} -> {}: {}", from?.gameProfile?.name ?: "Server", to.gameProfile.name, text)
         if (from != null) {
@@ -76,6 +76,24 @@ object Talk {
         broadcast(p, line(tag.append(Names.playerCountry(p)), text, p)) { viewer ->
             Names.citizenship(viewer.uuid)?.let(::countryRoot) == root
         }
+    }
+
+    fun channels(p: ServerPlayer) = listOfNotNull(
+        "global",
+        "country".takeIf { Names.citizenship(p.uuid) != null && Perms.has(p, Perms.COUNTRYCHAT) },
+        "admin".takeIf { Perms.has(p, Perms.ADMINCHAT) }
+    )
+
+    fun channel(p: ServerPlayer) = when {
+        Store[Flag.ADMIN_CHAT, p.uuid] && Perms.has(p, Perms.ADMINCHAT) -> "admin"
+        Store[Flag.COUNTRY_CHAT, p.uuid] -> "country"
+        else -> "global"
+    }
+
+    fun channel(p: ServerPlayer, to: String) {
+        if (to !in channels(p)) return
+        Store[Flag.COUNTRY_CHAT, p.uuid] = to == "country"
+        Store[Flag.ADMIN_CHAT, p.uuid] = to == "admin"
     }
 
     fun toggleCountry(p: ServerPlayer) {

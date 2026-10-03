@@ -31,7 +31,6 @@ import kami.libs.ui.app.Route
 import kami.libs.ui.app.Toast
 import kami.libs.ui.app.Tour
 import kami.libs.ui.core.Cursor
-import kami.libs.ui.core.UiScale
 import kami.libs.ui.core.Key
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Row
@@ -176,11 +175,6 @@ class ClaimsApp : KamiApp() {
     }
 
     override fun beforeFrame() {
-        val p = ClientClaims.prefs
-        ui.reduceMotion = p.reduceMotion
-        ui.tooltipDelay = p.tooltipDelay.toLong()
-        UiSound.volume = p.sounds
-        UiScale.factor = p.uiScale
         if (ClaimsStore.info == null && route.page != "welcome" && page(route.page).let { it is ClaimsPage && it.needsCountry }) navigate(Route("welcome"), record = false, sound = false)
         if (route.page != lastRoute) {
             lastRoute = route.page

@@ -67,7 +67,8 @@ class Data(
     val sold: MutableMap<String, MutableMap<String, Int>> = mutableMapOf(),
     val traded: MutableMap<String, Traded> = mutableMapOf(),
     var day: Long = 0,
-    val vendors: MutableList<Vendor> = mutableListOf()
+    val vendors: MutableList<Vendor> = mutableListOf(),
+    val muted: MutableMap<String, MutableSet<String>> = mutableMapOf()
 )
 
 object Market {

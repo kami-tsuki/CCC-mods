@@ -21,6 +21,7 @@ object UiClient {
         MOD_BUS.addListener<RegisterClientReloadListenersEvent> { e ->
             e.registerReloadListener(ResourceManagerReloadListener {
                 Palette.load(it)
+                UiPrefs.apply()
                 Format.locale = Format.localeOf(Minecraft.getInstance().languageManager.selected)
             })
         }

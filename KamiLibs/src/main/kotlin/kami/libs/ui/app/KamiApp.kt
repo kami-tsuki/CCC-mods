@@ -1,5 +1,6 @@
 package kami.libs.ui.app
 
+import kami.libs.ui.UiPrefs
 import kami.libs.ui.anim.reveal
 import kami.libs.ui.anim.anim
 import kami.libs.ui.text.tr
@@ -139,6 +140,7 @@ abstract class KamiApp {
     fun groupOf(pageId: String) = nav().firstOrNull { g -> g.items.any { it.page == pageId } }
 
     fun render(g: GuiGraphics, mx: Int, my: Int, width: Int, height: Int) {
+        UiPrefs.apply(ui)
         if (route.page.isEmpty()) navigate(home, record = false, sound = false)
         beforeFrame()
         ui.frame(g, mx, my, width, height) { frame(ui.screen.w, ui.screen.h) }

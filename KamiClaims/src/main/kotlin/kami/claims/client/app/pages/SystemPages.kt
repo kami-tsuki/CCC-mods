@@ -4,12 +4,12 @@ import kami.claims.client.BorderMode
 import kami.claims.client.ClientClaims
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ClaimsPage
+import kami.libs.ui.app.Modules
 import kami.libs.ui.app.NAV_ROW_H
 import kami.libs.ui.app.Route
 import kami.libs.ui.core.Flow
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Tip
-import kami.libs.ui.core.UiScale
 import kami.libs.ui.core.Ui
 import kami.libs.ui.map.TerrainCache
 import kami.libs.ui.style.Draw
@@ -108,19 +108,11 @@ class SettingsPage(app: ClaimsApp) : ClaimsPage(app) {
         ui.toggle(mf.take(14), p.skipClaimConfirm, tr("kami_claims.settings.map.skip_confirm"), key = "skip-confirm")?.let { p.skipClaimConfirm = it; save() }
         if (ui.button(mf.take(CONTROL_H).left(150), tr("kami_claims.settings.map.wipe"), Icons.REMOVE, key = "wipe")) { TerrainCache.wipe(); app.toast(Severity.SUCCESS, tr("kami_claims.settings.map.wiped")) }
         val rf = Flow(right, 6)
-        val look = ui.card(rf.take(182), tr("kami_claims.settings.display"), Icons.BRUSH)
-        val lf2 = Flow(look, 4)
-        ui.fieldLabel(lf2.take(9), tr("kami_claims.settings.display.scale"))
-        ui.segmented(lf2.take(CONTROL_H), UiScale.choices.map { Option(it, Format.percent(it.toDouble())) }, UiScale.snap(p.uiScale), key = "ui-scale")?.let { p.uiScale = it; UiScale.factor = it; save() }
-        ui.fieldLabel(lf2.take(9), tr("kami_claims.settings.display.colours"))
-        ui.select(lf2.take(CONTROL_H), Palette.Vision.entries.map { Option(it.name, tr("kami_claims.settings.vision.${it.name.lowercase()}"), description = tr("kami_claims.settings.vision.${it.name.lowercase()}.desc")) }, p.vision, key = "vision")?.let {
-            p.vision = it; Palette.vision = Palette.Vision.valueOf(it); save()
-        }
-        ui.toggle(lf2.take(14), p.reduceMotion, tr("kami_claims.settings.display.motion"), key = "motion")?.let { p.reduceMotion = it; save() }
-        ui.fieldLabel(lf2.take(9), tr("kami_claims.settings.display.sounds"), Format.percent(p.sounds.toDouble()))
-        ui.slider(lf2.take(CONTROL_H), p.sounds.toDouble(), 0.0, 1.0, 0.05, format = { Format.percent(it) }, key = "sounds")?.let { p.sounds = it.toFloat(); save() }
-        ui.fieldLabel(lf2.take(9), tr("kami_claims.settings.display.tooltip_delay"), "${Format.number(p.tooltipDelay)} ms")
-        ui.slider(lf2.take(CONTROL_H), p.tooltipDelay.toDouble(), 0.0, 1500.0, 50.0, format = { "${Format.number(it.toLong())} ms" }, key = "tip-delay")?.let { p.tooltipDelay = it.toInt(); save() }
+        val look = ui.card(rf.take(68), tr("kami_claims.settings.interface"), Icons.BRUSH)
+        val inf = Flow(look, 4)
+        Draw.paragraph(ui.g, tr("kami_claims.settings.interface.moved"), look.x, inf.take(18).y, look.w, maxLines = 2)
+        val prefs = Modules.all.firstOrNull { it.id == "essentials" }
+        if (ui.button(inf.take(CONTROL_H).left(150), tr("kami_claims.settings.interface.open"), Icons.SETTINGS, enabled = prefs != null, disabledReason = tr("kami_claims.settings.interface.missing"), key = "prefs")) prefs?.open()
         val guide = ui.card(rf.take(92), tr("kami_claims.settings.guidance"), Icons.HELP)
         val gf = Flow(guide, 4)
         if (ui.button(gf.take(CONTROL_H), tr("kami_claims.help.tour"), Icons.STAR, key = "tour")) app.startTour()

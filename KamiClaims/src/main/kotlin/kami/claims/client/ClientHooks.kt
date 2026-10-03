@@ -1,6 +1,5 @@
 package kami.claims.client
 
-import kami.libs.ui.core.UiScale
 import com.mojang.blaze3d.platform.InputConstants
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ResearchPins
@@ -21,7 +20,6 @@ import kami.libs.ui.app.AppScreen
 import kami.libs.ui.app.Modules
 import kami.libs.ui.style.Icons
 import kami.libs.ui.map.TerrainCache
-import kami.libs.ui.style.Palette
 import kami.libs.xaero.Highlights
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
@@ -63,9 +61,7 @@ object ClientHooks {
     private fun applyPrefs() {
         val p = ClientClaims.prefs
         TerrainCache.enabled = p.terrain
-        UiScale.factor = p.uiScale
         TerrainCache.diskLimitMb = p.terrainCacheMb
-        Palette.vision = runCatching { Palette.Vision.valueOf(p.vision) }.getOrDefault(Palette.Vision.NORMAL)
     }
 
     private fun tick() {

@@ -150,7 +150,8 @@ class MarketApp private constructor() : KamiApp() {
         group("auction", listOf(
             NavItem("auctions", tr("kami_libs.common.auctions"), Icons.SCALES),
             NavItem("auction_create", tr("kami_economy.nav.create"), Icons.ADD)
-        ))
+        )),
+        group("system", listOf(NavItem("settings", tr("kami_economy.nav.settings"), Icons.SETTINGS)))
     )
 
     override fun create(id: String): Page = when (id) {
@@ -165,6 +166,7 @@ class MarketApp private constructor() : KamiApp() {
         "auctions" -> AuctionsPage(this)
         "auction_create" -> AuctionCreatePage(this)
         "item" -> ItemPage(this)
+        "settings" -> SettingsPage(this)
         else -> DashboardPage(this)
     }
 
@@ -193,6 +195,7 @@ class MarketApp private constructor() : KamiApp() {
             Callout("nav:sell_orders", tr("kami_economy.nav.orders"), tr("kami_economy.tour.sell_orders.desc")),
             Callout("nav:buy_orders", tr("kami_economy.nav.orders"), tr("kami_economy.tour.buy_orders.desc")),
             Callout("nav:auctions", tr("kami_libs.common.auctions"), tr("kami_economy.tour.auctions.desc")),
+            Callout("nav:settings", tr("kami_economy.nav.settings"), tr("kami_economy.tour.settings.desc")),
             Callout("topbar", tr("kami_economy.tour.topbar"), tr("kami_economy.tour.topbar.desc")),
             Callout("page-help", tr("kami_economy.tour.help"), tr("kami_economy.tour.help.desc"))
         )) {}

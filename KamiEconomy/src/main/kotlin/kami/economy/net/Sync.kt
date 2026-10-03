@@ -12,6 +12,7 @@ import kami.economy.economy.Classification
 import kami.economy.economy.History
 import kami.economy.economy.Limits
 import kami.economy.economy.Matching
+import kami.economy.economy.Notify
 import kami.economy.economy.Range
 import kami.economy.economy.SellPlan
 import kami.economy.economy.Stocks
@@ -81,7 +82,8 @@ import kotlin.math.roundToInt
     val held: List<HeldRow> = emptyList(), val auctions: List<AuctionLine> = emptyList(), val dash: Dash? = null,
     val mine: List<OrderRow>, val taxPct: Int, val allyTaxPct: Int, val auctionFeePct: Int,
     val detail: Detail?, val quote: Quote?, val msg: String, val ok: Boolean, val open: Boolean, val citizen: Boolean,
-    val orderSlots: Slot, val auctionSlots: Slot, val goal: String, val goalValue: Long, val goalMax: Long, val truncated: Boolean
+    val orderSlots: Slot, val auctionSlots: Slot, val goal: String, val goalValue: Long, val goalMax: Long, val truncated: Boolean,
+    val muted: List<String> = emptyList()
 )
 
 private class QuoteReq(val mode: String, val item: String, val qty: Int, val price: Int)
@@ -359,7 +361,7 @@ object Sync {
             orderSlots = slot(me, CountryCapacity.MARKET_SLOTS, Limits.marketUsed(me), Limits.marketSlots(me)),
             auctionSlots = slot(me, CountryCapacity.AUCTION_SLOTS, Limits.auctionUsed(me), Limits.auctionSlots(me)),
             goal = goal?.text?.json() ?: "", goalValue = goal?.value ?: 0, goalMax = goal?.max ?: 0,
-            truncated = truncated
+            truncated = truncated, muted = Notify.muted(me).toList()
         )
         return json.encodeToString(snap)
     }

@@ -124,6 +124,10 @@ object Net {
                 Sync.detail(p, a.args.getOrNull(0) ?: "", a.args.getOrNull(1) ?: "week")
                 send(p)
             }
+            "notify" -> {
+                Notify.mute(p.stringUUID, a.args.getOrNull(0) ?: "", a.args.getOrNull(1) == "off")
+                send(p)
+            }
             "quote" -> {
                 Sync.quote(p, a.args.getOrNull(0) ?: "", a.args.getOrNull(1) ?: "", a.args.getOrNull(2)?.toIntOrNull() ?: 0, a.args.getOrNull(3)?.toIntOrNull() ?: 0)
                 send(p)
