@@ -124,6 +124,8 @@
   "kami_essentials.unstuck.cooldown": "Wieder möglich in %s.",
   "kami_essentials.unstuck.own": "Das ist dein eigener Staat, hier kannst du dich selbst freigraben.",
   "kami_essentials.unstuck.nowhere": "Kein sicherer Platz in der Nähe gefunden.",
+  "kami_essentials.deopfake.on": "Fake-Deop an: du zählst als normaler Spieler, bis du %s erneut nutzt oder neu beitrittst.",
+  "kami_essentials.deopfake.off": "Fake-Deop aus: deine Operator-Rechte sind zurück.",
   "kami_essentials.module": "Einstellungen",
   "key.categories.kami_essentials": "Kami Essentials",
   "key.kami_essentials.open": "Einstellungen öffnen",

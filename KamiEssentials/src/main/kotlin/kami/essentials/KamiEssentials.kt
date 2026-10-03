@@ -10,6 +10,7 @@ import kami.essentials.display.Sidebar
 import kami.essentials.display.Tab
 import kami.essentials.inv.Offline
 import kami.essentials.net.Net
+import kami.essentials.op.FakeDeop
 import kami.essentials.trade.Trades
 import kami.essentials.vanish.Vanish
 import kami.essentials.world.Unstuck
@@ -46,7 +47,7 @@ object KamiEssentials {
         if (FMLEnvironment.dist == Dist.CLIENT) ClientEssentials.init()
         EssentialsCommands.register()
         FORGE_BUS.addListener<ServerStartedEvent> { Store.load(it.server) }
-        FORGE_BUS.addListener<ServerStoppingEvent> { Trades.stop() }
+        FORGE_BUS.addListener<ServerStoppingEvent> { Trades.stop(); FakeDeop.reset() }
         FORGE_BUS.addListener<ServerTickEvent.Post> {
             Trades.tick()
             Offline.tick()
@@ -70,6 +71,7 @@ object KamiEssentials {
             Sidebar.forget(p)
             Feed.leave(p)
             Net.forget(p)
+            FakeDeop.forget(p)
         }
         FORGE_BUS.addListener<PlayerEvent.TabListNameFormat>(Tab::onName)
         FORGE_BUS.addListener<ServerChatEvent>(Talk::onChat)

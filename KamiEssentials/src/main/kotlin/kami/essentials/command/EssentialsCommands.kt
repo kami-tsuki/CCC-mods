@@ -10,6 +10,7 @@ import kami.essentials.chat.InlineFeatures
 import kami.essentials.chat.Talk
 import kami.essentials.display.Sidebar
 import kami.essentials.inv.Views
+import kami.essentials.op.FakeDeop
 import kami.essentials.trade.Trades
 import kami.essentials.vanish.Vanish
 import kami.essentials.world.Unstuck
@@ -29,7 +30,7 @@ import net.minecraft.commands.arguments.GameProfileArgument
 import net.minecraft.server.level.ServerPlayer
 
 object EssentialsCommands {
-    private val own = listOf("invsee", "enderchest", "balance", "invis", "scoreboard", "msg", "r", "trade", "countrychat", "adminchat", "unstuck")
+    private val own = listOf("invsee", "enderchest", "balance", "invis", "scoreboard", "msg", "r", "trade", "countrychat", "adminchat", "unstuck", "deopfake")
     private val aliases = mapOf("tell" to "msg", "w" to "msg", "bal" to "balance", "ec" to "enderchest", "cc" to "countrychat", "ac" to "adminchat")
 
     fun register() = KamiCommands.module("essentials", "Everyday server commands", own.associateWith { it } + aliases) {
@@ -66,6 +67,7 @@ object EssentialsCommands {
             .does { Talk.toggleAdmin(it.me()) }
             .then(arg("message", StringArgumentType.greedyString()).does { Talk.admin(it.me(), it.text("message")) }))
         then(lit("unstuck").requires(Perms.gate(Perms.UNSTUCK)).does { Unstuck.use(it.me()) })
+        then(lit("deopfake").requires(FakeDeop::allowed).does { FakeDeop.toggle(it.me()) })
         then(lit("inline").requires(Perms.gate(Perms.INLINE_OPEN))
             .then(lit("open").then(arg("id", StringArgumentType.word()).does { InlineFeatures.open(it.me(), it.text("id")) })))
     }
