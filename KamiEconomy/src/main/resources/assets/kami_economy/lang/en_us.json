@@ -149,5 +149,15 @@
   "kami_economy.market.rate.embargo": "embargo",
   "kami_economy.market.rate.embargo.tip": "An embargo blocks trade between your countries",
   "kami_economy.market.rate.mixed": "mixed",
-  "kami_economy.market.rate.mixed.tip": "Sellers from several countries, each at their own rate"
+  "kami_economy.market.rate.mixed.tip": "Sellers from several countries, each at their own rate",
+  "kami_economy.notify.stack": "%1$s × %2$s",
+  "kami_economy.notify.sold": "%1$s bought %2$s from you for %3$s.",
+  "kami_economy.notify.order_filled": "%1$s sold you %2$s for %3$s.",
+  "kami_economy.notify.bid": "%1$s bid %3$s on %2$s.",
+  "kami_economy.notify.outbid": "%1$s outbid you on %2$s with %3$s. Your bid was refunded.",
+  "kami_economy.notify.bought_out": "%1$s was bought instantly by %2$s. Your bid was refunded.",
+  "kami_economy.notify.auction_bought": "%1$s bought %2$s instantly for %3$s.",
+  "kami_economy.notify.auction_sold": "%1$s sold to %2$s for %3$s.",
+  "kami_economy.notify.auction_won": "You won %1$s for %2$s. It will be delivered to you.",
+  "kami_economy.notify.auction_expired": "%1$s ended without bids and was returned to you."
 }

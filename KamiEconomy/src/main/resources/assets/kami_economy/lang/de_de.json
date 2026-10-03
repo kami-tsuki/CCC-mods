@@ -149,5 +149,15 @@
   "kami_economy.market.rate.embargo": "Embargo",
   "kami_economy.market.rate.embargo.tip": "Ein Embargo sperrt den Handel zwischen euren Staaten",
   "kami_economy.market.rate.mixed": "gemischt",
-  "kami_economy.market.rate.mixed.tip": "Verkäufer aus mehreren Staaten, jeweils zum eigenen Satz"
+  "kami_economy.market.rate.mixed.tip": "Verkäufer aus mehreren Staaten, jeweils zum eigenen Satz",
+  "kami_economy.notify.stack": "%1$s × %2$s",
+  "kami_economy.notify.sold": "%1$s hat %2$s von dir für %3$s gekauft.",
+  "kami_economy.notify.order_filled": "%1$s hat dir %2$s für %3$s verkauft.",
+  "kami_economy.notify.bid": "%1$s bietet %3$s auf %2$s.",
+  "kami_economy.notify.outbid": "%1$s hat dich bei %2$s mit %3$s überboten. Dein Gebot wurde erstattet.",
+  "kami_economy.notify.bought_out": "%1$s wurde von %2$s sofort gekauft. Dein Gebot wurde erstattet.",
+  "kami_economy.notify.auction_bought": "%1$s hat %2$s sofort für %3$s gekauft.",
+  "kami_economy.notify.auction_sold": "%1$s ging an %2$s für %3$s.",
+  "kami_economy.notify.auction_won": "Du hast %1$s für %2$s ersteigert. Es wird dir zugestellt.",
+  "kami_economy.notify.auction_expired": "%1$s endete ohne Gebote und wurde dir zurückgegeben."
 }
