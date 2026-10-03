@@ -11975,7 +11975,7 @@
       "icon": "tfmg:diesel_bucket",
       "level": 140,
       "cost": 49500,
-      "time": "12h",
+      "time": "12h10m",
       "requires": [
         {
           "type": "node",
@@ -12015,7 +12015,7 @@
       "icon": "tfmg:gasoline_bucket",
       "level": 148,
       "cost": 51900,
-      "time": "12h",
+      "time": "12h26m",
       "requires": [
         {
           "type": "node",
@@ -12066,7 +12066,7 @@
       "icon": "chemica:hydrogen_turbine_blade",
       "level": 150,
       "cost": 52500,
-      "time": "12h",
+      "time": "12h30m",
       "requires": [
         {
           "type": "node",
@@ -13299,7 +13299,7 @@
       "icon": "createnuclear:uranium_powder",
       "level": 150,
       "cost": 52500,
-      "time": "12h",
+      "time": "12h30m",
       "requires": [
         {
           "type": "node",
@@ -13347,7 +13347,7 @@
       "icon": "createnuclear:reactor_casing",
       "level": 150,
       "cost": 52500,
-      "time": "12h",
+      "time": "12h30m",
       "requires": [
         {
           "type": "node",
@@ -13413,7 +13413,7 @@
       "icon": "chemica:nickel_catalyst",
       "level": 160,
       "cost": 55550,
-      "time": "12h",
+      "time": "12h50m",
       "requires": [
         {
           "type": "node",
@@ -13458,7 +13458,7 @@
       "icon": "createnuclear:reactor_frame",
       "level": 160,
       "cost": 55550,
-      "time": "12h",
+      "time": "12h50m",
       "requires": [
         {
           "type": "node",
@@ -13516,7 +13516,7 @@
       "icon": "createnuclear:yellowcake",
       "level": 170,
       "cost": 58600,
-      "time": "12h",
+      "time": "13h10m",
       "requires": [
         {
           "type": "node",
@@ -13565,7 +13565,7 @@
       "icon": "createnuclear:reactor_core",
       "level": 170,
       "cost": 58600,
-      "time": "12h",
+      "time": "13h10m",
       "requires": [
         {
           "type": "node",
@@ -13610,7 +13610,7 @@
       "icon": "createnuclear:enriched_yellowcake",
       "level": 175,
       "cost": 60125,
-      "time": "12h",
+      "time": "13h20m",
       "requires": [
         {
           "type": "node",
@@ -13663,7 +13663,7 @@
       "icon": "createnuclear:uranium_rod",
       "level": 180,
       "cost": 61650,
-      "time": "12h",
+      "time": "13h30m",
       "requires": [
         {
           "type": "node",
@@ -13699,7 +13699,7 @@
       "icon": "createnuclear:reactor_controller",
       "level": 180,
       "cost": 61650,
-      "time": "12h",
+      "time": "13h30m",
       "requires": [
         {
           "type": "node",
@@ -13758,7 +13758,7 @@
       "icon": "northstar:telescope",
       "level": 145,
       "cost": 51000,
-      "time": "12h",
+      "time": "12h20m",
       "requires": [
         {
           "type": "node",
@@ -13815,7 +13815,7 @@
       "icon": "northstar:circuit_engraver",
       "level": 147,
       "cost": 51600,
-      "time": "12h",
+      "time": "12h24m",
       "requires": [
         {
           "type": "node",
@@ -13918,7 +13918,7 @@
       "icon": "northstar:rocket_station",
       "level": 150,
       "cost": 52500,
-      "time": "12h",
+      "time": "12h30m",
       "requires": [
         {
           "type": "node",
@@ -14027,7 +14027,7 @@
       "icon": "northstar:oxygen_sealer",
       "level": 155,
       "cost": 54025,
-      "time": "12h",
+      "time": "12h40m",
       "requires": [
         {
           "type": "node",
@@ -14115,7 +14115,7 @@
       "icon": "northstar:auto_lander",
       "level": 170,
       "cost": 58600,
-      "time": "12h",
+      "time": "13h10m",
       "requires": [
         {
           "type": "node",
@@ -14154,7 +14154,7 @@
       "icon": "northstar:interplanetary_navigator",
       "level": 180,
       "cost": 61650,
-      "time": "12h",
+      "time": "13h30m",
       "requires": [
         {
           "type": "node",
@@ -14190,7 +14190,7 @@
       "icon": "northstar:electrolysis_machine",
       "level": 195,
       "cost": 66225,
-      "time": "12h",
+      "time": "14h",
       "requires": [
         {
           "type": "node",
@@ -14233,7 +14233,7 @@
       "icon": "northstar:martian_steel_plating",
       "level": 195,
       "cost": 66225,
-      "time": "12h",
+      "time": "14h",
       "requires": [
         {
           "type": "node",
@@ -14292,7 +14292,7 @@
       "icon": "northstar:advanced_circuit",
       "level": 200,
       "cost": 67750,
-      "time": "12h",
+      "time": "14h10m",
       "requires": [
         {
           "type": "node",
@@ -14337,7 +14337,7 @@
       "icon": "northstar:liquid_oxygen_bucket",
       "level": 205,
       "cost": 69275,
-      "time": "12h",
+      "time": "14h20m",
       "requires": [
         {
           "type": "node",
@@ -14385,7 +14385,7 @@
       "icon": "northstar:polished_venus_stone",
       "level": 215,
       "cost": 72325,
-      "time": "12h",
+      "time": "14h40m",
       "requires": [
         {
           "type": "node",
@@ -14455,7 +14455,7 @@
       "icon": "northstar:tungsten_plating",
       "level": 230,
       "cost": 76900,
-      "time": "12h",
+      "time": "15h10m",
       "requires": [
         {
           "type": "node",
@@ -14518,7 +14518,7 @@
       "icon": "northstar:rocket_waypoint",
       "level": 250,
       "cost": 83000,
-      "time": "12h",
+      "time": "15h50m",
       "requires": [
         {
           "type": "node",

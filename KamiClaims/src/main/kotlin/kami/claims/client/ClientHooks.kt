@@ -18,6 +18,7 @@ import kami.claims.service.View
 import kami.libs.ui.app.AppModule
 import kami.libs.ui.app.AppScreen
 import kami.libs.ui.app.Modules
+import kami.libs.ui.app.Route
 import kami.libs.ui.style.Icons
 import kami.libs.ui.map.TerrainCache
 import kami.libs.xaero.Highlights
@@ -74,6 +75,13 @@ object ClientHooks {
     }
 
     fun request(name: String, vararg args: String) = ClaimsStore.quiet(name, *args)
+
+    fun openResearch(key: String) {
+        val app = ClaimsApp.instance
+        val target = Route("research", focus = key)
+        if (app.route == target) app.page(target.page).opened(target) else app.navigate(target, sound = false)
+        request("open")
+    }
 
     fun snapshot(s: SnapshotPayload) {
         val snap = s.decode<Snap>() ?: return

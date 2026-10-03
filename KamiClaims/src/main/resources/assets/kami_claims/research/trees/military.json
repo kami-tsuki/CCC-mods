@@ -484,7 +484,7 @@
         }
       ],
       "cost": 69275,
-      "time": "12h"
+      "time": "13h45m"
     },
     {
       "id": "adv_emerald_sword",
@@ -515,7 +515,7 @@
         }
       ],
       "cost": 99775,
-      "time": "12h"
+      "time": "18h45m"
     },
     {
       "id": "adv_diamond_sword",
@@ -546,7 +546,7 @@
         }
       ],
       "cost": 130275,
-      "time": "12h"
+      "time": "23h45m"
     },
     {
       "id": "bow_arrows",
@@ -2179,7 +2179,7 @@
       "icon": "tacz:ammo#tacz:rpg_rocket",
       "level": 172,
       "cost": 59100,
-      "time": "12h",
+      "time": "12h6m",
       "requires": [
         {
           "type": "node",
@@ -2211,7 +2211,7 @@
       "icon": "tacz:ammo#tacz:50bmg",
       "level": 200,
       "cost": 67500,
-      "time": "12h",
+      "time": "13h30m",
       "requires": [
         {
           "type": "node",
@@ -3823,7 +3823,7 @@
       "icon": "tacz:modern_kinetic_gun#tacz:rpg7",
       "level": 172,
       "cost": 59100,
-      "time": "12h",
+      "time": "12h6m",
       "requires": [
         {
           "type": "node",
@@ -3855,7 +3855,7 @@
       "icon": "tacz:modern_kinetic_gun#tacz:minigun",
       "level": 185,
       "cost": 63000,
-      "time": "12h",
+      "time": "12h45m",
       "requires": [
         {
           "type": "node",
@@ -3891,7 +3891,7 @@
       "icon": "tacz:modern_kinetic_gun#tacz:m107",
       "level": 200,
       "cost": 67500,
-      "time": "12h",
+      "time": "13h30m",
       "requires": [
         {
           "type": "node",
@@ -3927,7 +3927,7 @@
       "icon": "tacz:modern_kinetic_gun#tacz:m95",
       "level": 200,
       "cost": 67500,
-      "time": "12h",
+      "time": "13h30m",
       "requires": [
         {
           "type": "node",
@@ -4868,7 +4868,7 @@
       "icon": "tacz:attachment#tacz:muzzle_silencer_sg",
       "level": 180,
       "cost": 61500,
-      "time": "12h",
+      "time": "12h30m",
       "requires": [
         {
           "type": "node",
@@ -4908,7 +4908,7 @@
       "icon": "tacz:attachment#tacz:ammo_mod_fmj",
       "level": 190,
       "cost": 64500,
-      "time": "12h",
+      "time": "13h",
       "requires": [
         {
           "type": "node",
@@ -4960,7 +4960,7 @@
       "icon": "tacz:attachment#tacz:extended_mag_3",
       "level": 195,
       "cost": 66000,
-      "time": "12h",
+      "time": "13h15m",
       "requires": [
         {
           "type": "node",
@@ -5004,7 +5004,7 @@
       "icon": "tacz:attachment#tacz:muzzle_silencer_phantom_s1",
       "level": 230,
       "cost": 76500,
-      "time": "12h",
+      "time": "15h",
       "requires": [
         {
           "type": "node",
@@ -5040,7 +5040,7 @@
       "icon": "tacz:attachment#tacz:ammo_mod_he",
       "level": 250,
       "cost": 82500,
-      "time": "12h",
+      "time": "16h",
       "requires": [
         {
           "type": "node",
@@ -6407,7 +6407,7 @@
       "icon": "tacz:ammo_box",
       "level": 200,
       "cost": 67750,
-      "time": "12h",
+      "time": "13h30m",
       "requires": [
         {
           "type": "node",
@@ -6443,7 +6443,7 @@
       "icon": "northstar:martian_sword",
       "level": 195,
       "cost": 66225,
-      "time": "12h",
+      "time": "13h15m",
       "requires": [
         {
           "type": "node",

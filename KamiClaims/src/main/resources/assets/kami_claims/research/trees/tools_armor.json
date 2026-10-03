@@ -1507,7 +1507,7 @@
         }
       ],
       "cost": 52500,
-      "time": "12h"
+      "time": "12h30m"
     },
     {
       "id": "portable_drill",
@@ -1965,7 +1965,7 @@
         }
       ],
       "cost": 69275,
-      "time": "12h"
+      "time": "14h20m"
     },
     {
       "id": "advanced_netherite_emerald",
@@ -2024,7 +2024,7 @@
         }
       ],
       "cost": 99775,
-      "time": "12h"
+      "time": "17h40m"
     },
     {
       "id": "advanced_netherite_diamond",
@@ -2083,7 +2083,7 @@
         }
       ],
       "cost": 130275,
-      "time": "12h"
+      "time": "21h"
     },
     {
       "id": "copper_hammer_paxel",
@@ -2497,7 +2497,7 @@
       "icon": "northstar:iron_space_suit_chestpiece",
       "level": 150,
       "cost": 52500,
-      "time": "12h",
+      "time": "12h30m",
       "requires": [
         {
           "type": "node",
@@ -2561,7 +2561,7 @@
       "icon": "northstar:martian_steel_chestplate",
       "level": 195,
       "cost": 66225,
-      "time": "12h",
+      "time": "14h",
       "requires": [
         {
           "type": "node",
@@ -2624,7 +2624,7 @@
       "icon": "northstar:martian_steel_space_suit_chestpiece",
       "level": 200,
       "cost": 67750,
-      "time": "12h",
+      "time": "14h10m",
       "requires": [
         {
           "type": "node",
@@ -4123,7 +4123,7 @@
       "icon": "sophisticatedstorage:stack_upgrade_omega_tier",
       "level": 200,
       "cost": 67750,
-      "time": "12h",
+      "time": "14h10m",
       "requires": [
         {
           "type": "node",

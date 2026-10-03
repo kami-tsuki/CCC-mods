@@ -3,6 +3,7 @@ package kami.claims.client.app.pages
 import kami.claims.client.app.ClientLocks
 import kami.claims.client.app.capacityRow
 import kami.claims.client.stackOf
+import kami.claims.client.allStacksOf
 import kami.claims.client.cyclingStacksOf
 import kami.claims.client.store.ClientResearch
 import kami.claims.client.store.NodeStatus
@@ -114,6 +115,8 @@ fun subjectName(kind: String, subject: String): String = when (kind) {
 private val iconlessTasks = setOf("hold", "visit", "process", "structure", "taxes", "trade", "trade_value")
 
 fun taskStacks(task: TaskView, now: Long): List<ItemStack> = if (task.kind in iconlessTasks) emptyList() else cyclingStacksOf(task.subject, now)
+
+fun taskItems(task: TaskView): List<ItemStack> = if (task.kind in iconlessTasks) emptyList() else allStacksOf(task.subject)
 
 fun taskText(task: TaskView) = tr("kami_claims.research.task.${task.kind}", Format.number(task.target), subjectName(task.kind, task.subject))
 

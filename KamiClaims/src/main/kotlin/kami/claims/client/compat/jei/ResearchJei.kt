@@ -1,14 +1,15 @@
 package kami.claims.client.compat.jei
 
 import kami.claims.client.compat.HiddenDiff
-import kami.claims.client.stackOf
 import kami.claims.client.store.ClientResearch
+import kami.claims.client.store.NodeStatus
+import kami.claims.net.NodeView
 import mezz.jei.api.IModPlugin
 import mezz.jei.api.JeiPlugin
-import mezz.jei.api.constants.VanillaTypes
 import mezz.jei.api.recipe.IRecipeManager
-import mezz.jei.api.runtime.IIngredientManager
 import mezz.jei.api.recipe.RecipeType
+import mezz.jei.api.registration.IRecipeCategoryRegistration
+import mezz.jei.api.registration.IRecipeRegistration
 import mezz.jei.api.runtime.IJeiRuntime
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.item.crafting.RecipeHolder
@@ -26,18 +27,29 @@ class ResearchJei : IModPlugin {
     private var index: Map<String, List<Entry>>? = null
     private var indexedDefs: Any? = null
     private var applied = emptySet<String>()
-    private var appliedBlocks = emptySet<String>()
+    private val registered = LinkedHashSet<NodeView>()
+    private var shown = emptySet<NodeView>()
     private var dirty = false
     private var stopListening: (() -> Unit)? = null
     private val onTick = Consumer<ClientTickEvent.Post> { if (dirty) refresh() }
 
     override fun getPluginUid(): ResourceLocation = ResourceLocation.fromNamespaceAndPath("kami_claims", "research")
 
+    override fun registerCategories(registration: IRecipeCategoryRegistration) {
+        registration.addRecipeCategories(ResearchCategory(registration.jeiHelpers.guiHelper))
+    }
+
+    override fun registerRecipes(registration: IRecipeRegistration) {
+        registered.clear()
+        registered += open()
+        shown = registered.toSet()
+        registration.addRecipes(ResearchCategory.TYPE, registered.toList())
+    }
+
     override fun onRuntimeAvailable(jeiRuntime: IJeiRuntime) {
         runtime = jeiRuntime
         index = null
         applied = emptySet()
-        appliedBlocks = emptySet()
         dirty = true
         stopListening = ClientResearch.listen { dirty = true; if (ClientResearch.defs !== indexedDefs) index = null }
         NeoForge.EVENT_BUS.addListener(onTick)
@@ -50,13 +62,17 @@ class ResearchJei : IModPlugin {
         runtime = null
         index = null
         applied = emptySet()
-        appliedBlocks = emptySet()
     }
+
+    private fun open(): List<NodeView> = ClientResearch.trees.ifEmpty { ClientResearch.defs.trees }
+        .flatMap { it.nodes }
+        .filter { ClientResearch.status(it.key) != NodeStatus.DONE }
+        .sortedWith(compareBy({ ClientResearch.status(it.key) }, { it.level }, { it.timeMs }))
 
     private fun refresh() {
         val manager = runtime?.recipeManager ?: return
         dirty = false
-        runtime?.ingredientManager?.let(::refreshBlocks)
+        syncNodes(manager)
         val diff = HiddenDiff.of(applied, ClientResearch.hiddenRecipes())
         if (diff.empty) return
         val entries = index ?: buildIndex(manager).also { index = it; indexedDefs = ClientResearch.defs }
@@ -65,15 +81,18 @@ class ResearchJei : IModPlugin {
         applied = ClientResearch.hiddenRecipes()
     }
 
-    private fun refreshBlocks(manager: IIngredientManager) {
-        val diff = HiddenDiff.of(appliedBlocks, ClientResearch.lockedBlocks())
-        if (diff.empty) return
-        stacks(diff.hide).takeIf { it.isNotEmpty() }?.let { manager.removeIngredientsAtRuntime(VanillaTypes.ITEM_STACK, it) }
-        stacks(diff.unhide).takeIf { it.isNotEmpty() }?.let { manager.addIngredientsAtRuntime(VanillaTypes.ITEM_STACK, it) }
-        appliedBlocks = ClientResearch.lockedBlocks()
+    private fun syncNodes(manager: IRecipeManager) {
+        val next = open()
+        val wanted = next.toSet()
+        val fresh = next.filter { it !in registered }
+        if (fresh.isNotEmpty()) {
+            manager.addRecipes(ResearchCategory.TYPE, fresh)
+            registered += fresh
+        }
+        (shown - wanted).takeIf { it.isNotEmpty() }?.let { manager.hideRecipes(ResearchCategory.TYPE, it) }
+        (wanted - shown - fresh.toSet()).takeIf { it.isNotEmpty() }?.let { manager.unhideRecipes(ResearchCategory.TYPE, it) }
+        shown = wanted
     }
-
-    private fun stacks(ids: Set<String>) = ids.map { stackOf(it).copy() }.filterNot { it.isEmpty }
 
     private fun toggle(manager: IRecipeManager, entries: Map<String, List<Entry>>, ids: Set<String>, hide: Boolean) {
         ids.flatMap { entries[it].orEmpty() }

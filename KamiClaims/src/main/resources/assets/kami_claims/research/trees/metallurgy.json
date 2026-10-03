@@ -14904,7 +14904,7 @@
       "icon": "createnuclear:raw_uranium",
       "level": 140,
       "cost": 49500,
-      "time": "12h",
+      "time": "12h10m",
       "requires": [
         {
           "type": "node",
@@ -14970,7 +14970,7 @@
       "icon": "chemica:tungsten_ingot",
       "level": 145,
       "cost": 51000,
-      "time": "12h",
+      "time": "12h20m",
       "requires": [
         {
           "type": "node",
@@ -15090,7 +15090,7 @@
       "icon": "northstar:lunar_sapphire_shard",
       "level": 155,
       "cost": 54025,
-      "time": "12h",
+      "time": "12h40m",
       "requires": [
         {
           "type": "node",
@@ -15153,7 +15153,7 @@
       "icon": "chemica:tungsten_carbide_dust",
       "level": 160,
       "cost": 55550,
-      "time": "12h",
+      "time": "12h50m",
       "requires": [
         {
           "type": "node",
@@ -15188,7 +15188,7 @@
       "icon": "chemica:chromium_ingot",
       "level": 170,
       "cost": 58600,
-      "time": "12h",
+      "time": "13h10m",
       "requires": [
         {
           "type": "node",
@@ -15228,7 +15228,7 @@
       "icon": "chemica:titanium_ingot",
       "level": 180,
       "cost": 61650,
-      "time": "12h",
+      "time": "13h30m",
       "requires": [
         {
           "type": "node",
@@ -15263,7 +15263,7 @@
       "icon": "northstar:martian_steel_ingot",
       "level": 195,
       "cost": 66225,
-      "time": "12h",
+      "time": "14h",
       "requires": [
         {
           "type": "node",
@@ -15354,7 +15354,7 @@
       "icon": "chemica:carbon_fiber_composite_sheet",
       "level": 200,
       "cost": 67750,
-      "time": "12h",
+      "time": "14h10m",
       "requires": [
         {
           "type": "node",
@@ -15389,7 +15389,7 @@
       "icon": "northstar:venus_coal_ore",
       "level": 200,
       "cost": 67750,
-      "time": "12h",
+      "time": "14h10m",
       "requires": [
         {
           "type": "node",
@@ -15423,7 +15423,7 @@
       "icon": "advancednetherite:netherite_gold_ingot",
       "level": 205,
       "cost": 69275,
-      "time": "12h",
+      "time": "14h20m",
       "requires": [
         {
           "type": "node",
@@ -15479,7 +15479,7 @@
       "icon": "chemica:tungsten_ingot",
       "level": 220,
       "cost": 73850,
-      "time": "12h",
+      "time": "14h50m",
       "requires": [
         {
           "type": "node",
@@ -15514,7 +15514,7 @@
       "icon": "chemica:raw_tungsten",
       "level": 235,
       "cost": 78425,
-      "time": "12h",
+      "time": "15h20m",
       "requires": [
         {
           "type": "node",
@@ -15564,7 +15564,7 @@
       "icon": "advancednetherite:netherite_emerald_ingot",
       "level": 305,
       "cost": 99775,
-      "time": "12h",
+      "time": "17h40m",
       "requires": [
         {
           "type": "node",
@@ -15628,7 +15628,7 @@
       "icon": "advancednetherite:netherite_diamond_ingot",
       "level": 405,
       "cost": 130275,
-      "time": "12h",
+      "time": "21h",
       "requires": [
         {
           "type": "node",

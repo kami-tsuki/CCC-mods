@@ -23,6 +23,7 @@ object ClientResearch {
     private var blocks = IdExtras.empty(IdExtras.BLOCKS)
     private var hiddenBlocks = emptySet<String>()
     private var hidden = emptySet<String>()
+    private var outputs: Map<String, List<String>>? = null
     private val listeners = ArrayList<() -> Unit>()
     private val changeListeners = ArrayList<(ResearchChange) -> Unit>()
     var receivedAt = 0L
@@ -76,6 +77,16 @@ object ClientResearch {
     fun node(key: String) = nodes[key]
 
     fun hiddenRecipes(): Set<String> = hidden
+
+    fun outputs(key: String): List<String> = (outputs ?: buildOutputs().also { outputs = it })[key].orEmpty()
+
+    private fun buildOutputs(): Map<String, List<String>> {
+        val made = HashMap<Int, MutableList<String>>()
+        recipes.producers.forEach { (item, ids) -> ids.forEach { made.getOrPut(it) { ArrayList() } += item } }
+        return nodes.keys.associateWith { key ->
+            (recipes.nodes[key].orEmpty().flatMap { made[it].orEmpty() } + blocks.nodes[key].orEmpty().mapNotNull { blocks.ids.getOrNull(it) }).distinct()
+        }
+    }
 
     fun lockedBlocks(): Set<String> = hiddenBlocks
 
@@ -141,6 +152,7 @@ object ClientResearch {
         nodes = next.trees.flatMap { it.nodes }.associateBy { it.key }
         recipes = IdExtras.decode(next.extras, IdExtras.RECIPES)
         blocks = IdExtras.decode(next.extras, IdExtras.BLOCKS)
+        outputs = null
     }
 
     private fun applyState(next: StateView) {

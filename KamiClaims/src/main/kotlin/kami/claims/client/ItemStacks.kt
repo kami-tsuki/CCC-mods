@@ -29,6 +29,8 @@ fun cyclingStacksOf(subject: String, now: Long): List<ItemStack> {
     return out
 }
 
+fun allStacksOf(subject: String): List<ItemStack> = subject.split(',').flatMap { stacksOf(it.trim()) }
+
 fun forgetStacks() {
     stacks.clear()
     members.clear()
