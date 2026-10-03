@@ -87,7 +87,9 @@ object KamiClaims {
                     Citizenship(c.id, c.name, c.color, Realm.country(c.parent)?.name, c.rank(player.toString())?.name ?: Rank.CITIZEN.name)
                 }
 
-                override fun country(id: String): CountryInfo? = Realm.live(id)?.let { CountryInfo(it.id, it.name, View.color(it), FlagInfo(it.flag.pattern, it.flag.emblem, it.flag.secondary)) }
+                override fun country(id: String): CountryInfo? = Realm.live(id)?.let { info(it) }
+
+                override fun countries(): List<CountryInfo> = Realm.data.countries.values.filter { it.active }.map { info(it) }
 
                 override fun relation(a: String, b: String): Relation {
                     val x = Realm.live(a) ?: return Relation.NEUTRAL
@@ -177,6 +179,8 @@ object KamiClaims {
         FORGE_BUS.addListener<PistonEvent.Pre> { Guard.onPiston(it) }
         FORGE_BUS.addListener<LivingIncomingDamageEvent> { Guard.onDamage(it) }
     }
+
+    private fun info(c: Country) = CountryInfo(c.id, c.name, View.color(c), FlagInfo(c.flag.pattern, c.flag.emblem, c.flag.secondary), c.treasury)
 
     private fun touch(p: ServerPlayer) {
         val c = Realm.of(p.stringUUID) ?: return

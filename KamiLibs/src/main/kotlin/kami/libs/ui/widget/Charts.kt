@@ -36,7 +36,7 @@ fun Ui.sparkline(r: Rect, values: List<Long>, color: Int) {
     }
 }
 
-private fun niceStep(range: Double, ticks: Int): Double {
+internal fun niceStep(range: Double, ticks: Int): Double {
     val raw = range / max(1, ticks)
     val mag = 10.0.pow(floor(log10(max(raw, 1e-9))))
     val norm = raw / mag
@@ -224,9 +224,5 @@ fun gradientAt(colors: List<Int>, fraction: Double): Int {
     return Palette.mix(colors[i], colors[i + 1], (p - i).toFloat())
 }
 
-fun Ui.priceChart(r: Rect, data: List<Ohlc>, style: ChartStyle, key: Any = "price"): Ohlc? {
-    val over = hover(key, r)
-    val hovered = PriceChart.draw(g, r.x, r.y, r.w, r.h, data, style, if (over) mouseX else Int.MIN_VALUE, if (over) mouseY else Int.MIN_VALUE, readout = false)
-    if (hovered != null) tooltip(key, r, delay = 0) { Tip(null, PriceChart.readout(hovered).map { it to Palette.textSecondary }) }
-    return hovered
-}
+fun Ui.priceChart(r: Rect, data: List<Ohlc>, style: ChartStyle, reference: Double?, start: Long, timeFormat: (Long) -> String, key: Any = "price"): Ohlc? =
+    PriceChart.draw(this, r, data, style, reference, start, timeFormat, key)

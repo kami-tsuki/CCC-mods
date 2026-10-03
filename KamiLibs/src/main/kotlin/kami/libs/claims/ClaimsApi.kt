@@ -12,7 +12,7 @@ class ClaimInfo(val country: String, val type: String, val owner: UUID?)
 
 class FlagInfo(val pattern: Int = 0, val emblem: Int = 0, val secondary: Int = 0xFFFFFF)
 
-class CountryInfo(val id: String, val name: String, val color: Int, val flag: FlagInfo = FlagInfo())
+class CountryInfo(val id: String, val name: String, val color: Int, val flag: FlagInfo = FlagInfo(), val treasury: Long = 0)
 
 class Citizenship(val country: String, val name: String, val color: Int, val parent: String?, val rank: String)
 
@@ -29,6 +29,7 @@ interface ClaimsProvider {
     fun countryOf(player: UUID): String?
     fun citizenship(player: UUID): Citizenship?
     fun country(id: String): CountryInfo? = null
+    fun countries(): List<CountryInfo> = emptyList()
     fun relation(a: String, b: String): Relation = Relation.NEUTRAL
     fun tariff(buyerCountry: String, sellerCountry: String): Int = 0
     fun capacity(player: UUID, key: String): Int? = null
@@ -56,6 +57,7 @@ object ClaimsApi {
     fun citizenship(player: UUID): Citizenship? = provider?.citizenship(player)
     fun isCitizen(player: UUID): Boolean = !present || countryOf(player) != null
     fun country(id: String): CountryInfo? = provider?.country(id)
+    fun countries(): List<CountryInfo> = provider?.countries().orEmpty()
     fun relation(a: String, b: String): Relation = provider?.relation(a, b) ?: Relation.NEUTRAL
     fun tariff(buyerCountry: String, sellerCountry: String): Int = provider?.tariff(buyerCountry, sellerCountry) ?: 0
     fun capacity(player: UUID, key: String, fallback: Int): Int = provider?.capacity(player, key) ?: fallback

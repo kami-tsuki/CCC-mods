@@ -72,11 +72,11 @@ data class Settings(
     ),
     val storageItemIds: List<String> = listOf("minecraft:shulker_box", "minecraft:bundle"),
 
-    val historyRawRetention: Int = 360,
+    val historyFiveMinRetention: Int = 288,
     val historyHourlyRetention: Int = 24 * 30,
     val historyDailyRetention: Int = 400,
 
-    val pageSize: Int = 30,
+    val listLimit: Int = 300,
     val guiCooldown: Int = 4,
 
     val allowCreativeVendors: Boolean = false,
@@ -103,7 +103,7 @@ private fun Settings.sane(): Settings = copy(
     allyTaxRate = allyTaxRate.coerceIn(0.0, 0.9),
     auctionFeePct = auctionFeePct.coerceIn(0.0, 0.9),
     maxPriceMovePct = maxPriceMovePct.coerceIn(0.001, 1.0),
-    pageSize = pageSize.coerceIn(5, 100),
+    listLimit = listLimit.coerceIn(20, 2000),
     maxPrice = maxPrice.coerceIn(1, 100_000_000),
     maxAmount = maxAmount.coerceIn(1, 1_000_000),
     dailySellLots = dailySellLots.coerceAtLeast(0),
@@ -161,10 +161,10 @@ private val sections = listOf(
     Section(
         "general.json", "Price history, GUI and vendor settings.",
         mapOf(
-            "historyRawRetention" to "Price points kept at full detail per item.",
+            "historyFiveMinRetention" to "Five-minute price points kept per item. 288 is 1 day.",
             "historyHourlyRetention" to "Hourly price points kept per item. 720 is 30 days.",
             "historyDailyRetention" to "Daily price points kept per item.",
-            "pageSize" to "Items per market page, 5 to 100.",
+            "listLimit" to "Most rows of one list sent to a player, 20 to 2000.",
             "guiCooldown" to "Ticks between two GUI actions of one player.",
             "allowCreativeVendors" to "Allow the creative vendor block from Numismatics.",
             "levelLocks" to "Enforce the country level feature locks economy:auctions and economy:vendors. A feature no level reward mentions stays unlocked."

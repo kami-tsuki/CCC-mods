@@ -1,21 +1,29 @@
 package kami.economy.client.ui
 
 import kami.economy.client.ClientHooks
-import kami.economy.client.PriceCache
-import kami.economy.economy.Blacklist
-import kami.economy.economy.Classification
-import kami.economy.net.Row
+import kami.economy.client.MarketPrefs
+import kami.economy.net.FlagView
+import kami.economy.net.OrderRow
 import kami.economy.net.Slot
 import kami.economy.net.Snap
 import kami.libs.mc.ItemSpec
 import kami.libs.text.Text
 import kami.libs.ui.app.AppScreen
+import kami.libs.ui.app.Callout
+import kami.libs.ui.app.Consequence
+import kami.libs.ui.app.Dialog
+import kami.libs.ui.app.DialogKind
 import kami.libs.ui.app.KamiApp
+import kami.libs.ui.app.Modules
 import kami.libs.ui.app.NavBadge
 import kami.libs.ui.app.NavGroup
 import kami.libs.ui.app.NavItem
 import kami.libs.ui.app.Page
 import kami.libs.ui.app.Route
+import kami.libs.ui.app.Tour
+import kami.libs.ui.app.confirmDialog
+import kami.libs.ui.app.dialogButtons
+import kami.libs.ui.app.numberDialogBody
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
@@ -28,53 +36,140 @@ import kami.libs.ui.text.tr
 import kami.libs.ui.text.trJson
 import kami.libs.ui.widget.*
 import net.minecraft.client.Minecraft
-import net.minecraft.core.component.DataComponents
-import net.minecraft.core.registries.BuiltInRegistries
-import net.minecraft.nbt.CompoundTag
-import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
-import net.minecraft.world.item.component.CustomData
+
+internal const val ROW_H = 18
+internal const val MAX_PRICE = 1_000_000L
+
+internal class Throttled<T>(private val load: () -> T) {
+    private var at = 0L
+    private var value = load()
+
+    fun get(): T {
+        val now = System.currentTimeMillis()
+        if (now - at >= 500) { at = now; value = load() }
+        return value
+    }
+}
 
 fun marketStack(id: String): ItemStack = ItemSpec.stack(id).let { if (it.isEmpty) ItemStack(Items.BARRIER) else it }
 
-class SellEntry(val item: String, val stack: ItemStack, val count: Int, val slot: Int, val cls: Classification)
+internal fun Ui.itemCell(c: Rect, stack: ItemStack, name: String, key: String, color: Int = Palette.text): Boolean {
+    val clicked = itemSlot(Rect(c.x, c.y, c.h, c.h), stack, key = key)
+    Draw.text(g, Draw.fit(name, c.w - c.h - 4), c.x + c.h + 4, c.y + (c.h - 8) / 2, color)
+    return clicked
+}
 
-class MarketApp(snap: Snap) : KamiApp() {
-    var snap = snap
+internal fun Ui.flag(r: Rect, color: Int, flag: FlagView?) =
+    flag?.let { Flags.draw(g, r, color, it.pattern, it.emblem, it.secondary) } ?: Draw.fill(g, r, color or 0xFF000000.toInt())
+
+internal fun priceText(v: Long) = if (v > 0) Format.money(v) else "–"
+
+internal fun permille(v: Long) = if (v == 0L) "–" else (if (v > 0) "+" else "") + tr("kami_libs.unit.percent", Format.decimal(v / 10.0, 1))
+
+internal fun stackHint(units: Int, stack: Int): String {
+    if (stack <= 1 || units < stack) return ""
+    val rest = units % stack
+    return if (rest == 0) tr("kami_economy.stack.exact", units / stack) else tr("kami_economy.stack.hint", units / stack, rest)
+}
+
+internal fun unitsText(units: Int, stack: Int): String {
+    val hint = stackHint(units, stack)
+    return Format.number(units) + if (hint.isEmpty()) "" else " ($hint)"
+}
+
+internal fun <T> unitsColumn(title: String, width: Int, stack: (T) -> Int, units: (T) -> Int) =
+    Column<T>(title, width, Align.RIGHT, compareBy<T> { units(it) }) { _, r, row ->
+        val s = Draw.fit(unitsText(units(row), stack(row)), r.w)
+        Draw.text(g, s, r.right - Draw.width(s), r.y + (r.h - 8) / 2)
+    }
+
+class MarketApp private constructor() : KamiApp() {
+    lateinit var snap: Snap
         private set
-    override val home = Route("browse")
+    override val module: String? get() = "market"
+    override val home = Route("dashboard")
     private val stacks = HashMap<String, ItemStack>()
 
     fun stack(id: String): ItemStack = stacks.getOrPut(id) { marketStack(id) }
 
     fun request(name: String, vararg args: String) = ClientHooks.request(name, *args)
 
+    fun view(name: String, query: String = "") = request("view", name, query)
+
     fun update(next: Snap, notify: Boolean) {
         snap = next
         if (notify && next.msg.isNotEmpty()) toast(if (next.ok) Severity.SUCCESS else Severity.DANGER, trJson(next.msg))
     }
 
-    override fun buildNav() = listOf(NavGroup(tr("kami_libs.common.market"), listOf(
-        NavItem("browse", tr("kami_economy.market.tab.browse"), Icons.SEARCH),
-        NavItem("sell", tr("kami_economy.market.mode.sell"), Icons.CHEST),
-        NavItem("orders", tr("kami_economy.market.tab.orders"), Icons.LEDGER, { snap.orders.size.takeIf { it > 0 }?.let { NavBadge(it, Severity.INFO) } }),
-        NavItem("auctions", tr("kami_libs.common.auctions"), Icons.SCALES)
-    )))
+    override val collapsedGroups get() = MarketPrefs.prefs.collapsedGroups
+
+    override fun collapseChanged() { MarketPrefs.save() }
+
+    private fun group(id: String, items: List<NavItem>) = NavGroup(tr("kami_economy.nav.group.$id"), items, id, collapsible = true)
+
+    private fun badge(bid: Boolean): () -> NavBadge? = { snap.mine.count { it.bid == bid }.takeIf { it > 0 }?.let { NavBadge(it, Severity.INFO) } }
+
+    override fun buildNav() = listOf(
+        group("overview", listOf(
+            NavItem("dashboard", tr("kami_economy.nav.dashboard"), Icons.DASHBOARD),
+            NavItem("market", tr("kami_libs.common.market"), Icons.SEARCH)
+        )),
+        group("sell", listOf(
+            NavItem("instant", tr("kami_economy.nav.instant"), Icons.COIN),
+            NavItem("sell_orders", tr("kami_economy.nav.sell_orders"), Icons.LEDGER, badge(false)),
+            NavItem("vendors", tr("kami_economy.nav.vendors"), Icons.PEOPLE)
+        )),
+        group("buy", listOf(
+            NavItem("buy_orders", tr("kami_economy.nav.buy_orders"), Icons.CHEST),
+            NavItem("my_bids", tr("kami_economy.nav.my_bids"), Icons.SCROLL, badge(true))
+        )),
+        group("auction", listOf(
+            NavItem("auction_create", tr("kami_economy.nav.auction_create"), Icons.ADD),
+            NavItem("auctions", tr("kami_libs.common.auctions"), Icons.SCALES)
+        ))
+    )
 
     override fun create(id: String): Page = when (id) {
-        "sell" -> SellPage(this)
-        "orders" -> OrdersPage(this)
+        "market" -> MarketPage(this)
+        "instant" -> InstantPage(this)
+        "sell_orders" -> OrdersPage(this, bid = false, mine = false)
+        "buy_orders" -> OrdersPage(this, bid = true, mine = false)
+        "my_bids" -> OrdersPage(this, bid = true, mine = true)
+        "vendors" -> VendorsPage(this)
         "auctions" -> AuctionsPage(this)
+        "auction_create" -> AuctionCreatePage(this)
         "item" -> ItemPage(this)
-        "list" -> ListAuctionPage(this)
-        else -> BrowsePage(this)
+        else -> DashboardPage(this)
     }
 
     override fun banner(ui: Ui, r: Rect): Int {
         if (snap.citizen) return 0
         ui.banner(r.top(22), Severity.WARNING, tr("kami_libs.lock.no_country"))
         return 22
+    }
+
+    override fun beforeFrame() {
+        if (tour == null && !MarketPrefs.prefs.tourDone) {
+            MarketPrefs.finishTour()
+            startTour()
+        }
+    }
+
+    fun startTour() {
+        val dashboard = Route("dashboard")
+        tour = Tour(listOfNotNull(
+            Callout("modules", tr("kami_economy.tour.modules"), tr("kami_economy.tour.modules.desc"), dashboard).takeIf { Modules.all.size > 1 },
+            Callout("nav:dashboard", tr("kami_economy.nav.dashboard"), tr("kami_economy.tour.dashboard.desc"), dashboard),
+            Callout("nav:market", tr("kami_libs.common.market"), tr("kami_economy.tour.market.desc")),
+            Callout("nav:instant", tr("kami_economy.nav.instant"), tr("kami_economy.tour.instant.desc")),
+            Callout("nav:sell_orders", tr("kami_economy.nav.sell_orders"), tr("kami_economy.tour.sell_orders.desc")),
+            Callout("nav:buy_orders", tr("kami_economy.nav.buy_orders"), tr("kami_economy.tour.buy_orders.desc")),
+            Callout("nav:auctions", tr("kami_libs.common.auctions"), tr("kami_economy.tour.auctions.desc")),
+            Callout("topbar", tr("kami_economy.tour.topbar"), tr("kami_economy.tour.topbar.desc")),
+            Callout("page-help", tr("kami_economy.tour.help"), tr("kami_economy.tour.help.desc"))
+        )) { MarketPrefs.finishTour() }
     }
 
     override fun topBar(ui: Ui, r: Rect) {
@@ -103,129 +198,51 @@ class MarketApp(snap: Snap) : KamiApp() {
         return x + w + 6
     }
 
-    fun openItem(item: String, mode: String, qty: Int = 1) = navigate(Route("item", mapOf("item" to item, "mode" to mode, "qty" to qty.toString())))
+    fun openItem(item: String, side: String = "buy", kind: String = "instant") =
+        navigate(Route("item", mapOf("item" to item, "side" to side, "kind" to kind)))
 
-    fun openSell(e: SellEntry) =
-        if (e.cls == Classification.AUCTION_ONLY) navigate(Route("list", mapOf("item" to e.item, "qty" to e.count.toString()))) else openItem(e.item, "sell")
+    fun taxFor(relation: String) = if (relation == "allied" || relation == "family") snap.allyTaxPct else snap.taxPct
 
-    fun closeDetail() { if (route.page in DETAILS) back() }
+    fun countryTip(country: String, relation: String): String =
+        if (relation == "embargo") tr("kami_economy.market.embargo.tip", country)
+        else tr("kami_economy.market.country.tip", country, tr("kami_economy.market.rate.${relation.ifEmpty { "neutral" }}"), taxFor(relation))
 
-    override fun escape() = super.escape() || route.page in DETAILS && run { closeDetail(); true }
+    fun reprice(o: OrderRow) {
+        val state = NumberState(o.price.toLong())
+        open(Dialog(tr("kami_economy.reprice.title"), stack(o.item).hoverName.string, Icons.EDIT, DialogKind.CONFIRM) { s ->
+            s.used = numberDialogBody(s, s.body.y, state, tr("kami_economy.market.price_lot", o.lot), 1, MAX_PRICE)
+            dialogButtons(s, tr("kami_economy.reprice.confirm"), state.value != o.price.toLong()) {
+                request(if (o.bid) "reprice_bid" else "reprice", o.item, state.value.toString())
+                s.close()
+            }
+        })
+    }
+
+    fun cancel(o: OrderRow) = confirmDialog(
+        ::open, tr("kami_economy.cancel.title"), stack(o.item).hoverName.string, Icons.CROSS,
+        listOf(Consequence(tr(if (o.bid) "kami_economy.market.bid.cancel.tooltip" else "kami_economy.market.orders.cancel.tooltip"))),
+        tr("kami_economy.cancel.confirm"), danger = true
+    ) { request(if (o.bid) "cancel_bid" else "cancel", o.item) }
+
+    override fun escape() = super.escape() || route.page == "item" && run { back(); true }
 
     override fun closed() {
         super.closed()
         request("close")
-        if (current === this) current = null
     }
 
     companion object {
-        private var current: MarketApp? = null
-        private val DETAILS = setOf("item", "list")
+        val instance by lazy { MarketApp() }
 
         fun receive(snap: Snap) {
             val mc = Minecraft.getInstance()
-            val app = current
-            if (app != null && (mc.screen as? AppScreen)?.app === app) app.update(snap, true)
+            val app = instance
+            if ((mc.screen as? AppScreen)?.app === app) app.update(snap, true)
             else if (snap.open) {
-                val next = MarketApp(snap)
-                current = next
-                mc.setScreen(AppScreen(next, Text.msg("kami_libs.common.market")))
+                app.update(snap, false)
+                mc.setScreen(AppScreen(app, Text.msg("kami_libs.common.market")))
+                if (app.route.page.isNotEmpty()) app.page(app.route.page).opened(app.route)
             }
         }
-    }
-}
-
-private class BrowsePage(val app: MarketApp) : Page() {
-    private val search = TextState()
-    override val title get() = tr("kami_economy.market.tab.browse")
-
-    override fun opened(route: Route) { search.set(app.snap.query) }
-
-    override fun draw(ui: Ui, r: Rect) {
-        val snap = app.snap
-        val bar = r.top(16)
-        if (ui.searchField(bar.dropRight(SORT_W, 6), search)) app.request("search", search.text, snap.sort, "0")
-        ui.segmented(bar.right(SORT_W), SORTS.map { Option(it, tr("kami_economy.market.sort.$it")) }, snap.sort, key = "sort")
-            ?.let { app.request("search", search.text, it, "0") }
-
-        val grid = r.dropTop(16, 6).dropBottom(16, 4)
-        if (snap.rows.isEmpty()) ui.emptyState(grid, tr("kami_libs.common.nothing_found"), tr("kami_economy.market.browse.empty"))
-        val cols = ((grid.w + GAP) / (CELL_W + GAP)).coerceAtLeast(1)
-        val left = grid.x + (grid.w - (cols * (CELL_W + GAP) - GAP)) / 2
-        snap.rows.forEachIndexed { i, row ->
-            val cell = Rect(left + i % cols * (CELL_W + GAP), grid.y + i / cols * (CELL_H + GAP), CELL_W, CELL_H)
-            if (cell.bottom > grid.bottom) return@forEachIndexed
-            if (ui.itemSlot(Rect(cell.centerX - 11, cell.y, 22, 22), app.stack(row.item), stock(row), key = "item:${row.item}")) app.openItem(row.item, "buy", if (ui.input.shift) app.stack(row.item).maxStackSize else 1)
-            ui.money(cell.centerX - moneyWidth(row.price.toLong()) / 2, cell.y + 25, row.price.toLong())
-        }
-        if (snap.pages > 1) ui.pager(r.bottom(16).centered(96, 16), snap.page, snap.pages)?.let { app.request("search", search.text, snap.sort, it.toString()) }
-    }
-
-    private fun stock(row: Row) = when {
-        row.available < 1000 -> row.available.toString()
-        else -> "${row.available / 1000}k"
-    }
-
-    companion object {
-        const val CELL_W = 50
-        const val CELL_H = 36
-        const val GAP = 4
-        const val SORT_W = 150
-        val SORTS = listOf("name", "price", "stock")
-    }
-}
-
-private class SellPage(val app: MarketApp) : Page() {
-    private val table = TableState<SellEntry>()
-    override val title get() = tr("kami_economy.market.mode.sell")
-
-    private val columns = listOf(
-        Column<SellEntry>(tr("kami_libs.common.item"), -1, sort = compareBy { it.stack.hoverName.string.lowercase() }) { _, c, e ->
-            if (itemSlot(Rect(c.x, c.y, c.h, c.h), e.stack.copyWithCount(e.count), key = "sell:${e.slot}")) app.openSell(e)
-            Draw.text(g, Draw.fit(e.stack.hoverName.string, c.w - c.h - 4), c.x + c.h + 4, c.y + (c.h - 8) / 2)
-        },
-        Column.number(tr("kami_economy.market.sell.col.count"), 50) { it.count.toLong() },
-        Column.number(tr("kami_economy.market.sort.price"), 70, tip = tr("kami_economy.market.sell.col.price.tooltip")) { (PriceCache.of(it.item)?.price ?: 0).toLong() },
-        Column.text(tr("kami_economy.market.sell.col.channel"), 90, color = { if (it.cls == Classification.AUCTION_ONLY) Palette.warning else Palette.textSecondary }) {
-            tr(if (it.cls == Classification.AUCTION_ONLY) "kami_economy.market.sell.channel.auction" else "kami_libs.common.market")
-        }
-    )
-
-    override fun draw(ui: Ui, r: Rect) {
-        shown = entries()
-        val events = ui.table(r, columns, shown, table, { it.slot }, rowHeight = 18, emptyText = tr("kami_economy.market.sell.empty"))
-        events.opened?.let(app::openSell)
-    }
-
-    override fun actionsWidth() = buttonWidth(tr("kami_economy.market.sell.open"))
-
-    override fun actions(ui: Ui, r: Rect) {
-        val selected = shown.firstOrNull { it.slot in table.selected }
-        val label = tr("kami_economy.market.sell.open")
-        if (ui.edgeButton(r, label, style = ButtonStyle.PRIMARY, enabled = app.snap.citizen && selected != null, disabledReason = if (!app.snap.citizen) tr("kami_libs.lock.no_country") else tr("kami_economy.market.sell.open.none")))
-            selected?.let(app::openSell)
-    }
-
-    private var shown: List<SellEntry> = emptyList()
-
-    private fun entries(): List<SellEntry> {
-        val inv = Minecraft.getInstance().player?.inventory ?: return emptyList()
-        val entries = mutableListOf<SellEntry>()
-        val grouped = HashMap<String, Int>()
-        inv.items.forEachIndexed { i, stack ->
-            if (stack.isEmpty) return@forEachIndexed
-            val cls = Blacklist.classify(stack)
-            if (cls == Classification.BLOCKED) return@forEachIndexed
-            val id = Blacklist.itemId(stack)
-            val idx = grouped[id].takeIf { cls == Classification.ALLOWED }
-            if (idx != null) {
-                val e = entries[idx]
-                entries[idx] = SellEntry(e.item, e.stack, e.count + stack.count, e.slot, e.cls)
-            } else {
-                if (cls == Classification.ALLOWED) grouped[id] = entries.size
-                entries += SellEntry(id, stack, stack.count, i, cls)
-            }
-        }
-        return entries
     }
 }

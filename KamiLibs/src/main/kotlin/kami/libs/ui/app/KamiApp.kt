@@ -20,6 +20,8 @@ import kami.libs.ui.style.Sprites
 import kami.libs.ui.style.TextStyle
 import kami.libs.ui.style.UiSound
 import kami.libs.ui.widget.Lock
+import kami.libs.ui.widget.ButtonStyle
+import kami.libs.ui.widget.button
 import kami.libs.ui.widget.badge
 import kami.libs.ui.widget.clickable
 import kami.libs.ui.widget.iconButton
@@ -61,6 +63,7 @@ const val CRUMBS_H = 16
 const val NAV_ROW_H = 16
 private const val GROUP_H = 14
 private const val GROUP_GAP = 7
+private const val MODULES_H = 18
 private const val PAGE_SHIFT = 10
 private const val PAGE_VEIL = 0.6f
 
@@ -87,6 +90,7 @@ abstract class KamiApp {
 
     open val collapsedGroups: MutableSet<String> = mutableSetOf()
     open fun collapseChanged() {}
+    open val module: String? get() = null
     open val showPins = true
     private var revealPage: String? = null
     private val navY = HashMap<String, Int>()
@@ -194,7 +198,9 @@ abstract class KamiApp {
             (if (!compact) GROUP_H else if (i > 0) 4 else 0) + group.items.sumOf { rowHeight(it, opens[i]) } + GROUP_GAP
         }
         val indicator = navY[route.page]
-        val state = ui.scroll("sidebar", r.inset(0, 4, 0, 2), height) { c ->
+        val stripH = if (module == null || Modules.all.size < 2) 0 else if (compact) Modules.all.size * MODULES_H else MODULES_H
+        if (stripH > 0) moduleStrip(Rect(r.x + 2, r.y + 3, r.w - 4, stripH))
+        val state = ui.scroll("sidebar", r.inset(0, 4 + stripH, 0, 2), height) { c ->
             indicator?.let { rel ->
                 val top = c.y + ui.anim("nav:ind", rel.toFloat(), 20f).roundToInt()
                 Draw.fill(ui.g, Rect(c.x, top, c.w - 1, NAV_ROW_H), Palette.selected)
@@ -220,6 +226,18 @@ abstract class KamiApp {
             }
         }
         revealPage?.let { page -> navY[page]?.let { state.scrollTo(it); revealPage = null } }
+    }
+
+    private fun moduleStrip(r: Rect) {
+        ui.anchor("modules", r)
+        val all = Modules.all
+        val cells = if (compact) all.indices.map { Rect(r.x, r.y + it * MODULES_H, r.w, MODULES_H - 2) } else r.columns(all.size, 2)
+        cells.forEachIndexed { i, cell ->
+            val m = all[i]
+            val label = tr(m.label)
+            val active = m.id == module
+            if (ui.button(cell, if (compact) "" else label, m.icon, if (active) ButtonStyle.PRIMARY else ButtonStyle.SECONDARY, tip = if (compact) label else null, key = "module:${m.id}") && !active) m.open()
+        }
     }
 
     private fun rowHeight(item: NavItem, open: Float) = if (item.page == route.page) NAV_ROW_H else (NAV_ROW_H * open).roundToInt()

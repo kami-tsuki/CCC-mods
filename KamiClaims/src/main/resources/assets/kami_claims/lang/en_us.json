@@ -1079,6 +1079,8 @@
   "kami_claims.tour.map.desc": "Select chunks, check the cost, then confirm.",
   "kami_claims.tour.protection.desc": "Who may break, place, use and open, per chunk type.",
   "kami_claims.tour.provinces.desc": "Province terms and delegated rights.",
+  "kami_claims.tour.modules": "Modules",
+  "kami_claims.tour.modules.desc": "Switch between the country and the market without closing the window.",
   "kami_claims.tour.topbar": "Top bar",
   "kami_claims.tour.topbar.desc": "Treasury, daily balance, days covered, land and citizens.",
   "kami_claims.tribute.flat": "%s ◎/day",

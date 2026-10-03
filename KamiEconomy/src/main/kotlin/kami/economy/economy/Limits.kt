@@ -12,7 +12,7 @@ object Limits {
 
     fun auctionSlots(player: String): Int = slots(player, CountryCapacity.AUCTION_SLOTS, Config.s.auctionSlots)
 
-    fun marketUsed(player: String): Int = Market.data.books.values.sumOf { book -> book.sells.count { it.owner == player } + book.buys.count { it.owner == player } }
+    fun marketUsed(player: String): Int = Market.data.books.values.sumOf { book -> listOf(book.sells, book.buys).count { orders -> orders.any { it.owner == player } } }
 
     fun auctionUsed(player: String): Int = Auctions.open().count { it.seller == player }
 

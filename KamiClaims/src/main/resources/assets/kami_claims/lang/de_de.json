@@ -1079,6 +1079,8 @@
   "kami_claims.tour.map.desc": "Chunks auswählen, Kosten prüfen, dann bestätigen.",
   "kami_claims.tour.protection.desc": "Wer abbauen, platzieren, benutzen und öffnen darf, je Chunktyp.",
   "kami_claims.tour.provinces.desc": "Provinzbedingungen und übertragene Rechte.",
+  "kami_claims.tour.modules": "Module",
+  "kami_claims.tour.modules.desc": "Wechsle zwischen Staat und Markt, ohne das Fenster zu schließen.",
   "kami_claims.tour.topbar": "Kopfleiste",
   "kami_claims.tour.topbar.desc": "Staatskasse, Tagessaldo, Reichweite, Gebiet und Bürger.",
   "kami_claims.tribute.flat": "%s ◎/Tag",

@@ -16,6 +16,7 @@ import kami.economy.economy.Gate
 import kami.economy.economy.Ledger
 import kami.economy.economy.Limits
 import kami.economy.economy.Matching
+import kami.economy.economy.Notify
 import kami.economy.economy.Stocks
 import kami.economy.economy.SellResult
 import kami.economy.economy.BuyResult
@@ -115,20 +116,16 @@ object Net {
         when (a.name) {
             "open" -> { openPlayers += p.uuid; send(p, open = true) }
             "close" -> openPlayers -= p.uuid
-            "search" -> {
-                Sync.search(p, a.args.getOrNull(0) ?: "", a.args.getOrNull(1) ?: "name", a.args.getOrNull(2)?.toIntOrNull() ?: 0)
+            "view" -> {
+                Sync.view(p, a.args.getOrNull(0) ?: "dashboard", a.args.getOrNull(1) ?: "")
                 send(p)
             }
             "detail" -> {
-                Sync.detail(p, a.args.getOrNull(0) ?: "", a.args.getOrNull(1) ?: "raw")
+                Sync.detail(p, a.args.getOrNull(0) ?: "", a.args.getOrNull(1) ?: "week")
                 send(p)
             }
             "quote" -> {
-                Sync.quote(p, a.args.getOrNull(0) ?: "", a.args.getOrNull(1)?.toIntOrNull() ?: 0, a.args.getOrNull(2) == "market")
-                send(p)
-            }
-            "auctions" -> {
-                Sync.auctionPage(p, a.args.getOrNull(0)?.toIntOrNull() ?: 0)
+                Sync.quote(p, a.args.getOrNull(0) ?: "", a.args.getOrNull(1) ?: "", a.args.getOrNull(2)?.toIntOrNull() ?: 0, a.args.getOrNull(3)?.toIntOrNull() ?: 0)
                 send(p)
             }
             else -> {
@@ -150,6 +147,12 @@ object Net {
     private fun outOfRange() = Phrase.of("kami_economy.action.out_of_range", Config.s.maxAmount, Phrase.money(Config.s.maxPrice.toLong())) to false
 
     private fun notClean(step: Int) = Phrase.of("kami_economy.action.not_clean", step) to false
+
+    private fun withReturn(msg: Phrase, item: String, count: Int, reason: Phrase): Phrase =
+        if (count > 0) Phrase.of("kami_economy.action.with_return", msg, Notify.stack(item, count), reason) else msg
+
+    private fun stepReason(step: Int, lot: Int): Phrase =
+        if (step > lot) Phrase.of("kami_economy.action.return.step", step) else Phrase.of("kami_economy.action.return.lot", lot)
 
     private class Fail(val phrase: Phrase) : Exception()
     private fun fail(key: String): Nothing = throw Fail(Phrase.of(key))
@@ -174,6 +177,9 @@ object Net {
         if (!Config.s.validAmount(qty) || !Config.s.validPrice(price)) return outOfRange()
         val matching = p.inventory.items.filter { !it.isEmpty && Blacklist.itemId(it) == item && Blacklist.classify(it) == Classification.ALLOWED }
         if (matching.sumOf { it.count } < qty) return Phrase.of("kami_economy.action.not_enough_items", qty) to false
+        val lot = Config.s.lotOf(item)
+        val listPrice = Matching.listPrice(me, item, price)
+        val step = Matching.step(listPrice) * lot
         var remaining = qty
         for (stack in matching) {
             if (remaining <= 0) break
@@ -197,17 +203,24 @@ object Net {
             is SellResult.Sold -> {
                 restore(qty - result.filled)
                 KamiEconomy.deliver(p)
-                Phrase.of("kami_economy.action.sold", result.filled, item) to true
+                withReturn(Phrase.of("kami_economy.action.sold", result.filled, item), item, qty % lot, Phrase.of("kami_economy.action.return.lot", lot)) to true
             }
             is SellResult.Ok -> {
+                val returned = qty - result.filled - result.listed
+                restore(returned)
                 KamiEconomy.deliver(p)
-                when {
-                    result.filled <= 0 -> Phrase.of("kami_economy.action.listed", qty, item, Phrase.money(price.toLong())) to true
-                    result.filled >= qty -> Phrase.of("kami_economy.action.sold", qty, item) to true
-                    else -> Phrase.of("kami_economy.action.listed_part", result.filled, item, qty - result.filled, Phrase.money(price.toLong())) to true
+                val msg = when {
+                    result.filled <= 0 -> Phrase.of("kami_economy.action.listed", result.listed, item, Phrase.money(listPrice.toLong()))
+                    result.listed <= 0 -> Phrase.of("kami_economy.action.sold", result.filled, item)
+                    else -> Phrase.of("kami_economy.action.listed_part", result.filled, item, result.listed, Phrase.money(listPrice.toLong()))
                 }
+                val reason = if (result.limited) Phrase.of("kami_economy.action.return.slots") else stepReason(step, lot)
+                withReturn(msg, item, returned, reason) to true
             }
-            SellResult.IntentOpen -> Phrase.of("kami_economy.action.sell_processing") to false
+            is SellResult.IntentOpen -> {
+                restore(qty - result.kept)
+                Phrase.of("kami_economy.action.sell_processing") to false
+            }
             else -> {
                 restore(qty)
                 when (result) {
@@ -228,7 +241,10 @@ object Net {
         val qty = args.intArg(1, "kami_economy.action.invalid_quantity")
         val price = args.intArg(2, "kami_economy.action.invalid_price")
         if (!known(item)) return Phrase.of("kami_economy.action.invalid_item") to false
-        return orderReply(me, Ledger.bid(me, item, qty, price)) { Phrase.of("kami_economy.action.bid_order", qty, item, Phrase.money(price.toLong())) to true }
+        val lot = Config.s.lotOf(item)
+        return orderReply(me, Ledger.bid(me, item, qty, price)) {
+            withReturn(Phrase.of("kami_economy.action.bid_order", it.qty, item, Phrase.money(price.toLong())), item, qty - it.qty, stepReason(Matching.step(price) * lot, lot)) to true
+        }
     }
 
     private fun cancelBid(me: String, args: List<String>): Pair<Phrase, Boolean> {
@@ -300,7 +316,6 @@ object Net {
             BuyResult.InsufficientFunds -> Phrase.of("kami_economy.action.no_funds") to false
             BuyResult.NothingAvailable -> Phrase.of("kami_economy.action.nothing_available") to false
             BuyResult.OutOfRange -> outOfRange()
-            is BuyResult.NotClean -> notClean(result.step)
         }
     }
 

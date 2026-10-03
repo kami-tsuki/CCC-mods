@@ -98,7 +98,7 @@ class LedgerTest {
         val wallet = setup(FakeWallet(1_000))
         Config.s = Settings(lots = mapOf("test:log" to 64))
         Matching.insertSell("test:log", Order(1, sellerA.toString(), 15, 256, lot = 64))
-        assertEquals(BuyResult.NotClean(64), Ledger.buy(buyer.toString(), "test:log", 100))
+        assertEquals(BuyResult.NothingAvailable, Ledger.buy(buyer.toString(), "test:log", 100))
         assertEquals(BuyResult.Ok(128, 30), Ledger.buy(buyer.toString(), "test:log", 192))
         assertEquals(listOf(sellerA to 27), wallet.deposits)
     }

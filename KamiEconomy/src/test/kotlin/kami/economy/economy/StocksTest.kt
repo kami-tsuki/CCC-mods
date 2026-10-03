@@ -6,9 +6,12 @@ import kami.economy.Market
 import kami.economy.Order
 import kami.economy.Settings
 import kami.economy.StarterGood
+import kami.libs.claims.ClaimsApi
+import kami.libs.claims.Relation
 import java.nio.file.Files
 import java.util.UUID
 import kotlin.math.floor
+import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -18,8 +21,11 @@ class StocksTest {
     private val player = UUID.randomUUID()
     private val deposits = mutableListOf<Int>()
 
-    private fun setup(dailyCap: Int? = null) {
-        Config.s = Settings(starterGoods = listOf(StarterGood("#test:logs", 20, 64, 64, 32, dailyCap)))
+    @AfterTest
+    fun clearClaims() = ClaimsApi.register(null)
+
+    private fun setup(dailyCap: Int? = null, infinite: Boolean = false) {
+        Config.s = Settings(starterGoods = listOf(StarterGood(if (infinite) item else "#test:logs", 20, 64, 64, 32, dailyCap, infinite)))
         Market.data = Data()
         Stocks.index { if (it == "test:logs") listOf(item) else emptyList() }
         deposits.clear()
@@ -120,6 +126,26 @@ class StocksTest {
         assertEquals(SellResult.Full, Ledger.sellToStock(player.toString(), item, 64))
         assertEquals(87, stock().lots)
         assertEquals(1, deposits.size)
+    }
+
+    @Test
+    fun infiniteGoodSellsIntoTradableBidNotStock() {
+        setup(dailyCap = 3, infinite = true)
+        val me = player.toString()
+        val other = UUID.randomUUID()
+        assertEquals(SellResult.Sold(64, 18), Ledger.sellNow(me, item, 64))
+        assertEquals(2, Stocks.capLeft(me, item))
+        Matching.insertBid(item, Order(1, other.toString(), 30, 64, lot = 64))
+        assertEquals(SellResult.Sold(64, 27), Ledger.sellNow(me, item, 64))
+        assertEquals(2, Stocks.capLeft(me, item))
+        ClaimsApi.register(Fakes.claims().also {
+            it.home[player] = "a"
+            it.home[other] = "b"
+            it.relations["a" to "b"] = Relation.EMBARGO
+        })
+        Matching.insertBid(item, Order(2, other.toString(), 30, 64, lot = 64))
+        assertEquals(SellResult.Sold(64, 18), Ledger.sellNow(me, item, 64))
+        assertEquals(1, Stocks.capLeft(me, item))
     }
 
     @Test

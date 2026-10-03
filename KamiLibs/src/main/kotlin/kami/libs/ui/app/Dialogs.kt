@@ -8,6 +8,7 @@ import kami.libs.ui.style.Icon
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
+import kami.libs.ui.style.TextStyle
 import kami.libs.ui.text.tr
 import kami.libs.ui.widget.ButtonStyle
 import kami.libs.ui.widget.CONTROL_H
@@ -72,4 +73,48 @@ fun Ui.numberDialogBody(s: DialogScope, y: Int, state: NumberState, label: Strin
     fieldHelp(Rect(s.body.x, cy, s.body.w, 9), state.text, help)
     cy += 14
     return cy - y
+}
+
+enum class ReceiptKind { LINE, CHARGE, TOTAL, NOTE }
+
+class ReceiptLine(val label: String, val value: String, val kind: ReceiptKind = ReceiptKind.LINE, val tip: String? = null)
+
+fun receiptDialog(
+    open: (Dialog) -> Unit, title: String, icon: Icon, lines: List<ReceiptLine>, primary: String,
+    warning: String? = null, stale: () -> String? = { null }, onConfirm: () -> Unit
+) {
+    open(Dialog(title, null, icon, DialogKind.CONFIRM, 320, stale = stale) { s ->
+        val b = s.body
+        var y = b.y
+        lines.forEachIndexed { i, l ->
+            if (l.kind == ReceiptKind.NOTE) {
+                y += Draw.paragraph(g, l.label, b.x, y, b.w, Palette.textMuted) + 3
+                return@forEachIndexed
+            }
+            val total = l.kind == ReceiptKind.TOTAL
+            val style = if (total) TextStyle.HEADING else TextStyle.BODY
+            val color = when (l.kind) {
+                ReceiptKind.CHARGE -> Palette.textMuted
+                ReceiptKind.TOTAL -> Palette.text
+                else -> Palette.textSecondary
+            }
+            if (total) {
+                Draw.hline(g, b.x, y, b.w, Palette.borderSubtle)
+                y += 4
+            }
+            val rowH = if (total) 12 else 11
+            val value = Draw.width(l.value, style)
+            Draw.text(g, Draw.fit(l.label, b.w - value - 8, style), b.x, y, style, color)
+            Draw.textRight(g, l.value, b.right, y, Palette.text, style)
+            tooltip("receipt:$i", Rect(b.x, y, b.w, rowH), l.tip)
+            y += rowH
+        }
+        y += 4
+        warning?.let { y += consequences(b.x, y, b.w, listOf(Consequence(it, Severity.WARNING))) + 4 }
+        s.used = y - b.y
+        dialogButtons(s, primary) {
+            onConfirm()
+            s.close()
+        }
+    })
 }

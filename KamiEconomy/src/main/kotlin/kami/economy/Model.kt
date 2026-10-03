@@ -39,6 +39,9 @@ class Book(
 )
 
 @Serializable
+class Traded(var sold: Long = 0, var bought: Long = 0)
+
+@Serializable
 class Stock(var lots: Int, var base: Double, var observed: Double = 0.0)
 
 @Serializable
@@ -62,6 +65,7 @@ class Data(
     val frozen: MutableList<Long> = mutableListOf(),
     val stocks: MutableMap<String, Stock> = mutableMapOf(),
     val sold: MutableMap<String, MutableMap<String, Int>> = mutableMapOf(),
+    val traded: MutableMap<String, Traded> = mutableMapOf(),
     var day: Long = 0,
     val vendors: MutableList<Vendor> = mutableListOf()
 )

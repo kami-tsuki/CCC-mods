@@ -78,6 +78,26 @@ class LimitsTest {
     }
 
     @Test
+    fun sellIntoBidsWithFullSlotsFillsAndReturnsRest() {
+        setup(mapOf(CountryCapacity.MARKET_SLOTS to 2))
+        sellOrders(2)
+        Matching.insertBid("test:new", Order(nextId++, UUID.randomUUID().toString(), 10, 3))
+        assertEquals(SellResult.Ok(0, 3, 0, true), Ledger.sell(player, "test:new", 5, 10))
+        assertEquals(2, Limits.marketUsed(player))
+        assertTrue(Matching.bookFor("test:new").sells.isEmpty())
+    }
+
+    @Test
+    fun secondListingOfSameItemUsesNoNewSlot() {
+        setup(mapOf(CountryCapacity.MARKET_SLOTS to 2))
+        sellOrders(1)
+        assertTrue(Ledger.sell(player, "test:new", 1, 10) is SellResult.Ok)
+        assertTrue(Ledger.sell(player, "test:new", 1, 10) is SellResult.Ok)
+        assertEquals(2, Limits.marketUsed(player))
+        assertEquals(2, Matching.bookFor("test:new").sells.size)
+    }
+
+    @Test
     fun auctionsCountOnlyOpenOnesOfThePlayer() {
         setup(mapOf(CountryCapacity.AUCTION_SLOTS to 2))
         auctions(2)

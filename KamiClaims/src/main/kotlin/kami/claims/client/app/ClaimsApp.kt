@@ -21,6 +21,7 @@ import kami.libs.ui.app.AppScreen
 import kami.libs.ui.app.Callout
 import kami.libs.ui.app.Consequence
 import kami.libs.ui.app.KamiApp
+import kami.libs.ui.app.Modules
 import kami.libs.ui.app.NOTICE_LAYER
 import kami.libs.ui.app.NavBadge
 import kami.libs.ui.app.NavGroup
@@ -62,6 +63,7 @@ import org.lwjgl.glfw.GLFW
 
 class ClaimsApp : KamiApp() {
     override val home get() = if (ClaimsStore.info == null) Route("welcome") else Route("dashboard")
+    override val module = "country"
     private var bellOpen = false
     private var lastRoute = ""
 
@@ -191,7 +193,8 @@ class ClaimsApp : KamiApp() {
     }
 
     fun startTour() {
-        tour = Tour(listOf(
+        tour = Tour(listOfNotNull(
+            Callout("modules", tr("kami_claims.tour.modules"), tr("kami_claims.tour.modules.desc")).takeIf { Modules.all.size > 1 },
             Callout("topbar", tr("kami_claims.tour.topbar"), tr("kami_claims.tour.topbar.desc"), Route("dashboard")),
             Callout("bell", tr("kami_claims.common.alerts"), tr("kami_claims.tour.bell.desc")),
             Callout("dashboard:attention", tr("kami_claims.tour.attention"), tr("kami_claims.tour.attention.desc")),

@@ -6,7 +6,7 @@ import kotlin.test.assertTrue
 
 class GateTest {
     private val mutating = listOf("sell", "sell_market", "bid", "reprice", "reprice_bid", "buy", "auction_list", "auction_bid", "auction_buy")
-    private val recovery = listOf("open", "close", "search", "detail", "quote", "auctions", "cancel", "cancel_bid", "auction_cancel", "claim")
+    private val recovery = listOf("open", "close", "view", "detail", "quote", "cancel", "cancel_bid", "auction_cancel", "claim")
 
     @Test
     fun nonCitizensAreBlockedFromTrading() = mutating.forEach { assertTrue(Gate.blocked(it, false), it) }

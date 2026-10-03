@@ -16,7 +16,10 @@ import kami.claims.net.Snap
 import kami.libs.net.SnapshotPayload
 import kami.libs.net.decode
 import kami.claims.service.View
+import kami.libs.ui.app.AppModule
 import kami.libs.ui.app.AppScreen
+import kami.libs.ui.app.Modules
+import kami.libs.ui.style.Icons
 import kami.libs.ui.map.TerrainCache
 import kami.libs.ui.style.Palette
 import kami.libs.xaero.Highlights
@@ -39,6 +42,7 @@ object ClientHooks {
     private var ticks = 0
 
     fun init() {
+        Modules.register(AppModule("country", "kami_libs.common.country", Icons.FLAG) { request("open") })
         Highlights.register(KamiHighlighter())
         ResearchTooltip.init()
         ResearchPins.register()

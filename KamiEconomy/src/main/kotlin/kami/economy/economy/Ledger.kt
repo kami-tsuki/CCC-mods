@@ -74,26 +74,25 @@ data class Intent(
 class IntentOpenException : RuntimeException()
 
 sealed class SellResult {
-    data class Ok(val orderId: Long, val filled: Int = 0) : SellResult()
+    data class Ok(val orderId: Long, val filled: Int = 0, val listed: Int = 0, val limited: Boolean = false) : SellResult()
     data class Sold(val filled: Int, val net: Long) : SellResult()
     object NoBuyers : SellResult()
     object Failed : SellResult()
     data class NotClean(val step: Int) : SellResult()
     object Full : SellResult()
-    object IntentOpen : SellResult()
+    data class IntentOpen(val kept: Int) : SellResult()
     data class Limit(val max: Int) : SellResult()
 }
 
 sealed class BuyResult {
     data class Ok(val filled: Int, val spent: Long) : BuyResult()
     object OutOfRange : BuyResult()
-    data class NotClean(val step: Int) : BuyResult()
     object InsufficientFunds : BuyResult()
     object NothingAvailable : BuyResult()
 }
 
 sealed class OrderResult {
-    data class Ok(val orderId: Long) : OrderResult()
+    data class Ok(val orderId: Long, val qty: Int = 0) : OrderResult()
     object OutOfRange : OrderResult()
     data class NotClean(val step: Int) : OrderResult()
     object InsufficientFunds : OrderResult()
@@ -228,25 +227,22 @@ object Ledger {
 
     fun sell(seller: String, item: String, qty: Int, unitPrice: Int): SellResult {
         if (!Config.s.validAmount(qty) || !Config.s.validPrice(unitPrice)) return SellResult.Failed
-        val price = Matching.bookFor(item).sells.firstOrNull { it.owner == seller }?.price ?: unitPrice
+        val price = Matching.listPrice(seller, item, unitPrice)
         val lot = Config.s.lotOf(item)
-        if (qty % lot != 0) return SellResult.NotClean(lot)
-        if (!Matching.isClean(qty / lot, price)) return SellResult.NotClean(Matching.step(price) * lot)
-        val gross = qty.toLong() / lot * price
-        if (Money.spurs(gross) == null) return SellResult.Failed
-        val plan = Matching.sellPlan(seller, item, qty, minPrice = price).takeIf { it.filled > 0 && it.net > 0 }
-        if (qty > (plan?.filled ?: 0) && Limits.marketFull(seller)) return SellResult.Limit(Limits.marketSlots(seller))
+        val quote = Matching.sellQuote(seller, item, qty, price)
+        if (quote.filled == 0 && quote.limited) return SellResult.Limit(Limits.marketSlots(seller))
+        if (quote.filled == 0 && quote.listed == 0) return SellResult.NotClean(quote.step)
+        if (Money.spurs(qty.toLong() / lot * price) == null) return SellResult.Failed
         val filled = try {
-            plan?.let { sellPlanned(seller, item, it) } ?: 0
+            quote.plan?.let { sellPlanned(seller, item, it) } ?: 0
         } catch (_: IntentOpenException) {
-            return SellResult.IntentOpen
+            return SellResult.IntentOpen(quote.filled)
         }
-        val rest = qty - filled
-        if (rest <= 0) {
+        if (quote.listed <= 0) {
             Market.save()
-            return SellResult.Ok(0, filled)
+            return SellResult.Ok(0, filled, 0, quote.limited)
         }
-        return listRest(seller, item, rest, price, lot, filled)
+        return listRest(seller, item, quote.listed, price, lot, filled)
     }
 
     private fun listRest(seller: String, item: String, rest: Int, price: Int, lot: Int, filled: Int): SellResult {
@@ -259,7 +255,7 @@ object Ledger {
         } catch (e: Exception) {
             if (filled == 0) throw e
             LOG.error("sell of {} could not log its remainder after a partial fill", item, e)
-            return SellResult.IntentOpen
+            return SellResult.IntentOpen(filled)
         }
         try {
             Matching.insertSell(item, Order(id, seller, price, rest, lot = lot))
@@ -268,22 +264,21 @@ object Ledger {
             Market.save()
         } catch (e: Exception) {
             LOG.error("sell of {} left ledger intent {} open for recovery", item, id, e)
-            return SellResult.IntentOpen
+            return SellResult.IntentOpen(filled + rest)
         }
-        return SellResult.Ok(id, filled)
+        return SellResult.Ok(id, filled, rest)
     }
 
     fun sellNow(seller: String, item: String, qty: Int): SellResult {
         if (!Config.s.validAmount(qty)) return SellResult.Failed
         val lot = Config.s.lotOf(item)
-        if (qty % lot != 0) return SellResult.NotClean(lot)
-        val plan = Matching.sellPlan(seller, item, qty)
+        val plan = Matching.sellPlan(seller, item, qty - qty % lot)
         if (plan.filled <= 0 || plan.net <= 0) return if (Stocks.stock(item) != null && Stocks.room(item) <= 0) SellResult.Full else SellResult.NoBuyers
         if (Money.spurs(plan.gross) == null) return SellResult.Failed
         val filled = try {
             sellPlanned(seller, item, plan)
         } catch (_: IntentOpenException) {
-            return SellResult.IntentOpen
+            return SellResult.IntentOpen(plan.filled)
         }
         Market.save()
         return SellResult.Sold(filled, plan.net)
@@ -321,20 +316,21 @@ object Ledger {
     fun bid(buyer: String, item: String, qty: Int, price: Int): OrderResult {
         if (!Config.s.validAmount(qty) || !Config.s.validPrice(price)) return OrderResult.OutOfRange
         val lot = Config.s.lotOf(item)
-        if (qty % lot != 0) return OrderResult.NotClean(lot)
-        if (!Matching.isClean(qty / lot, price)) return OrderResult.NotClean(Matching.step(price) * lot)
+        val step = Matching.step(price) * lot
+        val amount = qty - qty % step
+        if (amount <= 0) return OrderResult.NotClean(step)
         if (Matching.bookFor(item).buys.any { it.owner == buyer }) return OrderResult.Exists
         if (Limits.marketFull(buyer)) return OrderResult.Limit(Limits.marketSlots(buyer))
         if (Matching.effectiveSellPrice(item)?.let { it <= price } == true) return OrderResult.Crosses
-        val escrow = qty.toLong() / lot * price
+        val escrow = amount.toLong() / lot * price
         val total = Money.spurs(escrow) ?: return OrderResult.OutOfRange
         val buyerId = UUID.fromString(buyer)
         if (wallet.balance(buyerId) < total) return OrderResult.InsufficientFunds
-        val intent = Intent(Market.nextId(), IntentType.BID, LedgerState.PENDING, actor = buyer, item = item, qty = qty, unitPrice = price, netSpurs = escrow, lot = lot)
+        val intent = Intent(Market.nextId(), IntentType.BID, LedgerState.PENDING, actor = buyer, item = item, qty = amount, unitPrice = price, netSpurs = escrow, lot = lot)
         if (!debit(intent, buyerId, total)) return OrderResult.InsufficientFunds
         placeBid(intent)
         Market.save()
-        return OrderResult.Ok(intent.id)
+        return OrderResult.Ok(intent.id, amount)
     }
 
     private fun placeBid(intent: Intent) {
@@ -362,7 +358,6 @@ object Ledger {
         if (creditOrFreeze(current, current.actor, current.netSpurs, current.preBalance)) write(current.copy(state = LedgerState.PAID))
     }
 
-    // test helper: production stock sales go through sellNow
     internal fun sellToStock(seller: String, item: String, qty: Int): SellResult {
         if (!Config.s.validAmount(qty)) return SellResult.Failed
         val lot = Stocks.good(item)?.lot ?: return SellResult.Failed
@@ -392,8 +387,7 @@ object Ledger {
     fun buy(buyer: String, item: String, qty: Int): BuyResult {
         if (!Config.s.validAmount(qty)) return BuyResult.OutOfRange
         val lot = Config.s.lotOf(item)
-        if (qty % lot != 0) return BuyResult.NotClean(lot)
-        val plan = Matching.plan(item, qty, buyer)
+        val plan = Matching.plan(item, qty - qty % lot, buyer)
         if (plan.filled <= 0) return BuyResult.NothingAvailable
         val total = Money.spurs(plan.totalSpurs) ?: return BuyResult.OutOfRange
         val buyerId = UUID.fromString(buyer)

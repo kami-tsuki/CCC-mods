@@ -8,7 +8,11 @@ object EconomyProvider : MarketProvider {
     override fun value(item: ItemStack): Long = if (item.isEmpty) 0 else valueOf(Blacklist.itemId(item), item.count)
 
     fun valueOf(id: String, count: Int): Long {
-        val perLot = (if (Stocks.good(id) != null) Stocks.basePrice(id) else Matching.bestPrice(id)) ?: return 0
+        val perLot = when {
+            Stocks.infinite(id) -> Matching.bestBid(id) ?: Stocks.basePrice(id)
+            Stocks.good(id) != null -> Stocks.basePrice(id)
+            else -> Matching.bestPrice(id)
+        } ?: return 0
         return perLot.toLong() * count / Config.s.lotOf(id)
     }
 }

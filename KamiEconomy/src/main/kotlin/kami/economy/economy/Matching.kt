@@ -5,6 +5,7 @@ import kami.economy.Config
 import kami.economy.Fill
 import kami.economy.Market
 import kami.economy.Order
+import kami.economy.Traded
 import kami.economy.now
 import kami.libs.economy.CleanStep
 
@@ -14,6 +15,10 @@ class FillLinePlan(
 ) {
     val market: Boolean get() = orderId == Stocks.ORDER_ID
     val paid: Long get() = if (market) gross + tax else gross + tariff
+}
+
+class SellQuote(val plan: SellPlan?, val listed: Int, val step: Int, val limited: Boolean) {
+    val filled get() = plan?.filled ?: 0
 }
 
 class BuyPlan(val fills: List<FillLinePlan>, val filled: Int, val totalSpurs: Long)
@@ -56,8 +61,23 @@ object Matching {
     fun bids(item: String): List<Order> =
         bookFor(item).buys.filter { it.amount > 0 }.sortedWith(compareByDescending<Order> { it.price }.thenBy { it.placedAt })
 
+    fun stockBid(seller: String, item: String): Int? =
+        if (Stocks.infinite(item) && bids(item).any { it.owner != seller && !Trade.terms(it.owner, seller).blocked }) null else Stocks.bid(seller, item)
+
+    fun listPrice(seller: String, item: String, price: Int): Int = bookFor(item).sells.firstOrNull { it.owner == seller }?.price ?: price
+
+    fun sellQuote(seller: String, item: String, qty: Int, price: Int): SellQuote {
+        val lot = Config.s.lotOf(item)
+        val whole = qty - qty % lot
+        val plan = sellPlan(seller, item, whole, minPrice = price).takeIf { it.filled > 0 && it.net > 0 }
+        val rest = whole - (plan?.filled ?: 0)
+        val step = step(price) * lot
+        val limited = Limits.marketFull(seller) && bookFor(item).sells.none { it.owner == seller }
+        return SellQuote(plan, if (limited) 0 else rest - rest % step, step, limited)
+    }
+
     fun sellPlan(seller: String, item: String, qty: Int, minPrice: Int? = null): SellPlan {
-        val stockBid = if (minPrice == null) Stocks.bid(seller, item) else null
+        val stockBid = if (minPrice == null) stockBid(seller, item) else null
         val (good, poor) = bids(item).filter { minPrice == null || it.price >= minPrice }.partition { stockBid == null || it.price >= stockBid }
         val t = Taker(qty, seller) { Trade.terms(it, seller) }
         good.forEach(t::take)
@@ -75,12 +95,18 @@ object Matching {
         return SellPlan(t.fills, qty - t.remaining, capLots, after)
     }
 
+    private fun traded(item: String): Traded = Market.data.traded.getOrPut(item) { Traded() }
+
     fun applySale(item: String, seller: String, fills: List<FillLinePlan>, capLots: Int) {
         val book = Market.book(item)
         val lot = Config.s.lotOf(item)
         fills.forEach { f ->
-            if (f.market) return@forEach Stocks.sold(seller, item, f.qty / f.lot.coerceAtLeast(1), capLots, f.unitPrice)
+            if (f.market) {
+                traded(item).sold += f.qty
+                return@forEach Stocks.sold(seller, item, f.qty / f.lot.coerceAtLeast(1), capLots, f.unitPrice)
+            }
             val bid = book.buys.firstOrNull { it.id == f.orderId } ?: return@forEach
+            traded(item).sold += f.qty
             bid.amount -= f.qty
             Market.queueDelivery(bid.owner, item, f.qty)
             val perLot = (f.gross * lot / f.qty.coerceAtLeast(1)).toInt()
@@ -128,6 +154,7 @@ object Matching {
                 order.amount -= f.qty
                 if (!Trade.sameCountry(buyer, order.owner)) Stocks.observe(item, perLot)
             }
+            traded(item).bought += f.qty
             book.lastFill = perLot
             book.recentFills += Fill(perLot, f.qty, now())
         }
@@ -153,6 +180,15 @@ object Matching {
     fun bestPrice(item: String): Int? = bookFor(item).sells.filter { it.amount > 0 }.minOfOrNull { it.price }
 
     fun effectiveSellPrice(item: String): Int? = listOfNotNull(bestPrice(item), Stocks.ask(item)).minOrNull()
+
+    fun bestAsk(item: String, viewer: String): Int? =
+        listOfNotNull(bookFor(item).sells.filter { it.amount > 0 && it.owner != viewer && !Trade.terms(viewer, it.owner).blocked }.minOfOrNull { it.price }, Stocks.ask(item)).minOrNull()
+
+    fun openBids(item: String, viewer: String): List<Order> =
+        bids(item).filter { it.owner != viewer && !Trade.terms(it.owner, viewer).blocked }
+
+    fun bestBidFor(item: String, viewer: String): Int? =
+        listOfNotNull(openBids(item, viewer).firstOrNull()?.price, stockBid(viewer, item)).maxOrNull()
 
     fun available(item: String, viewer: String = ""): Int {
         val stock = Stocks.stock(item)?.let { it.lots.toLong() * Config.s.lotOf(item) } ?: 0L

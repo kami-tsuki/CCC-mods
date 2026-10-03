@@ -86,6 +86,28 @@ class BidsTest {
     }
 
     @Test
+    fun uncleanAmountIsRoundedNotRejected() {
+        val wallet = setup()
+        val sold = Ledger.sell(seller.toString(), item, 7, 15)
+        assertTrue(sold is SellResult.Ok && sold.listed == 6)
+        assertEquals(listOf(6), Market.book(item).sells.map { it.amount })
+        val bid = Ledger.bid(bidderA.toString(), item, 25, 7)
+        assertTrue(bid is OrderResult.Ok && bid.qty == 20)
+        assertEquals(860, wallet.funds)
+    }
+
+    @Test
+    fun tradedCountersTrackBuysAndSells() {
+        setup()
+        Ledger.bid(bidderA.toString(), item, 10, 20)
+        Ledger.sellNow(seller.toString(), item, 4)
+        assertEquals(4, Market.data.traded.getValue(item).sold)
+        Matching.insertSell(item, Order(50, seller.toString(), 40, 5))
+        Ledger.buy(bidderB.toString(), item, 5)
+        assertEquals(5, Market.data.traded.getValue(item).bought)
+    }
+
+    @Test
     fun instantSellFillsBestBidsPartially() {
         val wallet = setup()
         Ledger.bid(bidderB.toString(), item, 10, 15)

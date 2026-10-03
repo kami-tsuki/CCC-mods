@@ -18,6 +18,9 @@ object Numismatics {
         return if (Money.canDebit(account.balance.toLong(), part.toLong()) && account.deduct(part, false)) part else 0
     }
 
+    fun richest(limit: Int): List<Pair<UUID, Long>> =
+        runCatching { Nu.BANK.accounts.values.filter { it.type == BankAccount.Type.PLAYER }.map { it.id to it.balance.toLong() }.sortedByDescending { it.second }.take(limit) }.getOrDefault(emptyList())
+
     fun deposit(id: UUID, amount: Int): Boolean {
         if (amount < 0) return false
         if (amount == 0) return true

@@ -44,7 +44,7 @@ class PricingTest {
         val item = "test:idle-${System.nanoTime()}"
         Market.book(item).midPrice = 50.0
         Pricing.tick()
-        assertTrue(History.of(item, Resolution.RAW, 10).isEmpty())
+        assertTrue(History.series(item, Range.DAY, System.currentTimeMillis(), 0.0).buckets.isEmpty())
     }
 
     @Test
@@ -55,7 +55,7 @@ class PricingTest {
         book.midPrice = 50.0
         book.recentFills += Fill(55, 3, 0)
         Pricing.tick()
-        val history = History.of(item, Resolution.RAW, 10)
+        val history = History.series(item, Range.DAY, System.currentTimeMillis(), 0.0).buckets
         assertEquals(1, history.size)
         assertEquals(3L, history.first().volume)
         assertFalse(book.recentFills.isNotEmpty())
