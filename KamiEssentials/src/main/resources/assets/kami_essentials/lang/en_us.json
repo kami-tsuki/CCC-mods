@@ -213,5 +213,7 @@
   "kami_essentials.discord.command.unlinked.other": "Unlinked %s from Discord.",
   "kami_essentials.discord.command.lookup": "%s is linked to %s (%s).",
   "kami_essentials.discord.command.reloaded": "Discord settings reloaded.",
-  "kami_essentials.discord.command.reload_failed": "Reload failed: %s"
+  "kami_essentials.discord.command.reload_failed": "Reload failed: %s",
+  "kami_essentials.motd.countries": "%s countries",
+  "kami_essentials.motd.closed": "Market opens soon"
 }

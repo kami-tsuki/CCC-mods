@@ -18,13 +18,14 @@ internal object Sanitize {
 
     fun cap(text: String, max: Int): Pair<String, Boolean> = if (text.length <= max) text to false else text.take(max) to true
 
-    fun outbound(text: String): String = clean(text).split(code).let { parts ->
-        val spans = code.findAll(clean(text)).map { it.value }.toList()
-        parts.indices.joinToString("") { i -> MarkdownSanitizer.escape(parts[i]) + spans.getOrElse(i) { "" } }
+    fun outbound(text: String): String {
+        val cleaned = clean(text)
+        val spans = code.findAll(cleaned).map { it.value }.toList()
+        return cleaned.split(code).mapIndexed { i, part -> MarkdownSanitizer.escape(part) + spans.getOrElse(i) { "" } }.joinToString("")
+            .replace("@everyone", "@${ZWSP}everyone")
+            .replace("@here", "@${ZWSP}here")
+            .replace(roleMention) { "<@$ZWSP&${it.groupValues[1]}>" }
     }
-        .replace("@everyone", "@${ZWSP}everyone")
-        .replace("@here", "@${ZWSP}here")
-        .replace(roleMention) { "<@$ZWSP&${it.groupValues[1]}>" }
 
     fun name(text: String): String {
         val safe = clean(text).replace('\n', ' ').take(80).trim().replace(reserved) { "${it.value.take(1)}$ZWSP${it.value.drop(1)}" }

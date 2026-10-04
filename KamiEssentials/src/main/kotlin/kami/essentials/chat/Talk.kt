@@ -38,14 +38,21 @@ object Talk {
         val p = e.player
         val country = Store[Flag.COUNTRY_CHAT, p.uuid]
         val admin = Store[Flag.ADMIN_CHAT, p.uuid] && Perms.has(p, Perms.ADMINCHAT)
-        if (!e.isCanceled && !country && !admin && !Vanish.active(p)) Relay.chat(p, e.rawText)
-        if (!Config.s.chat && !country && !admin) return
+        val relay = !e.isCanceled && !country && !admin && !Vanish.active(p)
+        if (!Config.s.chat && !country && !admin) {
+            if (relay) Relay.chat(p, body(e.rawText, p).string)
+            return
+        }
         e.isCanceled = true
         when {
             admin -> admin(p, e.rawText)
             country -> country(p, e.rawText)
             Vanish.active(p) -> p.tell(chat.warn(Phrase.of("kami_essentials.talk.invisible", Phrase.value("/invis"), Phrase.value("/msg"))))
-            else -> broadcast(p, line(channelTag(Config.s.channels.globalIcon, Config.s.channels.globalColor).append(Names.playerGlobal(p)), e.rawText, p)) { true }
+            else -> {
+                val body = body(e.rawText, p)
+                if (relay) Relay.chat(p, body.string)
+                broadcast(p, line(channelTag(Config.s.channels.globalIcon, Config.s.channels.globalColor).append(Names.playerGlobal(p)), body)) { true }
+            }
         }
     }
 

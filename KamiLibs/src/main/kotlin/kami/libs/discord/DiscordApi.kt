@@ -6,7 +6,7 @@ import net.minecraft.server.MinecraftServer
 enum class DiscordState { OFF, CONNECTING, READY, DISABLED }
 
 class Post(val name: String, val avatar: String, val text: String, val mentions: Set<Long> = emptySet())
-class Embed(val text: String, val color: Int, val icon: String? = null)
+class Embed(val text: String, val color: Int, val icon: String? = null, val author: String? = null)
 class Attachment(val name: String, val url: String)
 class Inbound(
     val userId: Long, val userName: String, val messageId: Long, val text: String, val overflow: Boolean, val full: String,
@@ -73,7 +73,8 @@ object DiscordApi {
         val text = Sanitize.outbound(embed.text).take(1024)
         if (text.isBlank()) return@guard
         val icon = embed.icon?.takeIf { it.startsWith("http") && it.length <= 2000 }
-        val built = EmbedBuilder().setColor(embed.color).setDescription(if (icon == null) text else "[​]($icon) $text").build()
+        val author = embed.author?.let(Sanitize::name)
+        val built = EmbedBuilder().setColor(embed.color).setDescription(text).also { if (author != null) it.setAuthor(author, null, icon) }.build()
         Outbox.submit(Outbox.Channel.CHAT, Outbox.Task({ it.sendMessageEmbeds(built) }, { it.sendMessageEmbeds(built) }))
     }
 

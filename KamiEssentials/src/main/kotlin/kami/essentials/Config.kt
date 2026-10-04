@@ -109,6 +109,9 @@ data class DiscordStatus(
 )
 
 @Serializable
+data class MotdSettings(val enabled: Boolean = true, val title: String = "Kami", val frameSeconds: Int = 6, val itemsPerFrame: Int = 3, val frames: Int = 4)
+
+@Serializable
 data class DiscordVerify(val codeMinutes: Int = 15, val attempts: Int = 5, val windowMinutes: Int = 10, val banSync: Boolean = true)
 
 @Serializable
@@ -143,6 +146,7 @@ data class Settings(
     val inlineStyle: InlineStyle = InlineStyle(),
     val channels: ChatChannelStyle = ChatChannelStyle(),
     val discord: DiscordSettings = DiscordSettings(),
+    val motd: MotdSettings = MotdSettings(),
 )
 
 private val tokenAlias = Regex("""[a-z0-9_:-]{1,24}""")
@@ -196,6 +200,7 @@ private fun Settings.sane() = copy(
         ),
         verify = discord.verify.copy(codeMinutes = discord.verify.codeMinutes.coerceIn(1, 60), attempts = discord.verify.attempts.coerceAtLeast(1))
     ),
+    motd = motd.copy(frameSeconds = motd.frameSeconds.coerceIn(5, 300), itemsPerFrame = motd.itemsPerFrame.coerceIn(1, 4), frames = motd.frames.coerceIn(1, 20)),
 )
 
 private val sections = listOf(
@@ -231,6 +236,17 @@ private val sections = listOf(
             "sidebar" to "Show the stats sidebar. Players can hide it with /scoreboard.",
             "sidebarTitle" to "Title of the sidebar.",
             "sidebarLines" to "Lines from top to bottom: ${Sidebar.LINES.keys.joinToString()}. An empty string is a spacer."
+        )
+    ),
+    Section(
+        "motd.json", "Server list MOTD: title with live stats and a rotating market ticker.",
+        mapOf(
+            "motd" to "Server list message.",
+            "motd.enabled" to "Replace the server.properties motd with the live one.",
+            "motd.title" to "Name shown at the start of the first line.",
+            "motd.frameSeconds" to "Seconds each ticker page stays before the next one (5-300).",
+            "motd.itemsPerFrame" to "Market items per ticker page (1-4); items that do not fit the line are dropped.",
+            "motd.frames" to "Number of ticker pages to rotate through (1-20)."
         )
     ),
     Section(

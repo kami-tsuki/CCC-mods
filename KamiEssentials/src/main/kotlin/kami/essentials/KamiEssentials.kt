@@ -10,6 +10,7 @@ import kami.essentials.discord.Bot
 import kami.essentials.discord.Console
 import kami.essentials.discord.Gate
 import kami.essentials.display.Sidebar
+import kami.essentials.display.Motd
 import kami.essentials.display.Tab
 import kami.essentials.inv.Offline
 import kami.essentials.net.Net
@@ -58,6 +59,7 @@ object KamiEssentials {
             Bot.tick(it.server)
             if (it.server.tickCount % 20 == 0) {
                 Tab.tick(it.server)
+                Motd.tick(it.server)
                 Sidebar.tick(it.server)
                 InlineFeatures.prune()
                 Unstuck.tick(it.server)

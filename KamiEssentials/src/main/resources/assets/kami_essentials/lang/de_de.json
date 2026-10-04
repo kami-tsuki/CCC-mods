@@ -213,5 +213,7 @@
   "kami_essentials.discord.command.unlinked.other": "%s von Discord getrennt.",
   "kami_essentials.discord.command.lookup": "%s ist mit %s (%s) verknüpft.",
   "kami_essentials.discord.command.reloaded": "Discord-Einstellungen neu geladen.",
-  "kami_essentials.discord.command.reload_failed": "Neuladen fehlgeschlagen: %s"
+  "kami_essentials.discord.command.reload_failed": "Neuladen fehlgeschlagen: %s",
+  "kami_essentials.motd.countries": "%s Länder",
+  "kami_essentials.motd.closed": "Der Markt öffnet bald"
 }

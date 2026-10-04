@@ -68,7 +68,9 @@ object Relay : DiscordFeature {
 
     private fun feed(on: Boolean, template: String, color: Int, p: ServerPlayer, vararg extra: Pair<String, String>) {
         if (!Config.s.discord.enabled || !on) return
-        DiscordApi.event(Embed(Templates.fill(template, values(p) + extra), color, Avatars.of(p.uuid)))
+        val name = p.gameProfile.name
+        val coded = values(p).mapValues { (k, v) -> if (k == "uuid") v else Templates.code(v) } + extra.map { (k, v) -> k to if (k == "message") v.replace(name, Templates.code(name)) else v }
+        DiscordApi.event(Embed(Templates.fill(template, coded), color, Avatars.of(p.uuid), name))
     }
 
     private fun values(p: ServerPlayer) = mapOf(
