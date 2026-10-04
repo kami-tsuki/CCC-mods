@@ -6,6 +6,7 @@ import kami.claims.research.Capacity
 import kami.claims.research.Levels
 import kami.claims.research.ResearchState
 import kami.claims.service.Housing
+import kami.claims.service.Announce
 import kami.claims.service.Work
 import kami.libs.config.WorldStore
 import kotlinx.serialization.Serializable
@@ -153,7 +154,6 @@ class Country(
     val members: MutableMap<String, Member> = mutableMapOf(),
     val outsiders: MutableMap<String, Rank> = mutableMapOf(),
     val rules: MutableMap<String, MutableMap<Action, Access>> = mutableMapOf(),
-    val machines: MutableMap<String, Boolean> = mutableMapOf(),
     val fire: MutableMap<String, Boolean> = mutableMapOf(),
     val jobs: MutableMap<String, JobDef> = mutableMapOf(),
     val invites: MutableMap<String, Long> = mutableMapOf(),
@@ -253,6 +253,7 @@ object Realm {
     }
 
     fun load(server: MinecraftServer) {
+        Announce.server = server
         val path = server.getWorldPath(LevelResource.ROOT).resolve("kami_claims.json")
         reset(store.load(path) { KamiClaims.LOG.error("Unreadable claims data, kept as .bad", it) })
     }
@@ -426,12 +427,14 @@ object Realm {
         data.countries.values.forEach { it.alliances.remove(c.id); it.allianceOffers.remove(c.id); it.tradePolicy.remove(c.id) }
         if (tenants.isEmpty()) return erase(c)
         c.state = CountryState.DISBANDED
+        Announce.fire("disbanded", c, mapOf("country" to c.name))
         tenants.forEach { Housing.moveOut(c, it, "dissolved") }
         syncAllies()
         changed()
     }
 
     fun erase(c: Country) {
+        if (c.active) Announce.fire("disbanded", c, mapOf("country" to c.name))
         unclaimAll(claims(c.id).toList())
         data.countries.remove(c.id)
         Buffs.dropBorders(c.id)

@@ -5,6 +5,7 @@ import kami.libs.text.Phrase
 import kami.essentials.Config
 import kami.essentials.Flag
 import kami.essentials.Store
+import kami.essentials.discord.Relay
 import kami.essentials.vanish.Vanish
 import kami.libs.chat.Theme
 import net.minecraft.ChatFormatting
@@ -27,6 +28,7 @@ object Feed {
         if (!joinLeave && !death && !achieved) return false
         val id = (contents.args.firstOrNull() as? Component)?.style?.hoverEvent?.getValue(HoverEvent.Action.SHOW_ENTITY)?.id
         val hidden = id != null && id in Store.ids(Flag.INVISIBLE)
+        if (death || achieved) relay(message, contents, id, death)
         return when {
             joinLeave -> Config.s.joinLeave || hidden
             death && (Config.s.deaths || hidden) -> death(message, id)
@@ -36,11 +38,21 @@ object Feed {
     }
 
     fun join(p: ServerPlayer, toggle: Phrase? = null) {
+        if (toggle != null || !Vanish.active(p)) Relay.join(p)
         if (Config.s.joinLeave || toggle != null) send(p, line(p, "[+]", Theme.OK, "kami_essentials.feed.joined"), toggle)
     }
 
     fun leave(p: ServerPlayer, toggle: Phrase? = null) {
+        if (toggle != null || !Vanish.active(p)) Relay.leave(p)
         if (Config.s.joinLeave || toggle != null) send(p, line(p, "[-]", Theme.BAD, "kami_essentials.feed.left"), toggle)
+    }
+
+    private fun relay(message: Component, contents: TranslatableContents, id: UUID?, death: Boolean) {
+        val p = id?.let { ServerLifecycleHooks.getCurrentServer()?.playerList?.getPlayer(it) } ?: return
+        val invisible = Store.ids(Flag.INVISIBLE)
+        if (Vanish.active(p) || contents.args.mapNotNull { (it as? Component)?.style?.hoverEvent?.getValue(HoverEvent.Action.SHOW_ENTITY)?.id }.any(invisible::contains)) return
+        if (death) Relay.death(p, message.string)
+        else Relay.advancement(p, message.string, (contents.args.getOrNull(1) as? Component)?.string.orEmpty(), contents.key.substringAfterLast('.'))
     }
 
     private fun death(message: Component, id: UUID?): Boolean {

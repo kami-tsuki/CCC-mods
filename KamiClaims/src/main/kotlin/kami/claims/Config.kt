@@ -22,6 +22,26 @@ private fun rule(brk: Access, place: Access, interact: Access, container: Access
 private fun type(price: Int, period: Int = 1, job: String? = null, rule: Rule) = TypeDef(price, period, job, rule)
 
 @Serializable
+data class Announcement(val mc: Boolean = true, val discord: Boolean = true, val template: String = "") {
+    companion object {
+        val defaults = linkedMapOf(
+            "founded" to Announcement(template = "{leader} founded the country {country}."),
+            "levelUp" to Announcement(template = "{country} reached level {level}."),
+            "allianceFormed" to Announcement(template = "{country} and {other} formed an alliance."),
+            "allianceEnded" to Announcement(template = "{country} ended its alliance with {other}."),
+            "provinceBecame" to Announcement(template = "{province} became a province of {parent}."),
+            "provinceReleased" to Announcement(template = "{province} was released into independence by {parent}."),
+            "provinceGiven" to Announcement(template = "{province} was handed from {parent} to {other}."),
+            "embargoOn" to Announcement(template = "{country} imposed an embargo on {other}."),
+            "embargoOff" to Announcement(template = "{country} lifted its embargo on {other}."),
+            "leaderHandover" to Announcement(template = "{old} handed the presidency of {country} to {leader}."),
+            "succession" to Announcement(template = "{country}'s president {old} was inactive, {leader} took over."),
+            "disbanded" to Announcement(template = "{country} was disbanded.")
+        )
+    }
+}
+
+@Serializable
 data class Settings(
     val dayMillis: Long = 86_400_000,
     val dimensions: List<String> = listOf("minecraft:overworld"),
@@ -77,6 +97,7 @@ data class Settings(
     val broadcast: Boolean = true,
     val guiCooldown: Int = 4,
     val mailLimit: Int = 10,
+    val announce: Map<String, Announcement> = Announcement.defaults,
     val types: Map<String, TypeDef> = linkedMapOf(
         "civic" to type(1, rule = rule(Access.CITIZEN, Access.CITIZEN, Access.ALLIED, Access.CITIZEN)),
         "mining" to type(3, job = "miner", rule = rule(Access.JOB, Access.JOB, Access.ALLIED, Access.JOB, true)),
@@ -220,6 +241,15 @@ private val sections = listOf(
             "titles" to "Use a big title when crossing a border between countries.",
             "broadcast" to "Tell the whole server when a country is founded.",
             "mailLimit" to "Most messages kept for an offline member."
+        )
+    ),
+    Section(
+        "discord.json", "Country events sent to global chat and the Discord chat channel. Needs the Discord bot of KamiEssentials for Discord.",
+        mapOf(
+            "announce" to "Per event: mc sends it to global chat (needs broadcast in messages.json), discord sends the template to Discord. Templates fill {country}, {leader}, {old}, {level}, {other}, {province} and {parent} depending on the event: founded {country} {leader}, levelUp {country} {level}, allianceFormed and allianceEnded {country} {other}, provinceBecame, provinceReleased and provinceGiven {province} {parent} {other}, embargoOn and embargoOff {country} {other}, leaderHandover and succession {country} {old} {leader}, disbanded {country}.",
+            "announce.*.mc" to "Send this event to global chat.",
+            "announce.*.discord" to "Send this event to Discord.",
+            "announce.*.template" to "Discord text with placeholders in braces."
         )
     )
 )

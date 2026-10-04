@@ -106,7 +106,7 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
     private fun locked(type: String, field: String) = ACTIONS.indexOf(field).let { it >= 0 && ruleLocked(type, Action.entries[it]) }
 
     private fun stage(t: TypeLine, field: String, value: String) {
-        if (locked(t.name, field)) return
+        if (locked(t.name, field) || field == "machines") return
         if (value == original(t, field)) staged.remove(key(t.name, field)) else staged[key(t.name, field)] = value
     }
 
@@ -195,7 +195,8 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
                 flags.forEachIndexed { i, f ->
                     val cell = Rect(line.x + labelW + actions.size * actionW + i * 34 + 5, y + 2, 26, SMALL_H)
                     val on = current(t, f) == "true"
-                    ui.toggle(cell, on, "", editable, lock("rules"), tr("kami_libs.format.pair", Vocabulary.flags[i].second.label, tr(if (on) "kami_claims.law.on" else "kami_libs.common.off")), key = "flag:${t.name}:$f")?.let {
+                    val fixed = f == "machines"
+                    ui.toggle(cell, on, "", editable && !fixed, if (fixed) tr("kami_claims.law.machines_locked") else lock("rules"), tr("kami_libs.format.pair", Vocabulary.flags[i].second.label, tr(if (on) "kami_claims.law.on" else "kami_libs.common.off")), key = "flag:${t.name}:$f")?.let {
                         stage(t, f, it.toString())
                         focusCell = t.name to f
                     }

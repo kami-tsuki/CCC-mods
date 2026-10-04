@@ -7,8 +7,10 @@ import kami.essentials.Perms
 import kami.essentials.Store
 import kami.essentials.chat.Talk
 import kami.essentials.client.ClientEssentials
+import kami.essentials.discord.Gate
 import kami.essentials.display.Sidebar
 import kami.essentials.vanish.Vanish
+import kami.libs.discord.Links
 import kami.libs.net.ActPayload
 import kami.libs.net.Packets
 import kami.libs.net.SnapshotPayload
@@ -25,7 +27,7 @@ private val actChannel = ActPayload.channel(packets, maxArgs = 2, maxArg = 16, w
 private val snapshotChannel = SnapshotPayload.channel(packets, maxBytes = 4096)
 
 @Serializable
-class Snap(val channel: String, val channels: List<String>, val sidebar: Boolean?, val trades: Boolean?, val dmSound: Boolean, val invisible: Boolean?)
+class Snap(val channel: String, val channels: List<String>, val sidebar: Boolean?, val trades: Boolean?, val dmSound: Boolean, val invisible: Boolean?, val discordOn: Boolean = false, val discord: String? = null, val discordPing: Boolean = true)
 
 object Net {
     private val cooldown = TickCooldown(4)
@@ -54,6 +56,8 @@ object Net {
             "sidebar" -> if (Config.s.sidebar && Perms.has(p, Perms.SCOREBOARD)) Sidebar.set(p, on)
             "trades" -> if (Perms.has(p, Perms.TRADE)) Store[Flag.NO_TRADES, p.uuid] = !on
             "dm_sound" -> Store[Flag.QUIET_DM, p.uuid] = !on
+            "discord_ping" -> Store[Flag.QUIET_DISCORD, p.uuid] = !on
+            "discord_unlink" -> Gate.unlink(p.uuid, "unlinked")
             "invisible" -> if (Perms.has(p, Perms.INVIS) && Vanish.active(p) != on) Vanish.toggle(p, null)
         }
     }
@@ -63,6 +67,7 @@ object Net {
         Sidebar.enabled(p).takeIf { Config.s.sidebar && Perms.has(p, Perms.SCOREBOARD) },
         (!Store[Flag.NO_TRADES, p.uuid]).takeIf { Perms.has(p, Perms.TRADE) },
         !Store[Flag.QUIET_DM, p.uuid],
-        Vanish.active(p).takeIf { Perms.has(p, Perms.INVIS) }
+        Vanish.active(p).takeIf { Perms.has(p, Perms.INVIS) },
+        Config.s.discord.enabled, Links.get(p.uuid)?.discordName, !Store[Flag.QUIET_DISCORD, p.uuid]
     )
 }

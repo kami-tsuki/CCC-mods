@@ -33,7 +33,12 @@ object EssentialsCommands {
     private val own = listOf("invsee", "enderchest", "balance", "invis", "scoreboard", "msg", "r", "trade", "countrychat", "adminchat", "unstuck", "deopfake")
     private val aliases = mapOf("tell" to "msg", "w" to "msg", "bal" to "balance", "ec" to "enderchest", "cc" to "countrychat", "ac" to "adminchat")
 
-    fun register() = KamiCommands.module("essentials", "Everyday server commands", own.associateWith { it } + aliases) {
+    fun register() {
+        DiscordCommands.register()
+        essentials()
+    }
+
+    private fun essentials() = KamiCommands.module("essentials", "Everyday server commands", own.associateWith { it } + aliases) {
         then(lit("invsee").requires(Perms.gate(Perms.INVSEE))
             .then(arg("player", GameProfileArgument.gameProfile()).does { Views.inventory(it.me(), it.profile(), Perms.has(it.source, Perms.INVSEE_EDIT)) }))
         then(lit("enderchest").requires(Perms.gate(Perms.ENDERCHEST))
@@ -72,7 +77,6 @@ object EssentialsCommands {
             .then(lit("open").then(arg("id", StringArgumentType.word()).does { InlineFeatures.open(it.me(), it.text("id")) })))
     }
 
-    private fun Ctx.profile(): GameProfile = GameProfileArgument.getGameProfiles(this, "player").singleOrNull() ?: fail(Phrase.of("kami_essentials.command.one_player"))
 
     private fun Ctx.target(name: String = "player"): ServerPlayer {
         val p = EntityArgument.getPlayer(this, name)
@@ -94,3 +98,5 @@ object EssentialsCommands {
         ctx.ok(Phrase.of(if (next) "kami_essentials.command.sidebar.shown" else "kami_essentials.command.sidebar.hidden"))
     }
 }
+
+internal fun Ctx.profile(): GameProfile = GameProfileArgument.getGameProfiles(this, "player").singleOrNull() ?: fail(Phrase.of("kami_essentials.command.one_player"))

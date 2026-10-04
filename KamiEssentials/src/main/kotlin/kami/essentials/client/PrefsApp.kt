@@ -3,11 +3,13 @@ package kami.essentials.client
 import kami.essentials.net.Snap
 import kami.libs.ui.UiPrefs
 import kami.libs.ui.app.Callout
+import kami.libs.ui.app.Consequence
 import kami.libs.ui.app.KamiApp
 import kami.libs.ui.app.NavGroup
 import kami.libs.ui.app.NavItem
 import kami.libs.ui.app.Page
 import kami.libs.ui.app.Route
+import kami.libs.ui.app.confirmDialog
 import kami.libs.ui.core.Flow
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Ui
@@ -23,6 +25,7 @@ import kami.libs.ui.widget.*
 import net.minecraft.client.Minecraft
 
 private const val TOGGLE_CARD_H = 42
+private const val STATUS_CARD_H = 80
 private const val LOOK_H = 92
 private const val FEEL_H = 110
 private const val CHANNEL_H = 70
@@ -38,13 +41,15 @@ class PrefsApp private constructor() : KamiApp() {
         NavGroup(tr("kami_essentials.nav.group.client"), listOf(NavItem("interface", tr("kami_essentials.nav.interface"), Icons.BRUSH)), "client"),
         NavGroup(tr("kami_essentials.nav.group.server"), listOf(
             NavItem("chat", tr("kami_essentials.nav.chat"), Icons.SCROLL, lock = ::offline),
-            NavItem("player", tr("kami_essentials.nav.player"), Icons.PERSON, lock = ::offline)
+            NavItem("player", tr("kami_essentials.nav.player"), Icons.PERSON, lock = ::offline),
+            NavItem("discord", tr("kami_essentials.nav.discord"), Icons.GLOBE, lock = { offline() ?: if (snap?.discordOn == true) null else tr("kami_essentials.prefs.unavailable") })
         ), "server")
     )
 
     override fun create(id: String): Page = when (id) {
         "chat" -> ChatPage(this)
         "player" -> PlayerPage(this)
+        "discord" -> DiscordPage(this)
         else -> InterfacePage()
     }
 
@@ -130,5 +135,27 @@ private class PlayerPage(private val app: PrefsApp) : Page() {
         ui.toggleCard(f.take(TOGGLE_CARD_H), tr("kami_essentials.player.trading"), Icons.HANDSHAKE, s.trades, tr("kami_essentials.player.trades"), tr("kami_essentials.player.trades.tip"), "trades") { app.set("trades", it) }
         ui.toggleCard(f.take(TOGGLE_CARD_H), tr("kami_essentials.player.sidebar"), Icons.LEDGER, s.sidebar, tr("kami_essentials.player.sidebar.show"), tr("kami_essentials.player.sidebar.tip"), "sidebar") { app.set("sidebar", it) }
         if (s.invisible != null) ui.toggleCard(f.take(TOGGLE_CARD_H), tr("kami_essentials.player.staff"), Icons.EYE, s.invisible, tr("kami_essentials.player.invisible"), tr("kami_essentials.player.invisible.tip"), "invisible") { app.set("invisible", it) }
+    }
+}
+
+private class DiscordPage(private val app: PrefsApp) : Page() {
+    override val title get() = tr("kami_essentials.nav.discord")
+    override val help get() = listOf(
+        Callout("prefs:discord", tr("kami_essentials.prefs.discord.account"), tr("kami_essentials.prefs.discord.help.account")),
+        Callout("prefs:discord_ping", tr("kami_essentials.prefs.discord.pings"), tr("kami_essentials.prefs.discord.help.pings"))
+    )
+
+    override fun draw(ui: Ui, r: Rect) {
+        val s = app.snap ?: return
+        val f = Flow(r.columns(2, 10)[0], 6)
+        val box = f.take(STATUS_CARD_H)
+        ui.anchor("prefs:discord", box)
+        val c = Flow(ui.card(box, tr("kami_essentials.prefs.discord.account"), Icons.GLOBE), 4)
+        val line = c.take(12)
+        Draw.text(ui.g, s.discord ?: tr("kami_essentials.prefs.discord.unlinked"), line.x, line.y, if (s.discord != null) Palette.textSecondary else Palette.textMuted)
+        if (s.discord != null && ui.button(c.take(CONTROL_H), tr("kami_essentials.prefs.discord.unlink"), Icons.CROSS, style = ButtonStyle.DANGER, key = "discord-unlink"))
+            confirmDialog(app::open, tr("kami_essentials.prefs.discord.unlink.title"), s.discord, Icons.CROSS,
+                listOf(Consequence(tr("kami_essentials.prefs.discord.unlink.body"))), tr("kami_essentials.prefs.discord.unlink"), danger = true) { app.set("discord_unlink", "on") }
+        ui.toggleCard(f.take(TOGGLE_CARD_H), tr("kami_essentials.prefs.discord.pings"), Icons.BELL, s.discordPing, tr("kami_essentials.prefs.discord.ping"), tr("kami_essentials.prefs.discord.ping.tip"), "discord_ping") { app.set("discord_ping", it) }
     }
 }

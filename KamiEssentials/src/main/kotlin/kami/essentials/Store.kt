@@ -7,7 +7,7 @@ import net.minecraft.world.level.storage.LevelResource
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-enum class Flag { INVISIBLE, NO_SIDEBAR, COUNTRY_CHAT, ADMIN_CHAT, NO_TRADES, QUIET_DM }
+enum class Flag { INVISIBLE, NO_SIDEBAR, COUNTRY_CHAT, ADMIN_CHAT, NO_TRADES, QUIET_DM, QUIET_DISCORD }
 
 @Serializable
 private class Data(val flags: Map<Flag, List<String>> = emptyMap())

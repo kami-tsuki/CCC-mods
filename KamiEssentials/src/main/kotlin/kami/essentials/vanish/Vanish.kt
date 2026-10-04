@@ -6,6 +6,7 @@ import kami.essentials.Perms
 import kami.essentials.Store
 import kami.essentials.chat.Feed
 import kami.essentials.chat.Talk
+import kami.essentials.discord.Bot
 import kami.essentials.mixin.ChunkMapAccess
 import kami.essentials.mixin.TrackedEntityAccess
 import kami.libs.chat.Chat
@@ -39,6 +40,7 @@ object Vanish {
             it.connection.send(if (on) ClientboundPlayerInfoRemovePacket(listOf(p.uuid)) else ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(listOf(p)))
         }
         retrack(p)
+        Bot.presenceDirty()
         if (on) Feed.leave(p, Phrase.of("kami_essentials.vanish.now_invisible")) else Feed.join(p, Phrase.of("kami_essentials.vanish.visible_again"))
         p.tell(Talk.chat.ok(Phrase.of(if (on) "kami_essentials.vanish.on" else "kami_essentials.vanish.off")))
         if (by != null && by !== p) by.tell(Talk.chat.ok(Phrase.of(if (on) "kami_essentials.vanish.other.on" else "kami_essentials.vanish.other.off", Phrase.value(p.gameProfile.name))))

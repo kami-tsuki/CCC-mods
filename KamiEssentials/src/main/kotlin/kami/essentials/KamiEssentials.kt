@@ -6,6 +6,9 @@ import kami.essentials.chat.InlineFeatures
 import kami.essentials.chat.Talk
 import kami.essentials.client.ClientEssentials
 import kami.essentials.command.EssentialsCommands
+import kami.essentials.discord.Bot
+import kami.essentials.discord.Console
+import kami.essentials.discord.Gate
 import kami.essentials.display.Sidebar
 import kami.essentials.display.Tab
 import kami.essentials.inv.Offline
@@ -22,6 +25,7 @@ import net.neoforged.fml.common.Mod
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
 import net.neoforged.fml.loading.FMLEnvironment
 import net.neoforged.neoforge.common.util.TriState
+import net.neoforged.neoforge.event.CommandEvent
 import net.neoforged.neoforge.event.ServerChatEvent
 import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent
@@ -46,11 +50,12 @@ object KamiEssentials {
         MOD_BUS.addListener<RegisterPayloadHandlersEvent> { Net.register(it) }
         if (FMLEnvironment.dist == Dist.CLIENT) ClientEssentials.init()
         EssentialsCommands.register()
-        FORGE_BUS.addListener<ServerStartedEvent> { Store.load(it.server) }
-        FORGE_BUS.addListener<ServerStoppingEvent> { Trades.stop(); FakeDeop.reset() }
+        FORGE_BUS.addListener<ServerStartedEvent> { Store.load(it.server); Bot.start(it.server) }
+        FORGE_BUS.addListener<ServerStoppingEvent> { Bot.stop(); Trades.stop(); FakeDeop.reset() }
         FORGE_BUS.addListener<ServerTickEvent.Post> {
             Trades.tick()
             Offline.tick()
+            Bot.tick(it.server)
             if (it.server.tickCount % 20 == 0) {
                 Tab.tick(it.server)
                 Sidebar.tick(it.server)
@@ -62,6 +67,8 @@ object KamiEssentials {
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { e ->
             val p = e.entity as? ServerPlayer ?: return@addListener
             Offline.joined(p)
+            Gate.join(p)
+            Bot.presenceDirty()
             Feed.join(p)
             if (Vanish.active(p)) p.tell(Talk.chat.info(Phrase.of("kami_essentials.vanish.joined", Phrase.value("/invis"))))
         }
@@ -70,11 +77,13 @@ object KamiEssentials {
             Trades.drop(p, Phrase.of("kami_essentials.trade.reason.left", p.gameProfile.name))
             Sidebar.forget(p)
             Feed.leave(p)
+            Bot.presenceDirty()
             Net.forget(p)
             FakeDeop.forget(p)
         }
         FORGE_BUS.addListener<PlayerEvent.TabListNameFormat>(Tab::onName)
         FORGE_BUS.addListener<ServerChatEvent>(Talk::onChat)
+        FORGE_BUS.addListener<CommandEvent>(Console::onCommand)
         FORGE_BUS.addListener<LivingDeathEvent> { e -> (e.entity as? ServerPlayer)?.let { Trades.drop(it, Phrase.of("kami_essentials.trade.reason.died", it.gameProfile.name)) } }
         FORGE_BUS.addListener<LivingChangeTargetEvent> { e -> if ((e.newAboutToBeSetTarget as? ServerPlayer)?.let(Vanish::active) == true) e.isCanceled = true }
         FORGE_BUS.addListener<ItemEntityPickupEvent.Pre> { e -> if (Trades.busy(e.player)) e.setCanPickup(TriState.FALSE) }

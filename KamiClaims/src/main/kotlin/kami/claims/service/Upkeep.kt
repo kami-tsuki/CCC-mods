@@ -97,12 +97,14 @@ object Upkeep {
         val boss = c.president()?.let { c.members[it] } ?: return
         if (now() - boss.seen <= s.successionDays * s.dayMillis) return
         val heir = c.members.entries.filter { it.value !== boss && it.value.rank != Rank.BANISHED }.sortedWith(seniority()).firstOrNull() ?: return
+        val old = Announce.name(c.president()!!)
         boss.rank = Rank.CITIZEN
         heir.value.rank = Rank.PRESIDENT
         if (Features.unlocked(c, Features.CHANCELLOR) && c.members.values.none { it.rank == Rank.CHANCELLOR }) {
             c.members.entries.filter { it.value !== heir.value && it.value.rank != Rank.BANISHED }.sortedWith(seniority()).firstOrNull()?.value?.rank = Rank.CHANCELLOR
         }
         Mail.broadcast(c, Phrase.of("kami_claims.mail.succession"))
+        Announce.fire("succession", c, mapOf("country" to c.name, "old" to old, "leader" to Announce.name(heir.key)))
     }
 
     private fun expire(c: Country) {

@@ -324,6 +324,7 @@ object Service {
         mine.rank = stepDown
         m.rank = Rank.PRESIDENT
         Mail.broadcast(c, Phrase.of("kami_claims.mail.president"))
+        Announce.fire("leaderHandover", c, mapOf("country" to c.name, "old" to p.name.string, "leader" to Names.of(p.server, id)))
         return Phrase.of("kami_claims.done.president")
     }
 
@@ -490,7 +491,6 @@ object Service {
         val flag = { value.toBooleanStrictOrNull() ?: throw Fail("kami_claims.error.bool") }
         if (Action.entries.any { it.name.equals(field, true) && ruleLocked(type, it) }) throw Fail("kami_claims.error.rule_locked")
         when (field) {
-            "machines" -> c.machines[type] = flag()
             "fire" -> c.fire[type] = flag()
             else -> c.rules.getOrPut(type) { mutableMapOf() }[parse(Action.values(), field)] = parse(Access.values(), value)
         }

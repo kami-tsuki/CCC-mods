@@ -6,6 +6,7 @@ plugins {
     kotlin("jvm") version "2.4.10" apply false
     kotlin("plugin.serialization") version "2.4.10" apply false
     id("net.neoforged.moddev") version "2.0.147" apply false
+    id("com.gradleup.shadow") version "9.6.1" apply false
 }
 
 val instanceDir: File = file(property("deploy_instance_dir") as String)
@@ -90,10 +91,10 @@ subprojects {
     val deploy by tasks.registering {
         group = "kami deploy"
         description = "Deploys $modId's jar to the test server and the Prism instance, clearing old jar/config first."
-        dependsOn(jar)
+        dependsOn(jar, tasks.matching { it.name == "shadowJar" })
         onlyIf { deployEnabled }
         doLast {
-            val jarFile = jar.get().archiveFile.get().asFile
+            val jarFile = (tasks.findByName("shadowJar") as Jar? ?: jar.get()).archiveFile.get().asFile
             listOf(serverDir, instanceDir).forEach { target ->
                 val mods = target.resolve("mods")
                 val config = target.resolve("config")

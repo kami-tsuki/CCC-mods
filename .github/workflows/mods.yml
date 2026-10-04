@@ -138,7 +138,7 @@ jobs:
         run: $GRADLE :${{ matrix.mod }}:test
 
       - name: Package ${{ needs.prepare.outputs.version }}
-        run: $GRADLE :${{ matrix.mod }}:jar
+        run: $GRADLE :${{ matrix.mod }}:assemble
 
       - name: Upload test reports
         if: failure()
@@ -152,7 +152,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.mod }}
-          path: build/${{ matrix.mod }}/libs/*.jar
+          path: |
+            build/${{ matrix.mod }}/libs/*.jar
+            !build/${{ matrix.mod }}/libs/*-slim.jar
           if-no-files-found: error
 
   release:

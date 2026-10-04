@@ -61,6 +61,70 @@ data class ChatChannelStyle(
 )
 
 @Serializable
+data class DiscordChat(val toDiscord: Boolean = true, val toMinecraft: Boolean = true, val maxLength: Int = 256)
+
+@Serializable
+data class DiscordEvents(
+    val join: Boolean = true,
+    val leave: Boolean = true,
+    val death: Boolean = true,
+    val advancement: Boolean = true,
+    val start: Boolean = true,
+    val stop: Boolean = true,
+)
+
+@Serializable
+data class DiscordTemplates(
+    val username: String = "{player}",
+    val join: String = "{player} joined",
+    val leave: String = "{player} left",
+    val death: String = "{message}",
+    val advancement: String = "{message}",
+    val start: String = "Server started",
+    val stop: String = "Server stopped",
+)
+
+@Serializable
+data class DiscordAvatar(
+    val primary: String = "https://mc-heads.net/avatar/{uuid}/64",
+    val fallback: String = "https://crafatar.com/avatars/{uuid}?size=64&overlay",
+    val server: String = "",
+)
+
+@Serializable
+data class DiscordConsole(
+    val enabled: Boolean = true,
+    val commandBlocks: Boolean = false,
+    val flushSeconds: Int = 3,
+    val redact: List<String> = listOf("msg", "tell", "w", "r", "teammsg", "tm", "login", "register", "changepassword"),
+)
+
+@Serializable
+data class DiscordStatus(
+    val presence: String = "{online} players online",
+    val presenceDebounceSeconds: Int = 30,
+    val topic: String = "🟢 {online}/{max} online · up {uptime} · {countries} countries",
+    val topicOffline: String = "🔴 Server offline",
+    val topicMinutes: Int = 30,
+)
+
+@Serializable
+data class DiscordVerify(val codeMinutes: Int = 15, val attempts: Int = 5, val windowMinutes: Int = 10, val banSync: Boolean = true)
+
+@Serializable
+data class DiscordSettings(
+    val enabled: Boolean = false,
+    val language: String = "en_us",
+    val chat: DiscordChat = DiscordChat(),
+    val events: DiscordEvents = DiscordEvents(),
+    val templates: DiscordTemplates = DiscordTemplates(),
+    val avatar: DiscordAvatar = DiscordAvatar(),
+    val console: DiscordConsole = DiscordConsole(),
+    val status: DiscordStatus = DiscordStatus(),
+    val verify: DiscordVerify = DiscordVerify(),
+)
+
+@Serializable
 data class Settings(
     val tradeDistance: Int = 16,
     val tradeConfirmSeconds: Int = 3,
@@ -78,6 +142,7 @@ data class Settings(
     val inlineTokens: InlineTokens = InlineTokens(),
     val inlineStyle: InlineStyle = InlineStyle(),
     val channels: ChatChannelStyle = ChatChannelStyle(),
+    val discord: DiscordSettings = DiscordSettings(),
 )
 
 private val tokenAlias = Regex("""[a-z0-9_:-]{1,24}""")
@@ -122,6 +187,15 @@ private fun Settings.sane() = copy(
     ),
     inlineTokens = inlineTokens.sane(),
     channels = channels.sane(),
+    discord = discord.copy(
+        chat = discord.chat.copy(maxLength = discord.chat.maxLength.coerceIn(32, 1024)),
+        console = discord.console.copy(flushSeconds = discord.console.flushSeconds.coerceIn(1, 30)),
+        status = discord.status.copy(
+            presenceDebounceSeconds = discord.status.presenceDebounceSeconds.coerceAtLeast(15),
+            topicMinutes = discord.status.topicMinutes.coerceAtLeast(10)
+        ),
+        verify = discord.verify.copy(codeMinutes = discord.verify.codeMinutes.coerceIn(1, 60), attempts = discord.verify.attempts.coerceAtLeast(1))
+    ),
 )
 
 private val sections = listOf(
@@ -157,6 +231,53 @@ private val sections = listOf(
             "sidebar" to "Show the stats sidebar. Players can hide it with /scoreboard.",
             "sidebarTitle" to "Title of the sidebar.",
             "sidebarLines" to "Lines from top to bottom: ${Sidebar.LINES.keys.joinToString()}. An empty string is a spacer."
+        )
+    ),
+    Section(
+        "discord.json", "Discord bot. Keys and token live in config/kami-discord-bot.json.",
+        mapOf(
+            "discord" to "Discord bot settings.",
+            "discord.enabled" to "Turn the Discord bot on. Needs the token, guild and chat channel in config/kami-discord-bot.json.",
+            "discord.language" to "Language of bot replies and kick messages.",
+            "discord.chat" to "Chat relay.",
+            "discord.chat.toDiscord" to "Send global chat to Discord.",
+            "discord.chat.toMinecraft" to "Show messages of linked Discord users in game.",
+            "discord.chat.maxLength" to "Longest Discord message shown in game (32 to 1024). Longer ones are cut and show the full text on hover.",
+            "discord.events" to "Which events are posted to the chat channel.",
+            "discord.events.join" to "Player joined.",
+            "discord.events.leave" to "Player left.",
+            "discord.events.death" to "Player died.",
+            "discord.events.advancement" to "Player made an advancement.",
+            "discord.events.start" to "Server started.",
+            "discord.events.stop" to "Server stopped.",
+            "discord.templates" to "Texts of posted messages. Placeholders: {player} {uuid} {country} {message} {advancement}.",
+            "discord.templates.username" to "Name shown on relayed chat messages.",
+            "discord.templates.join" to "Join event text.",
+            "discord.templates.leave" to "Leave event text.",
+            "discord.templates.death" to "Death event text.",
+            "discord.templates.advancement" to "Advancement event text.",
+            "discord.templates.start" to "Server start text.",
+            "discord.templates.stop" to "Server stop text.",
+            "discord.avatar" to "Avatar images for relayed messages.",
+            "discord.avatar.primary" to "Avatar URL template, {uuid} is the player uuid.",
+            "discord.avatar.fallback" to "Used while the primary service is down.",
+            "discord.avatar.server" to "Icon of server start and stop events. Empty for none.",
+            "discord.console" to "Command log in the console channel.",
+            "discord.console.enabled" to "Post executed commands to the console channel.",
+            "discord.console.commandBlocks" to "Include commands run by command blocks.",
+            "discord.console.flushSeconds" to "Seconds between batches (1 to 30).",
+            "discord.console.redact" to "Commands whose arguments are hidden, without the slash.",
+            "discord.status" to "Bot presence and channel topic.",
+            "discord.status.presence" to "Presence text. Placeholders: {online} {max}.",
+            "discord.status.presenceDebounceSeconds" to "Minimum seconds between presence updates (at least 15).",
+            "discord.status.topic" to "Chat channel topic. Placeholders: {online} {max} {uptime} {countries}.",
+            "discord.status.topicOffline" to "Topic set when the server stops.",
+            "discord.status.topicMinutes" to "Minutes between topic checks (at least 10). Only changed text is sent.",
+            "discord.verify" to "Account linking.",
+            "discord.verify.codeMinutes" to "How long a link code works (1 to 60).",
+            "discord.verify.attempts" to "Wrong codes allowed per window.",
+            "discord.verify.windowMinutes" to "Length of the attempt window.",
+            "discord.verify.banSync" to "Kick linked players when their Discord account is banned."
         )
     ),
     Section(

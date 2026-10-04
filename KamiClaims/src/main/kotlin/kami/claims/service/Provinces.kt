@@ -115,6 +115,7 @@ object Provinces {
         Realm.syncAllies()
         Mail.broadcast(child, Phrase.of("kami_claims.mail.province_joined", v(child.name), v(parent.name), Words.tribute(mode, amount)))
         Mail.broadcast(parent, Phrase.of("kami_claims.mail.province_added", v(child.name)))
+        Announce.fire("provinceBecame", child, mapOf("province" to child.name, "parent" to parent.name, "other" to parent.name))
     }
 
     fun release(parent: Country, child: Country) {
@@ -127,6 +128,7 @@ object Provinces {
         Realm.syncAllies()
         Mail.broadcast(child, Phrase.of("kami_claims.mail.independent", v(child.name)), Tone.OK)
         Mail.broadcast(parent, Phrase.of("kami_claims.mail.province_released", v(child.name)))
+        Announce.fire("provinceReleased", child, mapOf("province" to child.name, "parent" to parent.name, "other" to parent.name))
     }
 
     fun forgive(parent: Country, child: Country) {
@@ -196,5 +198,6 @@ object Provinces {
         Realm.syncAllies()
         Mail.broadcast(child, Phrase.of("kami_claims.mail.province_given", v(child.name), v(newParent.name)))
         Mail.broadcast(newParent, Phrase.of("kami_claims.mail.province_received", v(child.name)))
+        Announce.fire("provinceGiven", child, mapOf("province" to child.name, "parent" to parent.name, "other" to newParent.name))
     }
 }

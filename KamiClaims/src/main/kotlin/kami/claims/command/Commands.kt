@@ -176,7 +176,7 @@ private fun Node.countryTreasury(types: () -> Collection<String>): Node =
     .then(lit("tax")
         .then(lit("residential").then(arg("amount", IntegerArgumentType.integer(0)).does { it.run("tax", IntegerArgumentType.getInteger(it, "amount").toString()) }))
         .then(lit("here").then(arg("amount", IntegerArgumentType.integer(-1)).does { it.run("plot_offer", "citizen", "on", IntegerArgumentType.getInteger(it, "amount").toString()) })))
-    .then(lit("rule").requires { Perms.has(it, Perms.CLAIM) }.then(word("type", types).then(word("field") { Action.values().map { it.name.lowercase() } + listOf("machines", "fire") }
+    .then(lit("rule").requires { Perms.has(it, Perms.CLAIM) }.then(word("type", types).then(word("field") { Action.values().map { it.name.lowercase() } + "fire" }
         .then(word("value") { Access.values().map { it.name.lowercase() } + listOf("true", "false") }.does { it.run("rule", it.text("type"), it.text("field"), it.text("value")) }))))
 
 private fun Node.countryJobs(jobs: () -> Collection<String>): Node =

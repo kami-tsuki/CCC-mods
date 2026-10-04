@@ -6,13 +6,13 @@ import kami.claims.LedgerKind
 import kami.claims.Realm
 import kami.claims.economy.Treasury
 import kami.claims.net.ResearchSync
+import kami.claims.service.Announce
 import kami.claims.service.Words
 import kami.claims.social.Mail
 import kami.claims.today
 import kami.libs.chat.Tone
 import kami.libs.text.Phrase
 import kotlinx.serialization.Serializable
-import net.neoforged.neoforge.server.ServerLifecycleHooks
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.pow
@@ -89,9 +89,7 @@ object Levels {
     fun reset() = blocked.clear()
 
     var day: () -> Long = ::today
-    var announce: (Phrase) -> Unit = { text ->
-        ServerLifecycleHooks.getCurrentServer()?.playerList?.broadcastSystemMessage(Mail.chat.info(text.component()), false)
-    }
+    var announce: (Country) -> Unit = { Announce.fire("levelUp", it, mapOf("country" to it.name, "level" to it.level.toString())) }
 
     fun capacity(country: Country, key: Capacity): Int = Research.defs.levels.capacity(key) +
         Research.unlocks<CapacityUnlock>(country).added(key) +
@@ -187,7 +185,7 @@ object Levels {
     private fun leveledUp(country: Country) {
         val level = country.level
         Mail.broadcast(country, Phrase.of("kami_claims.level.mail.up", Words.v(level)), Tone.OK)
-        if (Research.defs.levels.announce) announce(Phrase.of("kami_claims.level.broadcast", Words.v(country.name), Words.v(level)))
+        if (Research.defs.levels.announce) announce(country)
         Realm.changed()
         ResearchSync.touch(country)
     }

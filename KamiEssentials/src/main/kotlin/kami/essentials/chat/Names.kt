@@ -50,6 +50,15 @@ object Names {
         return name.withStyle { it.withHoverEvent(HoverEvent(HoverEvent.Action.SHOW_TEXT, card)).withClickEvent(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/msg ${p.gameProfile.name} ")) }
     }
 
+    fun linked(id: UUID, name: String, discord: String): MutableComponent {
+        val out = Component.empty()
+        citizenship(id)?.let { out.append(countryTag(it)).append(" ") }
+        val card = Phrase.of("kami_essentials.discord.tag", discord).component().withColor(Theme.TEXT)
+        return out.append(Component.literal(name).withColor(Theme.VALUE).withStyle {
+            it.withHoverEvent(HoverEvent(HoverEvent.Action.SHOW_TEXT, card)).withClickEvent(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/msg $name "))
+        })
+    }
+
     fun tag(c: Citizenship, hover: Boolean = true): MutableComponent = countryTag(c, hover)
 
     fun countryTag(c: Citizenship, hover: Boolean = true): MutableComponent {

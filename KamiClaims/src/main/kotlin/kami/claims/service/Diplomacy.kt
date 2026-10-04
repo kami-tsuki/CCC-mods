@@ -77,6 +77,7 @@ object Diplomacy {
         Progress.report(from, "alliance", c.id, 1, "alliance:${c.id}")
         Realm.syncAllies()
         Mail.officers(from, Phrase.of("kami_claims.mail.alliance_accepted", v(c.name)))
+        Announce.fire("allianceFormed", c, mapOf("country" to c.name, "other" to from.name))
         return Phrase.of("kami_claims.done.alliance_formed", v(from.name))
     }
 
@@ -93,6 +94,7 @@ object Diplomacy {
         ResearchSync.refresh(other)
         Realm.syncAllies()
         Mail.officers(other, Phrase.of("kami_claims.mail.alliance_ended", v(c.name)), Tone.WARN)
+        Announce.fire("allianceEnded", c, mapOf("country" to c.name, "other" to other.name))
         return Phrase.of("kami_claims.done.alliance_ended", v(other.name))
     }
 
@@ -111,6 +113,7 @@ object Diplomacy {
         store(c, target, TradePolicy(policy(c, target).tariffPct, on))
         if (on) target.allianceOffers.remove(c.id)
         Mail.officers(target, Phrase.of(if (on) "kami_claims.mail.embargo_on" else "kami_claims.mail.embargo_off", v(c.name)), if (on) Tone.WARN else Tone.INFO)
+        Announce.fire(if (on) "embargoOn" else "embargoOff", c, mapOf("country" to c.name, "other" to target.name))
         return Phrase.of(if (on) "kami_claims.done.embargo_on" else "kami_claims.done.embargo_off", v(target.name))
     }
 

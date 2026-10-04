@@ -7,16 +7,19 @@ import kami.essentials.Flag
 import kami.essentials.KamiEssentials
 import kami.essentials.Perms
 import kami.essentials.Store
+import kami.essentials.discord.Relay
 import kami.essentials.vanish.Vanish
 import kami.libs.claims.Citizenship
 import kami.libs.chat.Chat
 import kami.libs.chat.Theme
 import kami.libs.chat.tell
 import kami.libs.command.fail
+import kami.libs.discord.Inbound
 import net.minecraft.network.chat.ClickEvent
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.HoverEvent
 import net.minecraft.network.chat.MutableComponent
+import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
@@ -29,11 +32,13 @@ import java.util.concurrent.ConcurrentHashMap
 object Talk {
     val chat = Chat.of("essentials")
     private val partner = ConcurrentHashMap<UUID, UUID>()
+    private const val BLURPLE = 0x5865F2
 
     fun onChat(e: ServerChatEvent) {
         val p = e.player
         val country = Store[Flag.COUNTRY_CHAT, p.uuid]
         val admin = Store[Flag.ADMIN_CHAT, p.uuid] && Perms.has(p, Perms.ADMINCHAT)
+        if (!e.isCanceled && !country && !admin && !Vanish.active(p)) Relay.chat(p, e.rawText)
         if (!Config.s.chat && !country && !admin) return
         e.isCanceled = true
         when {
@@ -118,13 +123,21 @@ object Talk {
         p.tell(if (on) chat.ok(Phrase.of("kami_essentials.talk.admin.on")) else chat.ok(Phrase.of("kami_essentials.talk.admin.off")))
     }
 
+    fun external(server: MinecraftServer, id: UUID, name: String, m: Inbound) {
+        val line = line(channelTag("D", BLURPLE).append(Names.linked(id, name, m.userName)), remote(m))
+        server.sendSystemMessage(line)
+        server.playerList.players.filter { it.chatVisibility == ChatVisiblity.FULL }.forEach { it.tell(line) }
+    }
+
     private fun broadcast(from: ServerPlayer, line: Component, to: (ServerPlayer) -> Boolean) {
         from.server.sendSystemMessage(line)
         from.server.playerList.players.filter { it === from || it.chatVisibility == ChatVisiblity.FULL && to(it) }.forEach { it.tell(line) }
     }
 
-    private fun line(name: Component, text: String, speaker: ServerPlayer): Component =
-        Component.empty().append(name).append(Component.literal(Theme.SEP).withColor(Theme.MUTED)).append(body(text, speaker))
+    private fun line(name: Component, text: String, speaker: ServerPlayer): Component = line(name, body(text, speaker))
+
+    private fun line(name: Component, body: Component): Component =
+        Component.empty().append(name).append(Component.literal(Theme.SEP).withColor(Theme.MUTED)).append(body)
 
     private fun channelTag(icon: String, color: Int): MutableComponent = Component.empty()
         .append(Component.literal("[").withColor(color).withStyle(ChatFormatting.BOLD))
@@ -140,6 +153,21 @@ object Talk {
         .append(to)
         .append(Component.literal(Theme.SEP).withColor(Theme.MUTED))
         .append(body(text, speaker))
+
+    private fun remote(m: Inbound): Component {
+        val out = Component.empty()
+        m.replyName?.let { name ->
+            val snippet = m.replySnippet.orEmpty()
+            val shown = if (snippet.length > 40) snippet.take(40) + "…" else snippet
+            out.append(Component.literal("↪ $name: $shown ").withColor(Theme.MUTED).withStyle { it.withHoverEvent(HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(snippet).withColor(Theme.TEXT))) })
+        }
+        out.append(Component.literal(m.text).withColor(Theme.TEXT))
+        if (m.overflow) out.append(Component.literal("…").withColor(Theme.MUTED).withStyle { it.withHoverEvent(HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(m.full).withColor(Theme.TEXT))) })
+        m.attachments.filter { it.url.startsWith("https://") }.forEach { a ->
+            out.append(Component.literal(" [${a.name}]").withColor(Theme.LINK).withStyle { it.withClickEvent(ClickEvent(ClickEvent.Action.OPEN_URL, a.url)) })
+        }
+        return out
+    }
 
     private fun body(text: String, speaker: ServerPlayer?): Component = speaker?.let { InlineFeatures.render(it, text) } ?: Component.literal(text).withColor(Theme.TEXT)
 

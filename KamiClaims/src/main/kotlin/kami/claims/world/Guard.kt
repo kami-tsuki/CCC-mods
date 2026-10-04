@@ -124,7 +124,7 @@ object Guard {
             return (action in Config.s.nomanslandAllowSet && state?.`is`(wildBlocks) != true) || (action == Action.PLACE && cl == null && state != null && TempBlocks.fits(state))
         }
         val p = who as? Player
-        if (p == null || p is FakePlayer) return c.machines[cl.type] ?: cl.def?.rule?.machines ?: false
+        if (p == null || p is FakePlayer) return cl.def?.rule?.machines ?: false
         val me = p.stringUUID
         val banned = c.outsiders[me] == Rank.BANISHED
         if (cl.tenant != null) return Housing.plotAccess(cl, me, action, banned)

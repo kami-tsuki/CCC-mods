@@ -140,5 +140,7 @@
   "kami_libs.common.join": "Beitreten",
   "kami_libs.pin.pin": "Am Bildschirm anheften",
   "kami_libs.pin.unpin": "Lösen",
-  "kami_libs.pin.remove": "Anheftung entfernen"
+  "kami_libs.pin.remove": "Anheftung entfernen",
+  "kami_libs.discord.denied": "Du darfst diesen Befehl nicht benutzen.",
+  "kami_libs.discord.error": "Der Befehl ist fehlgeschlagen. Prüfe das Server-Log."
 }
