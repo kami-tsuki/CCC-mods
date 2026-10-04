@@ -82,7 +82,7 @@ object MotdRefresh {
                     mc.execute {
                         if (mine != gen) return@execute
                         val fresh = motd(probe)
-                        if (period(fresh) != null) {
+                        if (fresh != null && period(fresh) != null) {
                             data.motd = fresh
                             data.status = probe.status
                             data.players = probe.players

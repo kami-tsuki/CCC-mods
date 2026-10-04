@@ -54,6 +54,17 @@ subprojects {
     }
 
     repositories {
+        exclusiveContent {
+            forRepository { mavenCentral() }
+            filter {
+                includeGroup("net.dv8tion")
+                includeGroupByRegex("com\\.fasterxml\\.jackson.*")
+                includeGroupByRegex("com\\.squareup\\..*")
+                includeGroup("net.sf.trove4j")
+                includeGroup("com.neovisionaries")
+                includeModule("org.apache.commons", "commons-collections4")
+            }
+        }
         mavenCentral()
         maven("https://thedarkcolour.github.io/KotlinForForge/") {
             content { includeGroup("thedarkcolour") }
