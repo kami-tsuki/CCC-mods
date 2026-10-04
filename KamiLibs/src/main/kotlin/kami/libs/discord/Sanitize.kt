@@ -11,21 +11,23 @@ internal object Sanitize {
     private val controls = Regex("[\\p{Cc}&&[^\\n]]")
     private val ansi = Regex("\u001B\\[[0-9;]*[A-Za-z]")
     private val reserved = Regex("discord|clyde", RegexOption.IGNORE_CASE)
-    private val code = Regex("`[^`\n]+`")
     private val roleMention = Regex("<@&(\\d+)>")
+    private val heading = Regex("(?m)^(\\s*)(#|-#)")
+    private val inlineHeading = Regex("(?<=\n)(\\s*)(#|-#)")
+    private val brackets = Regex("[\\[\\]]")
 
     fun inbound(text: String): String = emoji.replace(text) { ":${it.groupValues[1]}:" }.replace(whitespace, " ").replace(stripped, "").trim()
 
     fun cap(text: String, max: Int): Pair<String, Boolean> = if (text.length <= max) text to false else text.take(max) to true
 
     fun outbound(text: String): String {
-        val cleaned = clean(text)
-        val spans = code.findAll(cleaned).map { it.value }.toList()
-        return cleaned.split(code).mapIndexed { i, part -> MarkdownSanitizer.escape(part) + spans.getOrElse(i) { "" } }.joinToString("")
+        return Templates.outsideCode(clean(text), ::escape)
             .replace("@everyone", "@${ZWSP}everyone")
             .replace("@here", "@${ZWSP}here")
             .replace(roleMention) { "<@$ZWSP&${it.groupValues[1]}>" }
     }
+
+    private fun escape(part: String, lineStart: Boolean) = MarkdownSanitizer.escape(part).replace(if (lineStart) heading else inlineHeading, "$1$ZWSP$2").replace(brackets, "\\\\$0")
 
     fun name(text: String): String {
         val safe = clean(text).replace('\n', ' ').take(80).trim().replace(reserved) { "${it.value.take(1)}$ZWSP${it.value.drop(1)}" }

@@ -12,6 +12,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class MinecraftServerMixin {
     @Inject(method = "buildServerStatus", at = @At("RETURN"), cancellable = true)
     private void kami$motd(CallbackInfoReturnable<ServerStatus> cir) {
-        cir.setReturnValue(Motd.INSTANCE.apply(cir.getReturnValue()));
+        cir.setReturnValue(Motd.INSTANCE.apply((MinecraftServer) (Object) this, cir.getReturnValue()));
     }
 }

@@ -4,8 +4,10 @@ import kami.essentials.Config
 import kami.essentials.vanish.Vanish
 import kami.libs.claims.ClaimsApi
 import kami.libs.discord.Avatars
+import kami.libs.discord.Codes
 import kami.libs.discord.DiscordApi
 import kami.libs.discord.Embed
+import kami.libs.discord.Links
 import kami.libs.discord.Templates
 import kami.libs.chat.Theme
 import net.minecraft.server.MinecraftServer
@@ -20,7 +22,8 @@ object Bot {
     private var topicDue = 0L
 
     fun start(server: MinecraftServer) {
-        if (!Config.s.discord.enabled || running) return
+        val d = Config.s.discord
+        if (!d.enabled || running || !server.isDedicatedServer) return
         running = true
         startedAt = System.currentTimeMillis()
         apply()
@@ -29,8 +32,8 @@ object Bot {
             DiscordApi.register(Relay)
             DiscordApi.register(Gate)
         }
-        DiscordApi.start(server, Config.s.discord.console.flushSeconds)
-        lifecycle(Config.s.discord.events.start, Config.s.discord.templates.start, Theme.OK)
+        DiscordApi.start(server, d.console.flushSeconds)
+        lifecycle(d.events.start, d.templates.start, Theme.OK)
         presenceDirty()
     }
 
@@ -40,7 +43,7 @@ object Bot {
         val d = Config.s.discord
         lifecycle(d.events.stop, d.templates.stop, Theme.BAD)
         DiscordApi.finalTopic(d.status.topicOffline)
-        DiscordApi.stop(5000)
+        DiscordApi.stop()
     }
 
     fun reload(server: MinecraftServer) {
@@ -49,7 +52,9 @@ object Bot {
             !Config.s.discord.enabled && running -> stop()
             running -> {
                 apply()
-                DiscordApi.reload(server)
+                Links.reload()
+                Codes.reload()
+                DiscordApi.reload(server, Config.s.discord.console.flushSeconds)
                 status()
             }
         }
@@ -75,8 +80,9 @@ object Bot {
     fun visible(server: MinecraftServer): List<ServerPlayer> = server.playerList.players.filterNot(Vanish::active)
 
     private fun apply() {
-        DiscordApi.inboundMax = Config.s.discord.chat.maxLength
-        Config.s.discord.avatar.let { Avatars.configure(it.primary, it.fallback) }
+        val d = Config.s.discord
+        DiscordApi.inboundMax = d.chat.maxLength
+        Avatars.configure(d.avatar.primary, d.avatar.fallback)
     }
 
     private fun lifecycle(on: Boolean, template: String, color: Int) {
@@ -91,8 +97,9 @@ object Bot {
     private fun topic(server: MinecraftServer) {
         val s = Config.s.discord.status
         topicDue = System.currentTimeMillis() + s.topicMinutes * 60_000L
-        val hours = (System.currentTimeMillis() - startedAt) / 3_600_000L
-        DiscordApi.topic(Templates.fill(s.topic, counts(server) + mapOf("uptime" to "${hours}h", "countries" to ClaimsApi.countries().size.toString())))
+        val minutes = (System.currentTimeMillis() - startedAt) / 60_000L
+        val uptime = if (minutes < 60) "${minutes}m" else "${minutes / 60}h"
+        DiscordApi.topic(Templates.fill(s.topic, counts(server) + mapOf("uptime" to uptime, "countries" to ClaimsApi.countries().size.toString())))
     }
 
     private fun counts(server: MinecraftServer) = mapOf("online" to visible(server).size.toString(), "max" to server.maxPlayers.toString())

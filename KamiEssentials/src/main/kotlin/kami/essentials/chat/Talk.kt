@@ -131,7 +131,7 @@ object Talk {
     }
 
     fun external(server: MinecraftServer, id: UUID, name: String, m: Inbound) {
-        val line = line(channelTag("D", BLURPLE).append(Names.linked(id, name, m.userName)), remote(m))
+        val line = line(channelTag("D", BLURPLE).withStyle { it.withHoverEvent(hover(Phrase.of("kami_essentials.talk.discord.tooltip"))) }.append(Names.linked(id, name, m.userName)), remote(m))
         server.sendSystemMessage(line)
         server.playerList.players.filter { it.chatVisibility == ChatVisiblity.FULL }.forEach { it.tell(line) }
     }

@@ -45,7 +45,8 @@ object Net {
     fun forget(p: ServerPlayer) = cooldown.forget(p.uuid)
 
     private fun handle(p: ServerPlayer, a: ActPayload) {
-        if (a.name == "set" && cooldown.ready(p.uuid, p.server.tickCount)) set(p, a.args.getOrNull(0).orEmpty(), a.args.getOrNull(1).orEmpty())
+        if (!cooldown.ready(p.uuid, p.server.tickCount)) return
+        if (a.name == "set") set(p, a.args.getOrNull(0).orEmpty(), a.args.getOrNull(1).orEmpty())
         PacketDistributor.sendToPlayer(p, snapshotChannel(Json.encodeToString(snap(p))))
     }
 
@@ -57,7 +58,7 @@ object Net {
             "trades" -> if (Perms.has(p, Perms.TRADE)) Store[Flag.NO_TRADES, p.uuid] = !on
             "dm_sound" -> Store[Flag.QUIET_DM, p.uuid] = !on
             "discord_ping" -> Store[Flag.QUIET_DISCORD, p.uuid] = !on
-            "discord_unlink" -> Gate.unlink(p.uuid, "unlinked")
+            "discord_unlink" -> if (Config.s.discord.enabled) Gate.unlink(p.uuid)
             "invisible" -> if (Perms.has(p, Perms.INVIS) && Vanish.active(p) != on) Vanish.toggle(p, null)
         }
     }

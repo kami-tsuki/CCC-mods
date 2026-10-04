@@ -38,8 +38,9 @@ class ConfigFolder(val root: Path, private val hint: String, private val json: J
     private fun <T : Any> read(path: Path, serializer: KSerializer<T>): T? = try {
         json.decodeFromString(serializer, Files.readString(path)).also { lastGood[path] = it }
     } catch (e: Exception) {
-        log.error("Ignoring {}: {}", path.fileName, e.message)
-        found += "${root.relativize(path).joinToString("/")}: ${Jsonc.reason(e)}"
+        val reason = Jsonc.reason(e)
+        log.error("Ignoring {}: {}", path.fileName, reason)
+        found += "${root.relativize(path).joinToString("/")}: $reason"
         lastGood[path] as T?
     }
 

@@ -8,7 +8,7 @@ import java.nio.file.Files
 import java.util.concurrent.ConcurrentHashMap
 
 object DiscordText {
-    private const val FALLBACK = "en_us"
+    const val FALLBACK = "en_us"
     private val cache = ConcurrentHashMap<String, Map<String, String>>()
 
     fun get(modId: String, language: String, key: String, vararg args: Any): String {

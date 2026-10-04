@@ -96,20 +96,20 @@ data class DiscordConsole(
     val enabled: Boolean = true,
     val commandBlocks: Boolean = false,
     val flushSeconds: Int = 3,
-    val redact: List<String> = listOf("msg", "tell", "w", "r", "teammsg", "tm", "login", "register", "changepassword"),
+    val redact: List<String> = listOf("msg", "tell", "w", "r", "teammsg", "tm", "login", "register", "changepassword", "countrychat", "cc", "adminchat", "ac", "reply"),
 )
 
 @Serializable
 data class DiscordStatus(
-    val presence: String = "{online} players online",
+    val presence: String = "{online} online",
     val presenceDebounceSeconds: Int = 30,
-    val topic: String = "🟢 {online}/{max} online · up {uptime} · {countries} countries",
+    val topic: String = "🟢 {online}/{max} online · up {uptime} · Countries: {countries}",
     val topicOffline: String = "🔴 Server offline",
     val topicMinutes: Int = 30,
 )
 
 @Serializable
-data class MotdSettings(val enabled: Boolean = true, val title: String = "Kami", val frameSeconds: Int = 6, val itemsPerFrame: Int = 3, val frames: Int = 4)
+data class MotdSettings(val enabled: Boolean = true, val title: String = "Kami", val currency: String = "¤", val frameSeconds: Int = 6, val itemsPerFrame: Int = 3, val frames: Int = 4)
 
 @Serializable
 data class DiscordVerify(val codeMinutes: Int = 15, val attempts: Int = 5, val windowMinutes: Int = 10, val banSync: Boolean = true)
@@ -244,6 +244,7 @@ private val sections = listOf(
             "motd" to "Server list message.",
             "motd.enabled" to "Replace the server.properties motd with the live one.",
             "motd.title" to "Name shown at the start of the first line.",
+            "motd.currency" to "Text after each price, in spurs. Keep it to characters of the default font.",
             "motd.frameSeconds" to "Seconds each ticker page stays before the next one (5-300).",
             "motd.itemsPerFrame" to "Market items per ticker page (1-4); items that do not fit the line are dropped.",
             "motd.frames" to "Number of ticker pages to rotate through (1-20)."

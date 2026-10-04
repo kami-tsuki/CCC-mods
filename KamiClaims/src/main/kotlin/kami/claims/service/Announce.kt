@@ -14,7 +14,6 @@ import net.minecraft.server.MinecraftServer
 object Announce {
     var server: MinecraftServer? = null
 
-
     private val colours = mapOf(
         "founded" to Theme.ACCENT, "levelUp" to Theme.ACCENT,
         "allianceFormed" to Theme.OK, "embargoOff" to Theme.OK,

@@ -1,6 +1,7 @@
 package kami.libs.discord
 
 import net.dv8tion.jda.api.entities.Message
+import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.WebhookClient
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException
@@ -28,14 +29,17 @@ internal object Outbox {
 
     private const val CAP = 200
     private const val CONSOLE_CAP = 2000
-    private const val LIMIT = 1980
+    private const val LIMIT = MESSAGE_MAX - 20
     private val lanes = Channel.entries.associateWith { Lane() }
-    private val lines = ArrayList<String>()
+    private val lines = ArrayDeque<String>()
     private var executor: ScheduledExecutorService? = null
+    private var period = 0
     private var gen = 0
 
     @Synchronized
     fun start(flushSeconds: Int) {
+        if (executor != null && period == flushSeconds) return
+        period = flushSeconds
         executor?.shutdownNow()
         executor = Executors.newSingleThreadScheduledExecutor { Thread(it, "kami-discord-outbox").apply { isDaemon = true } }
             .also { it.scheduleWithFixedDelay({ runCatching(::flushConsole) }, flushSeconds.toLong(), flushSeconds.toLong(), TimeUnit.SECONDS) }
@@ -49,9 +53,13 @@ internal object Outbox {
     }
 
     @Synchronized
-    fun open() = lanes.forEach { (channel, lane) ->
-        lane.open = true
-        pump(lane, channel)
+    fun open() {
+        gen++
+        lanes.forEach { (channel, lane) ->
+            lane.open = true
+            lane.busy = false
+            pump(lane, channel)
+        }
     }
 
     @Synchronized
@@ -70,8 +78,8 @@ internal object Outbox {
     fun submit(channel: Channel, task: Task) {
         val lane = lanes.getValue(channel)
         if (lane.queue.size >= CAP) {
-            lane.queue.removeFirst()
             lane.dropped++
+            return
         }
         lane.queue.addLast(task)
         pump(lane, channel)
@@ -99,7 +107,7 @@ internal object Outbox {
         if (lines.isEmpty()) return
         val batch = lines.toList()
         lines.clear()
-        chunks(batch).forEach { chunk -> submit(Channel.CONSOLE, Task({ it.sendMessage("```\n$chunk```").setAllowedMentions(emptySet()) }, { it.sendMessage("```\n$chunk```").setAllowedMentions(emptySet()) })) }
+        chunks(batch).forEach { chunk -> submit(Channel.CONSOLE, text("```\n$chunk```")) }
     }
 
     private fun chunks(batch: List<String>): List<String> {
@@ -124,11 +132,19 @@ internal object Outbox {
         send(lane, channel, task, true, gen)
     }
 
-    private fun notice(count: Int) = Task({ it.sendMessage("*$count messages dropped*").setAllowedMentions(emptySet()) }, { it.sendMessage("*$count messages dropped*").setAllowedMentions(emptySet()) })
+    private fun notice(count: Int) = text("*$count messages dropped*")
+
+    private fun text(content: String) = Task({ it.sendMessage(content).setAllowedMentions(emptySet()) }, { it.sendMessage(content).setAllowedMentions(emptySet()) })
+
+    fun embed(embed: MessageEmbed) = Task({ it.sendMessageEmbeds(embed) }, { it.sendMessageEmbeds(embed) })
 
     private fun send(lane: Lane, channel: Channel, task: Task, retry: Boolean, mine: Int) {
         Webhooks.get(channel) { client ->
             if (client == null) return@get sendPlain(lane, channel, task, mine)
+            val fail = { e: Throwable ->
+                sendFailed(e)
+                finish(lane, channel, mine)
+            }
             try {
                 task.build(client).queue({
                     finish(lane, channel, mine)
@@ -140,16 +156,16 @@ internal object Outbox {
                     } else if (Webhooks.stale(e)) {
                         sendPlain(lane, channel, task, mine)
                     } else {
-                        Discord.log.warn("Discord send failed: {}", e.message)
-                        finish(lane, channel, mine)
+                        fail(e)
                     }
                 })
             } catch (e: Exception) {
-                Discord.warnOnce("send-${e.javaClass.simpleName}", "Discord send failed: ${e.message}")
-                finish(lane, channel, mine)
+                fail(e)
             }
         }
     }
+
+    private fun sendFailed(e: Throwable) = Discord.warnOnce("send-${e.javaClass.simpleName}", "Discord send failed: ${e.message}")
 
     private fun sendPlain(lane: Lane, channel: Channel, task: Task, mine: Int) {
         val id = if (channel == Channel.CHAT) Discord.chatId else Discord.consoleId
@@ -160,7 +176,7 @@ internal object Outbox {
         }
         val fail = { e: Throwable ->
             if (e is InsufficientPermissionException) Discord.warnOnce("plain-perm-$channel", "The bot cannot send messages in the $channel channel: ${e.message}")
-            else Discord.log.warn("Discord send failed: {}", e.message)
+            else sendFailed(e)
             finish(lane, channel, mine)
         }
         try {

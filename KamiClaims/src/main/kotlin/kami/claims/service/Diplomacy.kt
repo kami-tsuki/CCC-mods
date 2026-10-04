@@ -110,11 +110,14 @@ object Diplomacy {
         foreign(c, target)
         if (on) Features.require(c, Features.EMBARGOES)
         if (on && allied(c, target)) throw Fail("kami_claims.error.embargo_ally", v(target.name))
-        store(c, target, TradePolicy(policy(c, target).tariffPct, on))
+        val done = Phrase.of(if (on) "kami_claims.done.embargo_on" else "kami_claims.done.embargo_off", v(target.name))
+        val previous = policy(c, target)
+        if (previous.embargo == on) return done
+        store(c, target, TradePolicy(previous.tariffPct, on))
         if (on) target.allianceOffers.remove(c.id)
         Mail.officers(target, Phrase.of(if (on) "kami_claims.mail.embargo_on" else "kami_claims.mail.embargo_off", v(c.name)), if (on) Tone.WARN else Tone.INFO)
         Announce.fire(if (on) "embargoOn" else "embargoOff", c, mapOf("country" to c.name, "other" to target.name))
-        return Phrase.of(if (on) "kami_claims.done.embargo_on" else "kami_claims.done.embargo_off", v(target.name))
+        return done
     }
 
     private fun store(c: Country, target: Country, p: TradePolicy) {

@@ -27,6 +27,7 @@ object ClientEssentials {
         MOD_BUS.addListener<RegisterKeyMappingsEvent> { it.register(key) }
         FORGE_BUS.addListener<ClientTickEvent.Post> {
             while (key.consumeClick()) if (Minecraft.getInstance().screen == null) open()
+            MotdRefresh.tick(Minecraft.getInstance())
         }
         FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> { PrefsApp.instance.snap = null }
     }

@@ -2,6 +2,7 @@ package kami.libs.discord
 
 import net.dv8tion.jda.api.entities.MessageType
 import net.dv8tion.jda.api.events.guild.GuildBanEvent
+import net.dv8tion.jda.api.events.guild.GuildLeaveEvent
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
@@ -20,7 +21,11 @@ internal class Gateway(private val epoch: Int) : ListenerAdapter() {
     override fun onShutdown(e: ShutdownEvent) {
         if (!live || !Discord.active) return
         val code = e.closeCode
-        Discord.disable(epoch, if (code == CloseCode.DISALLOWED_INTENTS) "privileged intents (Message Content, Server Members) are not enabled in the developer portal" else "gateway closed (${code ?: "unknown"})")
+        Discord.disable(epoch, if (code == CloseCode.DISALLOWED_INTENTS) "privileged intents (Message Content, Server Members) are not enabled in the developer portal" else "gateway closed (${code ?: "unknown"})", e.jda)
+    }
+
+    override fun onGuildLeave(e: GuildLeaveEvent) {
+        if (live && e.guild.idLong == Discord.guildId) Discord.disable(epoch, "bot removed from guild", e.jda)
     }
 
     override fun onGuildMemberRemove(e: GuildMemberRemoveEvent) {
@@ -40,7 +45,7 @@ internal class Gateway(private val epoch: Int) : ListenerAdapter() {
         val (text, overflow) = Sanitize.cap(full, DiscordApi.inboundMax)
         val ref = m.referencedMessage
         val inbound = Inbound(
-            e.author.idLong, Sanitize.inbound(e.member?.effectiveName ?: e.author.effectiveName), m.idLong, text, overflow, full,
+            e.author.idLong, Sanitize.inbound(e.member?.effectiveName ?: e.author.effectiveName), text, overflow, full,
             ref?.idLong ?: m.messageReference?.messageIdLong,
             ref?.let { Sanitize.inbound(it.member?.effectiveName ?: it.author.effectiveName) },
             ref?.let { Sanitize.inbound(it.contentDisplay).take(SNIPPET) },
@@ -57,12 +62,13 @@ internal class Gateway(private val epoch: Int) : ListenerAdapter() {
         e.deferReply(true).queue()
         val ctx = Ctx(e)
         Discord.post {
-            if ((parent.admin || sub?.admin == true) && !ctx.admin) ctx.reply(DiscordText.get("kami_libs", "en_us", "kami_libs.discord.denied"))
+            if (parent.admin && !ctx.admin) ctx.reply(text("denied"))
+            else if (parent.subcommands.isNotEmpty() && sub == null) ctx.reply(text("error"))
             else try {
                 (sub ?: parent).run(ctx)
             } catch (ex: Exception) {
                 Discord.log.error("Slash command /{} failed: {}", e.name, ex.toString())
-                if (!ctx.replied) ctx.reply(DiscordText.get("kami_libs", "en_us", "kami_libs.discord.error"))
+                if (!ctx.replied) ctx.reply(text("error"))
             }
         }
     }
@@ -72,17 +78,18 @@ internal class Gateway(private val epoch: Int) : ListenerAdapter() {
         override val userId = e.user.idLong
         override val userName = e.member?.effectiveName ?: e.user.effectiveName
         override val admin = Discord.connected.adminRoleId.toLongOrNull()?.let { id -> e.member?.roles?.any { it.idLong == id } } == true
-        override val subcommand: String? = e.subcommandName
 
         override fun opt(name: String): String? = e.getOption(name)?.asString
 
         override fun reply(text: String) {
             replied = true
-            e.hook.editOriginal(text.take(2000)).queue()
+            e.hook.editOriginal(text.take(MESSAGE_MAX)).queue()
         }
     }
 
     private companion object {
         const val SNIPPET = 200
+
+        fun text(key: String) = DiscordText.get("kami_libs", DiscordText.FALLBACK, "kami_libs.discord.$key")
     }
 }

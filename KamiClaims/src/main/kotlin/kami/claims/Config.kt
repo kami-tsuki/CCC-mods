@@ -35,7 +35,7 @@ data class Announcement(val mc: Boolean = true, val discord: Boolean = true, val
             "embargoOn" to Announcement(template = "{country} imposed an embargo on {other}."),
             "embargoOff" to Announcement(template = "{country} lifted its embargo on {other}."),
             "leaderHandover" to Announcement(template = "{old} handed the presidency of {country} to {leader}."),
-            "succession" to Announcement(template = "{country}'s president {old} was inactive, {leader} took over."),
+            "succession" to Announcement(template = "The president of {country}, {old}, was inactive. {leader} took over."),
             "disbanded" to Announcement(template = "{country} was disbanded.")
         )
     }
@@ -239,7 +239,7 @@ private val sections = listOf(
         mapOf(
             "notify" to "Show the country name when a player walks into other land.",
             "titles" to "Use a big title when crossing a border between countries.",
-            "broadcast" to "Tell the whole server when a country is founded.",
+            "broadcast" to "Send country events (founding, levels, diplomacy, leaders, disbands) to global chat.",
             "mailLimit" to "Most messages kept for an offline member."
         )
     ),

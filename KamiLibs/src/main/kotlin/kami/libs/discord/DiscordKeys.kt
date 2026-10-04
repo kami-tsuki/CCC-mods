@@ -8,7 +8,9 @@ import net.neoforged.fml.loading.FMLPaths
 data class DiscordKeys(
     val token: String = "", val guildId: String = "", val chatChannelId: String = "", val consoleChannelId: String = "",
     val chatWebhookUrl: String = "", val consoleWebhookUrl: String = "", val verifiedRoleId: String = "", val adminRoleId: String = "", val inviteLink: String = ""
-)
+) {
+    override fun toString() = "DiscordKeys(***)"
+}
 
 internal object KeyFile {
     private val folder by lazy { ConfigFolder(FMLPaths.CONFIGDIR.get(), "Reload with /discord reload") }
@@ -25,5 +27,18 @@ internal object KeyFile {
         "inviteLink" to "Invite link shown to players who still have to verify."
     )
 
-    fun load(): DiscordKeys = folder.file("kami-discord-bot.json", DiscordKeys.serializer(), DiscordKeys(), docs, "Kami Discord bot keys")
+    private val path by lazy { FMLPaths.CONFIGDIR.get().resolve("kami-discord-bot.json") }
+
+    val broken: Boolean get() = folder.problems.isNotEmpty()
+
+    fun load(): DiscordKeys {
+        folder.startLoad()
+        val keys = folder.file("kami-discord-bot.json", DiscordKeys.serializer(), DiscordKeys(), docs, "Kami Discord bot keys").trimmed()
+        restrict(path)
+        return keys
+    }
+
+    private fun DiscordKeys.trimmed() = DiscordKeys(
+        token.trim(), guildId.trim(), chatChannelId.trim(), consoleChannelId.trim(), chatWebhookUrl.trim(), consoleWebhookUrl.trim(), verifiedRoleId.trim(), adminRoleId.trim(), inviteLink.trim()
+    )
 }

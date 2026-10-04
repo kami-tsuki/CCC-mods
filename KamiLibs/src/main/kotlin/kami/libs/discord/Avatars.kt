@@ -9,8 +9,9 @@ import java.util.UUID
 
 object Avatars {
     private const val CHECK_MS = 600_000L
+    private val TIMEOUT = Duration.ofSeconds(5)
     private const val PROBE = "8667ba71-b85a-4004-af54-457a9734eed7"
-    private val http by lazy { HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build() }
+    private val http by lazy { HttpClient.newBuilder().connectTimeout(TIMEOUT).build() }
 
     @Volatile private var primary = ""
     @Volatile private var fallback = ""
@@ -34,7 +35,7 @@ object Avatars {
         if (fallback.isBlank() || primary.isBlank() || now - checked < CHECK_MS) return
         checked = now
         val request = runCatching {
-            HttpRequest.newBuilder(URI.create(fill(primary, PROBE))).method("HEAD", HttpRequest.BodyPublishers.noBody()).timeout(Duration.ofSeconds(5)).build()
+            HttpRequest.newBuilder(URI.create(fill(primary, PROBE))).method("HEAD", HttpRequest.BodyPublishers.noBody()).timeout(TIMEOUT).build()
         }.getOrNull() ?: return
         http.sendAsync(request, HttpResponse.BodyHandlers.discarding()).whenComplete { r, e -> down = e != null || r.statusCode() !in 200..399 }
     }

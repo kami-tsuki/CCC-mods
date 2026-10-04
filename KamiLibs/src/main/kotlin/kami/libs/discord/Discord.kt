@@ -45,8 +45,9 @@ internal object Discord {
     @Volatile private var lastTopic: String? = null
     @Volatile private var lastTopicAttempt = 0L
     @Volatile private var lastPresence: String? = null
+    const val CLOSE_MS = 5000L
     private const val TOPIC_COOLDOWN_MS = 300_000L
-    private var flushSeconds = 3
+    private val RETRY_SECONDS = longArrayOf(5, 15, 60)
     private val warned = ConcurrentHashMap.newKeySet<String>()
     private val intents = listOf(GatewayIntent.GUILD_MESSAGES, GatewayIntent.MESSAGE_CONTENT, GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_MODERATION)
 
@@ -78,11 +79,10 @@ internal object Discord {
     @Synchronized
     fun start(server: MinecraftServer, flushSeconds: Int) {
         if (started) return
+        keys = loadKeys(DiscordKeys())
         started = true
         this.server = server
-        this.flushSeconds = flushSeconds.coerceAtLeast(1)
-        keys = KeyFile.load()
-        Outbox.start(this.flushSeconds)
+        Outbox.start(flushSeconds.coerceAtLeast(1))
         connect()
     }
 
@@ -104,26 +104,28 @@ internal object Discord {
         client?.let { close(it, end - System.currentTimeMillis()) }
     }
 
-    fun reload(server: MinecraftServer) {
-        val old = synchronized(this) {
+    fun reload(server: MinecraftServer, flushSeconds: Int) {
+        val (old, mine) = synchronized(this) {
             if (!started) return
             this.server = server
-            keys = KeyFile.load()
-            if (keys == connected && state != DiscordState.DISABLED && state != DiscordState.OFF) return
-            epoch++
+            Outbox.start(flushSeconds.coerceAtLeast(1))
+            keys = loadKeys(keys)
+            if (keys == connected && active) return
             state = DiscordState.OFF
-            jda.also { jda = null }
+            val client = jda
+            jda = null
+            client to ++epoch
         }
         Outbox.reset()
         Webhooks.clear()
         Thread({
-            old?.let { close(it, 5000) }
-            synchronized(this) { if (started) connect() }
+            old?.let { close(it, CLOSE_MS) }
+            synchronized(this) { if (started && epoch == mine) connect() }
         }, "kami-discord-reload").apply { isDaemon = true }.start()
     }
 
-    fun disable(mine: Int, reason: String) {
-        val client = synchronized(this) {
+    fun disable(mine: Int, reason: String, client: JDA? = null) {
+        val current = synchronized(this) {
             if (epoch != mine) return
             state = DiscordState.DISABLED
             jda.also { jda = null }
@@ -131,16 +133,15 @@ internal object Discord {
         log.error("Discord bot disabled: {}", reason)
         Outbox.reset()
         Webhooks.clear()
-        client?.shutdownNow()
+        current?.shutdownNow()
+        if (client !== current) client?.shutdownNow()
     }
 
     fun ready(client: JDA, mine: Int) {
-        val guild = client.getGuildById(guildId) ?: return disable(mine, "guild ${connected.guildId} not found, is the bot invited to it?")
-        synchronized(this) {
-            if (epoch != mine) return
-            jda = client
-            state = DiscordState.READY
-        }
+        val guild = client.getGuildById(guildId) ?: return disable(mine, "guild ${connected.guildId} not found, is the bot invited to it?", client)
+        val adopted = synchronized(this) { adopt(client, mine).also { if (it) state = DiscordState.READY } }
+        if (!adopted) return
+        Webhooks.clear()
         guard("permissions") { audit(guild) }
         guard("commands") { guild.updateCommands().addCommands(commands().map(::data)).queue(null) { log.error("Slash command registration failed: {}", it.message) } }
         guard("outbox") { Outbox.open() }
@@ -161,14 +162,14 @@ internal object Discord {
     fun commands(): List<SlashCommand> = features.flatMap { it.commands() }
 
     fun presence(text: String) {
-        val client = jda?.takeIf { state == DiscordState.READY } ?: return
+        val client = readyClient() ?: return
         if (text == lastPresence) return
         lastPresence = text
         client.presence.setActivity(Activity.playing(text.take(128)))
     }
 
     fun topic(text: String, force: Boolean = false) {
-        val client = jda?.takeIf { state == DiscordState.READY } ?: return
+        val client = readyClient() ?: return
         if (text == lastTopic) return
         val now = System.currentTimeMillis()
         if (!force && now - lastTopicAttempt < TOPIC_COOLDOWN_MS) return
@@ -195,10 +196,11 @@ internal object Discord {
         }
     }
 
-    fun members(ids: Collection<Long>, result: (Map<Long, Member>?) -> Unit) {
+    fun members(ids: Collection<Long>, done: (Map<Long, Member>?) -> Unit) {
+        val result = fresh(done)
         val guild = guild() ?: return post { result(null) }
         if (ids.isEmpty()) return post { result(emptyMap()) }
-        val role = connected.verifiedRoleId.toLongOrNull()?.let(guild::getRoleById)
+        val role = verifiedRole(guild)
         val found = ConcurrentHashMap<Long, Member>()
         val failed = AtomicBoolean()
         val batches = ids.distinct().chunked(100)
@@ -207,7 +209,7 @@ internal object Discord {
         batches.forEach { batch ->
             guild.retrieveMembersByIds(batch)
                 .onSuccess { list ->
-                    runCatching { list.forEach { found[it.idLong] = Member(it.idLong, it.effectiveName, role == null || it.roles.contains(role)) } }.onFailure { failed.set(true) }
+                    runCatching { list.forEach { found[it.idLong] = Member(it.idLong, role == null || it.roles.contains(role)) } }.onFailure { failed.set(true) }
                     finish()
                 }
                 .onError {
@@ -217,27 +219,66 @@ internal object Discord {
         }
     }
 
-    fun bans(result: (Set<Long>?) -> Unit) {
+    fun holders(done: (Set<Long>?) -> Unit) {
+        val result = fresh(done)
+        val guild = guild() ?: return post { result(null) }
+        val role = verifiedRole(guild) ?: return post { result(null) }
+        guild.findMembersWithRoles(role)
+            .onSuccess { list ->
+                val ids = list.mapTo(HashSet()) { it.idLong }
+                post { result(ids) }
+            }
+            .onError { post { result(null) } }
+    }
+
+    fun bans(done: (Set<Long>?) -> Unit) {
+        val result = fresh(done)
         val guild = guild() ?: return post { result(null) }
         val banned = ConcurrentHashMap.newKeySet<Long>()
         guild.retrieveBanList().forEachAsync { banned += it.user.idLong; true }
             .whenComplete { _, error -> post { result(if (error == null) banned.toSet() else null) } }
     }
 
-    fun banned(userId: Long, result: (Boolean?) -> Unit) {
+    fun banned(userId: Long, done: (Boolean?) -> Unit) {
+        val result = fresh(done)
         val guild = guild() ?: return post { result(null) }
         guild.retrieveBan(UserSnowflake.fromId(userId)).queue({ post { result(true) } }) { e ->
             post { result(if ((e as? ErrorResponseException)?.errorResponse == ErrorResponse.UNKNOWN_BAN) false else null) }
         }
     }
 
-    private fun guild(): Guild? = jda?.takeIf { state == DiscordState.READY }?.getGuildById(guildId)
+    private fun <T> fresh(result: (T?) -> Unit): (T?) -> Unit {
+        val mine = epoch
+        return { value -> result(if (epoch == mine) value else null) }
+    }
+
+    private fun loadKeys(fallback: DiscordKeys) = try {
+        KeyFile.load()
+    } catch (e: Exception) {
+        log.error("Cannot read kami-discord-bot.json: {}", e.message)
+        fallback
+    }
+
+    private fun adopt(client: JDA, mine: Int): Boolean = synchronized(this) {
+        if (epoch != mine || !active) return false
+        if (jda !== client) {
+            jda?.shutdownNow()
+            jda = client
+        }
+        true
+    }
+
+    private fun verifiedRole(guild: Guild) = connected.verifiedRoleId.toLongOrNull()?.let(guild::getRoleById)
+
+    private fun readyClient() = jda?.takeIf { state == DiscordState.READY }
+
+    private fun guild(): Guild? = readyClient()?.getGuildById(guildId)
 
     private fun close(client: JDA, timeoutMs: Long) {
         try {
             client.shutdown()
             if (!client.awaitShutdown(timeoutMs.coerceAtLeast(0), TimeUnit.MILLISECONDS)) client.shutdownNow()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             client.shutdownNow()
         }
     }
@@ -249,9 +290,11 @@ internal object Discord {
         lastTopic = null
         lastTopicAttempt = 0L
         lastPresence = null
-        if (k.token.isBlank() || k.guildId.toLongOrNull() == null || k.chatChannelId.toLongOrNull() == null) {
+        if (!DiscordApi.configured) {
             state = DiscordState.OFF
-            log.info("Discord bot idle: set token, guildId and chatChannelId in config/kami-discord-bot.json")
+            if (KeyFile.broken) log.warn("Discord bot idle: config/kami-discord-bot.json is unreadable, joins are blocked until it is fixed and /discord reload is run")
+            else if (k.token.isBlank()) log.info("Discord bot idle: set token, guildId and chatChannelId in config/kami-discord-bot.json")
+            else log.warn("Discord bot idle: guildId and chatChannelId in config/kami-discord-bot.json must be numeric ids")
             return
         }
         state = DiscordState.CONNECTING
@@ -260,21 +303,30 @@ internal object Discord {
     }
 
     private fun build(k: DiscordKeys, mine: Int) {
-        try {
-            MessageRequest.setDefaultMentions(EnumSet.of(Message.MentionType.USER))
-            val client = JDABuilder.createLight(k.token, intents)
-                .enableCache(CacheFlag.MEMBER_OVERRIDES)
-                .setMemberCachePolicy(MemberCachePolicy.NONE)
-                .setChunkingFilter(ChunkingFilter.NONE)
-                .setEnableShutdownHook(false)
-                .addEventListeners(Gateway(mine))
-                .build()
-            val stale = synchronized(this) { (epoch != mine).also { if (!it) jda = client } }
-            if (stale) client.shutdownNow()
-        } catch (e: InvalidTokenException) {
-            disable(mine, "the bot token is invalid")
-        } catch (e: Exception) {
-            disable(mine, e.message ?: e.javaClass.simpleName)
+        var attempt = 0
+        while (epoch == mine && state == DiscordState.CONNECTING) {
+            try {
+                MessageRequest.setDefaultMentions(EnumSet.of(Message.MentionType.USER))
+                val client = JDABuilder.createLight(k.token, intents)
+                    .enableCache(CacheFlag.MEMBER_OVERRIDES)
+                    .setMemberCachePolicy(MemberCachePolicy.NONE)
+                    .setChunkingFilter(ChunkingFilter.NONE)
+                    .setEnableShutdownHook(false)
+                    .addEventListeners(Gateway(mine))
+                    .build()
+                if (!adopt(client, mine)) client.shutdownNow()
+                return
+            } catch (_: InvalidTokenException) {
+                return disable(mine, "the bot token is invalid")
+            } catch (e: Exception) {
+                val wait = RETRY_SECONDS[minOf(attempt++, RETRY_SECONDS.lastIndex)]
+                log.warn("Discord connection failed ({}), retrying in {}s", e.message ?: e.javaClass.simpleName, wait)
+                try {
+                    TimeUnit.SECONDS.sleep(wait)
+                } catch (_: InterruptedException) {
+                    return
+                }
+            }
         }
     }
 

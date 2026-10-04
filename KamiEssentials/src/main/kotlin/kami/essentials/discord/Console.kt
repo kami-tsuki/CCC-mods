@@ -9,6 +9,8 @@ import net.minecraft.world.level.BaseCommandBlock
 import net.neoforged.neoforge.event.CommandEvent
 
 object Console {
+    private val ROOTS = setOf("kami", "claims", "economy", "essentials", "discord", "geology", "library")
+
     fun onCommand(e: CommandEvent) {
         val c = Config.s.discord.console
         if (!c.enabled || !DiscordApi.ready) return
@@ -20,7 +22,9 @@ object Console {
             else -> return
         }
         val command = e.parseResults.reader.string.trim().removePrefix("/")
-        val secret = command.contains(' ') && command.split(' ').any { it.substringAfter(':').lowercase() in c.redact }
+        val tokens = command.split(' ')
+        val first = tokens.indexOfFirst { it.substringAfter(':').lowercase() !in ROOTS }
+        val secret = tokens.size > 1 && tokens.withIndex().any { (i, t) -> (i == first || i > 0 && tokens[i - 1] == "run") && t.substringAfter(':').lowercase() in c.redact }
         DiscordApi.console("$who: /" + if (secret) "${command.substringBefore(' ')} [redacted]" else command)
     }
 }
