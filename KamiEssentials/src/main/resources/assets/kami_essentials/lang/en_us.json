@@ -198,7 +198,7 @@
   "kami_essentials.discord.kick.banned": "You were banned on Discord.",
   "kami_essentials.discord.verify.limited": "Too many failed attempts. Try again later.",
   "kami_essentials.discord.verify.taken": "Your Discord account is already linked to a Minecraft account.",
-  "kami_essentials.discord.verify.invalid": "That code is unknown or expired. Join the server to get a new one.",
+  "kami_essentials.discord.verify.invalid": "That code is unknown or expired. Join the Minecraft server again to get a new code.",
   "kami_essentials.discord.verify.ok": "Verified as %s. You can join the server now.",
   "kami_essentials.discord.unverify.none": "Your Discord account is not linked.",
   "kami_essentials.discord.unverify.ok": "Unlinked %s.",

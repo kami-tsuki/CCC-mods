@@ -113,7 +113,7 @@ data class DiscordVerify(val codeMinutes: Int = 15, val attempts: Int = 5, val w
 
 @Serializable
 data class DiscordSettings(
-    val enabled: Boolean = false,
+    val enabled: Boolean = true,
     val language: String = "en_us",
     val chat: DiscordChat = DiscordChat(),
     val events: DiscordEvents = DiscordEvents(),
@@ -237,7 +237,7 @@ private val sections = listOf(
         "discord.json", "Discord bot. Keys and token live in config/kami-discord-bot.json.",
         mapOf(
             "discord" to "Discord bot settings.",
-            "discord.enabled" to "Turn the Discord bot on. Needs the token, guild and chat channel in config/kami-discord-bot.json.",
+            "discord.enabled" to "Turn the Discord bot on. It stays idle and joins stay open until the token, guild and chat channel are set in config/kami-discord-bot.json.",
             "discord.language" to "Language of bot replies and kick messages.",
             "discord.chat" to "Chat relay.",
             "discord.chat.toDiscord" to "Send global chat to Discord.",

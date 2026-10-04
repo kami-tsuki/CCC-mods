@@ -39,7 +39,7 @@ object Bot {
         running = false
         val d = Config.s.discord
         lifecycle(d.events.stop, d.templates.stop, Theme.BAD)
-        DiscordApi.topic(d.status.topicOffline)
+        DiscordApi.finalTopic(d.status.topicOffline)
         DiscordApi.stop(5000)
     }
 

@@ -198,7 +198,7 @@
   "kami_essentials.discord.kick.banned": "Du wurdest auf Discord gebannt.",
   "kami_essentials.discord.verify.limited": "Zu viele Fehlversuche. Versuche es später erneut.",
   "kami_essentials.discord.verify.taken": "Dein Discord-Konto ist bereits mit einem Minecraft-Konto verknüpft.",
-  "kami_essentials.discord.verify.invalid": "Der Code ist unbekannt oder abgelaufen. Betritt den Server für einen neuen.",
+  "kami_essentials.discord.verify.invalid": "Der Code ist unbekannt oder abgelaufen. Betritt den Minecraft-Server erneut, um einen neuen Code zu erhalten.",
   "kami_essentials.discord.verify.ok": "Verifiziert als %s. Du kannst jetzt auf den Server.",
   "kami_essentials.discord.unverify.none": "Dein Discord-Konto ist nicht verknüpft.",
   "kami_essentials.discord.unverify.ok": "%s getrennt.",

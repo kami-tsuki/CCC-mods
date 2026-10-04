@@ -45,6 +45,7 @@ object DiscordApi {
     val state: DiscordState get() = Discord.state
     val ready: Boolean get() = Discord.state == DiscordState.READY
     val keys: DiscordKeys get() = Discord.keys
+    val configured: Boolean get() = keys.let { it.token.isNotBlank() && it.guildId.isNotBlank() && it.chatChannelId.isNotBlank() }
 
     fun register(feature: DiscordFeature) {
         Discord.features += feature
@@ -54,35 +55,38 @@ object DiscordApi {
     fun stop(timeoutMs: Long = 5000) = Discord.stop(timeoutMs)
     fun reload(server: MinecraftServer) = Discord.reload(server)
 
-    fun chat(post: Post, sent: (Long) -> Unit = {}) {
-        if (!Discord.active) return
+    fun chat(post: Post, sent: (Long) -> Unit = {}) = Discord.guard("chat") {
+        if (!Discord.active) return@guard
         val text = Sanitize.outbound(post.text).take(2000)
-        if (text.isBlank()) return
+        if (text.isBlank()) return@guard
         val name = Sanitize.name(post.name)
         val ids = post.mentions.toLongArray()
         Outbox.submit(Outbox.Channel.CHAT, Outbox.Task({ c ->
             c.sendMessage(text).setUsername(name).setAllowedMentions(emptySet()).mentionUsers(*ids).also { if (post.avatar.isNotBlank()) it.setAvatarUrl(post.avatar) }
+        }, { c ->
+            c.sendMessage("${Templates.code(name)}: $text").setAllowedMentions(emptySet()).mentionUsers(*ids)
         }) { id -> Discord.post { sent(id) } })
     }
 
-    fun event(embed: Embed) {
-        if (!Discord.active) return
-        val text = Sanitize.outbound(embed.text).take(256)
-        if (text.isBlank()) return
-        val built = EmbedBuilder().setColor(embed.color).setAuthor(text, null, embed.icon?.takeIf { it.isNotBlank() }).build()
-        Outbox.submit(Outbox.Channel.CHAT, Outbox.Task({ it.sendMessageEmbeds(built) }))
+    fun event(embed: Embed) = Discord.guard("event") {
+        if (!Discord.active) return@guard
+        val text = Sanitize.outbound(embed.text).take(1024)
+        if (text.isBlank()) return@guard
+        val icon = embed.icon?.takeIf { it.startsWith("http") && it.length <= 2000 }
+        val built = EmbedBuilder().setColor(embed.color).setDescription(if (icon == null) text else "[​]($icon) $text").build()
+        Outbox.submit(Outbox.Channel.CHAT, Outbox.Task({ it.sendMessageEmbeds(built) }, { it.sendMessageEmbeds(built) }))
     }
 
-    fun console(line: String) {
-        if (!Discord.active || !Discord.consoleOn) return
-        Outbox.console(Sanitize.console(line))
+    fun console(line: String) = Discord.guard("console") {
+        if (Discord.active && Discord.consoleOn) Outbox.console(Sanitize.console(line))
     }
 
-    fun presence(text: String) = Discord.presence(text)
-    fun topic(text: String) = Discord.topic(text)
-    fun grant(userId: Long) = Discord.role(userId, true)
-    fun revoke(userId: Long) = Discord.role(userId, false)
-    fun members(ids: Collection<Long>, result: (Map<Long, Member>?) -> Unit) = Discord.members(ids, result)
-    fun bans(result: (Set<Long>?) -> Unit) = Discord.bans(result)
-    fun banned(userId: Long, result: (Boolean?) -> Unit) = Discord.banned(userId, result)
+    fun presence(text: String) = Discord.guard("presence") { Discord.presence(text) }
+    fun topic(text: String) = Discord.guard("topic") { Discord.topic(text) }
+    fun finalTopic(text: String) = Discord.guard("topic") { Discord.topic(text, true) }
+    fun grant(userId: Long) = Discord.guard("role") { Discord.role(userId, true) }
+    fun revoke(userId: Long) = Discord.guard("role") { Discord.role(userId, false) }
+    fun members(ids: Collection<Long>, result: (Map<Long, Member>?) -> Unit) = Discord.guard("members", { Discord.post { result(null) } }) { Discord.members(ids, result) }
+    fun bans(result: (Set<Long>?) -> Unit) = Discord.guard("bans", { Discord.post { result(null) } }) { Discord.bans(result) }
+    fun banned(userId: Long, result: (Boolean?) -> Unit) = Discord.guard("ban", { Discord.post { result(null) } }) { Discord.banned(userId, result) }
 }

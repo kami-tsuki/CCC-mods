@@ -20,6 +20,7 @@ import net.dv8tion.jda.api.interactions.commands.build.SubcommandData
 import net.dv8tion.jda.api.requests.ErrorResponse
 import net.dv8tion.jda.api.requests.GatewayIntent
 import net.dv8tion.jda.api.utils.ChunkingFilter
+import net.dv8tion.jda.api.utils.cache.CacheFlag
 import net.dv8tion.jda.api.utils.MemberCachePolicy
 import net.dv8tion.jda.api.utils.messages.MessageRequest
 import net.minecraft.server.MinecraftServer
@@ -42,7 +43,9 @@ internal object Discord {
     @Volatile var epoch = 0
     @Volatile private var server: MinecraftServer? = null
     @Volatile private var lastTopic: String? = null
+    @Volatile private var lastTopicAttempt = 0L
     @Volatile private var lastPresence: String? = null
+    private const val TOPIC_COOLDOWN_MS = 300_000L
     private var flushSeconds = 3
     private val warned = ConcurrentHashMap.newKeySet<String>()
     private val intents = listOf(GatewayIntent.GUILD_MESSAGES, GatewayIntent.MESSAGE_CONTENT, GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_MODERATION)
@@ -51,9 +54,19 @@ internal object Discord {
     val consoleOn get() = connected.consoleChannelId.isNotBlank() || connected.consoleWebhookUrl.isNotBlank()
     val guildId get() = connected.guildId.toLongOrNull() ?: 0L
     val chatId get() = connected.chatChannelId.toLongOrNull() ?: 0L
+    val consoleId get() = connected.consoleChannelId.toLongOrNull() ?: 0L
 
     fun warnOnce(kind: String, message: String) {
         if (warned.add(kind)) log.warn(message)
+    }
+
+    fun guard(kind: String, failed: () -> Unit = {}, action: () -> Unit) {
+        try {
+            action()
+        } catch (e: Exception) {
+            warnOnce("$kind-${e.javaClass.simpleName}", "Discord $kind failed: ${e.message}")
+            failed()
+        }
     }
 
     fun post(action: () -> Unit) {
@@ -81,7 +94,7 @@ internal object Discord {
             jda
         }
         val end = System.currentTimeMillis() + timeoutMs
-        if (client != null) Outbox.drain(end)
+        if (client != null) guard("drain") { Outbox.drain(end) }
         synchronized(this) {
             jda = null
             state = DiscordState.OFF
@@ -128,9 +141,21 @@ internal object Discord {
             jda = client
             state = DiscordState.READY
         }
-        Outbox.open()
-        guild.updateCommands().addCommands(commands().map(::data)).queue(null) { log.error("Slash command registration failed: {}", it.message) }
+        guard("permissions") { audit(guild) }
+        guard("commands") { guild.updateCommands().addCommands(commands().map(::data)).queue(null) { log.error("Slash command registration failed: {}", it.message) } }
+        guard("outbox") { Outbox.open() }
         each { it.onReady() }
+    }
+
+    private fun audit(guild: Guild) {
+        val self = guild.selfMember
+        if (self.hasPermission(Permission.ADMINISTRATOR)) return
+        val missing = listOf(Permission.MANAGE_ROLES, Permission.BAN_MEMBERS).filterNot { self.hasPermission(it) }.map { it.getName() } +
+            listOf(chatId to listOf(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MANAGE_WEBHOOKS, Permission.MANAGE_CHANNEL), consoleId to listOf(Permission.VIEW_CHANNEL, Permission.MANAGE_WEBHOOKS))
+                .flatMap { (id, perms) -> guild.getGuildChannelById(id)?.let { c -> perms.filterNot { self.hasPermission(c, it) }.map { "${it.getName()} in #${c.name}" } }.orEmpty() }
+        log.info("Discord bot roles: {}", self.roles.joinToString { it.name })
+        if (missing.isNotEmpty()) log.warn("Discord bot is missing permissions: {}", missing.joinToString())
+        if (missing.any { it.startsWith(Permission.MANAGE_WEBHOOKS.getName()) }) log.warn("Without Manage Webhooks the bot posts plain messages under its own name")
     }
 
     fun commands(): List<SlashCommand> = features.flatMap { it.commands() }
@@ -142,11 +167,18 @@ internal object Discord {
         client.presence.setActivity(Activity.playing(text.take(128)))
     }
 
-    fun topic(text: String) {
+    fun topic(text: String, force: Boolean = false) {
         val client = jda?.takeIf { state == DiscordState.READY } ?: return
         if (text == lastTopic) return
+        val now = System.currentTimeMillis()
+        if (!force && now - lastTopicAttempt < TOPIC_COOLDOWN_MS) return
         val channel = client.getChannelById(StandardGuildMessageChannel::class.java, chatId) ?: return
-        channel.manager.setTopic(text.take(1024)).queue({ lastTopic = text }) { warnOnce("topic", "Cannot set the chat channel topic: ${it.message}") }
+        lastTopicAttempt = now
+        lastTopic = text
+        channel.manager.setTopic(text.take(1024)).queue(null) {
+            lastTopic = null
+            warnOnce("topic", "Cannot set the chat channel topic: ${it.message}")
+        }
     }
 
     fun role(userId: Long, add: Boolean) {
@@ -202,8 +234,12 @@ internal object Discord {
     private fun guild(): Guild? = jda?.takeIf { state == DiscordState.READY }?.getGuildById(guildId)
 
     private fun close(client: JDA, timeoutMs: Long) {
-        client.shutdown()
-        if (!client.awaitShutdown(timeoutMs.coerceAtLeast(0), TimeUnit.MILLISECONDS)) client.shutdownNow()
+        try {
+            client.shutdown()
+            if (!client.awaitShutdown(timeoutMs.coerceAtLeast(0), TimeUnit.MILLISECONDS)) client.shutdownNow()
+        } catch (e: Exception) {
+            client.shutdownNow()
+        }
     }
 
     private fun connect() {
@@ -211,6 +247,7 @@ internal object Discord {
         connected = k
         warned.clear()
         lastTopic = null
+        lastTopicAttempt = 0L
         lastPresence = null
         if (k.token.isBlank() || k.guildId.toLongOrNull() == null || k.chatChannelId.toLongOrNull() == null) {
             state = DiscordState.OFF
@@ -226,6 +263,7 @@ internal object Discord {
         try {
             MessageRequest.setDefaultMentions(EnumSet.of(Message.MentionType.USER))
             val client = JDABuilder.createLight(k.token, intents)
+                .enableCache(CacheFlag.MEMBER_OVERRIDES)
                 .setMemberCachePolicy(MemberCachePolicy.NONE)
                 .setChunkingFilter(ChunkingFilter.NONE)
                 .setEnableShutdownHook(false)

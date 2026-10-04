@@ -2,6 +2,9 @@ package kami.libs.discord
 
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.WebhookClient
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
+import net.dv8tion.jda.api.exceptions.InsufficientPermissionException
+import net.dv8tion.jda.api.requests.restaction.MessageCreateAction
 import net.dv8tion.jda.api.requests.restaction.WebhookMessageCreateAction
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -10,7 +13,11 @@ import java.util.concurrent.TimeUnit
 internal object Outbox {
     enum class Channel { CHAT, CONSOLE }
 
-    class Task(val build: (WebhookClient<Message>) -> WebhookMessageCreateAction<Message>, val sent: (Long) -> Unit = {})
+    class Task(
+        val build: (WebhookClient<Message>) -> WebhookMessageCreateAction<Message>,
+        val plain: (MessageChannel) -> MessageCreateAction,
+        val sent: (Long) -> Unit = {}
+    )
 
     private class Lane {
         val queue = ArrayDeque<Task>()
@@ -92,7 +99,7 @@ internal object Outbox {
         if (lines.isEmpty()) return
         val batch = lines.toList()
         lines.clear()
-        chunks(batch).forEach { chunk -> submit(Channel.CONSOLE, Task({ it.sendMessage("```\n$chunk```").setAllowedMentions(emptySet()) })) }
+        chunks(batch).forEach { chunk -> submit(Channel.CONSOLE, Task({ it.sendMessage("```\n$chunk```").setAllowedMentions(emptySet()) }, { it.sendMessage("```\n$chunk```").setAllowedMentions(emptySet()) })) }
     }
 
     private fun chunks(batch: List<String>): List<String> {
@@ -117,29 +124,52 @@ internal object Outbox {
         send(lane, channel, task, true, gen)
     }
 
-    private fun notice(count: Int) = Task({ it.sendMessage("*$count messages dropped*").setAllowedMentions(emptySet()) })
+    private fun notice(count: Int) = Task({ it.sendMessage("*$count messages dropped*").setAllowedMentions(emptySet()) }, { it.sendMessage("*$count messages dropped*").setAllowedMentions(emptySet()) })
 
     private fun send(lane: Lane, channel: Channel, task: Task, retry: Boolean, mine: Int) {
         Webhooks.get(channel) { client ->
-            if (client == null) return@get finish(lane, channel, mine)
-            val action = try {
-                task.build(client)
+            if (client == null) return@get sendPlain(lane, channel, task, mine)
+            try {
+                task.build(client).queue({
+                    finish(lane, channel, mine)
+                    task.sent(it.idLong)
+                }, { e ->
+                    if (retry && Webhooks.stale(e)) {
+                        Webhooks.invalidate(channel)
+                        send(lane, channel, task, false, mine)
+                    } else if (Webhooks.stale(e)) {
+                        sendPlain(lane, channel, task, mine)
+                    } else {
+                        Discord.log.warn("Discord send failed: {}", e.message)
+                        finish(lane, channel, mine)
+                    }
+                })
             } catch (e: Exception) {
-                Discord.log.warn("Discord message rejected: {}", e.message)
-                return@get finish(lane, channel, mine)
+                Discord.warnOnce("send-${e.javaClass.simpleName}", "Discord send failed: ${e.message}")
+                finish(lane, channel, mine)
             }
-            action.queue({
+        }
+    }
+
+    private fun sendPlain(lane: Lane, channel: Channel, task: Task, mine: Int) {
+        val id = if (channel == Channel.CHAT) Discord.chatId else Discord.consoleId
+        val target = Discord.jda?.getChannelById(MessageChannel::class.java, id)
+        if (target == null) {
+            Discord.warnOnce("plain-$channel", "The $channel channel $id was not found, cannot send messages")
+            return finish(lane, channel, mine)
+        }
+        val fail = { e: Throwable ->
+            if (e is InsufficientPermissionException) Discord.warnOnce("plain-perm-$channel", "The bot cannot send messages in the $channel channel: ${e.message}")
+            else Discord.log.warn("Discord send failed: {}", e.message)
+            finish(lane, channel, mine)
+        }
+        try {
+            task.plain(target).queue({
                 finish(lane, channel, mine)
                 task.sent(it.idLong)
-            }, { e ->
-                if (retry && Webhooks.stale(e)) {
-                    Webhooks.invalidate(channel)
-                    send(lane, channel, task, false, mine)
-                } else {
-                    Discord.log.warn("Discord send failed: {}", e.message)
-                    finish(lane, channel, mine)
-                }
-            })
+            }, fail)
+        } catch (e: Exception) {
+            fail(e)
         }
     }
 

@@ -28,9 +28,10 @@ object Gate : DiscordFeature {
     private fun kick(key: String): Component = Phrase.of("kami_essentials.discord.kick.$key").component()
 
     fun check(profile: GameProfile): Component? {
-        if (!Config.s.discord.enabled) return null
+        if (!Config.s.discord.enabled || !DiscordApi.configured) return null
+        val linked = Links.get(profile.id) != null
         if (Links.broken) return kick("unavailable")
-        if (Links.get(profile.id) != null) return null
+        if (linked) return null
         if (!DiscordApi.ready) return kick("unavailable")
         val code = Codes.issue(profile.id, profile.name, Config.s.discord.verify.codeMinutes)
         val out = Phrase.of("kami_essentials.discord.kick.title").component().withColor(Theme.VALUE)
@@ -96,7 +97,10 @@ object Gate : DiscordFeature {
         ctx.reply(text("link.removed", link.name))
     }
 
-    override fun onReady() = reconcile()
+    override fun onReady() {
+        server?.playerList?.players?.toList()?.forEach { p -> check(p.gameProfile)?.let(p.connection::disconnect) }
+        reconcile()
+    }
 
     override fun onLeave(userId: Long) {
         if (Links.byDiscord(userId) == null) return

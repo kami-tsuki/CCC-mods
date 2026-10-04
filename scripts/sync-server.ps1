@@ -15,8 +15,8 @@ Get-ChildItem (Join-Path $Instance 'mods') -Filter *.jar |
 
 foreach ($folder in 'config', 'defaultconfigs', 'kubejs') {
     if ($folder -eq 'config') {
-        # Chat Plus config is synced separately so edits on either side are not clobbered.
-        robocopy (Join-Path $Instance $folder) (Join-Path $Server $folder) /MIR /XD chatplus /NFL /NDL /NJH /NJS /NP | Out-Null
+        # Chat Plus config is synced separately so edits on either side are not clobbered; Discord keys and links exist only on the server.
+        robocopy (Join-Path $Instance $folder) (Join-Path $Server $folder) /MIR /XD chatplus /XF kami-discord-bot.json kami-discord-links.json kami-discord-codes.json /NFL /NDL /NJH /NJS /NP | Out-Null
         continue
     }
     robocopy (Join-Path $Instance $folder) (Join-Path $Server $folder) /MIR /NFL /NDL /NJH /NJS /NP | Out-Null
