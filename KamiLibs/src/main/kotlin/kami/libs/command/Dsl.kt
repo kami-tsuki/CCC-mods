@@ -20,11 +20,9 @@ import net.minecraft.server.level.ServerPlayer
 typealias Ctx = CommandContext<CommandSourceStack>
 typealias Node = LiteralArgumentBuilder<CommandSourceStack>
 
-open class CommandFail(val render: () -> Component) : RuntimeException() {
-    constructor(markup: String) : this({ Msg(Tone.BAD).markup(markup).out })
-}
+open class CommandFail(@Transient val render: () -> Component) : RuntimeException()
 
-fun fail(markup: String): Nothing = throw CommandFail(markup)
+fun fail(markup: String): Nothing = throw CommandFail { Msg(Tone.BAD).markup(markup).out }
 fun fail(text: Component): Nothing = throw CommandFail { text }
 fun fail(phrase: Phrase): Nothing = throw CommandFail(phrase::component)
 

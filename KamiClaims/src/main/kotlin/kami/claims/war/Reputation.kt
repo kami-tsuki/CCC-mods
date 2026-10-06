@@ -31,8 +31,10 @@ object Reputation {
     private const val POLICY_LOG = 5
     private const val FRONT = 8
     private val used = HashMap<String, Long>()
-    private val items: TagKey<Item> by lazy { TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath("kami_claims", "war_material")) }
-    private val entities: TagKey<EntityType<*>> by lazy { TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath("kami_claims", "war_material")) }
+    private object Tags {
+        val items: TagKey<Item> = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath("kami_claims", "war_material"))
+        val entities: TagKey<EntityType<*>> = TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath("kami_claims", "war_material"))
+    }
 
     fun change(c: Country, source: String, delta: Double) {
         if (delta == 0.0 || delta.isNaN()) return
@@ -191,7 +193,7 @@ object Reputation {
     private fun fighter(p: Player) = Realm.of(p.stringUUID)?.let { c -> Realm.data.wars.any { it.phase == WarPhase.WAR && Wars.combatant(it, c, p.stringUUID) } } == true
 
     fun hit(attacker: Player, victim: Player, direct: Entity?) {
-        if (direct == null || direct === attacker || !direct.type.`is`(entities) && !attacker.mainHandItem.`is`(items)) return
+        if (direct == null || direct === attacker || !direct.type.`is`(Tags.entities) && !attacker.mainHandItem.`is`(Tags.items)) return
         Realm.of(victim.stringUUID)?.let { material(attacker, it.id) }
     }
 

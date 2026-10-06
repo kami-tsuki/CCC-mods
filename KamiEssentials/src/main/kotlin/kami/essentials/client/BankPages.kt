@@ -20,6 +20,7 @@ import kami.libs.ui.style.Icon
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
+import kami.libs.ui.text.label
 import kami.libs.ui.text.tr
 import kami.libs.ui.widget.*
 import net.minecraft.client.Minecraft
@@ -52,8 +53,6 @@ val bankSection = PersonalSection(
     }
 )
 
-private fun flowLabel(f: MoneyFlow) = tr("kami_libs.flow.${f.name.lowercase()}")
-
 private fun flowColor(f: MoneyFlow) = Palette.chart[f.ordinal % Palette.chart.size]
 
 private fun amountColor(v: Long) = if (v > 0) Palette.success else if (v < 0) Palette.danger else Palette.textMuted
@@ -72,7 +71,7 @@ private fun detail(m: Movement): String {
 
 private fun movementColumns() = listOf(
     Column.text<Movement>(tr("kami_essentials.bank.col.when"), 56, sortable = false) { Format.ago(it.at) },
-    Column.text<Movement>(tr("kami_essentials.bank.col.flow"), 76, sortable = false) { flowLabel(it.flow) },
+    Column.text<Movement>(tr("kami_essentials.bank.col.flow"), 76, sortable = false) { it.flow.label },
     Column.text<Movement>(tr("kami_essentials.bank.col.detail"), -1, sortable = false, value = ::detail),
     Column.number<Movement>(tr("kami_essentials.bank.col.amount"), 70, color = { amountColor(it.amount) }, format = { Format.signedMoney(it) }) { it.amount }
 )
@@ -159,12 +158,12 @@ private class BreakdownPage : Page() {
         val rows = (if (prefs.bankRange == "month") a.month else a.week).filter { it.income != 0L || it.expense != 0L }
         val (donuts, flows) = r.dropTop(CONTROL_H + 6).columns(listOf(1f, 1.1f), 6)
         val (inRect, outRect) = donuts.columns(2, 6)
-        donutCard(ui, inRect, tr("kami_essentials.bank.income"), Icons.INCOME, rows.filter { it.income > 0 }.map { Slice(flowLabel(it.flow), it.income, flowColor(it.flow)) }, "bank-in")
-        donutCard(ui, outRect, tr("kami_essentials.bank.expense"), Icons.EXPENSE, rows.filter { it.expense > 0 }.map { Slice(flowLabel(it.flow), it.expense, flowColor(it.flow)) }, "bank-out")
+        donutCard(ui, inRect, tr("kami_essentials.bank.income"), Icons.INCOME, rows.filter { it.income > 0 }.map { Slice(it.flow.label, it.income, flowColor(it.flow)) }, "bank-in")
+        donutCard(ui, outRect, tr("kami_essentials.bank.expense"), Icons.EXPENSE, rows.filter { it.expense > 0 }.map { Slice(it.flow.label, it.expense, flowColor(it.flow)) }, "bank-out")
         ui.anchor("bank:flows", flows)
         val box = ui.card(flows, tr("kami_essentials.bank.flows"), Icons.LEDGER)
         val columns = listOf(
-            Column.text<FlowTotal>(tr("kami_essentials.bank.col.flow"), -1, color = { flowColor(it.flow) }) { flowLabel(it.flow) },
+            Column.text<FlowTotal>(tr("kami_essentials.bank.col.flow"), -1, color = { flowColor(it.flow) }) { it.flow.label },
             Column.number<FlowTotal>(tr("kami_essentials.bank.income"), 52, color = { Palette.success }, format = { Format.compact(it) }) { it.income },
             Column.number<FlowTotal>(tr("kami_essentials.bank.expense"), 52, color = { Palette.danger }, format = { Format.compact(it) }) { it.expense },
             Column.number<FlowTotal>(tr("kami_essentials.bank.col.net"), 56, color = { amountColor(it.income - it.expense) }, format = { Format.signed(it) }) { it.income - it.expense }

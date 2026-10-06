@@ -35,11 +35,11 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-class Fail(val phrase: Phrase, val reason: String = "", val target: Key? = null) : kami.libs.command.CommandFail(phrase::component) {
+class Fail(@Transient val phrase: Phrase, val reason: String = "", @Transient val target: Key? = null) : kami.libs.command.CommandFail(phrase::component) {
     constructor(key: String, vararg args: Any) : this(Phrase.of(key, *args))
 }
 
-class NeedsConfirm(val lines: List<Phrase>) : RuntimeException()
+class NeedsConfirm(@Transient val lines: List<Phrase>) : RuntimeException()
 
 object Service {
     private val s get() = Config.s

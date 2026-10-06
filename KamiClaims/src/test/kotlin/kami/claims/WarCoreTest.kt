@@ -327,7 +327,7 @@ class WarCoreTest {
     }
 
     private fun lostWar(a: Country, b: Country, billA: Long, billB: Long): War {
-        Wars.declare(a, b)
+        Wars.declare(a, b, stakes = pot)
         val war = Wars.of(a)!!
         Wars.fight(b)
         finish(war)
@@ -342,7 +342,7 @@ class WarCoreTest {
     @Test
     fun billsNetToTheMainOfTheLargerBill() {
         val (a, b) = setup()
-        val war = Wars.declare(a, b).let { Wars.of(a)!! }
+        val war = Wars.declare(a, b, stakes = pot).let { Wars.of(a)!! }
         Wars.fight(b)
         finish(war)
         war.sides.forEach { it.power = 100.0 }
@@ -353,7 +353,7 @@ class WarCoreTest {
         finish(war)
         assertEquals(WarPhase.ENDED, war.phase)
         assertEquals(ta - 300, a.treasury)
-        assertEquals(tb + 300, b.treasury)
+        assertEquals(tb + 300 + pot.money, b.treasury)
         assertTrue(a.warDebts.isEmpty())
     }
 
@@ -367,7 +367,7 @@ class WarCoreTest {
         assertTrue((a.warDebts[b.id] ?: 0L) > 0)
         assertEquals(b.id, a.warOverlord)
         a.warCooldownUntil = 0
-        assertFailsWith<Fail> { Wars.declare(a, c) }
+        assertFailsWith<Fail> { Wars.declare(a, c, stakes = pot) }
     }
 
     @Test
@@ -467,7 +467,7 @@ class WarCoreTest {
         val (a, b) = setup()
         val vale = country("vale")
         Provinces.finalize(vale, b, TaxMode.FLAT, 0.0)
-        Wars.declare(a, b)
+        Wars.declare(a, b, stakes = pot)
         val war = Wars.of(a)!!
         Wars.fight(b)
         Joining.join(vale, war, a)
@@ -502,7 +502,7 @@ class WarCoreTest {
         val (a, b) = setup()
         val vale = country("vale")
         Provinces.finalize(vale, b, TaxMode.FLAT, 0.0)
-        Wars.declare(a, b)
+        Wars.declare(a, b, stakes = pot)
         val war = Wars.of(a)!!
         Joining.join(vale, war, a)
         assertFailsWith<Fail> { Wars.withdraw(a) }
@@ -514,7 +514,7 @@ class WarCoreTest {
         val x = country("ostland")
         ally(x, b)
         a.tradePolicy[x.id] = TradePolicy(0, true)
-        Wars.declare(a, b)
+        Wars.declare(a, b, stakes = pot)
         val war = Wars.of(a)!!
         Joining.join(x, war, b)
         assertTrue(Diplomacy.policy(x, a).embargo)
@@ -528,7 +528,7 @@ class WarCoreTest {
     @Test
     fun exhaustionFromDeathsAndBillIsCappedPerDay() {
         val (a, b) = setup()
-        Wars.declare(a, b)
+        Wars.declare(a, b, stakes = pot)
         val war = Wars.of(a)!!
         Wars.fight(b)
         finish(war)
@@ -547,7 +547,7 @@ class WarCoreTest {
     @Test
     fun exhaustionEndsLongWarAsWhitePeace() {
         val (a, b) = setup()
-        Wars.declare(a, b)
+        Wars.declare(a, b, stakes = pot)
         val war = Wars.of(a)!!
         Wars.fight(b)
         finish(war)

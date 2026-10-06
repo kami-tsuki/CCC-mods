@@ -18,6 +18,7 @@ import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
+import kami.libs.ui.text.label
 import kami.libs.ui.text.tr
 import kami.libs.ui.widget.*
 import net.minecraft.client.Minecraft
@@ -100,7 +101,7 @@ private class TradesPage : Page() {
         Column<Movement>(tr("kami_libs.common.item"), -1, sort = compareBy { market.stack(it.item).hoverName.string.lowercase() }) { _, c, m ->
             if (itemCell(c, market.stack(m.item), market.stack(m.item).hoverName.string, "trade:${m.at}:${m.item}")) openMarket(m.item)
         },
-        Column.text<Movement>(tr("kami_economy.personal.col.kind"), 70, color = { Palette.textSecondary }) { tr("kami_libs.flow.${it.flow.name.lowercase()}") },
+        Column.text<Movement>(tr("kami_economy.personal.col.kind"), 70, color = { Palette.textSecondary }) { it.flow.label },
         Column.number<Movement>(tr("kami_economy.personal.col.qty"), 44) { it.qty.toLong() },
         Column.text<Movement>(tr("kami_economy.personal.col.party"), 80, color = { Palette.textSecondary }) { it.counterparty },
         Column.number<Movement>(tr("kami_libs.common.amount"), 70, color = { if (it.amount >= 0) Palette.success else Palette.danger }, format = { Format.signedMoney(it) }) { it.amount }
