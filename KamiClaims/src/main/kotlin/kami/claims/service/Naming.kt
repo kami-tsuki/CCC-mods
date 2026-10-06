@@ -9,6 +9,7 @@ import kami.claims.research.Tokens
 import kami.claims.service.Words.num
 import kami.claims.service.Words.v
 import kami.claims.social.Mail
+import kami.claims.war.WarLocks
 import kami.libs.chat.Tone
 import kami.libs.text.Phrase
 
@@ -24,6 +25,7 @@ object Naming {
     }
 
     fun rename(country: Country, name: String, actor: String?): Phrase {
+        if (actor != null) WarLocks.rename(country)
         check(name, country)
         if (name.equals(country.name, true)) throw Fail("kami_claims.error.name_same")
         Tokens.spend(country, Tokens.RENAME, Config.s.renameCost, actor)

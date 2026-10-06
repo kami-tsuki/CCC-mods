@@ -6,8 +6,16 @@ import net.minecraft.core.BlockPos
 /** Positions recently filled by players, shared by job crediting (Guard) and research progress (Listeners) to stop place/break farming. */
 object Placed {
     private val spots = RecentSet<Pair<String, Long>>(8192)
+    private val placers = RecentSet<Triple<String, Long, String>>(8192)
 
     fun mark(dim: String, pos: BlockPos) = spots.add(dim to pos.asLong())
+
+    fun mark(dim: String, pos: BlockPos, by: String) {
+        mark(dim, pos)
+        placers.add(Triple(dim, pos.asLong(), by))
+    }
+
+    fun takeBy(dim: String, pos: BlockPos, by: String) = placers.remove(Triple(dim, pos.asLong(), by))
 
     fun contains(dim: String, pos: BlockPos): Boolean {
         val spot = dim to pos.asLong()
@@ -16,5 +24,8 @@ object Placed {
 
     fun remove(dim: String, pos: BlockPos) = spots.remove(dim to pos.asLong())
 
-    fun reset() = spots.clear()
+    fun reset() {
+        spots.clear()
+        placers.clear()
+    }
 }

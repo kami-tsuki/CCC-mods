@@ -189,6 +189,7 @@ object Validator {
         node.unlocks.count { it is BuffUnlock } > 1 -> "at most one buff per node"
         node.unlocks.any { it is BuffUnlock && (it.effect.isBlank() || it.amplifier !in 0..9 || it.cooldownSeconds < 0) || it is BuffPointsUnlock && it.add < 0 } -> "invalid buff"
         node.unlocks.any { it is LoanUnlock && (it.id.isBlank() || it.amount <= 0 || it.interestPct < 0 || it.termDays <= 0) || it is LoanSlotsUnlock && it.add < 0 } -> "invalid loan"
+        node.unlocks.any { it is SafeChunksUnlock && it.add < 0 } -> "invalid safe chunks"
         node.unlocks.any { it is LoanUnlock && it.id in sharedLoans } -> "duplicate loan id"
         node.unlocks.any { it is RecipesUnlock && it.recipeType == null && it.input == null && it.output == null } -> "recipes unlock needs a type, input or output"
         node.tasks.any { it is DepositTask && it.selectors.isEmpty() } -> "deposit task needs an item"

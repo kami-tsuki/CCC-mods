@@ -40,6 +40,8 @@ interface ClaimsProvider {
     fun goals(player: UUID): List<Goal> = emptyList()
     fun allowedRecipe(country: String?, recipe: ResourceLocation): Boolean = true
     fun allowedBlock(country: String?, block: ResourceLocation): Boolean = true
+    fun traded(a: String, b: String, value: Long) {}
+    fun tradeFactor(country: String): Double = 1.0
 }
 
 object ClaimsApi {
@@ -80,6 +82,8 @@ object ClaimsApi {
     fun goals(player: UUID): List<Goal> = provider?.goals(player).orEmpty()
     fun allowedRecipe(country: String?, recipe: ResourceLocation): Boolean = provider?.allowedRecipe(country, recipe) ?: true
     fun allowedBlock(country: String?, block: ResourceLocation): Boolean = provider?.allowedBlock(country, block) ?: true
+    fun traded(a: String, b: String, value: Long) { provider?.traded(a, b, value) }
+    fun tradeFactor(country: String): Double = provider?.tradeFactor(country) ?: 1.0
 
     fun countryAt(level: Level, pos: BlockPos): String? =
         at(level.dimension().location().toString(), pos.x shr 4, pos.z shr 4)?.country

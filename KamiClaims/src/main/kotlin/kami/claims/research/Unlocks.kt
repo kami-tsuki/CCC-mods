@@ -65,6 +65,10 @@ class LoanUnlock(val id: String, val amount: Long, val interestPct: Int, val ter
 class LoanSlotsUnlock(val add: Int) : Unlock
 
 @Serializable
+@SerialName("safe_chunks")
+class SafeChunksUnlock(val add: Int) : Unlock
+
+@Serializable
 @SerialName("research_speed")
 class ResearchSpeedUnlock(val perCitizen: Int, val cap: Int) : Unlock
 

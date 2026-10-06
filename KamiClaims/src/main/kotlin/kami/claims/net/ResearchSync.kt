@@ -151,6 +151,7 @@ object ResearchSync {
             is LoanUnlock -> listOf(UnlockView("loan", unlock.id, interestPct = unlock.interestPct, amount = unlock.amount))
             is LoanSlotsUnlock -> listOf(UnlockView("loan_slots", "", count = unlock.add))
             is BuffPointsUnlock -> listOf(UnlockView("buff_points", "", count = unlock.add))
+            is SafeChunksUnlock -> listOf(UnlockView("safe_chunks", "", count = unlock.add))
             is TokenUnlock -> listOf(UnlockView("token", unlock.id, count = unlock.count))
             is ResearchSpeedUnlock -> listOf(UnlockView("research_speed", "", count = unlock.perCitizen, amount = unlock.cap.toLong()))
         }

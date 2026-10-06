@@ -1,5 +1,6 @@
 package kami.essentials
 
+import kami.libs.player.Presence
 import kami.libs.text.Phrase
 import kami.essentials.chat.Feed
 import kami.essentials.chat.InlineFeatures
@@ -46,7 +47,7 @@ object KamiEssentials {
     val LOG = Log.of("essentials")
 
     init {
-        MOD_BUS.addListener<FMLCommonSetupEvent> { Config.load() }
+        MOD_BUS.addListener<FMLCommonSetupEvent> { Config.load(); Presence.hidden = { Store[Flag.INVISIBLE, it] } }
         FORGE_BUS.addListener<PermissionGatherEvent.Nodes> { Perms.register(it) }
         MOD_BUS.addListener<RegisterPayloadHandlersEvent> { Net.register(it) }
         if (FMLEnvironment.dist == Dist.CLIENT) ClientEssentials.init()

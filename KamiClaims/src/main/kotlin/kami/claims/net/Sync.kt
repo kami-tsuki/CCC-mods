@@ -21,6 +21,12 @@ import kami.claims.service.Service
 import kami.claims.service.Upkeep
 import kami.claims.service.View
 import kami.claims.social.Perms
+import kami.claims.war.Fame
+import kami.claims.war.Joining
+import kami.claims.war.SafeChunks
+import kami.claims.war.Stakes
+import kami.claims.war.War
+import kami.claims.war.Wars
 import kami.claims.world.Guard
 import kami.libs.text.Phrase
 import kotlinx.serialization.Serializable
@@ -29,13 +35,14 @@ import kotlinx.serialization.json.Json
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
+import kotlin.math.roundToInt
 
 @Serializable class FlagLine(val pattern: Int = 0, val emblem: Int = 0, val secondary: Int = 0xFFFFFF)
 @Serializable class Line(
     val name: String, val members: Int, val chunks: Int, val color: Int = 0, val flag: FlagLine = FlagLine(), val parent: String = "",
     val provinces: Int = 0, val president: String = "", val founded: Long = 0, val relation: String = "", val capitalX: Int = 0, val capitalZ: Int = 0, val income: Long = 0,
     val trade: String = "neutral", val alliance: String = "", val tariff: Int = 0, val theirTariff: Int = 0, val embargo: Boolean = false,
-    val level: Int = 1, val researched: Int = 0
+    val level: Int = 1, val researched: Int = 0, val reputation: Int = 0, val fame: Double? = null, val atWar: Boolean = false, val myRating: Int = 0
 )
 @Serializable class Mem(
     val id: String, val name: String, val rank: String, val jobs: List<String> = emptyList(), val progress: Map<String, Int> = emptyMap(), val seen: Long = 0,
@@ -75,6 +82,17 @@ import java.util.UUID
     val blocked: Boolean = false, val state: String = "", val until: Long = 0, val taken: Boolean = false, val offer: OfferLine? = null, val mine: MineLine? = null,
     val workerNames: List<String> = emptyList(), val workerIds: List<String> = emptyList()
 )
+@Serializable class SafeLine(val dim: String, val x: Int, val z: Int)
+@Serializable class StakeLine(val chunks: Int = 0, val money: Long = 0, val vassal: Boolean = false, val provinces: List<String> = emptyList())
+@Serializable class OfferTerms(val stakes: StakeLine? = null, val ceasefireDays: Int = 0, val peace: Boolean = false, val extendDays: Int = 0, val billPct: Int? = null)
+@Serializable class WarLine(
+    val id: String, val kind: String, val phase: String, val ends: Long, val attacker: String, val defender: String,
+    val joinedA: List<String> = emptyList(), val joinedD: List<String> = emptyList(), val side: String = "", val stakes: StakeLine = StakeLine(),
+    val offer: OfferTerms? = null, val offerFrom: String = "", val exhaustionA: Double = 0.0, val exhaustionD: Double = 0.0,
+    val billA: Long = 0, val billD: Long = 0, val fee: Long = 0, val escrow: Long = 0, val ceasefires: Int = 0, val extendedDays: Int = 0,
+    val result: String = "", val canJoin: Boolean = false, val joinSides: List<String> = emptyList()
+)
+@Serializable class WarHud(val phase: String, val ends: Long, val enemy: String, val side: String)
 @Serializable class GoalLine(val text: String, val value: Long, val max: Long, val page: String)
 @Serializable class Info(
     val name: String, val rank: String, val treasury: Long, val upkeep: Long, val income: Long, val jobs: Long, val runway: String,
@@ -87,7 +105,10 @@ import java.util.UUID
     val created: Long = 0, val capitalMoved: Long = 0, val invitesSent: List<Mem> = emptyList(), val pendingDeposits: Long = 0,
     val offer: OfferLine = OfferLine(emptyList(), emptyMap()), val rankPlots: Map<String, Int> = emptyMap(), val guestPlots: Map<String, Int> = emptyMap(),
     val rentDebtLimit: Long = 0, val moveOutDays: Int = 0, val jobSlots: Int = 0, val maxRent: Int = 0,
-    val granted: List<String> = emptyList(), val overlordManage: Boolean = false, val overlordAccess: Map<String, String> = emptyMap()
+    val granted: List<String> = emptyList(), val overlordManage: Boolean = false, val overlordAccess: Map<String, String> = emptyMap(),
+    val wars: List<WarLine> = emptyList(), val reputation: Int = 0, val fame: Double? = null, val fameCount: Int = 0,
+    val warDebts: Map<String, Long> = emptyMap(), val warOverlord: String = "", val safeChunks: List<SafeLine> = emptyList(), val safeLimit: Int = 0,
+    val cooldownUntil: Long = 0
 ) {
     val citizenRent get() = offer.rent["citizen"] ?: 0
 }
@@ -111,7 +132,7 @@ import java.util.UUID
     val alerts: List<AlertLine> = emptyList(), val goals: List<GoalLine> = emptyList(), val ledger: List<LedgerLine> = emptyList(),
     val history: List<DayLine> = emptyList(), val preview: PreviewLine? = null, val limits: Limits? = null,
     val rights: List<String> = emptyList(), val kept: List<String> = emptyList(), val me: String = "", val dim: String = "", val rank: String = "",
-    val homes: List<HomeLine> = emptyList(), val extraRids: List<Int> = emptyList(), val admin: Boolean = false
+    val homes: List<HomeLine> = emptyList(), val extraRids: List<Int> = emptyList(), val admin: Boolean = false, val war: List<WarHud> = emptyList()
 )
 
 class Reply(val msg: String = "", val ok: Boolean = true, val rid: Int = 0, val reason: String = "", val target: Key? = null, val extraRids: List<Int> = emptyList())
@@ -271,7 +292,7 @@ object Sync {
     private fun invitedCountries(me: String): List<String> =
         Realm.data.countries.values.filter { it.active && (it.invites[me] ?: 0) > now() }.map { it.name }
 
-    private fun info(p: ServerPlayer, c: Country, own: Country?, delegated: Boolean): Info {
+    private fun info(p: ServerPlayer, c: Country, own: Country?, delegated: Boolean, fame: Double?): Info {
         val s = Config.s
         val me = p.stringUUID
         val claims = Realm.claims(c.id)
@@ -307,9 +328,39 @@ object Sync {
             c.created, c.moved, if (staff) pendingMembers(p, c.invites) else emptyList(), c.pending,
             offer(c, null), c.rankPlots.mapKeys { it.key.name.lowercase() }, c.guestPlots.mapKeys { it.key.name.lowercase() }, c.rentDebtLimit, c.moveOutDays, Levels.capacity(c, Capacity.JOB_SLOTS), s.maxRent,
             if (delegated) Oversight.caps(c, p) else emptyList(), c.overlordManage,
-            if (c.parent == null) emptyMap() else Oversight.grantable.associate { it.name.lowercase() to (c.overlordCaps[it]?.name?.lowercase() ?: "off") }
+            if (c.parent == null) emptyMap() else Oversight.grantable.associate { it.name.lowercase() to (c.overlordCaps[it]?.name?.lowercase() ?: "off") },
+            wars(c), c.reputation.roundToInt(), fame, Fame.count(c),
+            c.warDebts.mapKeys { Wars.name(it.key) }, c.warOverlord?.let(Wars::name).orEmpty(),
+            SafeChunks.active(c).map { SafeLine(it.dim, it.x, it.z) }, SafeChunks.limit(c), c.warCooldownUntil
         )
     }
+
+    private fun sideOf(war: War, id: String) = when (war.side(id)) { null -> ""; war.attacker -> "attacker"; else -> "defender" }
+
+    private fun stakes(s: Stakes) = StakeLine(s.chunks.size, s.money, s.vassal, s.provinces.map(Wars::name))
+
+    private fun joinSides(c: Country, w: War) = w.sides.filter { s -> Realm.country(s.main)?.let { Joining.can(c, w, it) } == true }
+        .map { if (it === w.attacker) "attacker" else "defender" }
+
+    private fun wars(c: Country): List<WarLine> {
+        val joinable = Realm.data.wars.filter { it.active && it.side(c.id) == null && c.id in it.eligible }.associateWith { joinSides(c, it) }.filterValues { it.isNotEmpty() }
+        return (Wars.all(c) + joinable.keys).map { w ->
+            val party = w.side(c.id) != null
+            val sides = joinable[w].orEmpty()
+            val o = w.offer?.takeIf { party }
+            WarLine(
+                w.id, w.kind.name.lowercase(), w.phase.name.lowercase(), w.phaseEnds, Wars.name(w.attacker.main), Wars.name(w.defender.main),
+                w.attacker.joined.map(Wars::name), w.defender.joined.map(Wars::name), sideOf(w, c.id), stakes(w.stakes),
+                o?.let { OfferTerms(it.stakes?.let { st -> stakes(st) }, it.ceasefireDays, it.peace, it.extendDays, it.billPct) }, o?.let { Wars.name(it.from) }.orEmpty(),
+                w.attacker.exhaustion, w.defender.exhaustion, if (party) w.attacker.bill.values.sum() else 0, if (party) w.defender.bill.values.sum() else 0,
+                if (party) w.fee else 0, if (party) w.escrow else 0, w.ceasefires, w.extendedDays, w.result?.name?.lowercase().orEmpty(), sides.isNotEmpty(), sides
+            )
+        }
+    }
+
+    private fun warHud(own: Country?): List<WarHud> = own?.let { c ->
+        Wars.all(c).map { w -> WarHud(w.phase.name.lowercase(), w.phaseEnds, Wars.name(w.side(c.id)?.let(w::opponent)?.main ?: ""), sideOf(w, c.id)) }
+    }.orEmpty()
 
     fun encode(p: ServerPlayer, reply: Reply, open: Boolean): String {
         val s = Config.s
@@ -329,6 +380,7 @@ object Sync {
             )
         }
         val world = "world" in sections || c == null
+        val fame = if (world) Fame.scores() else null
         val countries = if (world) Realm.data.countries.values.filter { it.active }.map { x ->
             val capital = Realm.claims(x.id).firstOrNull { it.capital }
             Line(
@@ -338,7 +390,8 @@ object Sync {
                 alliance = own?.let { o -> when { Diplomacy.allied(o, x) -> "allied"; x.id in o.allianceOffers -> "offer_in"; o.id in x.allianceOffers -> "offer_out"; else -> "" } } ?: "",
                 tariff = own?.let { Diplomacy.policy(it, x).tariffPct } ?: 0, theirTariff = own?.let { Diplomacy.policy(x, it).tariffPct } ?: 0,
                 embargo = own?.let { Diplomacy.policy(it, x).embargo } ?: false,
-                level = Research.level(x), researched = x.research.done.size
+                level = Research.level(x), researched = x.research.done.size,
+                reputation = x.reputation.roundToInt(), fame = fame?.get(x.id), atWar = Wars.involved(x), myRating = x.ratings[me]?.stars ?: 0
             )
         } else emptyList()
         val players = if (world) Realm.home.keys.map { id -> PlayerLine(id, Names.of(p.server, id), citizenships(id), online(p, id)) }.sortedBy { it.name } else emptyList()
@@ -349,7 +402,7 @@ object Sync {
             DayLine(it.day, it.treasury, it.income, it.upkeep, it.jobs, it.tributeIn, it.tributeOut, it.deposits, it.withdrawals, it.chunks, it.debtChunks, it.members, it.plots)
         } else emptyList()
         val snap = Snap(
-            c?.let { info(p, it, own, delegated) }, countries,
+            c?.let { info(p, it, own, delegated, if (fame != null) fame[it.id] else Fame.score(it)) }, countries,
             invitedCountries(me),
             types, s.jobs.keys.toList(), s.caps.mapKeys { it.key.name.lowercase() }.mapValues { it.value.name.lowercase() },
             focus[p.uuid]?.let { detail(p, it) }, Bank.funds(p.uuid), s.freeChunks, (s.jobShare * 100).toInt(), c?.let { Levels.capacity(it, Capacity.PLOTS) } ?: 0, s.maxProvinceDebt,
@@ -357,7 +410,7 @@ object Sync {
             reply.rid, reply.reason, reply.target?.x ?: 0, reply.target?.z ?: 0, reply.target != null,
             Alerts.of(p, c, delegated), if (c != null && lead) Goals.of(c).map { GoalLine(it.text.json(), it.value, it.max, it.page.orEmpty()) } else emptyList(), ledger, history, previews.remove(p.uuid), limits(s),
             Provinces.delegatedRights, Provinces.keptRights, me, here.dim, own?.let { Service.rankOf(it, p).name.lowercase() } ?: "", homes(me), reply.extraRids,
-            Perms.has(p, Perms.ADMIN)
+            Perms.has(p, Perms.ADMIN), warHud(own)
         )
         return json.encodeToString(snap)
     }

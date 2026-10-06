@@ -1,0 +1,21 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:tnt",
+    "minecraft:tnt_minecart",
+    "minecraft:end_crystal",
+    "minecraft:wither_skull",
+    "minecraft:small_fireball",
+    { "id": "tacz:bullet", "required": false },
+    { "id": "tacz:grenade", "required": false },
+    { "id": "tfmg:flamethrower_fire", "required": false },
+    { "id": "createbigcannons:he_shell", "required": false },
+    { "id": "createbigcannons:ap_shell", "required": false },
+    { "id": "createbigcannons:shrapnel_shell", "required": false },
+    { "id": "createbigcannons:shrapnel_burst", "required": false },
+    { "id": "createbigcannons:grapeshot", "required": false },
+    { "id": "createbigcannons:fluid_shell", "required": false },
+    { "id": "createbigcannons:mortar_stone", "required": false },
+    { "id": "createbigcannons:machine_gun_bullet", "required": false }
+  ]
+}

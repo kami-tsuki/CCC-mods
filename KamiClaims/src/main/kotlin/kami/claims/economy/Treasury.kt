@@ -10,15 +10,21 @@ import kami.claims.Realm
 import kami.claims.now
 import kami.claims.research.Capacity
 import kami.claims.research.Levels
+import kami.claims.war.WarDebt
 
 object Treasury {
     fun room(c: Country): Long = (Levels.capacity(c, Capacity.TREASURY) - c.treasury).coerceAtLeast(0)
 
-    fun move(c: Country, kind: LedgerKind, delta: Long, actor: String? = null, note: String = ""): Long {
-        val applied = if (delta > 0 && kind != LedgerKind.ADJUST) minOf(delta, room(c)) else delta
+    fun move(c: Country, kind: LedgerKind, delta: Long, actor: String? = null, note: String = "", capped: Boolean = true): Long {
+        val applied = when {
+            delta <= 0 -> delta
+            capped && kind != LedgerKind.ADJUST -> minOf(delta, room(c))
+            else -> minOf(delta, Long.MAX_VALUE - c.treasury.coerceAtLeast(0))
+        }
         c.treasury += applied
         if (applied != 0L) Realm.saveSoon()
         record(c, kind, applied, actor, note)
+        WarDebt.garnish(c, kind, applied)
         return applied
     }
 

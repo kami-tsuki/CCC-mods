@@ -110,7 +110,11 @@ object Vocabulary {
         entry("tribute_in", Icons.CHAIN),
         entry("tribute_out", Icons.CHAIN),
         entry("adjust", Icons.EDIT),
-        entry("tariff", Icons.SCALES)
+        entry("tariff", Icons.SCALES),
+        entry("war_fee", Icons.FLAG),
+        entry("war_stake", Icons.SHIELD),
+        entry("war_bill", Icons.SCROLL),
+        entry("war_debt", Icons.DEBT)
     )
 
     fun ledger(kind: String) = ledger[kind] ?: Look("kami_claims.ledger.$kind", 0, Icons.GENERIC, kind)

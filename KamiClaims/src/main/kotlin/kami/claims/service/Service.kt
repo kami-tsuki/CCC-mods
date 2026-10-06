@@ -20,6 +20,10 @@ import kami.claims.service.Words.money
 import kami.claims.service.Words.num
 import kami.claims.service.Words.v
 import kami.claims.social.Mail
+import kami.claims.war.Fame
+import kami.claims.war.Reputation
+import kami.claims.war.WarActions
+import kami.claims.war.WarLocks
 import kami.claims.social.Perms
 import kami.claims.world.Effects
 import kami.libs.chat.Tone
@@ -116,7 +120,7 @@ object Service {
     }
 
     private fun dispatch(p: ServerPlayer, name: String, a: List<String>): Phrase {
-        val text = when (name) {
+        val text = if (name.startsWith("war_")) WarActions.act(p, name, a) else when (name) {
             "create" -> create(p, arg(a, 0))
             "disband" -> disband(p, confirmed(a))
             "leave" -> leave(p)
@@ -181,6 +185,8 @@ object Service {
             "alliance" -> alliance(p, arg(a, 0), country(arg(a, 1)))
             "tariff" -> Diplomacy.setTariff(need(p, Cap.TRADE), country(arg(a, 0)), num(a, 1))
             "embargo" -> Diplomacy.setEmbargo(need(p, Cap.TRADE), country(arg(a, 0)), arg(a, 1) == "on")
+            "min_reputation" -> Reputation.setMin(need(p, Cap.TRADE), num(a, 0))
+            "fame_rate" -> Fame.rate(p, country(arg(a, 0)), num(a, 1))
             else -> throw Fail("kami_claims.error.unknown_action")
         }
         Realm.changed()
@@ -203,6 +209,7 @@ object Service {
 
     private fun disband(p: ServerPlayer, confirmed: Boolean): Phrase {
         val c = need(p, Rank.PRESIDENT)
+        WarLocks.disband(c)
         Loans.requireNoLoans(c, "kami_claims.loans.error.disband")
         if (!confirmed) throw NeedsConfirm(listOf(
             Phrase.of("kami_claims.common.disband_x", v(c.name)),
@@ -218,6 +225,8 @@ object Service {
     private fun leave(p: ServerPlayer): Phrase {
         val c = home(p)
         if (rankOf(c, p) == Rank.PRESIDENT && c.members.size > 1) throw Fail("kami_claims.error.transfer_first")
+        WarLocks.roster(c, p.stringUUID)
+        if (c.members.size == 1) WarLocks.disband(c)
         if (c.members.size == 1) Loans.requireNoLoans(c, "kami_claims.loans.error.disband")
         Realm.leave(c, p.stringUUID, Leave.LEAVE)
         ResearchSync.refresh(c)
@@ -275,6 +284,7 @@ object Service {
         val member = c.members[id]
         member?.let {
             if (it.rank >= rankOf(c, p)) throw Fail("kami_claims.error.lower_ranks")
+            WarLocks.roster(c, id)
             Realm.leave(c, id, if (banish) Leave.BAN else Leave.KICK)
             ResearchSync.refresh(c)
             Mail.direct(id, Phrase.of(if (banish) "kami_claims.mail.banished" else "kami_claims.mail.removed", v(c.name)), Tone.BAD)
@@ -329,6 +339,7 @@ object Service {
     }
 
     private fun claimCells(c: Country, type: String, cells: List<Key>): Int {
+        WarLocks.claims(c)
         val plan = Planner.claim(c, type, cells)
         plan.ready.forEach { addClaim(c, it.key, type) }
         return plan.ready.size
@@ -399,6 +410,7 @@ object Service {
 
     private fun unclaimRect(p: ServerPlayer, r: Rect): Phrase {
         val c = need(p, Cap.CLAIM)
+        WarLocks.claims(c)
         val plan = Planner.unclaim(c, r.cells)
         plan.ready.forEach { cell -> Realm.index[cell.key]?.let { Realm.unclaim(it, false) } }
         ResearchSync.refresh(c)
@@ -411,6 +423,7 @@ object Service {
 
     private fun typeRect(p: ServerPlayer, type: String, r: Rect): Phrase {
         val c = need(p, Cap.CLAIM)
+        WarLocks.claims(c)
         if (s.types[type] == null) throw Fail("kami_claims.error.unknown_type")
         val set = r.cells.toHashSet()
         val hit = Realm.claims(c.id).filter { it.key in set }
@@ -431,6 +444,7 @@ object Service {
 
     private fun unclaim(p: ServerPlayer, k: Key): Phrase {
         val c = need(p, Cap.CLAIM)
+        WarLocks.claims(c)
         val cl = mine(c, k)
         if (cl.capital) throw Fail("kami_claims.error.capital")
         requireFree(cl)
@@ -443,6 +457,7 @@ object Service {
 
     private fun retype(p: ServerPlayer, type: String, k: Key): Phrase {
         val c = need(p, Cap.CLAIM)
+        WarLocks.claims(c)
         val cl = mine(c, k)
         if (s.types[type] == null) throw Fail("kami_claims.error.unknown_type")
         if (cl.type != type) {
@@ -455,6 +470,7 @@ object Service {
 
     private fun capital(p: ServerPlayer, k: Key): Phrase {
         val c = need(p, Cap.CAPITAL)
+        WarLocks.capital(c)
         val cl = mine(c, k)
         if (cl.capital) throw Fail("kami_claims.error.already_capital")
         if (now() - c.moved < s.capitalCooldownDays * s.dayMillis) throw Fail("kami_claims.error.capital_cooldown")

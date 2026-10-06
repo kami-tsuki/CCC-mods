@@ -82,7 +82,7 @@ class Resolver(private val world: WorldFacts, private val defs: ResearchDefs) {
         is BlockUnlock -> cached("block", listOf(unlock.id), where) {
             Matched(blocks = world.blocks.filter { matches(unlock.id, it, world.blockTagged) }.toSet())
         }
-        is CapacityUnlock, is MoneyReward, is FeatureUnlock, is TokenUnlock, is BuffUnlock, is BuffPointsUnlock, is LoanUnlock, is LoanSlotsUnlock, is ResearchSpeedUnlock -> Matched()
+        is CapacityUnlock, is MoneyReward, is FeatureUnlock, is TokenUnlock, is BuffUnlock, is BuffPointsUnlock, is LoanUnlock, is LoanSlotsUnlock, is SafeChunksUnlock, is ResearchSpeedUnlock -> Matched()
     }
 
     private fun matches(spec: String, id: String, tagged: (String, String) -> Boolean) =

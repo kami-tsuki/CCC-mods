@@ -13,6 +13,7 @@ import kami.claims.service.Words.money
 import kami.claims.service.Words.num
 import kami.claims.service.Words.v
 import kami.claims.social.Mail
+import kami.claims.war.WarGuard
 import kami.libs.chat.Tone
 import kami.libs.text.Phrase
 import java.util.UUID
@@ -63,7 +64,7 @@ object Housing {
         from == null && to == null -> wild
         from == null || to == null -> false
         from.country != to.country -> false
-        else -> from.tenant == to.tenant
+        else -> from.tenant == to.tenant && !(WarGuard.shielded(to) && !WarGuard.safe(from))
     }
 
     fun category(c: Country, id: String): Claimant? {

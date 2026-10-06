@@ -210,7 +210,14 @@ object Ledger {
 
     private fun tradedFills(actor: String, item: String, fills: List<LedgerFill>, actorSpurs: (LedgerFill) -> Long) {
         fills.forEach { traded(actor, it.owner, actorSpurs(it), item, it.qty) }
-        fills.forEach { if (it.owner.isNotEmpty()) traded(it.owner, actor, net(it), item, it.qty) }
+        val owned = fills.filter { it.owner.isNotEmpty() }
+        owned.forEach { traded(it.owner, actor, net(it), item, it.qty) }
+        val x = Trade.country(actor) ?: return
+        owned.groupBy { Trade.country(it.owner) }.forEach { (y, f) -> crossTrade(x, y, f.sumOf(actorSpurs)) }
+    }
+
+    private fun crossTrade(x: String?, y: String?, value: Long) {
+        if (x != null && y != null && ClaimsApi.neutralForeign(x, y)) ClaimsApi.traded(x, y, value)
     }
 
     private fun creditTariff(payer: String, tariff: Long) {
@@ -603,6 +610,7 @@ object Ledger {
         val count = StackCodec.count(current.stackData)
         traded(current.actor, current.seller, current.unitPrice.toLong(), item, count)
         traded(current.seller, current.actor, current.netSpurs, item, count)
+        crossTrade(Trade.country(current.seller), Trade.country(current.actor), current.unitPrice.toLong())
         if (earnsXp(current.seller, current.actor)) Trade.country(current.seller)?.let { KamiProgress.post(it, "auction_sold", item, count.toLong()) }
     }
 

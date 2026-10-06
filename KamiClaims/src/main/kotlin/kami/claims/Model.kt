@@ -8,6 +8,9 @@ import kami.claims.research.ResearchState
 import kami.claims.service.Housing
 import kami.claims.service.Announce
 import kami.claims.service.Work
+import kami.claims.war.ChunkRef
+import kami.claims.war.War
+import kami.claims.war.WarDebt
 import kami.libs.config.WorldStore
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -81,7 +84,7 @@ class JobDef(var pay: Int, var quota: Int, var period: Int)
 class ProvinceOffer(val until: Long, val mode: TaxMode, val amount: Double, val answered: Boolean = false)
 
 @Serializable
-enum class LedgerKind { DEPOSIT, WITHDRAW, CLAIM, UPKEEP, PLOT_TAX, JOB_PAY, TRIBUTE_IN, TRIBUTE_OUT, ADJUST, TARIFF, RESEARCH, LEVEL_REWARD, FEE, LOAN_IN, LOAN_PAYMENT }
+enum class LedgerKind { DEPOSIT, WITHDRAW, CLAIM, UPKEEP, PLOT_TAX, JOB_PAY, TRIBUTE_IN, TRIBUTE_OUT, ADJUST, TARIFF, RESEARCH, LEVEL_REWARD, FEE, LOAN_IN, LOAN_PAYMENT, WAR_FEE, WAR_STAKE, WAR_BILL, WAR_DEBT }
 
 @Serializable
 class LedgerEntry(val at: Long, val kind: LedgerKind, val amount: Long, val balance: Long, val actor: String? = null, val note: String = "")
@@ -140,7 +143,10 @@ class Claim(
 }
 
 @Serializable
-class Loan(val id: String, val principal: Long, var total: Long, var paid: Long, val perDay: Long, val takenDay: Long, var overdue: Long = 0)
+class Loan(val id: String, val principal: Long, var total: Long, var paid: Long, val perDay: Long, val takenDay: Long, var overdue: Long = 0, var overdueDay: Long = 0)
+
+@Serializable
+class Rating(val stars: Int, val at: Long, val hours: Double)
 
 @Serializable
 class Country(
@@ -199,7 +205,25 @@ class Country(
     var state: CountryState = CountryState.ACTIVE,
     var tax: Int? = null,
     var shutdown: Int? = null,
-    var release: Int? = null
+    var release: Int? = null,
+    var warCooldownUntil: Long = 0,
+    val warPairs: MutableMap<String, Long> = mutableMapOf(),
+    val warPairsBy: MutableMap<String, Long> = mutableMapOf(),
+    val warDeclared: MutableList<Long> = mutableListOf(),
+    val warDebts: MutableMap<String, Long> = mutableMapOf(),
+    var warOverlord: String? = null,
+    var reputation: Double = Config.s.war.repStart,
+    var minReputation: Int = 0,
+    val repWeek: MutableMap<String, Double> = mutableMapOf(),
+    var repWeekStart: Long = 0,
+    val tradeLog: MutableMap<String, MutableList<Long>> = mutableMapOf(),
+    val policyLog: MutableMap<String, MutableList<Long>> = mutableMapOf(),
+    var tributeOf: String? = null,
+    var tributeSince: Long = 0,
+    var tributeHeld: Long = 0,
+    var tributeHigh: Long = 0,
+    val ratings: MutableMap<String, Rating> = mutableMapOf(),
+    val safeChunks: MutableList<ChunkRef> = mutableListOf()
 ) {
     val id get() = slug.ifEmpty { name.lowercase() }
     val active get() = state == CountryState.ACTIVE
@@ -229,7 +253,9 @@ class Data(
     var day: Long = -1,
     var schema: Int = 0,
     val letters: MutableMap<String, MutableList<String>> = mutableMapOf(),
-    val temp: MutableList<TempBlock> = mutableListOf()
+    val temp: MutableList<TempBlock> = mutableListOf(),
+    val wars: MutableList<War> = mutableListOf(),
+    var warClock: Long = 0
 ) {
     companion object {
         const val CURRENT = 1
@@ -412,6 +438,7 @@ object Realm {
 
     fun disband(c: Country) {
         if (!c.active) return
+        WarDebt.forgive(c.id)
         val tenants = claims(c.id).filter { it.owner != null }
         unclaimAll(claims(c.id).filter { it.owner == null })
         c.members.keys.forEach { home.remove(it) }
@@ -459,20 +486,25 @@ object Realm {
     }
 
     fun neighbors(c: Claim) = listOf(Key(c.dim, c.x + 1, c.z), Key(c.dim, c.x - 1, c.z), Key(c.dim, c.x, c.z + 1), Key(c.dim, c.x, c.z - 1))
-    private fun neighbors(k: Key) = listOf(Key(k.dim, k.x + 1, k.z), Key(k.dim, k.x - 1, k.z), Key(k.dim, k.x, k.z + 1), Key(k.dim, k.x, k.z - 1))
+    fun neighbors(k: Key) = listOf(Key(k.dim, k.x + 1, k.z), Key(k.dim, k.x - 1, k.z), Key(k.dim, k.x, k.z + 1), Key(k.dim, k.x, k.z - 1))
 
-    private fun connected(rest: Map<Key, Claim>): Boolean {
-        val start = rest.keys.firstOrNull() ?: return true
+    private fun flood(start: Key, within: Set<Key>): Set<Key> {
         val seen = hashSetOf(start)
         val queue = ArrayDeque(listOf(start))
-        while (queue.isNotEmpty()) neighbors(queue.removeFirst()).forEach { k -> if (k in rest && seen.add(k)) queue.addLast(k) }
-        return seen.size == rest.size
+        while (queue.isNotEmpty()) neighbors(queue.removeFirst()).forEach { k -> if (k in within && seen.add(k)) queue.addLast(k) }
+        return seen
     }
 
     fun removable(target: Claim) = removableBatch(target.country, target.dim, setOf(target.key))
 
-    fun removableBatch(country: String, dim: String, keys: Set<Key>): Boolean =
-        connected(claims(country).filter { it.dim == dim && it.key !in keys }.associateBy { it.key })
+    fun removableBatch(country: String, dim: String, keys: Set<Key>): Boolean {
+        val all = claims(country).filter { it.dim == dim }.mapTo(HashSet()) { it.key }
+        val seen = HashSet<Key>()
+        return keys.asSequence().filter { it in all && it !in seen }.all { k ->
+            val rest = flood(k, all).also(seen::addAll) - keys
+            rest.isEmpty() || flood(rest.first(), rest).size == rest.size
+        }
+    }
 
     fun freeAllowed(c: Country): Int {
         if (now() - c.lastActive > Config.s.inactiveDays * Config.s.dayMillis) return 0

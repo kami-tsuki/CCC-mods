@@ -12,6 +12,9 @@ import kami.claims.research.Progress
 import kami.claims.now
 import kami.claims.service.Words.v
 import kami.claims.social.Mail
+import kami.claims.war.Reputation
+import kami.claims.war.WarLocks
+import kami.claims.war.Wars
 import kami.libs.chat.Tone
 import kami.libs.text.Phrase
 
@@ -52,11 +55,18 @@ object Diplomacy {
         if (sameFamily(c, target)) throw Fail("kami_claims.error.trade_family")
     }
 
+    fun mutual(a: Country, b: Country) {
+        Reputation.requireMin(b, a)
+        Reputation.requireMin(a, b)
+    }
+
     fun propose(c: Country, target: Country): Phrase {
         Features.require(c, Features.ALLIANCES)
         foreign(c, target)
+        WarLocks.diplomacy(c, target)
         if (allied(c, target)) throw Fail("kami_claims.error.already_allied", v(target.name))
         if (embargoed(c, target)) throw Fail("kami_claims.error.alliance_embargo")
+        mutual(c, target)
         if (target.id in c.allianceOffers) return accept(c, target)
         target.allianceOffers[c.id] = now() + Config.s.inviteDays * Config.s.dayMillis
         Mail.officers(target, Phrase.of("kami_claims.mail.alliance_offer", v(c.name)))
@@ -65,9 +75,12 @@ object Diplomacy {
 
     fun accept(c: Country, from: Country): Phrase {
         Features.require(c, Features.ALLIANCES)
-        val until = c.allianceOffers.remove(from.id) ?: throw Fail("kami_claims.error.no_alliance_offer")
-        if (until < now()) throw Fail("kami_claims.error.invite_expired")
+        WarLocks.diplomacy(c, from)
+        val until = c.allianceOffers[from.id] ?: throw Fail("kami_claims.error.no_alliance_offer")
+        if (until < now()) { c.allianceOffers.remove(from.id); throw Fail("kami_claims.error.invite_expired") }
         if (embargoed(c, from)) throw Fail("kami_claims.error.alliance_embargo")
+        mutual(c, from)
+        c.allianceOffers.remove(from.id)
         c.alliances += from.id
         from.alliances += c.id
         ResearchSync.refresh(c)
@@ -88,19 +101,25 @@ object Diplomacy {
 
     fun end(c: Country, other: Country): Phrase {
         if (!allied(c, other)) throw Fail("kami_claims.error.not_allied", v(other.name))
-        c.alliances.remove(other.id)
-        other.alliances.remove(c.id)
-        ResearchSync.refresh(c)
-        ResearchSync.refresh(other)
+        if (Wars.involved(other)) Reputation.change(c, "dropAlly", -Config.s.war.repDropAlly)
+        dropAlliance(c, other)
         Realm.syncAllies()
-        Mail.officers(other, Phrase.of("kami_claims.mail.alliance_ended", v(c.name)), Tone.WARN)
-        Announce.fire("allianceEnded", c, mapOf("country" to c.name, "other" to other.name))
         return Phrase.of("kami_claims.done.alliance_ended", v(other.name))
+    }
+
+    internal fun dropAlliance(a: Country, b: Country) {
+        a.alliances.remove(b.id)
+        b.alliances.remove(a.id)
+        ResearchSync.refresh(a)
+        ResearchSync.refresh(b)
+        Mail.officers(b, Phrase.of("kami_claims.mail.alliance_ended", v(a.name)), Tone.WARN)
+        Announce.fire("allianceEnded", a, mapOf("country" to a.name, "other" to b.name))
     }
 
     fun setTariff(c: Country, target: Country, pct: Int): Phrase {
         foreign(c, target)
         if (pct !in 0..MAX_TARIFF || pct % TARIFF_STEP != 0) throw Fail("kami_claims.error.tariff_step", v(TARIFF_STEP), v(MAX_TARIFF))
+        if (policy(c, target).tariffPct != pct) Reputation.policy(c, target)
         store(c, target, TradePolicy(pct, policy(c, target).embargo))
         Mail.officers(target, Phrase.of("kami_claims.mail.tariff", v(c.name), v(pct)))
         return Phrase.of("kami_claims.done.tariff", v(target.name), v(pct))
@@ -113,6 +132,8 @@ object Diplomacy {
         val done = Phrase.of(if (on) "kami_claims.done.embargo_on" else "kami_claims.done.embargo_off", v(target.name))
         val previous = policy(c, target)
         if (previous.embargo == on) return done
+        if (!on && Wars.imposed(c.id, target.id)) throw Fail("kami_claims.error.war.embargo")
+        Reputation.policy(c, target)
         store(c, target, TradePolicy(previous.tariffPct, on))
         if (on) target.allianceOffers.remove(c.id)
         Mail.officers(target, Phrase.of(if (on) "kami_claims.mail.embargo_on" else "kami_claims.mail.embargo_off", v(c.name)), if (on) Tone.WARN else Tone.INFO)
@@ -120,7 +141,7 @@ object Diplomacy {
         return done
     }
 
-    private fun store(c: Country, target: Country, p: TradePolicy) {
+    internal fun store(c: Country, target: Country, p: TradePolicy) {
         if (p.tariffPct == 0 && !p.embargo) c.tradePolicy.remove(target.id) else c.tradePolicy[target.id] = p
     }
 }

@@ -208,12 +208,13 @@ fun unlockText(unlock: UnlockView) = when (unlock.kind) {
     "buff_points" -> tr("kami_claims.research.unlock.buff_points", unlock.count)
     "loan" -> tr("kami_claims.research.unlock.loan", Format.money(unlock.amount))
     "loan_slots" -> tr("kami_claims.research.unlock.loan_slots", unlock.count)
+    "safe_chunks" -> tr("kami_claims.research.unlock.safe_chunks", unlock.count)
     "research_speed" -> tr("kami_claims.research.unlock.research_speed", unlock.count, unlock.amount)
     else -> tr("kami_claims.research.unlock.${unlock.kind}", unlock.id.substringAfter(':').replace('_', ' '))
 }
 
 fun unlockColor(unlock: UnlockView) = when (unlock.kind) {
-    "capacity", "buff_points", "loan_slots", "research_speed" -> Palette.success
+    "capacity", "buff_points", "loan_slots", "safe_chunks", "research_speed" -> Palette.success
     "money", "token", "loan" -> Palette.money
     "feature", "buff" -> Palette.brass
     else -> Palette.textSecondary
@@ -221,7 +222,7 @@ fun unlockColor(unlock: UnlockView) = when (unlock.kind) {
 
 fun unlockIcon(unlock: UnlockView): Icon? = when (unlock.kind) {
     "feature" -> ClientLocks.featureIcon(unlock.id)
-    "buff" -> Icons.SHIELD
+    "buff", "safe_chunks" -> Icons.SHIELD
     "buff_points" -> Icons.STAR
     "token", "money", "loan", "loan_slots" -> Icons.COIN
     else -> null

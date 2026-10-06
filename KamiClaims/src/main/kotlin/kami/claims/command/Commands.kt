@@ -23,6 +23,8 @@ import com.mojang.brigadier.arguments.DoubleArgumentType
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.LongArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
+import com.mojang.brigadier.builder.ArgumentBuilder
+import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.arguments.GameProfileArgument
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerPlayer
@@ -102,7 +104,13 @@ private fun Node.countryCore(countries: () -> Collection<String>): Node =
         Net.send(p, open = true)
     })
     .then(lit("create").requires { Perms.has(it, Perms.FOUND) }.then(arg("name", StringArgumentType.word()).does { it.run("create", it.text("name")) }))
-    .then(lit("country").then(lit("rename").then(arg("name", StringArgumentType.word()).does { it.run("rename", it.text("name")) })))
+    .then(lit("country").then(lit("rename").then(arg("name", StringArgumentType.word()).does { it.run("rename", it.text("name")) }))
+        .then(lit("rate").then(word("country", countries).then(arg("stars", DoubleArgumentType.doubleArg(0.5, 5.0)).does {
+            val half = DoubleArgumentType.getDouble(it, "stars") * 2
+            if (half % 1.0 != 0.0) fail(Phrase.of("kami_claims.error.fame.range"))
+            it.run("fame_rate", it.text("country"), half.toInt().toString())
+        })))
+        .then(lit("minrep").then(arg("value", IntegerArgumentType.integer(0)).does { it.run("min_reputation", IntegerArgumentType.getInteger(it, "value").toString()) })))
     .then(lit("disband").does { it.run("disband") }.then(lit("confirm").does { it.run("disband", "confirm") }))
     .then(lit("info").does { ctx -> ctx.status(Service.home(ctx.me())) }
         .then(word("country", countries).does { ctx ->
@@ -223,6 +231,7 @@ private fun Node.countryCmd(): Node {
         .countryTreasury(types)
         .countryJobs(jobs)
         .then(provinceCmd(countries))
+        .then(warCmd(countries))
 }
 
 private fun provinceCmd(countries: () -> Collection<String>): Node {
@@ -324,4 +333,28 @@ object ClaimsCommands {
     fun register() = KamiCommands.module("claims", "Countries, land, plots and provinces") {
         countryCmd().then(researchCmd()).then(levelCmd()).then(plotCmd()).then(adminCmd())
     }
+}
+
+private fun warCmd(countries: () -> Collection<String>): Node {
+    fun other(name: String, confirm: Boolean): Node {
+        val action = "war_$name"
+        fun <T : ArgumentBuilder<CommandSourceStack, T>> T.tail(args: (Ctx) -> List<String>): T = does { it.run(action, *args(it).toTypedArray()) }
+            .apply { if (confirm) then(lit("confirm").does { it.run(action, *args(it).toTypedArray(), "confirm") }) }
+        return lit(name).tail { emptyList() }.then(word("country", countries).tail { listOf(it.text("country")) })
+    }
+    return lit("war")
+        .then(lit("declare").then(word("country", countries)
+            .does { it.run("war_declare", it.text("country")) }
+            .then(arg("stakes", StringArgumentType.greedyString()).does { it.run("war_declare", it.text("country"), *it.text("stakes").split(' ').filter(String::isNotBlank).toTypedArray()) })))
+        .then(lit("offer").then(word("country", countries).then(arg("terms", StringArgumentType.greedyString()).does { it.run("war_offer", it.text("country"), *it.text("terms").split(' ').filter(String::isNotBlank).toTypedArray()) })))
+        .then(lit("pick").then(word("country", countries).then(arg("area", StringArgumentType.greedyString()).does { it.run("war_pick", it.text("country"), *it.text("area").split(' ').filter(String::isNotBlank).toTypedArray()) })))
+        .then(lit("safe").then(lit("add").does { it.run("war_safe", "add") }).then(lit("remove").does { it.run("war_safe", "remove") }).then(lit("list").does { it.run("war_safe", "list") }))
+        .then(lit("repay").then(word("country", countries).then(arg("amount", LongArgumentType.longArg(1)).does { it.run("war_repay", it.text("country"), LongArgumentType.getLong(it, "amount").toString()) })))
+        .then(other("accept", true))
+        .then(other("decline", false))
+        .then(other("fight", false))
+        .then(other("agree", true))
+        .then(other("withdraw", true))
+        .then(other("capitulate", true))
+        .then(other("join", true))
 }

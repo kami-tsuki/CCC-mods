@@ -86,6 +86,10 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
         Draw.text(ui.g, tradeLabel(l), head.x + 44, head.y + 16, tradeColor(l))
         ui.property(f.take(11), tr("kami_claims.trade.rate"), tr(if (l.trade == "family" || l.alliance == "allied") "kami_claims.trade.rate.ally" else "kami_libs.common.normal"))
         ui.property(f.take(11), tr("kami_claims.trade.their_tariff"), if (l.theirTariff > 0) "${l.theirTariff}%" else "-")
+        ui.property(f.take(11), tr("kami_claims.warpage.reputation"), Format.number(l.reputation), WarPage.reputationColor(l.reputation))
+        ui.property(f.take(11), tr("kami_claims.warpage.fame"), l.fame?.let { WarPage.stars(it) } ?: tr("kami_claims.warpage.fame.hidden"), Palette.brass)
+        if (l.atWar) f.take(11).let { Draw.text(ui.g, tr("kami_claims.warpage.at_war"), it.x, it.y, Palette.danger) }
+        rating(ui, f.take(12), l)
         val reason = lock("trade") ?: if (l.trade == "family") tr("kami_claims.trade.family") else null
         ui.section(f.take(14), tr("kami_claims.trade.alliance"))
         val row = Row(f.take(CONTROL_H), 4)
@@ -134,6 +138,20 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
             ), tr("kami_claims.trade.embargo.toggle"), "embargo", arrayOf(l.name, "on"), danger = true)
             else act("embargo", l.name, "off")
         }
+    }
+
+    private fun rating(ui: Ui, r: Rect, l: Line) {
+        val label = tr("kami_claims.warpage.rate")
+        val x0 = r.x + Draw.width(label) + 6
+        Draw.text(ui.g, label, r.x, r.y + 2, Palette.textMuted)
+        var shown = l.myRating
+        val halves = (1..10).map { v -> v to Rect(x0 + (v - 1) * 5, r.y, 5, r.h) }
+        halves.firstOrNull { ui.hovering(it.second) }?.let { shown = it.first }
+        for (i in 0 until 5) Draw.text(ui.g, if (shown >= i * 2 + 2) "★" else "☆", x0 + i * 10, r.y + 2, if (shown > i * 2) Palette.brass else Palette.textMuted)
+        Draw.text(ui.g, if (shown > 0) Format.decimal(shown / 2.0, 1) else "-", x0 + 54, r.y + 2, Palette.textSecondary)
+        halves.forEach { (v, cell) -> if (ui.clickable("fame-$v", cell, !pending("fame_rate"))) {
+            Dialogs.confirm(app, tr("kami_claims.warpage.rate.title", l.name, Format.decimal(v / 2.0, 1)), null, Icons.STAR, listOf(Consequence(tr("kami_claims.warpage.rate.lock"), Severity.WARNING)), tr("kami_claims.warpage.rate.action"), "fame_rate", arrayOf(l.name, v.toString()))
+        } }
     }
 
     private fun players(ui: Ui, r: Rect) {

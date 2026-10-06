@@ -9,6 +9,9 @@ import kami.claims.research.Levels
 import kami.claims.research.Loans
 import kami.claims.research.Progress
 import kami.claims.social.Mail
+import kami.claims.war.Reputation
+import kami.claims.war.WarLocks
+import kami.claims.war.Wars
 import kami.libs.chat.Tone
 import kami.claims.service.Words.chunks
 import kami.claims.service.Words.money
@@ -62,6 +65,7 @@ object Upkeep {
             }
         }
         Realm.data.reserves.removeAll { it.until < now() }
+        Reputation.decay()
         Realm.changed()
     }
 
@@ -77,7 +81,7 @@ object Upkeep {
         c.reclaimLocks.values.removeAll { it < t }
         if (day >= today()) Housing.warn(c)
         if (!c.active) return
-        if (c.members.isEmpty()) return Realm.disband(c)
+        if (c.members.isEmpty() && !Wars.involved(c)) return Realm.disband(c)
         succession(c)
         expire(c)
         val income = Housing.collect(c) + c.pending
@@ -108,7 +112,7 @@ object Upkeep {
     }
 
     private fun expire(c: Country) {
-        if (now() - c.lastActive <= s.inactiveDays * s.dayMillis) return
+        if (now() - c.lastActive <= s.inactiveDays * s.dayMillis || Wars.involved(c)) return
         val claims = Realm.claims(c.id).sortedByDescending { it.at }
         claims.filter { it.free && !it.capital && it.owner == null }.forEach { if (Realm.removable(it)) Realm.unclaim(it, true) }
         claims.firstOrNull { it.capital && it.owner == null }?.let { if (Realm.claims(c.id).size == 1) Realm.unclaim(it, true) }
@@ -132,11 +136,11 @@ object Upkeep {
                 paid += cost
                 cl.debt = 0
                 cl.upkeepCycles++
-            } else cl.debt++
+            } else cl.debt = WarLocks.upkeepDebt(c, cl.debt + 1)
         }
         Treasury.record(c, LedgerKind.UPKEEP, -paid)
         Buffs.settle(c)
-        val lost = claims.filter { it.debt >= s.maxDebt }.sortedWith(compareBy<Claim> { it.owner != null }.thenByDescending { it.at }).count {
+        val lost = if (!WarLocks.upkeepRelease(c)) 0 else claims.filter { it.debt >= s.maxDebt }.sortedWith(compareBy<Claim> { it.owner != null }.thenByDescending { it.at }).count {
             val ok = !it.capital && Realm.removable(it)
             if (ok) {
                 it.owner?.let { owner -> Mail.direct(owner, Phrase.of("kami_claims.mail.plot_lost", v("${it.x}, ${it.z}")), Tone.BAD) }
@@ -147,11 +151,13 @@ object Upkeep {
         val indebt = Realm.claims(c.id).count { it.debt > 0 }
         if (lost > 0) Mail.broadcast(c, Phrase.of("kami_claims.mail.debt_lost", chunks(lost)), Tone.BAD)
         if (lost > 0) ResearchSync.refresh(c)
+        if (lost > 0) Reputation.upkeepLoss(c)
         if (indebt > 0) Mail.broadcast(c, Phrase.of("kami_claims.mail.debt", chunks(indebt)), Tone.WARN)
     }
 
     private fun provinceTax(c: Country, income: Long) {
         val parent = c.parent?.let { Realm.country(it) } ?: return
+        Reputation.tribute(c, parent, income)
         val owed = when (c.taxMode) {
             TaxMode.PERCENT -> floor(income * c.taxAmount).toLong()
             TaxMode.FLAT -> c.taxAmount.toLong()

@@ -4,6 +4,7 @@ import kami.economy.Config
 import kami.libs.claims.ClaimsApi
 import kami.libs.claims.Relation
 import java.util.UUID
+import kotlin.math.roundToInt
 
 class Terms(val taxPct: Int, val tariffPct: Int, val relation: Relation) {
     val blocked get() = relation == Relation.EMBARGO
@@ -24,7 +25,9 @@ object Trade {
         val a = country(buyer)
         val b = country(seller)
         if (a == null || b == null) return Terms(Config.s.taxPct, 0, Relation.NEUTRAL)
-        return resolve(ClaimsApi.relation(a, b), ClaimsApi.tariff(a, b))
+        val t = resolve(ClaimsApi.relation(a, b), ClaimsApi.tariff(a, b))
+        if (a == b) return t
+        return Terms((t.taxPct * ClaimsApi.tradeFactor(b)).roundToInt().coerceAtLeast(0), t.tariffPct, t.relation)
     }
 
     fun resolve(relation: Relation, tariffPct: Int): Terms = when (relation) {

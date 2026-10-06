@@ -191,6 +191,10 @@
         {
           "type": "buff_points",
           "add": 1
+        },
+        {
+          "type": "safe_chunks",
+          "add": 1
         }
       ]
     },
@@ -281,6 +285,10 @@
           "amplifier": 2,
           "mode": "pulse",
           "cooldownSeconds": 300
+        },
+        {
+          "type": "safe_chunks",
+          "add": 1
         }
       ]
     },

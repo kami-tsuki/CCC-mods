@@ -2,6 +2,7 @@ package kami.claims.client.hud
 
 import kami.libs.ui.text.trJson
 import kami.libs.ui.text.tr
+import kami.claims.KamiClaims
 import kami.claims.client.ClientClaims
 import kami.libs.ui.widget.Flags
 import kami.claims.client.app.Vocabulary
@@ -14,6 +15,7 @@ import kami.claims.service.AlertLine
 import kami.claims.service.View
 import kami.libs.ui.core.Rect
 import kami.libs.ui.style.Draw
+import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
@@ -33,6 +35,7 @@ object Hud {
     private var banner: Banner? = null
     private val seenAlerts = HashSet<String>()
     private val toasts = ArrayList<HudToast>()
+    private var warBroken = false
     private val arrows = listOf("→", "↘", "↓", "↙", "←", "↖", "↑", "↗")
 
     fun alertsChanged() {
@@ -51,6 +54,18 @@ object Hud {
         if (ClientClaims.active(dim) && ClientClaims.prefs.hud) territory(g, dim, player.blockX, player.blockZ, now)
         crosshair(g, dim)
         toasts(g, now)
+        if (!warBroken) runCatching { war(g, now) }.onFailure { warBroken = true; KamiClaims.LOG.error("War banner disabled", it) }
+    }
+
+    private fun war(g: GuiGraphics, now: Long) {
+        val w = ClaimsStore.warHud.firstOrNull() ?: return
+        val left = if (w.ends > 0) Format.until(w.ends, now) else tr("kami_claims.warpage.open_ended")
+        val text = tr("kami_claims.hud.war", tr("kami_claims.warpage.phase.${w.phase}"), w.enemy, left)
+        val color = if (w.phase == "war") Palette.danger else Palette.warning
+        val box = Rect(4, 4, Draw.width(text) + 10, 15)
+        Draw.sprite(g, Sprites.TOOLTIP, box)
+        Draw.fill(g, Rect(box.x + 1, box.y + 1, 2, box.h - 2), color)
+        Draw.text(g, text, box.x + 6, box.y + 4, color)
     }
 
     private fun territory(g: GuiGraphics, dim: String, bx: Int, bz: Int, now: Long) {

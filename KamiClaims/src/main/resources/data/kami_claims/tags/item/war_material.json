@@ -1,0 +1,16 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:tnt",
+    "minecraft:tnt_minecart",
+    "minecraft:end_crystal",
+    "minecraft:fire_charge",
+    { "id": "tacz:modern_kinetic_gun", "required": false },
+    { "id": "tacz:grenade", "required": false },
+    { "id": "tfmg:flamethrower", "required": false },
+    { "id": "createbigcannons:he_shell", "required": false },
+    { "id": "createbigcannons:shrapnel_shell", "required": false },
+    { "id": "createbigcannons:fluid_shell", "required": false },
+    { "id": "createbigcannons:mortar_stone", "required": false }
+  ]
+}

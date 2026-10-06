@@ -25,4 +25,10 @@ public class FireBlockMixin {
     private boolean kami$fireBurnOut(Level level, BlockPos pos, BlockState state, int flags, Operation<Boolean> original) {
         return (!state.is(BlockTags.FIRE) || Guard.INSTANCE.fireAllowed(level, pos)) && original.call(level, pos, state, flags);
     }
+
+    @WrapOperation(method = "checkBurnOut", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/world/level/Level;removeBlock(Lnet/minecraft/core/BlockPos;Z)Z"), require = 1)
+    private boolean kami$fireRemove(Level level, BlockPos pos, boolean moving, Operation<Boolean> original) {
+        return Guard.INSTANCE.fireAllowed(level, pos) && original.call(level, pos, moving);
+    }
 }

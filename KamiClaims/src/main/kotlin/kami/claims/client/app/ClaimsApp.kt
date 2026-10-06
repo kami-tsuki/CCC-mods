@@ -99,6 +99,7 @@ class ClaimsApp : KamiApp() {
         "plotlaw" -> PlotLawPage(this)
         "identity" -> IdentityPage(this)
         "relations" -> RelationsPage(this)
+        "war" -> WarPage(this)
         "provinces" -> ProvincesPage(this)
         "world" -> WorldPage(this)
         "research" -> ResearchPage(this)
@@ -166,6 +167,7 @@ class ClaimsApp : KamiApp() {
             )),
             group("diplomacy", tr("kami_claims.nav.group.diplomacy"), listOf(
                 NavItem("relations", tr("kami_claims.nav.relations"), Icons.HANDSHAKE, lock = ::needsCountry),
+                NavItem("war", tr("kami_claims.nav.war"), Icons.SHIELD, badge("war"), ::needsCountry),
                 NavItem("provinces", tr("kami_claims.nav.provinces"), Icons.CHAIN, badge("provinces"), ::needsCountry, ClientLocks::provinces),
                 NavItem("world", tr("kami_claims.nav.world"), Icons.GLOBE)
             )),

@@ -6,6 +6,10 @@ import kami.claims.net.Net
 import kami.claims.net.ResearchSync
 import kami.claims.net.Sync
 import kami.claims.service.Work
+import kami.claims.war.Online
+import kami.claims.war.Reputation
+import kami.claims.war.WarBar
+import kami.claims.war.Wars
 import kami.claims.research.Features
 import kami.claims.research.Gate
 import kami.claims.research.Goals
@@ -43,7 +47,10 @@ import net.neoforged.bus.api.EventPriority
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
 import net.neoforged.fml.loading.FMLEnvironment
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent
 import net.neoforged.neoforge.event.entity.EntityMobGriefingEvent
+import net.neoforged.neoforge.event.entity.living.LivingDamageEvent
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent
 import net.neoforged.neoforge.event.entity.player.PlayerEvent
@@ -127,6 +134,12 @@ object KamiClaims {
                 }
 
                 override fun creditTariff(country: String, amount: Long): Long = Realm.live(country)?.let { Diplomacy.creditTariff(it, amount) } ?: 0
+
+                override fun traded(a: String, b: String, value: Long) {
+                    Reputation.trade(Realm.live(a) ?: return, Realm.live(b) ?: return, value)
+                }
+
+                override fun tradeFactor(country: String): Double = Realm.live(country)?.let(Reputation::tradeFactor) ?: 1.0
             })
         }
         MOD_BUS.addListener<RegisterPayloadHandlersEvent> { Net.register(it) }
@@ -137,7 +150,7 @@ object KamiClaims {
         Listeners.register()
         Sky.register()
         FORGE_BUS.addListener<ServerStartingEvent> { RecipeContext.bind(Thread.currentThread()) }
-        FORGE_BUS.addListener<ServerStartedEvent> { Realm.load(it.server); Research.reload() }
+        FORGE_BUS.addListener<ServerStartedEvent> { Realm.load(it.server); Research.reload(); Wars.resume() }
         FORGE_BUS.addListener<OnDatapackSyncEvent> { if (it.player == null) Research.resolve(it.playerList.server) }
         FORGE_BUS.addListener<ServerStoppingEvent> {
             Realm.save(true)
@@ -152,6 +165,8 @@ object KamiClaims {
             Guard.reset()
             Work.reset()
             Upkeep.reset()
+            Online.reset()
+            WarBar.reset()
         }
         FORGE_BUS.addListener<ServerStoppedEvent> { Realm.save(true, rotate = false) }
         FORGE_BUS.addListener<ServerTickEvent.Post> {
@@ -161,13 +176,16 @@ object KamiClaims {
             if (t % 10 == 0) it.server.playerList.players.forEach(Effects::borders)
             Net.push(it.server)
             if (t % 20 == 0) Queue.tick()
+            if (t % 20 == 0) Online.sample(it.server.playerList.players)
+            if (t % 20 == 0) runCatching { WarBar.tick(it.server.playerList.players) }.onFailure { e -> LOG.error("War bar failed", e) }
             if (t % 4 == 0) TempBlocks.tick(it.server)
             if (t % 100 == 0) Levels.advanceAll()
             if (t % 1200 == 0) Upkeep.tick(it.server)
+            if (t % 1200 == 0) runCatching { Wars.tick() }.onFailure { e -> LOG.error("War tick failed", e) }
             runCatching { Realm.autosave(t) }.onFailure { e -> LOG.error("Periodic claims save failed", e) }
         }
-        FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { (it.entity as? ServerPlayer)?.let { p -> touch(p); Mail.deliver(p) } }
-        FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { (it.entity as? ServerPlayer)?.let { p -> touch(p); Guard.forget(p); Net.forget(p); Structures.forget(p) } }
+        FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { (it.entity as? ServerPlayer)?.let { p -> touch(p); Mail.deliver(p); Online.login(p); runCatching { WarBar.tick(listOf(p)) }.onFailure { e -> LOG.error("War bar failed", e) } } }
+        FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { (it.entity as? ServerPlayer)?.let { p -> touch(p); Guard.forget(p); Net.forget(p); Structures.forget(p); Online.logout(p); WarBar.forget(p) } }
         FORGE_BUS.addListener<BlockEvent.BreakEvent> { Guard.onBreak(it) }
         FORGE_BUS.addListener<BlockEvent.EntityPlaceEvent> { Guard.onPlace(it) }
         FORGE_BUS.addListener<PlayerInteractEvent.RightClickBlock> { Guard.onUse(it) }
@@ -178,8 +196,11 @@ object KamiClaims {
         FORGE_BUS.addListener<BlockEvent.FarmlandTrampleEvent> { Guard.onTrample(it) }
         FORGE_BUS.addListener<EntityMobGriefingEvent> { Guard.onGrief(it) }
         FORGE_BUS.addListener<ExplosionEvent.Detonate> { Guard.onExplosion(it) }
+        FORGE_BUS.addListener<EntityJoinLevelEvent> { Reputation.onJoin(it) }
         FORGE_BUS.addListener<PistonEvent.Pre> { Guard.onPiston(it) }
         FORGE_BUS.addListener<LivingIncomingDamageEvent> { Guard.onDamage(it) }
+        FORGE_BUS.addListener<LivingDamageEvent.Post> { Guard.onHurt(it) }
+        FORGE_BUS.addListener<LivingDeathEvent>(EventPriority.LOWEST) { Guard.onDeath(it) }
     }
 
     private fun info(c: Country) = CountryInfo(c.id, c.name, View.color(c), FlagInfo(c.flag.pattern, c.flag.emblem, c.flag.secondary), c.treasury)

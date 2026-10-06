@@ -9,6 +9,7 @@ import kami.claims.net.BuffsView
 import kami.claims.net.ResearchSync
 import kami.claims.service.Fail
 import kami.claims.service.Words
+import kami.claims.war.Wars
 import kami.libs.claims.Locks
 import kami.libs.text.Phrase
 import net.minecraft.core.Holder
@@ -136,7 +137,12 @@ object Buffs {
             val standing = Realm.at(p.level().dimension().location().toString(), p.chunkPosition().x, p.chunkPosition().z)?.country
             val inside = home != null && standing == home.id && p.isAlive
             val entered = tracker.entered(p.uuid, inside)
-            if (home == null || !inside) return@forEach
+            if (home == null) return@forEach
+            if (Wars.fighting(home)) {
+                if (tick % AURA_TICKS == 0) strip(p, home)
+                return@forEach
+            }
+            if (!inside) return@forEach
             val active = enabled(home)
             if (entered) active.filter { it.unlock.mode == BuffMode.PULSE }.forEach { pulse(p, it) }
             if (tick % AURA_TICKS == 0) strongest(active.map { it.unlock }).forEach { (effect, amplifier) -> aura(p, effect, amplifier) }
@@ -154,6 +160,11 @@ object Buffs {
         val effect = holder(buff.unlock.effect) ?: return
         if (!tracker.ready(player.uuid, buff.key, System.currentTimeMillis(), buff.unlock.cooldownSeconds * 1000L)) return
         effect.value().applyInstantenousEffect(null, null, player, buff.unlock.amplifier, 1.0)
+    }
+
+    private fun strip(player: ServerPlayer, home: Country) {
+        val ids = enabled(home).filter { it.unlock.mode == BuffMode.AURA }.mapTo(HashSet()) { it.unlock.effect }
+        player.activeEffects.filter { it.isAmbient && it.effect.unwrapKey().map { k -> k.location().toString() in ids }.orElse(false) }.forEach { player.removeEffect(it.effect) }
     }
 
     private fun aura(player: ServerPlayer, effect: String, amplifier: Int) {

@@ -9,6 +9,7 @@ import kami.claims.now
 import kami.claims.research.Buffs
 import kami.claims.research.Loans
 import kami.claims.today
+import kami.claims.war.Wars
 import kami.libs.text.Phrase
 import kotlinx.serialization.Serializable
 import net.minecraft.server.level.ServerPlayer
@@ -128,6 +129,14 @@ object Alerts {
                 out += alert("owedTribute", "WARNING", t("kami_claims.alert.owed_tribute.title", parent.name, c.provinceDebt.toString()),
                     t("kami_claims.alert.owed_tribute.body", parent.name), t("kami_claims.alert.open.budget"), page = "budget")
             }
+        }
+        if (!delegated) Realm.country(c.warOverlord)?.let { o ->
+            out += alert("warProvince", "WARNING", t("kami_claims.alert.war_province.title", o.name),
+                t("kami_claims.alert.war_province.body", o.name, money(c.warDebts[o.id] ?: 0L)), t("kami_claims.alert.open.budget"), page = "budget")
+        }
+        if (!delegated && c.president() == me) Wars.pending(c).forEach { w ->
+            out += alert("war:${w.id}", "DANGER", t("kami_claims.alert.war.title", Realm.country(w.attacker.main)?.name ?: w.attacker.main),
+                t("kami_claims.alert.war.body", Wars.hours(w.phaseEnds - now())), t("kami_claims.alert.open.war"), page = "war")
         }
         if (!delegated) {
             val president = c.president()?.let { c.members[it] }

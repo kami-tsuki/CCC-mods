@@ -12,6 +12,7 @@ import kami.claims.net.ResearchSync
 import kami.claims.service.Fail
 import kami.claims.service.Words
 import kami.claims.social.Mail
+import kami.claims.war.Reputation
 import kami.libs.chat.Tone
 import kami.libs.claims.Locks
 import kami.libs.text.Phrase
@@ -24,6 +25,7 @@ class LoanOffer(val node: Node, val unlock: LoanUnlock) {
 object Loans {
     private const val COOLDOWN_DAYS = 7
     private const val LATE_FEE_PCT = 10
+    private const val WEEK = 7
 
     fun offers(): List<LoanOffer> =
         Research.defs.nodes.values.flatMap { node -> node.unlocks.filterIsInstance<LoanUnlock>().map { LoanOffer(node, it) } }.sortedBy { it.unlock.amount }
@@ -68,8 +70,9 @@ object Loans {
         val owed = remaining(loan)
         if (country.treasury < owed) throw Fail("kami_claims.loans.error.repay_short", Words.money(owed), Words.money(country.treasury))
         Treasury.move(country, LedgerKind.LOAN_PAYMENT, -owed, actor, id)
+        val day = Levels.day()
         loan.paid = loan.total
-        close(country, loan, Levels.day())
+        close(country, loan, day, earned(loan, day))
         return Phrase.of("kami_claims.loans.done.repaid", Words.money(owed))
     }
 
@@ -81,11 +84,18 @@ object Loans {
             if (pay > 0) Treasury.move(country, LedgerKind.LOAN_PAYMENT, -pay, note = loan.id)
             loan.paid += pay
             val missing = due - pay
+            if (missing <= 0) {
+                if (loan.overdue <= 0) Reputation.instalment(country)
+                loan.overdueDay = 0
+            } else if (loan.overdueDay == 0L || day - loan.overdueDay >= WEEK) {
+                loan.overdueDay = day
+                Reputation.overdueLoan(country)
+            }
             val fee = (minOf(missing, loan.perDay) * LATE_FEE_PCT + 99) / 100
             loan.total += fee
             loan.overdue = if (missing > 0) missing + fee else 0
             when {
-                remaining(loan) <= 0 -> close(country, loan, day)
+                remaining(loan) <= 0 -> close(country, loan, day, earned(loan, day))
                 missing > 0 -> Mail.officers(country, Phrase.of("kami_claims.mail.loan_missed", Words.v(loan.id), Words.money(loan.overdue)), Tone.BAD)
             }
         }
@@ -93,9 +103,12 @@ object Loans {
         ResearchSync.refresh(country)
     }
 
-    private fun close(country: Country, loan: Loan, day: Long) {
+    private fun earned(loan: Loan, day: Long) = (day - loan.takenDay) * 2 * loan.perDay >= loan.total
+
+    private fun close(country: Country, loan: Loan, day: Long, earned: Boolean) {
         country.loans.remove(loan)
         country.loanCooldowns[loan.id] = day
+        if (earned) Reputation.payoff(country)
         Mail.officers(country, Phrase.of("kami_claims.mail.loan_repaid", Words.v(loan.id)), Tone.OK)
         Realm.changed()
         ResearchSync.refresh(country)

@@ -7,6 +7,7 @@ import kami.claims.net.Act
 import kami.claims.net.Info
 import kami.claims.net.PreviewLine
 import kami.claims.net.Snap
+import kami.claims.net.WarHud
 import kami.libs.ui.text.tr
 import kami.libs.ui.text.trJson
 import net.neoforged.neoforge.network.PacketDistributor
@@ -32,6 +33,7 @@ object ClaimsStore {
     val info: Info? get() = snap?.info
     val delegated get() = info?.delegated == true
     val rank: Rank get() = info?.let { rankOf(it.rank) } ?: Rank.BANISHED
+    val warHud: List<WarHud> get() = snap?.war.orEmpty()
 
     fun onOutcome(listener: (Outcome) -> Unit) { listeners += listener }
 
