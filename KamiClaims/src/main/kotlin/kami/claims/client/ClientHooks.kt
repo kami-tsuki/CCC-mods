@@ -58,7 +58,7 @@ object ClientHooks {
             applyPrefs()
             ClaimsStore.quiet("watch")
         }
-        FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> { TerrainCache.clear(); ClientResearch.clear(); ClaimsStore.reset() }
+        FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> { TerrainCache.clear(); ClientResearch.clear(); ClaimsStore.clear() }
     }
 
     private fun applyPrefs() {

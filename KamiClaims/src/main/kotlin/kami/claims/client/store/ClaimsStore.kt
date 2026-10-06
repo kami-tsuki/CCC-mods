@@ -93,8 +93,12 @@ object ClaimsStore {
         expired.values.forEach { p -> listeners.forEach { it(Outcome(p.name, p.key, false, tr("kami_claims.error.timeout"), "TIMEOUT", null, null)) } }
     }
 
-    fun reset() {
+    fun clear() {
         snap = null
+        reset()
+    }
+
+    fun reset() {
         pending.clear()
         watched = emptyList()
         stickyPreview = null
