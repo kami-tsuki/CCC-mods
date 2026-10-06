@@ -93,6 +93,7 @@ fun researchCmd(): Node {
         .then(byNode("enqueue"))
         .then(byNode("start"))
         .then(byNode("pause"))
+        .then(byNode("remove"))
         .then(lit("move").then(word("node", ::nodeIds).then(arg("index", IntegerArgumentType.integer(1)).does {
             it.act("research_move", it.text("node"), (it.int("index") - 1).toString())
         })))

@@ -89,14 +89,37 @@ object Queue {
         if (entry.state == NodeState.READY) Penalty.hard(node).firstOrNull { !it.met(country) }?.let { throw Fail("kami_claims.research.error.condition", it.describe()) }
         if (Loans.inDefault(country)) throw Fail("kami_claims.loans.error.default")
         if (researching(country) >= Levels.capacity(country, Capacity.RESEARCH_SLOTS)) throw Fail("kami_claims.research.reason.slots")
+        if (!entry.paid && country.treasury < node.cost) throw Fail("kami_claims.loans.reason.funds", Words.money(node.cost))
+        if (!begin(country, entry, node, actor)) throw Fail("kami_claims.loans.reason.funds", Words.money(node.cost))
+    }
+
+    fun remove(country: Country, key: String) {
+        val entry = entry(country, key)
+        if (entry.paid || entry.state == NodeState.RESEARCHING || entry.state == NodeState.PAUSED) throw Fail("kami_claims.research.error.started")
+        country.research.queue.remove(entry)
+        Realm.changed()
+        ResearchSync.touch(country)
+    }
+
+    internal fun autostart(country: Country) {
+        if (!settings.enabled || Loans.inDefault(country)) return
+        country.research.queue.filter { it.state == NodeState.READY }.forEach { entry ->
+            if (researching(country) >= Levels.capacity(country, Capacity.RESEARCH_SLOTS)) return
+            val node = Research.defs.node(entry.node) ?: return@forEach
+            if (country.treasury < node.cost || Penalty.hard(node).any { !it.met(country) }) return@forEach
+            if (begin(country, entry, node, null)) Mail.officers(country, Phrase.of("kami_claims.research.mail.autostart", node.label().asValue(), Words.money(node.cost)))
+        }
+    }
+
+    private fun begin(country: Country, entry: QueueEntry, node: Node, actor: String?): Boolean {
         if (!entry.paid) {
-            if (country.treasury < node.cost) throw Fail("kami_claims.loans.reason.funds", Words.money(node.cost))
-            Treasury.bank(country, LedgerKind.RESEARCH, -node.cost, actor, key)
+            if (node.cost > 0 && Treasury.bank(country, LedgerKind.RESEARCH, -node.cost, actor, entry.node) == 0L) return false
             entry.paid = true
         }
         entry.state = NodeState.RESEARCHING
         Realm.changed()
         ResearchSync.touch(country)
+        return true
     }
 
     fun pause(country: Country, key: String) {
@@ -144,6 +167,7 @@ object Queue {
             }
             settle(country, entry, node)
         }
+        autostart(country)
         if (online == 0 && settings.onlineRequired) return
         val running = queue.filter { it.state == NodeState.RESEARCHING }
         if (running.isEmpty()) return
@@ -152,6 +176,7 @@ object Queue {
             entry.remainingMs -= step
             if (entry.remainingMs <= 0) Research.defs.node(entry.node)?.let { complete(country, it) }
         }
+        autostart(country)
         ResearchSync.refresh(country)
     }
 

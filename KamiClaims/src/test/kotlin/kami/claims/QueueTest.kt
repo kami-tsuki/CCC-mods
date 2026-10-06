@@ -172,6 +172,32 @@ class QueueTest : WithDb() {
     }
 
     @Test
+    fun readyEntriesAutostartInQueueOrderAndFollowUp() {
+        val c = country("alpha", treasury = 250)
+        Queue.enqueue(c, "t:a", null)
+        Queue.enqueue(c, "t:wide", null)
+        Queue.tick(c, 0)
+        assertEquals(listOf(NodeState.RESEARCHING, NodeState.READY), c.research.queue.map { it.state })
+        assertEquals(150L, c.treasury)
+        Queue.tick(c, 600_000)
+        assertEquals(NodeState.RESEARCHING, c.research.queue.single().state)
+        assertEquals(50L, c.treasury)
+    }
+
+    @Test
+    fun onlyUnstartedEntriesCanBeRemoved() {
+        val c = country("alpha")
+        Queue.enqueue(c, "t:a", null)
+        Queue.enqueue(c, "t:mine", null)
+        Queue.start(c, "t:a", null)
+        assertFailsWith<Fail> { Queue.remove(c, "t:a") }
+        Queue.pause(c, "t:a")
+        assertFailsWith<Fail> { Queue.remove(c, "t:a") }
+        Queue.remove(c, "t:mine")
+        assertEquals(listOf("t:a"), c.research.queue.map { it.node })
+    }
+
+    @Test
     fun timerRunsOnlyWhileAHomeCitizenIsOnline() {
         val c = country("alpha")
         Queue.enqueue(c, "t:a", null)

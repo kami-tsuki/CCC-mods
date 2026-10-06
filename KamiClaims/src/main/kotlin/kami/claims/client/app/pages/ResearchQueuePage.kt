@@ -104,6 +104,8 @@ class ResearchQueuePage(app: ClaimsApp) : ClaimsPage(app) {
             if (ui.adaptiveButton(line, narrow, label, Icons.PENDING, pending = pending, key = "queue-pause:${node.key}")) actions.pause(node)
             return
         }
+        val removeWhy = actions.removeReason(entry)
+        if (ui.iconButton(line.iconSlot(), Icons.REMOVE, removeWhy ?: tr("kami_claims.research.action.remove"), enabled = removeWhy == null, key = "queue-remove:${node.key}")) actions.remove(node, entry)
         if (ui.iconButton(line.iconSlot(), Icons.SORT_DOWN, tr("kami_claims.research.action.down"), enabled = index < queue.lastIndex, key = "queue-down:${node.key}")) actions.move(node, index + 1)
         if (ui.iconButton(line.iconSlot(), Icons.SORT_UP, tr("kami_claims.research.action.up"), enabled = index > 0, key = "queue-up:${node.key}")) actions.move(node, index - 1)
         val reason = actions.startReason(node, entry)

@@ -184,7 +184,7 @@ object Service {
             "loan_take" -> Loans.take(need(p, Cap.WITHDRAW), arg(a, 0), p.stringUUID)
             "loan_repay" -> Loans.repay(need(p, Cap.WITHDRAW), arg(a, 0), p.stringUUID)
             "buff_toggle" -> Buffs.toggle(need(p, Cap.RESEARCH), arg(a, 0))
-            "research_enqueue", "research_start", "research_pause", "research_move", "research_deposit" -> researchAct(p, name, a)
+            "research_enqueue", "research_start", "research_pause", "research_remove", "research_move", "research_deposit" -> researchAct(p, name, a)
             "alliance" -> alliance(p, arg(a, 0), country(arg(a, 1)))
             "tariff" -> Diplomacy.setTariff(need(p, Cap.TRADE), country(arg(a, 0)), num(a, 1))
             "embargo" -> Diplomacy.setEmbargo(need(p, Cap.TRADE), country(arg(a, 0)), arg(a, 1) == "on")
@@ -647,6 +647,7 @@ object Service {
             "research_enqueue" -> Queue.enqueue(c, key, p.stringUUID)
             "research_start" -> Queue.start(c, key, p.stringUUID)
             "research_pause" -> Queue.pause(c, key)
+            "research_remove" -> Queue.remove(c, key)
             else -> Queue.move(c, key, num(a, 1))
         }
         return Phrase.of("kami_claims.research.done.${name.removePrefix("research_")}", Queue.node(c, key).label().asValue())

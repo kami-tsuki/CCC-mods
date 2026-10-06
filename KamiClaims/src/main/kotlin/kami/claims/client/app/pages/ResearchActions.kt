@@ -20,6 +20,18 @@ class ResearchActions(private val page: ClaimsPage) {
 
     fun pause(node: NodeView) { page.act("research_pause", node.key, key = "research:${node.key}") }
 
+    fun remove(node: NodeView, queue: QueueView) = Dialogs.confirm(
+        page.app, tr("kami_claims.research.remove.title", node.label().resolve()), null, Icons.REMOVE,
+        listOfNotNull(Consequence(tr("kami_claims.research.remove.slot")), Consequence(tr("kami_claims.research.remove.lost")).takeIf { queue.tasks.any { it > 0 } }),
+        tr("kami_claims.research.action.remove"), "research_remove", arrayOf(node.key), danger = true, key = "research:${node.key}"
+    )
+
+    fun removeReason(queue: QueueView): String? = when {
+        !ClientResearch.state.canManage -> tr("kami_claims.research.reason.rights")
+        queue.paid || queue.state == NodeState.PAUSED -> tr("kami_claims.research.error.started")
+        else -> null
+    }
+
     fun deposit(node: NodeView, task: Int) { page.act("research_deposit", node.key, task.toString(), key = "research:${node.key}:$task") }
 
     fun move(node: NodeView, to: Int) { page.act("research_move", node.key, to.toString(), key = "research:${node.key}") }
