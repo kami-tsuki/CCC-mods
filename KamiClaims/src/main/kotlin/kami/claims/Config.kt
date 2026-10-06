@@ -2,6 +2,7 @@ package kami.claims
 
 import kami.libs.config.ConfigModule
 import kami.libs.config.Section
+import kami.libs.util.Time
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -167,7 +168,7 @@ data class WarSettings(
 
 @Serializable
 data class Settings(
-    val dayMillis: Long = 86_400_000,
+    val dayMillis: Long = Time.DAY_MS,
     val dimensions: List<String> = listOf("minecraft:overworld"),
     val defaultType: String = "civic",
     val freeChunks: Int = 9,

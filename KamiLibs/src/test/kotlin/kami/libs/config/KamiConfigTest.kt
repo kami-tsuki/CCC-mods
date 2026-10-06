@@ -1,6 +1,7 @@
 package kami.libs.config
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.AfterTest
@@ -24,8 +25,8 @@ class KamiConfigTest {
         Section("jobs.json", "Jobs", mapOf("jobs" to "All jobs.", "jobs.*.pay" to "Daily pay."))
     )
 
-    private fun config(legacy: String? = null) =
-        KamiConfig("demo", Demo(), sections, legacy, sane = { it.copy(speed = it.speed.coerceIn(1, 10)) })
+    private fun config(legacy: String? = null, migrations: List<ConfigMigration> = emptyList()) =
+        KamiConfig("demo", Demo(), sections, legacy, sane = { it.copy(speed = it.speed.coerceIn(1, 10)) }, migrations = migrations)
 
     private fun read(file: String) = Files.readString(base.resolve("kami/demo/$file"))
 
@@ -61,7 +62,7 @@ class KamiConfigTest {
         assertTrue(c.load())
         assertEquals(10, c.value.speed)
         assertTrue("\"speed\": 10" in read("general.json"))
-        assertFalse("unknown" in read("general.json"))
+        assertTrue("\"unknown\": 1" in read("general.json"))
     }
 
     @Test
@@ -95,5 +96,33 @@ class KamiConfigTest {
         val results = Configs.reload("demo")
         assertTrue(results.isNotEmpty() && results.all { it.first == "demo" && it.second.isSuccess })
         assertTrue(Configs.reload("missing").isEmpty())
+    }
+
+    private val rename = listOf(ConfigMigration(1) { o -> JsonObject(o - "title" + ("name" to o.getValue("title"))) })
+
+    private fun old() =
+        Files.writeString(base.resolve("kami/demo/general.json").also { Files.createDirectories(it.parent) }, "{ \"title\": \"old\", \"speed\": 2, \"mystery\": 1 }")
+
+    @Test
+    fun migrationBacksUpAppliesAndBumpsVersion() {
+        old()
+        val c = config(migrations = rename)
+        assertTrue(c.load())
+        assertEquals("old", c.value.name)
+        assertTrue("\"configVersion\": 1" in read("general.json"))
+        assertTrue("\"mystery\": 1" in read("general.json"))
+        assertTrue("\"title\": \"old\"" in read(".backup/general.json.v0.json"))
+    }
+
+    @Test
+    fun newerVersionIsLoadedButNotRewritten() {
+        val text = "{ \"configVersion\": 5, \"speed\": 2 }"
+        Files.createDirectories(base.resolve("kami/demo"))
+        Files.writeString(base.resolve("kami/demo/general.json"), text)
+        val c = config(migrations = rename)
+        assertTrue(c.load())
+        assertEquals(2, c.value.speed)
+        c.save(Demo(speed = 9))
+        assertEquals(text, read("general.json"))
     }
 }

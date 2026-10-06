@@ -204,8 +204,9 @@ abstract class KamiApp {
         }
         val indicator = navY[route.page]
         val perRow = ((r.w - 4) / MODULES_H).coerceAtLeast(1)
-        val stripH = if (module == null || Modules.all.size < 2) 0 else (Modules.all.size + perRow - 1) / perRow * MODULES_H
-        if (stripH > 0) moduleStrip(Rect(r.x + 2, r.y + 3, r.w - 4, stripH), perRow)
+        val modules = Modules.visible
+        val stripH = if (module == null || modules.size < 2) 0 else (modules.size + perRow - 1) / perRow * MODULES_H
+        if (stripH > 0) moduleStrip(Rect(r.x + 2, r.y + 3, r.w - 4, stripH), perRow, modules)
         val toggleH = if (collapsibleRail && !compact) RAIL_TOGGLE_H else 0
         val state = ui.scroll("sidebar", r.inset(0, 4 + stripH, 0, 2 + toggleH), height) { c ->
             indicator?.let { rel ->
@@ -243,9 +244,9 @@ abstract class KamiApp {
         revealPage?.let { page -> navY[page]?.let { state.scrollTo(it); revealPage = null } }
     }
 
-    private fun moduleStrip(r: Rect, perRow: Int) {
+    private fun moduleStrip(r: Rect, perRow: Int, modules: List<AppModule>) {
         ui.anchor("modules", r)
-        Modules.all.forEachIndexed { i, m ->
+        modules.forEachIndexed { i, m ->
             val cell = Rect(r.x + i % perRow * MODULES_H, r.y + i / perRow * MODULES_H, MODULES_H - 2, MODULES_H - 2)
             val active = m.id == module
             if (ui.iconButton(cell, m.icon, tr(m.label), selected = active, key = "module:${m.id}") && !active) m.open()

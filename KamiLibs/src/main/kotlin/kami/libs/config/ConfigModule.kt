@@ -9,8 +9,9 @@ abstract class ConfigModule<T : Any>(
     sections: List<Section>,
     legacy: String? = null,
     sane: (T) -> T = { it },
+    migrations: List<ConfigMigration> = emptyList(),
 ) {
-    private val file = KamiConfig(mod, serializer, default, sections, legacy, sane = sane)
+    private val file = KamiConfig(mod, serializer, default, sections, legacy, sane = sane, migrations = migrations)
 
     var s: T
         get() = file.value

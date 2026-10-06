@@ -17,10 +17,7 @@ object Progress {
 
     fun report(country: Country, kind: String, subject: String, amount: Long, once: String? = null, units: Double = amount.toDouble()) {
         if (amount <= 0) return
-        if (once != null) {
-            if (!country.research.visited.add("once:$once")) return
-            Realm.dirty = true
-        }
+        if (once != null && !country.research.visited.add("once:$once")) return
         if (kind != Kinds.TRADE_VALUE) Levels.add(country, kind, units)
         if (kind == Kinds.TAXES) Counters.add(country, Counters.TAXES_COLLECTED, amount)
         else if (kind in Research.defs.levels.counted) Counters.event(country, kind, subject, amount)
@@ -62,6 +59,5 @@ object Progress {
     private fun firstTime(country: Country, key: String, source: String) {
         if (!country.research.visited.add(key)) return
         Levels.add(country, source, 1.0)
-        Realm.dirty = true
     }
 }

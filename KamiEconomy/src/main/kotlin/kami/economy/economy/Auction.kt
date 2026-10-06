@@ -90,7 +90,8 @@ object Auctions {
     fun sweep() {
         val t = now()
         open().filter { it.expiresAt <= t }.forEach { a ->
-            if (a.currentBidder.isNotEmpty()) Ledger.auctionSweepSettle(a.id) else Ledger.auctionSweepExpireUnsold(a.id)
+            if (a.currentBidder.isEmpty()) Ledger.auctionSweepExpireUnsold(a.id)
+            else if (TradeStatus.auctions(StackCodec.itemId(a.stackData))) Ledger.auctionSweepSettle(a.id)
         }
         if (Market.data.auctions.removeAll { it.state != AuctionState.OPEN && it.expiresAt < t - RETENTION_MILLIS }) Market.dirty = true
     }

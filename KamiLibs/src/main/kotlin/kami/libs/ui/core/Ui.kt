@@ -91,6 +91,9 @@ class Ui {
     private var tip: Tip? = null
     private var tipKey: String? = null
     private var shownTipKey: String? = null
+    private var tipHover: String? = null
+    private var tipSince = 0L
+    private var tipSeen = false
     private var tipEpoch = 0L
     private var appliedCursor = Cursor.ARROW
     private val glfwCursors = HashMap<Cursor, Long>()
@@ -264,8 +267,12 @@ class Ui {
     }
 
     fun tooltip(key: Any, r: Rect, delay: Long = tooltipDelay, build: () -> Tip?) {
-        if (!hover("tip:$key", r) && !(keyboardMode && focused(key))) return
-        if (hoverTime("tip:$key") < delay && !(keyboardMode && focused(key))) return
+        val keyboard = keyboardMode && focused(key)
+        if (!hovering(r) && !keyboard) return
+        val k = id(key)
+        tipSeen = true
+        if (tipHover != k) { tipHover = k; tipSince = wallMillis }
+        if (wallMillis - tipSince < delay && !keyboard) return
         val t = build() ?: return
         tip = t
         tipKey = id(key)
@@ -276,6 +283,8 @@ class Ui {
     fun tooltip(key: Any, r: Rect, tip: Tip) = tooltip(key, r) { tip }
 
     private fun drawTooltip() {
+        if (!tipSeen) tipHover = null
+        tipSeen = false
         val t = tip
         if (t == null) { shownTipKey = null; return }
         if (tipKey != shownTipKey) { shownTipKey = tipKey; tipEpoch++ }

@@ -1,5 +1,6 @@
 package kami.libs.ui.widget
 
+import net.minecraft.client.gui.GuiGraphics
 import kami.libs.ui.style.Format
 import kami.libs.ui.text.tr
 import kami.libs.ui.anim.feel
@@ -83,25 +84,27 @@ fun Ui.button(
     return fired
 }
 
-fun Ui.iconButton(r: Rect, icon: Icon, tip: String, enabled: Boolean = true, selected: Boolean = false, key: Any = icon.sprite.path, disabledReason: String? = null): Boolean {
+fun Ui.iconButton(r: Rect, icon: Icon, tip: String, enabled: Boolean = true, selected: Boolean = false, key: Any = icon.sprite.path, disabledReason: String? = null, pending: Boolean = false): Boolean {
     val id = focusable(key)
     val hover = hover(key, r)
-    if (enabled && hover) cursor = Cursor.HAND
-    if (enabled && pressed(r) != null) active = id
+    val usable = enabled && !pending
+    if (usable && hover) cursor = Cursor.HAND
+    if (usable && pressed(r) != null) active = id
     val look = if (selected) Sprites.Look.SECONDARY else Sprites.Look.GHOST
-    val down = enabled && active == id && isDown()
-    val feel = feel(key, hover && enabled, down)
-    Draw.sprite(g, look.of(false, down, enabled), r)
-    if (enabled) hoverWash(r, feel)
+    val down = usable && active == id && isDown()
+    val feel = feel(key, hover && usable, down)
+    Draw.sprite(g, look.of(false, down, usable), r)
+    if (usable) hoverWash(r, feel)
     if (selected) Draw.hline(g, r.x + 2, r.bottom - 1, r.w - 4, Palette.brass)
     val x = r.x + (r.w - Draw.ICON) / 2
     val y = r.y + (r.h - Draw.ICON) / 2 + if (feel.press > 0.5f) 1 else 0
-    if (enabled) Draw.icon(g, icon, x, y) else Draw.tintedIcon(g, icon, x, y, Draw.ICON, Palette.iconOff)
+    if (pending) spinner(r.x + (r.w - 8) / 2, r.centerY - 4, Palette.textDisabled)
+    else if (enabled) Draw.icon(g, icon, x, y) else Draw.tintedIcon(g, icon, x, y, Draw.ICON, Palette.iconOff)
     controlTip(key, r, enabled, disabledReason, tip)
     focusRing(key, r)
     val released = active == id && released() != null
     if (released) active = null
-    val fired = enabled && ((released && hover) || activatedByKey(key))
+    val fired = usable && ((released && hover) || activatedByKey(key))
     if (fired) UiSound.click()
     return fired
 }
@@ -139,8 +142,10 @@ fun Ui.link(x: Int, y: Int, label: String, key: Any = "link:$label"): Boolean {
     return pressed(r) != null
 }
 
-fun Ui.spinner(x: Int, y: Int, color: Int = Palette.text) {
-    val step = ((wallMillis / 120) % 8).toInt()
+fun Ui.spinner(x: Int, y: Int, color: Int = Palette.text) = spinner(g, x, y, wallMillis, color)
+
+fun spinner(g: GuiGraphics, x: Int, y: Int, millis: Long, color: Int = Palette.text) {
+    val step = ((millis / 120) % 8).toInt()
     for (i in 0 until 8) {
         val angle = i * Math.PI / 4
         val px = x + 4 + (Math.cos(angle) * 3).toInt()

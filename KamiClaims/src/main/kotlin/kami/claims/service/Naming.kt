@@ -24,11 +24,11 @@ object Naming {
         if (Realm.data.countries.values.any { it !== renaming && it.name.equals(name, true) || it.id == name.lowercase() }) throw Fail("kami_claims.error.name_taken")
     }
 
-    fun rename(country: Country, name: String, actor: String?): Phrase {
+    fun rename(country: Country, name: String, actor: String?, fee: Boolean = true): Phrase {
         if (actor != null) WarLocks.rename(country)
         check(name, country)
         if (name.equals(country.name, true)) throw Fail("kami_claims.error.name_same")
-        Tokens.spend(country, Tokens.RENAME, Config.s.renameCost, actor)
+        if (fee) Tokens.spend(country, Tokens.RENAME, Config.s.renameCost, actor)
         val old = country.name
         if (country.slug.isEmpty()) country.slug = country.id
         country.name = name

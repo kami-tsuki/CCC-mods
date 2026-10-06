@@ -1,5 +1,6 @@
 package kami.economy.economy
 
+import kami.economy.Delivery
 import kami.economy.Market
 import kami.libs.chat.Chat
 import kami.libs.chat.Tone
@@ -8,8 +9,10 @@ import kami.libs.text.Phrase
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ServerPlayer
 
 object Notify {
+    private const val NOTE = "note:"
     private val chat = Chat.of("market")
     private val topics = mapOf(
         "order_filled" to "orders", "sold" to "orders",
@@ -22,14 +25,13 @@ object Notify {
 
     private fun online(who: String) = Trade.uuid(who)?.let { server?.playerList?.getPlayer(it) }
 
-    fun name(who: String): Phrase = Phrase.value(
-        online(who)?.name?.string ?: Trade.uuid(who)?.let { server?.profileCache?.get(it)?.orElse(null)?.name } ?: "?"
-    )
+    fun playerName(who: String): String? = online(who)?.name?.string ?: Trade.uuid(who)?.let { server?.profileCache?.get(it)?.orElse(null)?.name }
 
-    fun stack(item: String, qty: Int): Phrase {
-        val name = ResourceLocation.tryParse(item)?.let { BuiltInRegistries.ITEM.get(it).descriptionId } ?: item
-        return Phrase.of("kami_economy.notify.stack", qty, Phrase.of(name)).asValue()
-    }
+    fun name(who: String): Phrase = Phrase.value(playerName(who) ?: "?")
+
+    private fun itemKey(item: String) = ResourceLocation.tryParse(item)?.let { BuiltInRegistries.ITEM.get(it).descriptionId } ?: item
+
+    fun stack(item: String, qty: Int): Phrase = Phrase.of("kami_economy.notify.stack", qty, Phrase.of(itemKey(item))).asValue()
 
     fun label(text: String): Phrase = Phrase.value(text)
 
@@ -47,5 +49,16 @@ object Notify {
         if (topics[key] in muted(who)) return
         val p = online(who) ?: return
         p.tell(chat.say(tone, Phrase.of("kami_economy.notify.$key", *args())))
+    }
+
+    fun cancelled(who: String, item: String, ref: Long, reason: String) {
+        if (online(who) != null) tell(who, Tone.WARN, "cancelled") { arrayOf(Phrase.of(itemKey(item)).asValue(), Phrase.value(reason)) }
+        else Market.queueDelivery(who, item, 0, "$NOTE$ref:$reason")
+    }
+
+    fun note(p: ServerPlayer, d: Delivery): Boolean {
+        if (d.qty != 0 || !d.id.startsWith(NOTE)) return false
+        tell(p.stringUUID, Tone.WARN, "cancelled") { arrayOf(Phrase.of(itemKey(d.item)).asValue(), Phrase.value(d.id.removePrefix(NOTE).substringAfter(':'))) }
+        return true
     }
 }

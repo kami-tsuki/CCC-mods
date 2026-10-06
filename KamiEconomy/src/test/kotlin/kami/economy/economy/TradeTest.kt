@@ -8,7 +8,6 @@ import kami.economy.Settings
 import kami.libs.claims.ClaimsApi
 import kami.libs.claims.Relation
 import kami.libs.economy.CleanStep
-import java.nio.file.Files
 import java.util.UUID
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -35,7 +34,7 @@ class TradeTest {
     private fun setup(): Fakes.Claims {
         Config.s = Settings()
         Market.data = Data()
-        Ledger.attach(Files.createTempFile("kami_economy", ".wal"))
+        TestDb.open()
         return Fakes.claims().apply {
             home += mapOf(buyer to "aurelia", neutral to "nordmark", ally to "verdania", province to "vale", taxed to "ostland", enemy to "karst")
             relations[("aurelia" to "verdania")] = Relation.ALLIED
@@ -48,7 +47,10 @@ class TradeTest {
     }
 
     @AfterTest
-    fun clear() = ClaimsApi.register(null)
+    fun clear() {
+        ClaimsApi.register(null)
+        TestDb.close()
+    }
 
     @Test
     fun rateResolutionMatrix() {

@@ -17,6 +17,7 @@ import kotlin.math.floor
 
 object Work {
     private val unpaidMailed = HashMap<String, Long>()
+    internal var wage: (String, Int, String) -> Boolean = { id, n, country -> Bank.give(UUID.fromString(id), n, Flow.WAGES, country) }
 
     fun reset() = unpaidMailed.clear()
 
@@ -93,7 +94,7 @@ object Work {
                 val affordable = def.pay <= budget && def.pay <= c.treasury
                 val paid = due && affordable && run {
                     Treasury.move(c, LedgerKind.JOB_PAY, -def.pay.toLong(), id, name)
-                    Bank.give(UUID.fromString(id), def.pay, Flow.WAGES, c.name).also { ok -> if (!ok) Treasury.move(c, LedgerKind.JOB_PAY, def.pay.toLong(), id, name) }
+                    wage(id, def.pay, c.name).also { ok -> if (!ok) Treasury.move(c, LedgerKind.JOB_PAY, def.pay.toLong(), id, name, capped = false) }
                 }
                 if (due && affordable && !paid) {
                     if (unpaidMailed.put(id, today()) != today()) Mail.direct(id, Phrase.of("kami_claims.mail.wage_unpaid", Words.job(name)), Tone.BAD)

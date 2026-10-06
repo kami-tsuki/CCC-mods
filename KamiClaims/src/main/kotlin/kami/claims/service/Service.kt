@@ -115,7 +115,7 @@ object Service {
 
     fun addClaim(c: Country, k: Key, type: String, capital: Boolean = false) {
         val free = Realm.claims(c.id).size < Realm.freeAllowed(c)
-        if (!free) Treasury.move(c, LedgerKind.CLAIM, -s.types.getValue(type).price.toLong(), note = "${k.x}, ${k.z}")
+        if (!free) Treasury.bank(c, LedgerKind.CLAIM, -s.types.getValue(type).price.toLong(), note = "${k.x}, ${k.z}")
         Realm.add(Claim(c.id, k.dim, k.x, k.z, type, capital = capital, free = free))
         ResearchSync.refresh(c)
     }
@@ -319,16 +319,18 @@ object Service {
         return Phrase.of("kami_claims.done.rank")
     }
 
+    fun stepDown(c: Country, next: Member) = when {
+        next.rank >= Rank.OFFICER -> next.rank
+        Features.limit(c, Capacity.OFFICERS, Levels.used(c, Capacity.OFFICERS)) == null -> Rank.OFFICER
+        else -> Rank.CITIZEN
+    }
+
     private fun president(p: ServerPlayer, id: String, confirmed: Boolean): Phrase {
         val c = need(p, Rank.PRESIDENT)
         val m = member(c, id)
         val mine = c.members.getValue(p.stringUUID)
         if (m === mine) throw Fail("kami_claims.error.already_president")
-        val stepDown = when {
-            m.rank >= Rank.OFFICER -> m.rank
-            Features.limit(c, Capacity.OFFICERS, Levels.used(c, Capacity.OFFICERS)) == null -> Rank.OFFICER
-            else -> Rank.CITIZEN
-        }
+        val stepDown = stepDown(c, m)
         if (!confirmed) throw NeedsConfirm(listOf(
             Phrase.of("kami_claims.confirm.president.title", v(Names.of(p.server, id)), v(c.name)),
             Phrase.of("kami_claims.confirm.president.rights"),

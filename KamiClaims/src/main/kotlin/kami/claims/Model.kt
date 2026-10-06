@@ -1,5 +1,6 @@
 package kami.claims
 
+import kami.claims.economy.Treasury
 import kami.claims.research.BuffState
 import kami.claims.research.Buffs
 import kami.claims.research.Capacity
@@ -11,11 +12,11 @@ import kami.claims.service.Work
 import kami.claims.war.ChunkRef
 import kami.claims.war.War
 import kami.claims.war.WarDebt
-import kami.libs.config.WorldStore
+import kami.libs.economy.Flow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import net.minecraft.server.MinecraftServer
-import net.minecraft.world.level.storage.LevelResource
+import kotlin.math.floor
 import kotlin.math.max
 
 @Serializable
@@ -26,6 +27,16 @@ enum class Cap { CLAIM, CAPITAL, TAX, RULES, WITHDRAW, INVITE, MEMBERS, RANK, JO
 
 @Serializable
 enum class TaxMode { PERCENT, FLAT }
+
+fun tributeOwed(mode: TaxMode, amount: Double, base: Long): Long = when (mode) {
+    TaxMode.PERCENT -> floor(base * amount).toLong()
+    TaxMode.FLAT -> amount.toLong()
+}.coerceAtLeast(0)
+
+fun rentSplit(debt: Long, credit: Long, rate: Long, room: Long, amount: Long): Pair<Long, Long> {
+    val arrears = minOf(debt, amount, room)
+    return arrears to if (debt > arrears) 0L else minOf(amount - arrears, rate * Housing.CREDIT_DAYS - credit).coerceAtLeast(0)
+}
 
 @Serializable
 enum class Access { NONE, OFFICER, ASSIGNED, JOB, WORKER, CITIZEN, ALLIED, ANY }
@@ -265,57 +276,26 @@ class Data(
 }
 
 object Realm {
-    private val store = WorldStore(Data.serializer(), { Data(schema = Data.CURRENT) })
     var data = Data()
     val index = HashMap<Key, Claim>()
     private val byCountry = HashMap<String, MutableList<Claim>>()
     val home = HashMap<String, String>()
-    var dirty
-        get() = store.dirty
-        set(v) { store.dirty = v }
     var rev = 0
 
     fun changed() {
         rev++
-        store.changed()
     }
 
     fun load(server: MinecraftServer) {
         Announce.server = server
-        val path = server.getWorldPath(LevelResource.ROOT).resolve("kami_claims.json")
-        reset(store.load(path) { KamiClaims.LOG.error("Unreadable claims data, kept as .bad", it) })
+        reset(RealmDb.load())
     }
-
-    var saveDue = false
-
-    fun saveSoon() { saveDue = true }
-
-    private var lastSave = 0
-
-    fun save(force: Boolean = false, rotate: Boolean = true): Boolean {
-        store.data = data
-        val ok = store.save(force, rotate)
-        if (ok) saveDue = false
-        return ok
-    }
-
-    /** Periodic saves rotate the backups; money-triggered ones wait at least [SAVE_SOON_TICKS] after the last save and skip the rotation. */
-    fun autosave(tick: Int) {
-        val periodic = tick % 6000 == 0
-        if (!periodic && !(saveDue && tick - lastSave >= SAVE_SOON_TICKS)) return
-        // Advance the clock even on failure: saveDue stays set, so a failing save retries once per debounce window instead of every tick.
-        save(rotate = periodic)
-        lastSave = tick
-    }
-
-    fun resetSaveClock() { lastSave = 0 }
-
-    private const val SAVE_SOON_TICKS = 100
 
     fun reset(next: Data) {
         rev++
         Buffs.clearBorders()
         data = next
+        val orphans = data.claims.filter { it.country !in data.countries }
         data.claims.removeAll { it.country !in data.countries }
         index.clear()
         home.clear()
@@ -331,6 +311,7 @@ object Realm {
             c.tradePolicy.keys.removeAll { it !in data.countries }
         }
         syncAllies()
+        orphans.forEach(Housing::refund)
     }
 
     private fun migrate(data: Data) {
@@ -443,6 +424,7 @@ object Realm {
     fun disband(c: Country) {
         if (!c.active) return
         WarDebt.forgive(c.id)
+        Treasury.drain(c, Flow.DISBAND, "disband")
         val tenants = claims(c.id).filter { it.owner != null }
         unclaimAll(claims(c.id).filter { it.owner == null })
         c.members.keys.forEach { home.remove(it) }
@@ -467,6 +449,7 @@ object Realm {
     fun erase(c: Country) {
         if (c.active) Announce.fire("disbanded", c, mapOf("country" to c.name))
         unclaimAll(claims(c.id).toList())
+        Treasury.drain(c, Flow.DISBAND, "erase")
         data.countries.remove(c.id)
         Buffs.dropBorders(c.id)
         Levels.forget(c.id)

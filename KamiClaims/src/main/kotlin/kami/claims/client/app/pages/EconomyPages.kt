@@ -5,6 +5,7 @@ import kami.claims.client.app.ClaimsPage
 import kami.claims.client.app.Dialogs
 import kami.claims.client.app.Illustrations
 import kami.claims.client.app.Vocabulary
+import kami.claims.client.store.ClaimsStore
 import kami.claims.net.LedgerLine
 import kami.libs.ui.app.Callout
 import kami.libs.ui.app.Route
@@ -46,8 +47,8 @@ class BudgetPage(app: ClaimsApp) : ClaimsPage(app) {
 
     override fun draw(ui: Ui, r: Rect) {
         val info = info ?: return
-        val tributeIn = info.provinces.sumOf { if (it.mode == "percent") (it.income * it.amount).toLong() else it.amount.toLong() }
-        val tributeOut = if (info.parent.isEmpty()) 0L else if (info.taxMode == "percent") (info.income * info.taxAmount).toLong() else info.taxAmount.toLong()
+        val tributeIn = info.provinces.sumOf { Vocabulary.tributeEstimate(it.mode, it.amount, it.income) }
+        val tributeOut = if (info.parent.isEmpty()) 0L else Vocabulary.tributeEstimate(info.taxMode, info.taxAmount, info.income + info.pendingDeposits)
         val income = info.income + tributeIn
         val spending = info.upkeep + info.jobs + tributeOut
         val net = income - spending
@@ -66,7 +67,7 @@ class BudgetPage(app: ClaimsApp) : ClaimsPage(app) {
         val fi = Flow(ib, 1)
         line(ui, fi.take(TABLE_ROW_H), Icons.HOUSE, tr("kami_claims.ledger.plot_tax"), tr("kami_claims.budget.plot_tax.detail", trn("kami_claims.unit.plot", info.claimList.count { it.owner.isNotEmpty() }), Format.money(info.citizenRent.toLong())), info.income, Palette.success)
         line(ui, fi.take(TABLE_ROW_H), Icons.CHAIN, tr("kami_claims.ledger.tribute_in"), trn("kami_claims.unit.province", info.provinces.size), tributeIn, Palette.success)
-        info.provinces.forEach { p -> sub(ui, fi.take(10), p.name, Vocabulary.tribute(p.mode, p.amount), if (p.mode == "percent") (p.income * p.amount).toLong() else p.amount.toLong()) }
+        info.provinces.forEach { p -> sub(ui, fi.take(10), p.name, Vocabulary.tribute(p.mode, p.amount), Vocabulary.tributeEstimate(p.mode, p.amount, p.income)) }
         val spend = lf.take(24 + 3 * (TABLE_ROW_H + 1) + info.breakdown.size * 11)
         ui.anchor("budget:spending", spend)
         val sb = ui.card(spend, tr("kami_claims.budget.spending"), Icons.EXPENSE)
@@ -91,15 +92,18 @@ class BudgetPage(app: ClaimsApp) : ClaimsPage(app) {
         val fc = rf.take((right.h * 0.55).toInt())
         ui.anchor("budget:forecast", fc)
         val fb = ui.card(fc, tr("kami_claims.budget.forecast.title"), Icons.STATS, help = tr("kami_claims.budget.forecast.help"))
-        val history = snap.history.takeLast(30).map { it.treasury }
-        ui.lineChart(fb.dropBottom(12), listOf(Series(tr("kami_claims.kpi.treasury"), history + info.treasury + forecast(info.treasury, net, 30), Palette.money, true, history.size)),
-            snap.history.takeLast(30).map { tr("kami_claims.chart.day", Format.number(it.day)) } + tr("kami_claims.chart.today") + List(30) { tr("kami_libs.time.in", Format.days(it + 1L)) }, key = "forecast")
+        val loaded = ClaimsStore.history
+        val recent = loaded.orEmpty().takeLast(30)
+        val history = recent.map { it.treasury }
+        if (loaded == null) ui.skeleton(fb.dropBottom(12))
+        else ui.lineChart(fb.dropBottom(12), listOf(Series(tr("kami_claims.kpi.treasury"), history + info.treasury + forecast(info.treasury, net, 30), Palette.money, true, history.size)),
+            recent.map { tr("kami_claims.chart.day", Format.number(it.day)) } + tr("kami_claims.chart.today") + List(30) { tr("kami_libs.time.in", Format.days(it + 1L)) }, key = "forecast")
         val summary = if (net >= 0) tr("kami_claims.budget.forecast.grows", Format.money(net * 30)) else tr("kami_claims.budget.forecast.empty", Format.days(info.treasury / -net))
         Draw.text(ui.g, Draw.fit(summary, fb.w), fb.x, fb.bottom - 9, if (net >= 0) Palette.success else Palette.warning)
         val flows = rf.remaining()
         val flowBody = ui.card(flows, tr("kami_claims.budget.flows"), Icons.SCALES, help = tr("kami_claims.budget.flows.help"))
-        val days = snap.history.takeLast(20)
-        ui.barChart(flowBody, days.map { it.income + it.tributeIn + it.deposits }, days.map { it.upkeep + it.jobs + it.tributeOut + it.withdrawals }, days.map { tr("kami_claims.chart.day", Format.number(it.day)) })
+        val days = loaded.orEmpty().takeLast(20)
+        if (loaded == null) ui.skeleton(flowBody) else ui.barChart(flowBody, days.map { it.income + it.tributeIn + it.deposits }, days.map { it.upkeep + it.jobs + it.tributeOut + it.withdrawals }, days.map { tr("kami_claims.chart.day", Format.number(it.day)) })
     }
 
     private fun line(ui: Ui, r: Rect, icon: Icon, label: String, detail: String, amount: Long, color: Int) {
@@ -121,7 +125,7 @@ class BudgetPage(app: ClaimsApp) : ClaimsPage(app) {
 
 class LedgerPage(app: ClaimsApp) : ClaimsPage(app) {
     override val title get() = tr("kami_claims.nav.ledger")
-    override val sections = listOf("ledger")
+    override val sections = listOf(ClaimsStore.LEDGER)
     override val help get() = listOf(
         Callout("ledger:filters", tr("kami_claims.ledger.help.filter"), tr("kami_claims.ledger.help.filter.desc")),
         Callout("ledger:table", tr("kami_claims.ledger.help.table"), tr("kami_claims.ledger.help.table.desc"))
@@ -130,9 +134,10 @@ class LedgerPage(app: ClaimsApp) : ClaimsPage(app) {
     private var kind = "all"
 
     override fun draw(ui: Ui, r: Rect) {
+        val ledger = ClaimsStore.ledger
         var rows: List<LedgerLine> = emptyList()
         val tableRect = ui.filterBar(r, "ledger:filters") { bar ->
-            rows = ui.filtered("ledger-filtered", listOf(kind, snap.ledger)) { snap.ledger.filter { kind == "all" || it.kind == kind } }
+            rows = ui.filtered("ledger-filtered", listOf(kind, ledger)) { ledger.orEmpty().filter { kind == "all" || it.kind == kind } }
             val options = listOf(Option("all", tr("kami_claims.ledger.all"), Icons.LEDGER)) + Vocabulary.ledger.map { (k, look) -> Option(k, look.label, look.icon, look.description) }
             ui.select(bar.left(160), options, kind, key = "ledger-kind")?.let { kind = it }
             val totalIn = rows.filter { it.amount > 0 }.sumOf { it.amount }
@@ -146,7 +151,8 @@ class LedgerPage(app: ClaimsApp) : ClaimsPage(app) {
             }
         }
         ui.anchor("ledger:table", tableRect)
-        if (snap.ledger.isEmpty()) {
+        if (ledger == null) return ui.skeletonTable(tableRect, 5, skeletonRowCount(tableRect.h - TABLE_HEADER_H))
+        if (ledger.isEmpty() && !stale(ClaimsStore.LEDGER)) {
             ui.emptyState(tableRect, tr("kami_claims.ledger.empty.title"), tr("kami_claims.ledger.empty.desc"), Illustrations.TREASURY)
             return
         }
@@ -156,7 +162,8 @@ class LedgerPage(app: ClaimsApp) : ClaimsPage(app) {
             Column.text<LedgerLine>(tr("kami_claims.ledger.col.details"), -1, sortable = false) { e -> listOf(e.actor, e.note).filter { it.isNotEmpty() }.joinToString(" · ") },
             Column<LedgerLine>(tr("kami_claims.ledger.col.amount"), 70, Align.RIGHT, compareBy { it.amount }) { _, c, e -> moneyRight(c.right, c.y + 3, e.amount, signed = true) },
             Column<LedgerLine>(tr("kami_claims.ledger.col.balance"), 80, Align.RIGHT, compareBy { it.balance }) { _, c, e -> moneyRight(c.right, c.y + 3, e.balance) }
-        ), rows, table, { "${it.at}${it.kind}${it.amount}" }, emptyText = tr("kami_claims.ledger.empty.filtered"))
+        ), rows, table, { "${it.at}${it.kind}${it.amount}" }, emptyText = tr("kami_claims.ledger.empty.filtered"), loading = stale(ClaimsStore.LEDGER))
+        ui.staleRows(tableRect, stale(ClaimsStore.LEDGER))
     }
 }
 
@@ -176,9 +183,15 @@ class StatisticsPage(app: ClaimsApp) : ClaimsPage(app) {
         val rangeRect = tabs.right(160)
         ui.anchor("stats:range", rangeRect)
         ui.segmented(rangeRect, listOf(7, 30, 90).map { Option(it, Format.days(it.toLong())) }, range, key = "range")?.let { range = it }
-        val days = snap.history.takeLast(range)
+        val loaded = ClaimsStore.history
+        val days = loaded.orEmpty().takeLast(range)
         val area = r.dropTop(CONTROL_H + 6)
         ui.anchor("stats:chart", area)
+        if (loaded == null) {
+            ui.skeleton(area.dropBottom(58, 6))
+            ui.skeletonLines(ui.card(area.bottom(58), tr("kami_claims.stats.insights"), Icons.STAR), 3)
+            return
+        }
         if (days.size < 2) {
             ui.emptyState(area, tr("kami_libs.chart.no_history"), tr("kami_claims.stats.empty.desc"), Illustrations.FOG)
             return

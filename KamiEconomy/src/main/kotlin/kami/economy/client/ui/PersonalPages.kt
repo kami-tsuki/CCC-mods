@@ -1,6 +1,5 @@
 package kami.economy.client.ui
 
-import kami.economy.client.ClientHooks
 import kami.economy.client.MarketPrefs
 import kami.economy.net.Net
 import kami.economy.net.OrderRow
@@ -19,6 +18,7 @@ import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
 import kami.libs.ui.text.label
+import kami.libs.ui.text.partyLabel
 import kami.libs.ui.text.tr
 import kami.libs.ui.widget.*
 import net.minecraft.client.Minecraft
@@ -30,11 +30,14 @@ private fun connected() = Minecraft.getInstance().connection?.hasChannel(Net.act
 private fun openMarket(item: String, side: String = "buy", kind: String = "instant") {
     if (!connected()) return
     market.openItem(item, side, kind)
-    ClientHooks.request("open")
+    MarketApp.open()
 }
 
-private fun Ui.waiting(r: Rect) {
-    emptyState(r, tr("kami_economy.market.calculating"), "")
+private fun myOrders(): List<OrderRow>? {
+    if (!market.loaded) return null
+    val snap = market.snap
+    if (!Personal.viewing) return snap.mine
+    return snap.subjectOrders.takeIf { snap.subject == Personal.subjectArg }
 }
 
 object PersonalPages {
@@ -46,7 +49,7 @@ object PersonalPages {
         "economy", 40, { "kami_economy.personal.group" },
         {
             if (!connected()) emptyList() else listOf(
-                NavItem(orders, tr("kami_economy.nav.my_orders"), Icons.SCROLL, { market.takeIf { it.loaded }?.snap?.mine?.size?.takeIf { it > 0 }?.let { NavBadge(it, Severity.INFO) } }),
+                NavItem(orders, tr("kami_economy.nav.my_orders"), Icons.SCROLL, { myOrders()?.size?.takeIf { it > 0 }?.let { NavBadge(it, Severity.INFO) } }),
                 NavItem(trades, tr("kami_economy.personal.trades"), Icons.LEDGER),
                 NavItem(watch, tr("kami_economy.personal.watch"), Icons.STAR)
             )
@@ -61,8 +64,8 @@ object PersonalPages {
         },
         { id ->
             if (!connected()) Unit
-            else if (id == "" || id == orders) market.view("my_orders")
-            else if (id == watch) market.view("watch", MarketPrefs.prefs.watch.joinToString(","))
+            else if (id == "" || id == orders) market.view("my_orders", subject = Personal.subjectArg)
+            else if (id == watch) market.view("watch", MarketPrefs.prefs.watch.joinToString(","), subject = Personal.subjectArg)
         }
     ))
 }
@@ -81,14 +84,16 @@ private class MyOrdersPage(private val host: KamiApp) : Page() {
         Column.text<OrderRow>(tr("kami_libs.common.status"), 64, color = { if (it.best) Palette.success else Palette.warning }) { tr(if (it.best) "kami_economy.status.best" else "kami_economy.status.undercut") },
         Column<OrderRow>("", 2 * (ROW_H - 2) + 4) { _, c, o ->
             val size = c.h - 2
-            if (iconButton(Rect(c.x, c.y + 1, size, size), Icons.EDIT, tr("kami_economy.reprice.action"), key = "my-edit:${o.id}")) market.reprice(host, o)
-            if (iconButton(Rect(c.right - size, c.y + 1, size, size), Icons.CROSS, tr("kami_economy.cancel.action"), key = "my-cancel:${o.id}")) market.cancel(host, o)
+            if (!Personal.viewing) {
+                if (iconButton(Rect(c.x, c.y + 1, size, size), Icons.EDIT, tr("kami_economy.reprice.action"), key = "my-edit:${o.id}")) market.reprice(host, o)
+                if (iconButton(Rect(c.right - size, c.y + 1, size, size), Icons.CROSS, tr("kami_economy.cancel.action"), key = "my-cancel:${o.id}")) market.cancel(host, o)
+            }
         }
     )
 
     override fun draw(ui: Ui, r: Rect) {
-        if (!market.loaded) return ui.waiting(r)
-        ui.table(r, columns, market.snap.mine, table, { it.id }, rowHeight = ROW_H, emptyText = tr("kami_economy.orders.empty"), key = "my-orders")
+        val rows = myOrders()
+        ui.table(r, columns, rows.orEmpty(), table, { it.id }, rowHeight = ROW_H, emptyText = tr("kami_economy.orders.empty"), key = "my-orders", loading = rows == null)
     }
 }
 
@@ -103,13 +108,15 @@ private class TradesPage : Page() {
         },
         Column.text<Movement>(tr("kami_economy.personal.col.kind"), 70, color = { Palette.textSecondary }) { it.flow.label },
         Column.number<Movement>(tr("kami_economy.personal.col.qty"), 44) { it.qty.toLong() },
-        Column.text<Movement>(tr("kami_economy.personal.col.party"), 80, color = { Palette.textSecondary }) { it.counterparty },
+        Column.text<Movement>(tr("kami_economy.personal.col.party"), 80, color = { Palette.textSecondary }) { partyLabel(it.counterparty).ifEmpty { "-" } },
         Column.number<Movement>(tr("kami_libs.common.amount"), 70, color = { if (it.amount >= 0) Palette.success else Palette.danger }, format = { Format.signedMoney(it) }) { it.amount }
     )
 
     override fun draw(ui: Ui, r: Rect) {
+        val loading = Personal.loading
         val rows = Personal.account?.movements.orEmpty().filter { it.item.isNotEmpty() }
-        ui.table(r, columns, rows, table, { "${it.at}:${it.flow}:${it.amount}:${it.item}" }, rowHeight = ROW_H, emptyText = tr("kami_economy.personal.trades.empty"), key = "trades")
+        ui.table(r, columns, rows, table, { "${it.at}:${it.flow}:${it.amount}:${it.item}" }, rowHeight = ROW_H, emptyText = tr("kami_economy.personal.trades.empty"), key = "trades", loading = loading)
+        ui.staleRows(r, loading && rows.isNotEmpty())
     }
 }
 
@@ -133,8 +140,15 @@ private class WatchPage : Page() {
 
     override fun draw(ui: Ui, r: Rect) {
         val watched = MarketPrefs.prefs.watch
-        if (!market.loaded) return ui.waiting(r)
-        val rows = if (market.snap.view == "watch") market.snap.rows.filter { it.item in watched } else emptyList()
-        ui.table(r, columns, rows, table, { it.item }, rowHeight = ROW_H, emptyText = tr("kami_economy.personal.watch.empty"), key = "watch")
+        if (watched.isEmpty()) {
+            if (ui.emptyState(r, tr("kami_economy.personal.watch.none"), tr("kami_economy.personal.watch.empty"), action = tr("kami_economy.personal.watch.browse"), actionIcon = Icons.COIN, key = "watch-empty") && connected())
+                MarketApp.open()
+            return
+        }
+        val snap = market.cached("watch")
+        val rows = snap?.rows.orEmpty().filter { it.item in watched }
+        val busy = market.loading("watch")
+        ui.table(r, columns, rows, table, { it.item }, rowHeight = ROW_H, emptyText = tr("kami_libs.common.nothing_found"), key = "watch", loading = snap == null || busy)
+        ui.staleRows(r, busy && rows.isNotEmpty())
     }
 }

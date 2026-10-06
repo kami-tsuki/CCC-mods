@@ -110,7 +110,6 @@ object Levels {
         val stuck = rewards.keys.sorted().filter { it in country.rewardedLevel + 1..level }.firstOrNull { !pay(country, it, rewards.getValue(it)) }
         if (stuck == null) blocked.remove(country.id)
         country.rewardedLevel = if (stuck == null) level else stuck - 1
-        Realm.dirty = true
     }
 
     fun forget(country: String) = blocked.remove(country)
@@ -122,7 +121,7 @@ object Levels {
             return false
         }
         rewards.filterIsInstance<TokenUnlock>().forEach { Tokens.grant(country, it.id, it.count) }
-        if (money > 0) Treasury.move(country, LedgerKind.LEVEL_REWARD, money, note = "level $level")
+        if (money > 0) Treasury.bank(country, LedgerKind.LEVEL_REWARD, money, note = "level $level")
         return true
     }
 
@@ -147,7 +146,6 @@ object Levels {
         val total = units * rate + (country.xpFrac[source] ?: 0.0)
         val whole = floor(total).toLong()
         country.xpFrac[source] = total - whole
-        Realm.dirty = true
         if (whole > 0) grant(country, source, whole)
     }
 
@@ -167,7 +165,6 @@ object Levels {
 
     fun award(country: Country, xp: Long) {
         country.xp += xp
-        Realm.dirty = true
         ResearchSync.refresh(country)
         advance(country)
     }
@@ -178,7 +175,6 @@ object Levels {
         while (country.level < config.top && config.xpFor(country.level + 1) <= country.xp && config.requirements(country.level + 1).all { it.met(country) }) country.level++
         settleRewards(country)
         if (country.level == before) return
-        Realm.dirty = true
         leveledUp(country)
     }
 

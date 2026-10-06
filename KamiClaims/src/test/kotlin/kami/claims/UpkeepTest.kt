@@ -8,7 +8,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class UpkeepTest {
+class UpkeepTest : WithDb() {
     private val dim = "minecraft:overworld"
 
     private fun setup(paid: Int, treasury: Long): Country {

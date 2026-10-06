@@ -2,6 +2,7 @@ package kami.claims.client.app.personal
 
 import kami.claims.client.store.ClaimsStore
 import kami.claims.net.Act
+import kami.claims.net.PersonalView
 import kami.libs.ui.app.KamiApp
 import kami.libs.ui.app.NavItem
 import kami.libs.ui.app.Page
@@ -35,10 +36,20 @@ object ClaimsPersonal {
         }
     }
 
+    fun view(): PersonalView? {
+        val snap = ClaimsStore.snap ?: return null
+        if (!Personal.viewing) return PersonalView(snap.me, snap.homes, snap.funds)
+        return snap.personal?.takeIf { it.subject == Personal.subjectArg }
+    }
+
+    fun readOnly(): String? = if (Personal.viewing) tr("kami_libs.admin.read_only") else null
+
     private fun hasChannel() = Minecraft.getInstance().connection?.hasChannel(Act.type) == true
 
     private fun refresh(id: String) {
-        if (hasChannel()) ClaimsStore.quiet("watch", "dashboard")
+        if (!hasChannel()) return
+        ClaimsStore.watch(listOf("dashboard"), force = true)
+        ClaimsStore.subject(Personal.subjectArg)
     }
 
     private fun wire(host: KamiApp) {

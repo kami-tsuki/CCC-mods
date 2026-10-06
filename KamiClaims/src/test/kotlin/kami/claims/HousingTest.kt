@@ -6,19 +6,23 @@ import kami.claims.service.Fail
 import kami.claims.service.Housing
 import kami.claims.service.PlotBlock
 import kami.claims.service.Provinces
+import kami.libs.economy.ServerBank
+import java.util.UUID
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class HousingTest {
+class HousingTest : WithDb() {
     private val dim = "minecraft:overworld"
 
     @AfterTest
     fun restore() {
         Housing.pay = { _, _, _ -> true }
+        Housing.give = { _, _, _ -> true }
     }
 
     private fun country(name: String, treasury: Long = 0): Country {
@@ -290,5 +294,27 @@ class HousingTest {
         assertEquals(rate, Housing.collect(land))
         assertTrue(paid.all { it == 0 })
         assertEquals(29 * rate, cl.rentCredit)
+    }
+
+    @Test
+    fun rentCollectedBeforeAThrowStillReachesTheTreasury() {
+        Realm.reset(Data())
+        val land = country("land", 0).also { it.level = 30 }
+        val plots = listOf("t1", "t2").mapIndexed { i, t -> Realm.join(land, t, Rank.CITIZEN); plot(land, i).also { Housing.claim(land, it, t) } }
+        var calls = 0
+        Housing.pay = { _, _, _ -> if (calls++ > 0) error("boom") else true }
+        assertFailsWith<IllegalStateException> { Housing.collect(land) }
+        assertEquals(Housing.rate(land, plots[0]).toLong(), land.treasury)
+    }
+
+    @Test
+    fun resetRefundsPrepaidRentOfMissingCountries() {
+        val data = Data()
+        data.claims += Claim("gone", dim, 0, 0, "residential").also { it.owner = UUID.randomUUID().toString(); it.rentCredit = 50 }
+        Housing.give = { _, _, _ -> false }
+        val bank = ServerBank.balance
+        Realm.reset(data)
+        assertEquals(bank + 50, ServerBank.balance)
+        assertTrue(Realm.data.claims.isEmpty())
     }
 }

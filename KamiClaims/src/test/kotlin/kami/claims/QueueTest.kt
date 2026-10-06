@@ -12,7 +12,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class QueueTest {
+class QueueTest : WithDb() {
     private var time = 1_000_000L
     private var online = 1
     private val iron = """{"type":"deposit","item":"minecraft:iron_ingot","count":10}"""

@@ -1,12 +1,12 @@
 package kami.libs.discord
 
 import kami.libs.config.Configs
+import kami.libs.config.writeAtomic
 import kami.libs.log.Log
 import kotlinx.serialization.Serializable
 import net.neoforged.fml.loading.FMLPaths
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 import java.nio.file.attribute.PosixFilePermissions
 import java.util.UUID
 
@@ -24,12 +24,7 @@ private class Index(links: Collection<Link>) {
     val byName = links.groupBy { it.name.lowercase() }
 }
 
-internal fun atomicWrite(path: Path, text: String) {
-    val tmp = path.resolveSibling("${path.fileName}.tmp")
-    Files.writeString(tmp, text)
-    restrict(tmp)
-    Files.move(tmp, path, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
-}
+internal fun atomicWrite(path: Path, text: String) = writeAtomic(path, text, ::restrict)
 
 internal fun restrict(path: Path) {
     runCatching { Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rw-------")) }

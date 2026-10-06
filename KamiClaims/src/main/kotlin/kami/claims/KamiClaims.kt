@@ -1,5 +1,6 @@
 package kami.claims
 
+import kami.claims.admin.AdminCountries
 import kami.claims.client.ClientHooks
 import kami.claims.command.ClaimsCommands
 import kami.claims.net.Net
@@ -77,6 +78,7 @@ object KamiClaims {
     val LOG = Log.of("claims")
 
     init {
+        RealmDb.register()
         MOD_BUS.addListener<FMLCommonSetupEvent> {
             Config.load()
             Configs.onReload("claims", Research::reload)
@@ -146,16 +148,16 @@ object KamiClaims {
         if (FMLEnvironment.dist == Dist.CLIENT) ClientHooks.init()
         FORGE_BUS.addListener<PermissionGatherEvent.Nodes> { Perms.register(it) }
         ClaimsCommands.register()
+        AdminCountries.register()
         FORGE_BUS.addListener<BlockEvent.BreakEvent>(EventPriority.LOWEST) { Guard.onBreakCredit(it) }
         Listeners.register()
         Sky.register()
+        WealthSources.register()
         FORGE_BUS.addListener<ServerStartingEvent> { RecipeContext.bind(Thread.currentThread()) }
         FORGE_BUS.addListener<ServerStartedEvent> { Realm.load(it.server); Research.reload(); Wars.resume() }
         FORGE_BUS.addListener<OnDatapackSyncEvent> { if (it.player == null) Research.resolve(it.playerList.server) }
         FORGE_BUS.addListener<ServerStoppingEvent> {
-            Realm.save(true)
             RecipeContext.bind(null)
-            Realm.resetSaveClock()
             Net.reset()
             Sync.reset()
             ResearchSync.reset()
@@ -168,7 +170,7 @@ object KamiClaims {
             Online.reset()
             WarBar.reset()
         }
-        FORGE_BUS.addListener<ServerStoppedEvent> { Realm.save(true, rotate = false) }
+        FORGE_BUS.addListener<ServerStoppedEvent>(EventPriority.LOWEST) { RealmDb.unload() }
         FORGE_BUS.addListener<ServerTickEvent.Post> {
             val t = it.server.tickCount
             if (t % 20 == 0) it.server.playerList.players.forEach(Guard::announce)
@@ -182,7 +184,6 @@ object KamiClaims {
             if (t % 100 == 0) Levels.advanceAll()
             if (t % 1200 == 0) Upkeep.tick(it.server)
             if (t % 1200 == 0) runCatching { Wars.tick() }.onFailure { e -> LOG.error("War tick failed", e) }
-            runCatching { Realm.autosave(t) }.onFailure { e -> LOG.error("Periodic claims save failed", e) }
         }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { (it.entity as? ServerPlayer)?.let { p -> touch(p); Mail.deliver(p); Online.login(p); runCatching { WarBar.tick(listOf(p)) }.onFailure { e -> LOG.error("War bar failed", e) } } }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { (it.entity as? ServerPlayer)?.let { p -> touch(p); Guard.forget(p); Net.forget(p); Structures.forget(p); Online.logout(p); WarBar.forget(p) } }
@@ -209,6 +210,5 @@ object KamiClaims {
         val c = Realm.of(p.stringUUID) ?: return
         c.lastActive = now()
         c.members[p.stringUUID]?.seen = now()
-        Realm.dirty = true
     }
 }

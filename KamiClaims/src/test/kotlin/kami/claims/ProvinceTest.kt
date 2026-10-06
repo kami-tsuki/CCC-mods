@@ -8,7 +8,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class ProvinceTest {
+class ProvinceTest : WithDb() {
     private fun country(name: String, treasury: Long = 0): Country {
         val c = Country(name, treasury = treasury)
         Realm.data.countries[c.id] = c

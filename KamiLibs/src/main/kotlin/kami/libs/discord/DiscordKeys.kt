@@ -13,7 +13,7 @@ data class DiscordKeys(
 }
 
 internal object KeyFile {
-    private val folder by lazy { ConfigFolder(FMLPaths.CONFIGDIR.get(), "Reload with /discord reload") }
+    private val folder by lazy { ConfigFolder(FMLPaths.CONFIGDIR.get(), "Reload with /discord reload", prepare = ::restrict) }
 
     private val docs = mapOf(
         "token" to "Bot token from the Discord developer portal. Keep it secret.",

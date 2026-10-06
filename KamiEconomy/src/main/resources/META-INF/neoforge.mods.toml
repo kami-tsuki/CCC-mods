@@ -57,3 +57,6 @@ type = "optional"
 versionRange = "[${kami_claims_version},)"
 ordering = "AFTER"
 side = "BOTH"
+
+[[mixins]]
+config = "${mod_id}.mixins.json"

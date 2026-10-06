@@ -148,6 +148,7 @@ class WarPage(app: ClaimsApp) : ClaimsPage(app) {
     private fun standing(ui: Ui, r: Rect, info: Info) {
         val half = (r.w - 8) / 2
         val left = Flow(ui.card(Rect(r.x, r.y, half, r.h), tr("kami_claims.warpage.standing"), Icons.STAR, key = "war-standing"), 3)
+        info.power?.let { ui.property(left.take(11), tr("kami_claims.kpi.power"), power(it)) }
         ui.property(left.take(11), tr("kami_claims.warpage.reputation"), Format.number(info.reputation), reputationColor(info.reputation))
         ui.property(left.take(11), tr("kami_claims.warpage.fame"), info.fame?.let { stars(it) } ?: tr("kami_claims.warpage.fame.hidden"), Palette.brass)
         ui.property(left.take(11), tr("kami_claims.warpage.fame.votes"), Format.number(info.fameCount))
@@ -187,7 +188,7 @@ class WarPage(app: ClaimsApp) : ClaimsPage(app) {
         var vassal = false
         val provinces = TextState()
         app.open(Dialog(tr("kami_claims.warpage.declare"), tr("kami_claims.warpage.declare.subtitle"), Icons.FLAG, DialogKind.DESTRUCTIVE, 320) { s ->
-            val countries = ClaimsStore.snap?.countries.orEmpty().filter { it.name != info.name }
+            val countries = ClaimsStore.countries.filter { it.name != info.name }
             var y = s.body.y
             fieldLabel(Rect(s.body.x, y, s.body.w, 9), tr("kami_claims.warpage.declare.target")); y += 11
             select(Rect(s.body.x, y, s.body.w, CONTROL_H), countries.map { Option(it.name, it.name, null, tr("kami_claims.warpage.reputation.short", it.reputation), it.color) }, target, key = "war-target")?.let { target = it }
@@ -268,6 +269,7 @@ class WarPage(app: ClaimsApp) : ClaimsPage(app) {
 
     companion object {
         fun stars(fame: Double) = "${Format.decimal(fame, 1)} ★"
+        fun power(p: Double) = Format.decimal(p, 1)
         fun reputationColor(r: Int) = when {
             r >= 1200 -> Palette.success
             r < 800 -> Palette.danger

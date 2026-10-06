@@ -1,25 +1,27 @@
 package kami.essentials
 
-import kami.libs.config.WorldStore
-import kotlinx.serialization.Serializable
-import net.minecraft.server.MinecraftServer
-import net.minecraft.world.level.storage.LevelResource
+import kami.libs.db.Db
+import kami.libs.db.Session
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 enum class Flag { INVISIBLE, NO_SIDEBAR, COUNTRY_CHAT, ADMIN_CHAT, NO_TRADES, QUIET_DM, QUIET_DISCORD }
 
-@Serializable
-private class Data(val flags: Map<Flag, List<String>> = emptyMap())
-
 object Store {
-    private val store = WorldStore(Data.serializer(), ::Data)
     private val sets = Flag.entries.associateWith { ConcurrentHashMap.newKeySet<UUID>() }
 
-    fun load(server: MinecraftServer) {
-        val path = server.getWorldPath(LevelResource.ROOT).resolve("kami_essentials.json")
-        val data = store.load(path) { KamiEssentials.LOG.error("Unreadable essentials data, kept as .bad", it) }
-        sets.forEach { (flag, set) -> set.clear(); data.flags[flag]?.mapNotNullTo(set) { runCatching { UUID.fromString(it) }.getOrNull() } }
+    fun load() = Db.read { load(this) }
+
+    internal fun load(session: Session) {
+        val loaded = read(session)
+        sets.forEach { (flag, set) -> set.clear(); set.addAll(loaded.getValue(flag)) }
+    }
+
+    internal fun read(session: Session): Map<Flag, Set<UUID>> {
+        val out = Flag.entries.associateWith { linkedSetOf<UUID>() }
+        session.query("SELECT flag, player FROM ess_flag") { Flag.valueOf(it.string("flag")) to UUID.fromString(it.string("player")) }
+            .forEach { (flag, id) -> out.getValue(flag).add(id) }
+        return out
     }
 
     fun ids(flag: Flag): Set<UUID> = sets.getValue(flag)
@@ -28,12 +30,12 @@ object Store {
 
     operator fun set(flag: Flag, id: UUID, on: Boolean) {
         val set = sets.getValue(flag)
-        if (if (on) set.add(id) else set.remove(id)) save()
-    }
-
-    private fun save() {
-        store.data = Data(sets.mapValues { (_, s) -> s.map(UUID::toString).sorted() })
-        store.changed()
-        store.save()
+        synchronized(set) {
+            if (!(if (on) set.add(id) else set.remove(id))) return
+            Db.write {
+                if (on) exec("INSERT OR IGNORE INTO ess_flag (flag, player) VALUES (?, ?)", flag.name, id.toString())
+                else exec("DELETE FROM ess_flag WHERE flag = ? AND player = ?", flag.name, id.toString())
+            }
+        }
     }
 }

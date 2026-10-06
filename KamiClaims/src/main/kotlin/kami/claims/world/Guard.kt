@@ -241,7 +241,6 @@ object Guard {
         Work.matching(c, me, cl).forEach { (cfg, job) ->
             if (action !in cfg.actions || (cfg.blocks.isNotEmpty() && cfg.blocks.none { matches(state, it) })) return@forEach
             job.progress++
-            Realm.dirty = true
         }
     }
 

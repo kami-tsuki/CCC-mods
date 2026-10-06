@@ -1,7 +1,8 @@
 package kami.claims.command
 
 import kami.claims.*
-import kami.claims.economy.Treasury
+import kami.claims.admin.CountryAdmin
+import kami.claims.admin.CountryRequests
 import kami.claims.net.Net
 import kami.claims.net.Sync
 import kami.claims.service.Housing
@@ -15,6 +16,7 @@ import kami.claims.service.Service
 import kami.claims.service.Upkeep
 import kami.claims.social.Perms
 import kami.claims.world.Effects
+import kami.libs.admin.Audit
 import kami.libs.chat.Theme
 import kami.libs.command.*
 import kami.libs.text.Phrase
@@ -305,29 +307,41 @@ private fun plotCmd(): Node =
             }
         })
 
+private fun adminTreasury(name: String, sign: Long) = lit(name).then(arg("amount", LongArgumentType.longArg(1, CountryAdmin.MAX_MONEY)).then(arg("reason", StringArgumentType.greedyString()).does { ctx ->
+    val c = Realm.country(ctx.text("country")) ?: fail(Phrase.of("kami_claims.error.unknown_country"))
+    val amount = LongArgumentType.getLong(ctx, "amount")
+    val moved = CountryAdmin.money(c, sign > 0, amount, ctx.source.player?.stringUUID)
+    Audit.record(ctx.source, CountryRequests.MONEY, c.id, ctx.text("reason"), mapOf("op" to name, "amount" to amount.toString(), "applied" to moved.toString()))
+    ctx.ok(Phrase.of("kami_claims.admin.treasury.$name", money(moved), Phrase.value(c.name), money(c.treasury)), true)
+}))
+
 private fun adminCmd() = lit("admin").requires { Perms.has(it, Perms.ADMIN) }
     .then(lit("disband").then(word("country") { Realm.data.countries.keys }.does { ctx ->
-        Realm.disband(Realm.country(ctx.text("country")) ?: fail(Phrase.of("kami_claims.error.unknown_country")))
+        val c = Realm.country(ctx.text("country")) ?: fail(Phrase.of("kami_claims.error.unknown_country"))
+        CountryAdmin.disband(c)
+        Audit.record(ctx.source, "claims.disband", c.id, "")
         ctx.ok(Phrase.of("kami_claims.done.disbanded"), true)
     }))
-    .then(lit("treasury").then(word("country") { Realm.data.countries.keys }.then(arg("amount", LongArgumentType.longArg(0)).does { ctx ->
-        val c = Realm.country(ctx.text("country")) ?: fail(Phrase.of("kami_claims.error.unknown_country"))
-        Treasury.move(c, LedgerKind.ADJUST, LongArgumentType.getLong(ctx, "amount") - c.treasury, note = "admin")
-        Realm.dirty = true
-        ctx.ok(Phrase.of("kami_claims.admin.treasury", Phrase.value(c.name), money(c.treasury)), true)
-    })))
+    .then(lit("treasury").then(word("country") { Realm.data.countries.keys }.then(adminTreasury("give", 1)).then(adminTreasury("take", -1))))
     .then(lit("unclaim").does { ctx ->
-        Realm.unclaim(Realm.index[Service.here(ctx.me())] ?: fail(Phrase.of("kami_claims.error.chunk_free")), false)
+        val cl = Realm.index[Service.here(ctx.me())] ?: fail(Phrase.of("kami_claims.error.chunk_free"))
+        CountryAdmin.unclaim(Realm.data.countries.getValue(cl.country), cl.key.toString())
+        Audit.record(ctx.source, "claims.unclaim", cl.country, "", mapOf("dim" to cl.dim, "x" to cl.x.toString(), "z" to cl.z.toString()))
         ctx.ok(Phrase.of("kami_claims.done.chunk_released"), true)
     })
     .then(lit("day").does { ctx ->
         Realm.data.day = Realm.data.day.coerceAtLeast(0)
         Upkeep.process(++Realm.data.day)
+        Audit.record(ctx.source, "claims.day", "", "", mapOf("day" to Realm.data.day.toString()))
         ctx.ok(Phrase.of("kami_claims.admin.day", num(Realm.data.day)), true)
     })
     .then(adminResearchCmd())
     .then(adminXpCmd())
-    .then(lit("save").does { ctx -> Realm.save(true); ctx.ok(Phrase.of("kami_claims.admin.saved")) })
+    .then(lit("save").does { ctx ->
+        ctx.source.server.saveEverything(false, true, true)
+        Audit.record(ctx.source, "claims.save", "", "")
+        ctx.ok(Phrase.of("kami_claims.admin.saved"))
+    })
 
 object ClaimsCommands {
     fun register() = KamiCommands.module("claims", "Countries, land, plots and provinces") {

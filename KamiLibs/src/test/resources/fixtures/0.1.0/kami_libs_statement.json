@@ -1,0 +1,20 @@
+{
+  "books": {
+    "11111111-1111-1111-1111-111111111111": {
+      "entries": [
+        { "at": 1759700000000, "amount": -250, "flow": "MARKET_BUY", "counterparty": "Market", "item": "minecraft:iron_ingot", "qty": 5 },
+        { "at": 1759600000000, "amount": 1200, "flow": "WAGES", "counterparty": "Acme" },
+        { "at": 1759600000000, "amount": -30, "flow": "FEE" }
+      ],
+      "days": [
+        { "day": 20370, "income": 1200, "expense": 30 },
+        { "day": 20371, "income": 0, "expense": 250 }
+      ]
+    },
+    "22222222-2222-2222-2222-222222222222": {
+      "entries": [],
+      "days": [ { "day": 20300, "income": 40, "expense": 0 } ]
+    },
+    "33333333-3333-3333-3333-333333333333": { "entries": [], "days": [] }
+  }
+}

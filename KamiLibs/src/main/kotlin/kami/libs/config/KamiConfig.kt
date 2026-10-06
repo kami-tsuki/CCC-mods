@@ -5,6 +5,8 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.elementNames
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.serializer
 import java.nio.file.Files
@@ -23,11 +25,16 @@ class KamiConfig<T : Any>(
     private val legacy: String? = null,
     private val reloadable: Boolean = true,
     private val sane: (T) -> T = { it },
+    private val migrations: List<ConfigMigration> = emptyList(),
 ) {
     private val json = Configs.json()
     private val log = Log.of(mod)
     private val known = serializer.descriptor.elementNames.toSet()
     private val hint = if (reloadable) "Save, then run /$mod reload to apply." else "Changes apply on the next start."
+    private val versioned = migrations.isNotEmpty()
+    private val extras = HashMap<String, Pair<String, JsonElement>>()
+    private val warned = HashSet<String>()
+    private var locked = false
 
     @Volatile
     var value: T = default
@@ -52,8 +59,23 @@ class KamiConfig<T : Any>(
                 .exceptionOrNull()?.let { "${s.file}: ${Jsonc.reason(it)}" }
         }
         if (errors.isNotEmpty()) return fail(errors.joinToString("; "))
-        (merged.keys - known).forEach { log.warn("Unknown setting '{}' in {}, it will be removed", it, Configs.path(mod, origin.getValue(it))) }
-        val decoded = runCatching { json.decodeFromJsonElement(serializer, JsonObject(merged)) }.getOrElse { return fail(Jsonc.reason(it)) }
+        val stored = if (versioned) (merged.remove(VERSION_KEY) as? JsonPrimitive)?.intOrNull ?: 0 else 0
+        val latest = migrations.latest()
+        val existing = sections.map { dir.resolve(it.file) }.filter { Files.exists(it) }
+        locked = versioned && stored > latest
+        var data = JsonObject(merged)
+        if (locked) log.warn("{} has config version {} but this version only knows {}, it will not be rewritten", Configs.path(mod), stored, latest)
+        else if (versioned && stored < latest && existing.isNotEmpty()) {
+            existing.forEach { backupConfig(it, stored) }
+            data = migrations.upgrade(data, stored)
+            log.info("Upgraded {} from config version {} to {}", Configs.path(mod), stored, latest)
+        }
+        extras.clear()
+        (data.keys - known).forEach {
+            extras[it] = (origin[it] ?: sections.first().file) to data.getValue(it)
+            if (warned.add(it)) log.warn("Unknown setting '{}' in {}, it is kept but ignored", it, Configs.path(mod, extras.getValue(it).first))
+        }
+        val decoded = runCatching { json.decodeFromJsonElement(serializer, data) }.getOrElse { return fail(Jsonc.reason(it)) }
         val fixed = sane(decoded)
         if (fixed != decoded) log.warn("Some values in {} were out of range and got corrected", Configs.path(mod))
         problem = null
@@ -64,11 +86,14 @@ class KamiConfig<T : Any>(
     @Synchronized
     fun save(v: T = value) {
         value = v
+        if (locked) return
         val all = json.encodeToJsonElement(serializer, v).jsonObject
         val dir = Configs.dir(mod)
         sections.forEachIndexed { i, s ->
             val part = all.filterKeys { it in s.keys || (i == 0 && sections.none { o -> it in o.keys }) }
-            Jsonc.write(dir.resolve(s.file), Jsonc.annotate(encode(part), s.docs, listOf(s.title, hint)))
+            val head = VersionHead(versioned && i == 0, migrations.latest())
+            val kept = extras.filterValues { it.first == s.file }.mapValues { it.value.second }
+            Jsonc.write(dir.resolve(s.file), Jsonc.annotate(encode(head.entries + part + kept), head.docs(s.docs), listOf(s.title, hint)))
         }
     }
 
@@ -92,7 +117,7 @@ class KamiConfig<T : Any>(
     companion object {
         inline operator fun <reified T : Any> invoke(
             mod: String, default: T, sections: List<Section>, legacy: String? = null,
-            reloadable: Boolean = true, noinline sane: (T) -> T = { it },
-        ) = KamiConfig(mod, serializer<T>(), default, sections, legacy, reloadable, sane)
+            reloadable: Boolean = true, noinline sane: (T) -> T = { it }, migrations: List<ConfigMigration> = emptyList(),
+        ) = KamiConfig(mod, serializer<T>(), default, sections, legacy, reloadable, sane, migrations)
     }
 }

@@ -9,7 +9,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class DiplomacyTest {
+class DiplomacyTest : WithDb() {
     private fun country(name: String): Country {
         val c = Country(name, level = 100)
         Realm.data.countries[c.id] = c

@@ -3,6 +3,7 @@ package kami.claims.service
 import kami.claims.net.ResearchSync
 import kami.claims.Config
 import kami.claims.Country
+import kami.claims.KamiClaims
 import kami.claims.LedgerKind
 import kami.claims.Realm
 import kami.claims.TradePolicy
@@ -46,8 +47,8 @@ object Diplomacy {
     fun creditTariff(c: Country, amount: Long): Long {
         if (amount <= 0) return 0
         val applied = Treasury.move(c, LedgerKind.TARIFF, amount)
-        Progress.report(c, "taxes", "", applied)
         Realm.changed()
+        runCatching { Progress.report(c, "taxes", "", applied) }.onFailure { KamiClaims.LOG.error("Tariff progress failed for country ${c.id}", it) }
         return applied
     }
 

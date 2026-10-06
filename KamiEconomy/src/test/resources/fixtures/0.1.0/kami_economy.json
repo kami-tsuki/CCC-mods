@@ -1,0 +1,2390 @@
+{
+    "books": {
+        "croptopia:cabbage": {
+            "item": "croptopia:cabbage",
+            "sells": [],
+            "buys": [],
+            "lastFill": 10,
+            "midPrice": 10.0,
+            "recentFills": []
+        },
+        "minecraft:stripped_oak_log": {
+            "item": "minecraft:stripped_oak_log",
+            "sells": [],
+            "buys": [],
+            "lastFill": 20,
+            "midPrice": 20.0,
+            "recentFills": []
+        }
+    },
+    "nextOrderId": 9,
+    "pendingDelivery": {},
+    "auctions": [
+        {
+            "id": 6,
+            "seller": "18c75ac7-d31e-4fcb-a06a-8d4dc4d7e82b",
+            "stackData": "H4sIAAAAAAAA/6VYW2/jxhWmu3Cw8UOL5qEPfQgO9NIUloUkbXpxgKKWVnsB7F3DcrPZXLAYkUNyouEMOzO0lrsIUPQ3ND8gf6wP/SX9DqmLEynBkgYMSyJnzm3O+c755iiK7ke/UEn0m0IZGTuRhtOlUyFI83Ju7eJedBjbyoQoig6OoqPYFqU10gR/FL2/f8fL2Bp8D+9Gh6XIJBZG0S/vR/ecWEb/fTOQr4ITg9Mv3wzmVieD0+AqORzEVls3OB0kwi1elpUrtRwMBwGL8XCSy0L58DtPj4VJWMfg2+HgK4MVg9Xnc6lhmqRgKeSStJiP6DpXnng14bO2laOsUkmzxkkvhYtzZTKCSCqdTaqYfxUyUfgiR4MfabiunGlks1MsYy4zZUaDrzdmDr6NWjcPRm/lppPJ1seP2F5J59aWG+emn19fnU2uCSKpEEE6JbQnZaD8oRNZwcewY+fsxdPrx9PZky+m9BHF1kk6po+psIlKlXSUrje2cgQ1J1qZZEfQ5dV0Nms8Xi+h0i4TyGh2Xiqtd7WfPT07fwHVWzVYqhFrQ8tcBBZXU2L3h+397mH7uA3blLfFAYs2sbuRrt6YwRlwcfZgCtMbjzbrscIWiMLtEO849UjdSFKBnA0iKGuEptS6WA4pcbZsBK73QsGwySiYrGXcOLyxYjen8NLAkSanPGkkOcnGcI90jeXeMEXfdQ/TH0Y04VSYxSJNscNv4nTW5oiXOKptMqDUUlEoXY/oha1go0zo2dMplTh9Xxs45ZXfa929f7+VdeKfldiaNxNaxbVGDBsz18a9+eGezIl6u4fao3uONLRLGmPBj0HhrdWPZRB0jnwQRWf9l9IAL7RWVUGzEpt9bzOelcqqZHNGnaywZVn3VjwLqqi0QJlMcqFMF8W8dcnZcS5FegcDpGPXxyJezNFeulgwzbLeej+Hz+gB3bNuYmMraCyF6X/cT0xitaQrdJ0uqj8TmpHG0JW1Yat8H1B83x0o/jiii3WreORsVW79Wz8HpFcImQ9OmizkQ/IlJwCDnuf2KtMUwOdH9A8v6fr5s7cAjcO/9wCNCxnyWrdWdjq7HJ3fCt374B7XgP1XfVTPqky43nrPeN7qrnSMgqILeQeHJ8LNezoMbAioE+fUHYBxLM1rabqXyuROp4yelPQIN3pZ6K106oGEdK7MoovKs5LH5TukFfzsqhN4j4Lun8yzSqeYpIp+Mcbmqr/uy9z6Mudpo1cx9dcry8D+du6yV5bZFT3U0uc/C/kHv+oO+Z+MaLZG543wJ+2cvHnBNhdz6YakrUhO1wPsSTMVthPkemzZvGLs3/COrG0mm5dXEiMvJo6Z1Tf43OERPAGjoxTqFWbrhbw9nI7oqTVe4m/16qFQGh1opqsk2z8zHxx2j8ufRhvj1lFZ/WY20cz1Gnxy29qaMXmXEj2UrqEgDfiDjD3PUTr8yZSh5VIXwudravKZ2MsTDJis0s2K26sfgDJg+mxoCfBOV4VpRa5M3R+N33aPxp9HdNmQZNa0CQiTQDyX3p+uyeFxg4B08refYIgA5cBE+4GrCmxiAcer2GCPFylkNE8/yIVOGydvjxW/3+WpGBoFqHjWSvPHKQcKssbMpyCNF3y6Mu9YmZwHKH7/pP26P0QX3UP0F3BRsWDfLlaXCFs22hrPVbCkpQp541divcQea6mo4pzmDnv9D7wdknUZZj0MW4KZZeBEEDTXcMlWu4lyJUskF2qhQnHMKwWmBwIOJ4UBm0RSFNDqKmgRCUwMn0IyqAPbvNLOxiUIwB4afKFe8ULe37JD9HQuhUSYDPN7hZFvLCkWTqaV3h/VX3eP6l9HwIr2tmZLWkHB69cSkdgQfKR8hlFjvRQQEeSeWgRQkOFX1F5GbDdgyMD/zW3Fz/L2K5Xl4SQGaV00C+fNXlmUoT7JMQjjACDIljis5t7pEiNnIWJbWqnE/sic9Lgy+rCpyYBE4QuKR/LWbHku5pTZLEPHGAI4RRhSpu0N+w1UnYM6eJICRsdVaDLupM04csqjWBrvKxShR0wNBOuaUCy8X4V21LcpWlKLg7FjRFq2uclJTUts8WTTdPcEbmM1Z08sKkBYTP/71384d1zNGpoS0exDa7T9iYu2T3pEbXXTNtEKzH0L7TXn/yo+vnZoVjAHqIssSzB4N1CyOlcefAB47lYWoDs5VF6FRviBoAey1LYGyiytW3AF2l3YmslE8LmxGl0QRpLAyVnYOerozAQ1VxZxwWsW+toWc26kCd0w3KPesOrZjXRNuBeMe1RCXnPl9g0iSlotcDLtzeku63pHVCG3LnpvwmbLUxqrbJWmR9FhUEHLFYl8b/f2NTqI7gPzucMkB1EU/R+cWAMaRBYAAA==",
+            "label": "Chemist's Handbook",
+            "startPrice": 100,
+            "buyNowPrice": null,
+            "currentBid": 0,
+            "currentBidder": "",
+            "expiresAt": 1791210337989,
+            "state": "EXPIRED"
+        }
+    ],
+    "frozen": [],
+    "stocks": {
+        "minecraft:dark_oak_log": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:dark_oak_wood": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:stripped_dark_oak_log": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:stripped_dark_oak_wood": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:oak_log": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:oak_wood": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:stripped_oak_log": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:stripped_oak_wood": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:acacia_log": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:acacia_wood": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:stripped_acacia_log": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:stripped_acacia_wood": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:birch_log": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:birch_wood": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:stripped_birch_log": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:stripped_birch_wood": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:jungle_log": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:jungle_wood": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:stripped_jungle_log": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:stripped_jungle_wood": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:spruce_log": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:spruce_wood": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:stripped_spruce_log": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:stripped_spruce_wood": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:mangrove_log": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:mangrove_wood": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:stripped_mangrove_log": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:stripped_mangrove_wood": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:cherry_log": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:cherry_wood": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:stripped_cherry_log": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:stripped_cherry_wood": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "croptopia:cinnamon_log": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "croptopia:stripped_cinnamon_log": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "croptopia:cinnamon_wood": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "croptopia:stripped_cinnamon_wood": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "createbigpharma:willow_log": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "ramadandelight:palm_log": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:crimson_stem": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:stripped_crimson_stem": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:crimson_hyphae": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:stripped_crimson_hyphae": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:warped_stem": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:stripped_warped_stem": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:warped_hyphae": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:stripped_warped_hyphae": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:baked_potato": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:apple": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "minecraft:carrot": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "minecraft:potato": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "minecraft:beetroot": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "minecraft:pumpkin": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "minecraft:sugar_cane": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "minecraft:cocoa_beans": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "minecraft:bread": {
+            "lots": 64,
+            "base": 15.0,
+            "observed": 0.0
+        },
+        "minecraft:wheat": {
+            "lots": 64,
+            "base": 5.0,
+            "observed": 0.0
+        },
+        "minecraft:melon_slice": {
+            "lots": 64,
+            "base": 5.0,
+            "observed": 0.0
+        },
+        "minecraft:sweet_berries": {
+            "lots": 64,
+            "base": 5.0,
+            "observed": 0.0
+        },
+        "minecraft:iron_ingot": {
+            "lots": 86,
+            "base": 50.0,
+            "observed": 0.0
+        },
+        "minecraft:copper_ingot": {
+            "lots": 86,
+            "base": 25.0,
+            "observed": 0.0
+        },
+        "create:zinc_ingot": {
+            "lots": 86,
+            "base": 32.0,
+            "observed": 0.0
+        },
+        "tfmg:lead_ingot": {
+            "lots": 86,
+            "base": 48.0,
+            "observed": 0.0
+        },
+        "minecraft:gold_ingot": {
+            "lots": 35,
+            "base": 100.0,
+            "observed": 0.0
+        },
+        "croptopia:almond": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:apricot": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:artichoke": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:asparagus": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:avocado": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:banana": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:barley": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:basil": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:bellpepper": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:blackbean": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:blackberry": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:blueberry": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:broccoli": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:cabbage": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:cantaloupe": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:cashew": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:cauliflower": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:celery": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:cherry": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:chile_pepper": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:cinnamon": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:coconut": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:coffee_beans": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:corn": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:cranberry": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:cucumber": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:currant": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:date": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:dragonfruit": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:eggplant": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:elderberry": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:fig": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:garlic": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:ginger": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:grape": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:grapefruit": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:greenbean": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:greenonion": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:honeydew": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:hops": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:kale": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:kiwi": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:kumquat": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:leek": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:lemon": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:lettuce": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:lime": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:mango": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:mustard": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:nectarine": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:nutmeg": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:oat": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:olive": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:onion": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:orange": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:peach": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:peanut": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:pear": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:pecan": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:pepper": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:persimmon": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:pineapple": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:plum": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:radish": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:raspberry": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:rhubarb": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:rice": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:rutabaga": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:saguaro": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:soybean": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:spinach": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:squash": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:starfruit": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:strawberry": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:sweetpotato": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:tea_leaves": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:tomatillo": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:tomato": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:turmeric": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:turnip": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:vanilla": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:walnut": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:yam": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "croptopia:zucchini": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "tfmg:steel_mechanism": {
+            "lots": 64,
+            "base": 400.0,
+            "observed": 0.0
+        },
+        "tfmg:circuit_board": {
+            "lots": 64,
+            "base": 600.0,
+            "observed": 0.0
+        },
+        "farmersdelight:cabbage": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "farmersdelight:tomato": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "farmersdelight:onion": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "farmersdelight:rice": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "minecraft:glow_berries": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "minecraft:nether_wart": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "minecraft:iron_ore": {
+            "lots": 64,
+            "base": 43.0,
+            "observed": 0.0
+        },
+        "minecraft:deepslate_iron_ore": {
+            "lots": 64,
+            "base": 43.0,
+            "observed": 0.0
+        },
+        "northstar:moon_iron_ore": {
+            "lots": 64,
+            "base": 43.0,
+            "observed": 0.0
+        },
+        "northstar:moon_deep_iron_ore": {
+            "lots": 64,
+            "base": 43.0,
+            "observed": 0.0
+        },
+        "northstar:mars_iron_ore": {
+            "lots": 64,
+            "base": 43.0,
+            "observed": 0.0
+        },
+        "northstar:mars_deep_iron_ore": {
+            "lots": 64,
+            "base": 43.0,
+            "observed": 0.0
+        },
+        "northstar:mercury_iron_ore": {
+            "lots": 64,
+            "base": 43.0,
+            "observed": 0.0
+        },
+        "northstar:mercury_deep_iron_ore": {
+            "lots": 64,
+            "base": 43.0,
+            "observed": 0.0
+        },
+        "northstar:venus_iron_ore": {
+            "lots": 64,
+            "base": 43.0,
+            "observed": 0.0
+        },
+        "northstar:venus_deep_iron_ore": {
+            "lots": 64,
+            "base": 43.0,
+            "observed": 0.0
+        },
+        "minecraft:raw_iron": {
+            "lots": 64,
+            "base": 38.0,
+            "observed": 0.0
+        },
+        "northstar:raw_martian_iron_ore": {
+            "lots": 64,
+            "base": 38.0,
+            "observed": 0.0
+        },
+        "minecraft:raw_iron_block": {
+            "lots": 64,
+            "base": 338.0,
+            "observed": 0.0
+        },
+        "create:crushed_raw_iron": {
+            "lots": 64,
+            "base": 45.0,
+            "observed": 0.0
+        },
+        "minecraft:iron_block": {
+            "lots": 64,
+            "base": 450.0,
+            "observed": 0.0
+        },
+        "minecraft:iron_nugget": {
+            "lots": 64,
+            "base": 6.0,
+            "observed": 0.0
+        },
+        "minecraft:copper_ore": {
+            "lots": 64,
+            "base": 74.0,
+            "observed": 0.0
+        },
+        "minecraft:deepslate_copper_ore": {
+            "lots": 64,
+            "base": 74.0,
+            "observed": 0.0
+        },
+        "northstar:moon_copper_ore": {
+            "lots": 64,
+            "base": 74.0,
+            "observed": 0.0
+        },
+        "northstar:moon_deep_copper_ore": {
+            "lots": 64,
+            "base": 74.0,
+            "observed": 0.0
+        },
+        "northstar:mars_copper_ore": {
+            "lots": 64,
+            "base": 74.0,
+            "observed": 0.0
+        },
+        "northstar:mars_deep_copper_ore": {
+            "lots": 64,
+            "base": 74.0,
+            "observed": 0.0
+        },
+        "northstar:mercury_copper_ore": {
+            "lots": 64,
+            "base": 74.0,
+            "observed": 0.0
+        },
+        "northstar:mercury_deep_copper_ore": {
+            "lots": 64,
+            "base": 74.0,
+            "observed": 0.0
+        },
+        "northstar:venus_copper_ore": {
+            "lots": 64,
+            "base": 74.0,
+            "observed": 0.0
+        },
+        "northstar:venus_deep_copper_ore": {
+            "lots": 64,
+            "base": 74.0,
+            "observed": 0.0
+        },
+        "minecraft:raw_copper": {
+            "lots": 64,
+            "base": 19.0,
+            "observed": 0.0
+        },
+        "minecraft:raw_copper_block": {
+            "lots": 64,
+            "base": 169.0,
+            "observed": 0.0
+        },
+        "create:crushed_raw_copper": {
+            "lots": 64,
+            "base": 23.0,
+            "observed": 0.0
+        },
+        "minecraft:copper_block": {
+            "lots": 64,
+            "base": 225.0,
+            "observed": 0.0
+        },
+        "create:copper_nugget": {
+            "lots": 64,
+            "base": 3.0,
+            "observed": 0.0
+        },
+        "minecraft:gold_ore": {
+            "lots": 24,
+            "base": 85.0,
+            "observed": 0.0
+        },
+        "minecraft:deepslate_gold_ore": {
+            "lots": 24,
+            "base": 85.0,
+            "observed": 0.0
+        },
+        "northstar:moon_gold_ore": {
+            "lots": 24,
+            "base": 85.0,
+            "observed": 0.0
+        },
+        "northstar:moon_deep_gold_ore": {
+            "lots": 24,
+            "base": 85.0,
+            "observed": 0.0
+        },
+        "northstar:mars_gold_ore": {
+            "lots": 24,
+            "base": 85.0,
+            "observed": 0.0
+        },
+        "northstar:mars_deep_gold_ore": {
+            "lots": 24,
+            "base": 85.0,
+            "observed": 0.0
+        },
+        "northstar:mercury_gold_ore": {
+            "lots": 24,
+            "base": 85.0,
+            "observed": 0.0
+        },
+        "northstar:mercury_deep_gold_ore": {
+            "lots": 24,
+            "base": 85.0,
+            "observed": 0.0
+        },
+        "northstar:venus_gold_ore": {
+            "lots": 24,
+            "base": 85.0,
+            "observed": 0.0
+        },
+        "northstar:venus_deep_gold_ore": {
+            "lots": 24,
+            "base": 85.0,
+            "observed": 0.0
+        },
+        "minecraft:nether_gold_ore": {
+            "lots": 24,
+            "base": 38.0,
+            "observed": 0.0
+        },
+        "minecraft:raw_gold": {
+            "lots": 24,
+            "base": 75.0,
+            "observed": 0.0
+        },
+        "minecraft:raw_gold_block": {
+            "lots": 24,
+            "base": 675.0,
+            "observed": 0.0
+        },
+        "create:crushed_raw_gold": {
+            "lots": 24,
+            "base": 90.0,
+            "observed": 0.0
+        },
+        "minecraft:gold_block": {
+            "lots": 24,
+            "base": 900.0,
+            "observed": 0.0
+        },
+        "minecraft:gold_nugget": {
+            "lots": 24,
+            "base": 11.0,
+            "observed": 0.0
+        },
+        "create:zinc_ore": {
+            "lots": 64,
+            "base": 27.0,
+            "observed": 0.0
+        },
+        "create:deepslate_zinc_ore": {
+            "lots": 64,
+            "base": 27.0,
+            "observed": 0.0
+        },
+        "northstar:moon_zinc_ore": {
+            "lots": 64,
+            "base": 27.0,
+            "observed": 0.0
+        },
+        "northstar:moon_deep_zinc_ore": {
+            "lots": 64,
+            "base": 27.0,
+            "observed": 0.0
+        },
+        "northstar:mars_zinc_ore": {
+            "lots": 64,
+            "base": 27.0,
+            "observed": 0.0
+        },
+        "northstar:mars_deep_zinc_ore": {
+            "lots": 64,
+            "base": 27.0,
+            "observed": 0.0
+        },
+        "northstar:mercury_zinc_ore": {
+            "lots": 64,
+            "base": 27.0,
+            "observed": 0.0
+        },
+        "northstar:mercury_deep_zinc_ore": {
+            "lots": 64,
+            "base": 27.0,
+            "observed": 0.0
+        },
+        "northstar:venus_zinc_ore": {
+            "lots": 64,
+            "base": 27.0,
+            "observed": 0.0
+        },
+        "northstar:venus_deep_zinc_ore": {
+            "lots": 64,
+            "base": 27.0,
+            "observed": 0.0
+        },
+        "create:raw_zinc": {
+            "lots": 64,
+            "base": 24.0,
+            "observed": 0.0
+        },
+        "create:raw_zinc_block": {
+            "lots": 64,
+            "base": 216.0,
+            "observed": 0.0
+        },
+        "create:crushed_raw_zinc": {
+            "lots": 64,
+            "base": 29.0,
+            "observed": 0.0
+        },
+        "create:zinc_block": {
+            "lots": 64,
+            "base": 288.0,
+            "observed": 0.0
+        },
+        "create:zinc_nugget": {
+            "lots": 64,
+            "base": 4.0,
+            "observed": 0.0
+        },
+        "create_ironworks:tin_ore": {
+            "lots": 64,
+            "base": 37.0,
+            "observed": 0.0
+        },
+        "create_ironworks:deepslate_tin_ore": {
+            "lots": 64,
+            "base": 37.0,
+            "observed": 0.0
+        },
+        "create_ironworks:raw_tin": {
+            "lots": 64,
+            "base": 33.0,
+            "observed": 0.0
+        },
+        "create_ironworks:raw_tin_block": {
+            "lots": 64,
+            "base": 297.0,
+            "observed": 0.0
+        },
+        "create:crushed_raw_tin": {
+            "lots": 64,
+            "base": 40.0,
+            "observed": 0.0
+        },
+        "create_ironworks:tin_ingot": {
+            "lots": 64,
+            "base": 44.0,
+            "observed": 0.0
+        },
+        "create_ironworks:tin_block": {
+            "lots": 64,
+            "base": 396.0,
+            "observed": 0.0
+        },
+        "create_ironworks:tin_nugget": {
+            "lots": 64,
+            "base": 5.0,
+            "observed": 0.0
+        },
+        "tfmg:lead_ore": {
+            "lots": 64,
+            "base": 41.0,
+            "observed": 0.0
+        },
+        "tfmg:deepslate_lead_ore": {
+            "lots": 64,
+            "base": 41.0,
+            "observed": 0.0
+        },
+        "tfmg:raw_lead": {
+            "lots": 64,
+            "base": 36.0,
+            "observed": 0.0
+        },
+        "tfmg:raw_lead_block": {
+            "lots": 64,
+            "base": 324.0,
+            "observed": 0.0
+        },
+        "create:crushed_raw_lead": {
+            "lots": 64,
+            "base": 43.0,
+            "observed": 0.0
+        },
+        "tfmg:lead_block": {
+            "lots": 64,
+            "base": 432.0,
+            "observed": 0.0
+        },
+        "tfmg:lead_nugget": {
+            "lots": 64,
+            "base": 5.0,
+            "observed": 0.0
+        },
+        "tfmg:nickel_ore": {
+            "lots": 64,
+            "base": 36.0,
+            "observed": 0.0
+        },
+        "tfmg:deepslate_nickel_ore": {
+            "lots": 64,
+            "base": 36.0,
+            "observed": 0.0
+        },
+        "tfmg:raw_nickel": {
+            "lots": 64,
+            "base": 32.0,
+            "observed": 0.0
+        },
+        "tfmg:raw_nickel_block": {
+            "lots": 64,
+            "base": 284.0,
+            "observed": 0.0
+        },
+        "create:crushed_raw_nickel": {
+            "lots": 64,
+            "base": 38.0,
+            "observed": 0.0
+        },
+        "tfmg:nickel_ingot": {
+            "lots": 64,
+            "base": 42.0,
+            "observed": 0.0
+        },
+        "tfmg:nickel_block": {
+            "lots": 64,
+            "base": 378.0,
+            "observed": 0.0
+        },
+        "tfmg:nickel_nugget": {
+            "lots": 64,
+            "base": 5.0,
+            "observed": 0.0
+        },
+        "chemica:deepslate_silver_ore": {
+            "lots": 64,
+            "base": 47.0,
+            "observed": 0.0
+        },
+        "chemica:raw_silver": {
+            "lots": 64,
+            "base": 41.0,
+            "observed": 0.0
+        },
+        "create:crushed_raw_silver": {
+            "lots": 64,
+            "base": 50.0,
+            "observed": 0.0
+        },
+        "chemica:silver_ingot": {
+            "lots": 64,
+            "base": 55.0,
+            "observed": 0.0
+        },
+        "chemica:silver_nugget": {
+            "lots": 64,
+            "base": 6.0,
+            "observed": 0.0
+        },
+        "chemica:deepslate_rutile_ore": {
+            "lots": 24,
+            "base": 213.0,
+            "observed": 0.0
+        },
+        "northstar:moon_titanium_ore": {
+            "lots": 24,
+            "base": 213.0,
+            "observed": 0.0
+        },
+        "northstar:moon_deep_titanium_ore": {
+            "lots": 24,
+            "base": 213.0,
+            "observed": 0.0
+        },
+        "northstar:mars_titanium_ore": {
+            "lots": 24,
+            "base": 213.0,
+            "observed": 0.0
+        },
+        "northstar:mars_deep_titanium_ore": {
+            "lots": 24,
+            "base": 213.0,
+            "observed": 0.0
+        },
+        "northstar:mercury_titanium_ore": {
+            "lots": 24,
+            "base": 213.0,
+            "observed": 0.0
+        },
+        "northstar:mercury_deep_titanium_ore": {
+            "lots": 24,
+            "base": 213.0,
+            "observed": 0.0
+        },
+        "northstar:venus_titanium_ore": {
+            "lots": 24,
+            "base": 213.0,
+            "observed": 0.0
+        },
+        "northstar:venus_deep_titanium_ore": {
+            "lots": 24,
+            "base": 213.0,
+            "observed": 0.0
+        },
+        "northstar:raw_titanium_ore": {
+            "lots": 24,
+            "base": 188.0,
+            "observed": 0.0
+        },
+        "chemica:rutile_crystal": {
+            "lots": 24,
+            "base": 188.0,
+            "observed": 0.0
+        },
+        "chemica:titanium_dust": {
+            "lots": 24,
+            "base": 225.0,
+            "observed": 0.0
+        },
+        "chemica:titanium_ingot": {
+            "lots": 24,
+            "base": 250.0,
+            "observed": 0.0
+        },
+        "northstar:titanium_block": {
+            "lots": 24,
+            "base": 2250.0,
+            "observed": 0.0
+        },
+        "chemica:titanium_nugget": {
+            "lots": 24,
+            "base": 28.0,
+            "observed": 0.0
+        },
+        "chemica:deepslate_wolframite_ore": {
+            "lots": 24,
+            "base": 213.0,
+            "observed": 0.0
+        },
+        "northstar:mercury_tungsten_ore": {
+            "lots": 24,
+            "base": 213.0,
+            "observed": 0.0
+        },
+        "northstar:mercury_deep_tungsten_ore": {
+            "lots": 24,
+            "base": 213.0,
+            "observed": 0.0
+        },
+        "chemica:raw_tungsten": {
+            "lots": 24,
+            "base": 188.0,
+            "observed": 0.0
+        },
+        "northstar:crushed_raw_tungsten": {
+            "lots": 24,
+            "base": 225.0,
+            "observed": 0.0
+        },
+        "chemica:tungsten_ingot": {
+            "lots": 24,
+            "base": 250.0,
+            "observed": 0.0
+        },
+        "northstar:tungsten_block": {
+            "lots": 24,
+            "base": 2250.0,
+            "observed": 0.0
+        },
+        "chemica:tungsten_nugget": {
+            "lots": 24,
+            "base": 28.0,
+            "observed": 0.0
+        },
+        "createnuclear:uranium_ore": {
+            "lots": 24,
+            "base": 850.0,
+            "observed": 0.0
+        },
+        "createnuclear:deepslate_uranium_ore": {
+            "lots": 24,
+            "base": 850.0,
+            "observed": 0.0
+        },
+        "createnuclear:raw_uranium": {
+            "lots": 24,
+            "base": 750.0,
+            "observed": 0.0
+        },
+        "createnuclear:raw_uranium_block": {
+            "lots": 24,
+            "base": 6750.0,
+            "observed": 0.0
+        },
+        "create:crushed_raw_uranium": {
+            "lots": 24,
+            "base": 900.0,
+            "observed": 0.0
+        },
+        "tfmg:lithium_ore": {
+            "lots": 64,
+            "base": 54.0,
+            "observed": 0.0
+        },
+        "tfmg:deepslate_lithium_ore": {
+            "lots": 64,
+            "base": 54.0,
+            "observed": 0.0
+        },
+        "tfmg:raw_lithium": {
+            "lots": 64,
+            "base": 48.0,
+            "observed": 0.0
+        },
+        "tfmg:raw_lithium_block": {
+            "lots": 64,
+            "base": 432.0,
+            "observed": 0.0
+        },
+        "tfmg:crushed_raw_lithium": {
+            "lots": 64,
+            "base": 58.0,
+            "observed": 0.0
+        },
+        "tfmg:lithium_ingot": {
+            "lots": 64,
+            "base": 64.0,
+            "observed": 0.0
+        },
+        "tfmg:lithium_block": {
+            "lots": 64,
+            "base": 576.0,
+            "observed": 0.0
+        },
+        "tfmg:lithium_nugget": {
+            "lots": 64,
+            "base": 7.0,
+            "observed": 0.0
+        },
+        "create:crushed_raw_aluminum": {
+            "lots": 64,
+            "base": 36.0,
+            "observed": 0.0
+        },
+        "tfmg:aluminum_ingot": {
+            "lots": 64,
+            "base": 40.0,
+            "observed": 0.0
+        },
+        "tfmg:aluminum_block": {
+            "lots": 64,
+            "base": 360.0,
+            "observed": 0.0
+        },
+        "tfmg:aluminum_nugget": {
+            "lots": 64,
+            "base": 4.0,
+            "observed": 0.0
+        },
+        "chemica:deepslate_antimony_ore": {
+            "lots": 24,
+            "base": 106.0,
+            "observed": 0.0
+        },
+        "chemica:raw_antimony": {
+            "lots": 24,
+            "base": 94.0,
+            "observed": 0.0
+        },
+        "chemica:crushed_raw_antimony": {
+            "lots": 24,
+            "base": 113.0,
+            "observed": 0.0
+        },
+        "chemica:antimony_ingot": {
+            "lots": 24,
+            "base": 125.0,
+            "observed": 0.0
+        },
+        "chemica:antimony_nugget": {
+            "lots": 24,
+            "base": 14.0,
+            "observed": 0.0
+        },
+        "chemica:deepslate_cobalt_ore": {
+            "lots": 24,
+            "base": 170.0,
+            "observed": 0.0
+        },
+        "chemica:raw_cobalt": {
+            "lots": 24,
+            "base": 150.0,
+            "observed": 0.0
+        },
+        "chemica:crushed_raw_cobalt": {
+            "lots": 24,
+            "base": 180.0,
+            "observed": 0.0
+        },
+        "chemica:cobalt_ingot": {
+            "lots": 24,
+            "base": 200.0,
+            "observed": 0.0
+        },
+        "chemica:cobalt_nugget": {
+            "lots": 24,
+            "base": 22.0,
+            "observed": 0.0
+        },
+        "chemica:deepslate_molybdenum_ore": {
+            "lots": 24,
+            "base": 123.0,
+            "observed": 0.0
+        },
+        "chemica:raw_molybdenum": {
+            "lots": 24,
+            "base": 109.0,
+            "observed": 0.0
+        },
+        "chemica:molybdenum_ingot": {
+            "lots": 24,
+            "base": 145.0,
+            "observed": 0.0
+        },
+        "chemica:molybdenum_nugget": {
+            "lots": 24,
+            "base": 16.0,
+            "observed": 0.0
+        },
+        "chemica:deepslate_vanadium_ore": {
+            "lots": 24,
+            "base": 66.0,
+            "observed": 0.0
+        },
+        "chemica:raw_vanadium": {
+            "lots": 24,
+            "base": 59.0,
+            "observed": 0.0
+        },
+        "chemica:crushed_raw_vanadium": {
+            "lots": 24,
+            "base": 70.0,
+            "observed": 0.0
+        },
+        "chemica:vanadium_ingot": {
+            "lots": 24,
+            "base": 78.0,
+            "observed": 0.0
+        },
+        "chemica:vanadium_nugget": {
+            "lots": 24,
+            "base": 9.0,
+            "observed": 0.0
+        },
+        "chemica:deepslate_chromite_ore": {
+            "lots": 24,
+            "base": 128.0,
+            "observed": 0.0
+        },
+        "chemica:raw_chromite": {
+            "lots": 24,
+            "base": 113.0,
+            "observed": 0.0
+        },
+        "chemica:crushed_raw_chromium": {
+            "lots": 24,
+            "base": 135.0,
+            "observed": 0.0
+        },
+        "chemica:chromium_ingot": {
+            "lots": 24,
+            "base": 150.0,
+            "observed": 0.0
+        },
+        "chemica:chromium_nugget": {
+            "lots": 24,
+            "base": 17.0,
+            "observed": 0.0
+        },
+        "chemica:deepslate_platinum_ore": {
+            "lots": 24,
+            "base": 170.0,
+            "observed": 0.0
+        },
+        "chemica:raw_platinum": {
+            "lots": 24,
+            "base": 150.0,
+            "observed": 0.0
+        },
+        "chemica:raw_platinum_block": {
+            "lots": 24,
+            "base": 1350.0,
+            "observed": 0.0
+        },
+        "create:crushed_raw_platinum": {
+            "lots": 24,
+            "base": 180.0,
+            "observed": 0.0
+        },
+        "chemica:platinum_ingot": {
+            "lots": 24,
+            "base": 200.0,
+            "observed": 0.0
+        },
+        "chemica:platinum_block": {
+            "lots": 24,
+            "base": 1800.0,
+            "observed": 0.0
+        },
+        "chemica:platinum_nugget": {
+            "lots": 24,
+            "base": 22.0,
+            "observed": 0.0
+        },
+        "chemica:deepslate_graphite_ore": {
+            "lots": 64,
+            "base": 34.0,
+            "observed": 0.0
+        },
+        "chemica:crushed_graphite": {
+            "lots": 64,
+            "base": 36.0,
+            "observed": 0.0
+        },
+        "chemica:graphite_ingot": {
+            "lots": 64,
+            "base": 40.0,
+            "observed": 0.0
+        },
+        "chemica:graphite_nugget": {
+            "lots": 64,
+            "base": 4.0,
+            "observed": 0.0
+        },
+        "chemica:deepslate_fluorite_ore": {
+            "lots": 24,
+            "base": 111.0,
+            "observed": 0.0
+        },
+        "chemica:fluorite_dust": {
+            "lots": 24,
+            "base": 130.0,
+            "observed": 0.0
+        },
+        "chemica:phosphorus_ore": {
+            "lots": 64,
+            "base": 38.0,
+            "observed": 0.0
+        },
+        "chemica:deepslate_phosphorus_ore": {
+            "lots": 64,
+            "base": 38.0,
+            "observed": 0.0
+        },
+        "chemica:phosphorus_dust": {
+            "lots": 64,
+            "base": 45.0,
+            "observed": 0.0
+        },
+        "createbigpharma:salt_ore": {
+            "lots": 64,
+            "base": 5.0,
+            "observed": 0.0
+        },
+        "createbigpharma:deepslate_salt_ore": {
+            "lots": 64,
+            "base": 5.0,
+            "observed": 0.0
+        },
+        "chemica:salt": {
+            "lots": 64,
+            "base": 6.0,
+            "observed": 0.0
+        },
+        "createbigpharma:sulfur_ore": {
+            "lots": 64,
+            "base": 57.0,
+            "observed": 0.0
+        },
+        "createbigpharma:deepslate_sulfur_ore": {
+            "lots": 64,
+            "base": 57.0,
+            "observed": 0.0
+        },
+        "tfmg:sulfur": {
+            "lots": 64,
+            "base": 57.0,
+            "observed": 0.0
+        },
+        "sulfuricresonance:sulfur": {
+            "lots": 64,
+            "base": 67.0,
+            "observed": 0.0
+        },
+        "sulfuricresonance:sulfur_block": {
+            "lots": 64,
+            "base": 603.0,
+            "observed": 0.0
+        },
+        "minecraft:coal_ore": {
+            "lots": 64,
+            "base": 4.0,
+            "observed": 0.0
+        },
+        "minecraft:deepslate_coal_ore": {
+            "lots": 64,
+            "base": 4.0,
+            "observed": 0.0
+        },
+        "minecraft:coal": {
+            "lots": 64,
+            "base": 5.0,
+            "observed": 0.0
+        },
+        "chemica:coal_dust": {
+            "lots": 64,
+            "base": 5.0,
+            "observed": 0.0
+        },
+        "minecraft:coal_block": {
+            "lots": 64,
+            "base": 45.0,
+            "observed": 0.0
+        },
+        "tfmg:coal_coke": {
+            "lots": 64,
+            "base": 8.0,
+            "observed": 0.0
+        },
+        "tfmg:coal_coke_block": {
+            "lots": 64,
+            "base": 72.0,
+            "observed": 0.0
+        },
+        "minecraft:charcoal": {
+            "lots": 64,
+            "base": 2.0,
+            "observed": 0.0
+        },
+        "minecraft:diamond_ore": {
+            "lots": 24,
+            "base": 850.0,
+            "observed": 0.0
+        },
+        "minecraft:deepslate_diamond_ore": {
+            "lots": 24,
+            "base": 850.0,
+            "observed": 0.0
+        },
+        "northstar:moon_diamond_ore": {
+            "lots": 24,
+            "base": 850.0,
+            "observed": 0.0
+        },
+        "northstar:moon_deep_diamond_ore": {
+            "lots": 24,
+            "base": 850.0,
+            "observed": 0.0
+        },
+        "northstar:mars_diamond_ore": {
+            "lots": 24,
+            "base": 850.0,
+            "observed": 0.0
+        },
+        "northstar:mars_deep_diamond_ore": {
+            "lots": 24,
+            "base": 850.0,
+            "observed": 0.0
+        },
+        "northstar:mercury_diamond_ore": {
+            "lots": 24,
+            "base": 850.0,
+            "observed": 0.0
+        },
+        "northstar:mercury_deep_diamond_ore": {
+            "lots": 24,
+            "base": 850.0,
+            "observed": 0.0
+        },
+        "northstar:venus_diamond_ore": {
+            "lots": 24,
+            "base": 850.0,
+            "observed": 0.0
+        },
+        "northstar:venus_deep_diamond_ore": {
+            "lots": 24,
+            "base": 850.0,
+            "observed": 0.0
+        },
+        "minecraft:diamond": {
+            "lots": 24,
+            "base": 1000.0,
+            "observed": 0.0
+        },
+        "minecraft:diamond_block": {
+            "lots": 24,
+            "base": 9000.0,
+            "observed": 0.0
+        },
+        "dndesires:diamond_shard": {
+            "lots": 24,
+            "base": 111.0,
+            "observed": 0.0
+        },
+        "minecraft:redstone_ore": {
+            "lots": 64,
+            "base": 38.0,
+            "observed": 0.0
+        },
+        "minecraft:deepslate_redstone_ore": {
+            "lots": 64,
+            "base": 38.0,
+            "observed": 0.0
+        },
+        "northstar:moon_redstone_ore": {
+            "lots": 64,
+            "base": 38.0,
+            "observed": 0.0
+        },
+        "northstar:moon_deep_redstone_ore": {
+            "lots": 64,
+            "base": 38.0,
+            "observed": 0.0
+        },
+        "northstar:mars_redstone_ore": {
+            "lots": 64,
+            "base": 38.0,
+            "observed": 0.0
+        },
+        "northstar:mars_deep_redstone_ore": {
+            "lots": 64,
+            "base": 38.0,
+            "observed": 0.0
+        },
+        "northstar:mercury_redstone_ore": {
+            "lots": 64,
+            "base": 38.0,
+            "observed": 0.0
+        },
+        "northstar:mercury_deep_redstone_ore": {
+            "lots": 64,
+            "base": 38.0,
+            "observed": 0.0
+        },
+        "northstar:venus_redstone_ore": {
+            "lots": 64,
+            "base": 38.0,
+            "observed": 0.0
+        },
+        "northstar:venus_deep_redstone_ore": {
+            "lots": 64,
+            "base": 38.0,
+            "observed": 0.0
+        },
+        "minecraft:redstone": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "minecraft:redstone_block": {
+            "lots": 64,
+            "base": 90.0,
+            "observed": 0.0
+        },
+        "minecraft:lapis_ore": {
+            "lots": 64,
+            "base": 66.0,
+            "observed": 0.0
+        },
+        "minecraft:deepslate_lapis_ore": {
+            "lots": 64,
+            "base": 66.0,
+            "observed": 0.0
+        },
+        "northstar:moon_lapis_ore": {
+            "lots": 64,
+            "base": 66.0,
+            "observed": 0.0
+        },
+        "northstar:moon_deep_lapis_ore": {
+            "lots": 64,
+            "base": 66.0,
+            "observed": 0.0
+        },
+        "northstar:mercury_lapis_ore": {
+            "lots": 64,
+            "base": 66.0,
+            "observed": 0.0
+        },
+        "northstar:mercury_deep_lapis_ore": {
+            "lots": 64,
+            "base": 66.0,
+            "observed": 0.0
+        },
+        "minecraft:lapis_lazuli": {
+            "lots": 64,
+            "base": 12.0,
+            "observed": 0.0
+        },
+        "minecraft:lapis_block": {
+            "lots": 64,
+            "base": 108.0,
+            "observed": 0.0
+        },
+        "minecraft:nether_quartz_ore": {
+            "lots": 64,
+            "base": 4.0,
+            "observed": 0.0
+        },
+        "northstar:mars_quartz_ore": {
+            "lots": 64,
+            "base": 4.0,
+            "observed": 0.0
+        },
+        "northstar:mars_deep_quartz_ore": {
+            "lots": 64,
+            "base": 4.0,
+            "observed": 0.0
+        },
+        "northstar:venus_quartz_ore": {
+            "lots": 64,
+            "base": 4.0,
+            "observed": 0.0
+        },
+        "northstar:venus_deep_quartz_ore": {
+            "lots": 64,
+            "base": 4.0,
+            "observed": 0.0
+        },
+        "minecraft:quartz": {
+            "lots": 64,
+            "base": 5.0,
+            "observed": 0.0
+        },
+        "minecraft:quartz_block": {
+            "lots": 64,
+            "base": 20.0,
+            "observed": 0.0
+        },
+        "northstar:moon_glowstone_ore": {
+            "lots": 64,
+            "base": 6.0,
+            "observed": 0.0
+        },
+        "northstar:moon_deep_glowstone_ore": {
+            "lots": 64,
+            "base": 6.0,
+            "observed": 0.0
+        },
+        "northstar:mercury_glowstone_ore": {
+            "lots": 64,
+            "base": 6.0,
+            "observed": 0.0
+        },
+        "northstar:mercury_deep_glowstone_ore": {
+            "lots": 64,
+            "base": 6.0,
+            "observed": 0.0
+        },
+        "northstar:venus_glowstone_ore": {
+            "lots": 64,
+            "base": 6.0,
+            "observed": 0.0
+        },
+        "northstar:venus_deep_glowstone_ore": {
+            "lots": 64,
+            "base": 6.0,
+            "observed": 0.0
+        },
+        "northstar:raw_glowstone_ore": {
+            "lots": 64,
+            "base": 5.0,
+            "observed": 0.0
+        },
+        "minecraft:glowstone_dust": {
+            "lots": 64,
+            "base": 7.0,
+            "observed": 0.0
+        },
+        "minecraft:glowstone": {
+            "lots": 64,
+            "base": 28.0,
+            "observed": 0.0
+        },
+        "northstar:enriched_glowstone_ore": {
+            "lots": 24,
+            "base": 65.0,
+            "observed": 0.0
+        },
+        "legendary_monsters:enderitium_ore": {
+            "lots": 24,
+            "base": 708.0,
+            "observed": 0.0
+        },
+        "legendary_monsters:enderitium_ingot": {
+            "lots": 24,
+            "base": 2500.0,
+            "observed": 0.0
+        },
+        "legendary_monsters:enderitium_block": {
+            "lots": 24,
+            "base": 22500.0,
+            "observed": 0.0
+        },
+        "legendary_monsters:enderitium_gem": {
+            "lots": 24,
+            "base": 278.0,
+            "observed": 0.0
+        },
+        "minecraft:ancient_debris": {
+            "lots": 24,
+            "base": 280.0,
+            "observed": 0.0
+        },
+        "minecraft:netherite_scrap": {
+            "lots": 24,
+            "base": 330.0,
+            "observed": 0.0
+        },
+        "minecraft:netherite_ingot": {
+            "lots": 24,
+            "base": 1750.0,
+            "observed": 0.0
+        },
+        "minecraft:netherite_block": {
+            "lots": 24,
+            "base": 15750.0,
+            "observed": 0.0
+        },
+        "createdeco:netherite_nugget": {
+            "lots": 24,
+            "base": 194.0,
+            "observed": 0.0
+        },
+        "create:experience_nugget": {
+            "lots": 64,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "create:experience_block": {
+            "lots": 64,
+            "base": 90.0,
+            "observed": 0.0
+        },
+        "tfmg:cast_iron_ingot": {
+            "lots": 20,
+            "base": 56.0,
+            "observed": 0.0
+        },
+        "tfmg:cast_iron_block": {
+            "lots": 20,
+            "base": 504.0,
+            "observed": 0.0
+        },
+        "tfmg:cast_iron_nugget": {
+            "lots": 20,
+            "base": 6.0,
+            "observed": 0.0
+        },
+        "tfmg:steel_ingot": {
+            "lots": 20,
+            "base": 66.0,
+            "observed": 0.0
+        },
+        "tfmg:steel_block": {
+            "lots": 20,
+            "base": 594.0,
+            "observed": 0.0
+        },
+        "tfmg:steel_nugget": {
+            "lots": 20,
+            "base": 7.0,
+            "observed": 0.0
+        },
+        "create_ironworks:bronze_ingot": {
+            "lots": 20,
+            "base": 45.0,
+            "observed": 0.0
+        },
+        "create_ironworks:bronze_block": {
+            "lots": 20,
+            "base": 405.0,
+            "observed": 0.0
+        },
+        "create_ironworks:bronze_nugget": {
+            "lots": 20,
+            "base": 5.0,
+            "observed": 0.0
+        },
+        "create:brass_ingot": {
+            "lots": 20,
+            "base": 43.0,
+            "observed": 0.0
+        },
+        "create:brass_block": {
+            "lots": 20,
+            "base": 387.0,
+            "observed": 0.0
+        },
+        "create:brass_nugget": {
+            "lots": 20,
+            "base": 5.0,
+            "observed": 0.0
+        },
+        "tfmg:constantan_ingot": {
+            "lots": 20,
+            "base": 50.0,
+            "observed": 0.0
+        },
+        "tfmg:constantan_block": {
+            "lots": 20,
+            "base": 450.0,
+            "observed": 0.0
+        },
+        "tfmg:constantan_nugget": {
+            "lots": 20,
+            "base": 6.0,
+            "observed": 0.0
+        },
+        "molten_metals:electrum_ingot": {
+            "lots": 20,
+            "base": 105.0,
+            "observed": 0.0
+        },
+        "create:andesite_alloy": {
+            "lots": 20,
+            "base": 11.0,
+            "observed": 0.0
+        },
+        "create:andesite_alloy_block": {
+            "lots": 20,
+            "base": 99.0,
+            "observed": 0.0
+        },
+        "create:industrial_iron_block": {
+            "lots": 20,
+            "base": 38.0,
+            "observed": 0.0
+        },
+        "createdeco:industrial_iron_ingot": {
+            "lots": 20,
+            "base": 4.0,
+            "observed": 0.0
+        },
+        "northstar:martian_steel_ingot": {
+            "lots": 20,
+            "base": 217.0,
+            "observed": 0.0
+        },
+        "northstar:martian_steel_block": {
+            "lots": 20,
+            "base": 1953.0,
+            "observed": 0.0
+        },
+        "createbigcannons:nethersteel_ingot": {
+            "lots": 20,
+            "base": 111.0,
+            "observed": 0.0
+        },
+        "createbigcannons:nethersteel_block": {
+            "lots": 20,
+            "base": 999.0,
+            "observed": 0.0
+        },
+        "createbigcannons:nethersteel_nugget": {
+            "lots": 20,
+            "base": 12.0,
+            "observed": 0.0
+        },
+        "chemica:tungsten_carbide_ingot": {
+            "lots": 20,
+            "base": 357.0,
+            "observed": 0.0
+        },
+        "chemica:steel_based_tough_alloy": {
+            "lots": 20,
+            "base": 542.0,
+            "observed": 0.0
+        },
+        "minecraft:cobblestone": {
+            "lots": 128,
+            "base": 1.0,
+            "observed": 0.0
+        },
+        "minecraft:stone": {
+            "lots": 128,
+            "base": 1.0,
+            "observed": 0.0
+        },
+        "minecraft:cobbled_deepslate": {
+            "lots": 128,
+            "base": 1.0,
+            "observed": 0.0
+        },
+        "minecraft:dirt": {
+            "lots": 128,
+            "base": 1.0,
+            "observed": 0.0
+        },
+        "minecraft:coarse_dirt": {
+            "lots": 128,
+            "base": 1.0,
+            "observed": 0.0
+        },
+        "minecraft:gravel": {
+            "lots": 128,
+            "base": 1.0,
+            "observed": 0.0
+        },
+        "minecraft:sand": {
+            "lots": 128,
+            "base": 1.0,
+            "observed": 0.0
+        },
+        "minecraft:basalt": {
+            "lots": 128,
+            "base": 1.0,
+            "observed": 0.0
+        },
+        "minecraft:netherrack": {
+            "lots": 128,
+            "base": 1.0,
+            "observed": 0.0
+        },
+        "minecraft:deepslate": {
+            "lots": 128,
+            "base": 2.0,
+            "observed": 0.0
+        },
+        "minecraft:red_sand": {
+            "lots": 128,
+            "base": 2.0,
+            "observed": 0.0
+        },
+        "minecraft:andesite": {
+            "lots": 128,
+            "base": 2.0,
+            "observed": 0.0
+        },
+        "minecraft:tuff": {
+            "lots": 128,
+            "base": 2.0,
+            "observed": 0.0
+        },
+        "minecraft:dripstone_block": {
+            "lots": 128,
+            "base": 2.0,
+            "observed": 0.0
+        },
+        "minecraft:blackstone": {
+            "lots": 128,
+            "base": 2.0,
+            "observed": 0.0
+        },
+        "minecraft:soul_sand": {
+            "lots": 128,
+            "base": 2.0,
+            "observed": 0.0
+        },
+        "minecraft:soul_soil": {
+            "lots": 128,
+            "base": 2.0,
+            "observed": 0.0
+        },
+        "minecraft:end_stone": {
+            "lots": 128,
+            "base": 2.0,
+            "observed": 0.0
+        },
+        "create:asurine": {
+            "lots": 128,
+            "base": 2.0,
+            "observed": 0.0
+        },
+        "create:scoria": {
+            "lots": 128,
+            "base": 2.0,
+            "observed": 0.0
+        },
+        "tfmg:lignite": {
+            "lots": 128,
+            "base": 2.0,
+            "observed": 0.0
+        },
+        "chemica:fervorite": {
+            "lots": 128,
+            "base": 2.0,
+            "observed": 0.0
+        },
+        "minecraft:rooted_dirt": {
+            "lots": 128,
+            "base": 3.0,
+            "observed": 0.0
+        },
+        "minecraft:clay": {
+            "lots": 128,
+            "base": 3.0,
+            "observed": 0.0
+        },
+        "minecraft:diorite": {
+            "lots": 128,
+            "base": 3.0,
+            "observed": 0.0
+        },
+        "minecraft:granite": {
+            "lots": 128,
+            "base": 3.0,
+            "observed": 0.0
+        },
+        "minecraft:calcite": {
+            "lots": 128,
+            "base": 3.0,
+            "observed": 0.0
+        },
+        "minecraft:smooth_basalt": {
+            "lots": 128,
+            "base": 3.0,
+            "observed": 0.0
+        },
+        "minecraft:magma_block": {
+            "lots": 128,
+            "base": 3.0,
+            "observed": 0.0
+        },
+        "create:scorchia": {
+            "lots": 128,
+            "base": 3.0,
+            "observed": 0.0
+        },
+        "create:limestone": {
+            "lots": 128,
+            "base": 3.0,
+            "observed": 0.0
+        },
+        "tfmg:bauxite": {
+            "lots": 128,
+            "base": 3.0,
+            "observed": 0.0
+        },
+        "minecraft:obsidian": {
+            "lots": 128,
+            "base": 4.0,
+            "observed": 0.0
+        },
+        "create:crimsite": {
+            "lots": 128,
+            "base": 4.0,
+            "observed": 0.0
+        },
+        "create:veridium": {
+            "lots": 128,
+            "base": 4.0,
+            "observed": 0.0
+        },
+        "create:ochrum": {
+            "lots": 128,
+            "base": 4.0,
+            "observed": 0.0
+        },
+        "chemica:zelosite": {
+            "lots": 128,
+            "base": 5.0,
+            "observed": 0.0
+        },
+        "tfmg:galena": {
+            "lots": 24,
+            "base": 10.0,
+            "observed": 0.0
+        },
+        "createnuclear:autunite": {
+            "lots": 24,
+            "base": 400.0,
+            "observed": 0.0
+        }
+    },
+    "sold": {},
+    "traded": {
+        "minecraft:stripped_oak_log": {
+            "sold": 64,
+            "bought": 0
+        }
+    },
+    "day": 20732,
+    "vendors": [],
+    "muted": {},
+    "version": 1
+}

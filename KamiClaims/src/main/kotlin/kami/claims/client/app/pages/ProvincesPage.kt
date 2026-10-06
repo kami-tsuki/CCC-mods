@@ -88,7 +88,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
             if (start) tab = 2
             return
         }
-        val tributes = info.provinces.sumOf { estimate(it.mode, it.amount, it.income) }
+        val tributes = info.provinces.sumOf { Vocabulary.tributeEstimate(it.mode, it.amount, it.income) }
         val tiles = r.top(46).columns(4, 6)
         ui.statTile(tiles[0], tr("kami_claims.nav.provinces"), Format.number(info.provinces.size), Icons.CHAIN)
         ui.statTile(tiles[1], tr("kami_claims.provinces.tribute_day"), "≈ ${Format.number(tributes)}", Icons.INCOME, Palette.success)
@@ -113,14 +113,13 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
 
     private fun countryOption(c: Line) = Option(c.name, c.name, null, tr("kami_libs.format.dot", trn("kami_claims.unit.citizen", c.members), trn("kami_claims.unit.chunk", c.chunks)), c.color)
 
-    private fun estimate(mode: String, amount: Double, income: Long) = Vocabulary.perDay(if (mode == "percent") income * amount else amount).toLong()
 
     private fun provinceDetail(ui: Ui, r: Rect, p: ProvinceLine) {
         val body = ui.card(r, p.name, Icons.CHAIN, if (p.wantsIndependence) Severity.WARNING else null, key = "province-card")
         val cols = body.columns(2, 10)
         val f = Flow(cols[0], 2)
         ui.property(f.take(11), tr("kami_claims.help.term.tribute"), Vocabulary.tribute(p.mode, p.amount))
-        ui.property(f.take(11), tr("kami_claims.provinces.estimate"), "≈ ${Format.perDay(Format.money(estimate(p.mode, p.amount, p.income)))}")
+        ui.property(f.take(11), tr("kami_claims.provinces.estimate"), "≈ ${Format.perDay(Format.money(Vocabulary.tributeEstimate(p.mode, p.amount, p.income)))}")
         ui.property(f.take(11), tr("kami_claims.provinces.missed"), "${p.debt} / ${snap.maxProvinceDebt}", if (p.debt > 0) Palette.danger else Palette.text)
         ui.property(f.take(11), tr("kami_claims.nav.citizens"), Format.number(p.members))
         ui.property(f.take(11), tr("kami_claims.kpi.land"), trn("kami_claims.unit.chunk", p.chunks))
@@ -158,7 +157,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
     private fun release(p: ProvinceLine, requested: Boolean) {
         Dialogs.confirm(app, tr(if (requested) "kami_claims.provinces.grant.confirm.title" else "kami_claims.provinces.release.confirm.title", p.name), tr("kami_claims.provinces.release.confirm.subtitle"), Icons.BROKEN_CHAIN, listOf(
             Consequence(tr("kami_claims.provinces.release.final"), Severity.DANGER),
-            Consequence(tr("kami_claims.provinces.release.tribute", Format.perDay(Format.money(estimate(p.mode, p.amount, p.income)))), Severity.WARNING),
+            Consequence(tr("kami_claims.provinces.release.tribute", Format.perDay(Format.money(Vocabulary.tributeEstimate(p.mode, p.amount, p.income)))), Severity.WARNING),
             Consequence(tr("kami_claims.provinces.release.alliance"), Severity.WARNING),
             Consequence(tr("kami_claims.provinces.release.control"))
         ), tr(if (requested) "kami_claims.provinces.grant" else "kami_claims.provinces.release"), "province_release", arrayOf(p.name), danger = true, hold = true)
@@ -168,7 +167,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
         var target: String? = null
         val typed = TextState()
         app.open(Dialog(tr("kami_claims.provinces.give.title", p.name), tr("kami_claims.provinces.give.subtitle"), Icons.FORWARD, DialogKind.DESTRUCTIVE, 320) { s ->
-            val candidates = snap.countries.filter { it.parent.isEmpty() && it.name != p.name && it.name != info?.name }
+            val candidates = ClaimsStore.countries.filter { it.parent.isEmpty() && it.name != p.name && it.name != info?.name }
             var y = s.body.y
             fieldLabel(Rect(s.body.x, y, s.body.w, 9), tr("kami_claims.provinces.give.field")); y += 11
             select(Rect(s.body.x, y, s.body.w, CONTROL_H), candidates.map { countryOption(it) }, target, tr("kami_claims.provinces.choose_country"), key = "give-target")?.let { target = it }
@@ -218,7 +217,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
         val top = f.take(34)
         Flags.draw(ui.g, Rect(top.x, top.y + 2, 36, 26), info.parentColor, 0, 0, 0xFFFFFF)
         Draw.text(ui.g, tr("kami_claims.confirm.province.tribute", Vocabulary.tribute(info.taxMode, info.taxAmount)), top.x + 44, top.y + 4, TextStyle.HEADING)
-        Draw.text(ui.g, tr("kami_claims.provinces.status.estimate", Format.perDay(Format.money(estimate(info.taxMode, info.taxAmount, info.income))), info.provinceDebt, snap.maxProvinceDebt), top.x + 44, top.y + 16, if (info.provinceDebt > 0) Palette.danger else Palette.textMuted)
+        Draw.text(ui.g, tr("kami_claims.provinces.status.estimate", Format.perDay(Format.money(Vocabulary.tributeEstimate(info.taxMode, info.taxAmount, info.income + info.pendingDeposits))), info.provinceDebt, snap.maxProvinceDebt), top.x + 44, top.y + 16, if (info.provinceDebt > 0) Palette.danger else Palette.textMuted)
         val cols = f.take(100).columns(2, 10)
         rightsList(ui, cols[0], tr("kami_claims.provinces.rights.may", info.parent), snap.rights, Palette.warning, Icons.WARNING)
         rightsList(ui, cols[1], tr("kami_claims.provinces.rights.keep"), snap.kept, Palette.success, Icons.CHECK)
@@ -274,7 +273,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
         if (info.parent.isNotEmpty()) { f.take(12).let { Draw.text(ui.g, tr("kami_claims.error.province_nested"), it.x, it.y, Palette.textMuted) }; return }
         if (info.provinceRequests.isEmpty()) f.take(12).let { Draw.text(ui.g, tr("kami_claims.provinces.offers.requests.empty"), it.x, it.y, Palette.textMuted) }
         info.provinceRequests.forEach { name ->
-            val line = snap.countries.firstOrNull { it.name == name }
+            val line = ClaimsStore.countries.firstOrNull { it.name == name }
             val row = f.take(OFFER_H)
             Draw.sprite(ui.g, Sprites.CARD, row)
             ui.attention(row, app.isFocus("request:$name"))
@@ -316,8 +315,8 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
                 numberField(Rect(s.body.x, y, s.body.w, CONTROL_H), flat, 0, 100_000, unit = "◎", key = "flat")
             }
             y += CONTROL_H + 6
-            val estimate = if (mode == "percent") (income * percent / 100).toLong() else flat.value
-            property(Rect(s.body.x, y, s.body.w, 11), tr("kami_claims.provinces.terms.today"), "≈ ${Format.perDay(Format.money(estimate))}", Palette.money); y += 14
+            val owed = Vocabulary.tributeEstimate(mode, if (mode == "percent") percent.toInt() / 100.0 else flat.value.toDouble(), income)
+            property(Rect(s.body.x, y, s.body.w, 11), tr("kami_claims.provinces.terms.today"), "≈ ${Format.perDay(Format.money(owed))}", Palette.money); y += 14
             y += consequences(s.body.x, y, s.body.w, listOf(
                 Consequence(tr("kami_claims.provinces.terms.unpaid")),
                 Consequence(tr("kami_claims.provinces.terms.later"))
@@ -344,7 +343,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
                     g.blitSprite(Illustrations.PROVINCE, b.x, y, 32, 32)
                     y += maxOf(36, Draw.paragraph(g, tr("kami_claims.provinces.sign.intro", o.name, info.name), b.x + 40, y + 2, b.w - 40) + 6)
                     property(Rect(b.x, y, b.w, 11), tr("kami_claims.help.term.tribute"), Vocabulary.tribute(o.mode, o.amount), Palette.money); y += 13
-                    property(Rect(b.x, y, b.w, 11), tr("kami_claims.provinces.terms.today"), tr("kami_claims.provinces.sign.estimate", Format.perDay(Format.money(estimate(o.mode, o.amount, info.income))), Format.money(info.income)), Palette.money); y += 13
+                    property(Rect(b.x, y, b.w, 11), tr("kami_claims.provinces.terms.today"), tr("kami_claims.provinces.sign.estimate", Format.perDay(Format.money(Vocabulary.tributeEstimate(o.mode, o.amount, info.income + info.pendingDeposits))), Format.money(info.income + info.pendingDeposits)), Palette.money); y += 13
                     property(Rect(b.x, y, b.w, 11), tr("kami_claims.provinces.sign.unpaid"), tr("kami_claims.provinces.sign.unpaid.value", o.name), Palette.warning); y += 13
                     property(Rect(b.x, y, b.w, 11), tr("kami_claims.provinces.sign.expires"), Format.until(o.until)); y += 17
                     if (info.provinces.isNotEmpty()) y += callout(Rect(b.x, y, b.w, 0), Severity.WARNING, tr("kami_claims.provinces.sign.nested", trn("kami_claims.unit.province", info.provinces.size), o.name)) + 4
@@ -408,7 +407,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
     private fun inviteDialog() {
         var target: String? = null
         app.open(Dialog(tr("kami_claims.provinces.start.invite"), null, Icons.INVITE, DialogKind.CONFIRM, 300) { s ->
-            val candidates = snap.countries.filter { it.parent.isEmpty() && it.name != info?.name }
+            val candidates = ClaimsStore.countries.filter { it.parent.isEmpty() && it.name != info?.name }
             var y = s.body.y
             fieldLabel(Rect(s.body.x, y, s.body.w, 9), tr("kami_libs.common.country")); y += 11
             select(Rect(s.body.x, y, s.body.w, CONTROL_H), candidates.map { countryOption(it) }, target, tr("kami_claims.provinces.choose_country"), key = "invite-target")?.let { target = it }
@@ -418,7 +417,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
             dialogButtons(s, tr("kami_claims.provinces.invite.action"), target != null, tr("kami_claims.provinces.choose_country.first")) {
                 s.close()
                 val name = target ?: return@dialogButtons
-                val line = snap.countries.firstOrNull { it.name == name }
+                val line = ClaimsStore.countries.firstOrNull { it.name == name }
                 termsDialog(tr("kami_claims.provinces.terms.title", name), "province_invite", name, "percent", 0.1, line?.income ?: 0)
             }
         })
@@ -427,7 +426,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
     private fun requestDialog() {
         var target: String? = null
         app.open(Dialog(tr("kami_claims.provinces.start.request"), null, Icons.CHAIN, DialogKind.CONFIRM, 320) { s ->
-            val candidates = snap.countries.filter { it.parent.isEmpty() && it.name != info?.name }
+            val candidates = ClaimsStore.countries.filter { it.parent.isEmpty() && it.name != info?.name }
             var y = s.body.y
             fieldLabel(Rect(s.body.x, y, s.body.w, 9), tr("kami_claims.provinces.overlord")); y += 11
             select(Rect(s.body.x, y, s.body.w, CONTROL_H), candidates.map { countryOption(it) }, target, tr("kami_claims.provinces.choose_country"), key = "request-target")?.let { target = it }

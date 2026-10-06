@@ -402,6 +402,10 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
             } else {
                 val c = ClientClaims.country(e)
                 lines += Vocabulary.relationLabel(c?.relation ?: 0) to Vocabulary.relationColor(c?.relation ?: 0)
+                c?.let {
+                    lines += tr("kami_claims.warpage.reputation.short", Format.number(it.reputation)) to WarPage.reputationColor(it.reputation)
+                    lines += tr("kami_claims.warpage.fame.short", it.fame?.let(WarPage::stars) ?: "-") to Palette.brass
+                }
                 ClientClaims.typeName(e)?.let { lines += (if (e.flags and View.CAPITAL != 0) tr("kami_claims.map.chunk.capital", Vocabulary.type(it).label) else Vocabulary.type(it).label) to Vocabulary.type(it).color }
                 if (e.flags and View.MINE != 0) lines += tr("kami_claims.map.chunk.mine") to Palette.money
                 if (e.flags and View.CLAIMABLE != 0) lines += tr("kami_claims.map.chunk.claimable") to Palette.success

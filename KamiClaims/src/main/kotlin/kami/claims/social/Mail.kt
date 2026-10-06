@@ -40,6 +40,5 @@ object Mail {
         }
         own?.clear()
         Realm.data.letters.remove(id)
-        Realm.dirty = true
     }
 }

@@ -52,6 +52,14 @@ class ViewTest {
     }
 
     @Test
+    fun powerOnlyForMembersAndAdmins() {
+        val (c, _) = land()
+        assertNull(Sync.power(c, "stranger", false))
+        assertNotNull(Sync.power(c, "cit", false))
+        assertNotNull(Sync.power(c, "stranger", true))
+    }
+
+    @Test
     fun strangerSeesNothingOnOtherTypes() {
         val (c, _) = land()
         val farm = Claim(c.id, dim, 1, 0, "farm").also { Realm.add(it) }

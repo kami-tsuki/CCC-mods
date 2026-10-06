@@ -10,7 +10,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class OwnerTreeTest {
+class OwnerTreeTest : WithDb() {
     private val json = Configs.json()
     private val open = ResearchSettings(baseline = emptyList(), locked = emptyList())
 

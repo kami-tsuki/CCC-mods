@@ -5,7 +5,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class ProgressXpTest {
+class ProgressXpTest : WithDb() {
     private fun country(): Country {
         val c = Country("alpha", treasury = 1000)
         Realm.data.countries[c.id] = c

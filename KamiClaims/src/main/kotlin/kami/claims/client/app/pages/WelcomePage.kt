@@ -59,7 +59,7 @@ class WelcomePage(app: ClaimsApp) : ClaimsPage(app) {
         ui.anchor("welcome:found", cards[0])
         ui.anchor("welcome:join", cards[1])
         choice(ui, cards[0], Illustrations.FOUND, tr("kami_claims.welcome.found.title"), listOf(tr("kami_claims.wizard.confirm.free", trn("kami_claims.unit.chunk", snap.freeChunks)), tr("kami_claims.welcome.found.president")), tr("kami_claims.welcome.found.action"), "found") { openWizard() }
-        val countries = snap.countries.size
+        val countries = ClaimsStore.countries.size
         choice(ui, cards[1], Illustrations.CITIZENS, tr("kami_claims.welcome.join.title"), listOf(tr("kami_claims.welcome.join.count", trn("kami_claims.unit.country", countries)), tr("kami_claims.welcome.join.jobs")), tr("kami_claims.welcome.join.action"), "join") { app.navigate(Route("world")) }
         val list = r.dropTop(below + CHOICE_H + 8)
         ui.anchor("welcome:invites", list)
@@ -70,7 +70,7 @@ class WelcomePage(app: ClaimsApp) : ClaimsPage(app) {
         }
         var y = body.y
         snap.invites.forEach { name ->
-            val line = snap.countries.firstOrNull { it.name == name }
+            val line = ClaimsStore.countries.firstOrNull { it.name == name }
             val row = Rect(body.x, y, body.w, 24)
             Draw.sprite(ui.g, Sprites.CARD, row)
             Flags.draw(ui.g, Rect(row.x + 6, row.y + 6, 16, 12), line?.color ?: 0x888888, line?.flag?.pattern ?: 0, line?.flag?.emblem ?: 0, line?.flag?.secondary ?: 0xFFFFFF)

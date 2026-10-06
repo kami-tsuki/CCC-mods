@@ -37,7 +37,7 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
         Callout("relations:lists", tr("kami_claims.nav.relations"), tr("kami_claims.relations.help.lists.desc")),
         Callout("relations:add", tr("kami_libs.common.add"), tr("kami_claims.relations.help.add.desc"))
     )
-    override val sections = listOf("world")
+    override val sections = listOf(ClaimsStore.WORLD)
     private val name = TextState()
     private val table = TableState<Mem>()
     private val countries = TableState<Line>()
@@ -51,7 +51,7 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
 
     override fun draw(ui: Ui, r: Rect) {
         val info = info ?: return
-        val rows = snap.countries.filter { it.name != info.name }
+        val rows = ClaimsStore.countries.filter { it.name != info.name }
         val offers = rows.count { it.alliance == "offer_in" }
         val tabs = r.top(CONTROL_H)
         ui.subTabs(tabs, listOf(
@@ -64,14 +64,16 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
 
     private fun trade(ui: Ui, r: Rect, rows: List<Line>) {
         val detailW = if (app.compact) 0 else (r.w * 0.45).toInt().coerceIn(170, 240)
-        ui.table(r.dropRight(detailW, if (detailW > 0) 8 else 0), listOf(
+        val list = r.dropRight(detailW, if (detailW > 0) 8 else 0)
+        ui.table(list, listOf(
             Column<Line>(tr("kami_libs.common.country"), -1, sort = compareBy { it.name.lowercase() }) { _, c, l ->
                 Flags.draw(g, Rect(c.x, c.y + 2, 14, 10), l.color, l.flag.pattern, l.flag.emblem, l.flag.secondary)
                 Draw.text(g, Draw.fit(l.name, c.w - 18), c.x + 18, c.y + 3, Palette.text)
             },
             Column.text<Line>(tr("kami_libs.common.status"), 80, color = { tradeColor(it) }) { tradeLabel(it) },
             Column.text<Line>(tr("kami_claims.trade.tariff"), 50) { if (it.tariff > 0) "${it.tariff}%" else "-" }
-        ), rows, countries, { it.name }, emptyText = tr("kami_claims.world.empty.countries"))
+        ), rows, countries, { it.name }, emptyText = tr("kami_claims.world.empty.countries"), loading = loading(ClaimsStore.WORLD))
+        ui.staleRows(list, stale(ClaimsStore.WORLD))
         if (detailW > 0) (rows.firstOrNull { it.name in countries.selected } ?: rows.firstOrNull())?.let { tradeDetail(ui, r.right(detailW), it) }
     }
 
@@ -209,7 +211,7 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
 class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
     override val title get() = tr("kami_claims.nav.world")
     override val needsCountry = false
-    override val sections = listOf("world")
+    override val sections = listOf(ClaimsStore.WORLD)
     override val help get() = listOf(
         Callout("world:tabs", tr("kami_claims.nav.world"), tr("kami_claims.world.help.tabs.desc")),
         Callout("world:detail", tr("kami_claims.citizens.help.profile"), tr("kami_claims.world.help.detail.desc"))
@@ -225,7 +227,7 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
 
     override fun draw(ui: Ui, r: Rect) {
         val body = ui.filterBar(r, "world:tabs") { tabs ->
-            ui.subTabs(tabs.dropRight(160), listOf(TabItem(tr("kami_claims.help.countries"), Icons.FLAG, snap.countries.size, Severity.NEUTRAL), TabItem(tr("kami_claims.world.players"), Icons.PEOPLE, snap.players.size, Severity.NEUTRAL)), tab, "world-tabs")?.let { tab = it }
+            ui.subTabs(tabs.dropRight(160), listOf(TabItem(tr("kami_claims.help.countries"), Icons.FLAG, ClaimsStore.countries.size, Severity.NEUTRAL), TabItem(tr("kami_claims.world.players"), Icons.PEOPLE, ClaimsStore.players.size, Severity.NEUTRAL)), tab, "world-tabs")?.let { tab = it }
             ui.searchField(tabs.right(154), search, tr(if (tab == 0) "kami_claims.world.search.countries" else "kami_claims.world.search.players"), key = "world-search")
         }
         val detailW = if (app.compact) 0 else (body.w * 0.4).toInt().coerceIn(160, 230)
@@ -234,7 +236,7 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
         ui.anchor("world:detail", detail)
         val q = SearchQuery.parse(search.text)
         if (tab == 0) {
-            val rows = snap.countries.filter { q.matches(it.name) }
+            val rows = ClaimsStore.countries.filter { q.matches(it.name) }
             ui.table(list, listOf(
                 Column<Line>(tr("kami_libs.common.country"), -1, sort = compareBy { it.name.lowercase() }) { _, c, l ->
                     Flags.draw(g, Rect(c.x, c.y + 2, 14, 10), l.color, l.flag.pattern, l.flag.emblem, l.flag.secondary)
@@ -244,15 +246,19 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
                 Column.number<Line>(tr("kami_claims.world.researched"), 64) { it.researched.toLong() },
                 Column.number<Line>(tr("kami_claims.nav.citizens"), 56) { it.members.toLong() },
                 Column.number<Line>(tr("kami_claims.nav.chunks"), 50) { it.chunks.toLong() },
+                Column.number<Line>(tr("kami_claims.warpage.reputation"), 58, color = { WarPage.reputationColor(it.reputation) }) { it.reputation.toLong() },
+                Column.number<Line>(tr("kami_claims.warpage.fame"), 50, color = { Palette.brass }, format = { if (it < 0) "-" else WarPage.stars(it / 10.0) }) { l -> l.fame?.let { (it * 10).toLong() } ?: -1 },
                 Column.text<Line>(tr("kami_claims.relations.col.relation"), 70, color = { relationColor(it.relation) }) { relationLabel(it.relation) }
-            ), rows, countries, { it.name }, emptyText = tr("kami_claims.world.empty.countries"))
+            ) + listOfNotNull(Column.number<Line>(tr("kami_claims.kpi.power"), 44, format = { WarPage.power(it / 10.0) }) { l -> ((l.power ?: 0.0) * 10).toLong() }.takeIf { snap.admin }), rows, countries, { it.name }, emptyText = tr("kami_claims.world.empty.countries"), loading = loading(ClaimsStore.WORLD))
+            ui.staleRows(list, stale(ClaimsStore.WORLD))
             if (detailW > 0) rows.firstOrNull { it.name in countries.selected }?.let { country(ui, detail, it) }
         } else {
-            val rows = snap.players.filter { q.matches(it.name) }
+            val rows = ClaimsStore.players.filter { q.matches(it.name) }
             ui.table(list, listOf(
                 Column<PlayerLine>(tr("kami_claims.relations.col.player"), -1, sort = compareBy { it.name.lowercase() }) { _, c, p -> avatar(p.id, c.x, c.y + 1, 12, p.online); Draw.text(g, p.name, c.x + 16, c.y + 3, Palette.text) },
                 Column.text<PlayerLine>(tr("kami_libs.common.country"), 110, color = { if (it.citizenships.none { c -> c.via.isEmpty() }) Palette.textMuted else Palette.money }) { p -> p.citizenships.firstOrNull { it.via.isEmpty() }?.country ?: "-" }
-            ), rows, players, { it.id }, emptyText = tr("kami_claims.world.empty.players"))
+            ), rows, players, { it.id }, emptyText = tr("kami_claims.world.empty.players"), loading = loading(ClaimsStore.WORLD))
+            ui.staleRows(list, stale(ClaimsStore.WORLD))
             if (detailW > 0) rows.firstOrNull { it.id in players.selected }?.let { player(ui, detail, it) }
         }
     }
@@ -269,6 +275,9 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
         ui.property(f.take(11), tr("kami_claims.rank.president"), l.president.ifEmpty { "-" })
         ui.property(f.take(11), tr("kami_claims.world.level"), Format.number(l.level))
         ui.property(f.take(11), tr("kami_claims.world.researched"), Format.number(l.researched))
+        ui.property(f.take(11), tr("kami_claims.warpage.reputation"), Format.number(l.reputation), WarPage.reputationColor(l.reputation))
+        ui.property(f.take(11), tr("kami_claims.warpage.fame"), l.fame?.let(WarPage::stars) ?: tr("kami_claims.warpage.fame.hidden"), Palette.brass)
+        l.power?.let { ui.property(f.take(11), tr("kami_claims.kpi.power"), WarPage.power(it)) }
         ui.property(f.take(11), tr("kami_claims.nav.citizens"), Format.number(l.members))
         ui.property(f.take(11), tr("kami_claims.kpi.land"), trn("kami_claims.unit.chunk", l.chunks))
         ui.property(f.take(11), tr("kami_claims.world.founded"), if (l.founded > 0) Format.ago(l.founded) else "-")

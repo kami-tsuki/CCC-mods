@@ -2,6 +2,7 @@ package kami.economy
 
 import kami.libs.config.ConfigModule
 import kami.libs.config.Section
+import kami.libs.util.Time.DAY_MS
 import kotlinx.serialization.Serializable
 import kotlin.math.roundToInt
 
@@ -28,7 +29,7 @@ data class Settings(
     val auctionSlots: Int = 5,
     val lots: Map<String, Int> = emptyMap(),
     val auctionFeePct: Double = 0.05,
-    val auctionDurationMillis: Long = 3 * 24 * 60 * 60 * 1000L,
+    val auctionDurationMillis: Long = 3 * DAY_MS,
     val auctionCheckIntervalTicks: Int = 20 * 60,
 
     val starterGoods: List<StarterGood> = emptyList(),
@@ -60,6 +61,7 @@ data class Settings(
 
     val taxPct: Int get() = (sellTaxPct * 100).roundToInt()
     val allyTaxPct: Int get() = (allyTaxRate * 100).roundToInt()
+    val auctionFeeBps: Int get() = (auctionFeePct * 10_000).roundToInt()
 
     val bandLow: Double get() = band.getOrNull(0)?.takeIf { it in 0.01..1.0 } ?: 0.5
     val bandHigh: Double get() = band.getOrNull(1)?.takeIf { it in 1.0..100.0 } ?: 2.0
@@ -70,7 +72,7 @@ data class Settings(
     fun validAmount(amount: Int) = amount in 1..maxAmount
 }
 
-private fun Settings.sane(): Settings = copy(
+internal fun Settings.sane(): Settings = copy(
     marketTickInterval = marketTickInterval.coerceAtLeast(20),
     sellTaxPct = sellTaxPct.coerceIn(0.0, 0.9),
     allyTaxRate = allyTaxRate.coerceIn(0.0, 0.9),

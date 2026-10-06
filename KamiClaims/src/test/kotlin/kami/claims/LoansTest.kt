@@ -10,7 +10,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class LoansTest {
+class LoansTest : WithDb() {
     private var today = 0L
 
     @AfterTest

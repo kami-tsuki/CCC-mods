@@ -2,6 +2,8 @@ package kami.claims.net
 
 import kami.claims.*
 import kami.claims.economy.Bank
+import kami.claims.economy.Treasury
+import kami.libs.admin.Subject
 import kami.claims.research.Buffs
 import kami.claims.research.Capacity
 import kami.claims.research.Features
@@ -23,6 +25,7 @@ import kami.claims.service.View
 import kami.claims.social.Perms
 import kami.claims.war.Fame
 import kami.claims.war.Joining
+import kami.claims.war.Power
 import kami.claims.war.SafeChunks
 import kami.claims.war.Stakes
 import kami.claims.war.War
@@ -42,7 +45,7 @@ import kotlin.math.roundToInt
     val name: String, val members: Int, val chunks: Int, val color: Int = 0, val flag: FlagLine = FlagLine(), val parent: String = "",
     val provinces: Int = 0, val president: String = "", val founded: Long = 0, val relation: String = "", val capitalX: Int = 0, val capitalZ: Int = 0, val income: Long = 0,
     val trade: String = "neutral", val alliance: String = "", val tariff: Int = 0, val theirTariff: Int = 0, val embargo: Boolean = false,
-    val level: Int = 1, val researched: Int = 0, val reputation: Int = 0, val fame: Double? = null, val atWar: Boolean = false, val myRating: Int = 0
+    val level: Int = 1, val researched: Int = 0, val reputation: Int = 0, val fame: Double? = null, val atWar: Boolean = false, val myRating: Int = 0, val power: Double? = null
 )
 @Serializable class Mem(
     val id: String, val name: String, val rank: String, val jobs: List<String> = emptyList(), val progress: Map<String, Int> = emptyMap(), val seen: Long = 0,
@@ -66,7 +69,8 @@ import kotlin.math.roundToInt
     val lock: String = "", val level: Int = 0, val custom: Boolean = false
 )
 @Serializable class MineLine(val category: String, val price: Int, val debt: Long, val limit: Long)
-@Serializable class HomeLine(val country: String, val dim: String, val x: Int, val z: Int, val state: String, val rent: Int, val debt: Long, val until: Long, val category: String, val credit: Long = 0, val nextBill: Long = 0)
+@Serializable class PersonalView(val subject: String, val homes: List<HomeLine>, val funds: Long)
+@Serializable class HomeLine(val country: String, val dim: String, val x: Int, val z: Int, val state: String, val rent: Int, val debt: Long, val until: Long, val category: String, val credit: Long = 0, val nextBill: Long = 0, val room: Long = 0)
 @Serializable class Break(val type: String, val count: Int, val perDay: Double)
 @Serializable class ProvinceOfferLine(val name: String, val mode: String, val amount: Double, val until: Long = 0, val answered: Boolean = false, val color: Int = 0, val members: Int = 0, val chunks: Int = 0)
 @Serializable class ProvinceLine(
@@ -108,7 +112,7 @@ import kotlin.math.roundToInt
     val granted: List<String> = emptyList(), val overlordManage: Boolean = false, val overlordAccess: Map<String, String> = emptyMap(),
     val wars: List<WarLine> = emptyList(), val reputation: Int = 0, val fame: Double? = null, val fameCount: Int = 0,
     val warDebts: Map<String, Long> = emptyMap(), val warOverlord: String = "", val safeChunks: List<SafeLine> = emptyList(), val safeLimit: Int = 0,
-    val cooldownUntil: Long = 0
+    val cooldownUntil: Long = 0, val power: Double? = null
 ) {
     val citizenRent get() = offer.rent["citizen"] ?: 0
 }
@@ -133,7 +137,7 @@ import kotlin.math.roundToInt
     val history: List<DayLine> = emptyList(), val preview: PreviewLine? = null, val limits: Limits? = null,
     val rights: List<String> = emptyList(), val kept: List<String> = emptyList(), val me: String = "", val dim: String = "", val rank: String = "",
     val homes: List<HomeLine> = emptyList(), val extraRids: List<Int> = emptyList(), val admin: Boolean = false, val war: List<WarHud> = emptyList(),
-    val names: List<String> = emptyList()
+    val names: List<String> = emptyList(), val personal: PersonalView? = null
 )
 
 class Reply(val msg: String = "", val ok: Boolean = true, val rid: Int = 0, val reason: String = "", val target: Key? = null, val extraRids: List<Int> = emptyList())
@@ -145,6 +149,7 @@ object Sync {
     private val watching = HashMap<UUID, Set<String>>()
     private val previews = HashMap<UUID, PreviewLine>()
     private val suggestions = HashMap<UUID, List<String>>()
+    private val subjects = HashMap<UUID, String>()
 
     fun focus(p: ServerPlayer, x: Int, z: Int) { focus[p.uuid] = Key(Service.here(p).dim, x, z) }
     fun viewed(p: ServerPlayer): Country? =
@@ -152,8 +157,10 @@ object Sync {
 
     fun view(p: ServerPlayer, name: String) { if (name.isBlank()) viewing.remove(p.uuid) else viewing[p.uuid] = name }
     fun watch(p: ServerPlayer, sections: List<String>) { watching[p.uuid] = sections.toSet() }
-    fun reset() { focus.clear(); viewing.clear(); watching.clear(); previews.clear(); suggestions.clear() }
-    fun forget(p: ServerPlayer) { focus.remove(p.uuid); viewing.remove(p.uuid); watching.remove(p.uuid); previews.remove(p.uuid); suggestions.remove(p.uuid) }
+    fun subject(p: ServerPlayer, raw: String) { if (raw.isBlank()) subjects.remove(p.uuid) else subjects[p.uuid] = raw.trim() }
+    fun subject(p: ServerPlayer): UUID? = subjects[p.uuid]?.let { Subject.resolve(p, it) }
+    fun reset() { focus.clear(); viewing.clear(); watching.clear(); previews.clear(); suggestions.clear(); subjects.clear() }
+    fun forget(p: ServerPlayer) { focus.remove(p.uuid); viewing.remove(p.uuid); watching.remove(p.uuid); previews.remove(p.uuid); suggestions.remove(p.uuid); subjects.remove(p.uuid) }
 
     fun preview(p: ServerPlayer, kind: String, type: String, plan: Plan, key: String) {
         previews[p.uuid] = PreviewLine(kind, type, plan.cells.map { PreviewCell(it.key.x, it.key.z, it.outcome.name, it.reason?.json() ?: "") }, plan.costNow, plan.upkeepPerDay, key)
@@ -288,7 +295,7 @@ object Sync {
         }
 
     private fun homes(me: String): List<HomeLine> = Realm.data.claims.filter { it.owner == me && it.plot }.mapNotNull { cl ->
-        Realm.data.countries[cl.country]?.let { c -> HomeLine(c.name, cl.dim, cl.x, cl.z, cl.state.name.lowercase(), Housing.rate(c, cl), cl.rentDebt, cl.until, cl.category?.name?.lowercase().orEmpty(), cl.rentCredit, (today() + 1) * Config.s.dayMillis - now()) }
+        Realm.data.countries[cl.country]?.let { c -> HomeLine(c.name, cl.dim, cl.x, cl.z, cl.state.name.lowercase(), Housing.rate(c, cl), cl.rentDebt, cl.until, cl.category?.name?.lowercase().orEmpty(), cl.rentCredit, (today() + 1) * Config.s.dayMillis - now(), Treasury.room(c)) }
     }
 
     fun names(p: ServerPlayer, text: String) { suggestions[p.uuid] = suggest(p, text.trim().take(16)) }
@@ -309,7 +316,7 @@ object Sync {
         val me = p.stringUUID
         val claims = Realm.claims(c.id)
         val sum = Upkeep.summary(c)
-        val borderTax = Buffs.tax(c)
+        val borderTax = Buffs.billedTax(c)
         val priv = delegated || View.privileged(c, me)
         val rank = if (delegated) Oversight.actingRank else Service.rankOf(c, p)
         val staff = s.can(rank, Cap.INVITE)
@@ -334,7 +341,7 @@ object Sync {
             } else emptyList(),
             if (provStaff) c.provinceRequests.filterValues { it > now() }.keys.mapNotNull { Realm.country(it)?.name } else emptyList(),
             c.provinces.mapNotNull { pid ->
-                Realm.country(pid)?.let { pr -> ProvinceLine(pr.name, pr.taxMode.name.lowercase(), pr.taxAmount, pr.provinceDebt, pr.independenceRequested, View.color(pr), pr.members.size, Realm.claims(pr.id).size, Upkeep.summary(pr).income, flag(pr), Oversight.canManage(pr)) }
+                Realm.country(pid)?.let { pr -> ProvinceLine(pr.name, pr.taxMode.name.lowercase(), pr.taxAmount, pr.provinceDebt, pr.independenceRequested, View.color(pr), pr.members.size, Realm.claims(pr.id).size, Upkeep.summary(pr).income + pr.pending, flag(pr), Oversight.canManage(pr)) }
             },
             delegated, flag(c), Realm.country(c.parent)?.let { View.color(it) } ?: 0, Provinces.cooldown(c), Alerts.nextBill(c), Realm.freeAllowed(c),
             c.created, c.moved, if (staff) pendingMembers(p, c.invites) else emptyList(), c.pending,
@@ -343,9 +350,11 @@ object Sync {
             if (c.parent == null) emptyMap() else Oversight.grantable.associate { it.name.lowercase() to (c.overlordCaps[it]?.name?.lowercase() ?: "off") },
             wars(c), c.reputation.roundToInt(), fame, Fame.count(c),
             c.warDebts.mapKeys { Wars.name(it.key) }, c.warOverlord?.let(Wars::name).orEmpty(),
-            SafeChunks.active(c).map { SafeLine(it.dim, it.x, it.z) }, SafeChunks.limit(c), c.warCooldownUntil
+            SafeChunks.active(c).map { SafeLine(it.dim, it.x, it.z) }, SafeChunks.limit(c), c.warCooldownUntil, power(c, me, Perms.has(p, Perms.ADMIN))
         )
     }
+
+    fun power(c: Country, viewer: String, admin: Boolean) = if (admin || viewer in c.members) Power.score(c) else null
 
     private fun sideOf(war: War, id: String) = when (war.side(id)) { null -> ""; war.attacker -> "attacker"; else -> "defender" }
 
@@ -393,6 +402,7 @@ object Sync {
         }
         val world = "world" in sections || c == null
         val fame = if (world) Fame.scores() else null
+        val admin = Perms.has(p, Perms.ADMIN)
         val countries = if (world) Realm.data.countries.values.filter { it.active }.map { x ->
             val capital = Realm.claims(x.id).firstOrNull { it.capital }
             Line(
@@ -403,7 +413,8 @@ object Sync {
                 tariff = own?.let { Diplomacy.policy(it, x).tariffPct } ?: 0, theirTariff = own?.let { Diplomacy.policy(x, it).tariffPct } ?: 0,
                 embargo = own?.let { Diplomacy.policy(it, x).embargo } ?: false,
                 level = Research.level(x), researched = x.research.done.size,
-                reputation = x.reputation.roundToInt(), fame = fame?.get(x.id), atWar = Wars.involved(x), myRating = x.ratings[me]?.stars ?: 0
+                reputation = x.reputation.roundToInt(), fame = fame?.get(x.id), atWar = Wars.involved(x), myRating = x.ratings[me]?.stars ?: 0,
+                power = if (admin) Power.score(x) else null
             )
         } else emptyList()
         val players = if (world) Realm.home.keys.map { id -> PlayerLine(id, Names.of(p.server, id), citizenships(id), online(p, id)) }.sortedBy { it.name } else emptyList()
@@ -422,7 +433,8 @@ object Sync {
             reply.rid, reply.reason, reply.target?.x ?: 0, reply.target?.z ?: 0, reply.target != null,
             Alerts.of(p, c, delegated), if (c != null && lead) Goals.of(c).map { GoalLine(it.text.json(), it.value, it.max, it.page.orEmpty()) } else emptyList(), ledger, history, previews.remove(p.uuid), limits(s),
             Provinces.delegatedRights, Provinces.keptRights, me, here.dim, own?.let { Service.rankOf(it, p).name.lowercase() } ?: "", homes(me), reply.extraRids,
-            Perms.has(p, Perms.ADMIN), warHud(own), suggestions.remove(p.uuid).orEmpty()
+            admin, warHud(own), suggestions.remove(p.uuid).orEmpty(),
+            subject(p)?.let { PersonalView(it.toString(), homes(it.toString()), Bank.funds(it)) }
         )
         return json.encodeToString(snap)
     }

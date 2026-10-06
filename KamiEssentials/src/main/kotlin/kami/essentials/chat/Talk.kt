@@ -7,6 +7,7 @@ import kami.essentials.Flag
 import kami.essentials.KamiEssentials
 import kami.essentials.Perms
 import kami.essentials.Store
+import kami.essentials.admin.Mutes
 import kami.essentials.discord.Relay
 import kami.essentials.vanish.Vanish
 import kami.libs.claims.Citizenship
@@ -25,6 +26,7 @@ import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
 import net.minecraft.ChatFormatting
 import net.minecraft.world.entity.player.ChatVisiblity
+import net.neoforged.neoforge.event.CommandEvent
 import net.neoforged.neoforge.event.ServerChatEvent
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -33,6 +35,7 @@ object Talk {
     val chat = Chat.of("essentials")
     private val partner = ConcurrentHashMap<UUID, UUID>()
     private const val BLURPLE = 0x5865F2
+    private val SPEECH = setOf("me", "teammsg", "tm")
 
     fun onChat(e: ServerChatEvent) {
         val p = e.player
@@ -40,7 +43,8 @@ object Talk {
         val admin = Store[Flag.ADMIN_CHAT, p.uuid] && Perms.has(p, Perms.ADMINCHAT)
         val relay = !e.isCanceled && !country && !admin && !Vanish.active(p)
         if (!Config.s.chat && !country && !admin) {
-            if (relay) Relay.chat(p, body(e.rawText, p).string)
+            if (Mutes.silenced(p)) e.isCanceled = true
+            else if (relay) Relay.chat(p, body(e.rawText, p).string)
             return
         }
         e.isCanceled = true
@@ -48,12 +52,19 @@ object Talk {
             admin -> admin(p, e.rawText)
             country -> country(p, e.rawText)
             Vanish.active(p) -> p.tell(chat.warn(Phrase.of("kami_essentials.talk.invisible", Phrase.value("/invis"), Phrase.value("/msg"))))
+            Mutes.silenced(p) -> Unit
             else -> {
                 val body = body(e.rawText, p)
                 if (relay) Relay.chat(p, body.string)
                 broadcast(p, line(channelTag(Config.s.channels.globalIcon, Config.s.channels.globalColor).append(Names.playerGlobal(p)), body)) { true }
             }
         }
+    }
+
+    fun onCommand(e: CommandEvent) {
+        val p = e.parseResults.context.source.player ?: return
+        val tokens = e.parseResults.reader.string.trim().removePrefix("/").split(' ')
+        if (tokens.withIndex().any { (i, t) -> (i == 0 || tokens[i - 1] == "run") && t.substringAfter(':').lowercase() in SPEECH } && Mutes.silenced(p)) e.isCanceled = true
     }
 
     fun direct(from: ServerPlayer?, to: ServerPlayer, text: String) {
@@ -77,6 +88,7 @@ object Talk {
     }
 
     fun country(p: ServerPlayer, text: String) {
+        if (Mutes.silenced(p)) return
         val c = Names.citizenship(p.uuid)
         if (c == null) {
             Store[Flag.COUNTRY_CHAT, p.uuid] = false

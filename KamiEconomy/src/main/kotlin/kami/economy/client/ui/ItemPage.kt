@@ -51,6 +51,8 @@ internal class ItemPage(val app: MarketApp) : Page() {
     private var style = ChartStyle.CANDLE
     private var vendorsOpen = false
     private val ticket = Ticket(app)
+    private val spans = HashMap<String, Span>()
+    private var waitFor: Detail? = null
 
     override val title get() = app.stack(item).hoverName.string
     override val subtitle get() = detail()?.let { tr("kami_economy.item.lot", it.lot) }
@@ -60,14 +62,21 @@ internal class ItemPage(val app: MarketApp) : Page() {
         Callout("item:ticket", tr("kami_economy.help.item.ticket"), tr("kami_economy.help.item.ticket.desc"))
     )
 
-    private fun detail(): Detail? = app.snap.detail?.takeIf { it.item == item }
+    private fun detail(): Detail? = app.detail(item)
+
+    private fun fetch() {
+        waitFor = detail()
+        app.request("detail", item, span.arg)
+    }
+
+    private val waiting get() = waitFor != null && detail() === waitFor
 
     override fun opened(route: Route) {
         val next = route.param("item") ?: return
         item = next
         vendorsOpen = false
         ticket.open(next, route.param("side") != "sell", route.param("kind") == "order")
-        app.request("detail", item, span.arg)
+        fetch()
     }
 
     override fun actionsWidth() = SMALL_H
@@ -87,20 +96,20 @@ internal class ItemPage(val app: MarketApp) : Page() {
 
     override fun draw(ui: Ui, r: Rect) {
         val d = detail()
+        if (d != null && d !== waitFor) spans[item] = span
         val stack = app.stack(item)
         val head = r.top(22)
         ui.itemSlot(head.left(22), stack, key = "detail:item")
-        d?.let { Draw.text(ui.g, Draw.fit(tr("kami_economy.item.held", unitsText(it.held, stack.maxStackSize)), head.w - 30), head.x + 30, head.y + 7, Palette.textSecondary) }
-        if (d != null) {
-            val delta = d.change.toLong()
-            ui.kpiRow(r.dropTop(26).top(34), listOf(
-                KpiTile(tr("kami_economy.col.buy"), priceText(d.buy.toLong()), color = Palette.money, tip = Tip.text(tr("kami_economy.kpi.buy", d.lot))),
-                KpiTile(tr("kami_economy.col.sell"), priceText(d.sell.toLong()), color = Palette.money, tip = Tip.text(tr("kami_economy.kpi.sell", d.lot))),
-                KpiTile(tr("kami_economy.item.spread"), if (d.buy > 0 && d.sell > 0) Format.money((d.buy - d.sell).toLong()) else "–", tip = Tip.text(tr("kami_economy.kpi.spread"))),
-                KpiTile(tr("kami_economy.col.change"), permille(delta), color = if (delta > 0) Palette.success else if (delta < 0) Palette.danger else Palette.textMuted, tip = Tip.text(tr("kami_economy.col.change.tip"))),
-                KpiTile(tr("kami_economy.item.sold_bought"), "${Format.compact(d.sold)} / ${Format.compact(d.bought)}", tip = Tip.text(tr("kami_economy.kpi.traded")))
-            ), key = "item-kpi")
-        }
+        if (d == null) ui.skeleton(Rect(head.x + 30, head.y + 7, (head.w - 30) / 3, 8))
+        else Draw.text(ui.g, Draw.fit(tr("kami_economy.item.held", unitsText(d.held, stack.maxStackSize)), head.w - 30), head.x + 30, head.y + 7, Palette.textSecondary)
+        val delta = d?.change?.toLong() ?: 0L
+        ui.kpiRow(r.dropTop(26).top(34), listOf(
+            KpiTile(tr("kami_economy.col.buy"), d?.let { priceText(it.buy.toLong()) }, color = Palette.money, tip = Tip.text(tr("kami_economy.kpi.buy", d?.lot ?: 1))),
+            KpiTile(tr("kami_economy.col.sell"), d?.let { priceText(it.sell.toLong()) }, color = Palette.money, tip = Tip.text(tr("kami_economy.kpi.sell", d?.lot ?: 1))),
+            KpiTile(tr("kami_economy.item.spread"), d?.let { if (it.buy > 0 && it.sell > 0) Format.money((it.buy - it.sell).toLong()) else "–" }, tip = Tip.text(tr("kami_economy.kpi.spread"))),
+            KpiTile(tr("kami_economy.col.change"), d?.let { permille(delta) }, color = if (delta > 0) Palette.success else if (delta < 0) Palette.danger else Palette.textMuted, tip = Tip.text(tr("kami_economy.col.change.tip"))),
+            KpiTile(tr("kami_economy.item.sold_bought"), d?.let { "${Format.compact(it.sold)} / ${Format.compact(it.bought)}" }, tip = Tip.text(tr("kami_economy.kpi.traded")))
+        ), key = "item-kpi")
         val main = r.dropTop(66)
         val ticketW = if (main.w < 440) main.w * 5 / 12 else TICKET_W
         left(ui, main.dropRight(ticketW, 8), d)
@@ -122,13 +131,16 @@ internal class ItemPage(val app: MarketApp) : Page() {
             val chart = Rect(c.x, c.y + HEAD_H + 4, c.w, CHART_H)
             ui.anchor("item:chart", chart)
             val open = d?.chart?.open?.toDouble()?.takeIf { it > 0 }
-            val hovered = ui.priceChart(chart, candles, style, open, d?.chart?.start ?: 0L, this::time)
-            chartHeader(ui, Rect(c.x, c.y, c.w, HEAD_H), hovered ?: candles.lastOrNull(), open, hovered != null)
+            val ready = d != null && (!waiting || spans[item] == span)
+            val hovered = if (ready) ui.priceChart(chart, candles, style, open, d?.chart?.start ?: 0L, this::time) else null
+            if (!ready) ui.skeleton(chart) else if (waiting) ui.staleVeil(chart)
+            chartHeader(ui, Rect(c.x, c.y, c.w, HEAD_H), if (ready) hovered ?: candles.lastOrNull() else null, open, hovered != null)
             var y = chart.bottom + 8
             ui.anchor("item:book", Rect(c.x, y, c.w, 12 + rows))
             Draw.text(ui.g, tr("kami_economy.market.book"), c.x, y, Palette.textSecondary)
             y += 12
-            if (asks.isEmpty() && bids.isEmpty()) Draw.text(ui.g, tr("kami_economy.market.book.empty"), c.x, y + 1, Palette.textMuted)
+            if (d == null) ui.skeletonLines(Rect(c.x, y, c.w, BOOK_ROW), 1)
+            else if (asks.isEmpty() && bids.isEmpty()) Draw.text(ui.g, tr("kami_economy.market.book.empty"), c.x, y + 1, Palette.textMuted)
             val most = (asks + bids).maxOfOrNull { it.amount } ?: 0
             asks.forEachIndexed { i, l -> bookRow(ui, Rect(c.x, y + i * BOOK_ROW, c.w, BOOK_ROW), l, Palette.danger, most, "ask$i", false) }
             y += asks.size * BOOK_ROW + BOOK_MID
@@ -146,7 +158,7 @@ internal class ItemPage(val app: MarketApp) : Page() {
             span = next
             MarketPrefs.prefs.chartRange = next.arg
             MarketPrefs.save()
-            app.request("detail", item, next.arg)
+            fetch()
         }
         val toggle = Rect(r.right - SMALL_H, r.bottom - SMALL_H, SMALL_H, SMALL_H)
         val candle = style == ChartStyle.CANDLE

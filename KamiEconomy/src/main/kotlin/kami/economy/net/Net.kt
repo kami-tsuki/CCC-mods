@@ -1,6 +1,7 @@
 package kami.economy.net
 
 import kami.economy.LOG
+import kami.libs.admin.Subject
 import kami.libs.claims.ClaimsApi
 import kami.libs.claims.Locks
 import kami.libs.text.Phrase
@@ -18,6 +19,9 @@ import kami.economy.economy.Limits
 import kami.economy.economy.Matching
 import kami.economy.economy.Notify
 import kami.economy.economy.Stocks
+import kami.economy.economy.Auctions
+import kami.economy.economy.StackCodec
+import kami.economy.economy.TradeStatus
 import kami.economy.economy.SellResult
 import kami.economy.economy.BuyResult
 import kami.economy.economy.OrderResult
@@ -53,6 +57,7 @@ class PriceDelta(val entries: List<PriceEntry>) : CustomPacketPayload {
 }
 
 object Net {
+    private val ORDER_ACTS = setOf("cancel", "cancel_bid", "reprice", "reprice_bid")
     private val lastAct = TickCooldown(0)
     private val lastPrice = HashMap<String, Int>()
     private val openPlayers = HashSet<UUID>()
@@ -117,7 +122,7 @@ object Net {
             "open" -> { openPlayers += p.uuid; send(p, open = true) }
             "close" -> openPlayers -= p.uuid
             "view" -> {
-                Sync.view(p, a.args.getOrNull(0) ?: "dashboard", a.args.getOrNull(1) ?: "", a.args.getOrNull(2) ?: "")
+                Sync.view(p, a.args.getOrNull(0) ?: "dashboard", a.args.getOrNull(1) ?: "", a.args.getOrNull(2) ?: "", a.args.getOrNull(3) ?: "")
                 send(p)
             }
             "detail" -> {
@@ -135,6 +140,8 @@ object Net {
             else -> {
                 val tick = p.server.tickCount
                 if (!lastAct.ready(p.uuid, tick, Config.s.guiCooldown)) return
+                if (a.name in ORDER_ACTS && runCatching { Subject.requireSelf(p, Sync.subject(p)?.toString()) }.isFailure)
+                    return send(p, Phrase.of("kami_libs.admin.read_only").json(), false)
                 val revision = Market.revision
                 val (msg, ok) = try {
                     act(p, a.name, a.args)
@@ -345,9 +352,15 @@ object Net {
         return orderReply(me, Ledger.repriceBid(me, item, newPrice)) { Phrase.of("kami_economy.action.repriced", Phrase.money(newPrice.toLong())) to true }
     }
 
+    private fun statusItem(name: String, args: List<String>): String? = when (name) {
+        "auction_bid", "auction_buy" -> args.getOrNull(0)?.toLongOrNull()?.let(Auctions::find)?.let { StackCodec.itemId(it.stackData) }
+        else -> args.getOrNull(0)
+    }
+
     private fun act(p: ServerPlayer, name: String, args: List<String>): Pair<Phrase, Boolean> {
         val me = p.stringUUID
         Gate.denial(p.uuid, name)?.let { return it to false }
+        statusItem(name, args)?.let { TradeStatus.denial(name, it) }?.let { return it to false }
         return try {
             when (name) {
                 "sell", "sell_market" -> sell(p, me, name == "sell_market", args)

@@ -14,7 +14,6 @@ object Counters {
         if (amount <= 0) return
         country.counters.merge(kind, amount, Long::plus)
         if (subject.isNotBlank()) country.counters.merge("$kind:$subject", amount, Long::plus)
-        Realm.dirty = true
         ResearchSync.refresh(country)
     }
 }

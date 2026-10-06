@@ -13,6 +13,7 @@ import kami.claims.service.Words.money
 import kami.claims.service.Words.v
 import kami.claims.social.Mail
 import kami.libs.chat.Tone
+import kami.libs.economy.CountryParty
 import kami.libs.text.Phrase
 import kotlin.math.abs
 
@@ -126,8 +127,8 @@ object WarDebt {
     internal fun transfer(from: Country, to: Country, amount: Long, kind: LedgerKind): Long {
         val want = amount.coerceAtMost(from.treasury)
         if (want <= 0) return 0
-        val got = Treasury.move(to, kind, want, note = from.name, capped = kind == LedgerKind.WAR_BILL || kind == LedgerKind.WAR_DEBT)
-        escrow(from, kind, -got, to.name)
+        val got = Treasury.move(to, kind, want, note = from.name, capped = kind == LedgerKind.WAR_BILL || kind == LedgerKind.WAR_DEBT, counterparty = CountryParty(from.id))
+        Treasury.move(from, kind, -got, note = to.name, capped = false, counterparty = CountryParty(to.id))
         return got
     }
 

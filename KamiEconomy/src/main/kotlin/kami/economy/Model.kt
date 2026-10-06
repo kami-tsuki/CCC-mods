@@ -4,14 +4,15 @@ import kami.economy.economy.Blacklist
 import kami.economy.economy.Catalog
 import kami.economy.economy.Ledger
 import kami.economy.economy.Stocks
-import kami.libs.config.WorldStore
+import kami.economy.economy.TradeStatus
+import kami.economy.db.MarketTables
+import kami.libs.db.Db
+import kami.libs.db.Session
 import kotlinx.serialization.Serializable
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceLocation
-import net.minecraft.server.MinecraftServer
 import net.minecraft.tags.TagKey
-import net.minecraft.world.level.storage.LevelResource
 
 fun now() = System.currentTimeMillis()
 
@@ -74,25 +75,31 @@ class Data(
 )
 
 object Market {
-    private val store = WorldStore(Data.serializer(), ::Data)
-    var data: Data
-        get() = store.data
-        set(value) { store.data = value }
+    var data = Data()
     var revision = 0L
         private set
-    var dirty: Boolean
-        get() = store.dirty
-        set(value) { if (value) { revision++; store.changed() } else store.dirty = false }
+    var dirty = false
+        set(value) { if (value) revision++; field = value }
+    private var attached = false
 
-    fun load(server: MinecraftServer) {
-        val path = server.getWorldPath(LevelResource.ROOT).resolve("kami_economy.json")
-        store.load(path) { LOG.error("Unreadable market data, kept as .bad", it) }
-        Ledger.attach(path.resolveSibling("kami_economy.wal"))
+    fun load() {
+        data = Db.read { MarketTables.read(this) }
+        MarketTables.all.forEach { it.prime(data) }
+        dirty = false
+        attached = true
+        Ledger.attach()
         data.books.values.forEach { if (it.sells.removeAll { o -> o.synthetic }) dirty = true }
+        TradeStatus.load()
         reindex()
         data.books.keys.removeAll { k -> data.books.getValue(k).let { it.sells.isEmpty() && it.buys.isEmpty() } && Stocks.good(k) == null && !Blacklist.sellable(k) }
         Ledger.recover()
         Catalog.relot()
+    }
+
+    fun unload() {
+        attached = false
+        Ledger.detach()
+        TradeStatus.unload()
     }
 
     private fun resolve(tag: String): List<String> =
@@ -100,14 +107,11 @@ object Market {
 
     fun reindex() {
         Catalog.merge(::resolve)
+        TradeStatus.reindex()
         Stocks.index({ ResourceLocation.tryParse(it)?.let(BuiltInRegistries.ITEM::containsKey) == true }, ::resolve)
     }
 
-    fun save(force: Boolean = false) {
-        val wasDirty = dirty || force
-        store.save(force)
-        if (wasDirty) runCatching { Ledger.compact() }.onFailure { LOG.error("Could not compact the ledger", it) }
-    }
+    internal fun changes(): List<(Session.() -> Unit)?> = if (attached) MarketTables.all.map { it.sync(data) } else emptyList()
 
     fun book(item: String): Book = data.books.getOrPut(item) { Book(item) }
 

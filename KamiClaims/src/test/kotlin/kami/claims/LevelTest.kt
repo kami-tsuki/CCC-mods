@@ -11,7 +11,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class LevelTest {
+class LevelTest : WithDb() {
     private var day = 1L
 
     private fun config(capacities: Map<Capacity, Int> = emptyMap(), rewards: Map<Int, List<Unlock>> = emptyMap()) =

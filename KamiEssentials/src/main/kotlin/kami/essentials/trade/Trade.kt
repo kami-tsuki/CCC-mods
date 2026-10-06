@@ -107,7 +107,9 @@ class Trade(val players: List<ServerPlayer>) {
         players.forEach { if (it.containerMenu is TradeMenu) it.closeContainer() }
     }
 
-    private fun give(p: ServerPlayer, items: List<ItemStack>) = items.forEach { p.inventory.placeItemBackInInventory(it) }
+    private fun give(p: ServerPlayer, items: List<ItemStack>) {
+        if (away(p.hasDisconnected(), p.isAlive)) Deliveries.send(p, items) else items.forEach { p.inventory.placeItemBackInInventory(it) }
+    }
 
     private fun fits(p: ServerPlayer, incoming: List<ItemStack>): Boolean {
         val slots = MutableList(36) { p.inventory.getItem(it).copy() }

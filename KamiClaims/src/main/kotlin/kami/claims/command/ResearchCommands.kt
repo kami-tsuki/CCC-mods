@@ -4,6 +4,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.LongArgumentType
 import kami.claims.Country
 import kami.claims.Realm
+import kami.claims.admin.CountryAdmin
 import kami.claims.research.Capacity
 import kami.claims.research.Gate
 import kami.claims.research.Levels
@@ -16,6 +17,7 @@ import kami.claims.service.Service
 import kami.claims.service.Words
 import kami.claims.service.Words.num
 import kami.claims.social.Perms
+import kami.libs.admin.Audit
 import kami.libs.chat.Theme
 import kami.libs.command.*
 import kami.libs.text.Phrase
@@ -31,7 +33,10 @@ private fun Ctx.act(name: String, vararg args: String) = ok(Service.act(me(), na
 
 private fun Ctx.target(): Country = Realm.country(text("country")) ?: fail(Phrase.of("kami_claims.error.unknown_country"))
 
-private fun Ctx.finished(name: String, target: Country) = ok(Phrase.of("kami_claims.research.admin.$name", Words.v(target.name)), true)
+private fun Ctx.finished(name: String, target: Country, node: String = "") {
+    Audit.record(source, "claims.research.$name", target.id, "", if (node.isEmpty()) emptyMap() else mapOf("node" to node))
+    ok(Phrase.of("kami_claims.research.admin.$name", Words.v(target.name)), true)
+}
 
 private fun status(country: Country, node: ResearchNode): Phrase {
     val state = when {
@@ -125,25 +130,25 @@ private fun Ctx.why() {
     }
 }
 
+private fun Ctx.adminStep(name: String, node: String?) = target().let { finished(name, it, CountryAdmin.research(it, name, node).orEmpty()) }
+
 fun adminResearchCmd(): Node {
-    fun step(name: String, action: (Country, String) -> Unit) = lit(name).then(word("country") { Realm.data.countries.keys }.then(word("node", ::nodeIds).does { ctx ->
-        val target = ctx.target()
-        action(target, Queue.key(target, ctx.text("node")))
-        ctx.finished(name, target)
-    }))
+    fun step(name: String) = lit(name).then(word("country") { Realm.data.countries.keys }.then(word("node", ::nodeIds).does { it.adminStep(name, it.text("node")) }))
     return lit("research").requires { Perms.has(it, Perms.RESEARCH_ADMIN) }
-        .then(step("grant", Queue::grant))
-        .then(step("revoke", Queue::revoke))
-        .then(step("finish", Queue::finish))
+        .then(step("grant"))
+        .then(step("revoke"))
+        .then(step("finish"))
         .then(lit("why").then(arg("player", GameProfileArgument.gameProfile()).then(arg("recipe", ResourceLocationArgument.id()).suggests { _, b -> SharedSuggestionProvider.suggestResource(Gate.resolution.gated.let { it.recipes + it.blocks }.map(ResourceLocation::parse), b) }.does { it.why() })))
         .then(lit("reset").then(word("country") { Realm.data.countries.keys }
-            .does { ctx -> ctx.target().let { Queue.reset(it, null); ctx.finished("reset", it) } }
-            .then(word("node", ::nodeIds).does { ctx -> ctx.target().let { Queue.reset(it, Queue.key(it, ctx.text("node"))); ctx.finished("reset", it) } })))
+            .does { it.adminStep("reset", null) }
+            .then(word("node", ::nodeIds).does { it.adminStep("reset", it.text("node")) })))
 }
 
 fun adminXpCmd(): Node = lit("xp").requires { Perms.has(it, Perms.RESEARCH_ADMIN) }
     .then(lit("add").then(word("country") { Realm.data.countries.keys }.then(arg("amount", LongArgumentType.longArg(1)).does { ctx ->
         val c = ctx.target()
-        Levels.award(c, LongArgumentType.getLong(ctx, "amount"))
+        val amount = LongArgumentType.getLong(ctx, "amount")
+        Levels.award(c, amount)
+        Audit.record(ctx.source, "claims.xp.add", c.id, "", mapOf("amount" to amount.toString()))
         ctx.ok(Phrase.of("kami_claims.level.admin.added", Words.v(c.name), num(c.xp)), true)
     })))

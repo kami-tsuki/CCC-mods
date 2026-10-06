@@ -16,5 +16,7 @@ object CleanStep {
 
     fun isClean(total: Long, rates: List<Int>): Boolean = total % q(rates) == 0L
 
-    fun charge(total: Long, ratePct: Int): Long = total * ratePct.coerceIn(0, 100) / 100
+    fun charge(total: Long, ratePct: Int): Long = bps(total, ratePct.coerceIn(0, 100) * 100)
+
+    fun bps(total: Long, bps: Int): Long = total * bps.coerceIn(0, 10_000) / 10_000
 }

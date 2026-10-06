@@ -11,6 +11,7 @@ import kami.claims.research.Buffs
 import kami.claims.research.Features
 import kami.claims.research.Levels
 import kami.libs.text.Phrase
+import kami.libs.util.Time.HOUR_MS
 import kotlin.math.max
 import kotlin.math.min
 
@@ -74,7 +75,7 @@ object Planner {
     fun unclaimLock(cl: Claim): Phrase? {
         if (cl.owner != null) return Phrase.of("kami_claims.error.plot_tenanted")
         val age = now() - cl.at
-        if (age < s.dayMillis) return Phrase.of("kami_claims.block.new", Phrase.of("kami_libs.unit.hour.short", ((s.dayMillis - age) / 3_600_000 + 1).toString()))
+        if (age < s.dayMillis) return Phrase.of("kami_claims.block.new", Phrase.of("kami_libs.unit.hour.short", ((s.dayMillis - age) / HOUR_MS + 1).toString()))
         if (cl.upkeepCycles < 1) return Phrase.of("kami_claims.block.upkeep_day")
         return null
     }

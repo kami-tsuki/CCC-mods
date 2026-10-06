@@ -12,6 +12,7 @@ import kami.claims.social.Mail
 import kami.libs.chat.Tone
 import kami.libs.log.Log
 import kami.libs.text.Phrase
+import kami.libs.util.Time.HOUR_MS
 import net.neoforged.neoforge.server.ServerLifecycleHooks
 import kotlin.math.min
 
@@ -24,7 +25,6 @@ object Queue {
     }
     var refreshCrafting: (Country) -> Unit = { RecipeFilter.refreshCrafting(it) }
 
-    private const val HOUR = 3_600_000L
     /** Longest real gap one update may count, so lag is caught up but a wall clock jump or a hang is not. */
     internal const val MAX_STEP_MS = 60_000L
     private const val XP_PER_NODE_LEVEL = 100L
@@ -74,7 +74,6 @@ object Queue {
         val added = min(amount, task.target - have)
         if (added <= 0) return 0
         entry.tasks[index] = have + added
-        Realm.dirty = true
         if (have + added >= task.target) {
             Levels.add(country, "tasks", 1.0)
             settle(country, entry, node)
@@ -92,7 +91,7 @@ object Queue {
         if (researching(country) >= Levels.capacity(country, Capacity.RESEARCH_SLOTS)) throw Fail("kami_claims.research.reason.slots")
         if (!entry.paid) {
             if (country.treasury < node.cost) throw Fail("kami_claims.loans.reason.funds", Words.money(node.cost))
-            Treasury.move(country, LedgerKind.RESEARCH, -node.cost, actor, key)
+            Treasury.bank(country, LedgerKind.RESEARCH, -node.cost, actor, key)
             entry.paid = true
         }
         entry.state = NodeState.RESEARCHING
@@ -142,7 +141,6 @@ object Queue {
             if (ms != entry.penaltyMs) {
                 entry.remainingMs += ms - entry.penaltyMs
                 entry.penaltyMs = ms
-                Realm.dirty = true
             }
             settle(country, entry, node)
         }
@@ -154,7 +152,6 @@ object Queue {
             entry.remainingMs -= step
             if (entry.remainingMs <= 0) Research.defs.node(entry.node)?.let { complete(country, it) }
         }
-        Realm.dirty = true
         ResearchSync.refresh(country)
     }
 
@@ -216,7 +213,6 @@ object Queue {
             if (task is HoldTask && (entry.tasks[index] ?: 0) < 1 && task.condition.met(country)) {
                 entry.tasks[index] = 1
                 Levels.add(country, "tasks", 1.0)
-                Realm.dirty = true
                 ResearchSync.touch(country)
             }
         }
@@ -234,7 +230,7 @@ object Queue {
 
     private fun countPlaytime(country: Country, memberMs: Long) {
         val total = (playtime[country.id] ?: 0) + memberMs
-        playtime[country.id] = total % HOUR
-        if (total >= HOUR) Levels.add(country, "playtime", (total / HOUR).toDouble())
+        playtime[country.id] = total % HOUR_MS
+        if (total >= HOUR_MS) Levels.add(country, "playtime", (total / HOUR_MS).toDouble())
     }
 }

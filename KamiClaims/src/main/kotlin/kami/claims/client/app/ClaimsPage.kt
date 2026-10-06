@@ -32,5 +32,8 @@ abstract class ClaimsPage(val app: ClaimsApp) : Page() {
         return true
     }
 
+    fun stale(section: String) = ClaimsStore.stale(section)
+    fun loading(section: String) = !ClaimsStore.loaded(section) || stale(section)
+
     fun minRank(cap: String): Rank = snap.caps[cap]?.let(::rankOf) ?: Rank.PRESIDENT
 }

@@ -54,7 +54,7 @@ fun Ui.property(r: Rect, label: String, value: String, color: Int = Palette.text
 class Trend(val delta: Long, val label: String, val goodWhenUp: Boolean = true)
 
 fun Ui.statTile(
-    r: Rect, label: String, value: String, icon: Icon? = null, color: Int = Palette.text, sub: String? = null, trend: Trend? = null,
+    r: Rect, label: String, value: String?, icon: Icon? = null, color: Int = Palette.text, sub: String? = null, trend: Trend? = null,
     spark: List<Long>? = null, flashValue: Long? = null, tip: Tip? = null, key: Any = "tile:$label"
 ): Boolean {
     val hover = hover(key, r)
@@ -63,9 +63,9 @@ fun Ui.statTile(
     var x = r.x + 5
     icon?.let { x += Draw.leadIcon(g, it, x, r.y + 9) }
     Draw.text(g, Draw.fit(label.uppercase(), r.right - x - 4), x, r.y + 5, Palette.textMuted)
-    val valueY = r.y + if (r.h >= 44) 19 else 17
+    val valueY = tileValueY(r)
     val sparkW = if ((spark?.size ?: 0) >= 2) 46 else 0
-    Draw.text(g, Draw.fit(value, r.w - 10 - sparkW, TextStyle.HEADING), r.x + 5, valueY, TextStyle.HEADING, color)
+    if (value == null) skeletonValue(r) else Draw.text(g, Draw.fit(value, r.w - 10 - sparkW, TextStyle.HEADING), r.x + 5, valueY, TextStyle.HEADING, color)
     var infoY = valueY + 12
     trend?.let { t ->
         val up = t.delta > 0
@@ -83,8 +83,10 @@ fun Ui.statTile(
     return pressed(r) != null
 }
 
+internal fun tileValueY(r: Rect) = r.y + if (r.h >= 44) 19 else 17
+
 class KpiTile(
-    val label: String, val value: String, val icon: Icon? = null, val color: Int = Palette.text, val sub: String? = null,
+    val label: String, val value: String?, val icon: Icon? = null, val color: Int = Palette.text, val sub: String? = null,
     val trend: Trend? = null, val spark: List<Long>? = null, val flashValue: Long? = null, val tip: Tip? = null, val onClick: (() -> Unit)? = null
 )
 
@@ -274,7 +276,7 @@ fun Ui.itemIcon(x: Int, y: Int, stack: ItemStack, key: Any) {
 
 const val ITEM_ICON = 16
 
-private fun Ui.itemTooltip(stack: ItemStack) = overlay(5) {
+internal fun Ui.itemTooltip(stack: ItemStack) = overlay(5) {
     val scale = UiScale.factor
     g.pose().pushPose()
     g.pose().setIdentity()

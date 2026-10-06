@@ -1,11 +1,11 @@
 package kami.economy.economy
 
-import kami.economy.LOG
 import kami.economy.Config
-import kami.libs.config.WorldStore
+import kami.economy.db.HistoryTables
+import kami.libs.db.Db
+import kami.libs.db.Session
+import kami.libs.util.Time.DAY_MS
 import kotlinx.serialization.Serializable
-import net.minecraft.server.MinecraftServer
-import net.minecraft.world.level.storage.LevelResource
 import java.util.ArrayDeque
 import java.util.concurrent.TimeUnit
 import kotlin.math.ceil
@@ -15,7 +15,6 @@ import kotlin.math.roundToInt
 
 private val FIVE_MIN = TimeUnit.MINUTES.toMillis(5)
 private val HOUR = TimeUnit.HOURS.toMillis(1)
-private val DAY_MS = TimeUnit.DAYS.toMillis(1)
 private const val ALL_POINTS = 180
 private const val MONTH_DAYS = 30
 
@@ -110,13 +109,13 @@ private class Track {
 }
 
 object History {
-    private val store = WorldStore(HistoryData.serializer(), ::HistoryData)
     private val tracks = HashMap<String, Track>()
-    private var dirty = false
+    private var attached = false
 
-    fun load(server: MinecraftServer) {
-        val path = server.getWorldPath(LevelResource.ROOT).resolve("kami_economy_history.json")
-        val data = store.load(path) { LOG.error("Unreadable price history, kept as .bad", it) }
+    fun load() {
+        val data = Db.read { HistoryTables.read(this) }
+        HistoryTables.all.forEach { it.prime(data) }
+        attached = true
         tracks.clear()
         data.items.forEach { (item, h) ->
             val t = Track()
@@ -127,29 +126,29 @@ object History {
         }
     }
 
-    fun save(force: Boolean = false) {
-        if (!dirty && !force) return
-        store.data = HistoryData(tracks.mapValuesTo(LinkedHashMap()) { (_, t) ->
+    fun unload() {
+        attached = false
+    }
+
+    internal fun changes(): List<(Session.() -> Unit)?> {
+        if (!attached) return emptyList()
+        val data = HistoryData(tracks.mapValuesTo(LinkedHashMap()) { (_, t) ->
             ItemHistory(
                 t.five.done.toMutableList(), t.hourly.done.toMutableList(), t.daily.done.toMutableList(),
                 t.five.acc, t.five.start, t.hourly.acc, t.hourly.start, t.daily.acc, t.daily.start
             )
         })
-        store.changed()
-        store.save(force)
-        dirty = false
+        return HistoryTables.all.map { it.sync(data) }
     }
 
     fun record(item: String, open: Double, high: Double, low: Double, close: Double, volume: Long) {
         val now = System.currentTimeMillis()
         val bucket = Bucket(open, high, low, close, volume, now)
         tracks.getOrPut(item) { Track() }.tiers.forEach { it.fold(bucket, now) }
-        dirty = true
     }
 
     fun scale(item: String, f: Double) {
-        tracks[item]?.tiers?.forEach { it.scale(f) } ?: return
-        dirty = true
+        tracks[item]?.tiers?.forEach { it.scale(f) }
     }
 
     fun change(item: String, now: Long): Int {
@@ -160,6 +159,8 @@ object History {
     }
 
     fun dayVolume(item: String, now: Long) = tracks[item]?.five?.volumeSince(now - DAY_MS) ?: 0L
+
+    fun dayVolume(now: Long = System.currentTimeMillis()) = tracks.values.sumOf { it.five.volumeSince(now - DAY_MS) }
 
     fun series(item: String, range: Range, now: Long, mid: Double): Series {
         val t = tracks[item] ?: Track()

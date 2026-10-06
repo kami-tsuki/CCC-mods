@@ -4,6 +4,7 @@ import kami.libs.ui.UiPrefs
 import kami.libs.ui.app.Callout
 import kami.libs.ui.app.Consequence
 import kami.libs.ui.app.Page
+import kami.libs.ui.app.Route
 import kami.libs.ui.app.confirmDialog
 import kami.libs.ui.core.Flow
 import kami.libs.ui.core.Rect
@@ -29,14 +30,29 @@ private fun Ui.toggleCard(r: Rect, title: String, icon: Icon, on: Boolean?, labe
     toggle(f.take(14), on == true, label, enabled = on != null, disabledReason = tr("kami_essentials.prefs.unavailable"), tip = tip, key = key)?.let(change)
 }
 
+private fun Ui.settingsSkeleton(r: Rect, cards: Int) {
+    val f = Flow(r.columns(2, 10)[0], 6)
+    repeat(cards) { skeletonTile(f.take(TOGGLE_CARD_H)) }
+}
+
 internal class InterfacePage : Page() {
+    private var dirty = false
     override val title get() = tr("kami_essentials.nav.interface")
     override val help get() = listOf(
         Callout("prefs:look", tr("kami_essentials.interface.look"), tr("kami_essentials.help.look")),
         Callout("prefs:feel", tr("kami_essentials.interface.feel"), tr("kami_essentials.help.feel"))
     )
 
+    private fun flush() {
+        if (!dirty) return
+        dirty = false
+        UiPrefs.save()
+    }
+
+    override fun leaving(next: Route): Boolean = true.also { flush() }
+
     override fun draw(ui: Ui, r: Rect) {
+        if (!ui.isDown()) flush()
         val p = UiPrefs.prefs
         val (left, right) = r.columns(2, 10)
         val lookBox = left.top(LOOK_H)
@@ -51,9 +67,9 @@ internal class InterfacePage : Page() {
         val feel = Flow(ui.card(feelBox, tr("kami_essentials.interface.feel"), Icons.EYE), 4)
         ui.toggle(feel.take(14), p.reduceMotion, tr("kami_essentials.interface.motion"), tip = tr("kami_essentials.interface.motion.tip"), key = "motion")?.let { p.reduceMotion = it; UiPrefs.save() }
         ui.fieldLabel(feel.take(9), tr("kami_essentials.interface.sounds"), Format.percent(p.sounds.toDouble()))
-        ui.slider(feel.take(CONTROL_H), p.sounds.toDouble(), 0.0, 1.0, 0.05, format = { Format.percent(it) }, key = "sounds")?.let { p.sounds = it.toFloat(); UiPrefs.save() }
+        ui.slider(feel.take(CONTROL_H), p.sounds.toDouble(), 0.0, 1.0, 0.05, format = { Format.percent(it) }, key = "sounds")?.let { p.sounds = it.toFloat(); UiPrefs.apply(); dirty = true }
         ui.fieldLabel(feel.take(9), tr("kami_essentials.interface.tooltip_delay"), "${Format.number(p.tooltipDelay)} ms")
-        ui.slider(feel.take(CONTROL_H), p.tooltipDelay.toDouble(), 0.0, 1500.0, 50.0, format = { "${Format.number(it.toLong())} ms" }, key = "tip-delay")?.let { p.tooltipDelay = it.toInt(); UiPrefs.save() }
+        ui.slider(feel.take(CONTROL_H), p.tooltipDelay.toDouble(), 0.0, 1500.0, 50.0, format = { "${Format.number(it.toLong())} ms" }, key = "tip-delay")?.let { p.tooltipDelay = it.toInt(); UiPrefs.apply(); dirty = true }
     }
 }
 
@@ -65,15 +81,16 @@ internal class ChatPage(private val app: PersonalApp) : Page() {
     )
 
     override fun draw(ui: Ui, r: Rect) {
-        val s = app.snap ?: return
+        val s = app.snap ?: return ui.settingsSkeleton(r, 2)
         val (left, right) = r.columns(2, 10)
         val box = left.top(CHANNEL_H)
         ui.anchor("prefs:channel", box)
         val f = Flow(ui.card(box, tr("kami_essentials.chat.channel"), Icons.SCROLL), 4)
-        ui.segmented(f.take(CONTROL_H), s.channels.map { Option(it, tr("kami_essentials.chat.channel.$it"), description = tr("kami_essentials.chat.channel.$it.desc")) }, s.channel, key = "channel")?.let { app.set("channel", it) }
+        val channel = app.shown("channel", s.channel)
+        ui.segmented(f.take(CONTROL_H), s.channels.map { Option(it, tr("kami_essentials.chat.channel.$it"), description = tr("kami_essentials.chat.channel.$it.desc")) }, channel, key = "channel")?.let { app.set("channel", it) }
         val hint = f.take(20)
-        Draw.paragraph(ui.g, tr("kami_essentials.chat.channel.${s.channel}.desc"), hint.x, hint.y, hint.w, maxLines = 2)
-        ui.toggleCard(right.top(TOGGLE_CARD_H), tr("kami_essentials.chat.messages"), Icons.BELL, s.dmSound, tr("kami_essentials.chat.dm_sound"), tr("kami_essentials.chat.dm_sound.tip"), "dm_sound") { app.set("dm_sound", it) }
+        Draw.paragraph(ui.g, tr("kami_essentials.chat.channel.$channel.desc"), hint.x, hint.y, hint.w, maxLines = 2)
+        ui.toggleCard(right.top(TOGGLE_CARD_H), tr("kami_essentials.chat.messages"), Icons.BELL, app.shown("dm_sound", s.dmSound), tr("kami_essentials.chat.dm_sound"), tr("kami_essentials.chat.dm_sound.tip"), "dm_sound") { app.set("dm_sound", it) }
     }
 }
 
@@ -85,11 +102,11 @@ internal class PlayerPage(private val app: PersonalApp) : Page() {
     )
 
     override fun draw(ui: Ui, r: Rect) {
-        val s = app.snap ?: return
+        val s = app.snap ?: return ui.settingsSkeleton(r, 3)
         val f = Flow(r.columns(2, 10)[0], 6)
-        ui.toggleCard(f.take(TOGGLE_CARD_H), tr("kami_essentials.player.trading"), Icons.HANDSHAKE, s.trades, tr("kami_essentials.player.trades"), tr("kami_essentials.player.trades.tip"), "trades") { app.set("trades", it) }
-        ui.toggleCard(f.take(TOGGLE_CARD_H), tr("kami_essentials.player.sidebar"), Icons.LEDGER, s.sidebar, tr("kami_essentials.player.sidebar.show"), tr("kami_essentials.player.sidebar.tip"), "sidebar") { app.set("sidebar", it) }
-        if (s.invisible != null) ui.toggleCard(f.take(TOGGLE_CARD_H), tr("kami_essentials.player.staff"), Icons.EYE, s.invisible, tr("kami_essentials.player.invisible"), tr("kami_essentials.player.invisible.tip"), "invisible") { app.set("invisible", it) }
+        ui.toggleCard(f.take(TOGGLE_CARD_H), tr("kami_essentials.player.trading"), Icons.HANDSHAKE, app.shown("trades", s.trades), tr("kami_essentials.player.trades"), tr("kami_essentials.player.trades.tip"), "trades") { app.set("trades", it) }
+        ui.toggleCard(f.take(TOGGLE_CARD_H), tr("kami_essentials.player.sidebar"), Icons.LEDGER, app.shown("sidebar", s.sidebar), tr("kami_essentials.player.sidebar.show"), tr("kami_essentials.player.sidebar.tip"), "sidebar") { app.set("sidebar", it) }
+        if (s.invisible != null) ui.toggleCard(f.take(TOGGLE_CARD_H), tr("kami_essentials.player.staff"), Icons.EYE, app.shown("invisible", s.invisible), tr("kami_essentials.player.invisible"), tr("kami_essentials.player.invisible.tip"), "invisible") { app.set("invisible", it) }
     }
 }
 
@@ -101,16 +118,16 @@ internal class DiscordPage(private val app: PersonalApp) : Page() {
     )
 
     override fun draw(ui: Ui, r: Rect) {
-        val s = app.snap ?: return
+        val s = app.snap ?: return ui.settingsSkeleton(r, 2)
         val f = Flow(r.columns(2, 10)[0], 6)
         val box = f.take(STATUS_CARD_H)
         ui.anchor("prefs:discord", box)
         val c = Flow(ui.card(box, tr("kami_essentials.prefs.discord.account"), Icons.GLOBE), 4)
         val line = c.take(12)
-        Draw.text(ui.g, s.discord ?: tr("kami_essentials.prefs.discord.unlinked"), line.x, line.y, if (s.discord != null) Palette.textSecondary else Palette.textMuted)
+        Draw.text(ui.g, Draw.fit(s.discord ?: tr("kami_essentials.prefs.discord.unlinked"), line.w), line.x, line.y, if (s.discord != null) Palette.textSecondary else Palette.textMuted)
         if (s.discord != null && ui.button(c.take(CONTROL_H), tr("kami_essentials.prefs.discord.unlink"), Icons.CROSS, style = ButtonStyle.DANGER, key = "discord-unlink"))
             confirmDialog(app::open, tr("kami_essentials.prefs.discord.unlink.title"), s.discord, Icons.CROSS,
                 listOf(Consequence(tr("kami_essentials.prefs.discord.unlink.body"))), tr("kami_essentials.prefs.discord.unlink"), danger = true) { app.set("discord_unlink", "on") }
-        ui.toggleCard(f.take(TOGGLE_CARD_H), tr("kami_essentials.prefs.discord.pings"), Icons.BELL, s.discordPing, tr("kami_essentials.prefs.discord.ping"), tr("kami_essentials.prefs.discord.ping.tip"), "discord_ping") { app.set("discord_ping", it) }
+        ui.toggleCard(f.take(TOGGLE_CARD_H), tr("kami_essentials.prefs.discord.pings"), Icons.BELL, app.shown("discord_ping", s.discordPing), tr("kami_essentials.prefs.discord.ping"), tr("kami_essentials.prefs.discord.ping.tip"), "discord_ping") { app.set("discord_ping", it) }
     }
 }

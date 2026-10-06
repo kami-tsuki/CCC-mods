@@ -12,6 +12,7 @@ import kami.libs.ui.style.UiSound
 import kami.libs.ui.text.tr
 import net.minecraft.client.Minecraft
 import org.lwjgl.glfw.GLFW
+import java.util.UUID
 
 private const val COMBO_ROW_H = 12
 private const val QUERY_DELAY_MS = 350L
@@ -65,6 +66,9 @@ object PlayerNames {
     fun online(): List<String> =
         Minecraft.getInstance().connection?.onlinePlayers?.map { it.profile.name }.orEmpty()
 
+    fun onlineIds(): Map<String, UUID> =
+        Minecraft.getInstance().connection?.onlinePlayers?.associate { it.profile.name to it.profile.id }.orEmpty()
+
     fun suggest(typed: String, offline: List<String>): List<String> {
         val q = typed.trim()
         val me = Minecraft.getInstance().player?.gameProfile?.name
@@ -75,15 +79,38 @@ object PlayerNames {
     }
 }
 
-fun Ui.playerField(
-    r: Rect, state: TextState, offline: () -> List<String> = { emptyList() }, query: ((String) -> Unit)? = null,
-    placeholder: String = tr("kami_libs.player.placeholder"), key: String = "player"
-): FieldResult {
+private fun Ui.debounce(state: TextState, query: ((String) -> Unit)?, key: String) {
     val q = remember("player:query:$key") { QueryState() }
     if (state.text != q.text) { q.text = state.text; q.changedAt = wallMillis }
     if (query != null && q.text.isNotBlank() && q.text != q.sent && wallMillis - q.changedAt >= QUERY_DELAY_MS) {
         q.sent = q.text
         query(q.text.trim())
     }
+}
+
+fun Ui.playerField(
+    r: Rect, state: TextState, offline: () -> List<String> = { emptyList() }, query: ((String) -> Unit)? = null,
+    placeholder: String = tr("kami_libs.player.placeholder"), key: String = "player"
+): FieldResult {
+    debounce(state, query, key)
     return comboField(r, state, PlayerNames.suggest(state.text, offline()), placeholder, Icons.PERSON, key = key)
+}
+
+fun Ui.partyField(
+    r: Rect, state: TextState, countries: () -> Map<String, String>, players: () -> Map<String, UUID> = { emptyMap() }, query: ((String) -> Unit)? = null,
+    placeholder: String = tr("kami_libs.party.placeholder"), key: String = "party", onParty: (String?) -> Unit
+): FieldResult {
+    debounce(state, query, key)
+    val known = countries()
+    val people = PlayerNames.onlineIds() + players()
+    val sq = SearchQuery.parse(state.text.trim())
+    val suggestions = (people.keys.filter { sq.matches(it) } + known.keys.filter { sq.matches(it) })
+        .distinctBy { it.lowercase() }.take(MAX_SUGGESTIONS)
+    val field = comboField(r, state, suggestions, placeholder, Icons.PERSON, maxLength = 32, key = key)
+    val name = state.text.trim()
+    val party = people.entries.firstOrNull { it.key.equals(name, true) }?.let { "p:${it.value}" }
+        ?: known.entries.firstOrNull { it.key.equals(name, true) }?.let { "c:${it.value}" }
+    val last = remember("party:last:$key") { arrayOfNulls<String>(1) }
+    if (party != last[0]) { last[0] = party; onParty(party) }
+    return field
 }

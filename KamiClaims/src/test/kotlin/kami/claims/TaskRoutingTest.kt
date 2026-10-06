@@ -12,7 +12,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class TaskRoutingTest {
+class TaskRoutingTest : WithDb() {
     private fun node(id: String, task: String) = """{"id":"$id","category":"c","time":"10m","cost":100,"tasks":[$task]}"""
 
     @BeforeTest

@@ -189,7 +189,7 @@ class ClaimsApp : KamiApp() {
 
     fun startTour() {
         tour = Tour(listOfNotNull(
-            Callout("modules", tr("kami_claims.tour.modules"), tr("kami_claims.tour.modules.desc")).takeIf { Modules.all.size > 1 },
+            Callout("modules", tr("kami_claims.tour.modules"), tr("kami_claims.tour.modules.desc")).takeIf { Modules.visible.size > 1 },
             Callout("topbar", tr("kami_claims.tour.topbar"), tr("kami_claims.tour.topbar.desc"), Route("dashboard")),
             Callout("bell", tr("kami_claims.common.alerts"), tr("kami_claims.tour.bell.desc")),
             Callout("dashboard:attention", tr("kami_claims.tour.attention"), tr("kami_claims.tour.attention.desc")),
@@ -230,7 +230,7 @@ class ClaimsApp : KamiApp() {
         val kpis = row.rest
         val cells = kpis.columns(if (compact) 1 else 2, 6)
         val net = info.income - info.upkeep - info.jobs
-        val history = snap.history
+        val history = ClaimsStore.history.orEmpty()
         val weekAgo = history.getOrNull(history.size - 8)?.treasury
         val trend = weekAgo?.let { info.treasury - it }
         kpi(ui, cells[0], Icons.TREASURY, tr("kami_claims.kpi.treasury"), Format.money(ui.countUp("treasury", info.treasury), compact = true), Palette.money,
@@ -393,6 +393,7 @@ class ClaimsApp : KamiApp() {
         val instance by lazy { ClaimsApp() }
 
         fun open() {
+            if (ClaimsStore.snap == null) return
             Minecraft.getInstance().setScreen(AppScreen(instance, Component.translatable("kami_libs.common.country")))
         }
     }

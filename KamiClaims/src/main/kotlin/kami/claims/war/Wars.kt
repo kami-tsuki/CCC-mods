@@ -5,6 +5,7 @@ import kami.claims.Country
 import kami.claims.LedgerKind
 import kami.claims.Realm
 import kami.claims.TradePolicy
+import kami.claims.economy.Treasury
 import kami.claims.now
 import kami.claims.research.Loans
 import kami.claims.service.Announce
@@ -15,12 +16,12 @@ import kami.claims.service.Words.v
 import kami.claims.social.Mail
 import kami.libs.chat.Tone
 import kami.libs.text.Phrase
+import kami.libs.util.Time.HOUR_MS
 import java.util.UUID
 
 object Wars {
     private val s get() = Config.s.war
     private val day get() = Config.s.dayMillis
-    private const val HOUR = 3_600_000L
     private const val KEEP_DAYS = 30
 
     fun all(c: Country) = Realm.data.wars.filter { it.active && c.id in it.countries }
@@ -43,7 +44,7 @@ object Wars {
 
     fun pending(c: Country) = Realm.data.wars.filter { it.phase == WarPhase.DECLARATION && it.defender.main == c.id }
 
-    fun hours(ms: Long) = Words.count("kami_claims.unit.hour", ((ms + HOUR - 1) / HOUR).coerceAtLeast(1))
+    fun hours(ms: Long) = Words.count("kami_claims.unit.hour", ((ms + HOUR_MS - 1) / HOUR_MS).coerceAtLeast(1))
 
     fun declare(attacker: Country, target: Country, kind: WarKind = WarKind.REGULAR, stakes: Stakes = Stakes()): Phrase {
         val fee = checkDeclare(attacker, target, kind, stakes)
@@ -51,7 +52,7 @@ object Wars {
         val id = generateSequence { UUID.randomUUID().toString().take(8) }.first { id -> Realm.data.wars.none { it.id == id } }
         val ends = t + s.declarationDays * day
         val war = War(id, kind, WarSide(attacker.id), WarSide(target.id), t, phaseEnds = ends, stakes = stakes, fee = fee, escrow = stakes.money, remindedAt = t)
-        WarDebt.escrow(attacker, LedgerKind.WAR_FEE, -fee, target.name)
+        Treasury.bank(attacker, LedgerKind.WAR_FEE, -fee, note = target.name)
         WarDebt.escrow(attacker, LedgerKind.WAR_STAKE, -stakes.money, target.name)
         Joining.snapshot(war)
         Realm.data.wars += war
@@ -156,7 +157,6 @@ object Wars {
         resume()
         val d = Realm.data
         val t = now()
-        if (d.wars.any { it.active } || d.countries.values.any { c -> (c.warPairs.values + c.warPairsBy.values + c.warCooldownUntil).any { it > t } }) Realm.dirty = true
         d.wars.filter { it.active && it.phase != WarPhase.SETTLEMENT && it.sides.any { side -> Realm.country(side.main)?.active != true } }.forEach {
             if (it.phase == WarPhase.DECLARATION || it.phase == WarPhase.PREPARATION) { it.result = WarResult.WHITE; close(it, false) } else end(it, WarResult.WHITE)
         }
@@ -166,7 +166,7 @@ object Wars {
             Exhaustion.update(it)
             if (it.sides.any { side -> side.exhaustion >= 100.0 }) exhausted(it)
         }
-        d.wars.filter { it.phase == WarPhase.DECLARATION && t - it.remindedAt >= s.reminderHours * HOUR }.forEach {
+        d.wars.filter { it.phase == WarPhase.DECLARATION && t - it.remindedAt >= s.reminderHours * HOUR_MS }.forEach {
             it.remindedAt = t
             tell(it.defender.main, Phrase.of("kami_claims.mail.war.reminder", v(name(it.attacker.main)), hours(it.phaseEnds - t)), Tone.WARN)
         }
@@ -181,7 +181,6 @@ object Wars {
             side.deaths -= id
             war.eligible -= id
             war.rebels.entries.removeAll { it.key == id || it.value == id }
-            Realm.dirty = true
         }
     }
 

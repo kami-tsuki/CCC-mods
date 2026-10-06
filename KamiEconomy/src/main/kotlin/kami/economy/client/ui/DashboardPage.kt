@@ -50,16 +50,18 @@ internal class DashboardPage(val app: MarketApp) : Page() {
             ), key = "dash-kpi")
             val cards = flow.take(cardsH)
             ui.anchor("dashboard:cards", cards)
-            val dash = s.dash
-            if (dash == null) ui.emptyState(cards, tr("kami_economy.market.calculating"), "")
-            else {
-                val cells = if (wide) cards.columns(3, 6) else cards.rows(3, 6)
+            val dash = app.cached("dashboard")?.dash
+            val cells = if (wide) cards.columns(3, 6) else cards.rows(3, 6)
+            if (dash == null) {
+                listOf("kami_economy.dash.sold", "kami_economy.dash.bought", "kami_economy.dash.leaders").forEachIndexed { i, k -> ui.skeletonLines(ui.card(cells[i], tr(k)), 5) }
+            } else {
                 top(ui, cells[0], tr("kami_economy.dash.sold"), dash.topSold) { it.sold }
                 top(ui, cells[1], tr("kami_economy.dash.bought"), dash.topBought) { it.bought }
                 leaders(ui, cells[2], dash)
             }
             val stat = flow.take(STAT_H)
-            dash?.let { Draw.paragraph(ui.g, tr("kami_economy.dash.stats", it.items, it.asks, it.bids, it.auctions, Format.number(it.traded)), stat.x, stat.y, stat.w, Palette.textSecondary) }
+            if (dash == null) ui.skeleton(stat.top(8).withWidth(stat.w * 2 / 3))
+            else Draw.paragraph(ui.g, tr("kami_economy.dash.stats", dash.items, dash.asks, dash.bids, dash.auctions, Format.number(dash.traded)), stat.x, stat.y, stat.w, Palette.textSecondary)
             val bar = flow.take(SMALL_H)
             val sell = tr("kami_economy.dash.sell")
             val sellW = buttonWidth(sell)

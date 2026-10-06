@@ -2,6 +2,7 @@ package kami.claims.client.app
 
 import kami.libs.ui.text.tr
 import kami.claims.NameRules
+import kami.claims.rentSplit
 import kami.claims.client.store.ClaimsStore
 import kami.claims.net.HomeLine
 import kami.claims.net.Snap
@@ -30,9 +31,9 @@ import kami.libs.ui.widget.property
 object Dialogs {
     fun confirm(
         app: KamiApp, title: String, subtitle: String?, icon: Icon, items: List<Consequence>, primary: String, name: String, args: Array<String>,
-        danger: Boolean = false, hold: Boolean = false, typed: String? = null, stale: () -> String? = { null }, after: () -> Unit = {}
+        danger: Boolean = false, hold: Boolean = false, typed: String? = null, stale: () -> String? = { null }, key: String = name, after: () -> Unit = {}
     ) = confirmDialog(app::open, title, subtitle, icon, items, primary, danger, hold, typed, stale = stale) {
-        ClaimsStore.send(name, *args, key = name)
+        ClaimsStore.send(name, *args, key = key)
         after()
     }
 
@@ -59,7 +60,7 @@ object Dialogs {
     fun nameError(text: String, snap: Snap): String? = when {
         text.length < (snap.limits?.nameMin ?: 3) -> tr("kami_claims.wizard.name.error.short", snap.limits?.nameMin ?: 3)
         !NameRules.valid(text) -> tr("kami_claims.wizard.name.error.chars")
-        snap.countries.any { it.name.equals(text, true) } -> tr("kami_claims.error.name_taken")
+        ClaimsStore.countries.any { it.name.equals(text, true) } -> tr("kami_claims.error.name_taken")
         else -> null
     }
 
@@ -86,6 +87,8 @@ object Dialogs {
         })
     }
 
+    fun rentPayKey(h: HomeLine) = "rent_pay:${h.dim}|${h.x}|${h.z}"
+
     fun rentPay(app: KamiApp, h: HomeLine) {
         val amount = NumberState(maxOf(h.debt, h.rent.toLong()).coerceAtLeast(1))
         app.open(Dialog(tr("kami_claims.personal.debts.pay_amount"), tr("kami_claims.home.where", h.country, h.x, h.z), Icons.COIN) { s ->
@@ -93,9 +96,15 @@ object Dialogs {
             var y = s.body.y
             y += numberDialogBody(s, y, amount, tr("kami_libs.common.amount"), 1, funds.coerceAtLeast(1), unit = "◎", help = tr("kami_claims.personal.debts.pay.help", Format.money(h.debt), Format.money(h.credit)))
             s.used = y - s.body.y
-            val valid = amount.text.error == null && amount.value in 1..funds
-            dialogButtons(s, tr("kami_claims.personal.debts.pay.action", Format.money(amount.value)), valid, tr("kami_claims.money.disabled.range", Format.number(funds))) {
-                ClaimsStore.send("rent_pay", h.dim, h.x.toString(), h.z.toString(), amount.value.toString(), key = "rent_pay")
+            val charged = rentSplit(h.debt, h.credit, h.rent.toLong(), h.room, amount.value).let { it.first + it.second }
+            val valid = amount.text.error == null && amount.value in 1..funds && charged > 0
+            val reason = when {
+                amount.value !in 1..funds -> tr("kami_claims.money.disabled.range", Format.number(funds))
+                h.debt > 0 && h.room <= 0 -> tr("kami_claims.error.rent_treasury_full")
+                else -> tr("kami_claims.error.rent_nothing")
+            }
+            dialogButtons(s, tr("kami_claims.personal.debts.pay.action", Format.money(charged)), valid, reason) {
+                ClaimsStore.send("rent_pay", h.dim, h.x.toString(), h.z.toString(), amount.value.toString(), key = rentPayKey(h))
                 s.close()
             }
         })

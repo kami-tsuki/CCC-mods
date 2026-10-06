@@ -1,18 +1,21 @@
 package kami.claims.economy
 
+import dev.ithundxr.createnumismatics.content.backend.Coin
+import dev.ithundxr.createnumismatics.content.coins.CoinItem
+import kami.libs.economy.CoinReturn
+import kami.libs.economy.CoinSource
 import kami.libs.economy.Coins
 import kami.libs.economy.Flow
 import kami.libs.economy.Statement
 import kami.libs.economy.Numismatics
-
-import net.minecraft.core.registries.BuiltInRegistries
-import net.minecraft.resources.ResourceLocation
+import kami.libs.economy.PlayerParty
+import kami.libs.economy.ServerBank
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.item.ItemStack
 import java.util.UUID
 
 object Bank {
-    private fun value(stack: ItemStack) = if (stack.isEmpty) 0 else Coins.values[BuiltInRegistries.ITEM.getKey(stack.item).toString()] ?: 0
+    private fun value(stack: ItemStack) = if (stack.isEmpty) 0 else (stack.item as? CoinItem)?.coin?.value ?: 0
 
     private fun carried(p: ServerPlayer) = p.inventory.items.sumOf { value(it).toLong() * it.count }
 
@@ -21,8 +24,11 @@ object Bank {
     fun take(id: UUID, amount: Int, flow: Flow, counterparty: String = ""): Boolean =
         withdraw(id, amount).also { if (it && amount > 0) Statement.record(id, -amount.toLong(), flow, counterparty) }
 
-    fun give(id: UUID, amount: Int, flow: Flow, counterparty: String = ""): Boolean =
-        deliver(id, amount).also { if (it && amount > 0) Statement.record(id, amount.toLong(), flow, counterparty) }
+    fun give(id: UUID, amount: Int, flow: Flow, counterparty: String = ""): Boolean {
+        val got = deliver(id, amount) ?: return false
+        if (got > 0) Statement.record(id, got.toLong(), flow, counterparty)
+        return true
+    }
 
     private fun withdraw(id: UUID, amount: Int): Boolean {
         if (amount <= 0) return true
@@ -42,30 +48,35 @@ object Bank {
                 removed += unit
             }
         }
+        Coins.burned(CoinSource.KAMI, PlayerParty(id), removed)
         if (removed > rest) coins(p, (removed - rest).toInt())
         return removed >= rest
     }
 
-    private fun deliver(id: UUID, amount: Int): Boolean {
-        if (amount <= 0) return true
-        if (Numismatics.deposit(id, amount)) return true
-        val p = Numismatics.online(id) ?: return false
-        coins(p, amount)
-        return true
+    private fun deliver(id: UUID, amount: Int): Int? {
+        if (amount <= 0) return 0
+        if (Numismatics.deposit(id, amount)) return amount
+        val p = Numismatics.online(id) ?: return null
+        return coins(p, amount)
     }
 
-    private fun coins(p: ServerPlayer, amount: Int) {
+    private fun coins(p: ServerPlayer, amount: Int): Int {
         var rest = amount
-        Coins.values.entries.filter { it.value > 0 }.sortedByDescending { it.value }.forEach { (item, unit) ->
-            val n = rest / unit
+        Coin.valuesHighToLow().filter { it.value > 0 }.forEach { coin ->
+            val n = rest / coin.value
             if (n <= 0) return@forEach
-            rest -= n * unit
             var left = n
             while (left > 0) {
-                val stack = ItemStack(BuiltInRegistries.ITEM.get(ResourceLocation.parse(item)), minOf(left, 64))
+                val stack = coin.asStack(minOf(left, 64))
+                if (stack.isEmpty) break
                 left -= stack.count
-                if (!p.inventory.add(stack)) p.drop(stack, false)
+                rest -= stack.count * coin.value
+                if (!p.inventory.add(stack) && !CoinReturn.keep(p.uuid, stack)) p.drop(stack, false)
             }
         }
+        val sent = amount - rest
+        Coins.minted(CoinSource.KAMI, PlayerParty(p.uuid), sent.toLong())
+        if (rest > 0) ServerBank.collect(PlayerParty(p.uuid), rest.toLong(), Flow.ROUNDING)
+        return sent
     }
 }

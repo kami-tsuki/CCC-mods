@@ -6,10 +6,8 @@ import kami.economy.Delivery
 import kami.economy.Market
 import kami.economy.Order
 import kami.economy.Settings
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import java.nio.file.Files
 import java.util.UUID
+import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -33,16 +31,16 @@ class BidsTest {
     private val bidderA = UUID.randomUUID()
     private val bidderB = UUID.randomUUID()
     private val seller = UUID.randomUUID()
-    private val wal = Files.createTempFile("kami_bids", ".wal")
-    private val json = Json { encodeDefaults = true }
 
     private fun setup(funds: Long = 1000): FakeWallet {
         Config.s = Settings()
         Market.data = Data()
-        Files.writeString(wal, "")
-        Ledger.attach(wal)
+        TestDb.open()
         return FakeWallet(funds).also { Ledger.wallet = it }
     }
+
+    @AfterTest
+    fun tearDown() = TestDb.close()
 
     private fun bids() = Market.book(item).buys
 
@@ -176,9 +174,9 @@ class BidsTest {
         val wallet = setup()
         Matching.insertBid(item, Order(9, bidderA.toString(), 20, 10))
         val raise = Intent(20, IntentType.REPRICE_BID, LedgerState.DEBITED, actor = bidderA.toString(), item = item, orderId = 9, unitPrice = 25, netSpurs = 50)
-        Files.writeString(wal, json.encodeToString(raise) + "\n")
+        TestDb.wal(raise)
         repeat(2) {
-            Ledger.attach(wal)
+            TestDb.restart()
             Ledger.recover()
         }
         assertEquals(25, bids().single().price)
@@ -192,12 +190,12 @@ class BidsTest {
         Matching.insertBid(item, Order(9, bidderA.toString(), 20, 10))
         wallet.funds = 950
         val pending = Intent(20, IntentType.REPRICE_BID, LedgerState.PENDING, actor = bidderA.toString(), item = item, orderId = 9, unitPrice = 25, netSpurs = 50, preBalance = 1000)
-        Files.writeString(wal, json.encodeToString(pending) + "\n")
-        Ledger.attach(wal)
+        TestDb.wal(pending)
+        TestDb.restart()
         Ledger.recover()
         assertEquals(950, wallet.funds)
         assertEquals(25, bids().single().price)
-        Ledger.attach(wal)
+        TestDb.restart()
         Ledger.recover()
         assertEquals(950, wallet.funds)
         assertEquals(25, bids().single().price)
@@ -207,18 +205,17 @@ class BidsTest {
     fun crashAtBookInsertedBeforeRefundCreditIsAppliedExactlyOnce() {
         Config.s = Settings()
         Market.data = Data()
-        Files.writeString(wal, "")
-        Ledger.attach(wal)
+        TestDb.open()
         val wallet = KeyedWallet(750)
         Ledger.wallet = wallet
         Matching.insertBid(item, Order(9, bidderA.toString(), 15, 10))
         val intent = Intent(21, IntentType.REPRICE_BID, LedgerState.BOOK_INSERTED, actor = bidderA.toString(), item = item, orderId = 9, unitPrice = 15, netSpurs = -50, preBalance = 750)
-        Files.writeString(wal, json.encodeToString(intent) + "\n")
-        Ledger.attach(wal)
+        TestDb.wal(intent)
+        TestDb.restart()
         Ledger.recover()
         assertEquals(800, wallet.balance(bidderA))
         assertEquals(listOf(bidderA to 50), wallet.deposits)
-        Ledger.attach(wal)
+        TestDb.restart()
         Ledger.recover()
         assertEquals(800, wallet.balance(bidderA))
         assertEquals(1, wallet.deposits.size)
@@ -228,19 +225,18 @@ class BidsTest {
     fun crashBetweenRefundCreditAndPaidWriteDoesNotDoubleRefund() {
         Config.s = Settings()
         Market.data = Data()
-        Files.writeString(wal, "")
-        Ledger.attach(wal)
+        TestDb.open()
         val wallet = KeyedWallet(750)
         Ledger.wallet = wallet
         wallet.balances[bidderA] = 800
         Matching.insertBid(item, Order(9, bidderA.toString(), 15, 10))
         val intent = Intent(20, IntentType.REPRICE_BID, LedgerState.BOOK_INSERTED, actor = bidderA.toString(), item = item, orderId = 9, unitPrice = 15, netSpurs = -50, preBalance = 750)
-        Files.writeString(wal, json.encodeToString(intent) + "\n")
-        Ledger.attach(wal)
+        TestDb.wal(intent)
+        TestDb.restart()
         Ledger.recover()
         assertEquals(800, wallet.balance(bidderA))
         assertTrue(wallet.deposits.isEmpty())
-        Ledger.attach(wal)
+        TestDb.restart()
         Ledger.recover()
         assertEquals(800, wallet.balance(bidderA))
         assertTrue(wallet.deposits.isEmpty())
@@ -250,15 +246,14 @@ class BidsTest {
     fun crashBetweenSellNowCreditAndPaidWriteDoesNotDoubleCredit() {
         Config.s = Settings()
         Market.data = Data()
-        Files.writeString(wal, "")
-        Ledger.attach(wal)
+        TestDb.open()
         val wallet = KeyedWallet(0)
         Ledger.wallet = wallet
         wallet.balances[seller] = 207
         val fills = listOf(LedgerFill(1, bidderA.toString(), 12, 20, tax = 0))
         val intent = Intent(30, IntentType.SELL_NOW, LedgerState.BOOK_INSERTED, actor = seller.toString(), item = item, qty = 12, netSpurs = 207, fills = fills, preBalance = 0)
-        Files.writeString(wal, json.encodeToString(intent) + "\n")
-        Ledger.attach(wal)
+        TestDb.wal(intent)
+        TestDb.restart()
         Ledger.recover()
         assertEquals(207, wallet.balance(seller))
         assertTrue(wallet.deposits.isEmpty())
@@ -269,8 +264,8 @@ class BidsTest {
         setup()
         Market.data.pendingDelivery.getOrPut(seller.toString()) { mutableListOf() } += Delivery(item = item, qty = 7, id = "50:d")
         val intent = Intent(50, IntentType.CANCEL, LedgerState.BOOK_INSERTED, actor = seller.toString(), item = item, qty = 7, orderId = 3, unitPrice = 10)
-        Files.writeString(wal, json.encodeToString(intent) + "\n")
-        Ledger.attach(wal)
+        TestDb.wal(intent)
+        TestDb.restart()
         Ledger.recover()
         val queued = Market.data.pendingDelivery[seller.toString()]!!
         assertEquals(1, queued.size)
@@ -282,8 +277,8 @@ class BidsTest {
         setup()
         Market.data.pendingDelivery.getOrPut(bidderA.toString()) { mutableListOf() } += Delivery(item = item, qty = 5, id = "60:d")
         val intent = Intent(60, IntentType.BUY, LedgerState.DEBITED, actor = bidderA.toString(), item = item, qty = 5, netSpurs = 50)
-        Files.writeString(wal, json.encodeToString(intent) + "\n")
-        Ledger.attach(wal)
+        TestDb.wal(intent)
+        TestDb.restart()
         Ledger.recover()
         val queued = Market.data.pendingDelivery[bidderA.toString()]!!
         assertEquals(1, queued.size)
@@ -294,18 +289,17 @@ class BidsTest {
     fun sellToStockResumeCreditIsIdempotentAcrossCrashes() {
         Config.s = Settings()
         Market.data = Data()
-        Files.writeString(wal, "")
-        Ledger.attach(wal)
+        TestDb.open()
         val wallet = KeyedWallet(0)
         Ledger.wallet = wallet
         wallet.balances[seller] = 100
         val intent = Intent(70, IntentType.SELL, LedgerState.BOOK_INSERTED, actor = seller.toString(), item = item, qty = 10, netSpurs = 50, instant = true, lot = 1, preBalance = 100)
-        Files.writeString(wal, json.encodeToString(intent) + "\n")
-        Ledger.attach(wal)
+        TestDb.wal(intent)
+        TestDb.restart()
         Ledger.recover()
         assertEquals(150, wallet.balance(seller))
         assertEquals(listOf(seller to 50), wallet.deposits)
-        Ledger.attach(wal)
+        TestDb.restart()
         Ledger.recover()
         assertEquals(150, wallet.balance(seller))
         assertEquals(listOf(seller to 50), wallet.deposits)
@@ -316,8 +310,8 @@ class BidsTest {
         setup()
         Market.data.pendingDelivery.getOrPut(seller.toString()) { mutableListOf() } += Delivery(stackData = "stack-1", id = "51:d")
         val intent = Intent(51, IntentType.AUCTION_CANCEL, LedgerState.BOOK_INSERTED, actor = seller.toString(), auctionId = 1, stackData = "stack-1")
-        Files.writeString(wal, json.encodeToString(intent) + "\n")
-        Ledger.attach(wal)
+        TestDb.wal(intent)
+        TestDb.restart()
         Ledger.recover()
         assertEquals(1, Market.data.pendingDelivery[seller.toString()]!!.size)
     }
@@ -326,18 +320,17 @@ class BidsTest {
     fun crashBetweenAuctionBidRefundAndPaidWriteDoesNotDoubleRefund() {
         Config.s = Settings()
         Market.data = Data()
-        Files.writeString(wal, "")
-        Ledger.attach(wal)
+        TestDb.open()
         val wallet = KeyedWallet(0)
         Ledger.wallet = wallet
         wallet.balances[bidderB] = 150
         val intent = Intent(40, IntentType.AUCTION_BID, LedgerState.BOOK_INSERTED, actor = bidderA.toString(), auctionId = 1, unitPrice = 100, prevBidder = bidderB.toString(), prevBid = 50, prevBalance = 100)
-        Files.writeString(wal, json.encodeToString(intent) + "\n")
-        Ledger.attach(wal)
+        TestDb.wal(intent)
+        TestDb.restart()
         Ledger.recover()
         assertEquals(150, wallet.balance(bidderB))
         assertTrue(wallet.deposits.isEmpty())
-        Ledger.attach(wal)
+        TestDb.restart()
         Ledger.recover()
         assertEquals(150, wallet.balance(bidderB))
         assertTrue(wallet.deposits.isEmpty())
@@ -347,8 +340,7 @@ class BidsTest {
     fun crashBetweenAuctionSettlePayoutsAndPaidWriteDoesNotDoubleAnyPayoutOrDelivery() {
         Config.s = Settings()
         Market.data = Data()
-        Files.writeString(wal, "")
-        Ledger.attach(wal)
+        TestDb.open()
         val wallet = KeyedWallet(0)
         Ledger.wallet = wallet
         wallet.balances[bidderB] = 150
@@ -359,8 +351,8 @@ class BidsTest {
             auctionId = 1, unitPrice = 100, netSpurs = 90, stackData = "stack-2",
             prevBidder = bidderB.toString(), prevBid = 50, prevBalance = 100, sellerBalance = 0
         )
-        Files.writeString(wal, json.encodeToString(intent) + "\n")
-        Ledger.attach(wal)
+        TestDb.wal(intent)
+        TestDb.restart()
         Ledger.recover()
         assertEquals(150, wallet.balance(bidderB))
         assertEquals(90, wallet.balance(seller))
@@ -372,8 +364,7 @@ class BidsTest {
     fun permanentCreditFailureFreezesTheIntentInsteadOfLoopingForever() {
         Config.s = Settings()
         Market.data = Data()
-        Files.writeString(wal, "")
-        Ledger.attach(wal)
+        TestDb.open()
         val wallet = object : Wallet {
             override fun balance(id: UUID) = 0L
             override fun deduct(id: UUID, amount: Int) = amount
@@ -381,11 +372,11 @@ class BidsTest {
         }
         Ledger.wallet = wallet
         val intent = Intent(60, IntentType.BID_CANCEL, LedgerState.BOOK_INSERTED, actor = bidderA.toString(), item = item, orderId = 5, netSpurs = 20)
-        Files.writeString(wal, json.encodeToString(intent) + "\n")
-        Ledger.attach(wal)
+        TestDb.wal(intent)
+        TestDb.restart()
         Ledger.recover()
         assertEquals(listOf(60L), Market.data.frozen)
-        Ledger.attach(wal)
+        TestDb.restart()
         Ledger.recover()
         assertEquals(listOf(60L), Market.data.frozen)
     }
@@ -396,10 +387,10 @@ class BidsTest {
         val placed = Intent(10, IntentType.BID, LedgerState.DEBITED, actor = bidderA.toString(), item = item, qty = 10, unitPrice = 20, netSpurs = 200)
         val cancel = Intent(11, IntentType.BID_CANCEL, LedgerState.PENDING, actor = bidderB.toString(), item = item, qty = 4, orderId = 5, unitPrice = 15, netSpurs = 60)
         val sale = Intent(12, IntentType.SELL_NOW, LedgerState.BOOK_INSERTED, actor = seller.toString(), item = item, qty = 2, netSpurs = 36)
-        Files.writeString(wal, listOf(placed, cancel, sale).joinToString("") { json.encodeToString(it) + "\n" })
+        TestDb.wal(placed, cancel, sale)
         Matching.insertBid(item, Order(5, bidderB.toString(), 15, 4))
         repeat(2) {
-            Ledger.attach(wal)
+            TestDb.restart()
             Ledger.recover()
         }
         assertEquals(listOf(bidderA.toString()), bids().map { it.owner })

@@ -8,6 +8,8 @@ import kami.claims.Key
 import kami.claims.LedgerKind
 import kami.claims.Realm
 import kami.claims.TaxMode
+import kami.claims.economy.Treasury
+import kami.claims.tributeOwed
 import kami.claims.research.Capacity
 import kami.claims.research.Features
 import kami.claims.research.Levels
@@ -18,8 +20,10 @@ import kami.claims.service.Words
 import kami.claims.service.Words.v
 import kami.claims.social.Mail
 import kami.libs.chat.Tone
+import kami.libs.economy.CountryParty
+import kami.libs.economy.Flow
+import kami.libs.economy.ServerBank
 import kami.libs.text.Phrase
-import kotlin.math.floor
 
 object Spoils {
     private val decisive = setOf(WarResult.ATTACKER, WarResult.DEFENDER, WarResult.PEACE)
@@ -44,11 +48,12 @@ object Spoils {
         }
         safe(war, "escrow") {
             val escrowTo = if (defeat) d ?: a else a ?: d
-            escrowTo?.let { WarDebt.escrow(it, LedgerKind.WAR_STAKE, war.escrow, Wars.name(if (it === a) war.defender.main else war.attacker.main)) }
+            if (escrowTo != null) WarDebt.escrow(escrowTo, LedgerKind.WAR_STAKE, war.escrow, Wars.name(if (escrowTo === a) war.defender.main else war.attacker.main))
+            else ServerBank.collect(CountryParty(war.attacker.main), war.escrow, Flow.WAR, "war ${war.id}")
             if (defeat && pair != null) gain.money += war.escrow
             war.escrow = 0
         }
-        if (war.result == WarResult.ATTACKER && war.surrendered) safe(war, "fee") { a?.let { WarDebt.escrow(it, LedgerKind.WAR_FEE, war.fee, Wars.name(war.defender.main)) } }
+        if (war.result == WarResult.ATTACKER && war.surrendered) safe(war, "fee") { a?.let { Treasury.bank(it, LedgerKind.WAR_FEE, war.fee, note = Wars.name(war.defender.main), capped = false) } }
         if (war.result != WarResult.WITHDRAWN && !war.silent) safe(war, "bill") { gain.debtors += WarDebt.bills(war) }
         val returned = mutableListOf<Country>()
         safe(war, "rebels") { returned += rebels(war) }
@@ -128,10 +133,7 @@ object Spoils {
 
     internal fun arrears(child: Country, parent: Country) = WarDebt.owe(child, parent.id, WarDebt.times(child.provinceDebt.toLong(), tribute(child)))
 
-    private fun tribute(c: Country) = when (c.taxMode) {
-        TaxMode.PERCENT -> floor(Upkeep.summary(c).income * c.taxAmount).toLong()
-        TaxMode.FLAT -> c.taxAmount.toLong()
-    }.coerceAtLeast(0)
+    private fun tribute(c: Country) = tributeOwed(c.taxMode, c.taxAmount, Upkeep.summary(c).income)
 
     private fun pick(war: War, winner: Country, loser: Country, want: Int): List<Claim> {
         val pool = Realm.claims(loser.id).filter { !it.capital }.associateByTo(LinkedHashMap()) { it.key }

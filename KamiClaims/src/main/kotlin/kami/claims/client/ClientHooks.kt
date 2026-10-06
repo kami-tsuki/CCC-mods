@@ -1,6 +1,7 @@
 package kami.claims.client
 
 import com.mojang.blaze3d.platform.InputConstants
+import kami.claims.client.admin.CountryAdminSection
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.personal.ClaimsPersonal
 import kami.claims.client.app.ResearchPins
@@ -17,11 +18,12 @@ import kami.libs.net.SnapshotPayload
 import kami.libs.net.decode
 import kami.claims.service.View
 import kami.libs.ui.app.AppModule
-import kami.libs.ui.app.AppScreen
 import kami.libs.ui.app.Modules
+import kami.libs.ui.app.OpenWait
 import kami.libs.ui.app.Route
 import kami.libs.ui.style.Icons
 import kami.libs.ui.map.TerrainCache
+import kami.libs.ui.text.tr
 import kami.libs.xaero.Highlights
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
@@ -40,25 +42,28 @@ object ClientHooks {
     private val open = KeyMapping("key.kami_claims.open", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_K, "key.categories.kami_claims")
     private val borders = KeyMapping("key.kami_claims.borders", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_B, "key.categories.kami_claims")
     private var ticks = 0
+    private var echoUntil = 0L
+    private val opening = OpenWait({ tr("kami_claims.open.loading") }, { tr("kami_claims.open.timeout") }, { tr("kami_claims.open.timeout.desc") })
 
     fun init() {
-        Modules.register(AppModule("country", "kami_libs.common.country", Icons.FLAG, 10) { request("open") })
+        Modules.register(AppModule("country", "kami_libs.common.country", Icons.FLAG, 10) { openApp() })
         ClaimsPersonal.register()
+        CountryAdminSection.register()
         Highlights.register(KamiHighlighter())
         ResearchTooltip.init()
         ResearchPins.register()
         MOD_BUS.addListener<RegisterKeyMappingsEvent> { it.register(open); it.register(borders) }
         MOD_BUS.addListener<RegisterGuiLayersEvent> {
-            it.registerAboveAll(ResourceLocation.fromNamespaceAndPath("kami_claims", "territory")) { g, _ -> Hud.render(g) }
+            it.registerAboveAll(ResourceLocation.fromNamespaceAndPath("kami_claims", "territory")) { g, _ -> Hud.render(g); opening.render(g) }
         }
         FORGE_BUS.addListener<ClientTickEvent.Post> { tick() }
         FORGE_BUS.addListener<RenderHighlightEvent.Block> { BlockHint.highlight(it) }
         FORGE_BUS.addListener<RenderLevelStageEvent> { Borders.renderWalls(it) }
         FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingIn> {
             applyPrefs()
-            ClaimsStore.quiet("watch")
+            ClaimsStore.watch(emptyList(), force = true)
         }
-        FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> { TerrainCache.clear(); ClientResearch.clear(); ClaimsStore.clear() }
+        FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> { TerrainCache.clear(); ClientResearch.clear(); ClaimsStore.clear(); opening.done() }
     }
 
     private fun applyPrefs() {
@@ -69,29 +74,40 @@ object ClientHooks {
 
     private fun tick() {
         val mc = Minecraft.getInstance()
-        while (open.consumeClick()) if (mc.screen == null) request("open")
+        while (open.consumeClick()) if (mc.screen == null) openApp()
         while (borders.consumeClick()) if (mc.screen == null) Borders.cycle()
         ClaimsStore.tick()
+        opening.tick()
         Borders.tick()
-        if (mc.player != null && ++ticks % 1200 == 0 && mc.screen == null) ClaimsStore.quiet("watch")
+        if (mc.player != null && ++ticks % 1200 == 0 && mc.screen == null) ClaimsStore.watch(emptyList(), force = true)
     }
 
     fun request(name: String, vararg args: String) = ClaimsStore.quiet(name, *args)
+
+    fun openApp(wait: Boolean = false) {
+        request("open")
+        if (wait || ClaimsStore.snap == null) return opening.start()
+        opening.done()
+        echoUntil = System.currentTimeMillis() + ECHO_MS
+        if (!ClaimsApp.instance.isOpen) ClaimsApp.open()
+    }
 
     fun openResearch(key: String) {
         val app = ClaimsApp.instance
         val target = Route("research", focus = key)
         if (app.route == target) app.page(target.page).opened(target) else app.navigate(target, sound = false)
-        request("open")
+        openApp()
     }
 
     fun snapshot(s: SnapshotPayload) {
         val snap = s.decode<Snap>() ?: return
         ClaimsStore.receive(snap)
         Hud.alertsChanged()
-        val mc = Minecraft.getInstance()
-        val screen = mc.screen
-        if (snap.open && !(screen is AppScreen && screen.app is ClaimsApp)) ClaimsApp.open()
+        if (!snap.open) return
+        val echo = !opening.active && System.currentTimeMillis() < echoUntil
+        echoUntil = 0L
+        opening.done()
+        if (!echo && !ClaimsApp.instance.isOpen) ClaimsApp.open()
     }
 
     fun claims(payload: View.Payload) = ClientClaims.update(payload)
@@ -101,4 +117,6 @@ object ClientHooks {
     fun researchDefs(defs: DefsView) = ClientResearch.receive(defs)
 
     fun researchState(state: StateView) = ClientResearch.receive(state)
+
+    private const val ECHO_MS = 10_000L
 }

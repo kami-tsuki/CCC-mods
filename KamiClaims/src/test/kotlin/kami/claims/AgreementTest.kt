@@ -18,7 +18,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class AgreementTest {
+class AgreementTest : WithDb() {
     private fun capacity(provinces: Int) {
         Research.defs = ResearchDefs(ResearchSettings(), LevelsConfig(capacities = mapOf(Capacity.PROVINCES to provinces)), emptyMap(), emptyMap())
     }

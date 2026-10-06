@@ -2,6 +2,7 @@ package kami.claims.client.app.pages
 
 import kami.claims.client.ClientClaims
 import kami.claims.client.app.ClaimsApp
+import kami.claims.client.store.ClaimsStore
 import kami.claims.client.app.ClaimsPage
 import kami.claims.client.app.Dialogs
 import kami.claims.client.app.HomesCard
@@ -10,6 +11,7 @@ import kami.claims.client.app.Vocabulary
 import kami.claims.client.store.ClientResearch
 import kami.claims.net.DayLine
 import kami.claims.net.GoalLine
+import kami.claims.net.Info
 import kami.libs.ui.anim.countUp
 import kami.libs.ui.app.Callout
 import kami.libs.ui.app.Route
@@ -52,21 +54,22 @@ class DashboardPage(app: ClaimsApp) : ClaimsPage(app) {
     override fun draw(ui: Ui, r: Rect) {
         val info = info ?: return
         val net = info.income - info.upkeep - info.jobs
-        val history = snap.history
+        val loaded = ClaimsStore.history
+        val history = loaded.orEmpty()
         val treasury = treasuryChart.of(history, info.treasury, net, Format.locale) { TreasuryChart(history, info.treasury, net) }
         ui.anchor("dashboard:tiles", r.top(TILE_H))
         val weekAgo = history.getOrNull(history.size - 8)?.treasury
         val debt = info.claimList.count { it.debt > 0 }
         ui.kpiRow(r.top(TILE_H), listOf(
             KpiTile(tr("kami_claims.kpi.treasury"), Format.number(ui.countUp("dashboard-treasury", info.treasury)), Icons.TREASURY, Palette.money,
-                trend = weekAgo?.let { Trend(info.treasury - it, tr("kami_claims.kpi.treasury.week", Format.signed(info.treasury - it))) }, sub = if (weekAgo == null) tr("kami_claims.kpi.treasury.no_history") else null,
+                trend = weekAgo?.let { Trend(info.treasury - it, tr("kami_claims.kpi.treasury.week", Format.signed(info.treasury - it))) }, sub = if (weekAgo == null && loaded != null) tr("kami_claims.kpi.treasury.no_history") else null,
                 spark = treasury.spark, flashValue = info.treasury, tip = Tip(tr("kami_claims.kpi.net.title"), listOf(tr("kami_claims.kpi.net.tax", Format.signedMoney(info.income)) to Palette.success, tr("kami_claims.kpi.net.upkeep", Format.signedMoney(-info.upkeep)) to Palette.danger, tr("kami_claims.kpi.net.wages", Format.signedMoney(-info.jobs)) to Palette.danger)), onClick = { app.navigate(Route("budget")) }),
             KpiTile(tr("kami_claims.help.term.runway"), app.runwayText(info.treasury, net), Icons.CLOCK, app.runwayColor(info.treasury, net),
                 sub = tr("kami_claims.dashboard.runway.sub", Format.duration(info.nextBilling)), tip = Tip.text(tr("kami_claims.kpi.runway.tooltip"), tr("kami_claims.help.term.runway")), onClick = { app.navigate(Route("budget")) }),
             KpiTile(tr("kami_claims.kpi.land"), Format.number(info.chunks), Icons.AREA, if (debt > 0) Palette.danger else Palette.text,
                 sub = if (debt > 0) tr("kami_claims.common.in_debt_x", Format.number(debt)) else tr("kami_claims.dashboard.land.free", Format.number(info.free), Format.number(info.freeAllowed)),
                 tip = Tip.text(tr("kami_claims.dashboard.land.tooltip"), tr("kami_claims.kpi.land")), onClick = { app.navigate(Route("chunks")) })
-        ) + listOfNotNull(levelTile(ui)), key = "dashboard-kpi")
+        ) + listOfNotNull(levelTile(ui), powerTile(info)), key = "dashboard-kpi")
         val (left, right) = r.dropTop(TILE_H + 6).columns(listOf(1.35f, 1f), 6)
         val lf = Flow(left, 6)
         val alerts = app.visibleAlerts()
@@ -84,7 +87,7 @@ class DashboardPage(app: ClaimsApp) : ClaimsPage(app) {
         val chart = lf.remaining()
         ui.anchor("dashboard:chart", chart)
         val cb = ui.card(chart, tr("kami_claims.dashboard.chart", Format.days(history.size.coerceAtLeast(1).toLong())), Icons.STATS, help = tr("kami_claims.dashboard.chart.help"))
-        ui.lineChart(cb, treasury.series, treasury.labels, key = "treasury-chart")
+        if (loaded == null) ui.skeleton(cb) else ui.lineChart(cb, treasury.series, treasury.labels, key = "treasury-chart")
         val rf = Flow(right, 6)
         val goals = snap.goals.take(GOAL_COUNT)
         if (goals.isNotEmpty() && !ClientClaims.prefs.hiddenSteps) {
@@ -117,6 +120,12 @@ class DashboardPage(app: ClaimsApp) : ClaimsPage(app) {
         if (s.country.isEmpty()) return null
         val xp = ui.countUp("dashboard-xp", s.xp)
         return KpiTile(tr("kami_libs.common.level"), s.level.toString(), Icons.STAR, Palette.brass, sub = xpText(xp), onClick = { app.navigate(Route("levels")) })
+    }
+
+    private fun powerTile(info: Info) = info.power?.let {
+        KpiTile(tr("kami_claims.kpi.power"), WarPage.power(it), Icons.SHIELD, Palette.text,
+            sub = tr("kami_claims.kpi.power.sub", Format.number(info.reputation), info.fame?.let(WarPage::stars) ?: "-"),
+            tip = Tip.text(tr("kami_claims.kpi.power.tooltip"), tr("kami_claims.kpi.power")), onClick = { app.navigate(Route("war")) })
     }
 
     private fun me(ui: Ui, f: Flow) {

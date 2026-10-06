@@ -26,6 +26,6 @@ object Tokens {
             return
         }
         if (country.treasury < cost) throw Fail("kami_claims.error.token_cost", Words.money(cost))
-        Treasury.move(country, LedgerKind.FEE, -cost, actor, id)
+        Treasury.bank(country, LedgerKind.FEE, -cost, actor, id)
     }
 }

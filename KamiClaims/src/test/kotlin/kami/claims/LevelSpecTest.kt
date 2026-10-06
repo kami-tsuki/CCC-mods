@@ -12,7 +12,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class LevelSpecTest {
+class LevelSpecTest : WithDb() {
     private var chunk = 0
 
     private fun country(level: Int = 1): Country {

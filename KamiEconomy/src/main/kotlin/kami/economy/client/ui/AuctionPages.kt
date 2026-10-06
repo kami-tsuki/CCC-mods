@@ -53,7 +53,8 @@ internal class AuctionsPage(app: MarketApp) : ListPage(app, "auctions") {
 
     private val columns = listOf(
         Column<AuctionLine>(tr("kami_libs.common.item"), -1, sort = compareBy { it.label.lowercase() }) { _, c, a ->
-            if (itemCell(c, stack(a), a.label, "auction:${a.id}", if (a.mine) Palette.brass else Palette.text)) table.selected.apply { clear(); add(a.id) }
+            val cell = c.dropRight(tradeLock(c, a.status, a.statusReason, "auction-lock:${a.id}"))
+            if (itemCell(cell, stack(a), a.label, "auction:${a.id}", if (a.mine) Palette.brass else Palette.text)) table.selected.apply { clear(); add(a.id) }
         },
         Column.text<AuctionLine>(tr("kami_economy.col.seller"), 80, color = { Palette.textSecondary }) { it.sellerName },
         Column.number<AuctionLine>(tr("kami_economy.col.bid"), 70, format = { Format.money(it) }) { maxOf(it.currentBid, it.startPrice).toLong() },
@@ -70,12 +71,13 @@ internal class AuctionsPage(app: MarketApp) : ListPage(app, "auctions") {
         val bar = r.top(SMALL_H)
         searchBar(ui, bar.dropRight(SCOPE_W, 6))
         ui.segmented(bar.right(SCOPE_W), listOf(Option(false, tr("kami_libs.common.all")), Option(true, tr("kami_economy.scope.mine"))), mine, key = "scope")?.let { mine = it; table.clear() }
-        val rows = if (ready) filtered(ui, "auctions:rows", app.snap.auctions.filter { !mine || it.mine }) { ItemSearch.matches(query, stack(it), it.label) } else emptyList()
+        val rows = data?.let { snap -> filtered(ui, "auctions:rows", snap.auctions.filter { !mine || it.mine }) { ItemSearch.matches(query, stack(it), it.label) } }.orEmpty()
         val area = body(ui, r.dropTop(SMALL_H, 6))
         val selected = rows.firstOrNull { it.id in table.selected }
         val tableArea = if (selected != null) area.dropRight(AUCTION_PANEL_W, 6) else area
         ui.anchor("auctions:table", tableArea)
-        ui.table(tableArea, columns, rows, table, { it.id }, rowHeight = ROW_H, emptyText = tr("kami_economy.market.auctions.empty"))
+        ui.table(tableArea, columns, rows, table, { it.id }, rowHeight = ROW_H, emptyText = tr("kami_economy.market.auctions.empty"), loading = loading)
+        ui.staleRows(tableArea, stale && rows.isNotEmpty())
         selected?.let { panel(ui, area.right(AUCTION_PANEL_W), it) }
     }
 
@@ -87,6 +89,11 @@ internal class AuctionsPage(app: MarketApp) : ListPage(app, "auctions") {
         ui.property(flow.take(12), tr("kami_economy.col.seller"), a.sellerName)
         ui.property(flow.take(12), tr("kami_economy.col.bid"), Format.money(maxOf(a.currentBid, a.startPrice).toLong()))
         ui.property(flow.take(12), tr("kami_economy.market.auctions.col.ends"), Format.duration(a.expiresAt - System.currentTimeMillis()))
+        if (a.status.isNotEmpty()) {
+            val text = tr("kami_economy.status.frozen", a.statusReason)
+            val note = flow.take(Draw.paragraphHeight(text, r.w - 16))
+            Draw.paragraph(ui.g, text, note.x, note.y, note.w, Palette.warning)
+        }
         if (a.mine) {
             if (ui.button(flow.take(SMALL_H), tr("kami_economy.market.auction.cancel"), Icons.CROSS, style = ButtonStyle.DANGER,
                     enabled = a.currentBidder.isEmpty(), disabledReason = tr("kami_economy.market.auction.cancel.bid"), key = "auction-cancel"))
@@ -96,11 +103,13 @@ internal class AuctionsPage(app: MarketApp) : ListPage(app, "auctions") {
         }
         val min = minBid(a)
         if (bidFor != a.id) { bidFor = a.id; bid.commit(min) }
-        val reason = tr("kami_libs.lock.no_country")
+        val reason = tr("kami_libs.lock.no_country").takeUnless { app.snap.citizen }
+        val bidLock = reason ?: frozenFor("auction_bid", a.status, a.statusReason)
+        val buyLock = reason ?: frozenFor("auction_buy", a.status, a.statusReason)
         ui.fieldLabel(flow.take(9), tr("kami_economy.auction.your_bid"))
         ui.numberField(flow.take(CONTROL_H), bid, min, MAX_PRICE, key = "bid")
-        if (ui.button(flow.take(SMALL_H), tr("kami_economy.market.auction.bid"), style = ButtonStyle.PRIMARY, enabled = app.snap.citizen, disabledReason = reason, key = "bid-go")) confirm(a, bid.value.toInt(), false)
-        if (a.buyNowPrice > 0 && ui.button(flow.take(SMALL_H), tr("kami_economy.market.auction.buy_now", Format.money(a.buyNowPrice.toLong())), enabled = app.snap.citizen, disabledReason = reason, key = "buy-go")) confirm(a, a.buyNowPrice, true)
+        if (ui.button(flow.take(SMALL_H), tr("kami_economy.market.auction.bid"), style = ButtonStyle.PRIMARY, enabled = bidLock == null, disabledReason = bidLock, key = "bid-go")) confirm(a, bid.value.toInt(), false)
+        if (a.buyNowPrice > 0 && ui.button(flow.take(SMALL_H), tr("kami_economy.market.auction.buy_now", Format.money(a.buyNowPrice.toLong())), enabled = buyLock == null, disabledReason = buyLock, key = "buy-go")) confirm(a, a.buyNowPrice, true)
     }
 
     private fun confirm(a: AuctionLine, amount: Int, buyNow: Boolean) {
@@ -116,7 +125,7 @@ internal class AuctionsPage(app: MarketApp) : ListPage(app, "auctions") {
             app::open, tr(if (buyNow) "kami_economy.auction.receipt.buy" else "kami_economy.auction.receipt.bid"), Icons.SCALES, lines,
             tr(if (buyNow) "kami_economy.auction.buy" else "kami_economy.market.auction.bid"),
             warning = tr("kami_economy.market.buy.funds").takeIf { funds < amount },
-            stale = { if (app.snap.auctions.any { it.id == a.id && it.currentBid == a.currentBid }) null else tr("kami_economy.receipt.stale") }
+            stale = { if (app.cached("auctions")?.auctions.orEmpty().any { it.id == a.id && it.currentBid == a.currentBid }) null else tr("kami_economy.receipt.stale") }
         ) {
             if (buyNow) {
                 app.request("auction_buy", a.id.toString())

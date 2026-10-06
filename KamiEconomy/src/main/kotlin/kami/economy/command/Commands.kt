@@ -2,8 +2,8 @@ package kami.economy.command
 
 import kami.libs.text.Phrase
 import com.mojang.brigadier.arguments.LongArgumentType
-import kami.economy.Market
 import kami.economy.economy.Ledger
+import kami.libs.admin.Audit
 import kami.economy.net.Net
 import kami.libs.command.KamiCommands
 import kami.libs.command.arg
@@ -23,12 +23,10 @@ object EconomyCommands {
                 lit("resolve").then(
                     arg("id", LongArgumentType.longArg()).does { ctx ->
                         val id = LongArgumentType.getLong(ctx, "id")
-                        val unfrozen = Market.data.frozen.remove(id)
-                        val closed = Ledger.close(id)
-                        if (unfrozen || closed) {
-                            Market.dirty = true
-                            ctx.ok(Phrase.of("kami_economy.command.frozen.cleared", Phrase.value(id)))
-                        } else ctx.warn(Phrase.of("kami_economy.command.frozen.unknown", Phrase.value(id)))
+                        val ok = Ledger.resolve(id)
+                        Audit.record(ctx.source, "economy.admin.resolve", id.toString(), "", ok = ok)
+                        if (ok) ctx.ok(Phrase.of("kami_economy.command.frozen.cleared", Phrase.value(id)))
+                        else ctx.warn(Phrase.of("kami_economy.command.frozen.unknown", Phrase.value(id)))
                     }
                 )
             )

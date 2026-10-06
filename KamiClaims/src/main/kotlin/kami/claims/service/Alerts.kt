@@ -35,7 +35,7 @@ object Alerts {
 
     fun nextBill(c: Country): Long {
         val tomorrow = today() + 1
-        val borderTax = Buffs.tax(c)
+        val borderTax = Buffs.billedTax(c)
         return Realm.claims(c.id).filter { !it.free && tomorrow > it.since && (tomorrow - it.since) % Realm.period(it) == 0L }
             .sumOf { Buffs.price(c, it, borderTax).toLong() * (1 + it.debt) }
     }

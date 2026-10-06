@@ -1,5 +1,7 @@
 package kami.claims
 
+import kami.claims.research.Capacity
+import kami.claims.research.Levels
 import kami.claims.service.Work
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -8,7 +10,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class WorkTest {
+class WorkTest : WithDb() {
     private val dim = "minecraft:overworld"
     private lateinit var c: Country
 
@@ -22,7 +24,10 @@ class WorkTest {
     }
 
     @AfterTest
-    fun clean() = Realm.reset(Data())
+    fun clean() {
+        Work.wage = { _, _, _ -> true }
+        Realm.reset(Data())
+    }
 
     private fun claim(x: Int) = Realm.at(dim, x, 0)!!
 
@@ -65,5 +70,16 @@ class WorkTest {
         Work.give(c, "p", "miner")
         Work.give(c, "p", "worker")
         assertEquals(9L, Work.payroll(c))
+    }
+
+    @Test
+    fun failedWageIsRefundedEvenAboveCapacity() {
+        Work.give(c, "p", "miner")
+        c.members.getValue("p").jobs.getValue("miner").progress = Int.MAX_VALUE
+        val full = Levels.capacity(c, Capacity.TREASURY) + 100L
+        c.treasury = full
+        Work.wage = { _, _, _ -> false }
+        Work.pay(c, today() + 1000, 1_000_000)
+        assertEquals(full, c.treasury)
     }
 }

@@ -27,8 +27,16 @@ object Stocks {
     private const val ALL = "*"
     private const val BASE_SPREAD = 3.0
     private var goods: Map<String, StarterGood> = emptyMap()
+    private var present: (String) -> Boolean = { true }
+    private var resolve: (String) -> List<String> = { emptyList() }
 
     fun index(present: (String) -> Boolean = { true }, resolve: (String) -> List<String>) {
+        this.present = present
+        this.resolve = resolve
+        reindex()
+    }
+
+    fun reindex() {
         goods = Config.s.starterGoods.flatMap { g -> (if (g.item.startsWith("#")) resolve(g.item.drop(1)) else listOf(g.item).filter(present)).map { it to g } }.toMap()
     }
 
@@ -84,9 +92,7 @@ object Stocks {
 
     fun room(item: String, player: String): Int = if (infinite(item)) capLeft(player, item) else room(item)
 
-    fun tax(gross: Long): Long = (gross * Config.s.taxPct.coerceIn(0, 100) + 99) / 100
-
-    fun ask(item: String): Int? = stock(item)?.takeIf { it.lots > 0 && !infinite(item) }?.let { (price(item) * (100 + Config.s.taxPct) / 100).roundToInt().coerceAtLeast(1) }
+    fun ask(item: String): Int? = goods[item]?.let { plan(item, it.lot) }?.paid?.coerceIn(1, Int.MAX_VALUE.toLong())?.toInt()
 
     fun bid(player: String, item: String): Int? =
         stock(item)?.takeIf { room(item, player) > 0 }?.let { if (capLeft(player, item) > 0) basePrice(item) else price(item).roundToInt() }
@@ -109,10 +115,10 @@ object Stocks {
         val guaranteed = minOf(lots, capLeft(player, item))
         if (infinite(item)) {
             val gross = guaranteed.toLong() * basePrice(item)
-            return StockSale(lots, guaranteed, gross, tax(gross), basePrice(item), full = lots > guaranteed)
+            return StockSale(lots, guaranteed, gross, Matching.tax(gross), basePrice(item), full = lots > guaranteed)
         }
         val gross = floorSpurs(guaranteed.toDouble() * basePrice(item) + value(item, s.lots + guaranteed, s.lots + lots))
-        return StockSale(lots, guaranteed, gross, tax(gross), price(item, s.lots + lots).roundToInt(), full = lots > room(item))
+        return StockSale(lots, guaranteed, gross, Matching.tax(gross), price(item, s.lots + lots).roundToInt(), full = lots > room(item))
     }
 
     fun plan(item: String, qty: Int): FillLinePlan? {
@@ -122,7 +128,7 @@ object Stocks {
         val lots = minOf(qty / lot, s.lots)
         if (lots <= 0) return null
         val cost = ceilSpurs(value(item, s.lots - lots, s.lots))
-        return FillLinePlan(ORDER_ID, "", lots * lot, (cost / lots).toInt(), lot, cost, tax(cost))
+        return FillLinePlan(ORDER_ID, "", lots * lot, (cost / lots).toInt(), lot, cost)
     }
 
     fun take(item: String, lots: Int) {

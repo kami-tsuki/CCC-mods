@@ -98,6 +98,7 @@ subprojects {
     // jar into both. Config is intentionally wiped too (not merged) - deploys always start a
     // module from its code defaults rather than carrying forward stale/hand-edited state.
     val deployEnabled = (property("deploy_enabled") as String).toBoolean()
+    val wipeConfig = (findProperty("deploy_wipe_config") as String?).toBoolean()
     val jar = tasks.named<Jar>("jar")
     val deploy by tasks.registering {
         group = "kami deploy"
@@ -112,7 +113,7 @@ subprojects {
                 mods.mkdirs()
                 mods.listFiles { f -> f.name.startsWith(modId) && f.extension == "jar" }?.forEach { it.delete() }
                 config.listFiles { f -> f.name.startsWith(modId) }?.forEach { it.deleteRecursively() }
-                config.resolve("kami/$configName").listFiles { f -> f.name != "client.json" }?.forEach { it.deleteRecursively() }
+                if (wipeConfig) config.resolve("kami/$configName").listFiles { f -> f.name != "client.json" }?.forEach { it.deleteRecursively() }
                 jarFile.copyTo(mods.resolve(jarFile.name), overwrite = true)
             }
         }

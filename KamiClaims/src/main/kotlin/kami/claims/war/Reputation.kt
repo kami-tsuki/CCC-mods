@@ -56,7 +56,6 @@ object Reputation {
         val cut = now() - days * Config.s.dayMillis
         log.values.forEach { l -> l.removeAll { it <= cut } }
         log.values.removeAll { it.isEmpty() }
-        Realm.dirty = true
         return log.getOrPut(key) { mutableListOf() }
     }
 
@@ -118,7 +117,6 @@ object Reputation {
 
     fun decay() {
         Realm.data.countries.values.filter { it.active }.forEach { it.reputation = (it.reputation + (s.repStart - it.reputation) * s.repDecay).coerceIn(0.0, s.repMax) }
-        Realm.dirty = true
     }
 
     fun factor(c: Country) = (1 - (c.reputation - s.repStart) / s.repMax).coerceIn(s.repFeeMin, s.repFeeMax)
@@ -137,7 +135,6 @@ object Reputation {
     fun setMin(c: Country, value: Int): Phrase {
         if (value !in 0..s.repMax.toInt()) throw Fail("kami_claims.error.reputation.min_range", v(s.repMax.toInt()))
         c.minReputation = value
-        Realm.dirty = true
         return Phrase.of("kami_claims.done.reputation.min", v(value))
     }
 

@@ -5,6 +5,7 @@ plugins {
 }
 
 val shade by configurations.creating
+val sqlite = "org.xerial:sqlite-jdbc:3.53.4.0"
 
 configurations.compileOnly { extendsFrom(shade) }
 configurations.named("additionalRuntimeClasspath") { extendsFrom(shade) }
@@ -20,6 +21,9 @@ dependencies {
         exclude(group = "org.slf4j")
         exclude(group = "org.jetbrains.kotlin")
     }
+    "api"(sqlite)
+    "jarJar"(sqlite)
+    "additionalRuntimeClasspath"(sqlite)
 }
 
 tasks.named<Jar>("jar") { archiveClassifier = "slim" }
@@ -27,6 +31,7 @@ tasks.named<Jar>("jar") { archiveClassifier = "slim" }
 val shadowJar = tasks.named<ShadowJar>("shadowJar") {
     archiveClassifier = ""
     configurations.set(listOf(shade))
+    from(tasks.named("jarJar"))
     mergeServiceFiles()
     exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA", "module-info.class", "META-INF/versions/*/module-info.class")
     listOf("net.dv8tion", "com.fasterxml.jackson", "okhttp3", "okio", "gnu.trove", "org.apache.commons.collections4", "com.neovisionaries")

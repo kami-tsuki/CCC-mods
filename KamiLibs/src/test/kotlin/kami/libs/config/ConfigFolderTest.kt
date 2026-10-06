@@ -1,6 +1,10 @@
 package kami.libs.config
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonPrimitive
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.AfterTest
@@ -69,5 +73,26 @@ class ConfigFolderTest {
         val loaded = folder.files("groups", Demo.serializer(), defaults, docs, "Group.")
         assertEquals(listOf("a", "b", "c"), loaded.keys.toList())
         assertEquals("groups/d.json", folder.problems.single().substringBefore(":"))
+    }
+
+    private val double = listOf(ConfigMigration(2) { o -> JsonObject(o + ("count" to JsonPrimitive(o.getValue("count").jsonPrimitive.int * 2))) })
+
+    @Test
+    fun `migration backs up the file and keeps unknown keys`() {
+        Files.createDirectories(dir.resolve("research"))
+        Files.writeString(dir.resolve("research/main.json"), "{ \"configVersion\": 1, \"count\": 4, \"mystery\": true }")
+        assertEquals(8, folder.file("main.json", Demo.serializer(), Demo(), docs, "Main file.", double).count)
+        val text = Files.readString(dir.resolve("research/main.json"))
+        assertTrue("\"configVersion\": 2" in text && "\"count\": 8" in text && "\"mystery\": true" in text)
+        assertTrue("\"count\": 4" in Files.readString(dir.resolve("research/.backup/main.json.v1.json")))
+    }
+
+    @Test
+    fun `newer version is not rewritten`() {
+        Files.createDirectories(dir.resolve("research"))
+        val text = "{ \"configVersion\": 9, \"count\": 4 }"
+        Files.writeString(dir.resolve("research/main.json"), text)
+        assertEquals(4, folder.file("main.json", Demo.serializer(), Demo(), docs, "Main file.", double).count)
+        assertEquals(text, Files.readString(dir.resolve("research/main.json")))
     }
 }

@@ -1,6 +1,8 @@
 package kami.claims.service
 
 import kami.claims.*
+import kami.claims.war.Fame
+import kotlin.math.roundToInt
 
 object View {
     const val OWN = 1
@@ -16,7 +18,7 @@ object View {
     const val ASSIGNED = 1024
 
     class Entry(val dim: Int, val x: Int, val z: Int, val country: Int, val type: Int, val flags: Int)
-    class CountryView(val name: String, val color: Int, val relation: Int, val flag: Int = 0, val secondary: Int = 0xFFFFFF) {
+    class CountryView(val name: String, val color: Int, val relation: Int, val flag: Int = 0, val secondary: Int = 0xFFFFFF, val reputation: Int = 0, val fame: Double? = null) {
         val pattern get() = flag shr 8
         val emblem get() = flag and 0xFF
     }
@@ -103,10 +105,11 @@ object View {
         val countries = ArrayList<CountryView>()
         val entries = ArrayList<Entry>(Realm.data.claims.size)
         val held = Realm.data.claims.filter { it.owner == viewer }.groupBy({ it.country }, { it.key })
+        val fame by lazy { Fame.scores() }
         Realm.data.claims.forEach { cl ->
             val dim = dimIndex[cl.dim] ?: return@forEach
             val c = Realm.data.countries[cl.country] ?: return@forEach
-            val idx = index.getOrPut(c.id) { countries += CountryView(c.name, color(c), mapRelation(c, viewer), (c.flag.pattern shl 8) or c.flag.emblem, c.flag.secondary); countries.size - 1 }
+            val idx = index.getOrPut(c.id) { countries += CountryView(c.name, color(c), mapRelation(c, viewer), (c.flag.pattern shl 8) or c.flag.emblem, c.flag.secondary, c.reputation.roundToInt(), fame[c.id]); countries.size - 1 }
             val flags = flags(cl, c, viewer, held[c.id].orEmpty())
             entries += Entry(dim, cl.x, cl.z, idx, if (flags == 0) -1 else typeIndex[cl.type] ?: -1, flags)
         }

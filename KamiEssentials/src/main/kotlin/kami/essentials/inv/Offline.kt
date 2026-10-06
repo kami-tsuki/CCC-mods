@@ -18,6 +18,7 @@ import net.minecraft.world.inventory.PlayerEnderChestContainer
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.storage.LevelResource
 import java.nio.file.Files
+import java.nio.file.NoSuchFileException
 import java.util.UUID
 
 class Offline private constructor(val id: UUID, private val server: MinecraftServer) {
@@ -32,8 +33,7 @@ class Offline private constructor(val id: UUID, private val server: MinecraftSer
     private var dirty = false
 
     init {
-        val raw = NbtIo.readCompressed(file, NbtAccounter.unlimitedHeap())
-        tag = DataFixTypes.PLAYER.updateToCurrentVersion(server.fixerUpper, raw, NbtUtils.getDataVersion(raw, -1))
+        tag = read(server, id) ?: throw NoSuchFileException(file.toString())
         tag.getList("Inventory", Tag.TAG_COMPOUND.toInt()).forEach { t ->
             val item = t as CompoundTag
             slot(item.getByte("Slot").toInt() and 255)?.let { inventory.setItem(it, ItemStack.parseOptional(server.registryAccess(), item)) }
@@ -84,8 +84,18 @@ class Offline private constructor(val id: UUID, private val server: MinecraftSer
             else -> 150
         }
 
+        private fun file(server: MinecraftServer, id: UUID) = server.getWorldPath(LevelResource.PLAYER_DATA_DIR).resolve("$id.dat")
+
+        fun saved(server: MinecraftServer, id: UUID) = Files.exists(file(server, id))
+
+        fun read(server: MinecraftServer, id: UUID): CompoundTag? {
+            if (!saved(server, id)) return null
+            val raw = NbtIo.readCompressed(file(server, id), NbtAccounter.unlimitedHeap())
+            return DataFixTypes.PLAYER.updateToCurrentVersion(server.fixerUpper, raw, NbtUtils.getDataVersion(raw, -1))
+        }
+
         fun of(server: MinecraftServer, id: UUID): Offline? = open[id] ?: run {
-            if (!Files.exists(server.getWorldPath(LevelResource.PLAYER_DATA_DIR).resolve("$id.dat"))) return null
+            if (!saved(server, id)) return null
             runCatching { Offline(id, server) }
                 .onFailure { KamiEssentials.LOG.error("Could not read the saved data of {}", id, it) }
                 .getOrElse { fail(Phrase.of("kami_essentials.views.read_failed")) }

@@ -7,7 +7,6 @@ import kami.economy.Order
 import kami.economy.Settings
 import kami.libs.claims.ClaimsApi
 import kami.libs.claims.Relation
-import java.nio.file.Files
 import java.util.UUID
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -35,7 +34,7 @@ class GuardsTest {
     private fun setup(): Fakes.Claims {
         Config.s = Settings()
         Market.data = Data()
-        Ledger.attach(Files.createTempFile("kami_economy", ".wal"))
+        TestDb.open()
         Ledger.wallet = purse
         return Fakes.claims().apply {
             home += mapOf(buyer to "aurelia", sameCountry to "aurelia", taxed to "ostland", ally to "verdania", enemy to "karst", neutral to "nordmark")
@@ -47,7 +46,10 @@ class GuardsTest {
     }
 
     @AfterTest
-    fun clear() = ClaimsApi.register(null)
+    fun clear() {
+        ClaimsApi.register(null)
+        TestDb.close()
+    }
 
     @Test
     fun tariffThatDoesNotFitTheTreasuryIsRefundedToThePayer() {

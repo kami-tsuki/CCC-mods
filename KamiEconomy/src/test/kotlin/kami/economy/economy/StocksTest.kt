@@ -8,7 +8,7 @@ import kami.economy.Settings
 import kami.economy.StarterGood
 import kami.libs.claims.ClaimsApi
 import kami.libs.claims.Relation
-import java.nio.file.Files
+import kami.libs.util.Time
 import java.util.UUID
 import kotlin.math.floor
 import kotlin.test.AfterTest
@@ -22,7 +22,10 @@ class StocksTest {
     private val deposits = mutableListOf<Int>()
 
     @AfterTest
-    fun clearClaims() = ClaimsApi.register(null)
+    fun clearClaims() {
+        ClaimsApi.register(null)
+        TestDb.close()
+    }
 
     private fun setup(dailyCap: Int? = null, infinite: Boolean = false) {
         Config.s = Settings(starterGoods = listOf(StarterGood(if (infinite) item else "#test:logs", 20, 64, 64, 32, dailyCap, infinite)))
@@ -34,7 +37,7 @@ class StocksTest {
             override fun deduct(id: UUID, amount: Int) = amount
             override fun deposit(id: UUID, amount: Int): Boolean { deposits += amount; return true }
         }
-        Ledger.attach(Files.createTempFile("kami_stock", ".wal"))
+        TestDb.open()
     }
 
     private fun stock() = Stocks.stock(item)!!
@@ -91,7 +94,7 @@ class StocksTest {
         assertEquals(0, Stocks.capLeft(player.toString(), item))
         Stocks.rollover(t + 60_000)
         assertEquals(0, Stocks.capLeft(player.toString(), item))
-        Stocks.rollover(t + 86_400_000)
+        Stocks.rollover(t + Time.DAY_MS)
         assertEquals(3, Stocks.capLeft(player.toString(), item))
         assertEquals(503 - 22, stock().lots)
     }
@@ -105,7 +108,7 @@ class StocksTest {
         val market = plan.fills.single { it.market }
         assertEquals(2 * 64, market.qty)
         assertEquals(20 + market.gross + market.tax, plan.totalSpurs)
-        assertEquals((market.gross + 9) / 10, market.tax)
+        assertEquals(market.gross / 10, market.tax)
         assertTrue(Ledger.buy(player.toString(), item, 3 * 64) is BuyResult.Ok)
         assertEquals(62, stock().lots)
         assertEquals(Config.s.lotOf(item), 64)
@@ -156,7 +159,7 @@ class StocksTest {
         val sale = Stocks.sale(player.toString(), item, 1)!!
         assertEquals(0, sale.guaranteed)
         assertEquals(19L, sale.gross)
-        assertEquals(2L, sale.tax)
-        assertEquals(17L, sale.net)
+        assertEquals(1L, sale.tax)
+        assertEquals(18L, sale.net)
     }
 }

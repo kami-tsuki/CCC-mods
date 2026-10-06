@@ -19,6 +19,9 @@ import kami.economy.economy.StackCodec
 import kami.economy.economy.Stocks
 import kami.economy.economy.Terms
 import kami.economy.economy.Trade
+import kami.economy.economy.TradeFlag
+import kami.economy.economy.TradeStatus
+import kami.libs.admin.Subject
 import kami.libs.claims.ClaimsApi
 import kami.libs.claims.CountryCapacity
 import kami.libs.claims.FlagInfo
@@ -37,7 +40,8 @@ import kotlin.math.roundToInt
 @Serializable class Row(
     val item: String, val lot: Int, val buy: Int, val sell: Int, val available: Int, val demand: Int,
     val last: Int, val change: Int, val volume: Int, val sold: Long, val bought: Long, val starter: Boolean,
-    val vendorPrice: Int, val myAsk: Int, val myBid: Int, val infinite: Boolean, val left: Int
+    val vendorPrice: Int, val myAsk: Int, val myBid: Int, val infinite: Boolean, val left: Int,
+    val status: String = "", val statusReason: String = ""
 )
 @Serializable class OrderRow(
     val id: Long, val item: String, val owner: String, val ownerName: String, val country: String,
@@ -65,7 +69,8 @@ import kotlin.math.roundToInt
     val item: String, val lot: Int, val buy: Int, val sell: Int,
     val held: Int, val maxAffordable: Int, val last: Int, val change: Int, val sold: Long, val bought: Long, val chart: Chart,
     val stock: StockLine?, val asks: List<Level>, val bids: List<Level>, val mine: List<OrderRow>,
-    val vendors: List<VendorLine>, val available: Int, val demand: Int, val infinite: Boolean, val stockBid: Int, val resetAt: Long, val maxAmount: Int
+    val vendors: List<VendorLine>, val available: Int, val demand: Int, val infinite: Boolean, val stockBid: Int, val resetAt: Long, val maxAmount: Int,
+    val status: String = "", val statusReason: String = ""
 )
 @Serializable class Quote(
     val mode: String, val item: String, val qty: Int, val price: Int,
@@ -76,7 +81,7 @@ import kotlin.math.roundToInt
 )
 @Serializable class AuctionLine(
     val id: Long, val label: String, val stackData: String, val startPrice: Int, val buyNowPrice: Int, val currentBid: Int,
-    val currentBidder: String, val expiresAt: Long, val mine: Boolean, val sellerName: String
+    val currentBidder: String, val expiresAt: Long, val mine: Boolean, val sellerName: String, val status: String = "", val statusReason: String = ""
 )
 @Serializable class Slot(val used: Int = 0, val max: Int = 0, val hint: String = "")
 @Serializable class Snap(
@@ -86,7 +91,7 @@ import kotlin.math.roundToInt
     val mine: List<OrderRow>, val taxPct: Int, val allyTaxPct: Int, val auctionFeePct: Int,
     val detail: Detail?, val quote: Quote?, val msg: String, val ok: Boolean, val open: Boolean, val citizen: Boolean,
     val orderSlots: Slot, val auctionSlots: Slot, val goal: String, val goalValue: Long, val goalMax: Long, val truncated: Boolean,
-    val muted: List<String> = emptyList()
+    val muted: List<String> = emptyList(), val subject: String = "", val subjectOrders: List<OrderRow> = emptyList()
 )
 
 private class QuoteReq(val mode: String, val item: String, val qty: Int, val price: Int)
@@ -99,6 +104,7 @@ private class State {
     var detailItem = ""
     var range = Range.WEEK
     var quote: QuoteReq? = null
+    var subject: UUID? = null
 }
 
 object Sync {
@@ -109,8 +115,9 @@ object Sync {
     private var dash: Dash? = null
     private var dashTick = 0
 
-    fun view(p: ServerPlayer, view: String, query: String, ids: String = "") {
+    fun view(p: ServerPlayer, view: String, query: String, ids: String = "", subject: String = "") {
         val s = states.getOrPut(p.uuid) { State() }
+        s.subject = subject.takeIf { it.isNotBlank() }?.let { Subject.resolve(p, it) }
         s.view = view
         s.query = query
         s.search = SearchQuery.parse(query)
@@ -126,6 +133,8 @@ object Sync {
     fun quote(p: ServerPlayer, mode: String, item: String, qty: Int, price: Int) {
         states.getOrPut(p.uuid) { State() }.quote = if (item.isEmpty() || qty <= 0) null else QuoteReq(mode, item, qty.coerceAtMost(Config.s.maxAmount), price)
     }
+
+    fun subject(p: ServerPlayer): UUID? = states[p.uuid]?.subject
 
     fun forget(p: ServerPlayer) {
         states.remove(p.uuid)
@@ -145,17 +154,18 @@ object Sync {
         val now = System.currentTimeMillis()
         val traded = Market.data.traded[item]
         val infinite = Stocks.infinite(item)
+        val status = TradeStatus.of(item)
         return Row(
             item, lot, Matching.bestAsk(item, me) ?: 0, Matching.bestBidFor(item, me) ?: 0,
             Matching.available(item, me), Matching.openBids(item, me).sumOf { it.amount } + if (stockBid != null) Stocks.room(item, me) * lot else 0,
             book.lastFill, History.change(item, now), History.dayVolume(item, now).toInt(), traded?.sold ?: 0, traded?.bought ?: 0, Stocks.good(item) != null,
             Stocks.vendorPrice(item) ?: 0, book.sells.firstOrNull { it.owner == me }?.price ?: 0, book.buys.firstOrNull { it.owner == me }?.price ?: 0,
-            infinite, if (infinite) Stocks.capLeft(me, item) * lot else 0
+            infinite, if (infinite) Stocks.capLeft(me, item) * lot else 0, status?.let { TradeFlag.csv(it.flags) }.orEmpty(), status?.reason.orEmpty()
         )
     }
 
     private fun marketRows(s: State, me: String): List<Row> =
-        (Market.data.books.keys + Stocks.items()).filter { s.hit(it) }.map { row(it, me) }.filter { it.buy > 0 || it.sell > 0 }
+        (Market.data.books.keys + Stocks.items()).filter { s.hit(it) }.map { row(it, me) }.filter { it.buy > 0 || it.sell > 0 || it.status.isNotEmpty() }
             .sortedWith(compareByDescending<Row> { it.sold + it.bought }.thenBy { it.item })
 
     private fun orderRows(server: MinecraftServer, me: String, books: Collection<Book>, bid: Boolean, mineOnly: Boolean = false): List<OrderRow> = books.flatMap { b ->
@@ -224,7 +234,7 @@ object Sync {
         return Detail(
             item, r.lot, r.buy, r.sell, inventory(p)[item] ?: 0, Matching.maxAffordable(item, funds, me), r.last, r.change, r.sold, r.bought,
             chart, stock, asks, bids, mine(p.server, me, listOf(book)), vendors,
-            r.available, r.demand, r.infinite, stockBid ?: 0, Stocks.nextReset(), Config.s.maxAmount
+            r.available, r.demand, r.infinite, stockBid ?: 0, Stocks.nextReset(), Config.s.maxAmount, r.status, r.statusReason
         )
     }
 
@@ -237,8 +247,13 @@ object Sync {
     private fun auctions(server: MinecraftServer, me: String, s: State): List<Auction> =
         Auctions.open().also { live -> auctionSpecs.keys.retainAll(live.map(Auction::id).toSet()) }.filter { s.search.isEmpty || s.hit(auctionSpec(server, it)) || s.search.hasWords && s.search.matches(it.label) }.sortedWith(compareByDescending<Auction> { it.seller == me }.thenBy { it.expiresAt })
 
-    private fun auctionLine(server: MinecraftServer, me: String, a: Auction) =
-        AuctionLine(a.id, a.label, a.stackData, a.startPrice, a.buyNowPrice ?: -1, a.currentBid, a.currentBidder, a.expiresAt, a.seller == me, name(server, a.seller))
+    private fun auctionLine(server: MinecraftServer, me: String, a: Auction): AuctionLine {
+        val status = TradeStatus.of(auctionSpec(server, a))
+        return AuctionLine(
+            a.id, a.label, a.stackData, a.startPrice, a.buyNowPrice ?: -1, a.currentBid, a.currentBidder, a.expiresAt, a.seller == me, name(server, a.seller),
+            status?.let { TradeFlag.csv(it.flags) }.orEmpty(), status?.reason.orEmpty()
+        )
+    }
 
     private fun dash(server: MinecraftServer): Dash {
         val cached = dash
@@ -379,7 +394,8 @@ object Sync {
             orderSlots = slot(me, CountryCapacity.MARKET_SLOTS, Limits.marketUsed(me), Limits.marketSlots(me)),
             auctionSlots = slot(me, CountryCapacity.AUCTION_SLOTS, Limits.auctionUsed(me), Limits.auctionSlots(me)),
             goal = goal?.text?.json() ?: "", goalValue = goal?.value ?: 0, goalMax = goal?.max ?: 0,
-            truncated = truncated, muted = Notify.muted(me).toList()
+            truncated = truncated, muted = Notify.muted(me).toList(),
+            subject = s.subject?.toString().orEmpty(), subjectOrders = s.subject?.let { mine(p.server, it.toString(), books) }.orEmpty()
         )
         return json.encodeToString(snap)
     }

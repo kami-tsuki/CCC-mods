@@ -1,0 +1,308 @@
+{
+    "countries": {
+        "kami": {
+            "name": "kami",
+            "created": 1790950424605,
+            "treasury": 0,
+            "pending": 0,
+            "lastActive": 1791284806911,
+            "moved": 0,
+            "color": 0,
+            "members": {
+                "18c75ac7-d31e-4fcb-a06a-8d4dc4d7e82b": {
+                    "rank": "PRESIDENT",
+                    "jobs": {},
+                    "since": 1790950424611,
+                    "seen": 1791284806911,
+                    "mail": [],
+                    "job": null,
+                    "progress": null,
+                    "start": null,
+                    "zone": null
+                }
+            },
+            "outsiders": {},
+            "rules": {},
+            "fire": {},
+            "jobs": {},
+            "invites": {},
+            "requests": {},
+            "parent": null,
+            "taxMode": "FLAT",
+            "taxAmount": 0.0,
+            "provinceDebt": 0,
+            "independenceRequested": false,
+            "independenceDeclinedAt": 0,
+            "overlordManage": false,
+            "overlordCaps": {},
+            "flag": {
+                "pattern": 0,
+                "emblem": 0,
+                "secondary": 16777215
+            },
+            "ledger": [],
+            "history": [
+                {
+                    "day": 20729,
+                    "at": 1791011314531,
+                    "treasury": 0,
+                    "income": 0,
+                    "upkeep": 0,
+                    "jobs": 0,
+                    "tributeIn": 0,
+                    "tributeOut": 0,
+                    "deposits": 0,
+                    "withdrawals": 0,
+                    "chunks": 2,
+                    "debtChunks": 0,
+                    "members": 1,
+                    "plots": 0,
+                    "types": {
+                        "civic": 1,
+                        "forestry": 1
+                    },
+                    "ledger": {}
+                },
+                {
+                    "day": 20730,
+                    "at": 1791105587877,
+                    "treasury": 0,
+                    "income": 0,
+                    "upkeep": 0,
+                    "jobs": 0,
+                    "tributeIn": 0,
+                    "tributeOut": 0,
+                    "deposits": 0,
+                    "withdrawals": 0,
+                    "chunks": 3,
+                    "debtChunks": 0,
+                    "members": 1,
+                    "plots": 0,
+                    "types": {
+                        "civic": 2,
+                        "forestry": 1
+                    },
+                    "ledger": {}
+                },
+                {
+                    "day": 20731,
+                    "at": 1791282649509,
+                    "treasury": 0,
+                    "income": 0,
+                    "upkeep": 0,
+                    "jobs": 0,
+                    "tributeIn": 0,
+                    "tributeOut": 0,
+                    "deposits": 0,
+                    "withdrawals": 0,
+                    "chunks": 3,
+                    "debtChunks": 0,
+                    "members": 1,
+                    "plots": 0,
+                    "types": {
+                        "civic": 2,
+                        "forestry": 1
+                    },
+                    "ledger": {}
+                },
+                {
+                    "day": 20732,
+                    "at": 1791282649509,
+                    "treasury": 0,
+                    "income": 0,
+                    "upkeep": 0,
+                    "jobs": 0,
+                    "tributeIn": 0,
+                    "tributeOut": 0,
+                    "deposits": 0,
+                    "withdrawals": 0,
+                    "chunks": 3,
+                    "debtChunks": 0,
+                    "members": 1,
+                    "plots": 0,
+                    "types": {
+                        "civic": 2,
+                        "forestry": 1
+                    },
+                    "ledger": {}
+                }
+            ],
+            "provinces": [],
+            "provinceInvites": {},
+            "provinceRequests": {},
+            "autoAllies": [],
+            "alliances": [],
+            "allianceOffers": {},
+            "tradePolicy": {},
+            "research": {
+                "done": {
+                    "technology:crafting_table": 1790973493216,
+                    "metallurgy:stone_tools": 1791046433577
+                },
+                "queue": [],
+                "visited": [
+                    "structure:legendary_monsters:frostbitten_temple"
+                ]
+            },
+            "xp": 0,
+            "xpToday": {},
+            "xpDay": 0,
+            "xpFrac": {
+                "prospect": 0.0,
+                "discovery": 0.0,
+                "tasks": 0.0,
+                "claims": 0.0,
+                "trade": 0.0
+            },
+            "rewardedLevel": 1,
+            "level": 1,
+            "slug": "",
+            "tokens": {},
+            "counters": {
+                "prospect": 7,
+                "prospect:t1": 7,
+                "trees_grown": 47
+            },
+            "buffs": {
+                "enabled": [],
+                "billed": []
+            },
+            "loans": [],
+            "loanCooldowns": {},
+            "offer": {
+                "open": [
+                    "CITIZEN"
+                ],
+                "rent": {
+                    "CITIZEN": 5,
+                    "PARENT": 3,
+                    "PROVINCE": 8,
+                    "ALLIED": 8,
+                    "RANDOM": 10
+                }
+            },
+            "rentDebtLimit": 50,
+            "moveOutDays": 3,
+            "reclaimLocks": {},
+            "rankPlots": {
+                "CITIZEN": 2,
+                "OFFICER": 4,
+                "CHANCELLOR": 9,
+                "PRESIDENT": 25
+            },
+            "guestPlots": {
+                "PARENT": 2,
+                "PROVINCE": 2,
+                "ALLIED": 2,
+                "RANDOM": 1
+            },
+            "playerPlots": {},
+            "state": "ACTIVE",
+            "tax": null,
+            "shutdown": null,
+            "release": null,
+            "warCooldownUntil": 0,
+            "warPairs": {},
+            "warPairsBy": {},
+            "warDeclared": [],
+            "warDebts": {},
+            "warOverlord": null,
+            "reputation": 1000.0,
+            "minReputation": 0,
+            "repWeek": {},
+            "repWeekStart": 0,
+            "tradeLog": {},
+            "policyLog": {},
+            "tributeOf": null,
+            "tributeSince": 0,
+            "tributeHeld": 0,
+            "tributeHigh": 0,
+            "ratings": {},
+            "safeChunks": []
+        }
+    },
+    "claims": [
+        {
+            "country": "kami",
+            "dim": "minecraft:overworld",
+            "x": -4,
+            "z": -1,
+            "type": "civic",
+            "at": 1790950424611,
+            "since": 20728,
+            "free": true,
+            "capital": true,
+            "debt": 0,
+            "upkeepCycles": 4,
+            "unclaimWarned": false,
+            "owner": null,
+            "roles": {},
+            "state": "ACTIVE",
+            "rentDebt": 0,
+            "rentCredit": 0,
+            "until": 0,
+            "category": null,
+            "offer": null,
+            "workers": [],
+            "tax": null,
+            "lapse": null
+        },
+        {
+            "country": "kami",
+            "dim": "minecraft:overworld",
+            "x": -5,
+            "z": -1,
+            "type": "forestry",
+            "at": 1790973514274,
+            "since": 20728,
+            "free": true,
+            "capital": false,
+            "debt": 0,
+            "upkeepCycles": 4,
+            "unclaimWarned": false,
+            "owner": null,
+            "roles": {},
+            "state": "ACTIVE",
+            "rentDebt": 0,
+            "rentCredit": 0,
+            "until": 0,
+            "category": null,
+            "offer": null,
+            "workers": [],
+            "tax": null,
+            "lapse": null
+        },
+        {
+            "country": "kami",
+            "dim": "minecraft:overworld",
+            "x": -5,
+            "z": 0,
+            "type": "civic",
+            "at": 1791055618925,
+            "since": 20729,
+            "free": true,
+            "capital": false,
+            "debt": 0,
+            "upkeepCycles": 3,
+            "unclaimWarned": false,
+            "owner": null,
+            "roles": {},
+            "state": "ACTIVE",
+            "rentDebt": 0,
+            "rentCredit": 0,
+            "until": 0,
+            "category": null,
+            "offer": null,
+            "workers": [],
+            "tax": null,
+            "lapse": null
+        }
+    ],
+    "reserves": [],
+    "day": 20732,
+    "schema": 1,
+    "letters": {},
+    "temp": [],
+    "wars": [],
+    "warClock": 1791285449915
+}

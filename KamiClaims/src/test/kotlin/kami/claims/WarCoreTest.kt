@@ -35,7 +35,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-class WarCoreTest {
+class WarCoreTest : WithDb() {
     private val day get() = Config.s.dayMillis
     private val pot = Stakes(money = 100)
 

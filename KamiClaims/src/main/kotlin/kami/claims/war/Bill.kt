@@ -18,7 +18,6 @@ object Bill {
         val (w, a, v) = versus(attacker, victim) ?: return
         add(w, a, at, s.billKill)
         w.side(v.id)?.deaths?.merge(v.id, 1) { x, y -> x + y }
-        Realm.dirty = true
     }
 
     fun block(raider: Player, cl: Claim) {
@@ -51,6 +50,5 @@ object Bill {
         val value = if (at != null && at.country in side.countries) floor(amount * s.ownClaimsFactor).toLong() else amount
         if (value <= 0) return
         side.bill.merge(c.id, value) { x, y -> WarDebt.plus(x, y) }
-        Realm.dirty = true
     }
 }

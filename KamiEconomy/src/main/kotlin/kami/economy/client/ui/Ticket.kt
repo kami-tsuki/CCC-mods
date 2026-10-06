@@ -127,7 +127,7 @@ internal class Ticket(private val app: MarketApp) {
         return app.snap.quote?.takeIf { it.mode == mode && it.item == item && it.qty == n && (it.price == p || mode == "sell") }
     }
 
-    private fun blocked(d: Detail, q: Quote?): String? = when {
+    private fun blocked(d: Detail, q: Quote?): String? = frozenFor(mode, d.status, d.statusReason) ?: when {
         !app.snap.citizen -> tr("kami_libs.lock.no_country")
         !buy && d.held <= 0 -> tr("kami_economy.market.sell.none")
         q == null -> tr("kami_economy.market.buy.pending")
@@ -211,7 +211,12 @@ internal class Ticket(private val app: MarketApp) {
 
     fun draw(ui: Ui, f: Flow, d: Detail?) {
         if (d == null) {
-            Draw.text(ui.g, tr("kami_economy.market.calculating"), f.rest.x, f.rest.y, Palette.textMuted)
+            ui.skeleton(f.take(SMALL_H))
+            ui.skeleton(f.take(SMALL_H))
+            ui.skeletonLines(f.take(5 * Draw.LINE), 5)
+            ui.skeleton(f.take(CONTROL_H))
+            ui.skeleton(f.take(SMALL_H))
+            ui.skeleton(f.take(CONTROL_H))
             return
         }
         seed(d)
@@ -219,6 +224,10 @@ internal class Ticket(private val app: MarketApp) {
         val size = app.stack(item).maxStackSize
         ui.segmented(f.take(SMALL_H), listOf(Option(true, tr("kami_economy.ticket.buy"), description = tr("kami_economy.ticket.buy.tip")), Option(false, tr("kami_economy.ticket.sell"), description = tr("kami_economy.ticket.sell.tip"))), buy, key = "side")?.let { buy = it }
         ui.segmented(f.take(SMALL_H), listOf(Option(false, tr("kami_economy.ticket.instant"), description = tr("kami_economy.ticket.instant.tip")), Option(true, tr("kami_economy.ticket.order"), description = tr("kami_economy.ticket.order.tip"))), order, key = "kind")?.let { order = it }
+        frozenFor(mode, d.status, d.statusReason)?.let { text ->
+            val area = f.take(Draw.paragraphHeight(text, f.rest.w))
+            Draw.paragraph(ui.g, text, area.x, area.y, area.w, Palette.warning)
+        }
         val fill = fill(d, lot)
         val why = tr("kami_economy.limit.${fill.why}", Format.number(d.maxAmount))
         val limit = (if (buy && order) d.maxAmount.toLong() else fill.qty).coerceAtLeast(1)
@@ -241,13 +250,16 @@ internal class Ticket(private val app: MarketApp) {
         val w = f.rest.w
         val area = f.take(lines.sumOf { Draw.paragraphHeight(it.text, w) + 2 })
         var y = area.y
+        if (q == null) ui.spinner(area.x, y, Palette.textMuted)
         lines.forEachIndexed { i, l ->
-            val h = Draw.paragraph(ui.g, l.text, area.x, y, w, l.color)
+            val x = if (q == null) 12 else 0
+            val h = Draw.paragraph(ui.g, l.text, area.x + x, y, w - x, l.color)
             ui.tooltip("line:$i", Rect(area.x, y, w, h), l.tip)
             y += h + 2
         }
         val reason = blocked(d, q)
-        if (ui.button(f.take(CONTROL_H), tr("kami_economy.ticket.act.$mode"), style = ButtonStyle.PRIMARY, enabled = reason == null, disabledReason = reason, key = "act")) {
+        val pending = q == null && reason == tr("kami_economy.market.buy.pending")
+        if (ui.button(f.take(CONTROL_H), tr("kami_economy.ticket.act.$mode"), style = ButtonStyle.PRIMARY, enabled = reason == null, disabledReason = reason, pending = pending, key = "act")) {
             q?.let { confirmQuote(app, it, lot, fatFinger(d)) }
         }
         if (d.mine.isNotEmpty()) mine(ui, f, d)

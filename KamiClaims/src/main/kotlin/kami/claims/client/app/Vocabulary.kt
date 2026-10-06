@@ -1,5 +1,7 @@
 package kami.claims.client.app
 
+import kami.claims.TaxMode
+import kami.claims.tributeOwed
 import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icon
 import kami.libs.ui.style.Icons
@@ -154,6 +156,8 @@ object Vocabulary {
     }
 
     fun perDay(amount: Double, period: Int = 1) = amount / period.coerceAtLeast(1)
+
+    fun tributeEstimate(mode: String, amount: Double, base: Long) = tributeOwed(if (mode == "percent") TaxMode.PERCENT else TaxMode.FLAT, amount, base)
 
     fun tribute(mode: String, amount: Double) =
         if (mode == "percent") tr("kami_claims.tribute.percent", Format.number((amount * 100).toLong())) else tr("kami_claims.tribute.flat", Format.number(amount.toLong()))

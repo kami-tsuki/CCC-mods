@@ -6,10 +6,10 @@ import kami.economy.Data
 import kami.economy.Market
 import kami.economy.Order
 import kami.economy.Settings
-import kotlinx.serialization.encodeToString
+import kami.libs.db.SavePoint
 import kotlinx.serialization.json.Json
-import java.nio.file.Files
 import java.util.UUID
+import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -34,13 +34,14 @@ class LedgerTest {
     private val buyer = UUID.randomUUID()
     private val sellerA = UUID.randomUUID()
     private val sellerB = UUID.randomUUID()
-    private val wal = Files.createTempFile("kami_economy", ".wal")
+
+    @AfterTest
+    fun tearDown() = TestDb.close()
 
     private fun setup(wallet: FakeWallet): FakeWallet {
         Config.s = Settings()
         Market.data = Data()
-        Files.writeString(wal, "")
-        Ledger.attach(wal)
+        TestDb.open()
         Ledger.wallet = wallet
         return wallet
     }
@@ -59,7 +60,7 @@ class LedgerTest {
     @Test
     fun intentIsWrittenBeforeTheDebit() {
         val wallet = setup(FakeWallet(100))
-        wallet.onDeduct = { assertTrue(Files.readString(wal).contains("\"PENDING\"")) }
+        wallet.onDeduct = { SavePoint.run(); assertTrue("PENDING" in TestDb.states()) }
         Matching.insertSell("test:item", Order(1, sellerA.toString(), 10, 5))
         val result = Ledger.buy(buyer.toString(), "test:item", 5)
         assertEquals(BuyResult.Ok(5, 50), result)
@@ -72,15 +73,15 @@ class LedgerTest {
         val wallet = setup(FakeWallet())
         val fills = listOf(LedgerFill(1, sellerA.toString(), 2, 10), LedgerFill(2, sellerB.toString(), 3, 10))
         val intent = Intent(7, IntentType.BUY, LedgerState.BOOK_INSERTED, actor = buyer.toString(), item = "test:item", qty = 5, netSpurs = 50, fills = fills, paid = listOf(1))
-        Files.writeString(wal, Json.encodeToString(intent) + "\n")
-        Ledger.attach(wal)
+        TestDb.wal(intent)
+        TestDb.restart()
         Ledger.recover()
         assertEquals(listOf(sellerB to 27), wallet.deposits)
-        Ledger.attach(wal)
+        TestDb.restart()
         Ledger.recover()
         assertEquals(1, wallet.deposits.size)
-        Ledger.compact()
-        assertEquals("", Files.readString(wal))
+        SavePoint.run()
+        assertTrue(TestDb.states().isEmpty())
     }
 
     @Test
@@ -107,13 +108,13 @@ class LedgerTest {
         val wallet = setup(FakeWallet(100))
         val fills = listOf(LedgerFill(1, sellerA.toString(), 5, 10))
         val intent = Intent(5, IntentType.BUY, LedgerState.PENDING, actor = buyer.toString(), item = "test:item", qty = 5, netSpurs = 50, fills = fills, preBalance = 100)
-        Files.writeString(wal, Json.encodeToString(intent) + "\n")
-        Ledger.attach(wal)
+        TestDb.wal(intent)
+        TestDb.restart()
         Ledger.recover()
         assertEquals(100, wallet.funds)
         assertTrue(wallet.deposits.isEmpty())
         assertTrue(Market.data.pendingDelivery.isEmpty())
-        Ledger.attach(wal)
+        TestDb.restart()
         Ledger.recover()
         assertEquals(100, wallet.funds)
         assertTrue(wallet.deposits.isEmpty())
@@ -124,13 +125,13 @@ class LedgerTest {
         val wallet = setup(FakeWallet(50))
         val fills = listOf(LedgerFill(2, sellerB.toString(), 5, 10))
         val intent = Intent(6, IntentType.BUY, LedgerState.PENDING, actor = buyer.toString(), item = "test:item", qty = 5, netSpurs = 50, fills = fills, preBalance = 100)
-        Files.writeString(wal, Json.encodeToString(intent) + "\n")
-        Ledger.attach(wal)
+        TestDb.wal(intent)
+        TestDb.restart()
         Ledger.recover()
         assertEquals(50, wallet.funds)
         assertEquals(listOf(sellerB to 45), wallet.deposits)
         assertEquals(5, Market.data.pendingDelivery[buyer.toString()]!!.sumOf { it.qty })
-        Ledger.attach(wal)
+        TestDb.restart()
         Ledger.recover()
         assertEquals(50, wallet.funds)
         assertEquals(1, wallet.deposits.size)
@@ -141,8 +142,8 @@ class LedgerTest {
     fun crashRecoveryReplayOfTheResumePathIsIdempotent() {
         val resumed = setup(FakeWallet(50))
         val resumeIntent = Intent(6, IntentType.BUY, LedgerState.PENDING, actor = buyer.toString(), item = "test:item", qty = 5, netSpurs = 50, fills = listOf(LedgerFill(2, sellerB.toString(), 5, 10)), preBalance = 100)
-        Files.writeString(wal, Json.encodeToString(resumeIntent) + "\n")
-        repeat(2) { Ledger.attach(wal); Ledger.recover() }
+        TestDb.wal(resumeIntent)
+        repeat(2) { TestDb.restart(); Ledger.recover() }
         assertEquals(50, resumed.funds)
         assertEquals(1, resumed.deposits.size)
         assertEquals(5, Market.data.pendingDelivery[buyer.toString()]!!.sumOf { it.qty })
@@ -173,8 +174,9 @@ class LedgerTest {
         val cancelIntent = Intent(11, IntentType.BID_CANCEL, LedgerState.BOOK_INSERTED, actor = buyer.toString(), item = "test:item", orderId = 5, netSpurs = 20)
         Config.s = Settings()
         Market.data = Data()
-        Files.writeString(wal, listOf(cancelIntent, bidIntent).joinToString("") { Json.encodeToString(it) + "\n" })
-        Ledger.attach(wal)
+        TestDb.open()
+        TestDb.wal(cancelIntent, bidIntent)
+        TestDb.restart()
         Ledger.wallet = wallet
         Ledger.recover()
         assertEquals(70, wallet.balance(buyer))
@@ -193,14 +195,15 @@ class LedgerTest {
         val intent = Intent(7, IntentType.BUY, LedgerState.BOOK_INSERTED, actor = buyer.toString(), item = "test:item", qty = 5, netSpurs = 50, fills = fills)
         Config.s = Settings()
         Market.data = Data()
-        Files.writeString(wal, Json.encodeToString(intent) + "\n")
-        Ledger.attach(wal)
+        TestDb.open()
+        TestDb.wal(intent)
+        TestDb.restart()
         Ledger.wallet = wallet
         Ledger.recover()
         assertEquals(20, wallet.balance(sellerA))
         assertEquals(30, wallet.balance(sellerB))
         assertEquals(listOf(sellerB to 30), wallet.deposits)
-        Ledger.attach(wal)
+        TestDb.restart()
         Ledger.recover()
         assertEquals(1, wallet.deposits.size)
     }
@@ -215,13 +218,14 @@ class LedgerTest {
         val intent = Intent(8, IntentType.BUY, LedgerState.BOOK_INSERTED, actor = buyer.toString(), item = "test:item", qty = 3, netSpurs = 30, fills = fills)
         Config.s = Settings()
         Market.data = Data()
-        Files.writeString(wal, Json.encodeToString(intent) + "\n")
-        Ledger.attach(wal)
+        TestDb.open()
+        TestDb.wal(intent)
+        TestDb.restart()
         Ledger.wallet = wallet
         Ledger.recover()
         assertEquals(30, wallet.balance(sellerA))
         assertEquals(listOf(sellerA to 20, sellerA to 10), wallet.deposits)
-        Ledger.attach(wal)
+        TestDb.restart()
         Ledger.recover()
         assertEquals(2, wallet.deposits.size)
     }

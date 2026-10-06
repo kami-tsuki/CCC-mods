@@ -5,6 +5,7 @@ import kami.economy.client.MarketPrefs
 import kami.economy.client.PriceCache
 import kami.economy.economy.Blacklist
 import kami.economy.economy.Classification
+import kami.economy.net.Detail
 import kami.economy.net.FlagView
 import kami.economy.net.OrderRow
 import kami.economy.net.Slot
@@ -22,6 +23,7 @@ import kami.libs.ui.app.Modules
 import kami.libs.ui.app.NavBadge
 import kami.libs.ui.app.NavGroup
 import kami.libs.ui.app.NavItem
+import kami.libs.ui.app.OpenWait
 import kami.libs.ui.app.Page
 import kami.libs.ui.app.Route
 import kami.libs.ui.app.Tour
@@ -46,7 +48,13 @@ import net.minecraft.world.item.Items
 
 internal const val ROW_H = 18
 private const val MAX_IDS = 28000
+private const val VIEW_CACHE = 24
+private const val DETAIL_CACHE = 16
+private const val VIEW_WAIT_MS = 10_000L
 internal const val MAX_PRICE = 1_000_000L
+
+internal fun searchIds(q: SearchQuery, extra: Collection<String>, max: Int = MAX_IDS): String =
+    if (q.isEmpty) "" else ItemSearch.ids(q, extra).joinToString(",").takeIf { it.length <= max } ?: "*"
 
 internal class Throttled<T>(private val load: () -> T) {
     private var at = 0L
@@ -63,13 +71,11 @@ internal class Stored(val slot: Int, val stack: ItemStack)
 
 internal class Carried(val held: Map<String, Int>, val auctionOnly: List<Stored>)
 
-private fun marketStack(id: String): ItemStack = ItemSpec.stack(id).let { if (it.isEmpty) ItemStack(Items.BARRIER) else it }
-
-internal fun Ui.itemCell(c: Rect, stack: ItemStack, name: String, key: String, color: Int = Palette.text): Boolean {
-    val clicked = itemSlot(Rect(c.x, c.y, c.h, c.h), stack, key = key)
-    Draw.text(g, Draw.fit(name, c.w - c.h - 4), c.x + c.h + 4, c.y + (c.h - 8) / 2, color)
-    return clicked
+private class Lru<V>(private val max: Int) : LinkedHashMap<String, V>(max, 0.75f, true) {
+    override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, V>?) = size > max
 }
+
+internal fun marketStack(id: String): ItemStack = ItemSpec.stack(id).let { if (it.isEmpty) ItemStack(Items.BARRIER) else it }
 
 internal fun Ui.flag(r: Rect, color: Int, flag: FlagView?) =
     flag?.let { Flags.draw(g, r, color, it.pattern, it.emblem, it.secondary) } ?: Draw.fill(g, r, color or 0xFF000000.toInt())
@@ -103,6 +109,12 @@ class MarketApp private constructor() : KamiApp() {
     override val module: String? get() = "market"
     override val home = Route("dashboard")
     private val stacks = HashMap<String, ItemStack>()
+    private val views = Lru<Snap>(VIEW_CACHE)
+    private val latest = HashMap<String, Snap>()
+    private val queries = HashMap<String, String>()
+    private val details = Lru<Detail>(DETAIL_CACHE)
+    private var awaiting: String? = null
+    private var awaitAt = 0L
 
     internal val carried = Throttled {
         val held = HashMap<String, Int>()
@@ -122,21 +134,41 @@ class MarketApp private constructor() : KamiApp() {
 
     fun request(name: String, vararg args: String) = ClientHooks.request(name, *args)
 
-    fun view(name: String, query: String = "") = request("view", name, query)
-
-    fun search(name: String, query: String) {
-        val q = SearchQuery.parse(query)
-        val ids = if (q.isEmpty) "" else ItemSearch.ids(q, PriceCache.items + stacks.keys).joinToString(",").takeIf { it.length <= MAX_IDS } ?: "*"
-        request("view", name, query, ids)
+    fun view(name: String, query: String = "", ids: String = "", subject: String = "") {
+        queries[name] = query
+        awaiting = name
+        awaitAt = System.currentTimeMillis()
+        request("view", name, query, ids, subject)
     }
+
+    fun search(name: String, query: String) = view(name, query, searchIds(SearchQuery.parse(query), PriceCache.items + stacks.keys))
+
+    fun cached(view: String): Snap? = views["$view|${queries[view].orEmpty()}"] ?: latest[view]
+
+    fun loading(view: String) = awaiting == view && System.currentTimeMillis() - awaitAt < VIEW_WAIT_MS
+
+    fun detail(item: String): Detail? = details[item]
 
     fun update(next: Snap, notify: Boolean) {
         snap = next
         loaded = true
+        views["${next.view}|${queries[next.view].orEmpty()}"] = next
+        latest[next.view] = next
+        if (awaiting == next.view) awaiting = null
+        next.detail?.let { details[it.item] = it }
         if (notify && next.msg.isNotEmpty()) toast(if (next.ok) Severity.SUCCESS else Severity.DANGER, trJson(next.msg))
     }
 
-    fun reset() { loaded = false }
+    fun reset() {
+        loaded = false
+        views.clear()
+        latest.clear()
+        queries.clear()
+        details.clear()
+        awaiting = null
+        skipUntil = 0
+        opening.done()
+    }
 
     override val collapsedGroups get() = MarketPrefs.prefs.collapsedGroups
 
@@ -201,7 +233,7 @@ class MarketApp private constructor() : KamiApp() {
     fun startTour() {
         val dashboard = Route("dashboard")
         tour = Tour(listOfNotNull(
-            Callout("modules", tr("kami_economy.tour.modules"), tr("kami_economy.tour.modules.desc"), dashboard).takeIf { Modules.all.size > 1 },
+            Callout("modules", tr("kami_economy.tour.modules"), tr("kami_economy.tour.modules.desc"), dashboard).takeIf { Modules.visible.size > 1 },
             Callout("nav:dashboard", tr("kami_economy.nav.dashboard"), tr("kami_economy.tour.dashboard.desc"), dashboard),
             Callout("nav:market", tr("kami_libs.common.market"), tr("kami_economy.tour.market.desc")),
             Callout("nav:my_orders", tr("kami_economy.nav.my_orders"), tr("kami_economy.tour.my_orders.desc")),
@@ -277,16 +309,32 @@ class MarketApp private constructor() : KamiApp() {
 
     companion object {
         val instance by lazy { MarketApp() }
+        val opening = OpenWait({ tr("kami_economy.open.loading") }, { tr("kami_economy.open.timeout") }, { tr("kami_economy.open.timeout.desc") })
+        private const val SKIP_MS = 10_000L
+        private var skipUntil = 0L
+
+        private fun showing() = (Minecraft.getInstance().screen as? AppScreen)?.app === instance
+
+        private fun show() {
+            val app = instance
+            Minecraft.getInstance().setScreen(AppScreen(app, Text.msg("kami_libs.common.market")))
+            if (app.route.page.isNotEmpty()) app.page(app.route.page).opened(app.route)
+        }
+
+        fun open() {
+            ClientHooks.request("open")
+            if (!instance.loaded) return opening.start()
+            skipUntil = System.currentTimeMillis() + SKIP_MS
+            show()
+        }
 
         fun receive(snap: Snap) {
-            val mc = Minecraft.getInstance()
-            val app = instance
-            val showing = (mc.screen as? AppScreen)?.app === app
-            app.update(snap, showing)
-            if (!showing && snap.open) {
-                mc.setScreen(AppScreen(app, Text.msg("kami_libs.common.market")))
-                if (app.route.page.isNotEmpty()) app.page(app.route.page).opened(app.route)
-            }
+            val showing = showing()
+            instance.update(snap, showing)
+            if (!snap.open) return
+            opening.done()
+            if (System.currentTimeMillis() < skipUntil) skipUntil = 0
+            else if (!showing) show()
         }
     }
 }

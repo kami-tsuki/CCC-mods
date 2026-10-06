@@ -1,10 +1,12 @@
 package kami.libs.config
 
+import kami.libs.log.Log
 import java.nio.file.Files
 import java.nio.file.Path
 
 object Jsonc {
-    private val key = Regex("""^(\s*)"([^"]+)":\s*(.*)$""")
+    private val log = Log.of("config")
+    private val key =Regex("""^(\s*)"([^"]+)":\s*(.*)$""")
 
     fun annotate(text: String, docs: Map<String, String>, header: List<String> = emptyList()): String {
         val parents = ArrayDeque<Pair<Int, String>>()
@@ -22,10 +24,10 @@ object Jsonc {
         }.trimEnd() + "\n"
     }
 
-    fun write(path: Path, text: String) {
+    fun write(path: Path, text: String, prepare: (Path) -> Unit = {}) {
         if (Files.exists(path) && Files.readString(path) == text) return
         Files.createDirectories(path.parent)
-        Files.writeString(path, text)
+        runCatching { writeAtomic(path, text, prepare) }.onFailure { log.error("Could not write {}: {}", path, it.toString()) }
     }
 
     fun reason(e: Throwable): String = e.message?.lineSequence()?.firstOrNull { it.isNotBlank() }?.trim() ?: e.javaClass.simpleName

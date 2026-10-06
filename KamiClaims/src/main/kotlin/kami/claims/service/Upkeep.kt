@@ -13,6 +13,7 @@ import kami.claims.war.Reputation
 import kami.claims.war.WarLocks
 import kami.claims.war.Wars
 import kami.libs.chat.Tone
+import kami.libs.economy.CountryParty
 import kami.claims.service.Words.chunks
 import kami.claims.service.Words.money
 import kami.claims.service.Words.num
@@ -20,7 +21,6 @@ import kami.claims.service.Words.v
 import kami.libs.text.Phrase
 
 import net.minecraft.server.MinecraftServer
-import kotlin.math.floor
 
 object Upkeep {
     private val s get() = Config.s
@@ -51,7 +51,6 @@ object Upkeep {
             process(d + 1)
             d++
         }
-        if (d != Realm.data.day) Realm.dirty = true
         Realm.data.day = d
     }
 
@@ -122,6 +121,7 @@ object Upkeep {
     private fun bill(c: Country, day: Long) {
         val claims = Realm.claims(c.id)
         var paid = 0L
+        var left = c.treasury
         val borderTax = Buffs.billedTax(c)
         claims.filter { day > it.since && (day - it.since) % Realm.period(it) == 0L }.sortedBy { it.at }.forEach { cl ->
             if (cl.free) {
@@ -130,15 +130,14 @@ object Upkeep {
             }
 
             val cost = Buffs.price(c, cl, borderTax).toLong() * (1 + cl.debt)
-            if (c.treasury >= cost) {
-                c.treasury -= cost
-                Realm.saveSoon()
+            if (left >= cost) {
+                left -= cost
                 paid += cost
                 cl.debt = 0
                 cl.upkeepCycles++
             } else cl.debt = WarLocks.upkeepDebt(c, cl.debt + 1)
         }
-        Treasury.record(c, LedgerKind.UPKEEP, -paid)
+        Treasury.bank(c, LedgerKind.UPKEEP, -paid)
         Buffs.settle(c)
         val lost = if (!WarLocks.upkeepRelease(c)) 0 else claims.filter { it.debt >= s.maxDebt }.sortedWith(compareBy<Claim> { it.owner != null }.thenByDescending { it.at }).count {
             val ok = !it.capital && Realm.removable(it)
@@ -158,14 +157,11 @@ object Upkeep {
     private fun provinceTax(c: Country, income: Long) {
         val parent = c.parent?.let { Realm.country(it) } ?: return
         Reputation.tribute(c, parent, income)
-        val owed = when (c.taxMode) {
-            TaxMode.PERCENT -> floor(income * c.taxAmount).toLong()
-            TaxMode.FLAT -> c.taxAmount.toLong()
-        }.coerceIn(0, Treasury.room(parent))
+        val owed = tributeOwed(c.taxMode, c.taxAmount, income).coerceAtMost(Treasury.room(parent))
         if (owed == 0L) { c.provinceDebt = 0; return }
         if (c.treasury >= owed) {
-            Treasury.move(c, LedgerKind.TRIBUTE_OUT, -owed, note = parent.name)
-            Treasury.move(parent, LedgerKind.TRIBUTE_IN, owed, note = c.name)
+            Treasury.move(c, LedgerKind.TRIBUTE_OUT, -owed, note = parent.name, counterparty = CountryParty(parent.id))
+            Treasury.move(parent, LedgerKind.TRIBUTE_IN, owed, note = c.name, counterparty = CountryParty(c.id))
             c.provinceDebt = 0
         } else {
             c.provinceDebt++
@@ -182,7 +178,7 @@ object Upkeep {
 
     fun summary(c: Country): Summary {
         val claims = Realm.claims(c.id)
-        val borderTax = Buffs.tax(c)
+        val borderTax = Buffs.billedTax(c)
         return Summary(
             claims.filter { !it.free }.sumOf { Buffs.price(c, it, borderTax).toLong() * 1000 / Realm.period(it) } / 1000,
             Housing.income(c),

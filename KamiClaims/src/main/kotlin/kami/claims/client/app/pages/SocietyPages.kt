@@ -294,7 +294,7 @@ class CitizensPage(app: ClaimsApp) : ClaimsPage(app) {
                 val dw = buttonWidth(deny)
                 val textW = row.w - 26 - aw - dw - 16
                 Draw.text(ui.g, Draw.fit(m.name, textW, TextStyle.HEADING), row.x + 26, row.y + 5, TextStyle.HEADING)
-                val citizenship = snap.players.firstOrNull { it.id == m.id }?.citizenships?.firstOrNull { it.via.isEmpty() }
+                val citizenship = ClaimsStore.players.firstOrNull { it.id == m.id }?.citizenships?.firstOrNull { it.via.isEmpty() }
                 Draw.text(ui.g, Draw.fit(citizenship?.let { tr("kami_claims.citizens.member_of", it.country) } ?: tr("kami_libs.common.no_country"), textW), row.x + 26, row.y + 15, Palette.textMuted)
                 val staff = lock("invite")
                 val actions = Row(Rect(row.x, row.y + 4, row.w - 6, CONTROL_H))

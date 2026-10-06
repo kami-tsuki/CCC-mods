@@ -20,6 +20,7 @@ import kami.claims.war.WarLocks
 import kami.libs.chat.Tone
 import kami.claims.service.Words.v
 import kami.libs.text.Phrase
+import kami.libs.util.Time.HOUR_MS
 
 object Provinces {
     private val s get() = Config.s
@@ -159,7 +160,7 @@ object Provinces {
         WarLocks.independence(child, parent)
         if (child.independenceRequested) throw Fail("kami_claims.error.already_asked", v(parent.name))
         val wait = cooldown(child)
-        if (wait > 0) throw Fail(Phrase.of("kami_claims.error.independence_cooldown", v(parent.name), v(Phrase.of("kami_libs.unit.hour.short", (wait / 3_600_000 + 1).toString()))), "COOLDOWN")
+        if (wait > 0) throw Fail(Phrase.of("kami_claims.error.independence_cooldown", v(parent.name), v(Phrase.of("kami_libs.unit.hour.short", (wait / HOUR_MS + 1).toString()))), "COOLDOWN")
         child.independenceRequested = true
         Mail.officers(parent, Phrase.of("kami_claims.mail.independence_request", v(child.name)))
     }

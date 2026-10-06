@@ -12,6 +12,8 @@ import kami.claims.world.Effects
 import kami.libs.net.Packets
 
 import kami.claims.client.ClientHooks
+import kami.libs.admin.AdminFailure
+import kami.libs.admin.Subject
 import kami.libs.net.ActPayload
 import kami.libs.net.SnapshotPayload
 import kami.libs.net.TickCooldown
@@ -64,7 +66,7 @@ class ClaimsPacket(val data: View.Payload) : CustomPacketPayload {
                 b.writeVarInt(d.types.size)
                 d.types.forEach { b.writeUtf(it, 32) }
                 b.writeVarInt(d.countries.size)
-                d.countries.forEach { b.writeUtf(it.name, 64); b.writeInt(it.color); b.writeByte(it.relation); b.writeVarInt(it.flag); b.writeInt(it.secondary) }
+                d.countries.forEach { b.writeUtf(it.name, 64); b.writeInt(it.color); b.writeByte(it.relation); b.writeVarInt(it.flag); b.writeInt(it.secondary); b.writeInt(it.reputation); b.writeDouble(it.fame ?: -1.0) }
                 b.writeVarInt(d.entries.size)
                 d.entries.forEach { b.writeByte(it.dim); b.writeInt(it.x); b.writeInt(it.z); b.writeVarInt(it.country); b.writeByte(it.type); b.writeShort(it.flags) }
                 b.writeVarInt(d.reserved.size)
@@ -74,7 +76,7 @@ class ClaimsPacket(val data: View.Payload) : CustomPacketPayload {
                 val rev = b.readVarInt()
                 val dims = List(b.count(16)) { b.readUtf(64) }
                 val types = List(b.count(64)) { b.readUtf(32) }
-                val countries = List(b.count(8192)) { View.CountryView(b.readUtf(64), b.readInt(), b.readByte().toInt(), b.readVarInt(), b.readInt()) }
+                val countries = List(b.count(8192)) { View.CountryView(b.readUtf(64), b.readInt(), b.readByte().toInt(), b.readVarInt(), b.readInt(), b.readInt(), b.readDouble().takeIf { it >= 0 }) }
                 val entries = List(b.count(400_000)) { View.Entry(b.readByte().toInt(), b.readInt(), b.readInt(), b.readVarInt(), b.readByte().toInt(), b.readShort().toInt() and 0xFFFF) }
                 val reserved = List(b.count(100_000)) { View.Reserved(b.readByte().toInt(), b.readInt(), b.readInt()) }
                 ClaimsPacket(View.Payload(rev, dims, types, countries, entries, reserved))
@@ -92,6 +94,7 @@ object Net {
     private val lastSnapshot = HashMap<UUID, Int>()
     private val deferred = HashMap<UUID, ArrayDeque<Deferred>>()
     private const val SNAPSHOT_GAP = 2
+    private val PERSONAL_ACTS = setOf("rent_pay", "rent_pay_all", "plot_release", "plot_trust", "plot_untrust")
 
     private class Deferred(val kind: String, val rids: MutableList<Int>, var open: Boolean)
 
@@ -246,6 +249,10 @@ object Net {
                 Sync.watch(p, a.args)
                 answer(p, a.name, a.rid)
             }
+            "personal" -> {
+                Sync.subject(p, a.args.getOrNull(0).orEmpty())
+                answer(p, a.name, a.rid)
+            }
             "names" -> {
                 Sync.names(p, a.args.getOrNull(0).orEmpty())
                 answer(p, a.name, a.rid)
@@ -267,9 +274,12 @@ object Net {
         val tick = p.server.tickCount
         if (!lastAct.ready(p.uuid, tick, Config.s.guiCooldown)) return send(p, Reply(Phrase.of("kami_claims.error.rate_limited").json(), false, a.rid, "COOLDOWN"))
         val reply = try {
+            if (a.name in PERSONAL_ACTS) Subject.requireSelf(p, Sync.subject(p)?.toString())
             Reply(Service.act(p, a.name, a.args, a.asCountry).json(), true, a.rid)
         } catch (e: Fail) {
             Reply(e.phrase.json(), false, a.rid, e.reason, e.target)
+        } catch (e: AdminFailure) {
+            Reply(Phrase.of(e.key).json(), false, a.rid, "READ_ONLY")
         } catch (e: NeedsConfirm) {
             Reply(e.lines.first().json(), false, a.rid, "CONFIRM")
         } catch (e: Exception) {

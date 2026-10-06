@@ -1,6 +1,7 @@
 package kami.libs.ui.style
 
 import kami.libs.ui.text.tr
+import kami.libs.util.Time
 import java.text.DecimalFormatSymbols
 import java.text.NumberFormat
 import java.time.Instant
@@ -61,6 +62,8 @@ object Format {
             else -> tr("kami_libs.time.ago", days(s / 86_400))
         }
     }
+
+    fun dayLabel(day: Long) = ago((day + 1) * Time.DAY_MS - 1)
 
     fun until(at: Long, now: Long = System.currentTimeMillis()) = if (at <= now) tr("kami_libs.time.now") else tr("kami_libs.time.in", duration(at - now))
 

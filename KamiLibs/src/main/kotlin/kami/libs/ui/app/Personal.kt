@@ -29,4 +29,25 @@ object Personal {
     fun open(route: Route) { opener?.invoke(route) }
 
     var account: Account? = null
+        set(value) {
+            field = value
+            accountOf = subjectArg
+        }
+
+    private var accountOf: String? = null
+
+    val loading: Boolean get() = account == null || accountOf != subjectArg
+
+    class Subject(val uuid: String, val name: String)
+
+    var subject: Subject? = null
+
+    val viewing: Boolean get() = subject != null
+
+    val subjectArg: String get() = subject?.uuid.orEmpty()
+
+    fun view(target: Subject?) {
+        subject = target
+        open(Route("dashboard"))
+    }
 }

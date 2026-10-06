@@ -14,7 +14,7 @@ import org.lwjgl.glfw.GLFW
 
 const val TABLE_ROW_H = 14
 const val TABLE_HEADER_H = 14
-private const val CELL_PAD = 6
+internal const val CELL_PAD = 6
 
 enum class Align { LEFT, RIGHT, CENTER }
 
@@ -64,7 +64,7 @@ class TableEvents<T>(val opened: T?, val contextOn: T?, val selectionChanged: Bo
 fun <T> Ui.table(
     r: Rect, columns: List<Column<T>>, rows: List<T>, state: TableState<T>, keyOf: (T) -> Any,
     multi: Boolean = false, rowHeight: Int = TABLE_ROW_H, severity: (T) -> Severity? = { null }, emptyText: String = tr("kami_libs.table.empty"),
-    highlight: (T) -> Boolean = { false }, key: Any = "table"
+    highlight: (T) -> Boolean = { false }, key: Any = "table", loading: Boolean = false
 ): TableEvents<T> {
     val header = r.top(TABLE_HEADER_H)
     val body = r.dropTop(TABLE_HEADER_H)
@@ -107,8 +107,14 @@ fun <T> Ui.table(
     var opened: T? = null
     var context: T? = null
     var changed = false
+    if (loading && sorted.isNotEmpty()) loadingBar(header.bottom(2))
     if (sorted.isEmpty()) {
-        Draw.textCentered(g, emptyText, body.top(40), Palette.textMuted)
+        if (loading) skeletonRows(body, widths, rowHeight, header.x + CELL_PAD + if (multi) checkW + CELL_PAD else 0)
+        else {
+            val shown = Draw.fit(emptyText, body.w - 12)
+            Draw.textCentered(g, shown, body.top(40), Palette.textMuted)
+            if (shown != emptyText) tooltip("$key:empty", body.top(40), emptyText)
+        }
         return TableEvents(null, null, false)
     }
     val focusIndex = sorted.indexOfFirst { keyOf(it) == state.focusKey }

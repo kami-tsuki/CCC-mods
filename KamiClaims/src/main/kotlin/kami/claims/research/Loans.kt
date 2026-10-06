@@ -58,7 +58,7 @@ object Loans {
         if (country.loans.any { it.id == id }) throw Fail("kami_claims.loans.error.active")
         cooldownDays(country, id, day).takeIf { it > 0 }?.let { throw Fail("kami_claims.loans.error.cooldown", Words.days(it)) }
         if (offer.unlock.amount > Treasury.room(country)) throw Fail("kami_claims.error.treasury_full", Words.money(Treasury.room(country)))
-        Treasury.move(country, LedgerKind.LOAN_IN, offer.unlock.amount, actor, id)
+        Treasury.bank(country, LedgerKind.LOAN_IN, offer.unlock.amount, actor, id)
         country.loans += Loan(id, offer.unlock.amount, offer.total, 0, offer.perDay, day)
         Realm.changed()
         ResearchSync.refresh(country)
@@ -69,7 +69,7 @@ object Loans {
         val loan = country.loans.firstOrNull { it.id == id } ?: throw Fail("kami_claims.loans.error.none")
         val owed = remaining(loan)
         if (country.treasury < owed) throw Fail("kami_claims.loans.error.repay_short", Words.money(owed), Words.money(country.treasury))
-        Treasury.move(country, LedgerKind.LOAN_PAYMENT, -owed, actor, id)
+        Treasury.bank(country, LedgerKind.LOAN_PAYMENT, -owed, actor, id)
         val day = Levels.day()
         loan.paid = loan.total
         close(country, loan, day, earned(loan, day))
@@ -81,7 +81,7 @@ object Loans {
         country.loans.toList().filter { day > it.takenDay }.forEach { loan ->
             val due = minOf(remaining(loan), loan.perDay + loan.overdue)
             val pay = minOf(due, country.treasury.coerceAtLeast(0))
-            if (pay > 0) Treasury.move(country, LedgerKind.LOAN_PAYMENT, -pay, note = loan.id)
+            if (pay > 0) Treasury.bank(country, LedgerKind.LOAN_PAYMENT, -pay, note = loan.id)
             loan.paid += pay
             val missing = due - pay
             if (missing <= 0) {

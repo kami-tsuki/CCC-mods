@@ -49,7 +49,6 @@ object TempBlocks {
         val entry = TempBlock(spot.first, spot.second, now, now + (seconds(level, pos, state) * 20).toLong(), fluid)
         Realm.data.temp += entry
         index[spot] = entry
-        Realm.dirty = true
         return true
     }
 
@@ -64,7 +63,6 @@ object TempBlocks {
         if (done.isEmpty()) return
         Realm.data.temp.removeAll(done)
         done.forEach { live().remove(it.dim to it.pos) }
-        Realm.dirty = true
     }
 
     private fun step(server: MinecraftServer, t: TempBlock): Boolean {
