@@ -179,7 +179,7 @@ object Service {
             "plot_untrust" -> plotOwner(p, spot(p, a, 1)).let { it.roles.remove(who(p, a, 0)); Phrase.of("kami_claims.done.role_removed") }
             "province_accept" -> provinceAccept(p, arg(a, 0), confirmed(a))
             "province_invite", "province_request", "province_approve", "province_deny", "province_release", "province_forgive",
-            "province_independence", "province_withdraw", "province_decline", "province_tax" -> province(p, name, a)
+            "province_independence", "province_withdraw", "province_decline", "province_tax", "province_manage", "province_access" -> province(p, name, a)
             "province_give" -> provinceGive(p, arg(a, 0), arg(a, 1), confirmed(a))
             "loan_take" -> Loans.take(need(p, Cap.WITHDRAW), arg(a, 0), p.stringUUID)
             "loan_repay" -> Loans.repay(need(p, Cap.WITHDRAW), arg(a, 0), p.stringUUID)
