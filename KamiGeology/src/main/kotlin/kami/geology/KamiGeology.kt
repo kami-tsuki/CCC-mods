@@ -7,6 +7,7 @@ import kami.geology.config.ConfigStore
 import kami.geology.item.ProspectorItem
 import kami.geology.loot.RichnessModifier
 import kami.geology.map.Workers
+import kami.geology.net.GuideSync
 import kami.geology.net.MapServer
 import kami.geology.world.GeologyBiomeModifier
 import kami.geology.world.GeologyFeature
@@ -76,6 +77,7 @@ object KamiGeology {
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { event ->
             val player = event.entity as? ServerPlayer ?: return@addListener
             Hardness.send(player)
+            GuideSync.send(listOf(player))
             val data = player.persistentData
             val tag = data.getCompound(Player.PERSISTED_NBT_TAG).also { data.put(Player.PERSISTED_NBT_TAG, it) }
             if (!tag.getBoolean(STARTER_KIT_TAG) && !data.getBoolean(STARTER_KIT_TAG)) {

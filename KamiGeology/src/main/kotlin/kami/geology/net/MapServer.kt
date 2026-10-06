@@ -77,6 +77,7 @@ object MapServer {
         registrar.playToClient(MapDone.TYPE, MapDone.CODEC) { payload, _ -> ClientHooks.done(payload) }
         registrar.playToClient(ProbeResponse.TYPE, ProbeResponse.CODEC) { payload, _ -> ClientHooks.probe(payload) }
         registrar.playToClient(HardnessSync.TYPE, HardnessSync.CODEC) { payload, _ -> Hardness.apply(payload.factors) }
+        GuideSync.register(registrar)
         registrar.playToServer(MapRequest.TYPE, MapRequest.CODEC) { payload, context -> (context.player() as? ServerPlayer)?.let { map(it, payload) } }
         registrar.playToServer(ProbeRequest.TYPE, ProbeRequest.CODEC) { payload, context -> (context.player() as? ServerPlayer)?.let { probe(it, payload) } }
     }
