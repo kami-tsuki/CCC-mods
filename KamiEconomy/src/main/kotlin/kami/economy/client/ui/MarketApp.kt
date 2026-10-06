@@ -2,6 +2,7 @@ package kami.economy.client.ui
 
 import kami.economy.client.ClientHooks
 import kami.economy.client.MarketPrefs
+import kami.economy.client.PriceCache
 import kami.economy.economy.Blacklist
 import kami.economy.economy.Classification
 import kami.economy.net.FlagView
@@ -9,6 +10,7 @@ import kami.economy.net.OrderRow
 import kami.economy.net.Slot
 import kami.economy.net.Snap
 import kami.libs.mc.ItemSpec
+import kami.libs.text.SearchQuery
 import kami.libs.text.Text
 import kami.libs.ui.app.AppScreen
 import kami.libs.ui.app.Callout
@@ -34,6 +36,7 @@ import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
 import kami.libs.ui.style.TextStyle
+import kami.libs.ui.text.ItemSearch
 import kami.libs.ui.text.tr
 import kami.libs.ui.text.trJson
 import kami.libs.ui.widget.*
@@ -42,6 +45,7 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 
 internal const val ROW_H = 18
+private const val MAX_IDS = 28000
 internal const val MAX_PRICE = 1_000_000L
 
 internal class Throttled<T>(private val load: () -> T) {
@@ -94,6 +98,8 @@ internal fun <T> unitsColumn(title: String, width: Int, stack: (T) -> Int, units
 class MarketApp private constructor() : KamiApp() {
     lateinit var snap: Snap
         private set
+    var loaded = false
+        private set
     override val module: String? get() = "market"
     override val home = Route("dashboard")
     private val stacks = HashMap<String, ItemStack>()
@@ -118,10 +124,19 @@ class MarketApp private constructor() : KamiApp() {
 
     fun view(name: String, query: String = "") = request("view", name, query)
 
+    fun search(name: String, query: String) {
+        val q = SearchQuery.parse(query)
+        val ids = if (q.isEmpty) "" else ItemSearch.ids(q, PriceCache.items + stacks.keys).joinToString(",").takeIf { it.length <= MAX_IDS } ?: "*"
+        request("view", name, query, ids)
+    }
+
     fun update(next: Snap, notify: Boolean) {
         snap = next
+        loaded = true
         if (notify && next.msg.isNotEmpty()) toast(if (next.ok) Severity.SUCCESS else Severity.DANGER, trJson(next.msg))
     }
+
+    fun reset() { loaded = false }
 
     override val collapsedGroups get() = MarketPrefs.prefs.collapsedGroups
 
@@ -236,9 +251,9 @@ class MarketApp private constructor() : KamiApp() {
         if (relation == "embargo") tr("kami_economy.market.embargo.tip", country)
         else tr("kami_economy.market.country.tip", country, tr("kami_economy.market.rate.${relation.ifEmpty { "neutral" }}"), taxFor(relation))
 
-    fun reprice(o: OrderRow) {
+    fun reprice(host: KamiApp, o: OrderRow) {
         val state = NumberState(o.price.toLong())
-        open(Dialog(tr("kami_economy.reprice.title"), stack(o.item).hoverName.string, Icons.EDIT, DialogKind.CONFIRM) { s ->
+        host.open(Dialog(tr("kami_economy.reprice.title"), stack(o.item).hoverName.string, Icons.EDIT, DialogKind.CONFIRM) { s ->
             s.used = numberDialogBody(s, s.body.y, state, tr("kami_economy.market.price_lot", o.lot), 1, MAX_PRICE)
             dialogButtons(s, tr("kami_economy.reprice.confirm"), state.value != o.price.toLong()) {
                 request(if (o.bid) "reprice_bid" else "reprice", o.item, state.value.toString())
@@ -247,8 +262,8 @@ class MarketApp private constructor() : KamiApp() {
         })
     }
 
-    fun cancel(o: OrderRow) = confirmDialog(
-        ::open, tr("kami_economy.cancel.title"), stack(o.item).hoverName.string, Icons.CROSS,
+    fun cancel(host: KamiApp, o: OrderRow) = confirmDialog(
+        host::open, tr("kami_economy.cancel.title"), stack(o.item).hoverName.string, Icons.CROSS,
         listOf(Consequence(tr(if (o.bid) "kami_economy.market.bid.cancel.tooltip" else "kami_economy.market.orders.cancel.tooltip"))),
         tr("kami_economy.cancel.confirm"), danger = true
     ) { request(if (o.bid) "cancel_bid" else "cancel", o.item) }
@@ -266,9 +281,9 @@ class MarketApp private constructor() : KamiApp() {
         fun receive(snap: Snap) {
             val mc = Minecraft.getInstance()
             val app = instance
-            if ((mc.screen as? AppScreen)?.app === app) app.update(snap, true)
-            else if (snap.open) {
-                app.update(snap, false)
+            val showing = (mc.screen as? AppScreen)?.app === app
+            app.update(snap, showing)
+            if (!showing && snap.open) {
                 mc.setScreen(AppScreen(app, Text.msg("kami_libs.common.market")))
                 if (app.route.page.isNotEmpty()) app.page(app.route.page).opened(app.route)
             }

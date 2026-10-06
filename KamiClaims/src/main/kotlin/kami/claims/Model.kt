@@ -120,6 +120,7 @@ class Claim(
     val roles: MutableMap<String, Role> = mutableMapOf(),
     var state: Tenancy = Tenancy.ACTIVE,
     var rentDebt: Long = 0,
+    var rentCredit: Long = 0,
     var until: Long = 0,
     var category: Claimant? = null,
     var offer: Offer? = null,
@@ -137,6 +138,7 @@ class Claim(
         roles.clear()
         state = Tenancy.ACTIVE
         rentDebt = 0
+        rentCredit = 0
         until = 0
         category = null
     }
@@ -394,6 +396,7 @@ object Realm {
     }
 
     fun unclaim(c: Claim, reserve: Boolean) {
+        Housing.refund(c)
         data.claims.remove(c)
         index.remove(c.key)
         byCountry[c.country]?.remove(c)
@@ -405,6 +408,7 @@ object Realm {
 
     private fun unclaimAll(batch: List<Claim>) {
         if (batch.isEmpty()) return
+        batch.forEach(Housing::refund)
         val gone = java.util.Collections.newSetFromMap(java.util.IdentityHashMap<Claim, Boolean>()).apply { addAll(batch) }
         data.claims.removeAll(gone)
         byCountry[batch.first().country]?.removeAll(gone)

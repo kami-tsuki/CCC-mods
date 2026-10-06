@@ -66,7 +66,7 @@ import kotlin.math.roundToInt
     val lock: String = "", val level: Int = 0, val custom: Boolean = false
 )
 @Serializable class MineLine(val category: String, val price: Int, val debt: Long, val limit: Long)
-@Serializable class HomeLine(val country: String, val dim: String, val x: Int, val z: Int, val state: String, val rent: Int, val debt: Long, val until: Long, val category: String)
+@Serializable class HomeLine(val country: String, val dim: String, val x: Int, val z: Int, val state: String, val rent: Int, val debt: Long, val until: Long, val category: String, val credit: Long = 0, val nextBill: Long = 0)
 @Serializable class Break(val type: String, val count: Int, val perDay: Double)
 @Serializable class ProvinceOfferLine(val name: String, val mode: String, val amount: Double, val until: Long = 0, val answered: Boolean = false, val color: Int = 0, val members: Int = 0, val chunks: Int = 0)
 @Serializable class ProvinceLine(
@@ -132,7 +132,8 @@ import kotlin.math.roundToInt
     val alerts: List<AlertLine> = emptyList(), val goals: List<GoalLine> = emptyList(), val ledger: List<LedgerLine> = emptyList(),
     val history: List<DayLine> = emptyList(), val preview: PreviewLine? = null, val limits: Limits? = null,
     val rights: List<String> = emptyList(), val kept: List<String> = emptyList(), val me: String = "", val dim: String = "", val rank: String = "",
-    val homes: List<HomeLine> = emptyList(), val extraRids: List<Int> = emptyList(), val admin: Boolean = false, val war: List<WarHud> = emptyList()
+    val homes: List<HomeLine> = emptyList(), val extraRids: List<Int> = emptyList(), val admin: Boolean = false, val war: List<WarHud> = emptyList(),
+    val names: List<String> = emptyList()
 )
 
 class Reply(val msg: String = "", val ok: Boolean = true, val rid: Int = 0, val reason: String = "", val target: Key? = null, val extraRids: List<Int> = emptyList())
@@ -143,6 +144,7 @@ object Sync {
     private val viewing = HashMap<UUID, String>()
     private val watching = HashMap<UUID, Set<String>>()
     private val previews = HashMap<UUID, PreviewLine>()
+    private val suggestions = HashMap<UUID, List<String>>()
 
     fun focus(p: ServerPlayer, x: Int, z: Int) { focus[p.uuid] = Key(Service.here(p).dim, x, z) }
     fun viewed(p: ServerPlayer): Country? =
@@ -150,8 +152,8 @@ object Sync {
 
     fun view(p: ServerPlayer, name: String) { if (name.isBlank()) viewing.remove(p.uuid) else viewing[p.uuid] = name }
     fun watch(p: ServerPlayer, sections: List<String>) { watching[p.uuid] = sections.toSet() }
-    fun reset() { focus.clear(); viewing.clear(); watching.clear(); previews.clear() }
-    fun forget(p: ServerPlayer) { focus.remove(p.uuid); viewing.remove(p.uuid); watching.remove(p.uuid); previews.remove(p.uuid) }
+    fun reset() { focus.clear(); viewing.clear(); watching.clear(); previews.clear(); suggestions.clear() }
+    fun forget(p: ServerPlayer) { focus.remove(p.uuid); viewing.remove(p.uuid); watching.remove(p.uuid); previews.remove(p.uuid); suggestions.remove(p.uuid) }
 
     fun preview(p: ServerPlayer, kind: String, type: String, plan: Plan, key: String) {
         previews[p.uuid] = PreviewLine(kind, type, plan.cells.map { PreviewCell(it.key.x, it.key.z, it.outcome.name, it.reason?.json() ?: "") }, plan.costNow, plan.upkeepPerDay, key)
@@ -286,7 +288,17 @@ object Sync {
         }
 
     private fun homes(me: String): List<HomeLine> = Realm.data.claims.filter { it.owner == me && it.plot }.mapNotNull { cl ->
-        Realm.data.countries[cl.country]?.let { c -> HomeLine(c.name, cl.dim, cl.x, cl.z, cl.state.name.lowercase(), Housing.rate(c, cl), cl.rentDebt, cl.until, cl.category?.name?.lowercase().orEmpty()) }
+        Realm.data.countries[cl.country]?.let { c -> HomeLine(c.name, cl.dim, cl.x, cl.z, cl.state.name.lowercase(), Housing.rate(c, cl), cl.rentDebt, cl.until, cl.category?.name?.lowercase().orEmpty(), cl.rentCredit, (today() + 1) * Config.s.dayMillis - now()) }
+    }
+
+    fun names(p: ServerPlayer, text: String) { suggestions[p.uuid] = suggest(p, text.trim().take(16)) }
+
+    private fun suggest(p: ServerPlayer, text: String): List<String> {
+        if (text.isBlank()) return emptyList()
+        val pool = (Realm.home.keys + Realm.data.claims.mapNotNull { it.owner }).toSet().map { Names.of(p.server, it) }.distinct()
+        val exact = pool.filter { it.equals(text, true) }
+        val near = if (text.length > 3) pool.filter { n -> !n.equals(text, true) && n.contains(text, true) }.sortedBy { !it.startsWith(text, true) } else emptyList()
+        return (exact + near).take(8)
     }
 
     private fun invitedCountries(me: String): List<String> =
@@ -410,7 +422,7 @@ object Sync {
             reply.rid, reply.reason, reply.target?.x ?: 0, reply.target?.z ?: 0, reply.target != null,
             Alerts.of(p, c, delegated), if (c != null && lead) Goals.of(c).map { GoalLine(it.text.json(), it.value, it.max, it.page.orEmpty()) } else emptyList(), ledger, history, previews.remove(p.uuid), limits(s),
             Provinces.delegatedRights, Provinces.keptRights, me, here.dim, own?.let { Service.rankOf(it, p).name.lowercase() } ?: "", homes(me), reply.extraRids,
-            Perms.has(p, Perms.ADMIN), warHud(own)
+            Perms.has(p, Perms.ADMIN), warHud(own), suggestions.remove(p.uuid).orEmpty()
         )
         return json.encodeToString(snap)
     }

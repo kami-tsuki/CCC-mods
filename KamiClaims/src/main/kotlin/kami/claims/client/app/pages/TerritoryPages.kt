@@ -1,6 +1,7 @@
 package kami.claims.client.app.pages
 
 import kami.claims.client.rankOf
+import kami.libs.text.SearchQuery
 import kami.libs.ui.text.trJson
 import kami.libs.ui.text.trn
 import kami.libs.ui.text.tr
@@ -14,12 +15,10 @@ import kami.claims.client.app.Tenure
 import kami.libs.ui.core.Memo
 import kami.claims.client.app.Illustrations
 import kami.claims.client.app.Vocabulary
-import kami.claims.client.map.MiniMap
 import kami.claims.client.store.ClaimsStore
 import kami.claims.net.ClaimLine
 import kami.libs.ui.app.Callout
 import kami.libs.ui.app.Route
-import kami.libs.ui.core.Flow
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Row
 import kami.libs.ui.core.Ui
@@ -28,7 +27,6 @@ import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
-import kami.libs.ui.style.Sprites
 import kami.libs.ui.style.TextStyle
 import kami.libs.ui.widget.*
 import kotlin.math.abs
@@ -69,13 +67,14 @@ class ChunksPage(app: ClaimsApp) : ClaimsPage(app) {
             ui.select(bar.take(130), listOf(Option("all", tr("kami_claims.chunks.filter.all_types"), Icons.LAYERS)) + snap.types.map { Option(it.name, Vocabulary.type(it.name).label, Vocabulary.type(it.name).icon, null, Vocabulary.type(it.name).color) }, type, key = "chunk-type")?.let { type = it }
             ui.segmented(bar.take(200), listOf(Option("all", tr("kami_libs.common.all")), Option("debt", tr("kami_claims.stats.in_debt"), Icons.DEBT), Option("plots", tr("kami_claims.nav.plots"), Icons.HOUSE), Option("free", tr("kami_claims.chunks.status.free"))), state, key = "chunk-state")?.let { state = it }
             rows = ui.filtered("chunks-filtered", listOf(type, state, search.text, info.claimList)) {
+                val q = SearchQuery.parse(search.text)
                 info.claimList.filter { c ->
                     (type == "all" || c.type == type) && when (state) {
                         "debt" -> c.debt > 0
                         "plots" -> c.owner.isNotEmpty()
                         "free" -> c.free
                         else -> true
-                    } && (search.text.isBlank() || "${c.x}, ${c.z} ${c.x},${c.z} ${c.owner} ${c.type}".contains(search.text.trim(), true))
+                    } && q.matches("${c.x}, ${c.z}", "${c.x},${c.z}", c.owner, c.type)
                 }
             }
             val summary = tr("kami_claims.chunks.summary", Format.number(rows.size), Format.number(info.chunks), Format.number(info.free), Format.number(info.claimList.count { it.debt > 0 }), Format.perDay(Format.money(info.upkeep)))
@@ -164,36 +163,32 @@ class PlotsPage(app: ClaimsApp) : ClaimsPage(app) {
     private val tableFree = TableState<ClaimLine>()
     private val tableAll = TableState<ClaimLine>()
     private val tableMoving = TableState<ClaimLine>()
-    private var focusPlot: Pair<Int, Int>? = null
-    private val trustName = TextState()
-    private var trustRole = "household"
     private val lists = Memo()
-    private val cardLines = Memo()
 
-    private class Lists(val mine: List<ClaimLine>, val free: List<ClaimLine>, val taken: List<ClaimLine>, val moving: List<ClaimLine>, val debt: Int)
+    private class Lists(val free: List<ClaimLine>, val taken: List<ClaimLine>, val moving: List<ClaimLine>, val debt: Int)
 
     override fun opened(route: Route) {
-        val f = route.focus ?: return
-        if (f == "moving") tab = 3
-        f.split(':').takeIf { it.size == 2 }?.let { (x, z) -> focusPlot = (x.toIntOrNull() ?: return@let) to (z.toIntOrNull() ?: return@let); tab = 0 }
+        when (route.focus) {
+            "free" -> tab = 0
+            "moving" -> tab = 2
+        }
     }
 
     override fun draw(ui: Ui, r: Rect) {
         val info = info ?: return
         val l = lists.of(info.claimList, snap.me) {
             val taken = info.claimList.filter { it.owner.isNotEmpty() }
-            Lists(info.claimList.filter { it.ownerId == snap.me }, info.claimList.filter { it.type == "residential" && it.owner.isEmpty() }, taken, taken.filter { it.state == Tenure.MOVING }, taken.count { it.rentDebt > 0 })
+            Lists(info.claimList.filter { it.type == "residential" && it.owner.isEmpty() }, taken, taken.filter { it.state == Tenure.MOVING }, taken.count { it.rentDebt > 0 })
         }
         val tabsRect = r.top(CONTROL_H)
         ui.anchor("plots:tabs", tabsRect)
         ui.subTabs(tabsRect, listOf(
-            TabItem(tr("kami_claims.plots.tab.mine"), null, l.mine.size, Severity.INFO),
             TabItem(tr("kami_claims.plots.tab.free"), null, l.free.size, Severity.SUCCESS),
             TabItem(tr("kami_claims.plots.tab.all"), null, l.debt, Severity.WARNING, lock("details")),
             TabItem(tr("kami_claims.plots.tab.moving"), null, l.moving.size, Severity.DANGER, lock("details"))
         ), tab, "plot-tabs")?.let { tab = it }
         val me = info.members.firstOrNull { it.id == snap.me }
-        val held = me?.plotsHeld ?: l.mine.size
+        val held = me?.plotsHeld ?: 0
         val limit = me?.plotLimit ?: snap.maxPlots
         val plotRaise = ClientLocks.raise(Capacity.PLOTS)?.takeIf { held >= limit }
         val plotChip = plotRaise?.let { lockChipWidth(it) + 4 } ?: 0
@@ -202,84 +197,9 @@ class PlotsPage(app: ClaimsApp) : ClaimsPage(app) {
         val body = r.dropTop(CONTROL_H + 6)
         ui.anchor("plots:list", body)
         when (tab) {
-            0 -> mine(ui, body, l.mine)
-            1 -> free(ui, body, l.free, held >= limit, limit)
-            2 -> list(ui, body, l.taken, tableAll, true)
+            0 -> free(ui, body, l.free, held >= limit, limit)
+            1 -> list(ui, body, l.taken, tableAll, true)
             else -> list(ui, body, l.moving, tableMoving, false)
-        }
-    }
-
-    private fun mine(ui: Ui, r: Rect, plots: List<ClaimLine>) {
-        if (plots.isEmpty()) {
-            if (ui.emptyState(r, tr("kami_claims.plots.empty.mine.title"), tr("kami_claims.plots.empty.mine.desc"), Illustrations.CITIZENS, tr("kami_claims.plots.empty.mine.action"), Icons.HOUSE)) tab = 1
-            return
-        }
-        val focus = focusPlot?.takeIf { f -> plots.any { it.x == f.first && it.z == f.second } } ?: (plots.first().x to plots.first().z).also { focusPlot = it }
-        val (list, detail) = r.columns(listOf(1f, 1.3f), 8)
-        val lines = cardLines.of(plots, Format.locale, System.currentTimeMillis() / 60_000) {
-            plots.map { PlotCard(it, tr("kami_claims.plot.at", it.x, it.z), Format.perDay(Format.money(it.rent.toLong())), Tenure.label(it.state), Tenure.severity(it.state, it.rentDebt), Tenure.note(it, it.state, it.until, it.rentDebt), Tenure.color(it.state, it.rentDebt), "plot-state:${it.x}:${it.z}") }
-        }
-        ui.scroll("my-plots", list, plots.size * (PLOT_CARD_H + 4)) { area ->
-            lines.forEachIndexed { i, l ->
-                val c = l.claim
-                val card = Rect(area.x, area.y + i * (PLOT_CARD_H + 4), area.w, PLOT_CARD_H)
-                val chosen = focus == c.x to c.z
-                Draw.sprite(ui.g, if (chosen) Sprites.CARD_HOVER else Sprites.CARD, card)
-                if (chosen) Draw.fill(ui.g, card.left(2), Palette.brass)
-                ui.attention(card, app.isFocus("${c.x}:${c.z}"))
-                Draw.text(ui.g, l.title, card.x + 6, card.y + 5, TextStyle.HEADING)
-                Draw.textRight(ui.g, l.rent, card.right - 6, card.y + 5, Palette.money)
-                val pill = ui.statusPill(card.x + 6, card.y + 19, l.state, l.severity, key = l.key)
-                Draw.text(ui.g, Draw.fit(l.note, card.w - pill - 20), card.x + 12 + pill, card.y + 22, l.color)
-                if (ui.pressed(card) != null) { focusPlot = c.x to c.z; ClaimsStore.quiet("chunk", c.x.toString(), c.z.toString()) }
-            }
-        }
-        val c = plots.first { it.x == focus.first && it.z == focus.second }
-        val moving = c.state == Tenure.MOVING
-        val body = ui.card(detail, tr("kami_claims.plot.at", c.x, c.z), Icons.HOUSE, if (moving) Severity.DANGER else if (c.rentDebt > 0) Severity.WARNING else null)
-        val f = Flow(body, 4)
-        val hint = Tenure.hint(c.state)
-        if (hint != null) {
-            if (moving && c.until > 0) Draw.text(ui.g, Tenure.countdown(c.until), f.rest.x, f.rest.y, TextStyle.HEADING, Palette.danger).also { f.skip(14) }
-            f.take(Draw.paragraph(ui.g, hint, f.rest.x, f.rest.y, f.rest.w, if (moving) Palette.danger else Palette.warning))
-        }
-        val top = f.take(66)
-        MiniMap.draw(ui, top.left(66), c.x, c.z, 2, "plot", listOf(c.x to c.z))
-        val props = Flow(top.dropLeft(74), 3)
-        ui.property(props.take(11), tr("kami_claims.common.rent"), Format.perDay(Format.money(c.rent.toLong())))
-        ui.property(props.take(11), tr("kami_libs.common.state"), Tenure.label(c.state), Tenure.severity(c.state, c.rentDebt).color)
-        if (c.rentDebt > 0) ui.property(props.take(11), tr("kami_claims.common.rent_debt"), "${Format.money(c.rentDebt)} / ${Format.money(info?.rentDebtLimit ?: 0)}", Palette.danger)
-        if (ui.link(props.rest.x, props.rest.y + 4, tr("kami_claims.toast.show_on_map"), key = "plot-map")) app.openMapAt(c.x, c.z)
-        val d = snap.detail?.takeIf { it.x == c.x && it.z == c.z }
-        ui.section(f.take(14), tr("kami_claims.plots.access"))
-        if (d == null) ClaimsStore.quiet("chunk", c.x.toString(), c.z.toString())
-        val roles = d?.roles ?: emptyList()
-        if (roles.isEmpty()) f.take(12).let { Draw.text(ui.g, tr("kami_claims.plots.access.empty"), it.x, it.y, Palette.textMuted) }
-        roles.forEach { line ->
-            val row = f.take(14)
-            val name = line.substringBefore(":")
-            val role = line.substringAfter(": ")
-            Draw.text(ui.g, name, row.x, row.y + 3, Palette.text)
-            ui.chip(row.x + 100, row.y, tr("kami_claims.role.$role"), Vocabulary.rank(if (role == "household") "citizen" else role).color)
-            if (ui.iconButton(Rect(row.right - 16, row.y - 1, 16, 16), Icons.REMOVE, tr("kami_libs.common.remove_x", name), key = "untrust:$name")) act("plot_untrust", name, c.x.toString(), c.z.toString(), key = "plot_untrust")
-        }
-        f.skip(4)
-        ui.section(f.take(14), tr("kami_claims.plots.access.add"))
-        val roles2 = listOf(
-            Option("household", tr("kami_claims.role.household"), Icons.HOUSE, tr("kami_claims.role.household.desc")),
-            Option("allied", tr("kami_claims.role.allied"), Icons.HANDSHAKE, tr("kami_claims.role.allied.desc")),
-            Option("banished", tr("kami_claims.role.banished"), Icons.BAN, tr("kami_claims.role.banished.desc"))
-        )
-        val entry = f.take(CONTROL_H)
-        ui.textField(entry.left(entry.w - 90), trustName, tr("kami_claims.field.player"), Icons.PERSON, maxLength = 16, key = "trust-name")
-        if (ui.button(entry.right(86), tr("kami_libs.common.add"), Icons.ADD, ButtonStyle.PRIMARY, trustName.text.length >= 3, tr("kami_claims.field.player.disabled"), pending = pending("plot_trust"), key = "trust-go")) {
-            act("plot_trust", trustName.text, trustRole, c.x.toString(), c.z.toString(), key = "plot_trust")
-            trustName.set("")
-        }
-        ui.radioGroup(f.take(radioGroupHeight(roles2, body.w)), roles2, trustRole, key = "trust-role")?.let { trustRole = it }
-        val bottom = f.rest
-        if (ui.button(Rect(bottom.x, bottom.bottom - CONTROL_H, bottom.w, CONTROL_H), tr("kami_claims.plots.release"), Icons.REMOVE, ButtonStyle.SECONDARY, key = "plot-release")) {
-            Dialogs.release(app, c.x, c.z, null, moving)
         }
     }
 
@@ -341,7 +261,4 @@ class PlotsPage(app: ClaimsApp) : ClaimsPage(app) {
     }
 }
 
-private class PlotCard(val claim: ClaimLine, val title: String, val rent: String, val state: String, val severity: Severity, val note: String, val color: Int, val key: String)
-
 private const val BULK_H = 22
-private const val PLOT_CARD_H = 38

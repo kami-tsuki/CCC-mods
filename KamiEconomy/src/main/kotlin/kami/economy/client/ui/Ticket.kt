@@ -285,8 +285,8 @@ internal class Ticket(private val app: MarketApp) {
             val row = f.take(SMALL_H)
             val text = tr(if (o.bid) "kami_economy.ticket.mine.bid" else "kami_economy.ticket.mine.ask", unitsText(o.amount, app.stack(o.item).maxStackSize), Format.money(o.price.toLong()))
             Draw.text(ui.g, Draw.fit(text, row.w - 2 * SMALL_H - 6), row.x, row.y + 4, Palette.textSecondary)
-            if (ui.iconButton(Rect(row.right - 2 * SMALL_H - 2, row.y, SMALL_H, SMALL_H), Icons.EDIT, tr("kami_economy.reprice.action"), key = "mine-edit:${o.id}")) app.reprice(o)
-            if (ui.iconButton(Rect(row.right - SMALL_H, row.y, SMALL_H, SMALL_H), Icons.CROSS, tr("kami_economy.cancel.action"), key = "mine-cancel:${o.id}")) app.cancel(o)
+            if (ui.iconButton(Rect(row.right - 2 * SMALL_H - 2, row.y, SMALL_H, SMALL_H), Icons.EDIT, tr("kami_economy.reprice.action"), key = "mine-edit:${o.id}")) app.reprice(app, o)
+            if (ui.iconButton(Rect(row.right - SMALL_H, row.y, SMALL_H, SMALL_H), Icons.CROSS, tr("kami_economy.cancel.action"), key = "mine-cancel:${o.id}")) app.cancel(app, o)
         }
     }
 }

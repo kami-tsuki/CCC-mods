@@ -1,14 +1,9 @@
 package kami.essentials.client
 
-import kami.essentials.net.Snap
 import kami.libs.ui.UiPrefs
 import kami.libs.ui.app.Callout
 import kami.libs.ui.app.Consequence
-import kami.libs.ui.app.KamiApp
-import kami.libs.ui.app.NavGroup
-import kami.libs.ui.app.NavItem
 import kami.libs.ui.app.Page
-import kami.libs.ui.app.Route
 import kami.libs.ui.app.confirmDialog
 import kami.libs.ui.core.Flow
 import kami.libs.ui.core.Rect
@@ -19,10 +14,8 @@ import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icon
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
-import kami.libs.ui.style.TextStyle
 import kami.libs.ui.text.tr
 import kami.libs.ui.widget.*
-import net.minecraft.client.Minecraft
 
 private const val TOGGLE_CARD_H = 42
 private const val STATUS_CARD_H = 80
@@ -30,51 +23,13 @@ private const val LOOK_H = 92
 private const val FEEL_H = 110
 private const val CHANNEL_H = 70
 
-class PrefsApp private constructor() : KamiApp() {
-    var snap: Snap? = null
-    override val module get() = "essentials"
-    override val home = Route("interface")
-
-    private fun offline(): String? = if (snap == null) tr("kami_essentials.prefs.offline") else null
-
-    override fun buildNav() = listOf(
-        NavGroup(tr("kami_essentials.nav.group.client"), listOf(NavItem("interface", tr("kami_essentials.nav.interface"), Icons.BRUSH)), "client"),
-        NavGroup(tr("kami_essentials.nav.group.server"), listOf(
-            NavItem("chat", tr("kami_essentials.nav.chat"), Icons.SCROLL, lock = ::offline),
-            NavItem("player", tr("kami_essentials.nav.player"), Icons.PERSON, lock = ::offline),
-            NavItem("discord", tr("kami_essentials.nav.discord"), Icons.GLOBE, lock = { offline() ?: if (snap?.discordOn == true) null else tr("kami_essentials.prefs.unavailable") })
-        ), "server")
-    )
-
-    override fun create(id: String): Page = when (id) {
-        "chat" -> ChatPage(this)
-        "player" -> PlayerPage(this)
-        "discord" -> DiscordPage(this)
-        else -> InterfacePage()
-    }
-
-    override fun topBar(ui: Ui, r: Rect) {
-        Draw.leadIcon(ui.g, Icons.SETTINGS, r.x + 6, r.centerY, Palette.brass)
-        Draw.text(ui.g, tr("kami_essentials.module"), r.x + 24, r.centerY - 4, TextStyle.HEADING)
-        Minecraft.getInstance().player?.let { Draw.textRight(ui.g, it.gameProfile.name, r.right - 8, r.centerY - 4, Palette.textMuted) }
-    }
-
-    fun set(key: String, value: String) = ClientEssentials.request("set", key, value)
-
-    fun set(key: String, on: Boolean) = set(key, if (on) "on" else "off")
-
-    companion object {
-        val instance by lazy { PrefsApp() }
-    }
-}
-
 private fun Ui.toggleCard(r: Rect, title: String, icon: Icon, on: Boolean?, label: String, tip: String, key: String, change: (Boolean) -> Unit) {
     anchor("prefs:$key", r)
     val f = Flow(card(r, title, icon), 4)
     toggle(f.take(14), on == true, label, enabled = on != null, disabledReason = tr("kami_essentials.prefs.unavailable"), tip = tip, key = key)?.let(change)
 }
 
-private class InterfacePage : Page() {
+internal class InterfacePage : Page() {
     override val title get() = tr("kami_essentials.nav.interface")
     override val help get() = listOf(
         Callout("prefs:look", tr("kami_essentials.interface.look"), tr("kami_essentials.help.look")),
@@ -102,7 +57,7 @@ private class InterfacePage : Page() {
     }
 }
 
-private class ChatPage(private val app: PrefsApp) : Page() {
+internal class ChatPage(private val app: PersonalApp) : Page() {
     override val title get() = tr("kami_essentials.nav.chat")
     override val help get() = listOf(
         Callout("prefs:channel", tr("kami_essentials.chat.channel"), tr("kami_essentials.help.channel")),
@@ -122,7 +77,7 @@ private class ChatPage(private val app: PrefsApp) : Page() {
     }
 }
 
-private class PlayerPage(private val app: PrefsApp) : Page() {
+internal class PlayerPage(private val app: PersonalApp) : Page() {
     override val title get() = tr("kami_essentials.nav.player")
     override val help get() = listOf(
         Callout("prefs:trades", tr("kami_essentials.player.trading"), tr("kami_essentials.help.trades")),
@@ -138,7 +93,7 @@ private class PlayerPage(private val app: PrefsApp) : Page() {
     }
 }
 
-private class DiscordPage(private val app: PrefsApp) : Page() {
+internal class DiscordPage(private val app: PersonalApp) : Page() {
     override val title get() = tr("kami_essentials.nav.discord")
     override val help get() = listOf(
         Callout("prefs:discord", tr("kami_essentials.prefs.discord.account"), tr("kami_essentials.prefs.discord.help.account")),

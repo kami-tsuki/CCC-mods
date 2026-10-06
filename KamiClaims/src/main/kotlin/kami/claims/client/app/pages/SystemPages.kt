@@ -5,6 +5,7 @@ import kami.claims.client.ClientClaims
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ClaimsPage
 import kami.libs.ui.app.Modules
+import kami.libs.ui.app.Personal
 import kami.libs.ui.app.NAV_ROW_H
 import kami.libs.ui.app.Route
 import kami.libs.ui.core.Flow
@@ -111,7 +112,7 @@ class SettingsPage(app: ClaimsApp) : ClaimsPage(app) {
         val look = ui.card(rf.take(68), tr("kami_claims.settings.interface"), Icons.BRUSH)
         val inf = Flow(look, 4)
         Draw.paragraph(ui.g, tr("kami_claims.settings.interface.moved"), look.x, inf.take(18).y, look.w, maxLines = 2)
-        val prefs = Modules.all.firstOrNull { it.id == "essentials" }
+        val prefs = Modules.all.firstOrNull { it.id == Personal.MODULE }
         if (ui.button(inf.take(CONTROL_H).left(150), tr("kami_claims.settings.interface.open"), Icons.SETTINGS, enabled = prefs != null, disabledReason = tr("kami_claims.settings.interface.missing"), key = "prefs")) prefs?.open()
         val guide = ui.card(rf.take(92), tr("kami_claims.settings.guidance"), Icons.HELP)
         val gf = Flow(guide, 4)

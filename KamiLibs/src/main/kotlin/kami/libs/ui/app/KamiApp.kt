@@ -62,6 +62,7 @@ const val CRUMBS_H = 16
 const val NAV_ROW_H = 16
 private const val GROUP_H = 14
 private const val GROUP_GAP = 7
+private const val RAIL_TOGGLE_H = 14
 private const val MODULES_H = 18
 private const val PAGE_SHIFT = 10
 private const val PAGE_VEIL = 0.6f
@@ -107,6 +108,10 @@ abstract class KamiApp {
 
     val dialogOpen get() = dialogs.isNotEmpty()
     val compact get() = window.w < 560
+    open val collapsibleRail: Boolean get() = false
+    var railCollapsed = false
+    open fun railChanged() {}
+    private val rail get() = compact || railCollapsed
 
     fun open(dialog: Dialog) {
         dialogs += dialog
@@ -157,7 +162,7 @@ abstract class KamiApp {
         ui.anchor("topbar", top)
         topBar(ui, top)
         val body = window.dropTop(TOPBAR_H + 2).inset(2, 0, 2, 2)
-        val sideW = if (compact) 22 else 108
+        val sideW = ui.anim("rail:width", if (rail) 22f else 108f, 16f).roundToInt()
         val side = body.left(sideW)
         sidebar(side)
         var area = body.dropLeft(sideW, 6).inset(0, 4, 5, 4)
@@ -183,7 +188,7 @@ abstract class KamiApp {
         if (!ui.typing && !dialogOpen && tour == null) keys()
     }
 
-    fun isCollapsed(group: NavGroup) = group.collapsible && !compact && group.id in collapsedGroups
+    fun isCollapsed(group: NavGroup) = group.collapsible && !rail && group.id in collapsedGroups
 
     private fun toggle(group: NavGroup) {
         if (!collapsedGroups.add(group.id)) collapsedGroups.remove(group.id)
@@ -195,13 +200,14 @@ abstract class KamiApp {
         val groups = nav()
         val opens = groups.map { ui.anim(it.openKey, if (isCollapsed(it)) 0f else 1f, 14f) }
         val height = groups.withIndex().sumOf { (i, group) ->
-            (if (!compact) GROUP_H else if (i > 0) 4 else 0) + group.items.sumOf { rowHeight(it, opens[i]) } + GROUP_GAP
+            (if (!rail) GROUP_H else if (i > 0) 4 else 0) + group.items.sumOf { rowHeight(it, opens[i]) } + GROUP_GAP
         }
         val indicator = navY[route.page]
         val perRow = ((r.w - 4) / MODULES_H).coerceAtLeast(1)
         val stripH = if (module == null || Modules.all.size < 2) 0 else (Modules.all.size + perRow - 1) / perRow * MODULES_H
         if (stripH > 0) moduleStrip(Rect(r.x + 2, r.y + 3, r.w - 4, stripH), perRow)
-        val state = ui.scroll("sidebar", r.inset(0, 4 + stripH, 0, 2), height) { c ->
+        val toggleH = if (collapsibleRail && !compact) RAIL_TOGGLE_H else 0
+        val state = ui.scroll("sidebar", r.inset(0, 4 + stripH, 0, 2 + toggleH), height) { c ->
             indicator?.let { rel ->
                 val top = c.y + ui.anim("nav:ind", rel.toFloat(), 20f).roundToInt()
                 Draw.fill(ui.g, Rect(c.x, top, c.w - 1, NAV_ROW_H), Palette.selected)
@@ -209,7 +215,7 @@ abstract class KamiApp {
             }
             var y = c.y
             groups.forEachIndexed { i, group ->
-                if (!compact) {
+                if (!rail) {
                     groupHeader(Rect(c.x, y, c.w - 1, GROUP_H), group)
                     y += GROUP_H
                 } else if (i > 0) {
@@ -224,6 +230,14 @@ abstract class KamiApp {
                     y += shown
                 }
                 y += GROUP_GAP
+            }
+        }
+        if (toggleH > 0) {
+            val cell = Rect(r.x + 2, r.bottom - toggleH - 1, r.w - 4, toggleH)
+            val tip = tr(if (railCollapsed) "kami_libs.nav.rail.expand" else "kami_libs.nav.rail.collapse")
+            if (ui.iconButton(cell, if (railCollapsed) Icons.FORWARD else Icons.BACK, tip, key = "rail:toggle")) {
+                railCollapsed = !railCollapsed
+                railChanged()
             }
         }
         revealPage?.let { page -> navY[page]?.let { state.scrollTo(it); revealPage = null } }
@@ -285,11 +299,11 @@ abstract class KamiApp {
         ui.focusable(key)
         if (hover) ui.cursor = Cursor.HAND
         if (hover && !active) Draw.fill(ui.g, r, Palette.hover)
-        val iconX = if (compact) r.x + (r.w - Draw.ICON) / 2 else r.x + 4
+        val iconX = if (rail) r.x + (r.w - Draw.ICON) / 2 else r.x + 4
         val iconY = r.y + (r.h - Draw.ICON) / 2
         if (lock != null) Draw.tintedIcon(ui.g, item.icon, iconX, iconY, Draw.ICON, Palette.iconOff) else Draw.icon(ui.g, item.icon, iconX, iconY)
         var shown = item.label
-        if (!compact) {
+        if (!rail) {
             val color = when {
                 lock != null -> Palette.textDisabled
                 active -> Palette.text
@@ -302,13 +316,13 @@ abstract class KamiApp {
         }
         item.badge()?.takeIf { it.count > 0 && lock == null }?.let { b ->
             val label = badgeLabel(b.count)
-            if (compact) ui.badge(r.right - 10, r.y, label, b.severity) else ui.badge(r.right - Draw.width(label) - 9, r.y + (r.h - 10) / 2, label, b.severity)
+            if (rail) ui.badge(r.right - 10, r.y, label, b.severity) else ui.badge(r.right - Draw.width(label) - 9, r.y + (r.h - 10) / 2, label, b.severity)
         }
         ui.tooltip(key, r) {
             when {
                 lock != null -> Tip(item.label, listOf(lock to Palette.warning), Severity.WARNING, Icons.LOCK)
                 teaser != null -> Tip(item.label, listOf(teaser.reason to Palette.warning), Severity.WARNING, Icons.LOCK)
-                compact -> Tip.text(groupOf(item.page)?.label ?: "", item.label)
+                rail -> Tip.text(groupOf(item.page)?.label ?: "", item.label)
                 shown != item.label -> Tip.text(item.label)
                 else -> null
             }

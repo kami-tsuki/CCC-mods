@@ -1,6 +1,8 @@
 package kami.claims.economy
 
 import kami.libs.economy.Coins
+import kami.libs.economy.Flow
+import kami.libs.economy.Statement
 import kami.libs.economy.Numismatics
 
 import net.minecraft.core.registries.BuiltInRegistries
@@ -16,7 +18,13 @@ object Bank {
 
     fun funds(id: UUID): Long = Numismatics.balance(id) + (Numismatics.online(id)?.let(::carried) ?: 0)
 
-    fun take(id: UUID, amount: Int): Boolean {
+    fun take(id: UUID, amount: Int, flow: Flow, counterparty: String = ""): Boolean =
+        withdraw(id, amount).also { if (it && amount > 0) Statement.record(id, -amount.toLong(), flow, counterparty) }
+
+    fun give(id: UUID, amount: Int, flow: Flow, counterparty: String = ""): Boolean =
+        deliver(id, amount).also { if (it && amount > 0) Statement.record(id, amount.toLong(), flow, counterparty) }
+
+    private fun withdraw(id: UUID, amount: Int): Boolean {
         if (amount <= 0) return true
         if (funds(id) < amount) return false
         val deducted = Numismatics.deduct(id, amount)
@@ -38,7 +46,7 @@ object Bank {
         return removed >= rest
     }
 
-    fun give(id: UUID, amount: Int): Boolean {
+    private fun deliver(id: UUID, amount: Int): Boolean {
         if (amount <= 0) return true
         if (Numismatics.deposit(id, amount)) return true
         val p = Numismatics.online(id) ?: return false

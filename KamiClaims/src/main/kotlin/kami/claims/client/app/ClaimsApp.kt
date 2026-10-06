@@ -365,6 +365,7 @@ class ClaimsApp : KamiApp() {
     }
 
     private fun outcome(o: Outcome) {
+        if (!isOpen) return
         if (o.ok) {
             toast(Severity.SUCCESS, o.message.substringBefore(". ").take(70), o.message.substringAfter(". ", "").ifEmpty { null })
             return

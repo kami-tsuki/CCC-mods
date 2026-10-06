@@ -94,6 +94,7 @@ object ClaimsStore {
     }
 
     fun reset() {
+        snap = null
         pending.clear()
         watched = emptyList()
         stickyPreview = null

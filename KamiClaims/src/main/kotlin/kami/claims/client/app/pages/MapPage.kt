@@ -24,6 +24,7 @@ import kami.claims.service.View
 import kami.libs.ui.app.CRUMBS_H
 import kami.libs.ui.app.Callout
 import kami.libs.ui.app.Route
+import kami.libs.ui.app.Personal
 import kami.libs.ui.core.Cursor
 import kami.libs.ui.core.Flow
 import kami.libs.ui.core.Memo
@@ -574,6 +575,8 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
                 ui.meter(f.take(5), m.debt.coerceAtMost(max.toLong()).toInt(), max, { if (it >= max) Severity.DANGER else Severity.WARNING })
             }
         }
+        f.skip(2)
+        if (Personal.available && ui.button(f.take(CONTROL_H), tr("kami_claims.map.plot.view_mine"), Icons.HOUSE, ButtonStyle.SECONDARY, key = "plot-mine")) Personal.open(Route("claims.plots", mapOf("dim" to dim), "$x:$z"))
         f.skip(2)
         if (ui.button(f.take(CONTROL_H), tr("kami_claims.plots.release"), Icons.REMOVE, ButtonStyle.SECONDARY, pending = pending("plot_release"), key = "plot-release")) Dialogs.release(app, x, z, d.country, moving)
     }

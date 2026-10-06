@@ -1,6 +1,7 @@
 package kami.economy
 
 import kami.economy.economy.Blacklist
+import kami.economy.economy.Catalog
 import kami.economy.economy.Ledger
 import kami.economy.economy.Stocks
 import kami.libs.config.WorldStore
@@ -68,7 +69,8 @@ class Data(
     val traded: MutableMap<String, Traded> = mutableMapOf(),
     var day: Long = 0,
     val vendors: MutableList<Vendor> = mutableListOf(),
-    val muted: MutableMap<String, MutableSet<String>> = mutableMapOf()
+    val muted: MutableMap<String, MutableSet<String>> = mutableMapOf(),
+    var version: Int = 0
 )
 
 object Market {
@@ -87,11 +89,18 @@ object Market {
         store.load(path) { LOG.error("Unreadable market data, kept as .bad", it) }
         Ledger.attach(path.resolveSibling("kami_economy.wal"))
         data.books.values.forEach { if (it.sells.removeAll { o -> o.synthetic }) dirty = true }
-        Stocks.index { tag ->
-            BuiltInRegistries.ITEM.getTagOrEmpty(TagKey.create(Registries.ITEM, ResourceLocation.parse(tag))).map { BuiltInRegistries.ITEM.getKey(it.value()).toString() }
-        }
+        reindex()
         data.books.keys.removeAll { k -> data.books.getValue(k).let { it.sells.isEmpty() && it.buys.isEmpty() } && Stocks.good(k) == null && !Blacklist.sellable(k) }
         Ledger.recover()
+        Catalog.relot()
+    }
+
+    private fun resolve(tag: String): List<String> =
+        BuiltInRegistries.ITEM.getTagOrEmpty(TagKey.create(Registries.ITEM, ResourceLocation.parse(tag))).map { BuiltInRegistries.ITEM.getKey(it.value()).toString() }
+
+    fun reindex() {
+        Catalog.merge(::resolve)
+        Stocks.index({ ResourceLocation.tryParse(it)?.let(BuiltInRegistries.ITEM::containsKey) == true }, ::resolve)
     }
 
     fun save(force: Boolean = false) {

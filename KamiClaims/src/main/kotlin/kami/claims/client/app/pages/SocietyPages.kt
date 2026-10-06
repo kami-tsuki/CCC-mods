@@ -1,6 +1,7 @@
 package kami.claims.client.app.pages
 
 import kami.claims.client.rankOf
+import kami.libs.text.SearchQuery
 import kami.libs.ui.text.trn
 import kami.libs.ui.text.tr
 import kami.claims.Rank
@@ -86,12 +87,12 @@ class CitizensPage(app: ClaimsApp) : ClaimsPage(app) {
             ui.searchField(bar.take(140), search, tr("kami_claims.citizens.search"), key = "mem-search")
             val inviteLabel = tr("kami_libs.common.invite")
             val invited = ui.edgeButton(bar, inviteLabel, Icons.INVITE, ButtonStyle.PRIMARY, can("invite") && invite.text.length >= 3, lock("invite") ?: tr("kami_claims.field.player.disabled"), pending = pending("invite"), key = "invite-go")
-            ui.textField(bar.takeFromRight(120), invite, tr("kami_claims.field.player"), Icons.PERSON, maxLength = 16, key = "invite-name")
+            ui.playerField(bar.takeFromRight(120), invite, offline = { ClaimsStore.snap?.names.orEmpty() }, query = { ClaimsStore.quiet("names", it) }, key = "invite-name")
             if (invited) {
                 act("invite", invite.text, key = "invite")
                 invite.set("")
             }
-            rows = ui.filtered("citizens-filtered", listOf(search.text, info.members)) { info.members.filter { search.text.isBlank() || it.name.contains(search.text, true) } }
+            rows = ui.filtered("citizens-filtered", listOf(search.text, info.members)) { SearchQuery.parse(search.text).let { q -> info.members.filter { q.matches(it.name) } } }
         }
         ui.anchor("citizens:table", tableRect)
         ui.table(tableRect, listOf(

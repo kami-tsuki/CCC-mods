@@ -56,6 +56,7 @@ object Palette {
 
     val info by token("sem.info", 0x1E5FA8)
     val success by token("sem.success", 0x1E7A3E)
+    val paid by token("sem.paid", 0x5DA05D)
     val warning by token("sem.warning", 0x9A6200)
     val danger by token("sem.danger", 0xB02A2E)
     val money by token("sem.money", 0x8A6A00)

@@ -9,7 +9,8 @@ import kotlinx.serialization.Serializable
 class Prefs(
     var tourDone: Boolean = false,
     var chartRange: String = "week",
-    var collapsedGroups: MutableSet<String> = mutableSetOf()
+    var collapsedGroups: MutableSet<String> = mutableSetOf(),
+    var watch: MutableList<String> = mutableListOf()
 )
 
 object MarketPrefs {
@@ -21,7 +22,8 @@ object MarketPrefs {
                 mapOf(
                     "tourDone" to "The guided tour was finished or skipped.",
                     "chartRange" to "Price chart range on the item page: day, week, month or all.",
-                    "collapsedGroups" to "Navigation groups you collapsed."
+                    "collapsedGroups" to "Navigation groups you collapsed.",
+                    "watch" to "Item ids pinned to your watchlist."
                 )
             )
         ),

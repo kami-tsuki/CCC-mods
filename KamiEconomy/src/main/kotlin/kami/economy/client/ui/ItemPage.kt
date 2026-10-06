@@ -70,6 +70,16 @@ internal class ItemPage(val app: MarketApp) : Page() {
         app.request("detail", item, span.arg)
     }
 
+    override fun actionsWidth() = SMALL_H
+
+    override fun actions(ui: Ui, r: Rect) {
+        val pinned = item in MarketPrefs.prefs.watch
+        if (ui.iconButton(Rect(r.x, r.y, SMALL_H, SMALL_H), Icons.STAR, tr(if (pinned) "kami_economy.watch.unpin" else "kami_economy.watch.pin"), selected = pinned, key = "watch-pin")) {
+            if (pinned) MarketPrefs.prefs.watch.remove(item) else MarketPrefs.prefs.watch.add(item)
+            MarketPrefs.save()
+        }
+    }
+
     override fun leaving(next: Route): Boolean {
         if (next.page != "item") app.request("detail", "")
         return true

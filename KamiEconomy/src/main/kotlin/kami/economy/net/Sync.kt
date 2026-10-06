@@ -15,6 +15,7 @@ import kami.economy.economy.Matching
 import kami.economy.economy.Notify
 import kami.economy.economy.Range
 import kami.economy.economy.SellPlan
+import kami.economy.economy.StackCodec
 import kami.economy.economy.Stocks
 import kami.economy.economy.Terms
 import kami.economy.economy.Trade
@@ -22,6 +23,8 @@ import kami.libs.claims.ClaimsApi
 import kami.libs.claims.CountryCapacity
 import kami.libs.claims.FlagInfo
 import kami.libs.economy.Numismatics
+import kami.libs.mc.ItemSpec
+import kami.libs.text.SearchQuery
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -91,6 +94,8 @@ private class QuoteReq(val mode: String, val item: String, val qty: Int, val pri
 private class State {
     var view = "dashboard"
     var query = ""
+    var search = SearchQuery.EMPTY
+    var ids: Set<String>? = null
     var detailItem = ""
     var range = Range.WEEK
     var quote: QuoteReq? = null
@@ -104,10 +109,12 @@ object Sync {
     private var dash: Dash? = null
     private var dashTick = 0
 
-    fun view(p: ServerPlayer, view: String, query: String) {
+    fun view(p: ServerPlayer, view: String, query: String, ids: String = "") {
         val s = states.getOrPut(p.uuid) { State() }
         s.view = view
         s.query = query
+        s.search = SearchQuery.parse(query)
+        s.ids = if (query.isBlank() || ids == "*" || s.search.isEmpty) null else ids.split(',').filter(String::isNotBlank).toSet()
     }
 
     fun detail(p: ServerPlayer, item: String, range: String) {
@@ -129,7 +136,7 @@ object Sync {
 
     private fun flagView(f: FlagInfo) = FlagView(f.pattern, f.emblem, f.secondary)
 
-    private fun matches(query: String, text: String) = query.isEmpty() || text.contains(query, ignoreCase = true)
+    private fun State.hit(item: String) = ids?.contains(item) ?: true
 
     private fun row(item: String, me: String): Row {
         val lot = Config.s.lotOf(item)
@@ -147,8 +154,8 @@ object Sync {
         )
     }
 
-    private fun marketRows(query: String, me: String): List<Row> =
-        (Market.data.books.keys + Stocks.items()).filter { matches(query, it) }.map { row(it, me) }.filter { it.buy > 0 || it.sell > 0 }
+    private fun marketRows(s: State, me: String): List<Row> =
+        (Market.data.books.keys + Stocks.items()).filter { s.hit(it) }.map { row(it, me) }.filter { it.buy > 0 || it.sell > 0 }
             .sortedWith(compareByDescending<Row> { it.sold + it.bought }.thenBy { it.item })
 
     private fun orderRows(server: MinecraftServer, me: String, books: Collection<Book>, bid: Boolean, mineOnly: Boolean = false): List<OrderRow> = books.flatMap { b ->
@@ -182,7 +189,7 @@ object Sync {
         p.inventory.items.filter { !it.isEmpty && Blacklist.classify(it) == Classification.ALLOWED }
             .groupBy { Blacklist.itemId(it) }.mapValues { (_, stacks) -> stacks.sumOf { it.count } }
 
-    private fun held(p: ServerPlayer, me: String, query: String): List<HeldRow> = inventory(p).filterKeys { matches(query, it) }.map { (item, count) ->
+    private fun held(p: ServerPlayer, me: String, s: State): List<HeldRow> = inventory(p).filterKeys { s.hit(it) }.map { (item, count) ->
         val lot = Config.s.lotOf(item)
         val plan = Matching.sellPlan(me, item, (count - count % lot).coerceAtMost(Config.s.maxAmount)).takeIf { it.filled > 0 && it.net > 0 }
         val source = when {
@@ -221,8 +228,14 @@ object Sync {
         )
     }
 
-    private fun auctions(me: String, query: String): List<Auction> =
-        Auctions.open().filter { matches(query, it.label) }.sortedWith(compareByDescending<Auction> { it.seller == me }.thenBy { it.expiresAt })
+    private val auctionSpecs = HashMap<Long, String>()
+
+    private fun auctionSpec(server: MinecraftServer, a: Auction) = auctionSpecs.getOrPut(a.id) {
+        runCatching { ItemSpec.spec(StackCodec.decode(a.stackData, server.registryAccess())) }.getOrDefault("")
+    }
+
+    private fun auctions(server: MinecraftServer, me: String, s: State): List<Auction> =
+        Auctions.open().also { live -> auctionSpecs.keys.retainAll(live.map(Auction::id).toSet()) }.filter { s.search.isEmpty || s.hit(auctionSpec(server, it)) || s.search.hasWords && s.search.matches(it.label) }.sortedWith(compareByDescending<Auction> { it.seller == me }.thenBy { it.expiresAt })
 
     private fun auctionLine(server: MinecraftServer, me: String, a: Auction) =
         AuctionLine(a.id, a.label, a.stackData, a.startPrice, a.buyNowPrice ?: -1, a.currentBid, a.currentBidder, a.expiresAt, a.seller == me, name(server, a.seller))
@@ -342,18 +355,22 @@ object Sync {
         val snap = Snap(
             funds, s.view,
             rows =when (s.view) {
-                "market" -> marketRows(s.query, me)
-                "infinite" -> Stocks.items().filter { Stocks.infinite(it) && matches(s.query, it) }.map { row(it, me) }.sortedBy { it.item }
+                "market" -> marketRows(s, me)
+                "watch" -> s.query.split(',').filter { it.isNotBlank() }.take(32).filter { Stocks.good(it) != null || Blacklist.sellable(it) }.map { row(it, me) }
+                "infinite" -> Stocks.items().filter { Stocks.infinite(it) && s.hit(it) }.map { row(it, me) }.sortedBy { it.item }
                 else -> emptyList()
             }.cap(),
             orders = when (s.view) {
-                "sell_orders" -> orderRows(p.server, me, books.filter { matches(s.query, it.item) }, bid = false)
-                "buy_orders" -> orderRows(p.server, me, books.filter { matches(s.query, it.item) }, bid = true)
+                "market" -> if (s.search.isEmpty) emptyList() else (orderRows(p.server, me, books, bid = false) + orderRows(p.server, me, books, bid = true)).filter {
+                    s.hit(it.item) || s.search.hasWords && s.search.matches(it.ownerName, it.country)
+                }
+                "sell_orders" -> orderRows(p.server, me, books.filter { s.hit(it.item) }, bid = false)
+                "buy_orders" -> orderRows(p.server, me, books.filter { s.hit(it.item) }, bid = true)
                 else -> emptyList()
             }.sortedByDescending { it.placedAt }.cap(),
-            vendors = if (s.view == "sell_vendors" || s.view == "buy_vendors") Market.data.vendors.filter { it.price > 0 && it.sell == (s.view == "buy_vendors") && matches(s.query, it.item) }.sortedWith(compareBy({ it.item }, { it.price })).cap().map { vendorLine(it, p.server, me) } else emptyList(),
-            held = if (s.view == "instant") held(p, me, s.query).sortedBy { it.item }.cap() else emptyList(),
-            auctions = if (s.view == "auctions") auctions(me, s.query).cap(minOf(limit, AUCTION_ROWS)).map { auctionLine(p.server, me, it) } else emptyList(),
+            vendors = if (s.view == "sell_vendors" || s.view == "buy_vendors") Market.data.vendors.filter { it.price > 0 && it.sell == (s.view == "buy_vendors") && s.hit(it.item) }.sortedWith(compareBy({ it.item }, { it.price })).cap().map { vendorLine(it, p.server, me) } else emptyList(),
+            held = if (s.view == "instant") held(p, me, s).sortedBy { it.item }.cap() else emptyList(),
+            auctions = if (s.view == "auctions") auctions(p.server, me, s).cap(minOf(limit, AUCTION_ROWS)).map { auctionLine(p.server, me, it) } else emptyList(),
             dash = if (s.view == "dashboard") dash(p.server) else null,
             mine = mine(p.server, me, books),
             taxPct = Config.s.taxPct, allyTaxPct = Config.s.allyTaxPct, auctionFeePct = (Config.s.auctionFeePct * 100).roundToInt(),

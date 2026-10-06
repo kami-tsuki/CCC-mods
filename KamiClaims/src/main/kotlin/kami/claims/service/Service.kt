@@ -27,6 +27,7 @@ import kami.claims.war.WarLocks
 import kami.claims.social.Perms
 import kami.claims.world.Effects
 import kami.libs.chat.Tone
+import kami.libs.economy.Flow
 import kami.libs.text.Phrase
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
@@ -169,6 +170,8 @@ object Service {
             "plot_claim" -> plotClaim(p, spot(p, a, 0))
             "plot_remove" -> plotRemove(p, spot(p, a, 0), confirmed(a))
             "plot_release" -> plotRelease(p, spot(p, a, 0))
+            "rent_pay" -> rentPay(p, Key(arg(a, 0), num(a, 1), num(a, 2)), arg(a, 3))
+            "rent_pay_all" -> rentPayAll(p)
             "plot_trust" -> plotOwner(p, spot(p, a, 2)).let { cl ->
                 who(p, a, 0).let { id -> if (id == cl.owner) throw Fail("kami_claims.error.plot_owner_self"); cl.roles[id] = parse(Role.values(), arg(a, 1)) }
                 Phrase.of("kami_claims.done.role_set")
@@ -485,7 +488,7 @@ object Service {
         val c = home(p)
         if (n < 1) throw Fail(Phrase.of("kami_claims.error.amount"), "AMOUNT")
         if (n > Treasury.room(c)) throw Fail(Phrase.of("kami_claims.error.treasury_full", money(Treasury.room(c))), "AMOUNT")
-        if (!Bank.take(p.uuid, n)) throw Fail(Phrase.of("kami_claims.error.funds", money(n)), "FUNDS")
+        if (!Bank.take(p.uuid, n, Flow.TREASURY, c.name)) throw Fail(Phrase.of("kami_claims.error.funds", money(n)), "FUNDS")
         Treasury.move(c, LedgerKind.DEPOSIT, n.toLong(), p.stringUUID)
         c.pending += n
         return Phrase.of("kami_claims.done.deposited", money(n), money(c.treasury))
@@ -496,7 +499,7 @@ object Service {
         Loans.requireNoLoans(c)
         if (n < 1) throw Fail(Phrase.of("kami_claims.error.amount"), "AMOUNT")
         if (c.treasury < n) throw Fail(Phrase.of("kami_claims.error.treasury_short", money(c.treasury)), "FUNDS")
-        if (!Bank.give(p.uuid, n)) throw Fail("kami_claims.error.payout")
+        if (!Bank.give(p.uuid, n, Flow.TREASURY, c.name)) throw Fail("kami_claims.error.payout")
         Treasury.move(c, LedgerKind.WITHDRAW, -n.toLong(), p.stringUUID)
         return Phrase.of("kami_claims.done.withdrew", money(n))
     }
@@ -548,6 +551,34 @@ object Service {
         Housing.release(c, cl)
         if (tenant !in c.members) Mail.officers(c, Phrase.of("kami_claims.mail.plot_returned", v(Names.of(p.server, tenant)), v("${cl.x}, ${cl.z}")))
         return Phrase.of("kami_claims.done.plot_released")
+    }
+
+    private fun rentPay(p: ServerPlayer, k: Key, amount: String): Phrase {
+        val cl = Realm.index[k]?.takeIf { it.plot && it.owner == p.stringUUID } ?: throw Fail("kami_claims.error.plot_owner_only")
+        val c = Realm.data.countries.getValue(cl.country)
+        val n = if (amount == "all") cl.rentDebt else amount.toLongOrNull()?.takeIf { it in 1..Int.MAX_VALUE } ?: throw Fail(Phrase.of("kami_claims.error.amount"), "AMOUNT")
+        if (n <= 0) throw Fail("kami_claims.error.rent_nothing")
+        val paid = Housing.payRent(c, cl, p.stringUUID, n)
+        if (paid <= 0) throw if (Housing.treasuryBlocked(c, cl)) Fail("kami_claims.error.rent_treasury_full") else if (Bank.funds(p.uuid) < n) Fail(Phrase.of("kami_claims.error.funds", money(n)), "FUNDS") else Fail("kami_claims.error.rent_nothing")
+        return Phrase.of("kami_claims.done.rent_paid", money(paid), v("${cl.x}, ${cl.z}"))
+    }
+
+    private fun rentPayAll(p: ServerPlayer): Phrase {
+        val me = p.stringUUID
+        var total = 0L
+        var count = 0
+        var blocked = false
+        Realm.data.claims.filter { it.plot && it.owner == me && it.rentDebt > 0 }.forEach { cl ->
+            val c = Realm.data.countries[cl.country] ?: return@forEach
+            if (Housing.treasuryBlocked(c, cl)) blocked = true
+            val paid = Housing.payRent(c, cl, me, min(cl.rentDebt, Bank.funds(p.uuid)))
+            if (paid > 0) {
+                total += paid
+                count++
+            }
+        }
+        if (count == 0) throw Fail(if (blocked) "kami_claims.error.rent_treasury_full" else "kami_claims.error.rent_nothing")
+        return Phrase.of("kami_claims.done.rent_paid_all", money(total), num(count))
     }
 
     private fun delegatedRank(c: Country, p: ServerPlayer) = if (c === Realm.of(p.stringUUID)) rankOf(c, p) else Oversight.actingRank

@@ -10,6 +10,7 @@ import kami.claims.service.Words.money
 import kami.claims.service.Words.v
 import kami.claims.social.Mail
 import kami.libs.chat.Tone
+import kami.libs.economy.Flow
 import kami.libs.text.Phrase
 import java.util.UUID
 import kotlin.math.floor
@@ -92,7 +93,7 @@ object Work {
                 val affordable = def.pay <= budget && def.pay <= c.treasury
                 val paid = due && affordable && run {
                     Treasury.move(c, LedgerKind.JOB_PAY, -def.pay.toLong(), id, name)
-                    Bank.give(UUID.fromString(id), def.pay).also { ok -> if (!ok) Treasury.move(c, LedgerKind.JOB_PAY, def.pay.toLong(), id, name) }
+                    Bank.give(UUID.fromString(id), def.pay, Flow.WAGES, c.name).also { ok -> if (!ok) Treasury.move(c, LedgerKind.JOB_PAY, def.pay.toLong(), id, name) }
                 }
                 if (due && affordable && !paid) {
                     if (unpaidMailed.put(id, today()) != today()) Mail.direct(id, Phrase.of("kami_claims.mail.wage_unpaid", Words.job(name)), Tone.BAD)

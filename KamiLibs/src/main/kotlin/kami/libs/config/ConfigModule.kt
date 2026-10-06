@@ -17,4 +17,6 @@ abstract class ConfigModule<T : Any>(
         set(value) { file.value = value }
 
     fun load() = file.load()
+
+    fun save(v: T) = file.save(v)
 }

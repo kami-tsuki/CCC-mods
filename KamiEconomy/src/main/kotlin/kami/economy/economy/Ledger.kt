@@ -8,6 +8,8 @@ import kami.economy.now
 import kami.libs.chat.Tone
 import kami.libs.claims.ClaimsApi
 import kami.libs.economy.CleanStep
+import kami.libs.economy.Flow
+import kami.libs.economy.Statement
 import kami.libs.economy.Money
 import kami.libs.economy.Numismatics
 import kami.libs.progress.KamiProgress
@@ -121,6 +123,16 @@ sealed class BuyNowResult {
     data class Embargoed(val country: String) : BuyNowResult()
 }
 
+private class Memo(val flow: Flow, val counterparty: String = "", val item: String = "", val qty: Int = 0, val fee: Long = 0) {
+    fun record(player: UUID, amount: Long) {
+        if (amount == 0L) return
+        if (fee > 0 && amount > 0) {
+            Statement.record(player, amount + fee, flow, counterparty, item, qty)
+            Statement.record(player, -fee, Flow.FEE, counterparty, item, qty)
+        } else Statement.record(player, amount, flow, counterparty, item, qty)
+    }
+}
+
 object Ledger {
     private val json = Json { encodeDefaults = true; ignoreUnknownKeys = true }
     private var file: Path? = null
@@ -163,19 +175,24 @@ object Ledger {
         Files.move(tmp, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
     }
 
-    private fun credit(owner: String, amount: Long): Boolean {
+    private fun credit(owner: String, amount: Long, memo: Memo): Boolean {
         if (amount == 0L) return true
         val spurs = Money.spurs(amount)
-        if (spurs != null && wallet.deposit(UUID.fromString(owner), spurs)) return true
+        val id = UUID.fromString(owner)
+        if (spurs != null && wallet.deposit(id, spurs)) {
+            memo.record(id, amount)
+            return true
+        }
         LOG.error("Could not credit {} spurs to {}", amount, owner)
         return false
     }
 
-    private fun debit(intent: Intent, payer: UUID, amount: Int): Boolean {
+    private fun debit(intent: Intent, payer: UUID, amount: Int, memo: Memo): Boolean {
         val staged = intent.copy(preBalance = wallet.balance(payer))
         write(staged)
         val taken = wallet.deduct(payer, amount)
         if (taken >= amount) {
+            memo.record(payer, -amount.toLong())
             write(staged.copy(state = LedgerState.DEBITED))
             return true
         }
@@ -224,7 +241,7 @@ object Ledger {
         if (tariff <= 0) return
         val country = Trade.country(payer) ?: return
         val unapplied = tariff - ClaimsApi.creditTariff(country, tariff)
-        if (unapplied > 0) Trade.uuid(payer)?.let { wallet.deposit(it, unapplied.toInt()) }
+        if (unapplied > 0) Trade.uuid(payer)?.let { if (wallet.deposit(it, unapplied.toInt())) Statement.record(it, unapplied, Flow.REFUND) }
     }
 
     private fun stockSale(player: String, item: String, qty: Int) {
@@ -315,7 +332,7 @@ object Ledger {
             if (actor != null) current = current.copy(preBalance = wallet.balance(actor))
             write(current)
         }
-        if (creditOrFreeze(current, current.actor, current.netSpurs, current.preBalance)) write(current.copy(state = LedgerState.PAID))
+        if (creditOrFreeze(current, current.actor, current.netSpurs, current.preBalance, Memo(Flow.MARKET_SELL, item = current.item, qty = current.qty))) write(current.copy(state = LedgerState.PAID))
         tradedFills(current.actor, current.item, current.fills) { net(it) - it.tariff }
         stockSale(current.actor, current.item, current.fills.filter { it.owner.isEmpty() }.sumOf { it.qty })
     }
@@ -334,7 +351,7 @@ object Ledger {
         val buyerId = UUID.fromString(buyer)
         if (wallet.balance(buyerId) < total) return OrderResult.InsufficientFunds
         val intent = Intent(Market.nextId(), IntentType.BID, LedgerState.PENDING, actor = buyer, item = item, qty = amount, unitPrice = price, netSpurs = escrow, lot = lot)
-        if (!debit(intent, buyerId, total)) return OrderResult.InsufficientFunds
+        if (!debit(intent, buyerId, total, Memo(Flow.MARKET_BUY, item = intent.item, qty = intent.qty))) return OrderResult.InsufficientFunds
         placeBid(intent)
         Market.save()
         return OrderResult.Ok(intent.id, amount)
@@ -346,8 +363,8 @@ object Ledger {
         write(intent.copy(state = LedgerState.PAID))
     }
 
-    fun cancelBid(owner: String, item: String): Long? {
-        val bid = Matching.bookFor(item).buys.firstOrNull { it.owner == owner } ?: return null
+    fun cancelBid(owner: String, item: String, orderId: Long? = null): Long? {
+        val bid = Matching.bookFor(item).buys.firstOrNull { it.owner == owner && (orderId == null || it.id == orderId) } ?: return null
         val intent = Intent(Market.nextId(), IntentType.BID_CANCEL, LedgerState.PENDING, actor = owner, item = item, qty = bid.amount, orderId = bid.id, unitPrice = bid.price, netSpurs = Matching.escrow(bid), lot = bid.lot)
         write(intent)
         refundBid(intent)
@@ -362,7 +379,7 @@ object Ledger {
             current = current.copy(state = LedgerState.BOOK_INSERTED, preBalance = balanceOf(current.actor))
             write(current)
         }
-        if (creditOrFreeze(current, current.actor, current.netSpurs, current.preBalance)) write(current.copy(state = LedgerState.PAID))
+        if (creditOrFreeze(current, current.actor, current.netSpurs, current.preBalance, Memo(Flow.REFUND, item = current.item, qty = current.qty))) write(current.copy(state = LedgerState.PAID))
     }
 
     internal fun sellToStock(seller: String, item: String, qty: Int): SellResult {
@@ -376,7 +393,7 @@ object Ledger {
         val intent = Intent(id, IntentType.SELL, LedgerState.PENDING, actor = seller, item = item, qty = qty, unitPrice = (sale.gross / sale.lots).toInt(), taxSpurs = sale.tax, netSpurs = sale.net, instant = true, lot = lot, capLots = sale.guaranteed)
         write(intent)
         val current = stockSold(intent)
-        if (creditOrFreeze(current, current.actor, current.netSpurs, current.preBalance)) write(current.copy(state = LedgerState.PAID))
+        if (creditOrFreeze(current, current.actor, current.netSpurs, current.preBalance, Memo(Flow.MARKET_SELL, item = current.item, qty = current.qty))) write(current.copy(state = LedgerState.PAID))
         traded(current.actor, "", current.netSpurs, current.item, current.qty)
         stockSale(current.actor, current.item, current.qty)
         Market.save()
@@ -401,7 +418,7 @@ object Ledger {
         if (wallet.balance(buyerId) < total) return BuyResult.InsufficientFunds
         val fills = plan.fills.map { it.toLedger() }
         val intent = Intent(Market.nextId(), IntentType.BUY, LedgerState.PENDING, actor = buyer, item = item, qty = plan.filled, netSpurs = plan.totalSpurs, fills = fills)
-        if (!debit(intent, buyerId, total)) return BuyResult.InsufficientFunds
+        if (!debit(intent, buyerId, total, Memo(Flow.MARKET_BUY, item = intent.item, qty = intent.qty))) return BuyResult.InsufficientFunds
         deliverBuy(intent.copy(state = LedgerState.DEBITED))
         fills.forEach { Notify.tell(it.owner, Tone.OK, "sold") { arrayOf(Notify.name(buyer), Notify.stack(item, it.qty), Phrase.money(net(it))) } }
         Market.save()
@@ -466,7 +483,7 @@ object Ledger {
             val total = Money.spurs(delta) ?: return OrderResult.OutOfRange
             val buyerId = UUID.fromString(owner)
             if (wallet.balance(buyerId) < total) return OrderResult.InsufficientFunds
-            if (!debit(intent, buyerId, total)) return OrderResult.InsufficientFunds
+            if (!debit(intent, buyerId, total, Memo(Flow.MARKET_BUY, item = intent.item))) return OrderResult.InsufficientFunds
             repriceBidApply(intent.copy(state = LedgerState.DEBITED))
         } else {
             write(intent)
@@ -482,9 +499,14 @@ object Ledger {
         return wallet.balance(actor) - pre >= amount
     }
 
-    private fun creditOrFreeze(intent: Intent, who: String, amount: Long, pre: Long): Boolean {
+    private fun auctionMemo(intent: Intent, flow: Flow, counterparty: String = "", fee: Long = 0): Memo {
+        val data = intent.stackData.ifEmpty { Auctions.find(intent.auctionId)?.stackData.orEmpty() }
+        return if (data.isEmpty()) Memo(flow, counterparty, fee = fee) else Memo(flow, counterparty, StackCodec.itemId(data), StackCodec.count(data), fee)
+    }
+
+    private fun creditOrFreeze(intent: Intent, who: String, amount: Long, pre: Long, memo: Memo): Boolean {
         if (alreadyCredited(who, pre, amount)) return true
-        if (credit(who, amount)) return true
+        if (credit(who, amount, memo)) return true
         Market.freeze(intent.id)
         LOG.error("Freezing ledger intent {}, credit of {} to {} failed permanently", intent.id, amount, who)
         return false
@@ -510,7 +532,7 @@ object Ledger {
             }
             write(current)
         }
-        val ok = current.netSpurs >= 0 || creditOrFreeze(current, current.actor, -current.netSpurs, current.preBalance)
+        val ok = current.netSpurs >= 0 || creditOrFreeze(current, current.actor, -current.netSpurs, current.preBalance, Memo(Flow.REFUND, item = current.item))
         if (ok) write(current.copy(state = LedgerState.PAID))
     }
 
@@ -538,7 +560,7 @@ object Ledger {
         val bidderId = UUID.fromString(bidder)
         if (wallet.balance(bidderId) < amount) return BidResult.InsufficientFunds
         val intent = withBalances(Intent(Market.nextId(), IntentType.AUCTION_BID, LedgerState.PENDING, actor = bidder, auctionId = auctionId, unitPrice = amount, prevBidder = a.currentBidder, prevBid = a.currentBid))
-        if (!debit(intent, bidderId, amount)) return BidResult.InsufficientFunds
+        if (!debit(intent, bidderId, amount, auctionMemo(intent, Flow.AUCTION_BUY, a.seller))) return BidResult.InsufficientFunds
         applyBid(intent)
         if (intent.prevBidder != bidder) Notify.tell(intent.prevBidder, Tone.WARN, "outbid") { arrayOf(Notify.name(bidder), Notify.label(a.label), Phrase.money(amount.toLong())) }
         Notify.tell(a.seller, Tone.INFO, "bid") { arrayOf(Notify.name(bidder), Notify.label(a.label), Phrase.money(amount.toLong())) }
@@ -553,7 +575,7 @@ object Ledger {
         val buyerId = UUID.fromString(buyer)
         if (wallet.balance(buyerId) < price) return BuyNowResult.InsufficientFunds
         val intent = withBalances(settleIntent(a, buyer, price).copy(prevBidder = a.currentBidder, prevBid = a.currentBid, instant = true))
-        if (!debit(intent, buyerId, price)) return BuyNowResult.InsufficientFunds
+        if (!debit(intent, buyerId, price, auctionMemo(intent, Flow.AUCTION_BUY, a.seller))) return BuyNowResult.InsufficientFunds
         settle(intent.copy(state = LedgerState.DEBITED))
         Notify.tell(intent.prevBidder, Tone.WARN, "bought_out") { arrayOf(Notify.label(a.label), Notify.name(buyer)) }
         Notify.tell(a.seller, Tone.OK, "auction_bought") { arrayOf(Notify.name(buyer), Notify.label(a.label), Phrase.money(price.toLong())) }
@@ -598,14 +620,14 @@ object Ledger {
     private fun settle(intent: Intent) {
         var current = intent
         if (current.state != LedgerState.BOOK_INSERTED) {
-            if (current.prevBidder.isNotEmpty() && !creditOrFreeze(current, current.prevBidder, current.prevBid.toLong(), current.prevBalance)) return
+            if (current.prevBidder.isNotEmpty() && !creditOrFreeze(current, current.prevBidder, current.prevBid.toLong(), current.prevBalance, auctionMemo(current, Flow.REFUND))) return
             Auctions.settle(current.auctionId, current.actor, current.unitPrice)
             creditTariff(current.actor, current.tariff)
             current = current.copy(state = LedgerState.BOOK_INSERTED)
             write(current)
         }
         Market.queueStackDelivery(current.actor, current.stackData, "${current.id}:d")
-        if (creditOrFreeze(current, current.seller, current.netSpurs, current.sellerBalance)) write(current.copy(state = LedgerState.PAID))
+        if (creditOrFreeze(current, current.seller, current.netSpurs, current.sellerBalance, auctionMemo(current, Flow.AUCTION_SELL, current.actor, (current.unitPrice * Config.s.auctionFeePct).toLong()))) write(current.copy(state = LedgerState.PAID))
         val item = StackCodec.itemId(current.stackData)
         val count = StackCodec.count(current.stackData)
         traded(current.actor, current.seller, current.unitPrice.toLong(), item, count)
@@ -621,7 +643,7 @@ object Ledger {
             current = current.copy(state = LedgerState.BOOK_INSERTED)
             write(current)
         }
-        val refunded = current.prevBidder.isEmpty() || creditOrFreeze(current, current.prevBidder, current.prevBid.toLong(), current.prevBalance)
+        val refunded = current.prevBidder.isEmpty() || creditOrFreeze(current, current.prevBidder, current.prevBid.toLong(), current.prevBalance, auctionMemo(current, Flow.REFUND))
         if (refunded) write(current.copy(state = LedgerState.PAID))
     }
 
@@ -635,7 +657,7 @@ object Ledger {
                 intent = intent.copy(fills = intent.fills.mapIndexed { i, x -> if (i == idx) x.copy(pre = pre) else x })
                 write(intent)
             }
-            if (!creditOrFreeze(intent, f.owner, net(f), pre)) return
+            if (!creditOrFreeze(intent, f.owner, net(f), pre, Memo(Flow.MARKET_SELL, intent.actor, intent.item, f.qty))) return
             intent = intent.copy(paid = intent.paid + f.orderId).also(::write)
             creditTariff(intent.actor, f.tariff)
         }
@@ -678,7 +700,7 @@ object Ledger {
                         write(intent.copy(state = LedgerState.PAID))
                     } else {
                         val current = if (intent.state == LedgerState.PENDING) stockSold(intent) else intent
-                        if (creditOrFreeze(current, current.actor, current.netSpurs, current.preBalance)) {
+                        if (creditOrFreeze(current, current.actor, current.netSpurs, current.preBalance, Memo(Flow.MARKET_SELL, item = current.item, qty = current.qty))) {
                             write(current.copy(state = LedgerState.PAID))
                             traded(current.actor, "", current.netSpurs, current.item, current.qty)
                             stockSale(current.actor, current.item, current.qty)

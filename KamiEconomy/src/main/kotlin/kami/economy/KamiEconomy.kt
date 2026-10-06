@@ -15,6 +15,7 @@ import kami.economy.world.Vendors
 import kami.economy.world.VendorRegistry
 import net.neoforged.neoforge.event.level.BlockEvent
 import net.neoforged.neoforge.event.level.LevelEvent
+import kami.libs.config.Configs
 import kami.libs.economy.MarketApi
 import kami.libs.log.Log
 import kami.libs.mc.Registry
@@ -44,12 +45,13 @@ object KamiEconomy {
     init {
         MOD_BUS.addListener<FMLCommonSetupEvent> {
             Config.load()
+            Configs.onReload("economy") { if (Notify.server != null) Market.reindex(); null }
             MarketApi.register(EconomyProvider)
         }
         MOD_BUS.addListener<RegisterPayloadHandlersEvent> { Net.register(it) }
         if (FMLEnvironment.dist == Dist.CLIENT) ClientEconomy.init()
         EconomyCommands.register()
-        FORGE_BUS.addListener<ServerStartedEvent> { Notify.server = it.server; Market.load(it.server); History.load(it.server) }
+        FORGE_BUS.addListener<ServerStartedEvent> { Notify.server = it.server; History.load(it.server); Market.load(it.server) }
         FORGE_BUS.addListener<ServerStoppingEvent> { Market.save(true); History.save(true); Notify.server = null }
         FORGE_BUS.addListener<LevelEvent.Save> { if ((it.level as? Level)?.dimension() == Level.OVERWORLD) { Market.save(); History.save() } }
         FORGE_BUS.addListener<ServerTickEvent.Post> {

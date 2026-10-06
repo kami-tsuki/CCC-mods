@@ -9,15 +9,7 @@ import kotlin.math.roundToInt
 data class CategoryBounds(val floor: Int? = null, val ceiling: Int? = null, val maxMovePct: Double? = null)
 
 @Serializable
-data class StarterGood(val item: String, val base: Int, val lot: Int = 64, val target: Int = 64, val depth: Int = 32, val dailyCap: Int? = null, val infinite: Boolean = false)
-
-private fun starters(base: Int, vararg items: String) = items.map { StarterGood(it, base) }
-
-/** Goods the market always buys at a fixed price, up to [cap] lots per player per day; it never sells them back. */
-private fun unlimited(base: Int, lot: Int, cap: Int, vararg items: String) = items.map { StarterGood(it, base, lot = lot, dailyCap = cap, infinite = true) }
-
-/** Crops sell infinitely, 3 stacks per player per day; [base] is the price of one stack of 64. */
-private fun crops(base: Int, vararg items: String) = unlimited(base, 64, 3, *items)
+data class StarterGood(val item: String, val base: Int, val lot: Int = 64, val target: Int = 64, val depth: Int = 32, val dailyCap: Int? = null, val infinite: Boolean = false, val max: Int? = null)
 
 @Serializable
 data class Settings(
@@ -39,27 +31,8 @@ data class Settings(
     val auctionDurationMillis: Long = 3 * 24 * 60 * 60 * 1000L,
     val auctionCheckIntervalTicks: Int = 20 * 60,
 
-    val starterGoods: List<StarterGood> = starters(20, "#minecraft:logs", "minecraft:baked_potato") +
-        starters(15, "minecraft:bread") +
-        starters(40, "#c:ingots/iron", "#c:ingots/copper") +
-        starters(50, "#c:ingots/zinc", "#c:ingots/lead") +
-        starters(80, "#c:ingots/gold") +
-        // Bulk field crops
-        crops(6, "minecraft:wheat", "minecraft:sugar_cane", "minecraft:melon_slice", "minecraft:sweet_berries", "farmersdelight:rice", "croptopia:barley", "croptopia:oat", "croptopia:corn", "croptopia:rice", "croptopia:soybean") +
-        // Staple vegetables
-        crops(8, "minecraft:carrot", "minecraft:potato", "minecraft:beetroot", "minecraft:glow_berries", "farmersdelight:cabbage", "farmersdelight:tomato", "farmersdelight:onion", "croptopia:lettuce", "croptopia:cabbage", "croptopia:onion", "croptopia:garlic", "croptopia:radish", "croptopia:turnip", "croptopia:rutabaga", "croptopia:spinach", "croptopia:kale", "croptopia:celery", "croptopia:leek", "croptopia:greenonion", "croptopia:cucumber", "croptopia:zucchini", "croptopia:squash", "croptopia:greenbean", "croptopia:blackbean", "croptopia:peanut", "croptopia:tomato", "croptopia:tomatillo", "croptopia:sweetpotato", "croptopia:yam", "croptopia:mustard") +
-        // Garden vegetables, berries and vines
-        crops(10, "croptopia:bellpepper", "croptopia:chile_pepper", "croptopia:eggplant", "croptopia:broccoli", "croptopia:cauliflower", "croptopia:asparagus", "croptopia:artichoke", "croptopia:strawberry", "croptopia:blueberry", "croptopia:blackberry", "croptopia:raspberry", "croptopia:cranberry", "croptopia:currant", "croptopia:elderberry", "croptopia:grape", "croptopia:hops", "croptopia:rhubarb", "croptopia:cantaloupe", "croptopia:honeydew", "croptopia:basil", "croptopia:pepper", "croptopia:kiwi") +
-        // Pumpkins and nether wart
-        crops(12, "minecraft:pumpkin", "minecraft:nether_wart") +
-        // Tree fruit
-        crops(14, "minecraft:apple", "minecraft:cocoa_beans", "croptopia:apricot", "croptopia:avocado", "croptopia:banana", "croptopia:cherry", "croptopia:date", "croptopia:fig", "croptopia:grapefruit", "croptopia:kumquat", "croptopia:lemon", "croptopia:lime", "croptopia:mango", "croptopia:nectarine", "croptopia:orange", "croptopia:peach", "croptopia:pear", "croptopia:persimmon", "croptopia:plum", "croptopia:starfruit", "croptopia:coconut", "croptopia:dragonfruit", "croptopia:olive", "croptopia:pineapple") +
-        // Nuts, coffee, tea and roots
-        crops(18, "croptopia:almond", "croptopia:cashew", "croptopia:pecan", "croptopia:walnut", "croptopia:coffee_beans", "croptopia:tea_leaves", "croptopia:ginger", "croptopia:turmeric", "croptopia:saguaro") +
-        // Rare spices
-        crops(24, "croptopia:cinnamon", "croptopia:nutmeg", "croptopia:vanilla") +
-        unlimited(400, 8, 4, "tfmg:steel_mechanism") +
-        unlimited(600, 8, 4, "tfmg:circuit_board"),
+    val starterGoods: List<StarterGood> = emptyList(),
+    val catalog: Int = 0,
     val dailySellLots: Int = 3,
     val resetHour: Int = 6,
     val recoveryPct: Int = 5,
@@ -111,7 +84,7 @@ private fun Settings.sane(): Settings = copy(
     recoveryPct = recoveryPct.coerceIn(0, 100),
     priceDeltaThresholdPct = priceDeltaThresholdPct.coerceAtLeast(0.0),
     auctionCheckIntervalTicks = auctionCheckIntervalTicks.coerceAtLeast(20),
-    starterGoods = starterGoods.filter { it.base > 0 && it.lot > 0 && it.target >= 0 && it.depth > 0 }
+    starterGoods = starterGoods.filter { it.base > 0 && it.lot > 0 && it.target >= 0 && it.depth > 0 && (it.max ?: 1) > 0 }.map { g -> g.max?.let { g.copy(target = minOf(g.target, it)) } ?: g }
 )
 
 private val sections = listOf(
@@ -144,7 +117,8 @@ private val sections = listOf(
     Section(
         "starter-items.json", "Basic goods the market buys and sells from its own stock, so new players can earn their first coins.",
         mapOf(
-            "starterGoods" to "Item id or #tag, base price per lot, lot size, target stock and depth in lots, optional own daily cap. infinite = the market always buys it at the base price up to the daily cap per player and never sells it back.",
+            "starterGoods" to "Item id or #tag, base price per lot, lot size, target stock and depth in lots, optional own daily cap, optional max stock in lots. infinite = the market always buys it at the base price up to the daily cap per player and never sells it back.",
+            "catalog" to "Last bundled starter catalog merged into starterGoods. Goods you remove stay removed.",
             "dailySellLots" to "Lots per player and day the market buys at the full base price.",
             "resetHour" to "Server hour, 0 to 23, when the daily cap resets.",
             "recoveryPct" to "Share of the gap to the target stock that closes each day, 0 to 100.",

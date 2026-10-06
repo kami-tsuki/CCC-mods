@@ -17,6 +17,7 @@ import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.TextStyle
+import kami.libs.ui.text.ItemSearch
 import kami.libs.ui.text.tr
 import kami.libs.ui.widget.*
 import net.minecraft.client.Minecraft
@@ -35,8 +36,11 @@ internal class AuctionsPage(app: MarketApp) : ListPage(app, "auctions") {
     override val title get() = tr("kami_libs.common.auctions")
     override val help get() = helpFor("auctions:table", "kami_economy.help.auctions")
 
-    private fun stack(a: AuctionLine) = stacks.getOrPut(a.id) {
-        Minecraft.getInstance().level?.registryAccess()?.let { runCatching { StackCodec.decode(a.stackData, it) }.getOrNull() } ?: ItemStack.EMPTY
+    private fun stack(a: AuctionLine): ItemStack {
+        stacks[a.id]?.let { return it }
+        val decoded = Minecraft.getInstance().level?.registryAccess()?.let { runCatching { StackCodec.decode(a.stackData, it) }.getOrNull() } ?: return ItemStack.EMPTY
+        stacks[a.id] = decoded
+        return decoded
     }
 
     private fun minBid(a: AuctionLine) = maxOf(a.startPrice, a.currentBid + 1).toLong()
@@ -66,7 +70,7 @@ internal class AuctionsPage(app: MarketApp) : ListPage(app, "auctions") {
         val bar = r.top(SMALL_H)
         searchBar(ui, bar.dropRight(SCOPE_W, 6))
         ui.segmented(bar.right(SCOPE_W), listOf(Option(false, tr("kami_libs.common.all")), Option(true, tr("kami_economy.scope.mine"))), mine, key = "scope")?.let { mine = it; table.clear() }
-        val rows = if (ready) app.snap.auctions.filter { !mine || it.mine } else emptyList()
+        val rows = if (ready) filtered(ui, "auctions:rows", app.snap.auctions.filter { !mine || it.mine }) { ItemSearch.matches(query, stack(it), it.label) } else emptyList()
         val area = body(ui, r.dropTop(SMALL_H, 6))
         val selected = rows.firstOrNull { it.id in table.selected }
         val tableArea = if (selected != null) area.dropRight(AUCTION_PANEL_W, 6) else area

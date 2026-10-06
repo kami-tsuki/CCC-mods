@@ -16,6 +16,8 @@ import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
 import kami.libs.ui.style.TextStyle
+import kami.libs.text.SearchQuery
+import kami.libs.ui.text.ItemSearch
 import kami.libs.ui.text.tr
 import kami.libs.ui.widget.*
 import net.minecraft.client.Minecraft
@@ -37,8 +39,53 @@ private fun demandColumn(app: MarketApp) = Column<Row>(tr("kami_economy.col.dema
     tooltip("left:${row.item}", c, Tip.text(tr("kami_economy.tip.left", unitsText(row.left, app.stack(row.item).maxStackSize)), tr("kami_economy.nav.infinite")))
 }
 
+internal class SearchBox(private val app: MarketApp) {
+    val text = TextState()
+    private var raw = ""
+    private var parsed = SearchQuery.EMPTY
+
+    val query: SearchQuery get() {
+        if (text.text != raw) { raw = text.text; parsed = SearchQuery.parse(raw) }
+        return parsed
+    }
+
+    fun hit(item: String, vararg extra: String) = ItemSearch.matches(query, app.stack(item), *extra)
+
+    fun <T> filter(ui: Ui, key: String, rows: List<T>, test: (T) -> Boolean): List<T> =
+        if (query.isEmpty) rows else ui.filtered(key, listOf(text.text, rows)) { rows.filter(test) }
+}
+
+private fun orderOpen(app: MarketApp, o: OrderRow) = app.openItem(o.item, if (o.bid == o.mine) "buy" else "sell", if (o.mine) "order" else "instant")
+
+internal fun orderColumns(app: MarketApp, side: Boolean, owner: Boolean, fill: Boolean) = buildList {
+    add(Column<OrderRow>(tr("kami_libs.common.item"), -1, sort = compareBy { app.stack(it.item).hoverName.string.lowercase() }) { _, c, o ->
+        if (itemCell(c, app.stack(o.item), app.stack(o.item).hoverName.string, "order:${o.id}", if (o.mine) Palette.brass else Palette.text)) orderOpen(app, o)
+    })
+    if (side) add(Column.text<OrderRow>(tr("kami_economy.col.side"), 44, color = { if (it.bid) Palette.success else Palette.danger }) { tr(if (it.bid) "kami_economy.side.buy" else "kami_economy.side.sell") })
+    if (owner) {
+        add(Column.text<OrderRow>(tr("kami_economy.col.owner"), 80, color = { if (it.mine) Palette.brass else Palette.textSecondary }) { it.ownerName })
+        add(Column<OrderRow>(tr("kami_libs.common.country"), 90, sort = compareBy { it.country.lowercase() }) { _, c, o ->
+            val y = c.y + (c.h - 8) / 2
+            flag(Rect(c.x, y, 11, 8), o.color, o.flag)
+            Draw.text(g, Draw.fit(o.country, c.w - 14), c.x + 14, y, if (o.relation == "embargo") Palette.danger else Palette.textSecondary)
+            if (o.country.isNotEmpty()) tooltip("order-country:${o.id}", c, app.countryTip(o.country, o.relation))
+        })
+    }
+    add(Column.number<OrderRow>(tr("kami_economy.col.price"), 64, tip = tr("kami_economy.col.per_lot"), format = { Format.money(it) }) { it.price.toLong() })
+    add(unitsColumn<OrderRow>(tr("kami_libs.common.amount"), 90, { app.stack(it.item).maxStackSize }) { it.amount })
+    add(Column.number<OrderRow>(tr("kami_economy.col.age"), 50, format = { Format.ago(it) }) { it.placedAt })
+    add(Column.text<OrderRow>(tr("kami_libs.common.status"), 64, color = { if (it.best) Palette.success else Palette.warning }) {
+        tr(if (it.best) "kami_economy.status.best" else if (it.mine) "kami_economy.status.undercut" else "kami_economy.status.none")
+    })
+    if (fill) add(Column<OrderRow>("", 40) { _, c, o ->
+        if (!o.mine && button(Rect(c.x, c.y + 1, c.w, c.h - 2), tr("kami_economy.orders.fill"), key = "fill:${o.id}")) orderOpen(app, o)
+    })
+}
+
 internal abstract class ListPage(val app: MarketApp, private val view: String) : Page() {
-    protected val search = TextState()
+    private val box = SearchBox(app)
+    protected val search = box.text
+    protected val query get() = box.query
     protected open val remoteSearch = true
     protected val ready get() = app.snap.view == view
     private var sendAt = 0L
@@ -54,8 +101,12 @@ internal abstract class ListPage(val app: MarketApp, private val view: String) :
         if (focusSearch) { ui.focus = ui.id("search"); focusSearch = false }
         val now = System.currentTimeMillis()
         if (ui.searchField(r, search) && remoteSearch) sendAt = now + SEARCH_DELAY
-        if (sendAt > 0 && now >= sendAt) { sendAt = 0; app.view(view, search.text) }
+        if (sendAt > 0 && now >= sendAt) { sendAt = 0; app.search(view, search.text) }
     }
+
+    protected fun hit(item: String, vararg extra: String) = box.hit(item, *extra)
+
+    protected fun <T> filtered(ui: Ui, key: String, rows: List<T>, test: (T) -> Boolean) = box.filter(ui, key, rows, test)
 
     protected fun body(ui: Ui, area: Rect): Rect {
         if (!app.snap.truncated) return area
@@ -72,6 +123,8 @@ internal class MarketPage(app: MarketApp) : ListPage(app, "market") {
     private var filter = Filter.ALL
     private var held: Map<String, Int> = emptyMap()
     private val table = TableState<Row>()
+    private val orderTable = TableState<OrderRow>()
+    private val orderCols = orderColumns(app, side = true, owner = true, fill = false)
     override val title get() = tr("kami_libs.common.market")
     override val help get() = listOf(
         Callout("market:filters", tr("kami_economy.help.market.filters"), tr("kami_economy.help.market.filters.desc")),
@@ -119,17 +172,26 @@ internal class MarketPage(app: MarketApp) : ListPage(app, "market") {
         val chips = bar.right(FILTER_W)
         searchBar(ui, bar.dropRight(FILTER_W, 6))
         ui.anchor("market:filters", chips)
-        val all = if (ready) app.snap.rows else emptyList()
+        val all = if (ready) filtered(ui, "market:rows", app.snap.rows) { hit(it.item) } else emptyList()
+        val orders = if (ready) filtered(ui, "market:orders", app.snap.orders) { hit(it.item, it.ownerName, it.country) } else emptyList()
         ui.segmented(chips, Filter.entries.map { f -> Option(f, "${tr("kami_economy.market.filter.${f.name.lowercase()}")} ${all.count { keep(f, it) }}") }, filter, key = "filter")?.let { filter = it }
         val area = body(ui, r.dropTop(SMALL_H, 6))
-        ui.anchor("market:table", area)
-        ui.table(area, columns, all.filter { keep(filter, it) }, table, { it.item }, rowHeight = ROW_H, emptyText = tr("kami_libs.common.nothing_found"), key = "market:$filter").opened?.let { app.openItem(it.item) }
+        val split = !query.isEmpty && orders.isNotEmpty()
+        val rowsArea = if (split) area.top(area.h * 3 / 5) else area
+        ui.anchor("market:table", rowsArea)
+        ui.table(rowsArea, columns, all.filter { keep(filter, it) }, table, { it.item }, rowHeight = ROW_H, emptyText = tr("kami_libs.common.nothing_found"), key = "market:$filter").opened?.let { app.openItem(it.item) }
+        if (split) {
+            val rest = area.dropTop(rowsArea.h, 6)
+            Draw.text(ui.g, "${tr("kami_economy.nav.orders")} ${orders.size}", rest.x, rest.y + 2, Palette.textSecondary)
+            ui.table(rest.dropTop(12, 2), orderCols, orders, orderTable, { it.id }, rowHeight = ROW_H, emptyText = tr("kami_economy.orders.empty"), key = "market:orders").opened?.let { orderOpen(app, it) }
+        }
     }
 }
 
 internal class InstantPage(val app: MarketApp) : Page() {
     private class Pending(val item: String, val qty: Int, val lot: Int)
 
+    private val box = SearchBox(app)
     private val table = TableState<HeldRow>()
     private var pending: Pending? = null
     override val title get() = tr("kami_economy.nav.inventory")
@@ -154,6 +216,7 @@ internal class InstantPage(val app: MarketApp) : Page() {
 
     override fun opened(route: Route) {
         pending = null
+        box.text.set("")
         app.view("instant")
     }
 
@@ -166,9 +229,11 @@ internal class InstantPage(val app: MarketApp) : Page() {
         }
         val extra = app.carried.get().auctionOnly.size
         val footer = if (extra > 0) 14 else 0
-        val area = r.dropBottom(footer)
+        ui.searchField(r.top(SMALL_H), box.text)
+        val area = r.dropBottom(footer).dropTop(SMALL_H, 6)
         ui.anchor("instant:table", area)
-        ui.table(area, columns, if (app.snap.view == "instant") app.snap.held else emptyList(), table, { it.item }, rowHeight = ROW_H, emptyText = tr("kami_economy.instant.empty")).opened?.let { app.openItem(it.item, "sell", "instant") }
+        val held = if (app.snap.view == "instant") box.filter(ui, "instant:rows", app.snap.held) { box.hit(it.item) } else emptyList()
+        ui.table(area, columns, held, table, { it.item }, rowHeight = ROW_H, emptyText = tr("kami_economy.instant.empty")).opened?.let { app.openItem(it.item, "sell", "instant") }
         if (extra > 0) {
             val text = tr("kami_economy.instant.auction_only", extra)
             Draw.text(ui.g, text, r.x, r.bottom - 8, Palette.textMuted)
@@ -183,47 +248,18 @@ internal class OrdersPage(app: MarketApp, private val bid: Boolean?) : ListPage(
     override val title get() = tr(if (bid == null) "kami_economy.nav.my_orders" else "kami_economy.nav.orders")
     override val help get() = helpFor("orders:table", "kami_economy.help.orders")
 
-    private fun side(o: OrderRow) = if (o.bid == o.mine) "buy" else "sell"
-
-    private fun open(o: OrderRow) = app.openItem(o.item, side(o), if (o.mine) "order" else "instant")
-
-    private val columns = buildList {
-        add(Column<OrderRow>(tr("kami_libs.common.item"), -1, sort = compareBy { app.stack(it.item).hoverName.string.lowercase() }) { _, c, o ->
-            if (itemCell(c, app.stack(o.item), app.stack(o.item).hoverName.string, "order:${o.id}", if (o.mine) Palette.brass else Palette.text)) open(o)
-        })
-        if (bid == null) add(Column.text<OrderRow>(tr("kami_economy.col.side"), 44, color = { if (it.bid) Palette.success else Palette.danger }) { tr(if (it.bid) "kami_economy.side.buy" else "kami_economy.side.sell") })
-        else {
-            add(Column.text<OrderRow>(tr("kami_economy.col.owner"), 80, color = { if (it.mine) Palette.brass else Palette.textSecondary }) { it.ownerName })
-            add(Column<OrderRow>(tr("kami_libs.common.country"), 90, sort = compareBy { it.country.lowercase() }) { _, c, o ->
-                val y = c.y + (c.h - 8) / 2
-                flag(Rect(c.x, y, 11, 8), o.color, o.flag)
-                Draw.text(g, Draw.fit(o.country, c.w - 14), c.x + 14, y, if (o.relation == "embargo") Palette.danger else Palette.textSecondary)
-                if (o.country.isNotEmpty()) tooltip("order-country:${o.id}", c, app.countryTip(o.country, o.relation))
-            })
-        }
-        add(Column.number<OrderRow>(tr("kami_economy.col.price"), 64, tip = tr("kami_economy.col.per_lot"), format = { Format.money(it) }) { it.price.toLong() })
-        add(unitsColumn<OrderRow>(tr("kami_libs.common.amount"), 90, { app.stack(it.item).maxStackSize }) { it.amount })
-        add(Column.number<OrderRow>(tr("kami_economy.col.age"), 50, format = { Format.ago(it) }) { it.placedAt })
-        add(Column.text<OrderRow>(tr("kami_libs.common.status"), 64, color = { if (it.best) Palette.success else Palette.warning }) {
-            tr(if (it.best) "kami_economy.status.best" else if (it.mine) "kami_economy.status.undercut" else "kami_economy.status.none")
-        })
-        if (bid == true) add(Column<OrderRow>("", 40) { _, c, o ->
-            if (!o.mine && button(Rect(c.x, c.y + 1, c.w, c.h - 2), tr("kami_economy.orders.fill"), key = "fill:${o.id}")) open(o)
-        })
-    }
+    private val columns = orderColumns(app, side = bid == null, owner = bid != null, fill = bid == true)
 
     override fun draw(ui: Ui, r: Rect) {
         searchBar(ui, r.top(SMALL_H))
-        val rows = if (bid == null) app.snap.mine.filter(::matches) else if (ready) app.snap.orders else emptyList()
+        val rows = filtered(ui, "orders:rows", if (bid == null) app.snap.mine else if (ready) app.snap.orders else emptyList()) { hit(it.item, it.ownerName, it.country) }
         val area = body(ui, r.dropTop(SMALL_H, 6))
         val selected = rows.firstOrNull { it.mine && it.id in table.selected }
         val tableArea = if (selected != null) area.dropRight(ORDER_PANEL_W, 6) else area
         ui.anchor("orders:table", tableArea)
-        ui.table(tableArea, columns, rows, table, { it.id }, rowHeight = ROW_H, severity = { if (it.mine && bid != null) Severity.INFO else null }, emptyText = tr("kami_economy.orders.empty")).opened?.let(::open)
+        ui.table(tableArea, columns, rows, table, { it.id }, rowHeight = ROW_H, severity = { if (it.mine && bid != null) Severity.INFO else null }, emptyText = tr("kami_economy.orders.empty")).opened?.let { orderOpen(app, it) }
         selected?.let { panel(ui, area.right(ORDER_PANEL_W), it) }
     }
-
-    private fun matches(o: OrderRow) = search.text.isEmpty() || app.stack(o.item).hoverName.string.contains(search.text, ignoreCase = true)
 
     private fun panel(ui: Ui, r: Rect, o: OrderRow) {
         val flow = ui.sidePanel(r)
@@ -232,8 +268,8 @@ internal class OrdersPage(app: MarketApp, private val bid: Boolean?) : ListPage(
         Draw.text(ui.g, Draw.fit(app.stack(o.item).hoverName.string, head.w - 28), head.x + 26, head.y + 7, TextStyle.HEADING)
         ui.property(flow.take(12), tr("kami_economy.col.price"), Format.money(o.price.toLong()))
         ui.property(flow.take(12), tr("kami_libs.common.amount"), unitsText(o.amount, app.stack(o.item).maxStackSize))
-        if (ui.button(flow.take(SMALL_H), tr("kami_economy.reprice.action"), Icons.EDIT, key = "panel-reprice")) app.reprice(o)
-        if (ui.button(flow.take(SMALL_H), tr("kami_economy.cancel.action"), Icons.CROSS, style = ButtonStyle.DANGER, key = "panel-cancel")) app.cancel(o)
+        if (ui.button(flow.take(SMALL_H), tr("kami_economy.reprice.action"), Icons.EDIT, key = "panel-reprice")) app.reprice(app, o)
+        if (ui.button(flow.take(SMALL_H), tr("kami_economy.cancel.action"), Icons.CROSS, style = ButtonStyle.DANGER, key = "panel-cancel")) app.cancel(app, o)
     }
 }
 
@@ -273,7 +309,7 @@ internal class VendorsPage(app: MarketApp, private val sells: Boolean) : ListPag
         searchBar(ui, r.top(SMALL_H))
         val area = body(ui, r.dropTop(SMALL_H, 6))
         ui.anchor("vendors:table", area)
-        ui.table(area, columns, if (ready) app.snap.vendors else emptyList(), table, { "${it.item}|${it.dim}|${it.x},${it.y},${it.z}" }, rowHeight = ROW_H,
+        ui.table(area, columns, if (ready) filtered(ui, "vendors:rows", app.snap.vendors) { hit(it.item, it.owner, it.country) } else emptyList(), table, { "${it.item}|${it.dim}|${it.x},${it.y},${it.z}" }, rowHeight = ROW_H,
             severity = { if (it.embargo) Severity.DANGER else null }, emptyText = tr("kami_economy.vendors.empty")).opened?.let { app.openItem(it.item) }
     }
 }
@@ -298,6 +334,6 @@ internal class InfinitePage(app: MarketApp) : ListPage(app, "infinite") {
         searchBar(ui, r.top(SMALL_H))
         val area = body(ui, r.dropTop(SMALL_H, 6))
         ui.anchor("infinite:table", area)
-        ui.table(area, columns, if (ready) app.snap.rows.filter { it.infinite } else emptyList(), table, { it.item }, rowHeight = ROW_H, emptyText = tr("kami_libs.common.nothing_found")).opened?.let { app.openItem(it.item, "sell", "instant") }
+        ui.table(area, columns, if (ready) filtered(ui, "infinite:rows", app.snap.rows.filter { it.infinite }) { hit(it.item) } else emptyList(), table, { it.item }, rowHeight = ROW_H, emptyText = tr("kami_libs.common.nothing_found")).opened?.let { app.openItem(it.item, "sell", "instant") }
     }
 }

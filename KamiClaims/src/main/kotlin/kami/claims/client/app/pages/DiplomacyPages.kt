@@ -1,5 +1,6 @@
 package kami.claims.client.app.pages
 
+import kami.libs.text.SearchQuery
 import kami.libs.ui.text.trn
 import kami.libs.ui.text.tr
 import kami.claims.client.app.ClaimsApp
@@ -160,7 +161,7 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
         val add = r.top(CONTROL_H)
         ui.anchor("relations:add", add)
         val row = Row(add, 6)
-        ui.textField(row.take(160), name, tr("kami_claims.field.player"), Icons.PERSON, maxLength = 16, key = "rel-name")
+        ui.playerField(row.take(160), name, offline = { ClaimsStore.snap?.names.orEmpty() }, query = { ClaimsStore.quiet("names", it) }, key = "rel-name")
         val ready = name.text.length >= 3
         val ally = tr("kami_claims.relations.ally")
         val banish = tr("kami_claims.citizens.banish")
@@ -231,8 +232,9 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
         val list = body.dropRight(detailW, if (detailW > 0) 8 else 0)
         val detail = body.right(detailW)
         ui.anchor("world:detail", detail)
+        val q = SearchQuery.parse(search.text)
         if (tab == 0) {
-            val rows = snap.countries.filter { search.text.isBlank() || it.name.contains(search.text, true) }
+            val rows = snap.countries.filter { q.matches(it.name) }
             ui.table(list, listOf(
                 Column<Line>(tr("kami_libs.common.country"), -1, sort = compareBy { it.name.lowercase() }) { _, c, l ->
                     Flags.draw(g, Rect(c.x, c.y + 2, 14, 10), l.color, l.flag.pattern, l.flag.emblem, l.flag.secondary)
@@ -246,7 +248,7 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
             ), rows, countries, { it.name }, emptyText = tr("kami_claims.world.empty.countries"))
             if (detailW > 0) rows.firstOrNull { it.name in countries.selected }?.let { country(ui, detail, it) }
         } else {
-            val rows = snap.players.filter { search.text.isBlank() || it.name.contains(search.text, true) }
+            val rows = snap.players.filter { q.matches(it.name) }
             ui.table(list, listOf(
                 Column<PlayerLine>(tr("kami_claims.relations.col.player"), -1, sort = compareBy { it.name.lowercase() }) { _, c, p -> avatar(p.id, c.x, c.y + 1, 12, p.online); Draw.text(g, p.name, c.x + 16, c.y + 3, Palette.text) },
                 Column.text<PlayerLine>(tr("kami_libs.common.country"), 110, color = { if (it.citizenships.none { c -> c.via.isEmpty() }) Palette.textMuted else Palette.money }) { p -> p.citizenships.firstOrNull { it.via.isEmpty() }?.country ?: "-" }

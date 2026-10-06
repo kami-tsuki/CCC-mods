@@ -35,7 +35,7 @@ import java.util.UUID
 import kotlin.math.abs
 
 private val netPackets = Packets.forMod(KamiEconomy.ID)
-private val actChannel = ActPayload.channel(netPackets, maxArgs = 4, maxArg = 96, withCountry = false)
+private val actChannel = ActPayload.channel(netPackets, maxArgs = 4, maxArg = 30000, withCountry = false)
 private val snapshotChannel = SnapshotPayload.channel(netPackets, maxBytes = 262_144)
 
 class PriceEntry(val item: String, val price: Int)
@@ -117,7 +117,7 @@ object Net {
             "open" -> { openPlayers += p.uuid; send(p, open = true) }
             "close" -> openPlayers -= p.uuid
             "view" -> {
-                Sync.view(p, a.args.getOrNull(0) ?: "dashboard", a.args.getOrNull(1) ?: "")
+                Sync.view(p, a.args.getOrNull(0) ?: "dashboard", a.args.getOrNull(1) ?: "", a.args.getOrNull(2) ?: "")
                 send(p)
             }
             "detail" -> {

@@ -1,5 +1,6 @@
 package kami.libs.ui.widget
 
+import kami.libs.text.SearchQuery
 import kami.libs.ui.anim.anim
 import kami.libs.ui.core.Cursor
 import kami.libs.ui.core.Rect
@@ -155,7 +156,8 @@ fun <T> Ui.select(
     if (!state[0]) return deferred
     onEscape(50) { state[0] = false }
     overlay {
-        val visible = options.filter { filter.text.isBlank() || it.label.contains(filter.text, true) }
+        val sq = SearchQuery.parse(filter.text)
+        val visible = options.filter { sq.matches(it.label) }
         val rowH = if (visible.any { it.description != null }) 22 else 14
         val searchH = if (searchable) 20 else 0
         val height = max(min(visible.size * rowH + 6 + searchH, 220), 22)

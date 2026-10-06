@@ -28,8 +28,8 @@ object Stocks {
     private const val BASE_SPREAD = 3.0
     private var goods: Map<String, StarterGood> = emptyMap()
 
-    fun index(resolve: (String) -> List<String>) {
-        goods = Config.s.starterGoods.flatMap { g -> (if (g.item.startsWith("#")) resolve(g.item.drop(1)) else listOf(g.item)).map { it to g } }.toMap()
+    fun index(present: (String) -> Boolean = { true }, resolve: (String) -> List<String>) {
+        goods = Config.s.starterGoods.flatMap { g -> (if (g.item.startsWith("#")) resolve(g.item.drop(1)) else listOf(g.item).filter(present)).map { it to g } }.toMap()
     }
 
     fun good(item: String): StarterGood? = goods[item]
@@ -74,7 +74,7 @@ object Stocks {
 
     fun limit(item: String): Int {
         val g = goods[item] ?: return 0
-        return ceil(g.target - g.depth * ln(Config.s.bandLow) - 1e-9).toInt().coerceAtLeast(g.target)
+        return minOf(ceil(g.target - g.depth * ln(Config.s.bandLow) - 1e-9).toInt().coerceAtLeast(g.target), g.max ?: Int.MAX_VALUE)
     }
 
     fun infinite(item: String): Boolean = goods[item]?.infinite == true

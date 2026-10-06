@@ -277,5 +277,7 @@ fun Ui.slider(r: Rect, value: Double, min: Double, max: Double, step: Double, en
 
 fun Ui.searchField(r: Rect, state: TextState, placeholder: String = tr("kami_libs.common.search"), key: Any = "search"): Boolean {
     if (input.takeKey(GLFW.GLFW_KEY_F) { it.ctrl } != null) focus = id(key)
-    return textField(r, state, placeholder, Icons.SEARCH, key = key, clearable = true).changed
+    val changed = textField(r, state, placeholder, Icons.SEARCH, key = key, clearable = true).changed
+    tooltip("$key:help", r) { Tip.text(tr("kami_libs.search.help"), tr("kami_libs.search.help.title")) }
+    return changed
 }

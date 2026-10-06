@@ -2,6 +2,7 @@ package kami.claims.client
 
 import com.mojang.blaze3d.platform.InputConstants
 import kami.claims.client.app.ClaimsApp
+import kami.claims.client.app.personal.ClaimsPersonal
 import kami.claims.client.app.ResearchPins
 import kami.claims.client.hud.Hud
 import kami.claims.client.store.ClaimsStore
@@ -41,7 +42,8 @@ object ClientHooks {
     private var ticks = 0
 
     fun init() {
-        Modules.register(AppModule("country", "kami_libs.common.country", Icons.FLAG) { request("open") })
+        Modules.register(AppModule("country", "kami_libs.common.country", Icons.FLAG, 10) { request("open") })
+        ClaimsPersonal.register()
         Highlights.register(KamiHighlighter())
         ResearchTooltip.init()
         ResearchPins.register()
@@ -56,7 +58,7 @@ object ClientHooks {
             applyPrefs()
             ClaimsStore.quiet("watch")
         }
-        FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> { TerrainCache.clear(); ClientResearch.clear() }
+        FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> { TerrainCache.clear(); ClientResearch.clear(); ClaimsStore.reset() }
     }
 
     private fun applyPrefs() {

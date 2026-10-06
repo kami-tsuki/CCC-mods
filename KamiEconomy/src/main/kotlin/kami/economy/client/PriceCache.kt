@@ -7,6 +7,8 @@ class PriceInfo(val price: Int, val direction: Direction)
 object PriceCache {
     private val prices = HashMap<String, PriceInfo>()
 
+    val items: Set<String> get() = prices.keys
+
     fun update(item: String, price: Int) {
         val prev = prices[item]?.price
         val dir = when {

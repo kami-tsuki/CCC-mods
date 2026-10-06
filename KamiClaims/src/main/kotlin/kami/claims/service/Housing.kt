@@ -15,6 +15,8 @@ import kami.claims.service.Words.v
 import kami.claims.social.Mail
 import kami.claims.war.WarGuard
 import kami.libs.chat.Tone
+import kami.libs.economy.Flow
+import kami.libs.log.Log
 import kami.libs.text.Phrase
 import java.util.UUID
 import kotlin.math.max
@@ -28,9 +30,12 @@ enum class PlotBlock(val key: String) {
 }
 
 object Housing {
+    private val log = Log.of("claims")
     const val RESIDENTIAL = "residential"
 
-    internal var pay: (String, Int) -> Boolean = { id, n -> Bank.take(UUID.fromString(id), n) }
+    const val CREDIT_DAYS = 30
+
+    internal var pay: (String, Int, String) -> Boolean = { id, n, country -> Bank.take(UUID.fromString(id), n, Flow.RENT, country) }
 
     val features = mapOf(
         Claimant.PARENT to Features.PLOTS_FAMILY, Claimant.PROVINCE to Features.PLOTS_FAMILY,
@@ -123,7 +128,7 @@ object Housing {
             }
             throw Fail("kami_claims.error.${block.key}", *args)
         }
-        cl.vacate()
+        vacate(cl)
         cl.owner = id
         cl.category = cat
         Progress.report(c, "plot", "", 1)
@@ -133,8 +138,39 @@ object Housing {
         val moving = cl.state == Tenancy.MOVING_OUT
         if (cl.rentDebt > 0 && !moving) throw Fail("kami_claims.error.plot_debt")
         if (moving) lock(c, cl)
-        cl.vacate()
+        vacate(cl)
         if (!c.active) finish(c)
+    }
+
+    internal fun refund(cl: Claim) {
+        val owner = cl.owner ?: return
+        val credit = cl.rentCredit
+        if (credit <= 0) return
+        cl.rentCredit = 0
+        val country = Realm.country(cl.country)?.name.orEmpty()
+        if (Bank.give(UUID.fromString(owner), credit.toInt(), Flow.REFUND, country)) Mail.direct(owner, Phrase.of("kami_claims.mail.rent_refund", money(credit), coords(cl)), Tone.INFO)
+        else {
+            if (cl in Realm.data.claims) cl.rentCredit = credit
+            log.warn("Rent refund of {} to {} failed", credit, owner)
+        }
+    }
+
+    private fun vacate(cl: Claim) {
+        refund(cl)
+        cl.vacate()
+    }
+
+    fun treasuryBlocked(c: Country, cl: Claim) = cl.rentDebt > 0 && Treasury.room(c) <= 0
+
+    fun payRent(c: Country, cl: Claim, owner: String, amount: Long): Long {
+        val arrears = minOf(cl.rentDebt, amount, Treasury.room(c))
+        val credit = if (cl.rentDebt > arrears) 0 else minOf(amount - arrears, rate(c, cl).toLong() * CREDIT_DAYS - cl.rentCredit).coerceAtLeast(0)
+        val paid = arrears + credit
+        if (paid <= 0 || !pay(owner, paid.toInt(), c.name)) return 0
+        cl.rentDebt -= arrears
+        cl.rentCredit += credit
+        Treasury.move(c, LedgerKind.PLOT_TAX, arrears)
+        return paid
     }
 
     private fun lock(c: Country, cl: Claim) {
@@ -207,19 +243,26 @@ object Housing {
             if (!refresh(c, cl)) return@forEach
             val base = min(rate(c, cl).toLong(), room)
             val extra = min(cl.rentDebt, room - base)
-            val charged = when {
-                pay(owner, (base + extra).toInt()) -> base + extra
-                extra > 0 && pay(owner, base.toInt()) -> base
+            val used = min(cl.rentCredit, base)
+            val cash = base - used
+            val paid = when {
+                pay(owner, (cash + extra).toInt(), c.name) -> cash + extra
+                extra > 0 && pay(owner, cash.toInt(), c.name) -> cash
                 else -> -1L
             }
-            if (charged >= 0) {
-                cl.rentDebt -= charged - base
-                income += charged
-                room -= charged
-                if (charged > 0) xp(c, cl)
-            } else cl.rentDebt += base
+            cl.rentCredit -= used
+            if (paid >= 0) {
+                cl.rentDebt -= paid - cash
+                income += used + paid
+                room -= used + paid
+                if (used + paid > 0) xp(c, cl)
+            } else {
+                cl.rentDebt += cash
+                income += used
+                room -= used
+            }
             if (cl.rentDebt > c.rentDebtLimit) moveOut(c, cl, "debt")
-            else if (charged < 0) Mail.direct(owner, Phrase.of("kami_claims.mail.plot_tax_unpaid", money(base), money(cl.rentDebt), money(c.rentDebtLimit)), Tone.BAD)
+            else if (paid < 0) Mail.direct(owner, Phrase.of("kami_claims.mail.plot_tax_unpaid", money(cash), money(cl.rentDebt), money(c.rentDebtLimit)), Tone.BAD)
         }
         Treasury.move(c, LedgerKind.PLOT_TAX, income)
         Progress.report(c, "taxes", "", income)
@@ -244,7 +287,7 @@ object Housing {
         Realm.data.countries.values.toList().forEach { c ->
             Realm.claims(c.id).filter { it.owner != null && it.state == Tenancy.MOVING_OUT && t >= it.until }.forEach {
                 Mail.direct(it.owner!!, Phrase.of("kami_claims.mail.plot_lost", coords(it)), Tone.BAD)
-                it.vacate()
+                vacate(it)
                 freed = true
             }
             if (!c.active) finish(c)

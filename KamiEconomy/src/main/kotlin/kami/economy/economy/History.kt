@@ -53,6 +53,8 @@ class HistoryData(val items: MutableMap<String, ItemHistory> = mutableMapOf())
 
 private fun merge(a: Bucket, b: Bucket) = Bucket(a.open, max(a.high, b.high), min(a.low, b.low), b.close, a.volume + b.volume, b.at)
 
+private fun Bucket.scaled(f: Double) = Bucket(open * f, high * f, low * f, close * f, volume, at)
+
 private class Tier(val period: Long, val retention: () -> Int) {
     val done = ArrayDeque<Bucket>()
     var acc: Bucket? = null
@@ -77,6 +79,13 @@ private class Tier(val period: Long, val retention: () -> Int) {
         } else {
             acc = merge(current, tick)
         }
+    }
+
+    fun scale(f: Double) {
+        val scaled = done.map { it.scaled(f) }
+        done.clear()
+        done.addAll(scaled)
+        acc = acc?.scaled(f)
     }
 
     fun list() = done.toList() + listOfNotNull(acc)
@@ -135,6 +144,11 @@ object History {
         val now = System.currentTimeMillis()
         val bucket = Bucket(open, high, low, close, volume, now)
         tracks.getOrPut(item) { Track() }.tiers.forEach { it.fold(bucket, now) }
+        dirty = true
+    }
+
+    fun scale(item: String, f: Double) {
+        tracks[item]?.tiers?.forEach { it.scale(f) } ?: return
         dirty = true
     }
 

@@ -18,7 +18,7 @@ class HousingTest {
 
     @AfterTest
     fun restore() {
-        Housing.pay = { _, _ -> true }
+        Housing.pay = { _, _, _ -> true }
     }
 
     private fun country(name: String, treasury: Long = 0): Country {
@@ -103,7 +103,7 @@ class HousingTest {
         land.moveOutDays = 1
         val cl = plot(land, 0)
         Housing.claim(land, cl, "tenant")
-        Housing.pay = { _, _ -> false }
+        Housing.pay = { _, _, _ -> false }
         Housing.collect(land)
         Housing.collect(land)
         assertEquals(10L, cl.rentDebt)
@@ -123,7 +123,7 @@ class HousingTest {
         assertEquals(Tenancy.ACTIVE, cl.state)
 
         val paid = ArrayList<Int>()
-        Housing.pay = { _, n -> paid += n; true }
+        Housing.pay = { _, n, _ -> paid += n; true }
         land.reclaimLocks.clear()
         Housing.claim(land, cl, "tenant")
         land.treasury = Levels.capacity(land, Capacity.TREASURY) - 3L
@@ -266,5 +266,29 @@ class HousingTest {
         assertFalse(Housing.fluidFlows(civic, null, true))
         assertTrue(Housing.fluidFlows(null, null, true))
         assertFalse(Housing.fluidFlows(null, null, false))
+    }
+
+    @Test
+    fun payRentClearsArrearsFirstThenCapsCreditAndBillingConsumesIt() {
+        Realm.reset(Data())
+        val land = country("land", 0).also { it.level = 30 }
+        Realm.join(land, "tenant", Rank.CITIZEN)
+        val cl = plot(land, 0)
+        Housing.claim(land, cl, "tenant")
+        val rate = Housing.rate(land, cl).toLong()
+        val paid = ArrayList<Int>()
+        Housing.pay = { _, n, _ -> paid += n; true }
+        cl.rentDebt = 4
+        assertEquals(4L + rate, Housing.payRent(land, cl, "tenant", 4 + rate))
+        assertEquals(0L, cl.rentDebt)
+        assertEquals(rate, cl.rentCredit)
+        assertEquals(4L, land.treasury)
+        assertEquals(29 * rate, Housing.payRent(land, cl, "tenant", 1000))
+        assertEquals(30 * rate, cl.rentCredit)
+        assertEquals(0L, Housing.payRent(land, cl, "tenant", 5))
+        paid.clear()
+        assertEquals(rate, Housing.collect(land))
+        assertTrue(paid.all { it == 0 })
+        assertEquals(29 * rate, cl.rentCredit)
     }
 }

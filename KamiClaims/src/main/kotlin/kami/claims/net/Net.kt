@@ -246,6 +246,10 @@ object Net {
                 Sync.watch(p, a.args)
                 answer(p, a.name, a.rid)
             }
+            "names" -> {
+                Sync.names(p, a.args.getOrNull(0).orEmpty())
+                answer(p, a.name, a.rid)
+            }
             "preview_claim", "preview_unclaim", "preview_type" -> preview(p, a)
             else -> perform(p, a)
         }

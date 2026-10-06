@@ -8,6 +8,7 @@ import kami.claims.net.NodeView
 import kami.claims.net.TreeView
 import kami.claims.research.NodeState
 import kami.libs.text.Phrase
+import kami.libs.text.SearchQuery
 import kami.libs.ui.anim.transition
 import kami.libs.ui.app.Route
 import kami.libs.ui.core.Memo
@@ -161,11 +162,11 @@ class ResearchPage(app: ClaimsApp) : ClaimsPage(app) {
     }
 
     private fun find(query: String): List<String> {
-        val q = query.trim().lowercase()
-        if (q.isEmpty()) return emptyList()
+        val q = SearchQuery.parse(query)
+        if (q.isEmpty) return emptyList()
         val all = ClientResearch.trees.flatMap { it.nodes }
-        val byTitle = all.filter { it.label().resolve().lowercase().contains(q) }
-        val byText = all.filter { it !in byTitle && it.summary().resolve().lowercase().contains(q) }
+        val byTitle = all.filter { q.matches(it.label().resolve()) }
+        val byText = all.filter { it !in byTitle && q.matches(it.summary().resolve()) }
         return (byTitle + byText).map { it.key }
     }
 

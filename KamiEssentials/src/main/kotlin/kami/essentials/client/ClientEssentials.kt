@@ -2,12 +2,15 @@ package kami.essentials.client
 
 import com.mojang.blaze3d.platform.InputConstants
 import kami.essentials.net.Net
+import kami.essentials.net.Snap
 import kami.libs.net.SnapshotPayload
 import kami.libs.net.decode
 import kami.libs.text.Text
 import kami.libs.ui.app.AppModule
 import kami.libs.ui.app.AppScreen
 import kami.libs.ui.app.Modules
+import kami.libs.ui.app.Personal
+import kami.libs.ui.app.Route
 import kami.libs.ui.style.Icons
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
@@ -23,19 +26,26 @@ object ClientEssentials {
     private val key = KeyMapping("key.kami_essentials.open", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_O, "key.categories.kami_essentials")
 
     fun init() {
-        Modules.register(AppModule("essentials", "kami_essentials.module", Icons.SETTINGS) { open() })
+        Modules.register(AppModule(Personal.MODULE, "kami_essentials.module", Icons.PERSON, 0) { open() })
+        Personal.register(bankSection)
+        Personal.opener = { open(it) }
         MOD_BUS.addListener<RegisterKeyMappingsEvent> { it.register(key) }
         FORGE_BUS.addListener<ClientTickEvent.Post> {
             while (key.consumeClick()) if (Minecraft.getInstance().screen == null) open()
             MotdRefresh.tick(Minecraft.getInstance())
         }
-        FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> { PrefsApp.instance.snap = null }
+        FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> {
+            PersonalApp.instance.snap = null
+            Personal.account = null
+        }
     }
 
-    private fun open() {
+    private fun open(route: Route? = null) {
         val mc = Minecraft.getInstance()
-        val app = PrefsApp.instance
+        val app = PersonalApp.instance
         if ((mc.screen as? AppScreen)?.app !== app) mc.setScreen(AppScreen(app, Text.msg("kami_essentials.module")))
+        route?.let { app.navigate(it) }
+        Personal.sections.forEach { it.refresh("") }
         request("open")
     }
 
@@ -44,6 +54,8 @@ object ClientEssentials {
     }
 
     fun receive(s: SnapshotPayload) {
-        PrefsApp.instance.snap = s.decode() ?: return
+        val snap = s.decode<Snap>() ?: return
+        PersonalApp.instance.snap = snap
+        Personal.account = snap.account
     }
 }

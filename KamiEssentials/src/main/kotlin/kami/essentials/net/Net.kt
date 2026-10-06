@@ -11,6 +11,7 @@ import kami.essentials.discord.Gate
 import kami.essentials.display.Sidebar
 import kami.essentials.vanish.Vanish
 import kami.libs.discord.Links
+import kami.libs.economy.Account
 import kami.libs.net.ActPayload
 import kami.libs.net.Packets
 import kami.libs.net.SnapshotPayload
@@ -24,10 +25,10 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
 
 private val packets = Packets.forMod(KamiEssentials.ID)
 private val actChannel = ActPayload.channel(packets, maxArgs = 2, maxArg = 16, withCountry = false)
-private val snapshotChannel = SnapshotPayload.channel(packets, maxBytes = 4096)
+private val snapshotChannel = SnapshotPayload.channel(packets, maxBytes = 131072)
 
 @Serializable
-class Snap(val channel: String, val channels: List<String>, val sidebar: Boolean?, val trades: Boolean?, val dmSound: Boolean, val invisible: Boolean?, val discordOn: Boolean = false, val discord: String? = null, val discordPing: Boolean = true)
+class Snap(val channel: String, val channels: List<String>, val sidebar: Boolean?, val trades: Boolean?, val dmSound: Boolean, val invisible: Boolean?, val discordOn: Boolean = false, val discord: String? = null, val discordPing: Boolean = true, val account: Account? = null)
 
 object Net {
     private val cooldown = TickCooldown(4)
@@ -69,6 +70,6 @@ object Net {
         (!Store[Flag.NO_TRADES, p.uuid]).takeIf { Perms.has(p, Perms.TRADE) },
         !Store[Flag.QUIET_DM, p.uuid],
         Vanish.active(p).takeIf { Perms.has(p, Perms.INVIS) },
-        Config.s.discord.enabled, Links.get(p.uuid)?.discordName, !Store[Flag.QUIET_DISCORD, p.uuid]
+        Config.s.discord.enabled, Links.get(p.uuid)?.discordName, !Store[Flag.QUIET_DISCORD, p.uuid], account(p)
     )
 }
