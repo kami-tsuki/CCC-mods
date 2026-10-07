@@ -6,6 +6,7 @@ import kami.libs.admin.AdminNet
 import kami.libs.admin.AdminPerms
 import kami.libs.admin.AdminViews
 import kami.libs.admin.AutoRefreshNet
+import kami.libs.net.VersionCheck
 import kami.libs.command.KamiCommands
 import kami.libs.db.Db
 import kami.libs.db.SavePoint
@@ -52,7 +53,7 @@ object KamiLibs {
         Wealth.builtins()
         KamiCommands.module("library", "Shared settings of all Kami mods") {}
         MOD_BUS.addListener<FMLCommonSetupEvent> { LibConfig.file.load() }
-        MOD_BUS.addListener<RegisterPayloadHandlersEvent> { AdminNet.register(it); AutoRefreshNet.register(it) }
+        MOD_BUS.addListener<RegisterPayloadHandlersEvent> { AdminNet.register(it); AutoRefreshNet.register(it); VersionCheck.register(it) }
         FORGE_BUS.addListener<PermissionGatherEvent.Nodes> { AdminPerms.register(it) }
         FORGE_BUS.addListener<RegisterCommandsEvent> { KamiCommands.register(it.dispatcher) }
         FORGE_BUS.addListener<ServerStartingEvent> { if (it.server.isDedicatedServer) KeyFile.load() }
