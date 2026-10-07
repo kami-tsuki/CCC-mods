@@ -37,6 +37,7 @@ private fun Link.row() = listOf(uuid, name, discordId, discordName, linkedAt)
 object Links {
     private val log = Log.of("discord")
     private val byUuid = LinkedHashMap<String, Link>()
+    private val writes = Any()
     private var index: Index? = null
 
     @Synchronized
@@ -58,14 +59,18 @@ object Links {
     @Synchronized
     fun all(): List<Link> = byUuid.values.toList()
 
-    @Synchronized
-    fun put(link: Link): Boolean {
+    fun put(link: Link): Boolean = synchronized(writes) {
         try {
             Db.durable { exec(UPSERT, *link.row().toTypedArray()) }
         } catch (e: Exception) {
             log.error("Cannot save the link of {}: {}", link.name, e.message)
             return false
         }
+        apply(link)
+    }
+
+    @Synchronized
+    private fun apply(link: Link): Boolean {
         val displaced = byUuid.values.filter { it.discordId == link.discordId && it.uuid != link.uuid }
         displaced.forEach { byUuid.remove(it.uuid) }
         byUuid[link.uuid] = link
@@ -75,10 +80,9 @@ object Links {
         return true
     }
 
-    @Synchronized
-    fun removeAll(uuids: Collection<UUID>): List<Link> {
+    fun removeAll(uuids: Collection<UUID>): List<Link> = synchronized(writes) {
         val keys = uuids.mapTo(HashSet()) { it.toString() }
-        val removed = byUuid.values.filter { it.uuid in keys }
+        val removed = synchronized(this) { byUuid.values.filter { it.uuid in keys } }
         if (removed.isEmpty()) return removed
         try {
             Db.durable { removed.forEach { exec("DELETE FROM libs_discord_link WHERE uuid = ?", it.uuid) } }
@@ -86,19 +90,25 @@ object Links {
             log.error("Cannot remove links: {}", e.message)
             return emptyList()
         }
+        forget(removed)
+    }
+
+    @Synchronized
+    private fun forget(removed: List<Link>): List<Link> {
         removed.forEach { byUuid.remove(it.uuid) }
         index = null
         removed.forEach(::unlinked)
         return removed
     }
 
-    @Synchronized
     fun rename(uuid: UUID, name: String, discordName: String? = null) {
-        val link = byUuid[uuid.toString()]?.takeIf { it.name != name || (discordName != null && it.discordName != discordName) } ?: return
-        val next = link.copy(name = name, discordName = discordName ?: link.discordName)
-        Db.write { exec(UPSERT, *next.row().toTypedArray()) }
-        byUuid[next.uuid] = next
-        index = null
+        synchronized(this) {
+            val link = byUuid[uuid.toString()]?.takeIf { it.name != name || (discordName != null && it.discordName != discordName) } ?: return
+            val next = link.copy(name = name, discordName = discordName ?: link.discordName)
+            Db.write { exec(UPSERT, *next.row().toTypedArray()) }
+            byUuid[next.uuid] = next
+            index = null
+        }
     }
 
     private fun unlinked(link: Link) = Stats.event("discord.unlink", "p:${link.uuid}", link.discordId.toString())

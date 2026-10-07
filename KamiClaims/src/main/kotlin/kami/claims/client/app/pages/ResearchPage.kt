@@ -139,15 +139,16 @@ class ResearchPage(app: ClaimsApp) : ClaimsPage(app) {
     private fun nodeIndex(memo: Memo, tree: TreeView, key: String?) = memo.of(tree, key) { tree.nodes.indexOfFirst { it.key == key } }
 
     private fun toolbar(ui: Ui, bar: Rect) {
+        val tree = ClientResearch.trees.getOrNull(treeIndex) ?: return
         if (ui.input.takeKey(GLFW.GLFW_KEY_F) { it.ctrl } != null) ui.focus = ui.id("research-search")
         val row = Row(bar, 4)
         val fit = tr("kami_claims.research.fit")
-        if (ui.edgeButton(row, fit, Icons.AREA, tip = tr("kami_claims.research.fit.tooltip"), key = "research-fit")) views[ClientResearch.trees[treeIndex].id]?.refit()
+        if (ui.edgeButton(row, fit, Icons.AREA, tip = tr("kami_claims.research.fit.tooltip"), key = "research-fit")) views[tree.id]?.refit()
         val current = ClientResearch.state.queue.firstOrNull { it.state == NodeState.RESEARCHING }?.node
-        val located = nodeIndex(currentIndex, ClientResearch.trees[treeIndex], current).takeIf { it >= 0 }
+        val located = nodeIndex(currentIndex, tree, current).takeIf { it >= 0 }
         val tip = tr(if (located == null) "kami_claims.research.current.none" else "kami_claims.research.current")
         if (ui.iconButton(row.take(CONTROL_H), Icons.LOCATE, tip, enabled = located != null, key = "research-current")) {
-            views[ClientResearch.trees[treeIndex].id]?.center(located!!)
+            located?.let { views[tree.id]?.center(it) }
             selected = current
         }
         val result = ui.textField(row.take(minOf(SEARCH_W, bar.w / 2)), search, tr("kami_claims.research.search"), Icons.SEARCH, key = "research-search", clearable = true)

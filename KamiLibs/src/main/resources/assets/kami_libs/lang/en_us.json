@@ -242,5 +242,6 @@
   "kami_libs.admin.total": "%s entries",
   "kami_libs.item.tag_members": "Tag with %s items",
   "kami_libs.admin.load_failed": "Could not load",
-  "kami_libs.common.retry": "Retry"
+  "kami_libs.common.retry": "Retry",
+  "kami_libs.app.page_error": "This page failed to render. Check the log."
 }

@@ -19,8 +19,8 @@ object Store {
 
     internal fun read(session: Session): Map<Flag, Set<UUID>> {
         val out = Flag.entries.associateWith { linkedSetOf<UUID>() }
-        session.query("SELECT flag, player FROM ess_flag") { Flag.valueOf(it.string("flag")) to UUID.fromString(it.string("player")) }
-            .forEach { (flag, id) -> out.getValue(flag).add(id) }
+        session.query("SELECT flag, player FROM ess_flag") { r -> Flag.entries.firstOrNull { it.name == r.string("flag") }?.let { it to UUID.fromString(r.string("player")) } }
+            .filterNotNull().forEach { (flag, id) -> out.getValue(flag).add(id) }
         return out
     }
 

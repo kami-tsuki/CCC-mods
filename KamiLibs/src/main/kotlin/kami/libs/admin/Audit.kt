@@ -2,6 +2,7 @@ package kami.libs.admin
 
 import kami.libs.db.Db
 import kami.libs.economy.Party
+import kami.libs.log.Log
 import kami.libs.economy.PlayerParty
 import kami.libs.economy.ServerParty
 import kotlinx.serialization.Serializable
@@ -15,6 +16,7 @@ object Audit {
 
     class Filter(val actor: String? = null, val action: String? = null, val target: String? = null, val from: Long? = null, val to: Long? = null, val ok: Boolean? = null)
 
+    private val log = Log.of("library")
     private const val MAX_ARGS = 8
     private const val MAX_ARG = 256
     private const val REDACTED = "***"
@@ -23,12 +25,14 @@ object Audit {
 
     fun record(actor: Party, actorName: String, action: String, target: String, reason: String, args: Map<String, String> = emptyMap(), ok: Boolean = true) {
         val stored = args.entries.take(MAX_ARGS).associate { it.key.take(MAX_ARG) to it.value.take(MAX_ARG) }
-        Db.durable {
-            exec(
-                "INSERT INTO libs_audit (at, actor, actor_name, action, target, reason, args, ok) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                System.currentTimeMillis(), actor.key, actorName, action, target, reason, Db.json.encodeToString(argsSerializer, stored), ok
-            )
-        }
+        runCatching {
+            Db.durable {
+                exec(
+                    "INSERT INTO libs_audit (at, actor, actor_name, action, target, reason, args, ok) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    System.currentTimeMillis(), actor.key, actorName.take(MAX_ARG), action.take(MAX_ARG), target.take(MAX_ARG), reason.take(MAX_ARG), Db.json.encodeToString(argsSerializer, stored), ok
+                )
+            }
+        }.onFailure { log.error("Could not record the audit entry {} on {}", action, target, it) }
     }
 
     fun record(source: CommandSourceStack, action: String, target: String, reason: String, args: Map<String, String> = emptyMap(), ok: Boolean = true) =

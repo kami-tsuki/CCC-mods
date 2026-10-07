@@ -12,6 +12,8 @@ import kami.libs.chat.Chat
 import kami.libs.chat.Tone
 import kami.libs.chat.bar
 import kami.libs.db.Db
+import kami.libs.db.Rows
+import kami.libs.db.SavePoint
 import kami.libs.economy.CoinReturn
 import kami.libs.economy.Numismatics
 import kami.libs.text.Phrase
@@ -231,14 +233,19 @@ object CoinRules {
 
 object KeptCoins {
     private val owed = LinkedHashMap<Pair<String, String>, Int>()
+    private val rows = Rows<Pair<String, String>>("eco_kept_coins", listOf("uuid", "item"), listOf("count"))
     private var attached = false
 
     fun load() {
         owed.clear()
         Db.read { query("SELECT * FROM eco_kept_coins ORDER BY rowid") { (it.string("uuid") to it.string("item")) to it.int("count") } }
             .forEach { (k, v) -> owed[k] = v }
+        rows.prime(rowMap())
         attached = true
+        SavePoint.register("economy.kept_coins") { if (attached) rows.diff(rowMap()) else null }
     }
+
+    private fun rowMap() = owed.mapValues { (k, n) -> listOf<Any?>(k.first, k.second, n) }
 
     fun unload() {
         attached = false
@@ -251,7 +258,7 @@ object KeptCoins {
     fun add(player: UUID, item: String, n: Int) {
         if (n <= 0) return
         val key = player.toString() to item
-        persist(key, owed.merge(key, n, Int::plus) ?: n)
+        owed.merge(key, n, Int::plus)
     }
 
     fun take(player: UUID, item: String, n: Int): Int {
@@ -260,13 +267,6 @@ object KeptCoins {
         val taken = n.coerceIn(0, have)
         if (taken == 0) return 0
         if (have > taken) owed[key] = have - taken else owed.remove(key)
-        persist(key, have - taken)
         return taken
-    }
-
-    private fun persist(key: Pair<String, String>, n: Int) {
-        if (!attached) return
-        if (n > 0) Db.write { exec("INSERT OR REPLACE INTO eco_kept_coins (uuid, item, count) VALUES (?, ?, ?)", key.first, key.second, n) }
-        else Db.write { exec("DELETE FROM eco_kept_coins WHERE uuid = ? AND item = ?", key.first, key.second) }
     }
 }

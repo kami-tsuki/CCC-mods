@@ -3,13 +3,14 @@ package kami.essentials.client.admin
 import kami.libs.config.KamiConfig
 import kami.libs.config.Section
 import kami.libs.log.Log
+import kami.libs.ui.app.NavPrefs
 import kotlinx.serialization.Serializable
 
 @Serializable
 class AdminPrefsData(
-    var railCollapsed: Boolean = false,
-    var collapsedGroups: MutableSet<String> = mutableSetOf()
-)
+    override var railCollapsed: Boolean = false,
+    override var collapsedGroups: MutableSet<String> = mutableSetOf()
+) : NavPrefs
 
 object AdminPrefs {
     private val config = KamiConfig(

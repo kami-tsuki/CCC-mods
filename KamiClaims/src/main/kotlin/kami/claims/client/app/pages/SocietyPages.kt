@@ -96,7 +96,7 @@ class CitizensPage(app: ClaimsApp) : ClaimsPage(app) {
         }
         ui.anchor("citizens:table", tableRect)
         ui.table(tableRect, listOf(
-            Column<Mem>(tr("kami_libs.common.name"), -1, sort = compareBy { it.name.lowercase() }) { _, c, m ->
+            Column<Mem>(tr("kami_libs.common.name"), -1, sort = textOrder { it.name }) { _, c, m ->
                 avatar(m.id, c.x, c.y + 1, 12, m.online)
                 Draw.text(g, Draw.fit(m.name, c.w - 16), c.x + 16, c.y + 3, Palette.text)
             },
@@ -350,7 +350,7 @@ class JobsPage(app: ClaimsApp) : ClaimsPage(app) {
         val editor = cards.bottom(48)
         val tableRect = cards.dropBottom(48, 8)
         ui.table(tableRect, listOf(
-            Column<JobLine>(tr("kami_libs.common.job"), -1, sort = compareBy { Vocabulary.job(it.name).lowercase() }) { _, c, j ->
+            Column<JobLine>(tr("kami_libs.common.job"), -1, sort = textOrder { Vocabulary.job(it.name) }) { _, c, j ->
                 val look = Vocabulary.type(j.type)
                 val x = c.x + Draw.leadIcon(g, look.icon, c.x, c.centerY) + 2
                 Draw.text(g, Draw.fit(Vocabulary.job(j.name), c.right - x), x, c.y + 3, Palette.text)

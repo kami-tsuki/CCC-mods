@@ -52,7 +52,7 @@ internal class AuctionsPage(app: MarketApp) : ListPage(app, "auctions") {
     }
 
     private val columns = listOf(
-        Column<AuctionLine>(tr("kami_libs.common.item"), -1, sort = compareBy { it.label.lowercase() }) { _, c, a ->
+        Column<AuctionLine>(tr("kami_libs.common.item"), -1, sort = textOrder { it.label }) { _, c, a ->
             val cell = c.dropRight(tradeLock(c, a.status, a.statusReason, "auction-lock:${a.id}"))
             if (itemCell(cell, stack(a), a.label, "auction:${a.id}", if (a.mine) Palette.brass else Palette.text)) table.selected.apply { clear(); add(a.id) }
         },
@@ -146,7 +146,7 @@ internal class AuctionCreatePage(val app: MarketApp) : Page() {
     override val help get() = listOf(Callout("create:table", tr("kami_economy.help.create"), tr("kami_economy.help.create.desc")))
 
     private val columns = listOf(
-        Column<Stored>(tr("kami_libs.common.item"), -1, sort = compareBy { it.stack.hoverName.string.lowercase() }) { _, c, e ->
+        Column<Stored>(tr("kami_libs.common.item"), -1, sort = textOrder { it.stack.hoverName.string }) { _, c, e ->
             if (itemCell(c, e.stack, e.stack.hoverName.string, "create:${e.slot}")) table.selected.apply { clear(); add(e.slot) }
         },
         Column.number<Stored>(tr("kami_libs.common.amount"), 60) { it.stack.count.toLong() }

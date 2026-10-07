@@ -95,7 +95,6 @@ object Wealth {
         val snap = Snap(value, Db.json.encodeToString(WealthDay.serializer(), value))
         synchronized(this) {
             stored[day] = snap
-            stored.headMap(day - KEEP).clear()
         }
     }
 

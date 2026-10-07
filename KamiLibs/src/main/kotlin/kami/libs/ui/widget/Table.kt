@@ -18,6 +18,8 @@ internal const val CELL_PAD = 6
 
 enum class Align { LEFT, RIGHT, CENTER }
 
+fun <T> textOrder(value: (T) -> String): Comparator<T> = Comparator { a, b -> String.CASE_INSENSITIVE_ORDER.compare(value(a), value(b)) }
+
 class Column<T>(
     val title: String,
     val width: Int,
@@ -28,7 +30,7 @@ class Column<T>(
 ) {
     companion object {
         fun <T> text(title: String, width: Int, align: Align = Align.LEFT, sortable: Boolean = true, tip: String? = null, color: (T) -> Int = { Palette.text }, value: (T) -> String) =
-            Column(title, width, align, if (sortable) compareBy<T> { value(it).lowercase() } else null, tip) { _, r, row ->
+            Column(title, width, align, if (sortable) textOrder(value) else null, tip) { _, r, row ->
                 val full = value(row)
                 val s = Draw.fit(full, r.w)
                 if (s != full) tooltip("cell:${r.x},${r.y}", r, full)
@@ -55,6 +57,22 @@ class TableState<T> {
     var lastClicked: Any? = null
     var lastClickAt = 0L
     var focusKey: Any? = null
+    private var sortedFrom: List<T>? = null
+    private var sortedSize = -1
+    private var sortedColumn = -2
+    private var sortedDescending = false
+    private var sortedRows: List<T> = emptyList()
+
+    fun sorted(rows: List<T>, build: () -> List<T>): List<T> {
+        if (sortedFrom !== rows || sortedSize != rows.size || sortedColumn != sortColumn || sortedDescending != descending) {
+            sortedRows = build()
+            sortedFrom = rows
+            sortedSize = rows.size
+            sortedColumn = sortColumn
+            sortedDescending = descending
+        }
+        return sortedRows
+    }
 
     fun clear() { selected.clear() }
 }
@@ -69,9 +87,11 @@ fun <T> Ui.table(
     val header = r.top(TABLE_HEADER_H)
     val body = r.dropTop(TABLE_HEADER_H)
     val checkW = if (multi) 12 else 0
-    val sorted = state.sortColumn.takeIf { it in columns.indices }?.let { c ->
-        columns[c].sort?.let { cmp -> rows.sortedWith(if (state.descending) cmp.reversed() else cmp) }
-    } ?: rows
+    val sorted = state.sorted(rows) {
+        state.sortColumn.takeIf { it in columns.indices }?.let { c ->
+            columns[c].sort?.let { cmp -> rows.sortedWith(if (state.descending) cmp.reversed() else cmp) }
+        } ?: rows
+    }
     val flexible = columns.count { it.width < 0 }
     val fixed = columns.filter { it.width >= 0 }.sumOf { it.width } + checkW + (columns.size + 1) * CELL_PAD + 4
     val flexW = if (flexible > 0) (r.w - fixed).coerceAtLeast(20) / flexible else 0
@@ -117,18 +137,19 @@ fun <T> Ui.table(
         }
         return TableEvents(null, null, false)
     }
-    val focusIndex = sorted.indexOfFirst { keyOf(it) == state.focusKey }
     if (focused(key) || hovering(body)) {
         val down = input.takeKey(GLFW.GLFW_KEY_DOWN)
         val up = input.takeKey(GLFW.GLFW_KEY_UP)
         val step = (if (down != null) 1 else 0) - (if (up != null) 1 else 0)
+        val enter = input.takeKey(GLFW.GLFW_KEY_ENTER)
+        val focusIndex = if (step != 0 || enter != null) sorted.indexOfFirst { keyOf(it) == state.focusKey } else -1
         if (step != 0) {
             val next = sorted[(focusIndex + step).coerceIn(0, sorted.lastIndex)]
             state.focusKey = keyOf(next)
             if (!multi) { state.selected.clear(); state.selected += keyOf(next); changed = true }
             remember("scroll:$key:rows") { ScrollState() }.scrollTo(sorted.indexOf(next) * rowHeight)
         }
-        if (input.takeKey(GLFW.GLFW_KEY_ENTER) != null && focusIndex >= 0) opened = sorted[focusIndex]
+        if (enter != null && focusIndex >= 0) opened = sorted[focusIndex]
     }
     focusable(key)
     scroll("$key:rows", body, sorted.size * rowHeight) { content ->

@@ -4,6 +4,7 @@ import kami.geology.KamiGeology
 import kami.geology.client.Guide
 import kami.geology.command.GeoText
 import kami.geology.net.GuideOre
+import kami.libs.ui.style.Format
 import kami.libs.ui.text.tr
 import kami.libs.ui.text.trOr
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder
@@ -19,7 +20,6 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.item.ItemStack
-import kotlin.math.roundToInt
 
 private const val W = 170
 private const val H = 130
@@ -54,20 +54,18 @@ class GuideCategory(guiHelper: IGuiHelper) : IRecipeCategory<GuideOre> {
 
     private fun blockName(id: String) = stack(id)?.hoverName?.string ?: GeoText.name(id.substringAfter(':'))
 
-    private fun pct(v: Double) = "${(v * 100).roundToInt()}%"
-
     private fun range(h: List<Int>) = h.takeIf { it.size >= 2 }?.let { tr("kami_geology.jei.y", it[0], it[1]) }
 
     private fun lines(o: GuideOre): List<String> = listOfNotNull(
         o.shape?.let { shape ->
-            val parts = listOfNotNull(trOr("kami_geology.shape.$shape", GeoText.name(shape)), range(o.height), tr("kami_geology.jei.density", pct(o.chance), o.spacing))
+            val parts = listOfNotNull(trOr("kami_geology.shape.$shape", GeoText.name(shape)), range(o.height), tr("kami_geology.jei.density", Format.percent(o.chance), o.spacing))
             tr("kami_geology.jei.deposits", parts.joinToString(" · "))
         },
-        tr("kami_geology.jei.biomes", o.provinces.entries.sortedByDescending { it.value }.joinToString(" · ") { GeoText.provinceLabel(it.key) + " " + pct(it.value) }
+        tr("kami_geology.jei.biomes", o.provinces.entries.sortedByDescending { it.value }.joinToString(" · ") { GeoText.provinceLabel(it.key) + " " + Format.percent(it.value) }
             .ifEmpty { tr("kami_geology.jei.everywhere") }),
-        o.anchor?.let { tr("kami_geology.jei.anchor", GeoText.oreLabel(it), pct(o.anchorChance)) },
+        o.anchor?.let { tr("kami_geology.jei.anchor", GeoText.oreLabel(it), Format.percent(o.anchorChance)) },
         o.halo.takeIf { it.isNotEmpty() }?.let { tr("kami_geology.jei.signs", it.joinToString(", ", transform = ::blockName)) },
-        o.core?.let { tr("kami_geology.jei.core", blockName(it), pct(o.coreChance)) },
+        o.core?.let { tr("kami_geology.jei.core", blockName(it), Format.percent(o.coreChance)) },
         o.scatter.takeIf { it > 0 }?.let { tr("kami_geology.jei.veins", it) + (range(o.scatterHeight)?.let { y -> " · $y" } ?: "") },
         Guide.data.dimensions.takeUnless { it == listOf("minecraft:overworld") }
             ?.let { tr("kami_geology.jei.dimensions", it.joinToString(", ") { d -> GeoText.name(d.substringAfter(':')) }) }

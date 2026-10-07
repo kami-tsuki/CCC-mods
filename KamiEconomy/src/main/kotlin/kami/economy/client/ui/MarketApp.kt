@@ -3,6 +3,7 @@ package kami.economy.client.ui
 import kami.economy.client.ClientHooks
 import kami.economy.client.MarketPrefs
 import kami.economy.client.PriceCache
+import kami.economy.client.admin.MarketSection
 import kami.economy.economy.Blacklist
 import kami.economy.economy.Classification
 import kami.economy.net.Detail
@@ -108,7 +109,6 @@ class MarketApp private constructor() : KamiApp() {
         private set
     override val module: String? get() = "market"
     override val home = Route("dashboard")
-    private val stacks = HashMap<String, ItemStack>()
     private val views = Lru<Snap>(VIEW_CACHE)
     private val latest = HashMap<String, Snap>()
     private val queries = HashMap<String, String>()
@@ -116,6 +116,10 @@ class MarketApp private constructor() : KamiApp() {
     private var awaiting: String? = null
     private var last: List<String>? = null
     private var awaitAt = 0L
+
+    init {
+        bind(MarketPrefs.prefs, MarketPrefs::save)
+    }
 
     internal val carried = Throttled {
         val held = HashMap<String, Int>()
@@ -131,8 +135,6 @@ class MarketApp private constructor() : KamiApp() {
         Carried(held, auctionOnly)
     }
 
-    fun stack(id: String): ItemStack = stacks.getOrPut(id) { marketStack(id) }
-
     fun request(name: String, vararg args: String) = ClientHooks.request(name, *args)
 
     fun view(name: String, query: String = "", ids: String = "", subject: String = "") {
@@ -143,7 +145,7 @@ class MarketApp private constructor() : KamiApp() {
         request("view", name, query, ids, subject)
     }
 
-    fun search(name: String, query: String) = view(name, query, searchIds(SearchQuery.parse(query), PriceCache.items + stacks.keys))
+    fun search(name: String, query: String) = view(name, query, searchIds(SearchQuery.parse(query), PriceCache.items + MarketSection.cachedIds))
 
     fun cached(view: String): Snap? = views["$view|${queries[view].orEmpty()}"] ?: latest[view]
 
@@ -153,13 +155,18 @@ class MarketApp private constructor() : KamiApp() {
 
     private fun importWatch(next: Snap) {
         val legacy = MarketPrefs.prefs.watch ?: return
-        if (legacy.isNotEmpty() && next.watch.isEmpty()) request("watch_import", legacy.distinct().joinToString(","))
-        MarketPrefs.prefs.watch = null
-        MarketPrefs.save()
+        if (legacy.isEmpty() || next.watch.isNotEmpty()) {
+            MarketPrefs.prefs.watch = null
+            MarketPrefs.save()
+        } else {
+            request("watch_import", legacy.distinct().joinToString(","))
+            MarketPrefs.prefs.watch = null
+            MarketPrefs.save()
+        }
     }
 
     fun update(next: Snap, notify: Boolean) {
-        if (!loaded) importWatch(next)
+        importWatch(next)
         snap = next
         loaded = true
         views["${next.view}|${queries[next.view].orEmpty()}"] = next
@@ -181,35 +188,29 @@ class MarketApp private constructor() : KamiApp() {
         opening.done()
     }
 
-    override val collapsedGroups get() = MarketPrefs.prefs.collapsedGroups
-
-    override fun collapseChanged() { MarketPrefs.save() }
-
-    private fun group(id: String, items: List<NavItem>) = NavGroup(tr("kami_economy.nav.group.$id"), items, id, collapsible = true)
-
     private fun badge(bid: Boolean?): () -> NavBadge? = { snap.mine.count { bid == null || it.bid == bid }.takeIf { it > 0 }?.let { NavBadge(it, Severity.INFO) } }
 
     override fun buildNav() = listOf(
-        group("overview", listOf(
+        NavGroup(id = "overview", label = tr("kami_economy.nav.group.overview"), items = listOf(
             NavItem("dashboard", tr("kami_economy.nav.dashboard"), Icons.DASHBOARD),
             NavItem("market", tr("kami_libs.common.market"), Icons.SEARCH),
             NavItem("my_orders", tr("kami_economy.nav.my_orders"), Icons.SCROLL, badge(null))
         )),
-        group("sell", listOf(
+        NavGroup(id = "sell", label = tr("kami_economy.nav.group.sell"), items = listOf(
             NavItem("instant", tr("kami_economy.nav.inventory"), Icons.CHEST),
             NavItem("infinite", tr("kami_economy.nav.infinite"), Icons.COIN),
             NavItem("sell_orders", tr("kami_economy.nav.orders"), Icons.LEDGER, badge(false)),
             NavItem("sell_vendors", tr("kami_economy.nav.vendors"), Icons.PEOPLE)
         )),
-        group("buy", listOf(
+        NavGroup(id = "buy", label = tr("kami_economy.nav.group.buy"), items = listOf(
             NavItem("buy_orders", tr("kami_economy.nav.orders"), Icons.LEDGER, badge(true)),
             NavItem("buy_vendors", tr("kami_economy.nav.vendors"), Icons.PEOPLE)
         )),
-        group("auction", listOf(
+        NavGroup(id = "auction", label = tr("kami_economy.nav.group.auction"), items = listOf(
             NavItem("auctions", tr("kami_libs.common.auctions"), Icons.SCALES),
             NavItem("auction_create", tr("kami_economy.nav.create"), Icons.ADD)
         )),
-        group("system", listOf(NavItem("settings", tr("kami_economy.nav.settings"), Icons.SETTINGS)))
+        NavGroup(id = "system", label = tr("kami_economy.nav.group.system"), items = listOf(NavItem("settings", tr("kami_economy.nav.settings"), Icons.SETTINGS)))
     )
 
     override fun create(id: String): Page = when (id) {
@@ -300,7 +301,7 @@ class MarketApp private constructor() : KamiApp() {
 
     fun reprice(host: KamiApp, o: OrderRow) {
         val state = NumberState(o.price.toLong())
-        host.open(Dialog(tr("kami_economy.reprice.title"), stack(o.item).hoverName.string, Icons.EDIT, DialogKind.CONFIRM) { s ->
+        host.open(Dialog(tr("kami_economy.reprice.title"), MarketSection.stack(o.item).hoverName.string, Icons.EDIT, DialogKind.CONFIRM) { s ->
             s.used = numberDialogBody(s, s.body.y, state, tr("kami_economy.market.price_lot", o.lot), 1, MAX_PRICE)
             dialogButtons(s, tr("kami_economy.reprice.confirm"), state.value != o.price.toLong()) {
                 request(if (o.bid) "reprice_bid" else "reprice", o.item, state.value.toString())
@@ -310,7 +311,7 @@ class MarketApp private constructor() : KamiApp() {
     }
 
     fun cancel(host: KamiApp, o: OrderRow) = confirmDialog(
-        host::open, tr("kami_economy.cancel.title"), stack(o.item).hoverName.string, Icons.CROSS,
+        host::open, tr("kami_economy.cancel.title"), MarketSection.stack(o.item).hoverName.string, Icons.CROSS,
         listOf(Consequence(tr(if (o.bid) "kami_economy.market.bid.cancel.tooltip" else "kami_economy.market.orders.cancel.tooltip"))),
         tr("kami_economy.cancel.confirm"), danger = true
     ) { request(if (o.bid) "cancel_bid" else "cancel", o.item) }

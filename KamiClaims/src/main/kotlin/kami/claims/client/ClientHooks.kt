@@ -6,6 +6,7 @@ import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.personal.ClaimsPersonal
 import kami.claims.client.app.ResearchPins
 import kami.claims.client.hud.Hud
+import kami.claims.client.map.MiniMap
 import kami.claims.client.store.ClaimsStore
 import kami.claims.client.store.ClientResearch
 import kami.claims.net.DefsView
@@ -20,6 +21,7 @@ import kami.claims.service.View
 import kami.libs.ui.app.AppModule
 import kami.libs.ui.app.Modules
 import kami.libs.ui.app.OpenWait
+import kami.libs.ui.app.registerOpenKey
 import kami.libs.ui.app.Route
 import kami.libs.ui.style.Icons
 import kami.libs.ui.map.TerrainCache
@@ -41,7 +43,9 @@ import thedarkcolour.kotlinforforge.neoforge.forge.FORGE_BUS
 import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 
 object ClientHooks {
-    private val open = KeyMapping("key.kami_claims.open", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_K, "key.categories.kami_claims")
+    private val open = registerOpenKey("kami_claims", GLFW.GLFW_KEY_K) { openApp() }
+    fun openKey(): String = open.translatedKeyMessage.string
+    fun openKeyId() = open.key
     private val borders = KeyMapping("key.kami_claims.borders", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_B, "key.categories.kami_claims")
     private var ticks = 0
     private var echoUntil = 0L
@@ -55,9 +59,10 @@ object ClientHooks {
         ResearchTooltip.init()
         ResearchPins.register()
         Hud.register()
-        MOD_BUS.addListener<RegisterKeyMappingsEvent> { it.register(open); it.register(borders) }
+        MOD_BUS.addListener<RegisterKeyMappingsEvent> { it.register(borders) }
+        opening.register("kami_claims")
         MOD_BUS.addListener<RegisterGuiLayersEvent> {
-            it.registerAboveAll(ResourceLocation.fromNamespaceAndPath("kami_claims", "territory")) { g, _ -> Hud.render(g); opening.render(g) }
+            it.registerAboveAll(ResourceLocation.fromNamespaceAndPath("kami_claims", "territory")) { g, _ -> Hud.render(g) }
         }
         FORGE_BUS.addListener<ClientTickEvent.Post> { tick() }
         FORGE_BUS.addListener<RenderHighlightEvent.Block> { BlockHint.highlight(it) }
@@ -67,7 +72,7 @@ object ClientHooks {
             applyPrefs()
             ClaimsStore.watch(emptyList(), force = true)
         }
-        FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> { TerrainCache.clear(); ClientResearch.clear(); ClaimsStore.clear(); opening.done() }
+        FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> { TerrainCache.clear(); ClientResearch.clear(); ClaimsStore.clear(); opening.done(); MiniMap.clear(); Hud.reset() }
     }
 
     private fun hideWarBar(e: CustomizeGuiOverlayEvent.BossEventProgress) = runCatching {
@@ -86,10 +91,8 @@ object ClientHooks {
 
     private fun tick() {
         val mc = Minecraft.getInstance()
-        while (open.consumeClick()) if (mc.screen == null) openApp()
         while (borders.consumeClick()) if (mc.screen == null) Borders.cycle()
         ClaimsStore.tick()
-        opening.tick()
         Borders.tick()
         if (mc.player != null && ++ticks % 1200 == 0 && mc.screen == null) ClaimsStore.watch(emptyList(), force = true)
     }

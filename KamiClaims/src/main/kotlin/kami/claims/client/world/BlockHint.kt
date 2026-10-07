@@ -6,6 +6,7 @@ import com.mojang.blaze3d.platform.InputConstants
 import kami.claims.client.ClientClaims
 import kami.claims.net.Denied
 import kami.libs.ui.style.Glyphs
+import kami.libs.ui.core.Dim
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.LevelRenderer
 import net.minecraft.client.renderer.RenderType
@@ -25,8 +26,6 @@ object BlockHint {
     private var deniedPos: BlockPos? = null
     private var deniedUntil = 0L
 
-    private fun dim() = Minecraft.getInstance().level?.dimension()?.location()?.toString() ?: ""
-
     fun target(): BlockPos? {
         val hit = Minecraft.getInstance().hitResult as? BlockHitResult ?: return null
         return if (hit.type == HitResult.Type.BLOCK) hit.blockPos else null
@@ -34,7 +33,7 @@ object BlockHint {
 
     fun hint(pos: BlockPos): Hint? {
         val player = Minecraft.getInstance().player ?: return null
-        val dim = dim()
+        val dim = Dim.current()
         if (!ClientClaims.active(dim)) return null
         if (pos == deniedPos && System.currentTimeMillis() < deniedUntil) return Hint.BLOCKED
         val holding = !player.mainHandItem.isEmpty

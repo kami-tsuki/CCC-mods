@@ -10,7 +10,7 @@ object Watchlist {
 
     fun load() {
         lists.clear()
-        Db.read { query("SELECT player, item, at FROM eco_watch ORDER BY at, item") { Triple(it.string("player"), it.string("item"), it.long("at")) } }
+        Db.read { query("SELECT player, item, at FROM eco_watch ORDER BY at, rowid") { Triple(it.string("player"), it.string("item"), it.long("at")) } }
             .forEach { (player, item, at) -> lists.getOrPut(player) { LinkedHashMap() }[item] = at }
     }
 

@@ -14,6 +14,7 @@ val Flow.label: String get() = tr("kami_libs.flow.${name.lowercase()}")
 
 fun tr(key: String, vararg args: Any): String {
     val pattern = Translations.lookup(key) ?: return key
+    if ('%' !in pattern) return pattern
     if (args.isEmpty()) return pattern.replace("%%", "%")
     return try {
         String.format(Format.locale, pattern, *args)

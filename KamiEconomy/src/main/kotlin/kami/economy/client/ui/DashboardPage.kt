@@ -1,5 +1,6 @@
 package kami.economy.client.ui
 
+import kami.economy.client.admin.MarketSection
 import kami.economy.net.Dash
 import kami.economy.net.Leader
 import kami.economy.net.Row
@@ -85,13 +86,13 @@ internal class DashboardPage(val app: MarketApp) : Page() {
             val line = Rect(inner.x, inner.y + i * ROW_H, inner.w, ROW_H)
             val key = "dash:$title:${row.item}"
             if (ui.hovering(line)) Draw.fill(ui.g, line, Palette.hover)
-            ui.itemIcon(line.x + 1, line.y + 1, app.stack(row.item), key)
+            ui.itemIcon(line.x + 1, line.y + 1, MarketSection.stack(row.item), key)
             val price = priceText(row.buy.toLong())
             val count = Format.number(units(row))
             Draw.text(ui.g, price, line.right - Draw.width(price) - 2, line.y + 5, Palette.money)
             val countX = line.right - 62 - Draw.width(count)
             Draw.text(ui.g, count, countX, line.y + 5, Palette.textMuted)
-            Draw.text(ui.g, Draw.fit(app.stack(row.item).hoverName.string, countX - line.x - ROW_H - 8), line.x + ROW_H + 3, line.y + 5)
+            Draw.text(ui.g, Draw.fit(MarketSection.stack(row.item).hoverName.string, countX - line.x - ROW_H - 8), line.x + ROW_H + 3, line.y + 5)
             if (ui.clickable("$key:go", line)) app.openItem(row.item)
         }
     }

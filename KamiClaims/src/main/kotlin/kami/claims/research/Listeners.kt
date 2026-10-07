@@ -44,13 +44,13 @@ object Listeners {
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { Buffs.forget(it.entity.uuid) }
         FORGE_BUS.addListener<BlockEvent.BreakEvent>(EventPriority.LOWEST) {
             val wasPlaced = Placed.remove(it.player.level().dimension().location().toString(), it.pos)
-            if (it.isCanceled || !countable(it.player) || wasPlaced) return@addListener
+            if (!countable(it.player) || wasPlaced) return@addListener
             report(it.player, Kinds.MINE, BuiltInRegistries.BLOCK.getKey(it.state.block).toString())
             if (TreeFelling.isTree(it.state)) (it.player as? ServerPlayer)?.let { p -> TreeFelling.broke(p, it.pos) { who -> report(who, Kinds.FELL, "") } }
         }
         FORGE_BUS.addListener<BlockEvent.EntityPlaceEvent>(EventPriority.LOWEST) {
             val player = it.entity as? ServerPlayer ?: return@addListener
-            if (it.isCanceled || !countable(player)) return@addListener
+            if (!countable(player)) return@addListener
             Placed.mark(player.level().dimension().location().toString(), it.pos)
             report(player, Kinds.PLACE, BuiltInRegistries.BLOCK.getKey(it.placedBlock.block).toString())
         }

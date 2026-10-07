@@ -4,6 +4,7 @@ import kami.claims.service.View
 import kami.libs.config.KamiConfig
 import kami.libs.config.Section
 import kami.libs.log.Log
+import kami.libs.ui.app.NavPrefs
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -35,9 +36,10 @@ class Prefs(
     var dismissed: MutableSet<String> = mutableSetOf(),
     var hiddenSteps: Boolean = false,
     var denialTips: Int = 0,
-    var collapsedGroups: MutableSet<String> = mutableSetOf(),
+    override var railCollapsed: Boolean = false,
+    override var collapsedGroups: MutableSet<String> = mutableSetOf(),
     var warDisplay: WarDisplay = WarDisplay.BOTH
-)
+) : NavPrefs
 
 object ClientClaims {
     private val config = KamiConfig(
@@ -67,6 +69,7 @@ object ClientClaims {
                     "dismissed" to "Alerts you dismissed.",
                     "hiddenSteps" to "The goals checklist is hidden.",
                     "denialTips" to "How often the border tip was shown after a blocked action.",
+                    "railCollapsed" to "The side bar is collapsed to icons.",
                     "collapsedGroups" to "Navigation groups you collapsed.",
                     "warDisplay" to "Where the war status shows: NONE, BOSS (boss bar), HUD or BOTH."
                 )
@@ -113,6 +116,10 @@ object ClientClaims {
     fun key(x: Int, z: Int) = (x.toLong() shl 32) or (z.toLong() and 0xFFFFFFFFL)
 
     fun at(dim: String, x: Int, z: Int): View.Entry? = maps.getOrNull(dims.indexOf(dim))?.get(key(x, z))
+
+    fun view(dim: String): Map<Long, View.Entry>? = maps.getOrNull(dims.indexOf(dim))
+
+    fun reservedView(dim: String): Set<Long>? = reserves.getOrNull(dims.indexOf(dim))
 
     fun reserved(dim: String, x: Int, z: Int) = reserves.getOrNull(dims.indexOf(dim))?.contains(key(x, z)) == true
 

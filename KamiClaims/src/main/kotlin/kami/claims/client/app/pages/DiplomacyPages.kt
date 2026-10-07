@@ -66,7 +66,7 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
         val detailW = if (app.compact) 0 else (r.w * 0.45).toInt().coerceIn(170, 240)
         val list = r.dropRight(detailW, if (detailW > 0) 8 else 0)
         ui.table(list, listOf(
-            Column<Line>(tr("kami_libs.common.country"), -1, sort = compareBy { it.name.lowercase() }) { _, c, l ->
+            Column<Line>(tr("kami_libs.common.country"), -1, sort = textOrder { it.name }) { _, c, l ->
                 Flags.draw(g, Rect(c.x, c.y + 2, 14, 10), l.color, l.flag.pattern, l.flag.emblem, l.flag.secondary)
                 Draw.text(g, Draw.fit(l.name, c.w - 18), c.x + 18, c.y + 3, Palette.text)
             },
@@ -187,7 +187,7 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
             return
         }
         ui.table(lists.dropBottom(26, 4), listOf(
-            Column<Mem>(tr("kami_claims.relations.col.player"), -1, sort = compareBy { it.name.lowercase() }) { _, c, m -> avatar(m.id, c.x, c.y + 1, 12, m.online); Draw.text(g, m.name, c.x + 16, c.y + 3, Palette.text) },
+            Column<Mem>(tr("kami_claims.relations.col.player"), -1, sort = textOrder { it.name }) { _, c, m -> avatar(m.id, c.x, c.y + 1, 12, m.online); Draw.text(g, m.name, c.x + 16, c.y + 3, Palette.text) },
             Column<Mem>(tr("kami_claims.relations.col.relation"), 120, sort = compareBy { it.rank }) { _, c, m ->
                 val look = Vocabulary.rank(m.rank)
                 val x = c.x + Draw.leadIcon(g, look.icon, c.x, c.centerY) + 2
@@ -238,7 +238,7 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
         if (tab == 0) {
             val rows = ClaimsStore.countries.filter { q.matches(it.name) }
             ui.table(list, listOf(
-                Column<Line>(tr("kami_libs.common.country"), -1, sort = compareBy { it.name.lowercase() }) { _, c, l ->
+                Column<Line>(tr("kami_libs.common.country"), -1, sort = textOrder { it.name }) { _, c, l ->
                     Flags.draw(g, Rect(c.x, c.y + 2, 14, 10), l.color, l.flag.pattern, l.flag.emblem, l.flag.secondary)
                     Draw.text(g, Draw.fit(l.name, c.w - 18), c.x + 18, c.y + 3, Palette.text)
                 },
@@ -255,7 +255,7 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
         } else {
             val rows = ClaimsStore.players.filter { q.matches(it.name) }
             ui.table(list, listOf(
-                Column<PlayerLine>(tr("kami_claims.relations.col.player"), -1, sort = compareBy { it.name.lowercase() }) { _, c, p -> avatar(p.id, c.x, c.y + 1, 12, p.online); Draw.text(g, p.name, c.x + 16, c.y + 3, Palette.text) },
+                Column<PlayerLine>(tr("kami_claims.relations.col.player"), -1, sort = textOrder { it.name }) { _, c, p -> avatar(p.id, c.x, c.y + 1, 12, p.online); Draw.text(g, p.name, c.x + 16, c.y + 3, Palette.text) },
                 Column.text<PlayerLine>(tr("kami_libs.common.country"), 110, color = { if (it.citizenships.none { c -> c.via.isEmpty() }) Palette.textMuted else Palette.money }) { p -> p.citizenships.firstOrNull { it.via.isEmpty() }?.country ?: "-" }
             ), rows, players, { it.id }, emptyText = tr("kami_claims.world.empty.players"), loading = loading(ClaimsStore.WORLD))
             ui.staleRows(list, stale(ClaimsStore.WORLD))

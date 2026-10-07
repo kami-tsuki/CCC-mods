@@ -35,6 +35,7 @@ object Stats {
 
     private val ids = ConcurrentHashMap<String, Int>()
     private val names = ConcurrentHashMap<Int, String>()
+    private val nextId = java.util.concurrent.atomic.AtomicInteger()
     private val pending = HashMap<Cell, Long>()
     private val gauges = LinkedHashMap<String, () -> Map<String, Long>>()
     private var sampled = 0L
@@ -46,6 +47,7 @@ object Stats {
         origin = null
         ids.clear(); names.clear(); synchronized(pending) { pending.clear() }
         Db.read { query("SELECT id, key FROM libs_key") { it.int("id") to it.string("key") } }.forEach { (i, k) -> ids[k] = i; names[i] = k }
+        nextId.set(names.keys.maxOrNull() ?: 0)
         sampled = System.currentTimeMillis()
     }
 
@@ -69,7 +71,10 @@ object Stats {
 
     fun tick() {
         val now = System.currentTimeMillis()
-        if (now - flushed >= 60_000) flush(now)
+        if (now - flushed >= 60_000) {
+            flush(now)
+            Db.backup()
+        }
         if (now - sampled < LibConfig.s.statsSampleSeconds * 1000L) return
         sampled = now
         synchronized(gauges) { gauges.toList() }.filter { on(it.first) }.forEach { (key, sample) ->
@@ -93,8 +98,14 @@ object Stats {
         else -> 7 * DAY_MS
     }
 
-    fun first(): Long = origin ?: Db.read { one("SELECT MIN(at) m FROM libs_event") { it.longOrNull("m") } }.also { origin = it } ?: System.currentTimeMillis()
+    fun first(): Long = origin ?: Db.read(fresh = false) {
+        one("SELECT value FROM libs_meta WHERE key = ?", ORIGIN) { it.long("value") }
+            ?: one("SELECT MIN(a) m FROM (SELECT MIN(at) a FROM libs_event UNION ALL SELECT MIN(h) * ? FROM libs_count)", HOUR_MS) { it.longOrNull("m") }?.also { found ->
+                Db.write { exec("INSERT OR IGNORE INTO libs_meta (key, value) VALUES (?, ?)", ORIGIN, found.toString()) }
+            }
+    }.also { origin = it } ?: System.currentTimeMillis()
 
+    private const val ORIGIN = "stats.origin"
     private const val FILTER = " AND (? IS NULL OR s = ?) AND (? IS NULL OR o = ?)"
     private const val COUNTED = "SELECT (h / ?) * ? b, SUM(n) v FROM libs_count WHERE k = ? AND h >= ?$FILTER GROUP BY b ORDER BY b"
     private const val TOTAL = "SELECT COALESCE(SUM(n), 0) v FROM libs_count WHERE k = ? AND h >= ?$FILTER"
@@ -107,7 +118,7 @@ object Stats {
         val k = ids[key] ?: return emptyList()
         val s = subject?.let { ids[it] ?: return emptyList() }
         val o = obj?.let { ids[it] ?: return emptyList() }
-        return Db.read {
+        return Db.read(fresh = false) {
             query(
 agg.sql, *args(bucket, bucket, k, from ?: 0L, s = s, o = o)) { Point(it.long("b"), it.double("v")) }
         }
@@ -119,7 +130,7 @@ agg.sql, *args(bucket, bucket, k, from ?: 0L, s = s, o = o)) { Point(it.long("b"
         val s = subject?.let { ids[it] ?: return emptyList() }
         val o = obj?.let { ids[it] ?: return emptyList() }
         val hours = bucket / HOUR_MS
-        return Db.read {
+        return Db.read(fresh = false) {
             query(
 COUNTED, *args(hours, hours, k, (from ?: 0L) / HOUR_MS, s = s, o = o)) { Point(it.long("b") * HOUR_MS, it.double("v")) }
         }
@@ -130,7 +141,7 @@ COUNTED, *args(hours, hours, k, (from ?: 0L) / HOUR_MS, s = s, o = o)) { Point(i
         val k = ids[key] ?: return 0
         val s = subject?.let { ids[it] ?: return 0 }
         val o = obj?.let { ids[it] ?: return 0 }
-        return Db.read {
+        return Db.read(fresh = false) {
             one(TOTAL, *args(k, (from ?: 0L) / HOUR_MS, s = s, o = o)) { it.long("v") }
         } ?: 0
     }
@@ -140,7 +151,7 @@ COUNTED, *args(hours, hours, k, (from ?: 0L) / HOUR_MS, s = s, o = o)) { Point(i
         val k = ids[key] ?: return 0
         val o = obj?.let { ids[it] ?: return 0 }
         val since = from ?: 0L
-        return Db.read {
+        return Db.read(fresh = false) {
             one(
                 "SELECT COUNT(*) v FROM (SELECT s FROM libs_event WHERE k = ? AND at >= ? AND (? IS NULL OR o = ?) UNION SELECT s FROM libs_count WHERE k = ? AND h >= ? AND (? IS NULL OR o = ?))",
                 k, since, o, o, k, since / HOUR_MS, o, o
@@ -153,7 +164,7 @@ COUNTED, *args(hours, hours, k, (from ?: 0L) / HOUR_MS, s = s, o = o)) { Point(i
         val k = ids[key] ?: return emptyList()
         val s = subject?.let { ids[it] ?: return emptyList() }
         val o = obj?.let { ids[it] ?: return emptyList() }
-        return Db.read {
+        return Db.read(fresh = false) {
             query(if (by == "o") TOP_O else TOP_S, *args(k, (from ?: 0L) / HOUR_MS, s = s, o = o, tail = listOf(limit))) { Top(names[it.int("g")].orEmpty(), it.long("v")) }
         }
     }
@@ -161,7 +172,7 @@ COUNTED, *args(hours, hours, k, (from ?: 0L) / HOUR_MS, s = s, o = o)) { Point(i
     fun events(key: String, from: Long?, subject: String? = null, limit: Int = 100): List<Triple<Long, String, Long>> {
         val k = ids[key] ?: return emptyList()
         val s = subject?.let { ids[it] ?: return emptyList() }
-        return Db.read {
+        return Db.read(fresh = false) {
             query(
 "SELECT at, o, v FROM libs_event WHERE k = ? AND at >= ? AND (? IS NULL OR s = ?) ORDER BY at DESC LIMIT ?", k, from ?: 0L, s, s, limit) { Triple(it.long("at"), names[it.int("o")].orEmpty(), it.long("v")) }
         }
@@ -169,13 +180,13 @@ COUNTED, *args(hours, hours, k, (from ?: 0L) / HOUR_MS, s = s, o = o)) { Point(i
 
     fun latest(key: String): Map<String, Long> {
         val k = ids[key] ?: return emptyMap()
-        return Db.read {
+        return Db.read(fresh = false) {
             query("SELECT s, v FROM libs_event WHERE k = ? AND at = (SELECT MAX(at) FROM libs_event WHERE k = ?)", k, k) { names[it.int("s")].orEmpty() to it.long("v") }
         }.toMap()
     }
 
     fun id(key: String): Int = ids[key] ?: synchronized(ids) {
-        ids[key] ?: ((names.keys.maxOrNull() ?: 0) + 1).also { i ->
+        ids[key] ?: nextId.incrementAndGet().also { i ->
             names[i] = key
             ids[key] = i
             Db.write { exec("INSERT INTO libs_key (id, key) VALUES (?, ?)", i, key) }

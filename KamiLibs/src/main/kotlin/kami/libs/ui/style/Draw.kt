@@ -3,7 +3,6 @@ package kami.libs.ui.style
 import com.mojang.blaze3d.systems.RenderSystem
 import kami.libs.KamiLibs
 import kami.libs.ui.core.Rect
-import kami.libs.ui.core.UiScale
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
 import net.minecraft.client.gui.GuiGraphics
@@ -172,7 +171,19 @@ object Draw {
         return Component.literal(body).withStyle(Style.EMPTY.withBold(style.bold))
     }
 
-    fun width(text: String, style: TextStyle = TextStyle.BODY) = font.width(styled(text, style)) * style.scale
+    private fun plain(style: TextStyle) = !style.bold && !style.upper
+
+    private const val WIDTH_CACHE = 1024
+    private val widths = Array(4) { object : LinkedHashMap<String, Int>(256, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Int>) = size > WIDTH_CACHE
+    } }
+    fun clearWidths() = widths.forEach { it.clear() }
+
+    fun width(text: String, style: TextStyle = TextStyle.BODY): Int {
+        val cache = widths[(if (style.bold) 1 else 0) + (if (style.upper) 2 else 0)]
+        val base = cache.getOrPut(text) { if (plain(style)) font.width(text) else font.width(styled(text, style)) }
+        return base * style.scale
+    }
 
     private fun invisible(color: Int) = color ushr 24 < Palette.MIN_VISIBLE_ALPHA
 
@@ -182,16 +193,20 @@ object Draw {
         if (invisible(color)) x + font.width(text) else g.drawString(font, text, x, y, color, shadow).also { hover?.invoke(g, text, x, y, it - x) }
 
     fun text(g: GuiGraphics, text: String, x: Int, y: Int, style: TextStyle, color: Int = style.color()): Int {
-        val c = styled(text, style)
-        if (invisible(color)) return x + font.width(c) * style.scale
-        hover?.invoke(g, text, x, y, font.width(c) * style.scale)
-        if (style.scale == 1) return g.drawString(font, c, x, y, color, style.shadow)
-        g.pose().pushPose()
-        g.pose().translate(x.toFloat(), y.toFloat(), 0f)
-        g.pose().scale(style.scale.toFloat(), style.scale.toFloat(), 1f)
-        g.drawString(font, c, 0, 0, color, style.shadow)
-        g.pose().popPose()
-        return x + font.width(c) * style.scale
+        val w = width(text, style)
+        if (invisible(color)) return x + w
+        hover?.invoke(g, text, x, y, w)
+        val scaled = style.scale != 1
+        if (scaled) {
+            g.pose().pushPose()
+            g.pose().translate(x.toFloat(), y.toFloat(), 0f)
+            g.pose().scale(style.scale.toFloat(), style.scale.toFloat(), 1f)
+        }
+        val dx = if (scaled) 0 else x
+        val dy = if (scaled) 0 else y
+        if (plain(style)) g.drawString(font, text, dx, dy, color, style.shadow) else g.drawString(font, styled(text, style), dx, dy, color, style.shadow)
+        if (scaled) g.pose().popPose()
+        return x + w
     }
 
     fun component(g: GuiGraphics, c: Component, x: Int, y: Int, color: Int = Palette.text) = g.drawString(font, c, x, y, color, false)
@@ -204,9 +219,13 @@ object Draw {
 
     fun fit(text: String, width: Int, style: TextStyle = TextStyle.BODY): String {
         if (width(text, style) <= width) return text
-        var t = text
-        while (t.isNotEmpty() && width("$t…", style) > width) t = t.dropLast(1)
-        return "$t…"
+        var lo = 0
+        var hi = text.length
+        while (lo < hi) {
+            val mid = (lo + hi + 1) ushr 1
+            if (width(text.substring(0, mid) + "…", style) <= width) lo = mid else hi = mid - 1
+        }
+        return text.substring(0, lo) + "…"
     }
 
     fun wrap(text: String, width: Int): List<FormattedCharSequence> = font.split(Component.literal(text), max(10, width))
@@ -260,17 +279,14 @@ object Draw {
 
     fun hatch(g: GuiGraphics, r: Rect, color: Int, spacing: Int = 4, phase: Int = 0) {
         if (r.isEmpty) return
-        UiScale.enableScissor(g, r)
         var k = -r.h + (phase % spacing)
         while (k < r.w) {
-            for (i in 0 until r.h) {
+            for (i in maxOf(0, -k)..minOf(r.h - 1, r.w - 1 - k)) {
                 val x = r.x + k + i
-                if (x >= r.x && x < r.right) g.fill(x, r.bottom - 1 - i, x + 1, r.bottom - i, color)
+                g.fill(x, r.bottom - 1 - i, x + 1, r.bottom - i, color)
             }
             k += spacing
         }
-        g.flush()
-        g.disableScissor()
     }
 
     fun head(g: GuiGraphics, id: String, x: Int, y: Int, size: Int) {

@@ -9,6 +9,7 @@ import kami.economy.world.acceptsCoins
 import kami.economy.world.claimant
 import kami.economy.world.coinUseAllowed
 import kami.libs.db.Db
+import kami.libs.db.SavePoint
 import java.util.UUID
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -71,9 +72,10 @@ class CoinRulesTest {
     }
 
     @Test
-    fun keptCoinsAreWrittenImmediately() {
+    fun keptCoinsAreWrittenAtTheSavePoint() {
         val id = UUID.randomUUID()
         fun stored(): Int? {
+            SavePoint.run()
             Db.flush()
             return Db.read { one("SELECT count FROM eco_kept_coins WHERE uuid = ?", id.toString()) { it.int("count") } }
         }

@@ -319,7 +319,7 @@ class PlotLawPage(app: ClaimsApp) : ClaimsPage(app) {
                 cats.forEachIndexed { i, cat ->
                     val row = Rect(col.x, y + 2 + i * ROW_H, col.w, ROW_H - 2)
                     OfferRows.draw(ui, row, cat, look.labels.getValue(cat), look.locks[cat], open[cat] == true, offerEdit, offerReason, 104, "plotlaw:$cat") { field ->
-                        ui.numberField(field, rents.getValue(cat), 0, info.maxRent.toLong(), unit = "◎", enabled = offerEdit && look.locks[cat] == null, key = "plotlaw:rent:$cat")
+                        ui.numberField(field, rents.getValue(cat), 0, info.maxRent.toLong(), unit = Format.COIN, enabled = offerEdit && look.locks[cat] == null, key = "plotlaw:rent:$cat")
                     }?.let { open[cat] = it }
                 }
                 if (!offerEdit) ui.tooltip("plotlaw:tip", Rect(col.x, y, col.w, cats.size * ROW_H), offerReason)
@@ -333,7 +333,7 @@ class PlotLawPage(app: ClaimsApp) : ClaimsPage(app) {
             if (rentExpanded) {
                 val cols = Rect(col.x, y + 2, col.w, 30).columns(2, 8)
                 ui.fieldLabel(cols[0].top(9), tr("kami_claims.law.debt_limit"))
-                ui.numberField(Rect(cols[0].x, cols[0].y + 10, cols[0].w, CONTROL_H), debtLimit, 0, 100_000, unit = "◎", enabled = limitEdit, key = "debtlimit")
+                ui.numberField(Rect(cols[0].x, cols[0].y + 10, cols[0].w, CONTROL_H), debtLimit, 0, 100_000, unit = Format.COIN, enabled = limitEdit, key = "debtlimit")
                 ui.fieldLabel(cols[1].top(9), tr("kami_claims.law.move_out"))
                 ui.numberField(Rect(cols[1].x, cols[1].y + 10, cols[1].w, CONTROL_H), moveOut, 1, 30, enabled = limitEdit, key = "moveout")
                 if (!limitEdit) ui.tooltip("plotlaw:tip:law", Rect(col.x, y, col.w, RENT_H), lock("tax"))

@@ -2,6 +2,7 @@ package kami.claims.client.world
 
 import kami.claims.client.BorderMode
 import kami.claims.client.ClientClaims
+import kami.libs.ui.core.Dim
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.particles.DustParticleOptions
@@ -19,6 +20,7 @@ object Borders {
     class Edge(val x0: Int, val z0: Int, val x1: Int, val z1: Int, val outside: Int, val inside: Int, val color: Int, val blocked: Boolean)
 
     private const val UNCLAIMED = 0x8C7A5B
+    private val red = DustParticleOptions(Vector3f(0.95f, 0.33f, 0.35f), 0.7f)
     private var tick = 0
     private var lastRev = -1
     private var revChangedAt = 0L
@@ -39,15 +41,32 @@ object Borders {
         Minecraft.getInstance().gui.setOverlayMessage(Component.translatable("kami_claims.border_mode.toast", Component.translatable("kami_claims.border_mode.$mode"), Component.translatable("kami_claims.border_mode.$mode.desc")), false)
     }
 
-    private fun dim() = Minecraft.getInstance().level?.dimension()?.location()?.toString() ?: ""
+    private val cached = HashMap<Int, List<Edge>>()
+    private var cacheX = 0
+    private var cacheZ = 0
+    private var cacheSecond = 0L
+    private var cacheDim = ""
+    private var cacheRev = -1
 
     fun edges(radius: Int): List<Edge> {
-        val mc = Minecraft.getInstance()
-        val player = mc.player ?: return emptyList()
-        val dim = dim()
+        val player = Minecraft.getInstance().player ?: return emptyList()
+        val dim = Dim.current()
         if (!ClientClaims.active(dim)) return emptyList()
         val px = player.blockX
         val pz = player.blockZ
+        val second = System.currentTimeMillis() shr 10
+        if (px != cacheX || pz != cacheZ || second != cacheSecond || dim != cacheDim || ClientClaims.rev != cacheRev) {
+            cached.clear()
+            cacheX = px
+            cacheZ = pz
+            cacheSecond = second
+            cacheDim = dim
+            cacheRev = ClientClaims.rev
+        }
+        return cached.getOrPut(radius) { compute(dim, px, pz, radius) }
+    }
+
+    private fun compute(dim: String, px: Int, pz: Int, radius: Int): List<Edge> {
         val here = AccessGuess.owner(dim, px shr 4, pz shr 4)
         val out = ArrayList<Edge>()
         val cr = radius / 16 + 1
@@ -81,7 +100,8 @@ object Borders {
 
     fun nearest(radius: Int = 8): Pair<Edge, Int>? {
         val player = Minecraft.getInstance().player ?: return null
-        return edges(radius).map { it to distance(it, player.blockX, player.blockZ) }.minByOrNull { it.second }
+        val edge = edges(radius).minByOrNull { distance(it, player.blockX, player.blockZ) } ?: return null
+        return edge to distance(edge, player.blockX, player.blockZ)
     }
 
     private fun aimingAcross(): Boolean {
@@ -89,7 +109,7 @@ object Borders {
         val player = mc.player ?: return false
         val hit = mc.hitResult as? BlockHitResult ?: return false
         if (hit.type != HitResult.Type.BLOCK || player.mainHandItem.isEmpty) return false
-        val dim = dim()
+        val dim = Dim.current()
         return AccessGuess.owner(dim, hit.blockPos.x shr 4, hit.blockPos.z shr 4) != AccessGuess.owner(dim, player.blockX shr 4, player.blockZ shr 4)
     }
 
@@ -141,7 +161,6 @@ object Borders {
         val level = Minecraft.getInstance().level ?: return 0
         val rgb = if (danger) 0xF2555A else e.color
         val base = Vector3f(((rgb shr 16) and 255) / 255f, ((rgb shr 8) and 255) / 255f, (rgb and 255) / 255f)
-        val red = DustParticleOptions(Vector3f(0.95f, 0.33f, 0.35f), 0.7f)
         val dust = DustParticleOptions(base, if (danger) 0.9f else 0.6f)
         var spent = 0
         val horizontal = e.z0 == e.z1

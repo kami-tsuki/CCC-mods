@@ -9,7 +9,11 @@ import java.util.UUID
 enum class Flow {
     MARKET_BUY, MARKET_SELL, AUCTION_BUY, AUCTION_SELL, REFUND, FEE, RENT, WAGES, TREASURY, OTHER,
     SERVER_SALE, SERVER_PURCHASE, TAX, UPKEEP, CLAIM, RESEARCH, LOAN, REWARD, WAR, DISBAND, ADMIN, ROUNDING, RECOVERY,
-    COIN_DEPOSIT, COIN_WITHDRAW, VENDOR, UNEXPLAINED, TRANSFER
+    COIN_DEPOSIT, COIN_WITHDRAW, VENDOR, UNEXPLAINED, TRANSFER;
+
+    companion object {
+        fun named(name: String) = entries.firstOrNull { it.name == name } ?: OTHER
+    }
 }
 
 @Serializable
@@ -45,6 +49,8 @@ object Statement {
     private const val KEEP_MOVEMENTS = 30
     private const val MAX_MOVEMENTS = 500
     private const val KEEP_DAYS = 90
+    private const val TRIM_EVERY = 25
+    private val recorded = java.util.concurrent.ConcurrentHashMap<String, Int>()
 
     const val NOTE = "note:"
 
@@ -57,12 +63,16 @@ object Statement {
         val id = player.toString()
         val other = Party.parse(counterparty)
         val note = if (item.startsWith(NOTE)) item else listOfNotNull(counterparty.takeIf { other == null && it.isNotEmpty() }, item.takeIf { it.isNotEmpty() }?.let { if (qty > 0) "$qty x $it" else it }).joinToString(" | ")
+        val trim = recorded.compute(id) { _, a -> if (a == null || a + 1 >= TRIM_EVERY) 0 else a + 1 } == 0
+        countMoney(PlayerParty(player), amount, flow)
         Db.write {
             journalLeg(now, PlayerParty(player), amount, flow, other, note, "")
             exec("INSERT INTO libs_statement (player, at, amount, flow, counterparty, item, qty) VALUES (?, ?, ?, ?, ?, ?, ?)", id, now, amount, flow.name, counterparty, item, qty)
-            exec("DELETE FROM libs_statement WHERE player = ? AND at < ?", id, now - KEEP_MOVEMENTS * DAY_MS)
-            exec("DELETE FROM libs_statement WHERE player = ? AND id NOT IN (SELECT id FROM libs_statement WHERE player = ? ORDER BY id DESC LIMIT ?)", id, id, MAX_MOVEMENTS)
-            exec("DELETE FROM libs_statement_day WHERE player = ? AND day <= ?", id, today - KEEP_DAYS)
+            if (trim) {
+                exec("DELETE FROM libs_statement WHERE player = ? AND at < ?", id, now - KEEP_MOVEMENTS * DAY_MS)
+                exec("DELETE FROM libs_statement WHERE player = ? AND id NOT IN (SELECT id FROM libs_statement WHERE player = ? ORDER BY id DESC LIMIT ?)", id, id, MAX_MOVEMENTS)
+                exec("DELETE FROM libs_statement_day WHERE player = ? AND day <= ?", id, today - KEEP_DAYS)
+            }
             exec(
                 "INSERT INTO libs_statement_day (player, day, income, expense) VALUES (?, ?, ?, ?) ON CONFLICT(player, day) DO UPDATE SET income = income + excluded.income, expense = expense + excluded.expense",
                 id, today, maxOf(amount, 0L), maxOf(-amount, 0L)
@@ -93,8 +103,8 @@ object Statement {
     }
 
     internal fun Session.movements(player: String): List<Movement> =
-        query("SELECT at, amount, flow, counterparty, item, qty FROM libs_statement WHERE player = ? ORDER BY id DESC", player) {
-            Movement(it.long("at"), it.long("amount"), Flow.valueOf(it.string("flow")), it.string("counterparty"), it.string("item"), it.int("qty"))
+        query("SELECT at, amount, flow, counterparty, item, qty FROM libs_statement WHERE player = ? ORDER BY id DESC LIMIT ?", player, MAX_MOVEMENTS) {
+            Movement(it.long("at"), it.long("amount"), Flow.named(it.string("flow")), it.string("counterparty"), it.string("item"), it.int("qty"))
         }
 
     internal fun Session.days(player: String): List<DayTotal> =

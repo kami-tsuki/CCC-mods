@@ -157,7 +157,7 @@ fun Ui.textField(
         tooltip("$key:clear", c, tr("kami_libs.field.clear.tooltip"))
         if (pressed(c) != null) { state.set(""); changed = true }
     }
-    if (invalid) tooltip(key, r) { Tip.disabled(state.error!!) }
+    state.error?.takeIf { invalid }?.let { e -> tooltip(key, r) { Tip.disabled(e) } }
     val blurred = wasFocused && focus != id
     if (blurred) state.touched = true
     return FieldResult(changed, submitted, blurred)

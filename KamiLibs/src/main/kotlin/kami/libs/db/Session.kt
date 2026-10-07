@@ -1,8 +1,11 @@
 package kami.libs.db
 
+import kami.libs.log.Log
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
+
+private val log = Log.of("library")
 
 class Session internal constructor(private val connection: Connection) {
     fun exec(sql: String, vararg params: Any?) {
@@ -29,7 +32,10 @@ class Session internal constructor(private val connection: Connection) {
     private fun <R> prepared(sql: String, params: List<Any?>, run: (PreparedStatement) -> R): R =
         connection.prepareStatement(sql).use { bind(it, params); run(it) }
 
-    private fun bind(s: PreparedStatement, values: List<Any?>) = values.forEachIndexed { i, v -> s.setObject(i + 1, v) }
+    private fun bind(s: PreparedStatement, values: List<Any?>) = values.forEachIndexed { i, v ->
+        if (v is Double && !v.isFinite()) log.warn("Non-finite number bound as 0 in {}", s)
+        s.setObject(i + 1, if (v is Double && !v.isFinite()) 0.0 else v)
+    }
 }
 
 class Row internal constructor(private val rs: ResultSet) {

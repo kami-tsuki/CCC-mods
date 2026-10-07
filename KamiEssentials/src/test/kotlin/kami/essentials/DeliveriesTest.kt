@@ -3,6 +3,7 @@ package kami.essentials
 import kami.essentials.trade.Deliveries
 import kami.essentials.trade.away
 import kami.libs.db.Db
+import kami.libs.db.SavePoint
 import java.nio.file.Files
 import java.util.UUID
 import kotlin.test.Test
@@ -28,11 +29,13 @@ class DeliveriesTest {
             Db.open(db)
             Deliveries.load()
             Deliveries.put(id, listOf("{a}", "{b}"))
+            SavePoint.run()
             Db.close()
             Db.open(db)
             Deliveries.load()
             assertEquals(listOf("{a}", "{b}"), Deliveries.take(id))
             assertEquals(emptyList(), Deliveries.take(id))
+            SavePoint.run()
             Db.close()
             Db.open(db)
             Deliveries.load()

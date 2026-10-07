@@ -30,8 +30,9 @@ fun Ui.filterBar(r: Rect, key: String, content: (Rect) -> Unit): Rect {
 }
 
 fun Ui.property(r: Rect, label: String, value: String, color: Int = Palette.text, copy: Boolean = false, tip: String? = null, key: Any = "prop:$label"): Rect {
-    Draw.text(g, label.uppercase(), r.x, r.y + 1, Palette.textMuted)
-    val labelW = Draw.width(label.uppercase()) + 4
+    val caption = label.uppercase()
+    Draw.text(g, caption, r.x, r.y + 1, Palette.textMuted)
+    val labelW = Draw.width(caption) + 4
     val copyW = if (copy) 14 else 0
     val shown = Draw.fit(value, r.w - labelW - copyW - 4)
     val vw = Draw.width(shown)
@@ -90,11 +91,13 @@ class KpiTile(
     val trend: Trend? = null, val spark: List<Long>? = null, val flashValue: Long? = null, val tip: Tip? = null, val onClick: (() -> Unit)? = null
 )
 
+fun Ui.kpiTile(r: Rect, t: KpiTile, key: Any = "kpi") {
+    if (statTile(r, t.label, t.value, t.icon, t.color, t.sub, t.trend, t.spark, t.flashValue, t.tip, key = "$key:${t.label}")) t.onClick?.invoke()
+}
+
 fun Ui.kpiRow(r: Rect, tiles: List<KpiTile>, gap: Int = 6, key: Any = "kpi") {
     val cells = r.columns(tiles.size, gap)
-    tiles.forEachIndexed { i, t ->
-        if (statTile(cells[i], t.label, t.value, t.icon, t.color, t.sub, t.trend, t.spark, t.flashValue, t.tip, key = "$key:${t.label}")) t.onClick?.invoke()
-    }
+    tiles.forEachIndexed { i, t -> kpiTile(cells[i], t, key) }
 }
 
 fun Ui.progress(r: Rect, fraction: Double, color: Int = Palette.brass, label: String? = null) {
@@ -145,7 +148,7 @@ fun Ui.statusPill(x: Int, y: Int, label: String, severity: Severity, tip: String
 }
 
 fun Ui.money(x: Int, y: Int, amount: Long, signed: Boolean = false, color: Int? = null): Int {
-    val text = if (signed) Format.signed(amount).substringBefore(" ") else Format.number(amount)
+    val text = if (signed) Format.signed(amount) else Format.number(amount)
     val c = color ?: when {
         signed && amount > 0 -> Palette.success
         signed && amount < 0 -> Palette.danger

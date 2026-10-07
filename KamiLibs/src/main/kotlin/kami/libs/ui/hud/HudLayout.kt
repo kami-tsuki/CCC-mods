@@ -1,6 +1,7 @@
 package kami.libs.ui.hud
 
 import kami.libs.config.Configs
+import kami.libs.config.writeAtomic
 import kami.libs.log.Log
 import kami.libs.ui.core.Rect
 import kami.libs.ui.style.Palette
@@ -70,7 +71,7 @@ object HudLayout {
     }
 
     fun save() {
-        runCatching { Files.writeString(file, json.encodeToString(HudData.serializer(), data)) }
+        runCatching { writeAtomic(file, json.encodeToString(HudData.serializer(), data)) }
             .onFailure { Log.of("libs").warn("Could not save hud.json: {}", it.message) }
     }
 

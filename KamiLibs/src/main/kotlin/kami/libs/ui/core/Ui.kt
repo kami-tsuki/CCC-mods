@@ -87,7 +87,13 @@ class Ui {
     private val focusOrder = ArrayList<String>()
     private var escapes = listOf<Pair<Int, () -> Unit>>()
     private val nextEscapes = ArrayList<Pair<Int, () -> Unit>>()
-    private val anchorsNext = HashMap<String, Rect>()
+    private var anchorsNext = HashMap<String, Rect>()
+    private var anchorsLive = HashMap<String, Rect>()
+    private var rawMouseX = 0
+    private var rawMouseY = 0
+    private val numberHook: (GuiGraphics, String, Int, Int, Int) -> Unit = { gg, text, x, y, w -> numberHover(gg, text, x, y, w) }
+    private val corner = Vector3f()
+    private val opposite = Vector3f()
     var anchors: Map<String, Rect> = emptyMap()
         private set
     private var tip: Tip? = null
@@ -114,21 +120,7 @@ class Ui {
     @Suppress("UNCHECKED_CAST")
     fun <T : Any> remember(key: Any, init: () -> T): T = states.getOrPut(id(key), init) as T
 
-    class FilterCache<T>(var inputs: Any? = null, var result: List<T> = emptyList())
-
-    fun <T> filtered(key: Any, inputs: Any, compute: () -> List<T>): List<T> {
-        val cache = remember(key) { FilterCache<T>() }
-        if (!sameInputs(cache.inputs, inputs)) { cache.inputs = inputs; cache.result = compute() }
-        return cache.result
-    }
-
-    private fun sameInputs(a: Any?, b: Any?): Boolean = when {
-        a === b -> true
-        a is List<*> && b is List<*> -> a.size == b.size && a.indices.all { sameInputs(a[it], b[it]) }
-        a is Set<*> && b is Set<*> || a is Map<*, *> && b is Map<*, *> -> a == b
-        a is Collection<*> || b is Collection<*> || a is Map<*, *> || b is Map<*, *> -> false
-        else -> a == b
-    }
+    fun <T> filtered(key: Any, inputs: Any, compute: () -> List<T>): List<T> = remember(key) { Memo() }.of(inputs, build = compute)
 
     fun forget(prefix: String) {
         states.keys.removeIf { it.startsWith(prefix) }
@@ -156,7 +148,9 @@ class Ui {
         nextBlockers = ArrayList()
         if (input.presses.isNotEmpty()) keyboardMode = false
         numberTip = null
-        Draw.hover = { gg, text, x, y, w -> numberHover(gg, text, x, y, w, mx, my) }
+        rawMouseX = mx
+        rawMouseY = my
+        Draw.hover = numberHook
         g.pose().pushPose()
         g.pose().scale(scale, scale, 1f)
         try {
@@ -171,8 +165,11 @@ class Ui {
         }
         handleTabbing()
         blockers = nextBlockers
-        escapes = nextEscapes.sortedByDescending { it.first }
-        anchors = HashMap(anchorsNext)
+        escapes = if (nextEscapes.isEmpty()) emptyList() else nextEscapes.sortedByDescending { it.first }
+        val swap = anchorsLive
+        anchorsLive = anchorsNext
+        anchorsNext = swap
+        anchors = anchorsLive
         applyCursor()
         typing = typingNext
         typingNext = false
@@ -225,8 +222,6 @@ class Ui {
         return over
     }
 
-    fun hoverTime(key: Any): Long = if (hovered == id(key)) wallMillis - hoverSince else 0
-
     fun pressed(r: Rect, button: Int = 0): Click? =
         input.presses.firstOrNull { !it.consumed && it.button == button && r.contains(it.x, it.y) && canHit(it.x, it.y) }?.also { it.consumed = true }
 
@@ -275,11 +270,12 @@ class Ui {
         }
     }
 
-    private fun numberHover(g: GuiGraphics, text: String, x: Int, y: Int, w: Int, mx: Int, my: Int) {
+    private fun numberHover(g: GuiGraphics, text: String, x: Int, y: Int, w: Int) {
+        if (!Format.hasCompacts || numberTip != null || text.none { it.isDigit() }) return
         val m = g.pose().last().pose()
-        val a = m.transformPosition(Vector3f(x.toFloat(), y.toFloat(), 0f))
-        val b = m.transformPosition(Vector3f((x + w).toFloat(), (y + 9).toFloat(), 0f))
-        if (mx < a.x || mx >= b.x || my < a.y || my >= b.y || !g.containsPointInScissor(mx, my)) return
+        m.transformPosition(corner.set(x.toFloat(), y.toFloat(), 0f))
+        m.transformPosition(opposite.set((x + w).toFloat(), (y + 9).toFloat(), 0f))
+        if (rawMouseX < corner.x || rawMouseX >= opposite.x || rawMouseY < corner.y || rawMouseY >= opposite.y || !g.containsPointInScissor(rawMouseX, rawMouseY)) return
         Format.expand(text)?.let { numberTip = it }
     }
 

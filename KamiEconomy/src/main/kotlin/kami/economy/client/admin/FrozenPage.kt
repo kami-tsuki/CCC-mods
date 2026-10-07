@@ -21,6 +21,7 @@ import kami.libs.ui.text.tr
 import kami.libs.ui.text.trOr
 import kami.libs.ui.widget.Align
 import kami.libs.ui.widget.Column
+import kami.libs.ui.widget.textOrder
 import kami.libs.ui.widget.TableState
 import kami.libs.ui.widget.filterBar
 import kami.libs.ui.widget.iconButton
@@ -43,7 +44,7 @@ internal class FrozenPage(private val app: KamiApp) : Page() {
 
     private fun columns(lock: String?) = listOf(
         tipColumn<FrozenRow>(tr("kami_economy.admin.col.type"), 84, compareBy { it.id }, { Tip("#${it.id} ${it.typeText()}", listOf(it.stateText() to Palette.textSecondary)) }) { it.typeText() },
-        Column<FrozenRow>(tr("kami_economy.admin.col.owner"), 64, sort = compareBy { it.actorName.lowercase() }) { _, r, row ->
+        Column<FrozenRow>(tr("kami_economy.admin.col.owner"), 64, sort = textOrder { it.actorName }) { _, r, row ->
             if (row.actorName.isEmpty()) secret(r, row.actor, "frozen-owner:${row.actor}") else Draw.text(g, Draw.fit(row.actorName, r.w), r.x, r.y + (r.h - 8) / 2, Palette.text)
         },
         itemColumn<FrozenRow>(tr("kami_libs.common.item"), { it.item }),

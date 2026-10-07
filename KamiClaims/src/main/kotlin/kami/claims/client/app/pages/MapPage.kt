@@ -26,6 +26,7 @@ import kami.libs.ui.app.Callout
 import kami.libs.ui.app.Route
 import kami.libs.ui.app.Personal
 import kami.libs.ui.core.Cursor
+import kami.libs.ui.core.Dim
 import kami.libs.ui.core.Flow
 import kami.libs.ui.core.Memo
 import kami.libs.ui.core.Rect
@@ -94,8 +95,10 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
     private val tenantRent = Memo()
     private val rentText = Memo()
     private val debtText = Memo()
+    private val outcomeIndex = Memo()
+    private val outcomeGroups = Memo()
 
-    private val dim get() = MiniMap.dim()
+    private val dim get() = Dim.current()
     private val mode get() = MapMode.of(ClientClaims.prefs.mapMode)
     private fun previewKind() = when (plan) { Plan.CLAIM -> "claim"; Plan.RETYPE -> "type"; Plan.UNCLAIM -> "unclaim" }
 
@@ -312,7 +315,7 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
     private fun overlays(ui: Ui, dragStart: ChunkPoint?, dragging: ChunkPoint?) {
         val g = ui.g
         val preview = previewFor()
-        val outcomes = preview?.cells?.associateBy { key(it.x, it.z) } ?: emptyMap()
+        val outcomes = outcomeIndex.of(preview) { preview?.cells?.associateBy { key(it.x, it.z) } ?: emptyMap() }
         val phase = if (ui.reduceMotion) 0 else (ui.wallMillis / 90 % 1000).toInt()
         val typeColor = Vocabulary.type(planType).color
         selection.forEach { k ->
@@ -653,7 +656,7 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
             return
         }
         previewWaitSince = 0L
-        val byOutcome = preview.cells.groupBy { it.outcome }
+        val byOutcome = outcomeGroups.of(preview) { preview.cells.groupBy { it.outcome } }
         val ready = (byOutcome["CLAIM"]?.size ?: 0) + (byOutcome["FREE"]?.size ?: 0) + (byOutcome["RETYPE"]?.size ?: 0) + (byOutcome["UNCLAIM"]?.size ?: 0)
         ui.section(f.take(14), tr("kami_claims.map.result"))
         byOutcome["CLAIM"]?.let { outcomeRow(ui, f.take(TABLE_ROW_H), Palette.success, tr("kami_claims.map.result.claim", Format.number(it.size)), Icons.CHECK) }

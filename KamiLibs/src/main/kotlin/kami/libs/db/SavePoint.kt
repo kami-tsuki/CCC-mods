@@ -12,13 +12,13 @@ object SavePoint {
 
     fun run() {
         if (!Db.isOpen) return
-        val parts = synchronized(stores) { stores.toList() }.map { (name, collect) ->
+        val parts = synchronized(stores) { stores.toList() }.mapNotNull { (name, collect) ->
             runCatching(collect).onFailure {
                 Writer.invalidate()
                 log.error("Save point could not collect {}; synced tables are rewritten in full next time", name, it)
             }.getOrNull()
         }
-        join(parts)?.let(Db::write)
+        Db.writeAll(parts, durable = true)
         Db.checkpoint()
     }
 

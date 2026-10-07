@@ -1,6 +1,7 @@
 package kami.libs.discord
 
 import kami.libs.db.Db
+import kami.libs.log.Log
 import kami.libs.stats.Stats
 import kotlinx.serialization.Serializable
 import java.security.SecureRandom
@@ -14,6 +15,7 @@ class Pending(val uuid: UUID, val name: String, val expiresAt: Long)
 internal class StoredCode(val code: String, val uuid: String, val name: String, val expiresAt: Long)
 
 object Codes {
+    private val log = Log.of("library")
     private const val ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
     private const val LENGTH = 8
     private const val MAX = 500
@@ -56,7 +58,7 @@ object Codes {
     fun consume(code: String): Pending? {
         val key = normal(code)
         val pending = byCode.remove(key) ?: return null
-        Db.write { exec("DELETE FROM libs_discord_code WHERE code = ?", key) }
+        runCatching { Db.durable { exec("DELETE FROM libs_discord_code WHERE code = ?", key) } }.onFailure { log.error("Cannot delete the used link code: {}", it.message) }
         return pending.takeIf { it.expiresAt > System.currentTimeMillis() }
     }
 

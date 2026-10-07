@@ -5,6 +5,8 @@ import kotlinx.serialization.encodeToString
 import net.neoforged.fml.ModList
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.zip.ZipEntry
@@ -17,6 +19,7 @@ internal object Migrator {
     private val log = Log.of("library")
     private val stamp = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")
     private const val KEEP = 10
+    private const val DAILY_KEEP = 7
 
     fun run(db: Session, file: Path, world: Path) {
         quickCheck(db)
@@ -118,6 +121,23 @@ internal object Migrator {
                 out.closeEntry()
             }
         }
+    }
+
+    fun daily(db: Session, file: Path): Boolean {
+        val backups = file.resolveSibling("backups").also { Files.createDirectories(it) }
+        val target = backups.resolve("kami-daily-${LocalDate.now()}.db")
+        if (Files.exists(target)) return true
+        val partial = target.resolveSibling("${target.name}.tmp")
+        val done = runCatching {
+            Files.deleteIfExists(partial)
+            db.exec("VACUUM INTO ?", partial.toString())
+            Files.move(partial, target, StandardCopyOption.ATOMIC_MOVE)
+        }.onFailure {
+            runCatching { Files.deleteIfExists(partial) }
+            log.warn("Could not write the daily database backup: {}", it.toString())
+        }.isSuccess
+        Files.list(backups).use { s -> s.filter { it.name.startsWith("kami-daily-") && it.name.endsWith(".db") }.sorted().toList() }.dropLast(DAILY_KEEP).forEach { runCatching { Files.delete(it) } }
+        return done
     }
 
     private fun prune(backups: Path) {

@@ -194,7 +194,7 @@ class WarPage(app: ClaimsApp) : ClaimsPage(app) {
             select(Rect(s.body.x, y, s.body.w, CONTROL_H), countries.map { Option(it.name, it.name, null, tr("kami_claims.warpage.reputation.short", it.reputation), it.color) }, target, key = "war-target")?.let { target = it }
             y += CONTROL_H + 6
             fieldLabel(Rect(s.body.x, y, s.body.w, 9), tr("kami_claims.warpage.stake.money")); y += 11
-            numberField(Rect(s.body.x, y, s.body.w, CONTROL_H), money, 0, info.treasury.coerceAtLeast(0), 100, "◎", key = "war-money"); y += CONTROL_H + 4
+            numberField(Rect(s.body.x, y, s.body.w, CONTROL_H), money, 0, info.treasury.coerceAtLeast(0), 100, Format.COIN, key = "war-money"); y += CONTROL_H + 4
             toggle(Rect(s.body.x, y, s.body.w, 14), vassal, tr("kami_claims.warpage.stake.vassal.toggle"), key = "war-vassal")?.let { vassal = it }; y += 18
             fieldLabel(Rect(s.body.x, y, s.body.w, 9), tr("kami_claims.warpage.stake.provinces.field")); y += 11
             textField(Rect(s.body.x, y, s.body.w, CONTROL_H), provinces, tr("kami_claims.warpage.stake.provinces.hint"), key = "war-provinces", maxLength = 200); y += CONTROL_H + 6
@@ -202,7 +202,7 @@ class WarPage(app: ClaimsApp) : ClaimsPage(app) {
             s.used = y - s.body.y
             dialogButtons(s, tr("kami_claims.warpage.declare"), target != null, tr("kami_claims.warpage.declare.pick"), hold = true, primaryStyle = ButtonStyle.DANGER) {
                 val names = provinces.text.split(',').map { it.trim() }.filter { it.isNotEmpty() }
-                val args = listOf(target!!) + (if (money.value > 0) listOf("money", money.value.toString()) else emptyList()) +
+                val args = listOf(target ?: return@dialogButtons) + (if (money.value > 0) listOf("money", money.value.toString()) else emptyList()) +
                     (if (vassal) listOf("vassal") else emptyList()) + names.flatMap { listOf("province", it) } + "confirm"
                 ClaimsStore.send("war_declare", *args.toTypedArray(), key = "war_declare")
                 s.close()
@@ -225,7 +225,7 @@ class WarPage(app: ClaimsApp) : ClaimsPage(app) {
             number(tr("kami_claims.warpage.offer.ceasefire"), ceasefire, 7, null, "offer-ceasefire")
             number(tr("kami_claims.warpage.offer.extend"), extend, 3, null, "offer-extend")
             number(tr("kami_claims.warpage.offer.bill"), bill, 100, "%", "offer-bill")
-            number(tr("kami_claims.warpage.stake.money"), money, Long.MAX_VALUE, "◎", "offer-money")
+            number(tr("kami_claims.warpage.stake.money"), money, Long.MAX_VALUE, Format.COIN, "offer-money")
             toggle(Rect(s.body.x, y, s.body.w, 14), peace, tr("kami_claims.warpage.offer.peace"), key = "offer-peace")?.let { peace = it }; y += 18
             if (money.value > 0) y += consequences(s.body.x, y, s.body.w, listOf(Consequence(tr("kami_claims.warpage.offer.replaces", Format.money(money.value)), Severity.WARNING))) + 4
             s.used = y - s.body.y

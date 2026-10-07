@@ -1,5 +1,6 @@
 package kami.economy.client.ui
 
+import kami.economy.client.admin.MarketSection
 import kami.economy.net.Net
 import kami.economy.net.OrderRow
 import kami.libs.economy.Movement
@@ -74,12 +75,10 @@ private class MyOrdersPage(private val host: KamiApp) : Page() {
     override val title get() = tr("kami_economy.nav.my_orders")
 
     private val columns = listOf(
-        Column<OrderRow>(tr("kami_libs.common.item"), -1, sort = compareBy { market.stack(it.item).hoverName.string.lowercase() }) { _, c, o ->
-            if (itemCell(c, market.stack(o.item), market.stack(o.item).hoverName.string, "my-order:${o.id}")) openMarket(o.item, if (o.bid) "buy" else "sell", "order")
-        },
+        itemColumn<OrderRow>({ it.item }, { "my-order:${it.id}" }) { openMarket(it.item, if (it.bid) "buy" else "sell", "order") },
         Column.text<OrderRow>(tr("kami_economy.col.side"), 44, color = { if (it.bid) Palette.success else Palette.danger }) { tr(if (it.bid) "kami_economy.side.buy" else "kami_economy.side.sell") },
         Column.number<OrderRow>(tr("kami_economy.col.price"), 64, tip = tr("kami_economy.col.per_lot"), format = { Format.money(it) }) { it.price.toLong() },
-        unitsColumn<OrderRow>(tr("kami_libs.common.amount"), 90, { market.stack(it.item).maxStackSize }) { it.amount },
+        unitsColumn<OrderRow>(tr("kami_libs.common.amount"), 90, { MarketSection.stack(it.item).maxStackSize }) { it.amount },
         Column.text<OrderRow>(tr("kami_libs.common.status"), 64, color = { if (it.best) Palette.success else Palette.warning }) { tr(if (it.best) "kami_economy.status.best" else "kami_economy.status.undercut") },
         Column<OrderRow>("", 2 * (ROW_H - 2) + 4) { _, c, o ->
             val size = c.h - 2
@@ -102,9 +101,7 @@ private class TradesPage : Page() {
 
     private val columns = listOf(
         Column.number<Movement>(tr("kami_economy.col.age"), 50, format = { Format.ago(it) }) { it.at },
-        Column<Movement>(tr("kami_libs.common.item"), -1, sort = compareBy { market.stack(it.item).hoverName.string.lowercase() }) { _, c, m ->
-            if (itemCell(c, market.stack(m.item), market.stack(m.item).hoverName.string, "trade:${m.at}:${m.item}")) openMarket(m.item)
-        },
+        itemColumn<Movement>({ it.item }, { "trade:${it.at}:${it.item}" }) { openMarket(it.item) },
         Column.text<Movement>(tr("kami_economy.personal.col.kind"), 70, color = { Palette.textSecondary }) { it.flow.label },
         Column.number<Movement>(tr("kami_economy.personal.col.qty"), 44) { it.qty.toLong() },
         Column.text<Movement>(tr("kami_economy.personal.col.party"), 80, color = { Palette.textSecondary }) { partyLabel(it.counterparty).ifEmpty { "-" } },

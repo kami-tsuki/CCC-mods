@@ -1,5 +1,7 @@
 package kami.libs.ui.app
 
+import com.mojang.blaze3d.vertex.PoseStack
+import kami.libs.log.Log
 import kami.libs.ui.AutoRefresh
 import kami.libs.ui.UiPrefs
 import kami.libs.ui.anim.reveal
@@ -41,7 +43,7 @@ class NavBadge(val count: Int, val severity: Severity)
 class NavItem(val page: String, val label: String, val icon: Icon, val badge: () -> NavBadge? = { null }, val lock: () -> String? = { null }, val teaser: () -> Lock? = { null }) {
     val key = "nav:$page"
 }
-class NavGroup(val label: String, val items: List<NavItem>, val id: String = label, val collapsible: Boolean = false) {
+class NavGroup(val label: String, val items: List<NavItem>, val id: String = label, val collapsible: Boolean = true) {
     val openKey = "nav-open:$id"
     val headerKey = "navgroup:$id"
 }
@@ -68,11 +70,17 @@ private const val MODULES_H = 18
 private const val PAGE_SHIFT = 10
 private const val PAGE_VEIL = 0.6f
 
+interface NavPrefs {
+    var railCollapsed: Boolean
+    val collapsedGroups: MutableSet<String>
+}
+
 abstract class KamiApp {
     val ui = Ui()
     val toasts = Toasts()
     private val pages = HashMap<String, Page>()
     private val dialogs = ArrayList<Dialog>()
+    private val failed = HashSet<Class<*>>()
     private val history = ArrayDeque<Route>()
     private val future = ArrayDeque<Route>()
     var tour: Tour? = null
@@ -89,8 +97,18 @@ abstract class KamiApp {
     private var pageVisit = 0L
     private var pageDirection = 1
 
-    open val collapsedGroups: MutableSet<String> = mutableSetOf()
-    open fun collapseChanged() {}
+    private var navPrefs: NavPrefs? = null
+    private var navSave: () -> Unit = {}
+    private val localGroups = mutableSetOf<String>()
+    val collapsedGroups: MutableSet<String> get() = navPrefs?.collapsedGroups ?: localGroups
+    private fun collapseChanged() = navSave()
+
+    protected fun bind(prefs: NavPrefs, save: () -> Unit) {
+        navPrefs = prefs
+        navSave = save
+        railCollapsed = prefs.railCollapsed
+    }
+
     open val module: String? get() = null
     open val showPins = true
     private var revealPage: String? = null
@@ -110,9 +128,9 @@ abstract class KamiApp {
 
     val dialogOpen get() = dialogs.isNotEmpty()
     val compact get() = window.w < 560
-    open val collapsibleRail: Boolean get() = false
+    val collapsibleRail: Boolean get() = navPrefs != null
     var railCollapsed = false
-    open fun railChanged() {}
+        private set
     private val rail get() = compact || railCollapsed
 
     fun open(dialog: Dialog) {
@@ -178,8 +196,8 @@ abstract class KamiApp {
         ui.anchor("content", content)
         val appear = ui.reveal("page", pageVisit)
         ui.scope(route.page) {
-            if (appear >= 1f) current.draw(ui, content)
-            else ui.clip(content) { current.draw(ui, content.slideIn(appear, PAGE_SHIFT * pageDirection, 0)) }
+            if (appear >= 1f) drawPage(current, content)
+            else ui.clip(content) { drawPage(current, content.slideIn(appear, PAGE_SHIFT * pageDirection, 0)) }
         }
         Draw.veilBox(ui.g, content, appear, strength = PAGE_VEIL)
         if (showPins) ui.overlay(4) { Pins.renderEditable(ui) }
@@ -189,6 +207,27 @@ abstract class KamiApp {
         help?.let { h -> ui.overlay(15) { h.draw(ui) { help = null } } }
         tour?.let { t -> if (t.done) tour = null else ui.overlay(20) { t.draw(ui, this) } }
         if (!ui.typing && !dialogOpen && tour == null) keys()
+    }
+
+    private fun drawPage(page: Page, r: Rect) {
+        val pose = ui.g.pose()
+        val saved = pose.last()
+        try {
+            page.draw(ui, r)
+        } catch (e: Exception) {
+            pageFailed(page, r, e, saved)
+        } catch (e: LinkageError) {
+            pageFailed(page, r, e, saved)
+        } catch (e: StackOverflowError) {
+            pageFailed(page, r, e, saved)
+        }
+    }
+
+    private fun pageFailed(page: Page, r: Rect, e: Throwable, saved: PoseStack.Pose) {
+        val pose = ui.g.pose()
+        while (pose.last() !== saved && !pose.clear()) pose.popPose()
+        if (failed.add(page.javaClass)) Log.of("libs").error("Page {} failed to render", page.javaClass.name, e)
+        Draw.textCentered(ui.g, tr("kami_libs.app.page_error"), r, Palette.danger)
     }
 
     fun isCollapsed(group: NavGroup) = group.collapsible && !rail && group.id in collapsedGroups
@@ -241,7 +280,7 @@ abstract class KamiApp {
             val tip = tr(if (railCollapsed) "kami_libs.nav.rail.expand" else "kami_libs.nav.rail.collapse")
             if (ui.iconButton(cell, if (railCollapsed) Icons.FORWARD else Icons.BACK, tip, key = "rail:toggle")) {
                 railCollapsed = !railCollapsed
-                railChanged()
+                navPrefs?.let { it.railCollapsed = railCollapsed; navSave() }
             }
         }
         revealPage?.let { page -> navY[page]?.let { state.scrollTo(it); revealPage = null } }

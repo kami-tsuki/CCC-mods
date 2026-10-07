@@ -15,7 +15,7 @@ internal class Writer(private val connection: Connection) {
     private val session = Session(connection)
     private val queue = ArrayDeque<Job>()
     private var closed = false
-    private val thread = Executors.newSingleThreadScheduledExecutor { Thread(it, "kami-db").apply { isDaemon = true } }
+    private val thread = Executors.newSingleThreadScheduledExecutor { Thread(it, THREAD).apply { isDaemon = true } }
 
     init {
         thread.scheduleWithFixedDelay(::commit, 1, 1, TimeUnit.SECONDS)
@@ -23,12 +23,16 @@ internal class Writer(private val connection: Connection) {
 
     val busy: Boolean get() = synchronized(queue) { queue.isNotEmpty() }
 
-    fun submit(block: Session.() -> Unit, durable: Boolean = false, wait: Boolean = durable) {
+    fun submit(block: Session.() -> Unit, durable: Boolean = false, wait: Boolean = durable) = submitAll(listOf(block), durable, wait)
+
+    fun submitAll(blocks: List<Session.() -> Unit>, durable: Boolean = false, wait: Boolean = durable) {
+        if (blocks.isEmpty()) return
+        check(!wait || Thread.currentThread().name != THREAD) { "cannot wait for a database write from the writer thread" }
         val done = if (wait) CompletableFuture<Unit>() else null
         synchronized(queue) {
             check(!closed) { "database is closed" }
-            queue.addLast(Job(block, durable, done))
-            if (done != null || queue.size == BATCH) thread.execute(::commit)
+            blocks.forEachIndexed { i, block -> queue.addLast(Job(block, durable, done.takeIf { i == blocks.lastIndex })) }
+            if (done != null || queue.size >= BATCH) thread.execute(::commit)
         }
         try {
             done?.join()
@@ -95,6 +99,7 @@ internal class Writer(private val connection: Connection) {
 
     companion object {
         private const val BATCH = 500
+        private const val THREAD = "kami-db"
         private val epoch = AtomicLong()
 
         val drops: Long get() = epoch.get()

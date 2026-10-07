@@ -18,33 +18,32 @@ import kami.libs.ui.widget.fieldHelp
 import kami.libs.ui.widget.fieldLabel
 import kami.libs.ui.widget.textField
 import kami.libs.ui.app.dialogButtons
-import kami.libs.ui.app.numberDialogBody
+import kami.libs.ui.app.AmountPlan
+import kami.libs.ui.app.amountDialog
 import kami.libs.ui.core.Rect
 import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icon
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
-import kami.libs.ui.widget.NumberState
 import kami.libs.ui.widget.property
 
 object Dialogs {
     fun gift(app: ClaimsApp, id: String, name: String) {
-        val amount = NumberState(1L)
-        app.open(Dialog(tr("kami_claims.gift.title", name), tr("kami_claims.gift.subtitle"), Icons.WITHDRAW) { s ->
-            val max = ClaimsStore.snap?.funds ?: 0L
-            var y = s.body.y
-            property(Rect(s.body.x, y, s.body.w, 11), tr("kami_claims.kpi.funds"), Format.money(max), Palette.money); y += 16
-            y += numberDialogBody(s, y, amount, tr("kami_libs.common.amount"), 1, max.coerceAtLeast(1), unit = "◎", help = tr("kami_claims.gift.help"))
-            s.used = y - s.body.y
-            val valid = amount.text.error == null && amount.value in 1..max
-            val reason = if (max <= 0) tr("kami_claims.money.disabled.no_coins") else tr("kami_claims.money.disabled.range", Format.number(max))
-            dialogButtons(s, tr("kami_claims.gift.send", Format.money(amount.value)), valid, reason) {
-                ClaimsStore.send("gift_send", id, amount.value.toString(), key = "gift:$id")
-                s.close()
-            }
-        })
+        app.open(amountDialog(tr("kami_claims.gift.title", name), tr("kami_claims.gift.subtitle"), Icons.WITHDRAW, 1,
+            header = { r ->
+                property(Rect(r.x, r.y, r.w, 11), tr("kami_claims.kpi.funds"), Format.money(ClaimsStore.snap?.funds ?: 0L), Palette.money)
+                16
+            },
+            plan = { amount ->
+                val max = ClaimsStore.snap?.funds ?: 0L
+                AmountPlan(max, tr("kami_claims.gift.help"), tr("kami_claims.gift.send", Format.money(amount)), moneyReason(max, tr("kami_claims.money.disabled.no_coins")))
+            },
+            send = { ClaimsStore.send("gift_send", id, it.toString(), key = "gift:$id") }
+        ))
     }
+
+    private fun moneyReason(max: Long, empty: String) = if (max <= 0) empty else tr("kami_claims.money.disabled.range", Format.number(max))
 
     fun confirm(
         app: KamiApp, title: String, subtitle: String?, icon: Icon, items: List<Consequence>, primary: String, name: String, args: Array<String>,
@@ -107,49 +106,43 @@ object Dialogs {
     fun rentPayKey(h: HomeLine) = "rent_pay:${h.dim}|${h.x}|${h.z}"
 
     fun rentPay(app: KamiApp, h: HomeLine) {
-        val amount = NumberState(maxOf(h.debt, h.rent.toLong()).coerceAtLeast(1))
-        app.open(Dialog(tr("kami_claims.personal.debts.pay_amount"), tr("kami_claims.home.where", h.country, h.x, h.z), Icons.COIN) { s ->
-            val funds = ClaimsStore.snap?.funds ?: 0L
-            var y = s.body.y
-            y += numberDialogBody(s, y, amount, tr("kami_libs.common.amount"), 1, funds.coerceAtLeast(1), unit = "◎", help = tr("kami_claims.personal.debts.pay.help", Format.money(h.debt), Format.money(h.credit)))
-            s.used = y - s.body.y
-            val charged = rentSplit(h.debt, h.credit, h.rent.toLong(), h.room, amount.value).let { it.first + it.second }
-            val valid = amount.text.error == null && amount.value in 1..funds && charged > 0
-            val reason = when {
-                amount.value !in 1..funds -> tr("kami_claims.money.disabled.range", Format.number(funds))
-                h.debt > 0 && h.room <= 0 -> tr("kami_claims.error.rent_treasury_full")
-                else -> tr("kami_claims.error.rent_nothing")
-            }
-            dialogButtons(s, tr("kami_claims.personal.debts.pay.action", Format.money(charged)), valid, reason) {
-                ClaimsStore.send("rent_pay", h.dim, h.x.toString(), h.z.toString(), amount.value.toString(), key = rentPayKey(h))
-                s.close()
-            }
-        })
+        app.open(amountDialog(tr("kami_claims.personal.debts.pay_amount"), tr("kami_claims.home.where", h.country, h.x, h.z), Icons.COIN, maxOf(h.debt, h.rent.toLong()),
+            plan = { amount ->
+                val funds = ClaimsStore.snap?.funds ?: 0L
+                val charged = rentSplit(h.debt, h.credit, h.rent.toLong(), h.room, amount).let { it.first + it.second }
+                val reason = when {
+                    amount !in 1..funds -> tr("kami_claims.money.disabled.range", Format.number(funds))
+                    h.debt > 0 && h.room <= 0 -> tr("kami_claims.error.rent_treasury_full")
+                    else -> tr("kami_claims.error.rent_nothing")
+                }
+                AmountPlan(funds, tr("kami_claims.personal.debts.pay.help", Format.money(h.debt), Format.money(h.credit)), tr("kami_claims.personal.debts.pay.action", Format.money(charged)), reason, charged > 0)
+            },
+            send = { ClaimsStore.send("rent_pay", h.dim, h.x.toString(), h.z.toString(), it.toString(), key = rentPayKey(h)) }
+        ))
     }
 
     fun money(app: ClaimsApp, deposit: Boolean, suggested: Long = 10) {
-        val amount = NumberState(suggested.coerceAtLeast(1))
-        app.open(Dialog(tr(if (deposit) "kami_claims.money.deposit" else "kami_libs.common.withdraw"), tr("kami_claims.kpi.treasury"), if (deposit) Icons.DEPOSIT else Icons.WITHDRAW) { s ->
-            val snap = ClaimsStore.snap ?: return@Dialog
-            val info = snap.info ?: return@Dialog
-            val max = if (deposit) snap.funds else info.treasury
-            var y = s.body.y
-            property(Rect(s.body.x, y, s.body.w, 11), tr("kami_claims.kpi.treasury"), Format.money(info.treasury), Palette.money); y += 12
-            property(Rect(s.body.x, y, s.body.w, 11), tr("kami_claims.kpi.funds"), Format.money(snap.funds), Palette.money); y += 16
-            val spend = info.upkeep + info.jobs - info.income
-            val help = when {
-                !deposit -> tr("kami_claims.money.withdraw.desc")
-                spend > 0 -> tr("kami_claims.money.deposit.desc_runway", Format.days((info.treasury + amount.value) / spend))
-                else -> tr("kami_claims.money.deposit.desc")
-            }
-            y += numberDialogBody(s, y, amount, tr("kami_libs.common.amount"), 1, max.coerceAtLeast(1), unit = "◎", help = help)
-            s.used = y - s.body.y
-            val valid = amount.text.error == null && amount.value in 1..max
-            val reason = if (max <= 0) tr(if (deposit) "kami_claims.money.disabled.no_coins" else "kami_claims.money.disabled.empty") else tr("kami_claims.money.disabled.range", Format.number(max))
-            dialogButtons(s, tr(if (deposit) "kami_claims.common.deposit_x" else "kami_claims.money.withdraw.action", Format.money(amount.value)), valid, reason) {
-                ClaimsStore.send(if (deposit) "deposit" else "withdraw", amount.value.toString())
-                s.close()
-            }
-        })
+        app.open(amountDialog(tr(if (deposit) "kami_claims.money.deposit" else "kami_libs.common.withdraw"), tr("kami_claims.kpi.treasury"), if (deposit) Icons.DEPOSIT else Icons.WITHDRAW, suggested,
+            header = { r ->
+                val snap = ClaimsStore.snap
+                val treasury = snap?.info?.treasury ?: 0L
+                property(Rect(r.x, r.y, r.w, 11), tr("kami_claims.kpi.treasury"), Format.money(treasury), Palette.money)
+                property(Rect(r.x, r.y + 12, r.w, 11), tr("kami_claims.kpi.funds"), Format.money(snap?.funds ?: 0L), Palette.money)
+                28
+            },
+            plan = { amount ->
+                val snap = ClaimsStore.snap ?: return@amountDialog null
+                val info = snap.info ?: return@amountDialog null
+                val max = if (deposit) snap.funds else info.treasury
+                val spend = info.upkeep + info.jobs - info.income
+                val help = when {
+                    !deposit -> tr("kami_claims.money.withdraw.desc")
+                    spend > 0 -> tr("kami_claims.money.deposit.desc_runway", Format.days((info.treasury + amount) / spend))
+                    else -> tr("kami_claims.money.deposit.desc")
+                }
+                AmountPlan(max, help, tr(if (deposit) "kami_claims.common.deposit_x" else "kami_claims.money.withdraw.action", Format.money(amount)), moneyReason(max, tr(if (deposit) "kami_claims.money.disabled.no_coins" else "kami_claims.money.disabled.empty")))
+            },
+            send = { ClaimsStore.send(if (deposit) "deposit" else "withdraw", it.toString()) }
+        ))
     }
 }

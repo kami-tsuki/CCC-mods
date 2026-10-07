@@ -28,23 +28,19 @@ class PersonalApp private constructor() : KamiApp() {
     val noAccount get() = ready && Personal.account == null
     override val module get() = Personal.MODULE
     override val home = Route("dashboard")
-    override val collapsibleRail get() = true
-    override val collapsedGroups get() = PersonalPrefs.prefs.collapsedGroups
     override val navKey get() = listOf(snap == null, Personal.subject, Personal.sections.map { it.items().isEmpty() })
 
     init {
-        railCollapsed = PersonalPrefs.prefs.railCollapsed
+        bind(PersonalPrefs.prefs, PersonalPrefs::save)
     }
 
     private fun offline(): String? = if (Personal.viewing) tr("kami_essentials.personal.read_only") else if (snap == null) tr("kami_essentials.prefs.offline") else null
 
-    private fun group(id: String, label: String, items: List<NavItem>) = NavGroup(label, items, id, collapsible = true)
-
-    override fun buildNav() = listOf(group("overview", tr("kami_essentials.personal.nav.overview"), listOf(NavItem("dashboard", tr("kami_essentials.personal.nav.dashboard"), Icons.DASHBOARD)))) +
-        Personal.sections.mapNotNull { s -> s.items().takeIf { it.isNotEmpty() }?.let { group(s.id, tr(s.group()), it) } } +
+    override fun buildNav() = listOf(NavGroup(id = "overview", label = tr("kami_essentials.personal.nav.overview"), items = listOf(NavItem("dashboard", tr("kami_essentials.personal.nav.dashboard"), Icons.DASHBOARD)))) +
+        Personal.sections.mapNotNull { s -> s.items().takeIf { it.isNotEmpty() }?.let { NavGroup(id = s.id, label = tr(s.group()), items = it) } } +
         listOf(
-            group("client", tr("kami_essentials.nav.group.client"), listOf(NavItem("interface", tr("kami_essentials.nav.interface"), Icons.BRUSH))),
-            group("server", tr("kami_essentials.nav.group.server"), listOf(
+            NavGroup(id = "client", label = tr("kami_essentials.nav.group.client"), items = listOf(NavItem("interface", tr("kami_essentials.nav.interface"), Icons.BRUSH))),
+            NavGroup(id = "server", label = tr("kami_essentials.nav.group.server"), items = listOf(
                 NavItem("chat", tr("kami_essentials.nav.chat"), Icons.SCROLL, lock = ::offline),
                 NavItem("player", tr("kami_essentials.nav.player"), Icons.PERSON, lock = ::offline),
                 NavItem("discord", tr("kami_essentials.nav.discord"), Icons.GLOBE, lock = { offline() ?: if (snap?.discordOn == true) null else tr("kami_essentials.prefs.unavailable") })
@@ -69,15 +65,6 @@ class PersonalApp private constructor() : KamiApp() {
         if (page == lastPage) return
         lastPage = page
         Personal.sections.firstOrNull { page.startsWith(it.id + ".") }?.refresh(page)
-    }
-
-    override fun railChanged() {
-        PersonalPrefs.prefs.railCollapsed = railCollapsed
-        PersonalPrefs.save()
-    }
-
-    override fun collapseChanged() {
-        PersonalPrefs.save()
     }
 
     override fun topBar(ui: Ui, r: Rect) {

@@ -60,7 +60,7 @@ internal object MarketTables {
     }
 
     fun read(s: Session): Data {
-        val orders = s.query("SELECT * FROM eco_order ORDER BY rowid") { r ->
+        val orders = s.query("SELECT * FROM eco_order ORDER BY id") { r ->
             (r.string("item") to r.string("side")) to Order(r.long("id"), r.string("owner"), r.int("price"), r.int("amount"), r.long("placed_at"), r.bool("synthetic"), r.int("lot"))
         }.groupBy({ it.first }, { it.second })
         val books = s.map("eco_book", "item") { r ->

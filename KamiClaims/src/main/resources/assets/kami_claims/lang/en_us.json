@@ -410,6 +410,7 @@
   "kami_claims.error.unknown_player": "Unknown player.",
   "kami_claims.error.gift.self": "You cannot send money to yourself.",
   "kami_claims.error.gift.pending": "You already have an open money offer to this player.",
+  "kami_claims.error.gift.cooldown": "Wait a few seconds before sending another money offer.",
   "kami_claims.error.gift.none": "There is no open money offer.",
   "kami_claims.error.gift.funds": "%s no longer has enough money. The offer was withdrawn.",
   "kami_claims.mail.gift.offer": "%s wants to send you %s. Accept it in Country > World > Players within 15 minutes.",

@@ -4,6 +4,8 @@ import kami.essentials.KamiEssentials
 import kami.essentials.chat.Talk
 import kami.libs.chat.tell
 import kami.libs.db.Db
+import kami.libs.db.Rows
+import kami.libs.db.SavePoint
 import kami.libs.db.Session
 import kami.libs.economy.CoinReturn
 import kami.libs.text.Phrase
@@ -21,6 +23,8 @@ object Deliveries {
 
     private val parcels = ConcurrentHashMap<Long, Parcel>()
     private val next = AtomicLong()
+    private val rows = Rows<Long>("ess_delivery", listOf("id"), listOf("uuid", "item"))
+    @Volatile private var attached = false
 
     fun load() = Db.read { load(this) }
 
@@ -28,9 +32,17 @@ object Deliveries {
         parcels.clear()
         s.query("SELECT id, uuid, item FROM ess_delivery") { Parcel(it.long("id"), UUID.fromString(it.string("uuid")), it.string("item")) }.forEach { parcels[it.id] = it }
         next.set(parcels.keys.maxOrNull() ?: 0)
+        rows.prime(rowMap())
+        attached = true
+        SavePoint.register("ess.delivery") { if (attached) rows.diff(rowMap()) else null }
     }
 
-    fun unload() = parcels.clear()
+    private fun rowMap() = parcels.values.associate { it.id to listOf<Any?>(it.id, it.owner.toString(), it.item) }
+
+    fun unload() {
+        attached = false
+        parcels.clear()
+    }
 
     fun send(p: ServerPlayer, items: List<ItemStack>) =
         put(p.uuid, items.filterNot { it.isEmpty || CoinReturn.keep(p.uuid, it) }.map { it.save(p.registryAccess()).toString() })
@@ -48,16 +60,13 @@ object Deliveries {
 
     internal fun put(owner: UUID, raw: List<String>) {
         if (raw.isEmpty()) return
-        val added = raw.map { Parcel(next.incrementAndGet(), owner, it) }
-        added.forEach { parcels[it.id] = it }
-        Db.write { batch("INSERT INTO ess_delivery (id, uuid, item) VALUES (?, ?, ?)", added.map { listOf(it.id, it.owner.toString(), it.item) }) }
+        raw.forEach { Parcel(next.incrementAndGet(), owner, it).let { p -> parcels[p.id] = p } }
     }
 
     internal fun take(owner: UUID): List<String> {
         val mine = parcels.values.filter { it.owner == owner }.sortedBy { it.id }
         if (mine.isEmpty()) return emptyList()
         mine.forEach { parcels.remove(it.id) }
-        Db.write { batch("DELETE FROM ess_delivery WHERE id = ?", mine.map { listOf(it.id) }) }
         return mine.map { it.item }
     }
 }

@@ -3,14 +3,15 @@ package kami.essentials.client
 import kami.libs.config.KamiConfig
 import kami.libs.config.Section
 import kami.libs.log.Log
+import kami.libs.ui.app.NavPrefs
 import kotlinx.serialization.Serializable
 
 @Serializable
 class Prefs(
-    var railCollapsed: Boolean = false,
+    override var railCollapsed: Boolean = false,
     var bankRange: String = "week",
-    var collapsedGroups: MutableSet<String> = mutableSetOf()
-)
+    override var collapsedGroups: MutableSet<String> = mutableSetOf()
+) : NavPrefs
 
 object PersonalPrefs {
     private val config = KamiConfig(

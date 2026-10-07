@@ -3,13 +3,12 @@ package kami.essentials.client.admin
 import kami.libs.admin.StatRow
 import kami.libs.ui.app.StatBoard
 import kami.libs.ui.app.StatCard
-import kami.libs.ui.app.StatLine
+import kami.libs.ui.app.chartCard
 import kami.libs.ui.app.StatQuery
 import kami.libs.ui.app.TimeRange
-import kami.libs.ui.app.statChartCard
+import kami.libs.ui.app.topCard
 import kami.libs.ui.app.statDonutCard
 import kami.libs.ui.app.statPage
-import kami.libs.ui.app.statTopCard
 import kami.libs.ui.app.total
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Ui
@@ -42,7 +41,7 @@ internal class StatMetrics(private val board: StatBoard, private val subject: St
         metric("kami_essentials.admin.stats.distance", Icons.RULER, "move.dist", format = { tr("kami_essentials.admin.stats.blocks", Format.number(it)) }),
         metric("kami_essentials.admin.stats.trade_count", Icons.HANDSHAKE, "market.trade"),
         metric("kami_essentials.admin.stats.volume", Icons.COIN, "market.volume", color = Palette.money, format = { Format.money(it) }),
-        metric("kami_essentials.admin.stats.taxes_paid", Icons.TAX, "money.tax", "out", color = Palette.money, format = { Format.money(it) })
+        metric("kami_essentials.admin.stats.taxes_paid", Icons.TAX, "market.tax", color = Palette.money, format = { Format.money(it) })
     )
     private val mobs = board.top("mob.kill", "o", subject)
     private val mined = board.top("block.mine", "o", subject)
@@ -55,19 +54,19 @@ internal class StatMetrics(private val board: StatBoard, private val subject: St
     fun tiles() = metrics.map { KpiTile(it.title, it.format(board[it.query].points.total().toLong()), it.icon, it.color) }
 
     fun charts() = metrics.mapIndexed { i, m ->
-        statChartCard(m.title, m.icon, "$id:$i", listOf(StatLine(m.title, board[m.query].points, if (m.color == Palette.text) Palette.chart[1] else m.color, true)), m.format)
+        board.chartCard(m.title, m.icon, "$id:$i", m.query, if (m.color == Palette.text) Palette.chart[1] else m.color, format = m.format)
     }
 
     fun objects(): List<StatCard> {
         val dims = board[dimensions].rows.map { StatRow(it.key, it.v, trOr("kami_essentials.admin.dim.${it.key.replace(':', '.')}", "")) }
         return listOf(
             statDonutCard(tr("kami_essentials.admin.stats.dimensions"), Icons.GLOBE, "$id:dims", dims, { Format.duration(it) }, false),
-            statTopCard(tr("kami_essentials.admin.stats.mobs"), Icons.FIRE, board[mobs].rows),
-            statTopCard(tr("kami_essentials.admin.stats.death_causes"), Icons.DANGER, board[causes].rows),
-            statTopCard(tr("kami_essentials.admin.stats.mined"), Icons.PICKAXE, board[mined].rows),
-            statTopCard(tr("kami_essentials.admin.stats.placed"), Icons.BLOCK, board[placed].rows),
-            statTopCard(tr("kami_essentials.admin.stats.crafted"), Icons.TOOL, board[crafted].rows),
-            statTopCard(tr("kami_essentials.admin.stats.smelted"), Icons.FIRE, board[smelted].rows)
+            board.topCard(tr("kami_essentials.admin.stats.mobs"), Icons.FIRE, mobs),
+            board.topCard(tr("kami_essentials.admin.stats.death_causes"), Icons.DANGER, causes),
+            board.topCard(tr("kami_essentials.admin.stats.mined"), Icons.PICKAXE, mined),
+            board.topCard(tr("kami_essentials.admin.stats.placed"), Icons.BLOCK, placed),
+            board.topCard(tr("kami_essentials.admin.stats.crafted"), Icons.TOOL, crafted),
+            board.topCard(tr("kami_essentials.admin.stats.smelted"), Icons.FIRE, smelted)
         )
     }
 }

@@ -87,6 +87,7 @@ class KamiConfig<T : Any>(
     fun save(v: T = value) {
         value = v
         if (locked) return
+        if (problem != null) return log.warn("{} is not saved while its file is broken: {}", Configs.path(mod), problem)
         val all = json.encodeToJsonElement(serializer, v).jsonObject
         val dir = Configs.dir(mod)
         sections.forEachIndexed { i, s ->

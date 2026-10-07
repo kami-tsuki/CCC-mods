@@ -1,6 +1,5 @@
 package kami.essentials.client
 
-import com.mojang.blaze3d.platform.InputConstants
 import kami.essentials.client.admin.AdminApp
 import kami.essentials.net.Net
 import kami.essentials.net.Snap
@@ -14,22 +13,19 @@ import kami.libs.ui.app.AppModule
 import kami.libs.ui.app.AppScreen
 import kami.libs.ui.app.Modules
 import kami.libs.ui.app.OpenWait
+import kami.libs.ui.app.registerOpenKey
 import kami.libs.ui.app.Personal
 import kami.libs.ui.app.Route
 import kami.libs.ui.style.Icons
 import kami.libs.ui.text.tr
-import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent
 import net.neoforged.neoforge.client.event.ClientTickEvent
-import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent
 import net.neoforged.neoforge.network.PacketDistributor
 import org.lwjgl.glfw.GLFW
 import thedarkcolour.kotlinforforge.neoforge.forge.FORGE_BUS
-import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 
 object ClientEssentials {
-    private val key = KeyMapping("key.kami_essentials.open", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_O, "key.categories.kami_essentials")
     private var primed = false
     private val wait = OpenWait({ tr("kami_essentials.module") }, { tr("kami_essentials.module") }, { tr("kami_essentials.personal.timeout") })
 
@@ -39,11 +35,10 @@ object ClientEssentials {
         Personal.opener = { open(it) }
         Modules.register(AppModule(AdminSections.MODULE, "kami_essentials.admin.module", Icons.SHIELD, 30, visible = { Admin.level >= AdminPerms.Level.VIEW }) { AdminApp.open() })
         AdminSections.opener = { AdminApp.open(it) }
-        MOD_BUS.addListener<RegisterKeyMappingsEvent> { it.register(key) }
+        registerOpenKey("kami_essentials", GLFW.GLFW_KEY_O) { open() }
+        wait.register("kami_essentials")
         FORGE_BUS.addListener<ClientTickEvent.Post> {
-            while (key.consumeClick()) if (Minecraft.getInstance().screen == null) open()
             prime()
-            wait.tick()
             MotdRefresh.tick(Minecraft.getInstance())
         }
         FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> {

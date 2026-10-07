@@ -410,6 +410,7 @@
   "kami_claims.error.unknown_player": "Unbekannter Spieler.",
   "kami_claims.error.gift.self": "Du kannst dir nicht selbst Geld senden.",
   "kami_claims.error.gift.pending": "Du hast diesem Spieler bereits ein offenes Geldangebot gemacht.",
+  "kami_claims.error.gift.cooldown": "Warte ein paar Sekunden, bevor du ein weiteres Geldangebot sendest.",
   "kami_claims.error.gift.none": "Es gibt kein offenes Geldangebot.",
   "kami_claims.error.gift.funds": "%s hat nicht mehr genug Geld. Das Angebot wurde zurückgezogen.",
   "kami_claims.mail.gift.offer": "%s möchte dir %s senden. Nimm es innerhalb von 15 Minuten unter Land > Welt > Spieler an.",

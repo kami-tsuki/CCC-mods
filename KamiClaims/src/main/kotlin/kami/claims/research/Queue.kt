@@ -26,15 +26,15 @@ object Queue {
     }
     var refreshCrafting: (Country) -> Unit = { RecipeFilter.refreshCrafting(it) }
 
-    /** Longest real gap one update may count, so lag is caught up but a wall clock jump or a hang is not. */
     internal const val MAX_STEP_MS = 60_000L
     private const val XP_PER_NODE_LEVEL = 100L
     private val log = Log.of("research")
     private var lastTick = 0L
     private val playtime = HashMap<String, Long>()
 
-    fun reset() { lastTick = 0L; playtime.clear() }
     private val settings get() = Research.defs.settings
+
+    fun reset() { lastTick = 0L; playtime.clear() }
 
     fun key(country: Country, id: String): String =
         if (id.contains(':')) id else Research.defs.treesFor(country).map { "${it.id}:$id" }.firstOrNull { it in Research.defs.nodes } ?: id
@@ -90,7 +90,6 @@ object Queue {
         if (entry.state == NodeState.READY) Penalty.hard(node).firstOrNull { !it.met(country) }?.let { throw Fail("kami_claims.research.error.condition", it.describe()) }
         if (Loans.inDefault(country)) throw Fail("kami_claims.loans.error.default")
         if (researching(country) >= Levels.capacity(country, Capacity.RESEARCH_SLOTS)) throw Fail("kami_claims.research.reason.slots")
-        if (!entry.paid && country.treasury < node.cost) throw Fail("kami_claims.loans.reason.funds", Words.money(node.cost))
         if (!begin(country, entry, node, actor)) throw Fail("kami_claims.loans.reason.funds", Words.money(node.cost))
     }
 
@@ -114,11 +113,11 @@ object Queue {
 
     private fun begin(country: Country, entry: QueueEntry, node: Node, actor: String?): Boolean {
         if (!entry.paid) {
-            if (node.cost > 0 && Treasury.bank(country, LedgerKind.RESEARCH, -node.cost, actor, entry.node) == 0L) return false
+            if (node.cost > 0 && (country.treasury < node.cost || Treasury.bank(country, LedgerKind.RESEARCH, -node.cost, actor, entry.node) == 0L)) return false
             entry.paid = true
+            Stats.event("research.start", "c:${country.id}", entry.node)
         }
         entry.state = NodeState.RESEARCHING
-        Stats.event("research.start", "c:${country.id}", entry.node)
         Realm.changed()
         ResearchSync.touch(country)
         return true

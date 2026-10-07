@@ -27,7 +27,9 @@ import kami.claims.war.WarLocks
 import kami.claims.social.Perms
 import kami.claims.world.Effects
 import kami.libs.chat.Tone
+import kami.libs.economy.CountryParty
 import kami.libs.economy.Flow
+import kami.libs.economy.Statement
 import kami.libs.stats.Stats
 import kami.libs.text.Phrase
 import net.minecraft.server.level.ServerPlayer
@@ -35,8 +37,6 @@ import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
-import kami.libs.economy.CountryParty
-import kami.libs.economy.Statement
 
 class Fail(@Transient val phrase: Phrase, val reason: String = "", @Transient val target: Key? = null) : kami.libs.command.CommandFail(phrase::component) {
     constructor(key: String, vararg args: Any) : this(Phrase.of(key, *args))

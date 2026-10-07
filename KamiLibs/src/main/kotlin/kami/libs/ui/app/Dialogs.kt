@@ -120,3 +120,20 @@ fun receiptDialog(
         }
     })
 }
+
+class AmountPlan(val max: Long, val help: String?, val primary: String, val reason: String, val valid: Boolean = true)
+
+fun amountDialog(title: String, subtitle: String?, icon: Icon, initial: Long, header: Ui.(Rect) -> Int = { 0 }, plan: (Long) -> AmountPlan?, send: (Long) -> Unit): Dialog {
+    val amount = NumberState(initial.coerceAtLeast(1))
+    return Dialog(title, subtitle, icon) { s ->
+        val p = plan(amount.value) ?: return@Dialog
+        var y = s.body.y + header(Rect(s.body.x, s.body.y, s.body.w, 0))
+        y += numberDialogBody(s, y, amount, tr("kami_libs.common.amount"), 1, p.max.coerceAtLeast(1), unit = Format.COIN, help = p.help)
+        s.used = y - s.body.y
+        val valid = p.valid && amount.text.error == null && amount.value in 1..p.max
+        dialogButtons(s, p.primary, valid, p.reason) {
+            send(amount.value)
+            s.close()
+        }
+    }
+}

@@ -5,17 +5,16 @@ import kami.libs.admin.StatPoint
 import kami.libs.ui.app.Page
 import kami.libs.ui.app.StatBoard
 import kami.libs.ui.app.StatLine
-import kami.libs.ui.app.StatQuery
 import kami.libs.ui.app.TimeRange
 import kami.libs.ui.app.delta
+import kami.libs.ui.app.chartCard
 import kami.libs.ui.app.statChartCard
 import kami.libs.ui.app.statPage
-import kami.libs.ui.app.statTopCard
+import kami.libs.ui.app.topCard
 import kami.libs.ui.app.total
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Format
-import kami.libs.ui.style.Icon
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr
@@ -69,38 +68,33 @@ internal class CountryStatsPage : Page() {
             KpiTile(tr("kami_claims.admin.stats.research"), Format.number(board[research].points.total().toLong()), Icons.SCROLL)
         )
         val cards = listOf(
-            chart(average(tr("kami_claims.admin.col.treasury")), Icons.TREASURY, "treasury", listOf(StatLine(tr("kami_claims.admin.col.treasury"), board[treasury].points, Palette.money, true)), moneyText),
-            top(perCountry(tr("kami_claims.admin.col.treasury")), Icons.TREASURY, treasuryBy, moneyText),
-            chart(average(tr("kami_claims.admin.col.claims")), Icons.AREA, "chunks", listOf(StatLine(tr("kami_claims.admin.col.claims"), board[chunks].points, Palette.chart[2], true))),
-            chart(tr("kami_claims.admin.stats.gain"), Icons.MAP, "gain", listOf(StatLine(tr("kami_claims.admin.stats.gain"), gain, Palette.chart[1], true))),
-            top(perCountry(tr("kami_claims.admin.col.claims")), Icons.AREA, chunksBy),
-            chart(average(tr("kami_claims.admin.stats.provinces")), Icons.CHAIN, "provinces", listOf(StatLine(tr("kami_claims.admin.stats.provinces"), board[provinces].points, Palette.chart[3]))),
-            top(perCountry(tr("kami_claims.admin.stats.provinces")), Icons.CHAIN, provincesBy),
-            chart(
-                average(tr("kami_libs.common.members")), Icons.PEOPLE, "members",
+            board.chartCard(average(tr("kami_claims.admin.col.treasury")), Icons.TREASURY, "country-stats:treasury", treasury, Palette.money, format = moneyText),
+            board.topCard(perCountry(tr("kami_claims.admin.col.treasury")), Icons.TREASURY, treasuryBy, moneyText),
+            board.chartCard(average(tr("kami_claims.admin.col.claims")), Icons.AREA, "country-stats:chunks", chunks, Palette.chart[2]),
+            statChartCard(tr("kami_claims.admin.stats.gain"), Icons.MAP, "country-stats:gain", listOf(StatLine(tr("kami_claims.admin.stats.gain"), gain, Palette.chart[1], true))),
+            board.topCard(perCountry(tr("kami_claims.admin.col.claims")), Icons.AREA, chunksBy),
+            board.chartCard(average(tr("kami_claims.admin.stats.provinces")), Icons.CHAIN, "country-stats:provinces", provinces, Palette.chart[3], false),
+            board.topCard(perCountry(tr("kami_claims.admin.stats.provinces")), Icons.CHAIN, provincesBy),
+            statChartCard(
+                average(tr("kami_libs.common.members")), Icons.PEOPLE, "country-stats:members",
                 listOf(StatLine(tr("kami_libs.common.members"), board[members].points, Palette.chart[1]), StatLine(tr("kami_libs.common.online"), board[online].points, Palette.chart[2], true))
             ),
-            top(perCountry(tr("kami_libs.common.members")), Icons.PEOPLE, membersBy),
-            top(perCountry(tr("kami_libs.common.online")), Icons.PERSON, onlineBy),
-            top(perCountry(tr("kami_claims.admin.col.level")), Icons.STAR, levelBy),
-            top(perCountry(tr("kami_claims.warpage.fame")), Icons.CROWN, fameBy, fameText),
-            top(perCountry(tr("kami_claims.kpi.power")), Icons.SHIELD, powerBy, powerText),
-            chart(tr("kami_claims.admin.stats.declarations"), Icons.SHIELD, "declared", listOf(StatLine(tr("kami_claims.admin.stats.declarations"), board[declared].points, Palette.danger, true))),
-            chart(tr("kami_claims.admin.stats.war_kills"), Icons.DANGER, "war-kills", listOf(StatLine(tr("kami_claims.admin.stats.war_kills"), board[warKills].points, Palette.danger, true))),
-            top(perCountry(tr("kami_claims.admin.stats.war_kills")), Icons.DANGER, warKillsBy),
-            chart(tr("kami_claims.admin.stats.research"), Icons.SCROLL, "research", listOf(StatLine(tr("kami_claims.admin.stats.research"), board[research].points, Palette.chart[6], true))),
-            chart(
-                tr("kami_claims.metric.countries"), Icons.FLAG, "countries",
+            board.topCard(perCountry(tr("kami_libs.common.members")), Icons.PEOPLE, membersBy),
+            board.topCard(perCountry(tr("kami_libs.common.online")), Icons.PERSON, onlineBy),
+            board.topCard(perCountry(tr("kami_claims.admin.col.level")), Icons.STAR, levelBy),
+            board.topCard(perCountry(tr("kami_claims.warpage.fame")), Icons.CROWN, fameBy, fameText),
+            board.topCard(perCountry(tr("kami_claims.kpi.power")), Icons.SHIELD, powerBy, powerText),
+            board.chartCard(tr("kami_claims.admin.stats.declarations"), Icons.SHIELD, "country-stats:declared", declared, Palette.danger),
+            board.chartCard(tr("kami_claims.admin.stats.war_kills"), Icons.DANGER, "country-stats:war-kills", warKills, Palette.danger),
+            board.topCard(perCountry(tr("kami_claims.admin.stats.war_kills")), Icons.DANGER, warKillsBy),
+            board.chartCard(tr("kami_claims.admin.stats.research"), Icons.SCROLL, "country-stats:research", research, Palette.chart[6]),
+            statChartCard(
+                tr("kami_claims.metric.countries"), Icons.FLAG, "country-stats:countries",
                 listOf(StatLine(tr("kami_claims.metric.countries"), board[countries].points, Palette.chart[2]), StatLine(tr("kami_claims.admin.stats.active"), board[active].points, Palette.chart[1], true))
             )
         )
         ui.statPage("country-stats", r, range, board, tiles, cards)
     }
-
-    private fun chart(title: String, icon: Icon, key: String, lines: List<StatLine>, format: (Long) -> String = { Format.number(it) }) =
-        statChartCard(title, icon, "country-stats:$key", lines, format)
-
-    private fun top(title: String, icon: Icon, q: StatQuery, format: (Long) -> String = { Format.number(it) }) = statTopCard(title, icon, board[q].rows, format)
 }
 
 internal class CountryStats(id: String) {
@@ -133,23 +127,20 @@ internal class CountryStats(id: String) {
             KpiTile(tr("kami_claims.admin.stats.research"), Format.number(board[research].points.total().toLong()), Icons.SCROLL)
         )
         val cards = listOf(
-            chart(tr("kami_claims.admin.col.treasury"), Icons.TREASURY, "treasury", listOf(StatLine(tr("kami_claims.admin.col.treasury"), board[treasury].points, Palette.money, true)), moneyText),
-            chart(tr("kami_claims.admin.col.claims"), Icons.AREA, "chunks", listOf(StatLine(tr("kami_claims.admin.col.claims"), board[chunks].points, Palette.chart[2], true))),
-            chart(tr("kami_claims.admin.stats.gain"), Icons.MAP, "gain", listOf(StatLine(tr("kami_claims.admin.stats.gain"), gain, Palette.chart[1], true))),
-            chart(
-                tr("kami_libs.common.members"), Icons.PEOPLE, "members",
+            board.chartCard(tr("kami_claims.admin.col.treasury"), Icons.TREASURY, "country-detail-stats:treasury", treasury, Palette.money, format = moneyText),
+            board.chartCard(tr("kami_claims.admin.col.claims"), Icons.AREA, "country-detail-stats:chunks", chunks, Palette.chart[2]),
+            statChartCard(tr("kami_claims.admin.stats.gain"), Icons.MAP, "country-detail-stats:gain", listOf(StatLine(tr("kami_claims.admin.stats.gain"), gain, Palette.chart[1], true))),
+            statChartCard(
+                tr("kami_libs.common.members"), Icons.PEOPLE, "country-detail-stats:members",
                 listOf(StatLine(tr("kami_libs.common.members"), board[members].points, Palette.chart[1]), StatLine(tr("kami_libs.common.online"), board[online].points, Palette.chart[2], true))
             ),
-            chart(tr("kami_claims.admin.stats.provinces"), Icons.CHAIN, "provinces", listOf(StatLine(tr("kami_claims.admin.stats.provinces"), board[provinces].points, Palette.chart[3]))),
-            chart(tr("kami_claims.admin.col.level"), Icons.STAR, "level", listOf(StatLine(tr("kami_claims.admin.col.level"), board[level].points, Palette.chart[0]))),
-            chart(tr("kami_claims.warpage.fame"), Icons.CROWN, "fame", listOf(StatLine(tr("kami_claims.warpage.fame"), board[fame].points, Palette.chart[4])), fameText),
-            chart(tr("kami_claims.kpi.power"), Icons.SHIELD, "power", listOf(StatLine(tr("kami_claims.kpi.power"), board[power].points, Palette.chart[5])), powerText),
-            chart(tr("kami_claims.admin.stats.war_kills"), Icons.DANGER, "war-kills", listOf(StatLine(tr("kami_claims.admin.stats.war_kills"), board[warKills].points, Palette.danger, true))),
-            chart(tr("kami_claims.admin.stats.research"), Icons.SCROLL, "research", listOf(StatLine(tr("kami_claims.admin.stats.research"), board[research].points, Palette.chart[6], true)))
+            board.chartCard(tr("kami_claims.admin.stats.provinces"), Icons.CHAIN, "country-detail-stats:provinces", provinces, Palette.chart[3], false),
+            board.chartCard(tr("kami_claims.admin.col.level"), Icons.STAR, "country-detail-stats:level", level, Palette.chart[0], false),
+            board.chartCard(tr("kami_claims.warpage.fame"), Icons.CROWN, "country-detail-stats:fame", fame, Palette.chart[4], false, fameText),
+            board.chartCard(tr("kami_claims.kpi.power"), Icons.SHIELD, "country-detail-stats:power", power, Palette.chart[5], false, powerText),
+            board.chartCard(tr("kami_claims.admin.stats.war_kills"), Icons.DANGER, "country-detail-stats:war-kills", warKills, Palette.danger),
+            board.chartCard(tr("kami_claims.admin.stats.research"), Icons.SCROLL, "country-detail-stats:research", research, Palette.chart[6])
         )
         ui.statPage("country-detail-stats", r, range, board, tiles, cards)
     }
-
-    private fun chart(title: String, icon: Icon, key: String, lines: List<StatLine>, format: (Long) -> String = { Format.number(it) }) =
-        statChartCard(title, icon, "country-detail-stats:$key", lines, format)
 }

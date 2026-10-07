@@ -7,10 +7,12 @@ import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
+import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 internal object HeatmapDraw {
     val ramp = intArrayOf(0x440154, 0x3B528B, 0x21918C, 0x5EC962, 0xFDE725)
@@ -29,13 +31,10 @@ internal object HeatmapDraw {
         return blend(0xFF000000.toInt() or ramp[i], ramp[i + 1], scaled - i) and 0xFFFFFF
     }
 
-    fun short(v: Double) = when {
-        v >= 1_000_000 -> oneDecimal(v / 1_000_000) + "M"
-        v >= 1_000 -> oneDecimal(v / 1_000) + "k"
-        else -> "%.0f".format(v)
+    fun short(v: Double): String {
+        val n = v.roundToLong()
+        return if (abs(n) >= 1_000) "${n / 1_000}k" else n.toString()
     }
-
-    private fun oneDecimal(v: Double) = "%.1f".format(v).removeSuffix(".0").removeSuffix(",0")
 
     fun grid(g: GuiGraphics, view: Viewport, r: Rect) {
         val step = intArrayOf(1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384).firstOrNull { it / view.unitsPerPx >= 80 } ?: 16384

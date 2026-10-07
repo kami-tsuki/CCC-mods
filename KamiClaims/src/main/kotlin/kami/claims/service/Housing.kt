@@ -156,7 +156,7 @@ object Housing {
         val country = cl.country
         if (runCatching { give(owner, credit.toInt(), country) }.getOrDefault(false)) Mail.direct(owner, Phrase.of("kami_claims.mail.rent_refund", money(credit), coords(cl)), Tone.INFO)
         else {
-            ServerBank.collect(Party.parse(owner) ?: ServerParty, credit, Flow.RECOVERY, "rent refund $country $owner")
+            ServerBank.collect(Party.parse(owner) ?: ServerParty, credit, Flow.RECOVERY, "rent refund ${Realm.country(country)?.name ?: country} $owner")
             log.warn("Rent refund of {} to {} failed", credit, owner)
         }
     }

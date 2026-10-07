@@ -68,6 +68,7 @@ class ClaimsApp : KamiApp() {
     val isOpen get() = (Minecraft.getInstance().screen as? AppScreen)?.app === this
 
     init {
+        bind(ClientClaims.prefs, ClientClaims::savePrefs)
         ClaimsStore.onOutcome(::outcome)
         ClientResearch.onChange(::researched)
     }
@@ -125,12 +126,6 @@ class ClaimsApp : KamiApp() {
 
     private fun needsCountry(): String? = if (ClaimsStore.info == null) tr("kami_claims.lock.no_country") else null
 
-    private fun group(id: String, label: String, items: List<NavItem>) = NavGroup(label, items, id, collapsible = true)
-
-    override val collapsedGroups get() = ClientClaims.prefs.collapsedGroups
-
-    override fun collapseChanged() { ClientClaims.savePrefs() }
-
     override val navKey get() = ClaimsStore.info == null
 
     override fun buildNav(): List<NavGroup> {
@@ -138,40 +133,40 @@ class ClaimsApp : KamiApp() {
         val overview = if (none) listOf(NavItem("welcome", tr("kami_claims.nav.welcome"), Icons.FLAG, badge("welcome")))
         else listOf(NavItem("dashboard", tr("kami_claims.nav.dashboard"), Icons.DASHBOARD, badge("dashboard")), NavItem("statistics", tr("kami_claims.nav.statistics"), Icons.STATS, lock = { lock("details") }))
         return listOf(
-            group("overview", tr("kami_claims.nav.group.overview"), overview),
-            group("territory", tr("kami_claims.nav.group.territory"), listOf(
+            NavGroup(id = "overview", label = tr("kami_claims.nav.group.overview"), items = overview),
+            NavGroup(id = "territory", label = tr("kami_claims.nav.group.territory"), items = listOf(
                 NavItem("map", tr("kami_claims.nav.map"), Icons.MAP),
                 NavItem("chunks", tr("kami_claims.nav.chunks"), Icons.AREA, badge("chunks"), ::needsCountry),
                 NavItem("plots", tr("kami_claims.nav.plots"), Icons.HOUSE, badge("plots"), ::needsCountry)
             )),
-            group("research", tr("kami_claims.nav.group.research"), listOf(
+            NavGroup(id = "research", label = tr("kami_claims.nav.group.research"), items = listOf(
                 NavItem("research", tr("kami_claims.nav.research"), Icons.TREE, badge("research"), ::needsCountry),
                 NavItem("levels", tr("kami_claims.nav.levels"), Icons.STAR, lock = ::needsCountry),
                 NavItem("queue", tr("kami_claims.nav.queue"), Icons.SCROLL, lock = ::needsCountry),
                 NavItem("research_buffs", tr("kami_claims.nav.buffs"), Icons.SHIELD, lock = ::needsCountry, teaser = ClientLocks::buffsTeaser)
             )),
-            group("economy", tr("kami_claims.nav.group.economy"), listOf(
+            NavGroup(id = "economy", label = tr("kami_claims.nav.group.economy"), items = listOf(
                 NavItem("budget", tr("kami_claims.nav.budget"), Icons.SCALES, badge("budget"), { needsCountry() ?: lock("details") }),
                 NavItem("ledger", tr("kami_claims.nav.ledger"), Icons.LEDGER, lock = { needsCountry() ?: lock("details") }),
                 NavItem("loans", tr("kami_claims.nav.loans"), Icons.COIN, badge("loans"), ::needsCountry, ClientLocks::loansTeaser)
             )),
-            group("society", tr("kami_claims.nav.group.society"), listOf(
+            NavGroup(id = "society", label = tr("kami_claims.nav.group.society"), items = listOf(
                 NavItem("citizens", tr("kami_claims.nav.citizens"), Icons.PEOPLE, badge("citizens"), ::needsCountry),
                 NavItem("jobs", tr("kami_claims.nav.jobs"), Icons.TOOL, badge("jobs"), ::needsCountry),
                 NavItem("ranks", tr("kami_claims.nav.ranks"), Icons.STAR, lock = ::needsCountry)
             )),
-            group("law", tr("kami_claims.nav.group.law"), listOf(
+            NavGroup(id = "law", label = tr("kami_claims.nav.group.law"), items = listOf(
                 NavItem("protection", tr("kami_claims.nav.protection"), Icons.SHIELD, lock = ::needsCountry),
                 NavItem("plotlaw", tr("kami_claims.nav.plotlaw"), Icons.SCROLL, lock = ::needsCountry),
                 NavItem("identity", tr("kami_claims.nav.identity"), Icons.FLAG, lock = ::needsCountry)
             )),
-            group("diplomacy", tr("kami_claims.nav.group.diplomacy"), listOf(
+            NavGroup(id = "diplomacy", label = tr("kami_claims.nav.group.diplomacy"), items = listOf(
                 NavItem("relations", tr("kami_claims.nav.relations"), Icons.HANDSHAKE, lock = ::needsCountry),
                 NavItem("war", tr("kami_claims.nav.war"), Icons.SHIELD, badge("war"), ::needsCountry),
                 NavItem("provinces", tr("kami_claims.nav.provinces"), Icons.CHAIN, badge("provinces"), ::needsCountry, ClientLocks::provinces),
                 NavItem("world", tr("kami_claims.nav.world"), Icons.GLOBE)
             )),
-            group("system", tr("kami_claims.nav.group.system"), listOf(NavItem("help", tr("kami_claims.nav.help"), Icons.HELP), NavItem("settings", tr("kami_claims.nav.settings"), Icons.SETTINGS)))
+            NavGroup(id = "system", label = tr("kami_claims.nav.group.system"), items = listOf(NavItem("help", tr("kami_claims.nav.help"), Icons.HELP), NavItem("settings", tr("kami_claims.nav.settings"), Icons.SETTINGS)))
         )
     }
 

@@ -8,6 +8,7 @@ import kotlinx.serialization.Serializable
 class Page<T>(val rows: List<T>, val total: Long, val page: Int, val size: Int) {
     companion object {
         const val SIZE = 50
+        const val MAX_PAGE = 2000
 
         fun <T> of(rows: List<T>, page: Int, size: Int = SIZE): Page<T> {
             val p = page.coerceAtLeast(0)
@@ -28,10 +29,10 @@ internal class Where {
     fun <T> page(table: String, columns: String, order: String, page: Int, size: Int, row: (Row) -> T): Page<T> {
         val where = if (clauses.isEmpty()) "" else " WHERE " + clauses.joinToString(" AND ")
         val n = size.coerceIn(1, 100)
-        val p = page.coerceAtLeast(0)
+        val p = page.coerceIn(0, Page.MAX_PAGE)
         val count = "SELECT COUNT(*) AS n FROM $table$where"
         val select = "SELECT $columns FROM $table$where ORDER BY $order LIMIT ? OFFSET ?"
-        return Db.read(fresh = false) {
+        return Db.scan {
             val total = one(count, *params.toTypedArray()) { it.long("n") } ?: 0L
             Page(query(select, *params.toTypedArray(), n, p.toLong() * n, row = row), total, p, n)
         }

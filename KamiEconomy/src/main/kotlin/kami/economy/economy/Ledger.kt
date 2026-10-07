@@ -353,6 +353,10 @@ object Ledger {
         if (spurs > 0 && Trade.uuid(player) != null) Stats.add("market.tax", "p:$player", item, spurs)
     }
 
+    private fun tariffed(payer: String, country: String, spurs: Long) {
+        if (spurs > 0 && Trade.uuid(payer) != null) Stats.add("market.tariff", "p:$payer", country, spurs)
+    }
+
     private fun traded(player: String, counterparty: String, spurs: Long, item: String, qty: Int, sell: Boolean) {
         stat(player, item, qty, spurs, sell)
         if (spurs <= 0 || qty <= 0 || !earnsXp(player, counterparty)) return
@@ -377,10 +381,10 @@ object Ledger {
         if (tariff <= 0 || step in intent.done) return intent
         val country = Trade.country(buyer)
         val next = intent.mark(step)
-        if (Trade.uuid(payer) != null) Stats.add("market.tariff", "p:$payer", country?.let { "c:$it" }.orEmpty(), tariff)
         val note = Statement.note("kami_libs.note.tariff", intent.item)
-        if (country == null) return next.also { bank(it.id, step, payer, tariff, Flow.TAX, note) }
+        if (country == null) return next.also { tariffed(payer, "", tariff); bank(it.id, step, payer, tariff, Flow.TAX, note) }
         val applied = runCatching { ClaimsApi.creditTariff(country, tariff, Party.parse(payer)?.key.orEmpty(), note) }.getOrElse { LOG.error("Tariff of {} for intent {} failed, returning it", tariff, intent.id, it); 0L }
+        tariffed(payer, "c:$country", applied)
         val unapplied = tariff - applied
         if (unapplied <= 0) return next
         val to = Trade.uuid(payer)
@@ -793,6 +797,7 @@ object Ledger {
             }
             intent = creditOrFreeze(intent, "pay:$idx", f.owner, net(f), pre, Memo(Flow.MARKET_SELL, intent.actor, intent.item, f.qty)) ?: return
             bank(intent.id, "tax:$idx", f.owner, taxOf(f), Flow.TAX, taxNote(intent))
+        taxed(f.owner, intent.item, taxOf(f))
             intent = creditTariff(intent, "tariff:$idx", intent.actor, intent.actor, f.tariff)
             intent = intent.copy(paid = intent.paid + f.orderId).also(::write)
         }

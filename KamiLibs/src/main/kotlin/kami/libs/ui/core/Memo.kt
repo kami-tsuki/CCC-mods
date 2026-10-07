@@ -14,5 +14,11 @@ class Memo {
         return value as T
     }
 
-    private fun same(a: Any?, b: Any?) = a === b || ((a is Number || a is String || a is Boolean) && a == b)
+    companion object {
+        private fun same(a: Any?, b: Any?): Boolean = when {
+            a === b -> true
+            a is List<*> && b is List<*> -> a.size == b.size && a.indices.all { same(a[it], b[it]) }
+            else -> a == b
+        }
+    }
 }

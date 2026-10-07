@@ -7,6 +7,7 @@ import java.text.NumberFormat
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.util.Locale
 import kotlin.math.abs
 
@@ -16,17 +17,33 @@ object Format {
 
     fun localeOf(code: String): Locale = code.split('_', '-').let { Locale.of(it[0], it.getOrElse(1) { "" }.uppercase()) }
 
+    const val COIN = "◎"
     private const val COMPACT_FROM = 100_000L
     private val compacts = object : LinkedHashMap<String, String>(256, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?) = size > 256
     }
 
-    fun full(n: Long, locale: Locale = this.locale): String = NumberFormat.getIntegerInstance(locale).format(n)
+    private val units = listOf(1_000_000_000_000L to "trillion", 1_000_000_000L to "billion", 1_000_000L to "million", 1_000L to "thousand")
+    private val integerFormats = HashMap<Locale, NumberFormat>()
+
+    @Volatile
+    var hasCompacts = false
+        private set
+
+    fun full(n: Long, locale: Locale = this.locale): String =
+        synchronized(integerFormats) { integerFormats.getOrPut(locale) { NumberFormat.getIntegerInstance(locale) }.format(n) }
+
     fun number(n: Int): String = number(n.toLong())
 
     fun expand(text: String): String? {
-        if (compacts.isEmpty() || text.none { it.isDigit() }) return null
-        return compacts.entries.firstOrNull { text.contains(it.key) }?.let { text.replace(it.key, it.value) }
+        if (!hasCompacts || text.none { it.isDigit() }) return null
+        synchronized(compacts) {
+            for ((key, value) in compacts) {
+                val at = text.indexOf(key)
+                if (at >= 0 && (at == 0 || !text[at - 1].isLetterOrDigit())) return text.replaceFirst(key, value)
+            }
+        }
+        return null
     }
 
     fun decimal(v: Double, digits: Int = 1, locale: Locale = this.locale): String = String.format(locale, "%.${digits}f", v)
@@ -35,10 +52,12 @@ object Format {
         val v = abs(n)
         val sign = if (n < 0) "-" else ""
         if (v < COMPACT_FROM) return full(n)
-        val units = listOf(1_000_000_000_000L to "trillion", 1_000_000_000L to "billion", 1_000_000L to "million", 1_000L to "thousand")
-        val (div, unit) = units.first { v >= it.first }
+        var index = units.indexOfFirst { v >= it.first }
+        if (index > 0 && v.toDouble() / units[index].first >= 999.95) index--
+        val (div, unit) = units[index]
         val text = sign + tr("kami_libs.unit.$unit", decimal(v.toDouble() / div))
-        compacts[text] = full(n)
+        synchronized(compacts) { compacts[text] = full(n) }
+        hasCompacts = true
         return text
     }
 
@@ -81,6 +100,15 @@ object Format {
     fun exact(at: Long): String {
         val pattern = runCatching { DateTimeFormatter.ofPattern(tr("kami_libs.time.date_pattern"), locale) }.getOrElse { DateTimeFormatter.ISO_LOCAL_DATE_TIME }
         return pattern.withZone(ZoneId.systemDefault()).format(Instant.ofEpochMilli(at))
+    }
+
+    private var clockLocale: Locale? = null
+    private var clockFormat: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_TIME
+
+    @Synchronized
+    fun clock(at: Long): String {
+        if (clockLocale != locale) { clockLocale = locale; clockFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale).withZone(ZoneId.systemDefault()) }
+        return clockFormat.format(Instant.ofEpochMilli(at))
     }
 
     fun parseAmount(text: String): Long? {

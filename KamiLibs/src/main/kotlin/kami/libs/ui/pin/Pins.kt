@@ -1,6 +1,7 @@
 package kami.libs.ui.pin
 
 import kami.libs.config.Configs
+import kami.libs.config.writeAtomic
 import kami.libs.log.Log
 import kami.libs.ui.core.Cursor
 import kami.libs.ui.core.Rect
@@ -45,6 +46,7 @@ object Pins {
     private val file by lazy { Configs.dir("libs").resolve("pins.json") }
     private val data: PinData by lazy { runCatching { json.decodeFromString(PinData.serializer(), Files.readString(file)) }.getOrNull() ?: PinData() }
     private val hud = Ui()
+    private val snapshots = HashMap<String, List<String>>()
     private var drag: Drag? = null
 
     fun register(window: PinWindow) { windows[window.id] = window }
@@ -66,7 +68,7 @@ object Pins {
 
     fun commit() = save()
 
-    fun items(id: String): List<String> = data.items[id]?.toList().orEmpty()
+    fun items(id: String): List<String> = snapshots.getOrPut(id) { data.items[id]?.toList().orEmpty() }
 
     fun pinned(id: String, item: String) = item in items(id)
 
@@ -75,14 +77,15 @@ object Pins {
         if (item in list) return
         list += item
         while (list.size > (windows[id]?.maxItems ?: 1)) list.removeAt(0)
+        snapshots.remove(id)
         save()
     }
 
-    fun unpin(id: String, item: String) { if (data.items[id]?.remove(item) == true) save() }
+    fun unpin(id: String, item: String) { if (data.items[id]?.remove(item) == true) { snapshots.remove(id); save() } }
 
     fun toggle(id: String, item: String) = if (pinned(id, item)) unpin(id, item) else pin(id, item)
 
-    fun clear(id: String) { if (data.items.remove(id) != null) save() }
+    fun clear(id: String) { if (data.items.remove(id) != null) { snapshots.remove(id); save() } }
 
     fun renderHud(g: GuiGraphics) {
         val mc = Minecraft.getInstance()
@@ -142,7 +145,7 @@ object Pins {
     }
 
     private fun save() {
-        runCatching { Files.writeString(file, json.encodeToString(PinData.serializer(), data)) }
+        runCatching { writeAtomic(file, json.encodeToString(PinData.serializer(), data)) }
             .onFailure { Log.of("libs").warn("Could not save pins.json: {}", it.message) }
     }
 }

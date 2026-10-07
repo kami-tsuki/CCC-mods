@@ -12,12 +12,12 @@ import kami.libs.ui.app.Page
 import kami.libs.ui.app.Personal
 import kami.libs.ui.app.PersonalSection
 import kami.libs.ui.app.Route
+import kami.libs.ui.app.sliceDonut
 import kami.libs.ui.core.Flow
+import kami.libs.ui.core.Memo
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Ui
-import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
-import kami.libs.ui.style.Icon
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
@@ -34,7 +34,6 @@ import kami.libs.ui.text.noteLabel
 private const val TILE_H = 44
 private const val CHART_DAYS = 30
 private const val RECENT_ROWS = 8
-private const val DONUT_MAX = 90
 
 val bankSection = PersonalSection(
     "bank", 30, { "kami_essentials.bank.group" },
@@ -89,6 +88,8 @@ private fun window(a: Account, count: Int): List<DayTotal> {
     return (today - count + 1..today).map { byDay[it] ?: DayTotal(it, 0, 0) }
 }
 
+private class Derived(val days: List<DayTotal>, val net7: Long, val net30: Long, val weekIncome: Long, val weekExpense: Long, val trail: List<Long>, val labels: List<String>)
+
 class DashboardPage(private val app: PersonalApp) : Page() {
     override val title get() = tr("kami_essentials.personal.nav.dashboard")
     override val help get() = listOf(
@@ -96,23 +97,28 @@ class DashboardPage(private val app: PersonalApp) : Page() {
         Callout("personal:chart", tr("kami_essentials.personal.chart"), tr("kami_essentials.personal.help.chart.desc"))
     )
     private val table = TableState<Movement>()
+    private val derived = Memo()
 
     override fun draw(ui: Ui, r: Rect) {
         if (PersonalApp.instance.noAccount) return ui.noAccount(r)
         val a = Personal.account ?: return placeholder(ui, r)
-        val days = window(a, CHART_DAYS)
-        val week = days.takeLast(7)
-        val net7 = week.sumOf { it.income - it.expense }
-        val net30 = days.sumOf { it.income - it.expense }
-        var balance = a.balance
-        val trail = days.asReversed().map { d -> balance.also { balance -= d.income - d.expense } }.asReversed()
+        val d = derived.of(a, System.currentTimeMillis() / Time.DAY_MS) {
+            val days = window(a, CHART_DAYS)
+            var balance = a.balance
+            val week = days.takeLast(7)
+            Derived(days, week.sumOf { it.income - it.expense }, days.sumOf { it.income - it.expense }, week.sumOf { it.income }, week.sumOf { it.expense }, days.asReversed().map { x -> balance.also { balance -= x.income - x.expense } }.asReversed(), days.map { Format.dayLabel(it.day) })
+        }
+        val days = d.days
+        val net7 = d.net7
+        val net30 = d.net30
+        val trail = d.trail
         ui.anchor("personal:tiles", r.top(TILE_H))
         ui.kpiRow(r.top(TILE_H), listOf(
             KpiTile(tr("kami_essentials.personal.balance"), Format.money(ui.countUp("personal-balance", a.balance)), Icons.COIN, Palette.money,
                 trend = Trend(net30, tr("kami_essentials.personal.balance.month", Format.signed(net30))), spark = trail, flashValue = a.balance,
                 onClick = { app.navigate(Route("bank.movements")) }),
             KpiTile(tr("kami_essentials.personal.net7"), Format.signedMoney(net7), Icons.STATS, amountColor(net7),
-                sub = tr("kami_essentials.personal.net7.sub", Format.number(week.sumOf { it.income }), Format.number(week.sumOf { it.expense })),
+                sub = tr("kami_essentials.personal.net7.sub", Format.number(d.weekIncome), Format.number(d.weekExpense)),
                 onClick = { app.navigate(Route("bank.breakdown")) }),
             KpiTile(tr("kami_essentials.personal.playtime"), Format.duration(a.playtime), Icons.CLOCK),
             KpiTile(tr("kami_essentials.personal.kd"), "${Format.number(a.kills)} / ${Format.number(a.deaths)}", Icons.FIRE,
@@ -121,7 +127,7 @@ class DashboardPage(private val app: PersonalApp) : Page() {
         val (left, right) = r.dropTop(TILE_H + 6).columns(listOf(1.35f, 1f), 6)
         ui.anchor("personal:chart", left)
         val chart = ui.card(left, tr("kami_essentials.personal.chart"), Icons.STATS, help = tr("kami_essentials.personal.help.chart.desc"))
-        ui.barChart(chart, days.map { it.income }, days.map { it.expense }, days.map { Format.dayLabel(it.day) }, format = { Format.money(it) }, key = "personal-chart")
+        ui.barChart(chart, days.map { it.income }, days.map { it.expense }, d.labels, format = { Format.money(it) }, key = "personal-chart")
         val f = Flow(right, 6)
         val you = Flow(ui.card(f.take(48), tr("kami_libs.common.you"), Icons.PERSON), 1)
         ui.property(you.take(11), tr("kami_libs.common.country"), a.country ?: tr("kami_libs.common.none"), if (a.country == null) Palette.textMuted else Palette.text)
@@ -174,8 +180,8 @@ private class BreakdownPage : Page() {
         val rows = a?.let { if (prefs.bankRange == "month") it.month else it.week }.orEmpty().filter { it.income != 0L || it.expense != 0L }
         val (donuts, flows) = r.dropTop(CONTROL_H + 6).columns(listOf(1f, 1.1f), 6)
         val (inRect, outRect) = donuts.columns(2, 6)
-        donutCard(ui, inRect, tr("kami_essentials.bank.income"), Icons.INCOME, rows.filter { it.income > 0 }.map { Slice(it.flow.label, it.income, flowColor(it.flow)) }, "bank-in", a == null)
-        donutCard(ui, outRect, tr("kami_essentials.bank.expense"), Icons.EXPENSE, rows.filter { it.expense > 0 }.map { Slice(it.flow.label, it.expense, flowColor(it.flow)) }, "bank-out", a == null)
+        ui.sliceDonut(inRect, tr("kami_essentials.bank.income"), Icons.INCOME, rows.filter { it.income > 0 }.map { Slice(it.flow.label, it.income, flowColor(it.flow)) }, "bank-in", a == null, stacked = true)
+        ui.sliceDonut(outRect, tr("kami_essentials.bank.expense"), Icons.EXPENSE, rows.filter { it.expense > 0 }.map { Slice(it.flow.label, it.expense, flowColor(it.flow)) }, "bank-out", a == null, stacked = true)
         ui.anchor("bank:flows", flows)
         val box = ui.card(flows, tr("kami_essentials.bank.flows"), Icons.LEDGER)
         val columns = listOf(
@@ -186,18 +192,5 @@ private class BreakdownPage : Page() {
         )
         ui.table(box, columns, rows, table, { it.flow }, emptyText = tr("kami_essentials.bank.breakdown.empty"), key = "bank-flows", loading = Personal.loading)
         if (stale) ui.staleVeil(r.dropTop(CONTROL_H + 6))
-    }
-
-    private fun donutCard(ui: Ui, r: Rect, title: String, icon: Icon, slices: List<Slice>, key: String, loading: Boolean) {
-        val body = ui.card(r, title, icon)
-        val size = minOf(body.w, DONUT_MAX, (body.h / 2).coerceAtLeast(20))
-        if (loading) {
-            ui.skeleton(Rect(body.x + (body.w - size) / 2, body.y, size, size))
-            ui.skeletonLines(Rect(body.x, body.y + size + 6, body.w, body.bottom - body.y - size - 6), 2)
-            return
-        }
-        ui.donut(Rect(body.x + (body.w - size) / 2, body.y, size, size), slices, Format.number(slices.sumOf { it.value }), key)
-        if (slices.isEmpty()) Draw.textCentered(ui.g, tr("kami_libs.chart.no_data"), Rect(body.x, body.y + size + 2, body.w, 12), Palette.textMuted)
-        else ui.legend(body.x, body.y + size + 6, body.w, slices.map { it.color to it.label })
     }
 }

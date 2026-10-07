@@ -3,15 +3,17 @@ package kami.economy.client
 import kami.libs.config.KamiConfig
 import kami.libs.config.Section
 import kami.libs.log.Log
+import kami.libs.ui.app.NavPrefs
 import kotlinx.serialization.Serializable
 
 @Serializable
 class Prefs(
     var tourDone: Boolean = false,
     var chartRange: String = "week",
-    var collapsedGroups: MutableSet<String> = mutableSetOf(),
+    override var railCollapsed: Boolean = false,
+    override var collapsedGroups: MutableSet<String> = mutableSetOf(),
     var watch: MutableList<String>? = null
-)
+) : NavPrefs
 
 object MarketPrefs {
     private val config = KamiConfig(
@@ -22,6 +24,7 @@ object MarketPrefs {
                 mapOf(
                     "tourDone" to "The guided tour was finished or skipped.",
                     "chartRange" to "Price chart range on the item page: day, week, month or all.",
+                    "railCollapsed" to "The side bar is collapsed to icons.",
                     "collapsedGroups" to "Navigation groups you collapsed.",
                     "watch" to "Legacy local watchlist, uploaded to the server once and then removed."
                 )

@@ -6,12 +6,12 @@ import kami.libs.ui.core.Ui
 import kami.libs.ui.map.ChunkMap
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Palette
-import net.minecraft.client.Minecraft
+import kami.libs.ui.core.Dim
 
 object MiniMap {
     private val maps = HashMap<String, ChunkMap>()
 
-    fun dim(): String = Minecraft.getInstance().level?.dimension()?.location()?.toString() ?: "minecraft:overworld"
+    fun clear() = maps.clear()
 
     fun draw(ui: Ui, r: Rect, x: Int, z: Int, radius: Int, key: String, highlight: Collection<Pair<Int, Int>> = emptyList(), color: Int = Palette.brass, mode: MapMode = MapMode.POLITICAL, you: Pair<Int, Int>? = null) {
         val map = maps.getOrPut(key) { ChunkMap() }
@@ -19,7 +19,7 @@ object MiniMap {
         map.zoom = zoom
         map.zoomTo(zoom)
         map.center(x, z)
-        val d = dim()
+        val d = Dim.current()
         ui.clip(r) {
             map.drawBase(ui, r, d, ClientClaims.prefs.terrain, false)
             ClaimsLayer.draw(ui, map, d, mode, setOf("borders", "markers"), you)

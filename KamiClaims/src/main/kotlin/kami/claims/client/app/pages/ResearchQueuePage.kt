@@ -97,17 +97,18 @@ class ResearchQueuePage(app: ClaimsApp) : ClaimsPage(app) {
 
     private fun controls(ui: Ui, line: Row, node: NodeView, entry: QueueView, narrow: Boolean) {
         val queue = ClientResearch.state.queue
-        val index = queue.indexOf(entry)
+        val index = waiting.indexOf(entry)
         if (entry.state == NodeState.RESEARCHING) {
             val label = tr("kami_claims.research.action.pause")
             val pending = actions.pending(node)
-            if (ui.adaptiveButton(line, narrow, label, Icons.PENDING, pending = pending, key = "queue-pause:${node.key}")) actions.pause(node)
+            val why = actions.pauseReason()
+            if (ui.adaptiveButton(line, narrow, label, Icons.PENDING, enabled = why == null, disabledReason = why, pending = pending, key = "queue-pause:${node.key}")) actions.pause(node)
             return
         }
         val removeWhy = actions.removeReason(entry)
         if (ui.iconButton(line.iconSlot(), Icons.REMOVE, removeWhy ?: tr("kami_claims.research.action.remove"), enabled = removeWhy == null, key = "queue-remove:${node.key}")) actions.remove(node, entry)
-        if (ui.iconButton(line.iconSlot(), Icons.SORT_DOWN, tr("kami_claims.research.action.down"), enabled = index < queue.lastIndex, key = "queue-down:${node.key}")) actions.move(node, index + 1)
-        if (ui.iconButton(line.iconSlot(), Icons.SORT_UP, tr("kami_claims.research.action.up"), enabled = index > 0, key = "queue-up:${node.key}")) actions.move(node, index - 1)
+        if (ui.iconButton(line.iconSlot(), Icons.SORT_DOWN, tr("kami_claims.research.action.down"), enabled = index < waiting.lastIndex, key = "queue-down:${node.key}")) actions.move(node, queue.indexOf(waiting[index + 1]))
+        if (ui.iconButton(line.iconSlot(), Icons.SORT_UP, tr("kami_claims.research.action.up"), enabled = index > 0, key = "queue-up:${node.key}")) actions.move(node, queue.indexOf(waiting[index - 1]))
         val reason = actions.startReason(node, entry)
         val label = tr("kami_claims.research.action.start")
         val pending = actions.pending(node)

@@ -22,6 +22,7 @@ import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
 import kami.libs.ui.text.tr
 import kami.libs.ui.widget.Column
+import kami.libs.ui.widget.textOrder
 import kami.libs.ui.widget.TableState
 import kami.libs.ui.widget.TextState
 import kami.libs.ui.widget.filterBar
@@ -54,7 +55,7 @@ object CountryAdminSection {
 }
 
 internal fun countryColumns() = listOf(
-    Column<CountryRow>(tr("kami_libs.common.name"), -1, sort = compareBy { it.name.lowercase() }) { _, r, row ->
+    Column<CountryRow>(tr("kami_libs.common.name"), -1, sort = textOrder { it.name }) { _, r, row ->
         Draw.fill(g, Rect(r.x, r.y + (r.h - 6) / 2, 6, 6), row.color or 0xFF000000.toInt())
         Draw.text(g, Draw.fit(row.name, r.w - 10), r.x + 10, r.y + (r.h - 8) / 2, if (row.active) Palette.text else Palette.textMuted)
     },

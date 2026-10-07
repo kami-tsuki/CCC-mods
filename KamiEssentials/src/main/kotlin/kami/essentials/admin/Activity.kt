@@ -37,11 +37,11 @@ object Activity {
         FORGE_BUS.addListener<LivingDamageEvent.Post> { runCatching { damage(it) } }
         FORGE_BUS.addListener<BlockEvent.BreakEvent>(EventPriority.LOWEST) { e ->
             val p = player(e.player)
-            if (!e.isCanceled && p != null && !idle(p)) Stats.add("block.mine", id(p), BuiltInRegistries.BLOCK.getKey(e.state.block).toString())
+            if (p != null && !idle(p)) Stats.add("block.mine", id(p), BuiltInRegistries.BLOCK.getKey(e.state.block).toString())
         }
         FORGE_BUS.addListener<BlockEvent.EntityPlaceEvent>(EventPriority.LOWEST) { e ->
             val p = player(e.entity)
-            if (!e.isCanceled && p != null && !idle(p)) Stats.add("block.place", id(p), BuiltInRegistries.BLOCK.getKey(e.placedBlock.block).toString())
+            if (p != null && !idle(p)) Stats.add("block.place", id(p), BuiltInRegistries.BLOCK.getKey(e.placedBlock.block).toString())
         }
         FORGE_BUS.addListener<PlayerEvent.ItemCraftedEvent> { e ->
             val p = player(e.entity)

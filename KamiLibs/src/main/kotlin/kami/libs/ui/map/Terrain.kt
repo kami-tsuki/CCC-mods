@@ -13,6 +13,12 @@ import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.material.MapColor
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 
 object TerrainSampler {
     fun sample(level: Level, chunk: LevelChunk): IntArray {
@@ -78,12 +84,14 @@ object TerrainSampler {
     }
 }
 
-class TerrainTile(val dim: String, val rx: Int, val rz: Int, val image: NativeImage) {
+class TerrainTile(val dim: String, val rx: Int, val rz: Int, val image: NativeImage, val folder: Path?) {
     val id: ResourceLocation = ResourceLocation.fromNamespaceAndPath(KamiLibs.ID, "terrain/${dim.replace(':', '_').replace('/', '_')}/${rx}_${rz}".replace('-', 'm'))
     private var texture: DynamicTexture? = null
     var dirtyGpu = true
     var dirtyDisk = false
     var used = 0L
+
+    fun path(): Path? = folder?.resolve("${dim.replace(':', '_')}/r.$rx.$rz.png")
 
     fun bind(): ResourceLocation {
         val tex = texture ?: DynamicTexture(image).also {
@@ -103,39 +111,43 @@ class TerrainTile(val dim: String, val rx: Int, val rz: Int, val image: NativeIm
 object TerrainCache {
     const val TILE_CHUNKS = 32
     private const val SIZE = TILE_CHUNKS * 16
+    private val unsafe = Regex("[^a-z0-9._-]")
     private val tiles = LinkedHashMap<String, TerrainTile>()
     private val missing = HashSet<String>()
+    private val io = ThreadPoolExecutor(1, 1, 5, TimeUnit.SECONDS, LinkedBlockingQueue(), { Thread(it, "kami-map-io") }).apply { allowCoreThreadTimeOut(true) }
     var maxTiles = 48
     var diskLimitMb = 256
     var enabled = true
     private var folder: Path? = null
     private var session = ""
+    private val writing = ConcurrentHashMap<Path, CompletableFuture<Void>>()
 
     private fun key(dim: String, rx: Int, rz: Int) = "$dim|$rx|$rz"
 
     private fun serverFolder(): Path? {
         val mc = Minecraft.getInstance()
         val name = mc.singleplayerServer?.worldData?.levelName?.let { "local-$it" } ?: mc.currentServer?.ip ?: return null
-        val clean = name.lowercase().replace(Regex("[^a-z0-9._-]"), "_")
+        val clean = name.lowercase().replace(unsafe, "_")
         if (clean != session) {
-            session = clean
             clear()
+            session = clean
+            folder = mc.gameDirectory.toPath().resolve("kami/mapcache/$clean")
         }
-        return mc.gameDirectory.toPath().resolve("kami/mapcache/$clean").also { folder = it }
+        return folder
     }
-
-    private fun file(dim: String, rx: Int, rz: Int) = serverFolder()?.resolve("${dim.replace(':', '_')}/r.$rx.$rz.png")
 
     fun tile(dim: String, rx: Int, rz: Int, create: Boolean): TerrainTile? {
         val k = key(dim, rx, rz)
         tiles[k]?.let { it.used = System.currentTimeMillis(); return it }
         if (!create && k in missing) return null
-        val path = file(dim, rx, rz)
+        val dir = serverFolder()
+        val path = dir?.resolve("${dim.replace(':', '_')}/r.$rx.$rz.png")
+        if (path != null) writing[path]?.join()
         val image = path?.takeIf { Files.exists(it) }?.let { p -> runCatching { Files.newInputStream(p).use { NativeImage.read(it) } }.getOrNull()?.takeIf { it.width == SIZE && it.height == SIZE } }
             ?: if (create) NativeImage(SIZE, SIZE, true).also { it.fillRect(0, 0, SIZE, SIZE, 0) } else null
         if (image == null) { missing += k; return null }
         missing -= k
-        val tile = TerrainTile(dim, rx, rz, image)
+        val tile = TerrainTile(dim, rx, rz, image, dir)
         tile.used = System.currentTimeMillis()
         tiles[k] = tile
         evict()
@@ -168,12 +180,20 @@ object TerrainCache {
 
     private fun save(tile: TerrainTile) {
         if (!tile.dirtyDisk) return
-        val path = file(tile.dim, tile.rx, tile.rz) ?: return
-        runCatching {
-            Files.createDirectories(path.parent)
-            tile.image.writeToFile(path)
-            tile.dirtyDisk = false
-        }.onFailure { KamiLibs.LOG.warn("Could not save map tile {}: {}", path, it.message) }
+        tile.dirtyDisk = false
+        val path = tile.path() ?: return
+        val snapshot = NativeImage(tile.image.format(), tile.image.width, tile.image.height, false).also { it.copyFrom(tile.image) }
+        val job = CompletableFuture.runAsync({
+            runCatching {
+                Files.createDirectories(path.parent)
+                val temp = path.resolveSibling(path.fileName.toString() + ".tmp")
+                snapshot.writeToFile(temp)
+                Files.move(temp, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+            }.onFailure { KamiLibs.LOG.warn("Could not save map tile {}: {}", path, it.message) }
+            snapshot.close()
+        }, io)
+        writing[path] = job
+        job.whenComplete { _, _ -> writing.remove(path, job) }
     }
 
     fun flush(limit: Int = Int.MAX_VALUE) {
@@ -182,15 +202,20 @@ object TerrainCache {
 
     fun trimDisk() {
         val root = folder ?: return
-        if (!Files.exists(root)) return
-        val files = Files.walk(root).use { s -> s.filter { Files.isRegularFile(it) }.toList() }
-        var total = files.sumOf { Files.size(it) }
         val limit = diskLimitMb.toLong() * 1024 * 1024
-        if (total <= limit) return
-        files.sortedBy { Files.getLastModifiedTime(it).toMillis() }.forEach { f ->
-            if (total <= limit) return
-            total -= Files.size(f)
-            Files.deleteIfExists(f)
+        io.execute {
+            runCatching {
+                if (!Files.exists(root)) return@execute
+                val (stale, files) = Files.walk(root).use { s -> s.filter { Files.isRegularFile(it) }.toList() }.partition { it.fileName.toString().endsWith(".tmp") }
+                stale.forEach { Files.deleteIfExists(it) }
+                var total = files.sumOf { Files.size(it) }
+                if (total <= limit) return@execute
+                files.sortedBy { Files.getLastModifiedTime(it).toMillis() }.forEach { f ->
+                    if (total <= limit) return@execute
+                    total -= Files.size(f)
+                    Files.deleteIfExists(f)
+                }
+            }.onFailure { KamiLibs.LOG.warn("Could not trim map cache: {}", it.message) }
         }
     }
 
@@ -206,6 +231,6 @@ object TerrainCache {
         tiles.values.forEach { it.release(); it.image.close() }
         tiles.clear()
         missing.clear()
-        root?.takeIf { Files.exists(it) }?.let { r -> Files.walk(r).use { s -> s.sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) } } }
+        io.execute { root?.takeIf { Files.exists(it) }?.let { r -> Files.walk(r).use { s -> s.sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) } } } }
     }
 }

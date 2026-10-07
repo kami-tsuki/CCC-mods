@@ -15,6 +15,11 @@ object AutoRefresh {
 
     private var last = 0L
 
+    fun reset() {
+        allowed = true
+        global = true
+    }
+
     fun receive(state: String) {
         allowed = state.getOrNull(0) != '0'
         global = state.getOrNull(1) != '0'

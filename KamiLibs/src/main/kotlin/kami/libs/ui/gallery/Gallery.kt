@@ -48,7 +48,7 @@ class Gallery : KamiApp() {
 
     override fun buildNav() = listOf(
         NavGroup("Controls", listOf(NavItem("buttons", "Buttons", Icons.CURSOR), NavItem("inputs", "Inputs", Icons.EDIT, { NavBadge(2, Severity.INFO) }))),
-        NavGroup("Content", listOf(NavItem("display", "Display", Icons.DASHBOARD), NavItem("data", "Data", Icons.STATS), NavItem("tree", "Tech tree", Icons.TREE), NavItem("strip", "Strip", Icons.SORT_DOWN), NavItem("motion", "Motion", Icons.CLOCK)), collapsible = true),
+        NavGroup("Content", listOf(NavItem("display", "Display", Icons.DASHBOARD), NavItem("data", "Data", Icons.STATS), NavItem("tree", "Tech tree", Icons.TREE), NavItem("strip", "Strip", Icons.SORT_DOWN), NavItem("motion", "Motion", Icons.CLOCK))),
         NavGroup("Layers", listOf(NavItem("overlays", "Overlays", Icons.LAYERS), NavItem("locked", "Locked page", Icons.LOCK, lock = { "Example of a page you cannot open yet" })))
     )
 

@@ -1,5 +1,6 @@
 package kami.economy.client.ui
 
+import kami.economy.client.admin.MarketSection
 import kami.economy.net.Detail
 import kami.economy.net.Quote
 import kami.libs.economy.CleanStep
@@ -15,16 +16,11 @@ import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr
 import kami.libs.ui.widget.*
-import java.time.Instant
-import java.time.LocalTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 import kotlin.math.max
 
 private const val QUOTE_DELAY = 200L
 private const val FAT_FINGER_PCT = 15L
-private val RESET_FORMAT = DateTimeFormatter.ofPattern("HH:mm")
 
 internal fun returnReason(q: Quote, lot: Int) = when (q.reason) {
     "lot" -> tr("kami_economy.action.return.lot", lot)
@@ -47,7 +43,7 @@ private fun Quote.sellersKey() = if (mode == "bid") "kami_economy.receipt.tax.se
 private fun Quote.myTaxTip() = tr("kami_economy.receipt.tax.you.tip.$mode") + relation.takeIf { it.isNotEmpty() && mode != "buy" }?.let { " " + tr("kami_economy.market.rate.$it.tip") }.orEmpty()
 
 internal fun confirmQuote(app: MarketApp, q: Quote, lot: Int, warning: String? = null) {
-    val stack = app.stack(q.item)
+    val stack = MarketSection.stack(q.item)
     val size = stack.maxStackSize
     val sign = if (q.buying) "+" else "-"
     val reason = returnReason(q, lot).let { if (it.isEmpty()) "" else " ($it)" }
@@ -198,7 +194,7 @@ internal class Ticket(private val app: MarketApp) {
             return
         }
         if (order) return
-        val reset = LocalTime.ofInstant(Instant.ofEpochMilli(d.resetAt), ZoneId.systemDefault()).format(RESET_FORMAT)
+        val reset = Format.clock(d.resetAt)
         val text = when {
             d.stockBid > 0 && s.capLeft > 0 -> tr("kami_economy.stock.guaranteed", Format.number(minOf(s.room, s.capLeft) * d.lot), Format.money(d.stockBid.toLong()), reset)
             d.stockBid > 0 -> tr("kami_economy.stock.curve", Format.money(d.stockBid.toLong()))
@@ -224,7 +220,7 @@ internal class Ticket(private val app: MarketApp) {
         }
         seed(d)
         val lot = d.lot.coerceAtLeast(1)
-        val size = app.stack(item).maxStackSize
+        val size = MarketSection.stack(item).maxStackSize
         ui.segmented(f.take(SMALL_H), listOf(Option(true, tr("kami_economy.ticket.buy"), description = tr("kami_economy.ticket.buy.tip")), Option(false, tr("kami_economy.ticket.sell"), description = tr("kami_economy.ticket.sell.tip"))), buy, key = "side")?.let { buy = it }
         ui.segmented(f.take(SMALL_H), listOf(Option(false, tr("kami_economy.ticket.instant"), description = tr("kami_economy.ticket.instant.tip")), Option(true, tr("kami_economy.ticket.order"), description = tr("kami_economy.ticket.order.tip"))), order, key = "kind")?.let { order = it }
         frozenFor(mode, d.status, d.statusReason)?.let { text ->
@@ -298,7 +294,7 @@ internal class Ticket(private val app: MarketApp) {
         ui.section(f.take(13), tr("kami_economy.ticket.mine"))
         d.mine.take(4).forEach { o ->
             val row = f.take(SMALL_H)
-            val text = tr(if (o.bid) "kami_economy.ticket.mine.bid" else "kami_economy.ticket.mine.ask", unitsText(o.amount, app.stack(o.item).maxStackSize), Format.money(o.price.toLong()))
+            val text = tr(if (o.bid) "kami_economy.ticket.mine.bid" else "kami_economy.ticket.mine.ask", unitsText(o.amount, MarketSection.stack(o.item).maxStackSize), Format.money(o.price.toLong()))
             Draw.text(ui.g, Draw.fit(text, row.w - 2 * SMALL_H - 6), row.x, row.y + 4, Palette.textSecondary)
             if (ui.iconButton(Rect(row.right - 2 * SMALL_H - 2, row.y, SMALL_H, SMALL_H), Icons.EDIT, tr("kami_economy.reprice.action"), key = "mine-edit:${o.id}")) app.reprice(app, o)
             if (ui.iconButton(Rect(row.right - SMALL_H, row.y, SMALL_H, SMALL_H), Icons.CROSS, tr("kami_economy.cancel.action"), key = "mine-cancel:${o.id}")) app.cancel(app, o)

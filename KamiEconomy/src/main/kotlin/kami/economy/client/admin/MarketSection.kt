@@ -14,6 +14,7 @@ import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr
 import kami.libs.ui.widget.Align
 import kami.libs.ui.widget.Column
+import kami.libs.ui.widget.textOrder
 import kami.libs.ui.widget.specCell
 import kami.libs.ui.widget.tagMembers
 import net.minecraft.resources.ResourceLocation
@@ -50,6 +51,8 @@ object MarketSection {
         if (id.startsWith("#")) id else ItemSpec.stack(id).takeUnless { it.isEmpty }?.hoverName?.string ?: id
     }
 
+    val cachedIds: Set<String> get() = stacks.keys
+
     fun stack(id: String): ItemStack = if (id.startsWith("#")) tagMembers(id).firstOrNull() ?: marketStack(id) else stacks.getOrPut(id) { marketStack(id) }
 
     fun valid(item: String): Boolean = if (item.startsWith("#")) ResourceLocation.tryParse(item.drop(1)) != null else !ItemSpec.stack(item).isEmpty
@@ -65,7 +68,7 @@ object MarketSection {
 }
 
 internal fun <T> itemColumn(title: String, id: (T) -> String, label: (T) -> String = { "" }) =
-    Column<T>(title, -1, sort = compareBy<T> { MarketSection.itemName(id(it)).lowercase() }) { _, r, row ->
+    Column<T>(title, -1, sort = textOrder<T> { MarketSection.itemName(id(it)) }) { _, r, row ->
         val item = id(row)
         if (item.isEmpty()) return@Column
         specCell(r, item, MarketSection.stack(item), label(row).ifEmpty { MarketSection.itemName(item) }, "admin-item:${r.y}:$item")

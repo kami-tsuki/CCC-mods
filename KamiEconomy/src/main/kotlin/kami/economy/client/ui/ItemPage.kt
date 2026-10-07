@@ -1,5 +1,6 @@
 package kami.economy.client.ui
 
+import kami.economy.client.admin.MarketSection
 import kami.economy.client.MarketPrefs
 import kami.economy.net.Detail
 import kami.economy.net.Level
@@ -54,7 +55,7 @@ internal class ItemPage(val app: MarketApp) : Page() {
     private val spans = HashMap<String, Span>()
     private var waitFor: Detail? = null
 
-    override val title get() = app.stack(item).hoverName.string
+    override val title get() = MarketSection.stack(item).hoverName.string
     override val subtitle get() = detail()?.let { tr("kami_economy.item.lot", it.lot) }
     override val help get() = listOf(
         Callout("item:chart", tr("kami_economy.help.item.chart"), tr("kami_economy.help.item.chart.desc")),
@@ -97,7 +98,7 @@ internal class ItemPage(val app: MarketApp) : Page() {
     override fun draw(ui: Ui, r: Rect) {
         val d = detail()
         if (d != null && d !== waitFor) spans[item] = span
-        val stack = app.stack(item)
+        val stack = MarketSection.stack(item)
         val head = r.top(22)
         ui.itemSlot(head.left(22), stack, key = "detail:item")
         if (d == null) ui.skeleton(Rect(head.x + 30, head.y + 7, (head.w - 30) / 3, 8))

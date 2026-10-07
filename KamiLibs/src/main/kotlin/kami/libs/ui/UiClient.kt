@@ -3,6 +3,7 @@ package kami.libs.ui
 import kami.libs.ui.gallery.Gallery
 import kami.libs.ui.map.TerrainScanner
 import kami.libs.ui.pin.Pins
+import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
 import kami.libs.ui.style.Palette
 import kami.libs.ui.widget.clearTagMembers
@@ -26,9 +27,10 @@ object UiClient {
                 Palette.load(it)
                 UiPrefs.apply()
                 Format.locale = Format.localeOf(Minecraft.getInstance().languageManager.selected)
+                Draw.clearWidths()
             })
         }
-        FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> { clearTagMembers() }
+        FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> { clearTagMembers(); AutoRefresh.reset() }
         FORGE_BUS.addListener<TagsUpdatedEvent> { if (it.updateCause == TagsUpdatedEvent.UpdateCause.CLIENT_PACKET_RECEIVED) clearTagMembers() }
         MOD_BUS.addListener<RegisterGuiLayersEvent> { it.registerAboveAll(ResourceLocation.fromNamespaceAndPath("kami_libs", "pins")) { g, _ -> Pins.renderHud(g) } }
         FORGE_BUS.addListener<RegisterClientCommandsEvent> { e ->

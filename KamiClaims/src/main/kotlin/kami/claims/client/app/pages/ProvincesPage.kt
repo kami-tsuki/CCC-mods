@@ -181,7 +181,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
             s.used = y - s.body.y
             val ready = target != null && typed.text.equals(p.name, true)
             dialogButtons(s, tr("kami_claims.provinces.give.action"), ready, if (target == null) tr("kami_claims.provinces.choose_country.first") else tr("kami_libs.dialog.type_required", p.name), hold = true) {
-                ClaimsStore.send("province_give", p.name, target!!, "confirm", key = "province_give")
+                ClaimsStore.send("province_give", p.name, target ?: return@dialogButtons, "confirm", key = "province_give")
                 s.close()
             }
         })
@@ -312,7 +312,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
                 slider(Rect(s.body.x, y, s.body.w, CONTROL_H), percent.coerceIn(min, max), min, max, 1.0, format = { Format.percent(it / 100) }, key = "percent")?.let { percent = it }
             } else {
                 fieldLabel(Rect(s.body.x, y, s.body.w, 9), tr("kami_claims.provinces.terms.per_day")); y += 11
-                numberField(Rect(s.body.x, y, s.body.w, CONTROL_H), flat, 0, 100_000, unit = "◎", key = "flat")
+                numberField(Rect(s.body.x, y, s.body.w, CONTROL_H), flat, 0, 100_000, unit = Format.COIN, key = "flat")
             }
             y += CONTROL_H + 6
             val owed = Vocabulary.tributeEstimate(mode, if (mode == "percent") percent.toInt() / 100.0 else flat.value.toDouble(), income)
@@ -437,7 +437,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
             )) + 4
             s.used = y - s.body.y
             dialogButtons(s, tr("kami_libs.common.send_request"), target != null, tr("kami_claims.provinces.choose_country.first")) {
-                ClaimsStore.send("province_request", target!!, key = "province_request")
+                ClaimsStore.send("province_request", target ?: return@dialogButtons, key = "province_request")
                 s.close()
             }
         })

@@ -5,17 +5,16 @@ import kami.libs.admin.StatRow
 import kami.libs.ui.app.Page
 import kami.libs.ui.app.Remote
 import kami.libs.ui.app.StatBoard
-import kami.libs.ui.app.StatLine
-import kami.libs.ui.app.StatQuery
+import kami.libs.ui.app.chartCard
 import kami.libs.ui.app.TimeRange
 import kami.libs.ui.app.statChartCard
 import kami.libs.ui.app.statPage
 import kami.libs.ui.app.statTopCard
+import kami.libs.ui.app.topCard
 import kami.libs.ui.app.total
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Format
-import kami.libs.ui.style.Icon
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr
@@ -37,11 +36,6 @@ internal class MarketStatsPage : Page() {
     private val sold = board.top("market.sell", "o")
     private val traders = board.top("market.trade")
 
-    private fun money(v: Long) = Format.money(v)
-
-    private fun chart(title: String, icon: Icon, key: String, q: StatQuery, color: Int = Palette.chart[1], format: (Long) -> String = { Format.number(it) }) =
-        statChartCard(title, icon, "market-stats:$key", listOf(StatLine(title, board[q].points, color, true)), format)
-
     override fun draw(ui: Ui, r: Rect) {
         watch.poll()
         val w = watch.data ?: watch.latest
@@ -50,20 +44,20 @@ internal class MarketStatsPage : Page() {
             KpiTile(tr("kami_economy.admin.stats.watch_players"), w?.players?.let { Format.number(it.toLong()) }, Icons.PEOPLE),
             KpiTile(tr("kami_economy.admin.stats.watch_items"), w?.items?.let { Format.number(it.toLong()) }, Icons.LAYERS),
             KpiTile(tr("kami_economy.admin.stats.trades"), Format.number(board[trades].points.total().toLong()), Icons.HANDSHAKE),
-            KpiTile(tr("kami_economy.admin.stats.volume"), money(board[volume].points.total().toLong()), Icons.COIN, Palette.money),
-            KpiTile(tr("kami_economy.admin.stats.taxes"), money(board[taxes].points.total().toLong()), Icons.TAX, Palette.money),
-            KpiTile(tr("kami_economy.admin.stats.tariffs"), money(board[tariffs].points.total().toLong()), Icons.PERCENT, Palette.money)
+            KpiTile(tr("kami_economy.admin.stats.volume"), Format.money(board[volume].points.total().toLong()), Icons.COIN, Palette.money),
+            KpiTile(tr("kami_economy.admin.stats.taxes"), Format.money(board[taxes].points.total().toLong()), Icons.TAX, Palette.money),
+            KpiTile(tr("kami_economy.admin.stats.tariffs"), Format.money(board[tariffs].points.total().toLong()), Icons.PERCENT, Palette.money)
         )
         val cards = listOf(
             statTopCard(tr("kami_economy.admin.stats.top_watched"), Icons.STAR, w?.top.orEmpty().map { StatRow(it.item, it.count.toLong(), MarketSection.itemName(it.item)) }),
-            chart(tr("kami_economy.admin.stats.watch_change"), Icons.STAR, "watch", watched, format = { Format.number(it) }),
-            chart(tr("kami_economy.admin.stats.trades"), Icons.HANDSHAKE, "trades", trades),
-            chart(tr("kami_economy.admin.stats.volume"), Icons.COIN, "volume", volume, Palette.money) { money(it) },
-            chart(tr("kami_economy.admin.stats.taxes"), Icons.TAX, "taxes", taxes, Palette.money) { money(it) },
-            chart(tr("kami_economy.admin.stats.tariffs"), Icons.PERCENT, "tariffs", tariffs, Palette.money) { money(it) },
-            statTopCard(tr("kami_economy.admin.stats.top_bought"), Icons.INCOME, board[bought].rows),
-            statTopCard(tr("kami_economy.admin.stats.top_sold"), Icons.EXPENSE, board[sold].rows),
-            statTopCard(tr("kami_economy.admin.stats.top_traders"), Icons.HANDSHAKE, board[traders].rows)
+            board.chartCard(tr("kami_economy.admin.stats.watch_change"), Icons.STAR, "market-stats:watch", watched),
+            board.chartCard(tr("kami_economy.admin.stats.trades"), Icons.HANDSHAKE, "market-stats:trades", trades),
+            board.chartCard(tr("kami_economy.admin.stats.volume"), Icons.COIN, "market-stats:volume", volume, Palette.money, format = Format::money),
+            board.chartCard(tr("kami_economy.admin.stats.taxes"), Icons.TAX, "market-stats:taxes", taxes, Palette.money, format = Format::money),
+            board.chartCard(tr("kami_economy.admin.stats.tariffs"), Icons.PERCENT, "market-stats:tariffs", tariffs, Palette.money, format = Format::money),
+            board.topCard(tr("kami_economy.admin.stats.top_bought"), Icons.INCOME, bought),
+            board.topCard(tr("kami_economy.admin.stats.top_sold"), Icons.EXPENSE, sold),
+            board.topCard(tr("kami_economy.admin.stats.top_traders"), Icons.HANDSHAKE, traders)
         )
         ui.statPage("market-stats", r, range, board, tiles, cards)
     }

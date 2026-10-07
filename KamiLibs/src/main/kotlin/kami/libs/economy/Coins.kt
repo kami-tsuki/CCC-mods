@@ -6,6 +6,8 @@ import kami.libs.db.Migration
 import kami.libs.db.Rows
 import kami.libs.db.SavePoint
 import kami.libs.db.Session
+import kami.libs.db.Writer
+import kami.libs.log.Log
 import kami.libs.util.Time.DAY_MS
 import java.util.UUID
 import kotlin.math.abs
@@ -122,11 +124,22 @@ object Coins {
         val row = Db.read { one("SELECT minted, burned FROM libs_coin_supply WHERE id = 1") { it.long("minted") to it.long("burned") } }
         mintedTotal = row?.first ?: 0L
         burnedTotal = row?.second ?: 0L
-        Db.read { query("SELECT day, source, minted, burned FROM libs_coin_day") { days[it.long("day") to CoinSource.valueOf(it.string("source"))] = longArrayOf(it.long("minted"), it.long("burned")) } }
+        var renamed = false
+        Db.read {
+            query("SELECT day, source, minted, burned FROM libs_coin_day") {
+                val name = it.string("source")
+                val source = coinSource(name)
+                renamed = renamed || source.name != name
+                days.merge(it.long("day") to source, longArrayOf(it.long("minted"), it.long("burned"))) { a, b -> longArrayOf(a[0] + b[0], a[1] + b[1]) }
+            }
+        }
         supplyRow.prime(supplyRows())
         dayRows.prime(dayRows())
+        if (renamed) Writer.invalidate()
         SavePoint.register("libs.coins", ::changes)
     }
+
+    private fun coinSource(name: String) = CoinSource.entries.firstOrNull { it.name == name } ?: CoinSource.KAMI.also { Log.of("library").warn("Unknown coin source {} counted as {}", name, it) }
 
     @Synchronized
     private fun changes(): (Session.() -> Unit)? {

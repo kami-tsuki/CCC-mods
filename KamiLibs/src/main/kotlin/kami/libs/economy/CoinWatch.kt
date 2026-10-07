@@ -45,11 +45,14 @@ object CoinWatch {
     private const val COOLDOWN_MS = Time.HOUR_MS
     private const val WEEK = 7
     private const val MAX_DAYS = 365
+    private const val CACHE_MS = 30_000L
+    private const val MAX_CACHED = 64
     private const val TERMINAL_LEGS = "flow IN ('COIN_DEPOSIT', 'COIN_WITHDRAW') AND party LIKE 'p:%' AND note LIKE 'terminal%'"
     private val sorts = mapOf("net" to "net DESC", "deposited" to "dep DESC", "withdrawn" to "wd DESC", "last" to "last DESC")
     private var checked = 0L
     private var last = CoinAlert.OK
     private val sent = HashMap<CoinAlert, Long>()
+    private val cache = HashMap<Pair<String, Int>, Cached>()
     @Volatile
     private var failedAt = 0L
 
@@ -111,16 +114,20 @@ object CoinWatch {
         val count = "SELECT COUNT(DISTINCT party) AS n FROM libs_journal WHERE $TERMINAL_LEGS"
         val select = "SELECT party, SUM(CASE WHEN flow = 'COIN_DEPOSIT' THEN delta ELSE 0 END) AS dep, SUM(CASE WHEN flow = 'COIN_WITHDRAW' THEN -delta ELSE 0 END) AS wd, " +
             "SUM(delta) AS net, MAX(at) AS last FROM libs_journal WHERE $TERMINAL_LEGS GROUP BY party ORDER BY $order, party LIMIT ? OFFSET ?"
-        val (total, rows) = Db.read(fresh = false) {
+        val now = System.currentTimeMillis()
+        val cached = synchronized(cache) { cache[order to p]?.takeIf { now - it.at < CACHE_MS } }
+        val (total, rows) = cached?.let { it.total to it.rows } ?: Db.scan {
             val total = one(count) { it.long("n") } ?: 0L
             total to query(select, Page.SIZE, p.toLong() * Page.SIZE) { Totals(it.string("party").removePrefix("p:"), it.long("dep"), it.long("wd"), it.long("last")) }
-        }
+        }.also { (n, list) -> synchronized(cache) { if (cache.size >= MAX_CACHED) cache.clear(); cache[order to p] = Cached(now, n, list) } }
         return Page(rows.map { t ->
             CoinPlayer(t.id, runCatching { UUID.fromString(t.id) }.getOrNull()?.let(name) ?: t.id, t.dep, t.wd, t.last, t.dep - t.wd > flag)
         }, total, p, Page.SIZE)
     }
 
     private class Totals(val id: String, val dep: Long, val wd: Long, val last: Long)
+
+    private class Cached(val at: Long, val total: Long, val rows: List<Totals>)
 
     internal fun tick(server: MinecraftServer) {
         val now = System.currentTimeMillis()

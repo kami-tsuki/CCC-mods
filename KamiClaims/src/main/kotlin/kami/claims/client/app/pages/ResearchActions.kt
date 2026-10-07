@@ -26,6 +26,12 @@ class ResearchActions(private val page: ClaimsPage) {
         tr("kami_claims.research.action.remove"), "research_remove", arrayOf(node.key), danger = true, key = "research:${node.key}"
     )
 
+    fun pauseReason(): String? = when {
+        !ClientResearch.state.canManage -> tr("kami_claims.research.reason.rights")
+        ClientResearch.state.let { it.used(Capacity.QUEUE_SLOTS) >= it.max(Capacity.QUEUE_SLOTS) } -> tr("kami_claims.research.error.queue_full")
+        else -> null
+    }
+
     fun removeReason(queue: QueueView): String? = when {
         !ClientResearch.state.canManage -> tr("kami_claims.research.reason.rights")
         queue.paid || queue.state == NodeState.PAUSED -> tr("kami_claims.research.error.started")

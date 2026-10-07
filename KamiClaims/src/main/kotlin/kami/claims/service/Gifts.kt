@@ -14,21 +14,34 @@ import java.util.UUID
 
 object Gifts {
     const val TTL_MS = 15 * 60_000L
+    private const val COOLDOWN_MS = 10_000L
+    private const val MAX_OPEN = 5
 
     private class Gift(val amount: Int, val at: Long)
 
     private val open = HashMap<Pair<UUID, UUID>, Gift>()
+    private val lastSent = HashMap<UUID, Long>()
 
-    fun reset() = open.clear()
+    fun reset() {
+        open.clear()
+        lastSent.clear()
+    }
 
     fun pending(sender: UUID, receiver: UUID): Int = live(Pair(sender, receiver))?.amount ?: 0
 
     fun send(p: ServerPlayer, receiver: UUID, amount: Int): Phrase {
         if (receiver == p.uuid) throw Fail("kami_claims.error.gift.self")
+        if (p.server.playerList.getPlayer(receiver) == null && p.server.profileCache?.get(receiver)?.isPresent != true) throw Fail("kami_claims.error.unknown_player")
+        val t = now()
+        if (t - (lastSent[p.uuid] ?: 0L) < COOLDOWN_MS) throw Fail("kami_claims.error.gift.cooldown")
+        open.values.removeIf { t - it.at > TTL_MS }
+        lastSent.values.removeIf { t - it > COOLDOWN_MS }
+        if (open.keys.count { it.first == p.uuid } >= MAX_OPEN) throw Fail("kami_claims.error.gift.pending")
         if (amount <= 0) throw Fail("kami_claims.money.disabled.range", Words.money(Bank.funds(p.uuid)))
         if (Bank.funds(p.uuid) < amount) throw Fail("kami_claims.loans.reason.funds", Words.money(amount))
         if (live(Pair(p.uuid, receiver)) != null) throw Fail("kami_claims.error.gift.pending")
-        open[Pair(p.uuid, receiver)] = Gift(amount, now())
+        lastSent[p.uuid] = t
+        open[Pair(p.uuid, receiver)] = Gift(amount, t)
         val name = Names.of(p.server, receiver.toString())
         Mail.direct(receiver.toString(), Phrase.of("kami_claims.mail.gift.offer", Words.v(p.name.string), Words.money(amount)))
         return Phrase.of("kami_claims.done.gift.sent", Words.money(amount), Words.v(name))

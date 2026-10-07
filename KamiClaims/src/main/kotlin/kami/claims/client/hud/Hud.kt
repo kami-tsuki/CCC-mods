@@ -4,6 +4,7 @@ import kami.libs.ui.text.trJson
 import kami.libs.ui.text.tr
 import kami.claims.KamiClaims
 import kami.claims.client.ClientClaims
+import kami.claims.client.ClientHooks
 import kami.claims.client.WarDisplay
 import kami.libs.ui.widget.Flags
 import kami.claims.client.app.Vocabulary
@@ -14,6 +15,8 @@ import kami.claims.client.world.Borders
 import kami.claims.client.world.Hint
 import kami.claims.service.AlertLine
 import kami.claims.service.View
+import kami.libs.ui.core.Dim
+import kami.libs.ui.core.Memo
 import kami.libs.ui.core.Rect
 import kami.libs.ui.hud.Anchor
 import kami.libs.ui.hud.HudElement
@@ -35,6 +38,8 @@ import kotlin.math.roundToInt
 object Hud {
     private const val WAR = "kami_claims:war"
     private const val TERRITORY = "kami_claims:territory"
+    private const val MAX_FAILURES = 3
+    private const val RETRY_MS = 5000L
 
     fun register() {
         HudLayout.element(HudElement(WAR, HudPos(Anchor.TOP_LEFT), { tr("kami_claims.hud.sample_war") }, { Palette.danger }))
@@ -55,7 +60,9 @@ object Hud {
     private var banner: Banner? = null
     private val seenAlerts = HashSet<String>()
     private val toasts = ArrayList<HudToast>()
-    private var warBroken = false
+    private class Failure(var count: Int, var at: Long)
+    private val failures = HashMap<String, Failure>()
+    private val openHint = Memo()
     private val arrows = listOf("→", "↘", "↓", "↙", "←", "↖", "↑", "↗")
 
     fun alertsChanged() {
@@ -69,13 +76,33 @@ object Hud {
         val mc = Minecraft.getInstance()
         val player = mc.player ?: return
         if (mc.options.hideGui || mc.screen != null) return
-        val dim = player.level().dimension().location().toString()
+        val dim = Dim.current()
         val now = System.currentTimeMillis()
-        if (ClientClaims.active(dim) && ClientClaims.prefs.hud) territory(g, dim, player.blockX, player.blockZ, now)
-        crosshair(g, dim)
-        toasts(g, now)
-        if (!warBroken && ClientClaims.prefs.warDisplay.let { it == WarDisplay.HUD || it == WarDisplay.BOTH }) runCatching { war(g, now) }.onFailure { warBroken = true; KamiClaims.LOG.error("War banner disabled", it) }
+        if (ClientClaims.active(dim) && ClientClaims.prefs.hud) guarded("territory") { territory(g, dim, player.blockX, player.blockZ, now) }
+        guarded("crosshair") { crosshair(g, dim) }
+        guarded("toasts") { toasts(g, now) }
+        if (ClientClaims.prefs.warDisplay.let { it == WarDisplay.HUD || it == WarDisplay.BOTH }) guarded("war") { war(g, now) }
     }
+
+    private fun guarded(section: String, block: () -> Unit) {
+        val failure = failures[section]
+        val now = System.currentTimeMillis()
+        if (failure != null && failure.count >= MAX_FAILURES) {
+            if (now - failure.at < RETRY_MS) return
+            failure.count = 0
+        }
+        try {
+            block()
+            if (failure != null) failures.remove(section)
+        } catch (e: RuntimeException) {
+            val f = failure ?: Failure(0, now).also { failures[section] = it }
+            f.count++
+            f.at = now
+            KamiClaims.LOG.error("HUD section {} failed ({}/{})", section, f.count, MAX_FAILURES, e)
+        }
+    }
+
+    fun reset() = failures.clear()
 
     private fun war(g: GuiGraphics, now: Long) {
         val w = ClaimsStore.warHud.firstOrNull() ?: return
@@ -171,6 +198,8 @@ object Hud {
 
     private fun toasts(g: GuiGraphics, now: Long) {
         toasts.removeAll { now - it.at > 7000 }
+        if (toasts.isEmpty()) return
+        val hint = openHint.of(Format.locale, ClientHooks.openKeyId()) { tr("kami_claims.hud.open_hint", ClientHooks.openKey()) }
         var y = 22
         toasts.forEach { t ->
             val sev = Severity.of(t.alert.severity)
@@ -180,7 +209,7 @@ object Hud {
             Draw.fill(g, Rect(r.x + 1, r.y + 1, 2, r.h - 2), sev.color)
             Draw.leadIcon(g, iconFor(sev), r.x + 6, r.centerY)
             Draw.text(g, Draw.fit(trJson(t.alert.title), w - 30), r.x + 24, r.y + 5, sev.color)
-            Draw.text(g, tr("kami_claims.hud.open_hint", "K"), r.x + 24, r.y + 15, Palette.textMuted)
+            Draw.text(g, hint, r.x + 24, r.y + 15, Palette.textMuted)
             y += 30
         }
     }

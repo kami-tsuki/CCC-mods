@@ -10,11 +10,11 @@ import kami.claims.service.Words.money
 import kami.claims.service.Words.v
 import kami.claims.social.Mail
 import kami.libs.chat.Tone
+import kami.libs.economy.CountryParty
 import kami.libs.economy.Flow
 import kami.libs.text.Phrase
 import java.util.UUID
 import kotlin.math.floor
-import kami.libs.economy.CountryParty
 
 object Work {
     private val unpaidMailed = HashMap<String, Long>()

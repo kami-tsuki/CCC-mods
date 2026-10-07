@@ -27,12 +27,10 @@ class AdminApp private constructor() : KamiApp() {
     internal val playerDetail = Remote("players.detail", PlayerDetail.serializer()) { listOfNotNull(playerUuid) }
     override val module get() = AdminSections.MODULE
     override val home = Route("dashboard")
-    override val collapsibleRail get() = true
-    override val collapsedGroups get() = AdminPrefs.prefs.collapsedGroups
     override val navKey get() = listOf(Admin.level, AdminSections.sections.map { it.group() to it.items().map { i -> i.page } })
 
     init {
-        railCollapsed = AdminPrefs.prefs.railCollapsed
+        bind(AdminPrefs.prefs, AdminPrefs::save)
     }
 
     override fun buildNav(): List<NavGroup> {
@@ -60,7 +58,7 @@ class AdminApp private constructor() : KamiApp() {
             )
         )
         AdminSections.sections.forEach { s -> s.items().takeIf { it.isNotEmpty() }?.let { groups.getOrPut(s.group()) { mutableListOf() } += it } }
-        return groups.map { (key, items) -> NavGroup(tr(key), items, key, collapsible = true) }
+        return groups.map { (key, items) -> NavGroup(tr(key), items, key) }
     }
 
     override fun create(id: String): Page = when (id) {
@@ -84,15 +82,6 @@ class AdminApp private constructor() : KamiApp() {
         if (page == lastPage) return
         lastPage = page
         AdminSections.sections.firstOrNull { page.startsWith(it.id + ".") }?.refresh(page)
-    }
-
-    override fun railChanged() {
-        AdminPrefs.prefs.railCollapsed = railCollapsed
-        AdminPrefs.save()
-    }
-
-    override fun collapseChanged() {
-        AdminPrefs.save()
     }
 
     override fun topBar(ui: Ui, r: Rect) {

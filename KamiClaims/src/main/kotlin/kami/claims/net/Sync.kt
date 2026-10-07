@@ -418,8 +418,8 @@ object Sync {
                 power = if (admin) Power.score(x) else null
             )
         } else emptyList()
-        val players = if (world) (Realm.home.keys + p.server.playerList.players.map { it.stringUUID }).distinct().map { id ->
-            val other = UUID.fromString(id)
+        val players = if (world) (Realm.home.keys + p.server.playerList.players.map { it.stringUUID }).distinct().mapNotNull { id ->
+            val other = runCatching { UUID.fromString(id) }.getOrNull() ?: return@mapNotNull null
             PlayerLine(id, Names.of(p.server, id), citizenships(id), online(p, id), Gifts.pending(other, p.uuid), Gifts.pending(p.uuid, other))
         }.sortedBy { it.name } else emptyList()
         val ledger = if (c != null && ("ledger" in sections || "dashboard" in sections) && (delegated || View.privileged(c, me)))

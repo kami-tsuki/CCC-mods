@@ -242,5 +242,6 @@
   "kami_libs.admin.total": "%s Einträge",
   "kami_libs.item.tag_members": "Tag mit %s Gegenständen",
   "kami_libs.admin.load_failed": "Laden fehlgeschlagen",
-  "kami_libs.common.retry": "Erneut versuchen"
+  "kami_libs.common.retry": "Erneut versuchen",
+  "kami_libs.app.page_error": "Diese Seite konnte nicht angezeigt werden. Siehe Log."
 }

@@ -208,7 +208,7 @@ internal class CountryDetailPage(private val app: KamiApp) : Page() {
     }
 
     private fun memberColumns() = listOf(
-        Column<MemberRow>(tr("kami_libs.common.name"), -1, sort = compareBy { it.name.lowercase() }) { _, r, row ->
+        Column<MemberRow>(tr("kami_libs.common.name"), -1, sort = textOrder { it.name }) { _, r, row ->
             avatar(row.uuid, r.x, r.y + (r.h - 10) / 2, 10, null)
             Draw.text(g, Draw.fit(row.name, r.w - 14), r.x + 14, r.y + (r.h - 8) / 2, Palette.text)
         },

@@ -4,6 +4,7 @@ import kami.libs.db.Db
 import kami.libs.db.Rows
 import kami.libs.db.SavePoint
 import kami.libs.db.Session
+import kami.libs.db.Writer
 import kami.libs.log.Log
 import kami.libs.util.Time.DAY_MS
 import kotlinx.serialization.Serializable
@@ -37,13 +38,20 @@ object ServerBank {
         revision = row?.second ?: 0L
         totals.clear()
         refs.clear()
+        var renamed = false
         Db.read {
-            query("SELECT day, flow, inflow, outflow FROM libs_bank_day") { totals[it.long("day") to Flow.valueOf(it.string("flow"))] = longArrayOf(it.long("inflow"), it.long("outflow")) }
+            query("SELECT day, flow, inflow, outflow FROM libs_bank_day") {
+                val name = it.string("flow")
+                val flow = Flow.named(name)
+                renamed = renamed || flow.name != name
+                totals.merge(it.long("day") to flow, longArrayOf(it.long("inflow"), it.long("outflow"))) { a, v -> longArrayOf(sat(a[0], v[0]), sat(a[1], v[1])) }
+            }
             query("SELECT ref, at FROM libs_bank_once") { refs[it.string("ref")] = it.long("at") }
         }
         bankRow.prime(bankRows())
         dayRows.prime(dayRows())
         onceRows.prime(onceRows())
+        if (renamed) Writer.invalidate()
         SavePoint.register("libs.bank", ::changes)
     }
 

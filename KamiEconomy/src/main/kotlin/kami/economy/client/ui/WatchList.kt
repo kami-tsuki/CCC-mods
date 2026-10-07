@@ -13,9 +13,7 @@ internal class WatchList(private val app: MarketApp, private val key: String, pr
     private val table = TableState<Row>()
 
     private val columns = listOf(
-        Column<Row>(tr("kami_libs.common.item"), -1, sort = compareBy { app.stack(it.item).hoverName.string.lowercase() }) { _, c, row ->
-            if (itemCell(c, app.stack(row.item), app.stack(row.item).hoverName.string, "$key:${row.item}")) open(row.item)
-        },
+        itemColumn<Row>({ it.item }, { "$key:${it.item}" }) { open(it.item) },
         Column.number<Row>(tr("kami_economy.personal.col.last"), 64, tip = tr("kami_economy.col.per_lot"), format = ::priceText) { it.last.toLong() },
         Column.number<Row>(tr("kami_economy.col.change"), 52, tip = tr("kami_economy.col.change.tip"), color = { if (it.change > 0) Palette.success else if (it.change < 0) Palette.danger else Palette.textMuted }, format = ::permille) { it.change.toLong() },
         Column<Row>("", ROW_H) { _, c, row ->
