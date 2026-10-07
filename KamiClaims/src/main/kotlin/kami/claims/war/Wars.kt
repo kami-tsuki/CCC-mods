@@ -15,6 +15,7 @@ import kami.claims.service.Words
 import kami.claims.service.Words.v
 import kami.claims.social.Mail
 import kami.libs.chat.Tone
+import kami.libs.stats.Stats
 import kami.libs.text.Phrase
 import kami.libs.util.Time.HOUR_MS
 import java.util.UUID
@@ -56,6 +57,7 @@ object Wars {
         WarDebt.escrow(attacker, LedgerKind.WAR_STAKE, -stakes.money, target.name)
         Joining.snapshot(war)
         Realm.data.wars += war
+        Stats.event("war.declare", "c:${attacker.id}", "c:${target.id}")
         attacker.warDeclared.removeAll { it < t - s.feeDoublingDays * day }
         attacker.warDeclared += t
         if (kind == WarKind.REGULAR) Reputation.declared(attacker, target) else Reputation.rebellion(attacker, target)
@@ -137,6 +139,7 @@ object Wars {
 
     internal fun end(war: War, result: WarResult) {
         war.result = result
+        Stats.event("war.end", "c:${war.attacker.main}", "c:${war.defender.main}", result.ordinal.toLong())
         war.offer = null
         war.extendedDays = 0
         if (result == WarResult.WITHDRAWN) return close(war)

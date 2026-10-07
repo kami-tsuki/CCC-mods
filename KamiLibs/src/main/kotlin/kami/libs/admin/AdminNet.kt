@@ -12,7 +12,7 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
 object AdminNet {
     private const val MAX_REPLY = 1_048_576
     private val packets = Packets.forMod(KamiLibs.ID)
-    private val requests = ActPayload.channel(packets, "admin_req", maxArgs = 16, maxArg = 8192)
+    private val requests = ActPayload.channel(packets, "admin_req", maxArgs = 64, maxArg = 8192)
     private val replies = SnapshotPayload.channel(packets, "admin_reply", MAX_REPLY)
 
     internal val requestType get() = requests.type

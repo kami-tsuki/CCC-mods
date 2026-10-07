@@ -16,6 +16,7 @@ internal object AdminViews {
             val filter = Audit.Filter(a.text(0), a.text(1), a.text(2), a.long(3), a.long(4), a.text(5)?.toBooleanStrictOrNull())
             Db.json.encodeToJsonElement(Page.serializer(Audit.Entry.serializer()), Audit.query(filter, a.page(6), level = ctx.level))
         }
+        StatsViews.register()
         Admin.view("bank.summary") { _, _ -> Db.json.encodeToJsonElement(ServerBank.Summary.serializer(), ServerBank.summary()) }
         Admin.view("bank.movements") { _, a -> journal(ServerParty, a) }
         Admin.view("journal.query") { ctx, a -> journal(a.text(0)?.let { party(ctx, it) }, a.drop(1)) }

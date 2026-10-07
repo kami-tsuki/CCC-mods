@@ -31,6 +31,7 @@ interface SlashCtx {
 }
 
 class Member(val id: Long, val hasRole: Boolean)
+class GuildInfo(val userName: String, val nickname: String, val avatar: String, val joined: Long, val roles: List<String>, val verified: Boolean)
 
 interface DiscordFeature {
     fun commands(): List<SlashCommand> = emptyList()
@@ -91,6 +92,7 @@ object DiscordApi {
     fun grant(userId: Long) = Discord.guard("role") { Discord.role(userId, true) }
     fun revoke(userId: Long) = Discord.guard("role") { Discord.role(userId, false) }
     fun members(ids: Collection<Long>, result: (Map<Long, Member>?) -> Unit) = Discord.guard("members", { Discord.post { result(null) } }) { Discord.members(ids, result) }
+    fun info(userId: Long, timeoutMs: Long = 1500): GuildInfo? = runCatching { Discord.info(userId, timeoutMs) }.getOrNull()
     fun holders(result: (Set<Long>?) -> Unit) = Discord.guard("holders", { Discord.post { result(null) } }) { Discord.holders(result) }
     fun bans(result: (Set<Long>?) -> Unit) = Discord.guard("bans", { Discord.post { result(null) } }) { Discord.bans(result) }
     fun banned(userId: Long, result: (Boolean?) -> Unit) = Discord.guard("ban", { Discord.post { result(null) } }) { Discord.banned(userId, result) }

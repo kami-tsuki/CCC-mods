@@ -14,7 +14,12 @@ data class LibSettings(
     val coinAlertMinVolume: Long = 10_000,
     val coinFlagNet: Long = 50_000,
     val unexplainedAlert: Long = 10_000,
-    val unexplainedSingle: Long = 5_000
+    val unexplainedSingle: Long = 5_000,
+    val stats: Map<String, Boolean> = linkedMapOf(
+        "server" to true, "session" to true, "combat" to true, "mob" to true, "block" to true, "craft" to true,
+        "move" to true, "money" to true, "market" to true, "country" to true, "war" to true, "research" to true, "discord" to true
+    ),
+    val statsSampleSeconds: Int = 300
 )
 
 object LibConfig {
@@ -34,6 +39,13 @@ object LibConfig {
                     "unexplainedAlert" to "Alert admins when bank balance changes without a known cause sum to this many spurs in one minute.",
                     "unexplainedSingle" to "Alert admins when a single bank balance change without a known cause reaches this many spurs."
                 )
+            ),
+            Section(
+                "stats.json", "Statistics collected for the admin app. Everything is kept forever.",
+                mapOf(
+                    "stats" to "Collect a statistics group (false turns it off): server, session, combat, mob, block, craft, move, money, market, country, war, research, discord.",
+                    "statsSampleSeconds" to "Seconds between samples of gauges like online players, ping, TPS and country treasuries."
+                )
             )
         ),
         sane = { s ->
@@ -43,7 +55,9 @@ object LibConfig {
                 coinAlertMinVolume = s.coinAlertMinVolume.coerceAtLeast(0),
                 coinFlagNet = s.coinFlagNet.coerceAtLeast(0),
                 unexplainedAlert = s.unexplainedAlert.coerceAtLeast(1),
-                unexplainedSingle = s.unexplainedSingle.coerceAtLeast(1)
+                unexplainedSingle = s.unexplainedSingle.coerceAtLeast(1),
+                stats = LibSettings().stats + s.stats,
+                statsSampleSeconds = s.statsSampleSeconds.coerceAtLeast(30)
             )
         }
     )

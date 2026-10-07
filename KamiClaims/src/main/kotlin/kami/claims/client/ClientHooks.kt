@@ -27,9 +27,11 @@ import kami.libs.ui.text.tr
 import kami.libs.xaero.Highlights
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
+import net.minecraft.network.chat.contents.TranslatableContents
 import net.minecraft.resources.ResourceLocation
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent
 import net.neoforged.neoforge.client.event.ClientTickEvent
+import net.neoforged.neoforge.client.event.CustomizeGuiOverlayEvent
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent
 import net.neoforged.neoforge.client.event.RenderHighlightEvent
@@ -58,12 +60,21 @@ object ClientHooks {
         }
         FORGE_BUS.addListener<ClientTickEvent.Post> { tick() }
         FORGE_BUS.addListener<RenderHighlightEvent.Block> { BlockHint.highlight(it) }
+        FORGE_BUS.addListener<CustomizeGuiOverlayEvent.BossEventProgress> { hideWarBar(it) }
         FORGE_BUS.addListener<RenderLevelStageEvent> { Borders.renderWalls(it) }
         FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingIn> {
             applyPrefs()
             ClaimsStore.watch(emptyList(), force = true)
         }
         FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> { TerrainCache.clear(); ClientResearch.clear(); ClaimsStore.clear(); opening.done() }
+    }
+
+    private fun hideWarBar(e: CustomizeGuiOverlayEvent.BossEventProgress) = runCatching {
+        if (ClientClaims.prefs.warDisplay.let { it == WarDisplay.BOSS || it == WarDisplay.BOTH }) return@runCatching
+        val key = (e.bossEvent?.name?.contents as? TranslatableContents)?.key ?: return@runCatching
+        if (!key.startsWith("kami_claims.warbar.")) return@runCatching
+        e.isCanceled = true
+        e.increment = 0
     }
 
     private fun applyPrefs() {

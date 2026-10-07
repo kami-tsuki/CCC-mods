@@ -15,7 +15,8 @@ class UiSettings(
     var vision: String = "NORMAL",
     var reduceMotion: Boolean = false,
     var sounds: Float = 1f,
-    var tooltipDelay: Int = 400
+    var tooltipDelay: Int = 400,
+    var autoRefresh: Boolean = true
 )
 
 object UiPrefs {
@@ -29,7 +30,8 @@ object UiPrefs {
                     "vision" to "Colour set: NORMAL, DEUTERANOPIA, PROTANOPIA or TRITANOPIA.",
                     "reduceMotion" to "Turn off pulsing, sliding and flashing.",
                     "sounds" to "Volume of interface sounds, 0 to 1.",
-                    "tooltipDelay" to "Milliseconds before a tooltip shows."
+                    "tooltipDelay" to "Milliseconds before a tooltip shows.",
+                    "autoRefresh" to "Reload open Kami screens every 10 seconds while the server runs smoothly."
                 )
             )
         ),

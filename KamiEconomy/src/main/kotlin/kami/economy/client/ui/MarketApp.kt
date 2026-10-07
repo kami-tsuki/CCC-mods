@@ -114,6 +114,7 @@ class MarketApp private constructor() : KamiApp() {
     private val queries = HashMap<String, String>()
     private val details = Lru<Detail>(DETAIL_CACHE)
     private var awaiting: String? = null
+    private var last: List<String>? = null
     private var awaitAt = 0L
 
     internal val carried = Throttled {
@@ -137,6 +138,7 @@ class MarketApp private constructor() : KamiApp() {
     fun view(name: String, query: String = "", ids: String = "", subject: String = "") {
         queries[name] = query
         awaiting = name
+        last = listOf(name, query, ids, subject)
         awaitAt = System.currentTimeMillis()
         request("view", name, query, ids, subject)
     }
@@ -166,6 +168,7 @@ class MarketApp private constructor() : KamiApp() {
         queries.clear()
         details.clear()
         awaiting = null
+        last = null
         skipUntil = 0
         opening.done()
     }
@@ -221,6 +224,10 @@ class MarketApp private constructor() : KamiApp() {
         if (snap.citizen) return 0
         ui.banner(r.top(22), Severity.WARNING, tr("kami_libs.lock.no_country"))
         return 22
+    }
+
+    override fun autoRefresh() {
+        if (route.page == "item") (page("item") as? ItemPage)?.refresh() else last?.let { request("view", *it.toTypedArray()) }
     }
 
     override fun beforeFrame() {

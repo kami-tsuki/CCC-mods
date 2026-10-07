@@ -1,6 +1,10 @@
 package kami.essentials.client.admin
 
+import kami.libs.ui.AutoRefresh
 import kami.libs.ui.app.Remote
+import kami.libs.ui.app.adminAct
+import kami.libs.ui.app.adminManager
+import kami.libs.ui.app.lockUnless
 import kami.libs.ui.app.Paged
 import kami.libs.ui.app.pagedTable
 import kami.libs.ui.app.remoteFailed
@@ -11,6 +15,8 @@ import kami.libs.economy.Journal
 import kami.libs.economy.ServerBank
 import kami.libs.ui.app.Page
 import kami.libs.ui.app.Route
+import kami.libs.ui.app.StatBoard
+import kami.libs.ui.app.TimeRange
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Row
 import kami.libs.ui.core.Stack
@@ -29,6 +35,7 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import java.util.UUID
+import kotlin.math.roundToLong
 import kami.libs.economy.Flow as MoneyFlow
 import kami.libs.ui.text.noteLabel
 
@@ -36,7 +43,6 @@ private const val TILE_H = 44
 private const val BANNER_H = 30
 private const val CHART_H = 96
 private const val CHART_DAYS = 30
-private const val SAMPLE_MS = 300_000L
 private const val REFRESH_MS = 10_000L
 private const val METRIC_H = 30
 private const val METRIC_W = 90
@@ -108,10 +114,23 @@ private fun journalSeverity(e: Journal.Entry) = if (e.delta >= 0) Severity.SUCCE
 internal class DashboardPage(private val app: AdminApp) : Page() {
     override val title get() = tr("kami_essentials.admin.nav.dashboard")
     private val remote = Remote("server.dashboard", Dashboard.serializer(), REFRESH_MS)
+    private val range = TimeRange("dashboard:range")
+    private val board = StatBoard(range)
+    private val online = board.series("server.online")
     private val table = TableState<Audit.Entry>()
+
+    override fun actionsWidth() = Draw.width(tr("kami_essentials.admin.autorefresh")) + 26
+
+    override fun actions(ui: Ui, r: Rect) {
+        val label = tr("kami_essentials.admin.autorefresh")
+        val box = r.right(actionsWidth())
+        ui.toggle(box, AutoRefresh.global, label, enabled = adminManager, disabledReason = lockUnless(adminManager), tip = tr("kami_essentials.admin.autorefresh.tip"), key = "admin-autorefresh")
+            ?.let { app.adminAct("server.autorefresh", emptyList(), "") }
+    }
 
     override fun draw(ui: Ui, r: Rect) {
         remote.poll()
+        board.poll()
         val d = remote.data ?: run {
             if (remote.error != null && !remote.loading) ui.remoteFailed(r, remote, "dashboard") else placeholder(ui, r)
             return
@@ -138,13 +157,14 @@ internal class DashboardPage(private val app: AdminApp) : Page() {
         val cols = cardColumns(left.w - 10, METRIC_W, 4)
         val metricsH = if (metrics.isEmpty()) 0 else 24 + (metrics.size + cols - 1) / cols * (METRIC_H + 4)
         val chart = ui.card(left.dropBottom(metricsH, if (metricsH > 0) 6 else 0), tr("kami_essentials.admin.online_chart"), Icons.STATS)
-        if (d.onlineSeries.size < 2) Draw.textCentered(ui.g, tr("kami_libs.chart.no_data"), chart.top(20), Palette.textMuted)
-        else {
-            val now = System.currentTimeMillis()
-            val n = d.onlineSeries.size
-            ui.lineChart(chart, listOf(Series(tr("kami_libs.common.online"), d.onlineSeries.map { it.toLong() }, Palette.chart[1], area = true)),
-                List(n) { Format.ago(now - (n - 1 - it) * SAMPLE_MS) }, format = { Format.number(it) }, key = "admin-online")
-        }
+        val head = chart.top(CONTROL_H)
+        range.draw(ui, head.right(range.width(head.w < NARROW_W)))
+        val plot = chart.dropTop(CONTROL_H + 4)
+        val points = board[online].points
+        if (points.size < 2) Draw.textCentered(ui.g, tr("kami_libs.chart.no_data"), plot.top(20), Palette.textMuted)
+        else ui.lineChart(plot, listOf(Series(tr("kami_libs.common.online"), points.map { it.v.roundToLong() }, Palette.chart[1], area = true)),
+            points.map { Format.ago(it.at) }, format = { Format.number(it) }, key = "admin-online")
+        if (board.stale) ui.staleVeil(plot)
         if (metricsH > 0) {
             val body = ui.card(left.bottom(metricsH), tr("kami_essentials.admin.metrics"), Icons.DASHBOARD)
             body.grid(cols, METRIC_H, metrics.size, 4).forEachIndexed { i, cell ->
@@ -189,9 +209,9 @@ internal class BankPage : Page() {
             sub = s?.let { tr("kami_essentials.admin.in_out", Format.compact(inflow.takeLast(n).sum()), Format.compact(outflow.takeLast(n).sum())) })
         ui.kpiRow(r.top(TILE_H), listOf(
             KpiTile(tr("kami_essentials.admin.balance"), s?.let { Format.money(it.balance) }, Icons.TREASURY, Palette.money, flashValue = s?.balance),
-            netTile(tr("kami_essentials.admin.range.1d"), 1),
-            netTile(tr("kami_essentials.admin.range.7d"), 7),
-            netTile(tr("kami_essentials.admin.range.30d"), CHART_DAYS)
+            netTile(tr("kami_libs.range.24h"), 1),
+            netTile(tr("kami_libs.range.7d"), 7),
+            netTile(tr("kami_libs.range.30d"), CHART_DAYS)
         ), key = "bank-kpi")
         val chartBox = r.dropTop(TILE_H + 6).top(CHART_H)
         val chart = ui.card(chartBox, tr("kami_essentials.admin.bank.daily"), Icons.STATS)

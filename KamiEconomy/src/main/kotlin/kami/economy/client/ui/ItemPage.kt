@@ -64,6 +64,8 @@ internal class ItemPage(val app: MarketApp) : Page() {
 
     private fun detail(): Detail? = app.detail(item)
 
+    fun refresh() = app.request("detail", item, span.arg)
+
     private fun fetch() {
         waitFor = detail()
         app.request("detail", item, span.arg)

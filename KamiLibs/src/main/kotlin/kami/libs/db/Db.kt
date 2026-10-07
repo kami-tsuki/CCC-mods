@@ -34,18 +34,25 @@ object Db {
         val native = server.serverDirectory.resolve("kami").resolve("native").toAbsolutePath()
         Files.createDirectories(native)
         System.setProperty("org.sqlite.tmpdir", native.toString())
-        open(server.getWorldPath(LevelResource.ROOT).resolve("kami").resolve("kami.db"))
+        val world = server.getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize()
+        val file = native.parent.resolve("kami.db").normalize()
+        try {
+            Relocate.run(world.resolve("kami").resolve("kami.db"), file)
+        } catch (e: Throwable) {
+            log.error("{}", e.message, e)
+            throw e
+        }
+        open(file, world)
     }
 
     @Synchronized
-    fun open(file: Path) {
+    fun open(file: Path, world: Path = file.toAbsolutePath().normalize().parent.parent) {
         close()
         LibsMigrations.register()
         val path = file.toAbsolutePath().normalize()
-        val dir = path.parent
-        Files.createDirectories(dir)
+        Files.createDirectories(path.parent)
         try {
-            connect(path).use { Migrator.run(Session(it), path, dir.parent) }
+            connect(path).use { Migrator.run(Session(it), path, world) }
             state = Open(Writer(connect(path)), connect(path).also { c -> c.createStatement().use { it.execute("PRAGMA query_only=ON") } })
         } catch (e: Throwable) {
             log.error("{}", e.message, e)

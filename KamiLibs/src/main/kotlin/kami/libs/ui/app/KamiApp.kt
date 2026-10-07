@@ -1,5 +1,6 @@
 package kami.libs.ui.app
 
+import kami.libs.ui.AutoRefresh
 import kami.libs.ui.UiPrefs
 import kami.libs.ui.anim.reveal
 import kami.libs.ui.anim.anim
@@ -105,6 +106,7 @@ abstract class KamiApp {
     open fun banner(ui: Ui, r: Rect): Int = 0
     open fun shortcut(key: Key): Boolean = false
     open fun beforeFrame() {}
+    open fun autoRefresh() {}
 
     val dialogOpen get() = dialogs.isNotEmpty()
     val compact get() = window.w < 560
@@ -148,6 +150,7 @@ abstract class KamiApp {
         UiPrefs.apply(ui)
         if (route.page.isEmpty()) navigate(home, record = false, sound = false)
         beforeFrame()
+        if (AutoRefresh.due()) autoRefresh()
         ui.frame(g, mx, my, width, height) { frame(ui.screen.w, ui.screen.h) }
     }
 

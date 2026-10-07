@@ -13,6 +13,7 @@ import kami.claims.war.ChunkRef
 import kami.claims.war.War
 import kami.claims.war.WarDebt
 import kami.libs.economy.Flow
+import kami.libs.stats.Stats
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import net.minecraft.server.MinecraftServer
@@ -370,6 +371,7 @@ object Realm {
         data.claims += c
         index[c.key] = c
         byCountry.getOrPut(c.country) { mutableListOf() } += c
+        Stats.add("country.claim", "c:${c.country}")
         Buffs.dropBorders(c.country)
         neighbors(c).forEach { k -> index[k]?.let { Buffs.dropBorders(it.country) } }
         data.reserves.removeAll { it.dim == c.dim && it.x == c.x && it.z == c.z }
@@ -381,6 +383,7 @@ object Realm {
         data.claims.remove(c)
         index.remove(c.key)
         byCountry[c.country]?.remove(c)
+        Stats.add("country.unclaim", "c:${c.country}")
         Buffs.dropBorders(c.country)
         neighbors(c).forEach { k -> index[k]?.let { Buffs.dropBorders(it.country) } }
         if (reserve) data.reserves += Reserve(c.dim, c.x, c.z, c.country, now() + Config.s.reserveDays * Config.s.dayMillis)
@@ -393,6 +396,7 @@ object Realm {
         val gone = java.util.Collections.newSetFromMap(java.util.IdentityHashMap<Claim, Boolean>()).apply { addAll(batch) }
         data.claims.removeAll(gone)
         byCountry[batch.first().country]?.removeAll(gone)
+        Stats.add("country.unclaim", "c:${batch.first().country}", n = batch.size.toLong())
         batch.forEach { c ->
             index.remove(c.key)
             Buffs.dropBorders(c.country)
@@ -403,6 +407,7 @@ object Realm {
 
     fun join(c: Country, id: String, rank: Rank) {
         c.members[id] = Member(rank)
+        Stats.add("country.join", "c:${c.id}", "p:$id")
         c.outsiders.remove(id)
         c.invites.remove(id)
         c.requests.remove(id)
@@ -413,6 +418,7 @@ object Realm {
 
     fun leave(c: Country, id: String, reason: Leave) {
         c.members.remove(id)
+        Stats.add("country.leave", "c:${c.id}", "p:$id")
         home.remove(id)
         claims(c.id).forEach { it.roles.remove(id) }
         Work.forget(c, id)
@@ -424,6 +430,7 @@ object Realm {
     fun disband(c: Country) {
         if (!c.active) return
         WarDebt.forgive(c.id)
+        Stats.event("country.disband", "c:${c.id}")
         Treasury.drain(c, Flow.DISBAND, "disband")
         val tenants = claims(c.id).filter { it.owner != null }
         unclaimAll(claims(c.id).filter { it.owner == null })

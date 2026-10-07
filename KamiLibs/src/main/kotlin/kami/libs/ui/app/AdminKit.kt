@@ -4,6 +4,7 @@ import kami.libs.admin.Admin
 import kami.libs.admin.AdminPerms
 import kami.libs.admin.AdminReply
 import kami.libs.admin.Page as DataPage
+import kami.libs.ui.AutoRefresh
 import kami.libs.net.snapshotJson
 import kami.libs.text.Phrase
 import kami.libs.ui.core.Rect
@@ -112,7 +113,8 @@ class Remote<T>(
     private fun fetch(key: List<String>): Slot<T> {
         val s = slots.getOrPut(key) { Slot() }
         val now = System.currentTimeMillis()
-        val fresh = s.epoch == AdminKit.epoch && (refreshMs <= 0 || now - s.at < refreshMs) && (s.error == null || now - s.at < RETRY_MS)
+        val timed = refreshMs > 0 && AutoRefresh.active && now - s.at >= max(refreshMs, AutoRefresh.PERIOD)
+        val fresh = s.epoch == AdminKit.epoch && !timed && (s.error == null || now - s.at < RETRY_MS)
         if (s.pending || fresh) return s
         s.epoch = AdminKit.epoch
         s.at = now

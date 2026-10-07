@@ -1,19 +1,12 @@
 package kami.essentials.client.admin
 
-import kami.libs.ui.core.Rect
-import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Palette
 import kami.libs.ui.text.partyLabel
-import kami.libs.ui.text.tr
 import kami.libs.ui.widget.Column
-import kami.libs.ui.widget.Option
 import kami.libs.ui.widget.PlayerNames
 import kami.libs.ui.widget.avatar
 import kami.libs.ui.widget.secret
-import kami.libs.ui.widget.segmented
-import kami.libs.ui.widget.select
-import kami.libs.util.Time
 import net.minecraft.client.Minecraft
 import java.util.UUID
 
@@ -54,24 +47,3 @@ internal fun <T> whoColumn(title: String, width: Int, key: (T) -> String?) =
     }
 
 internal const val NARROW_W = 560
-internal const val SELECT_W = 80
-
-internal fun segmentWidth(options: List<Option<*>>) = options.maxOf { Draw.width(it.label) + 8 } * options.size
-
-internal class TimeRange(private val key: String) {
-    private var choice = "all"
-    var from: Long? = null
-        private set
-    private val options get() = listOf("all", "1d", "7d", "30d").map { Option(it, tr("kami_essentials.admin.range.$it")) }
-
-    fun width(narrow: Boolean) = if (narrow) SELECT_W else segmentWidth(options)
-
-    fun draw(ui: Ui, r: Rect) {
-        val options = options
-        val picked = if (r.w < segmentWidth(options)) ui.select(r, options, choice, key = key) else ui.segmented(r, options, choice, key = key)
-        picked?.let { c ->
-            choice = c
-            from = c.dropLast(1).toLongOrNull()?.let { System.currentTimeMillis() - it * Time.DAY_MS }
-        }
-    }
-}

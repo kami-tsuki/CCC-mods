@@ -1,6 +1,7 @@
 package kami.claims
 
 import kami.claims.admin.AdminCountries
+import kami.claims.admin.ClaimStats
 import kami.claims.client.ClientHooks
 import kami.claims.command.ClaimsCommands
 import kami.claims.net.Net
@@ -147,6 +148,7 @@ object KamiClaims {
         }
         MOD_BUS.addListener<RegisterPayloadHandlersEvent> { Net.register(it) }
         if (FMLEnvironment.dist == Dist.CLIENT) ClientHooks.init()
+        ClaimStats.register()
         FORGE_BUS.addListener<PermissionGatherEvent.Nodes> { Perms.register(it) }
         ClaimsCommands.register()
         AdminCountries.register()

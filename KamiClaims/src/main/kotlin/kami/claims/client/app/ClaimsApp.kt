@@ -175,6 +175,10 @@ class ClaimsApp : KamiApp() {
         )
     }
 
+    override fun autoRefresh() {
+        (page(route.page) as? ClaimsPage)?.let { ClaimsStore.watch(it.sections, force = true) }
+    }
+
     override fun beforeFrame() {
         if (ClaimsStore.info == null && route.page != "welcome" && page(route.page).let { it is ClaimsPage && it.needsCountry }) navigate(Route("welcome"), record = false, sound = false)
         if (route.page != lastRoute) {

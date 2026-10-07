@@ -59,6 +59,11 @@ class PersonalApp private constructor() : KamiApp() {
         else -> Personal.sections.firstOrNull { id.startsWith(it.id + ".") }?.create(this, id) ?: DashboardPage(this)
     }
 
+    override fun autoRefresh() {
+        ClientEssentials.request("open", Personal.subjectArg)
+        Personal.sections.firstOrNull { route.page.startsWith(it.id + ".") }?.refresh(route.page)
+    }
+
     override fun beforeFrame() {
         val page = route.page
         if (page == lastPage) return

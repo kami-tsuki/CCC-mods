@@ -4,10 +4,8 @@ import kami.essentials.Config
 import kami.essentials.vanish.Vanish
 import kami.libs.claims.ClaimsApi
 import kami.libs.discord.Avatars
-import kami.libs.discord.Codes
 import kami.libs.discord.DiscordApi
 import kami.libs.discord.Embed
-import kami.libs.discord.Links
 import kami.libs.discord.Templates
 import kami.libs.chat.Theme
 import net.minecraft.server.MinecraftServer
@@ -52,8 +50,6 @@ object Bot {
             !Config.s.discord.enabled && running -> stop()
             running -> {
                 apply()
-                Links.reload()
-                Codes.reload()
                 DiscordApi.reload(server, Config.s.discord.console.flushSeconds)
                 status()
             }

@@ -10,6 +10,7 @@ import kami.economy.db.intents
 import kami.libs.chat.Tone
 import kami.libs.db.Db
 import kami.libs.db.Session
+import kami.libs.stats.Stats
 import kami.libs.claims.ClaimsApi
 import kami.libs.economy.CleanStep
 import kami.libs.economy.Flow
@@ -262,12 +263,14 @@ object Ledger {
     private fun bankSale(i: Intent) {
         bank(i.id, "sale", i.actor, i.fills.filter { it.owner.isNotEmpty() }.sumOf(::gross) - i.netSpurs - i.taxSpurs - i.fills.sumOf { it.tariff }, Flow.SERVER_SALE, tradeNote(i))
         bank(i.id, "tax", i.actor, i.taxSpurs, Flow.TAX, taxNote(i))
+        taxed(i.actor, i.item, i.taxSpurs)
     }
 
     private fun bankStock(i: Intent) {
         val tax = i.fills.filter { it.owner.isEmpty() }.sumOf(::taxOf)
         bank(i.id, "stock", i.actor, i.netSpurs - i.fills.filter { it.owner.isNotEmpty() }.sumOf { gross(it) + it.tariff } - tax, Flow.SERVER_PURCHASE, tradeNote(i))
         bank(i.id, "stock_tax", i.actor, tax, Flow.TAX, taxNote(i))
+        taxed(i.actor, i.item, tax)
     }
 
     private fun fee(i: Intent): Long = i.unitPrice - i.netSpurs - i.tariff
@@ -338,17 +341,30 @@ object Ledger {
         return ClaimsApi.neutralForeign(country, other)
     }
 
-    private fun traded(player: String, counterparty: String, spurs: Long, item: String, qty: Int) {
+    private fun stat(player: String, item: String, qty: Int, spurs: Long, sell: Boolean) {
+        if (qty <= 0 || Trade.uuid(player) == null) return
+        val s = "p:$player"
+        Stats.add(if (sell) "market.sell" else "market.buy", s, item, qty.toLong())
+        Stats.add("market.trade", s)
+        Stats.add("market.volume", s, n = spurs)
+    }
+
+    private fun taxed(player: String, item: String, spurs: Long) {
+        if (spurs > 0 && Trade.uuid(player) != null) Stats.add("market.tax", "p:$player", item, spurs)
+    }
+
+    private fun traded(player: String, counterparty: String, spurs: Long, item: String, qty: Int, sell: Boolean) {
+        stat(player, item, qty, spurs, sell)
         if (spurs <= 0 || qty <= 0 || !earnsXp(player, counterparty)) return
         val country = Trade.country(player) ?: return
         KamiProgress.post(country, "trade", item, qty.toLong())
         KamiProgress.post(country, "trade_value", item, spurs)
     }
 
-    private fun tradedFills(actor: String, item: String, fills: List<LedgerFill>, actorSpurs: (LedgerFill) -> Long) {
-        fills.forEach { traded(actor, it.owner, actorSpurs(it), item, it.qty) }
+    private fun tradedFills(actor: String, item: String, fills: List<LedgerFill>, actorSells: Boolean, actorSpurs: (LedgerFill) -> Long) {
+        fills.forEach { traded(actor, it.owner, actorSpurs(it), item, it.qty, actorSells) }
         val owned = fills.filter { it.owner.isNotEmpty() }
-        owned.forEach { traded(it.owner, actor, net(it), item, it.qty) }
+        owned.forEach { traded(it.owner, actor, net(it), item, it.qty, !actorSells) }
         val x = Trade.country(actor) ?: return
         owned.groupBy { Trade.country(it.owner) }.forEach { (y, f) -> crossTrade(x, y, f.sumOf(actorSpurs)) }
     }
@@ -361,6 +377,7 @@ object Ledger {
         if (tariff <= 0 || step in intent.done) return intent
         val country = Trade.country(buyer)
         val next = intent.mark(step)
+        if (Trade.uuid(payer) != null) Stats.add("market.tariff", "p:$payer", country?.let { "c:$it" }.orEmpty(), tariff)
         val note = Statement.note("kami_libs.note.tariff", intent.item)
         if (country == null) return next.also { bank(it.id, step, payer, tariff, Flow.TAX, note) }
         val applied = runCatching { ClaimsApi.creditTariff(country, tariff, Party.parse(payer)?.key.orEmpty(), note) }.getOrElse { LOG.error("Tariff of {} for intent {} failed, returning it", tariff, intent.id, it); 0L }
@@ -454,7 +471,7 @@ object Ledger {
             bankSale(it)
             write(it.copy(state = LedgerState.PAID))
         }
-        tradedFills(current.actor, current.item, current.fills) { net(it) - it.tariff }
+        tradedFills(current.actor, current.item, current.fills, true) { net(it) - it.tariff }
         stockSale(current.actor, current.item, current.fills.filter { it.owner.isEmpty() }.sumOf { it.qty })
     }
 
@@ -516,7 +533,7 @@ object Ledger {
             bankSale(it)
             write(it.copy(state = LedgerState.PAID))
         }
-        traded(current.actor, "", current.netSpurs, current.item, current.qty)
+        traded(current.actor, "", current.netSpurs, current.item, current.qty, true)
         stockSale(current.actor, current.item, current.qty)
         return SellResult.Ok(id)
     }
@@ -549,7 +566,7 @@ object Ledger {
         Matching.applyFills(intent.item, intent.fills.map { FillLinePlan(it.orderId, it.owner, it.qty, it.unitPrice, it.lot) }, intent.actor)
         Market.queueDelivery(intent.actor, intent.item, intent.qty, "${intent.id}:d")
         payFills(intent.copy(state = LedgerState.BOOK_INSERTED).also(::write))
-        tradedFills(intent.actor, intent.item, intent.fills) { gross(it) + it.tariff }
+        tradedFills(intent.actor, intent.item, intent.fills, false) { gross(it) + it.tariff }
     }
 
     private fun gross(f: LedgerFill): Long = f.qty.toLong() / f.lot.coerceAtLeast(1) * f.unitPrice
@@ -747,8 +764,8 @@ object Ledger {
         }
         val item = StackCodec.itemId(current.stackData)
         val count = StackCodec.count(current.stackData)
-        traded(current.actor, current.seller, current.unitPrice.toLong(), item, count)
-        traded(current.seller, current.actor, current.netSpurs, item, count)
+        traded(current.actor, current.seller, current.unitPrice.toLong(), item, count, false)
+        traded(current.seller, current.actor, current.netSpurs, item, count, true)
         crossTrade(Trade.country(current.seller), Trade.country(current.actor), current.unitPrice.toLong())
         if (earnsXp(current.seller, current.actor)) Trade.country(current.seller)?.let { KamiProgress.post(it, "auction_sold", item, count.toLong()) }
     }
@@ -812,7 +829,7 @@ object Ledger {
                         creditOrFreeze(current, "pay", current.actor, current.netSpurs, current.preBalance, Memo(Flow.MARKET_SELL, counterpartyOf(current.fills).ifEmpty { ServerParty.key }, current.item, current.qty))?.let {
                             bankSale(it)
                             write(it.copy(state = LedgerState.PAID))
-                            traded(current.actor, "", current.netSpurs, current.item, current.qty)
+                            traded(current.actor, "", current.netSpurs, current.item, current.qty, true)
                             stockSale(current.actor, current.item, current.qty)
                         }
                     }

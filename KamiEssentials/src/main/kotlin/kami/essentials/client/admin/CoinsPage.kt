@@ -81,7 +81,7 @@ internal class CoinsPage(private val app: AdminApp) : Page() {
             KpiTile(tr("kami_essentials.admin.coins.terminal_in"), s?.let { Format.money(it.terminalIn, compact = true) }, Icons.DEPOSIT, sub = inRange(rangeIn)),
             KpiTile(tr("kami_essentials.admin.coins.terminal_out"), s?.let { Format.money(it.terminalOut, compact = true) }, Icons.WITHDRAW, sub = inRange(rangeOut)),
             KpiTile(tr("kami_essentials.admin.economy.net"), net?.let { Format.signedMoney(it) }, Icons.SCALES, net?.let { if (it > 0) Palette.warning else Palette.text } ?: Palette.text),
-            KpiTile(tr("kami_essentials.admin.range.1d"), todayNet?.let { Format.signedMoney(it) }, Icons.CLOCK,
+            KpiTile(tr("kami_libs.range.24h"), todayNet?.let { Format.signedMoney(it) }, Icons.CLOCK,
                 sub = s?.let { tr("kami_essentials.admin.in_out", Format.compact(it.today.terminalIn), Format.compact(it.today.terminalOut)) })
         ), key = "coins-kpi")
     }

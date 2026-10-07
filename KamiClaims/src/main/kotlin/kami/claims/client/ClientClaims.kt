@@ -10,6 +10,9 @@ import kotlinx.serialization.Serializable
 enum class BorderMode { OFF, AUTO, ALWAYS, BUILDER }
 
 @Serializable
+enum class WarDisplay { NONE, BOSS, HUD, BOTH }
+
+@Serializable
 class Prefs(
     var overlay: Boolean = true,
     var hud: Boolean = true,
@@ -32,7 +35,12 @@ class Prefs(
     var dismissed: MutableSet<String> = mutableSetOf(),
     var hiddenSteps: Boolean = false,
     var denialTips: Int = 0,
-    var collapsedGroups: MutableSet<String> = mutableSetOf()
+    var collapsedGroups: MutableSet<String> = mutableSetOf(),
+    var warDisplay: WarDisplay = WarDisplay.BOTH,
+    var warX: Float = 0f,
+    var warY: Float = 0f,
+    var territoryX: Float = 0.5f,
+    var territoryY: Float = 0f
 )
 
 object ClientClaims {
@@ -63,7 +71,12 @@ object ClientClaims {
                     "dismissed" to "Alerts you dismissed.",
                     "hiddenSteps" to "The goals checklist is hidden.",
                     "denialTips" to "How often the border tip was shown after a blocked action.",
-                    "collapsedGroups" to "Navigation groups you collapsed."
+                    "collapsedGroups" to "Navigation groups you collapsed.",
+                    "warDisplay" to "Where the war status shows: NONE, BOSS (boss bar), HUD or BOTH.",
+                    "warX" to "Horizontal position of the war HUD, 0 (left) to 1 (right).",
+                    "warY" to "Vertical position of the war HUD, 0 (top) to 1 (bottom).",
+                    "territoryX" to "Horizontal position of the territory HUD, 0 (left) to 1 (right).",
+                    "territoryY" to "Vertical position of the territory HUD, 0 (top) to 1 (bottom)."
                 )
             )
         ),

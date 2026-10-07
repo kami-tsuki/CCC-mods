@@ -21,7 +21,7 @@ import kami.libs.ui.widget.*
 private const val TOGGLE_CARD_H = 42
 private const val STATUS_CARD_H = 80
 private const val LOOK_H = 92
-private const val FEEL_H = 110
+private const val FEEL_H = 128
 private const val CHANNEL_H = 70
 
 private fun Ui.toggleCard(r: Rect, title: String, icon: Icon, on: Boolean?, label: String, tip: String, key: String, change: (Boolean) -> Unit) {
@@ -66,6 +66,7 @@ internal class InterfacePage : Page() {
         ui.anchor("prefs:feel", feelBox)
         val feel = Flow(ui.card(feelBox, tr("kami_essentials.interface.feel"), Icons.EYE), 4)
         ui.toggle(feel.take(14), p.reduceMotion, tr("kami_essentials.interface.motion"), tip = tr("kami_essentials.interface.motion.tip"), key = "motion")?.let { p.reduceMotion = it; UiPrefs.save() }
+        ui.toggle(feel.take(14), p.autoRefresh, tr("kami_essentials.interface.autorefresh"), tip = tr("kami_essentials.interface.autorefresh.tip"), key = "auto-refresh")?.let { p.autoRefresh = it; UiPrefs.save() }
         ui.fieldLabel(feel.take(9), tr("kami_essentials.interface.sounds"), Format.percent(p.sounds.toDouble()))
         ui.slider(feel.take(CONTROL_H), p.sounds.toDouble(), 0.0, 1.0, 0.05, format = { Format.percent(it) }, key = "sounds")?.let { p.sounds = it.toFloat(); UiPrefs.apply(); dirty = true }
         ui.fieldLabel(feel.take(9), tr("kami_essentials.interface.tooltip_delay"), "${Format.number(p.tooltipDelay)} ms")

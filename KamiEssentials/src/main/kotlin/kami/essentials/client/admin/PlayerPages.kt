@@ -111,6 +111,8 @@ internal class PlayerPage(private val app: AdminApp) : Page() {
     private var tab = "overview"
     private val detail get() = app.playerDetail
     private var money = JournalFilter("player-money", false)
+    private var stats: PlayerStats? = null
+    private var discord: PlayerDiscord? = null
     private val journal = Paged("journal.query", Journal.Entry.serializer()) { listOf("p:$uuid") + money.args() }
     private val history = Paged("players.history", Audit.Entry.serializer()) { listOfNotNull(uuid) }
     private val journalTable = TableState<Journal.Entry>()
@@ -128,8 +130,14 @@ internal class PlayerPage(private val app: AdminApp) : Page() {
             tab = "overview"
             amount.set("")
             money = JournalFilter("player-money", false)
+            stats = null
+            discord = null
         }
     }
+
+    private fun statsTab(ui: Ui, r: Rect, d: PlayerDetail) = (stats ?: PlayerStats(d.row.uuid).also { stats = it }).draw(ui, r)
+
+    private fun discordTab(ui: Ui, r: Rect, d: PlayerDetail) = (discord ?: PlayerDiscord(app, d.row.uuid).also { discord = it }).draw(ui, r, d, lock(d))
 
     private fun current() = detail.data?.takeIf { it.row.uuid == uuid }
 
@@ -140,6 +148,8 @@ internal class PlayerPage(private val app: AdminApp) : Page() {
         Tab("profile", TabItem(tr("kami_essentials.admin.tab.profile"), Icons.EYE), ::profile),
         Tab("money", TabItem(tr("kami_essentials.admin.tab.money"), Icons.COIN), ::moneyTab),
         Tab("moderation", TabItem(tr("kami_essentials.admin.tab.moderation"), Icons.BAN), ::moderation),
+        Tab("stats", TabItem(tr("kami_essentials.admin.tab.stats"), Icons.STATS), ::statsTab),
+        Tab("discord", TabItem(tr("kami_essentials.admin.tab.discord"), Icons.CHAIN), ::discordTab),
         Tab("position", TabItem(tr("kami_essentials.admin.tab.position"), Icons.LOCATE), ::position),
         Tab("inventory", TabItem(tr("kami_essentials.admin.tab.inventory"), Icons.CHEST), ::inventory),
         if (d.lastIp != null || d.knownIps != null || d.alts != null) Tab("network", TabItem(tr("kami_essentials.admin.tab.network"), Icons.GLOBE), ::network) else null

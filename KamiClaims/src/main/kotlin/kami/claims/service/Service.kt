@@ -28,6 +28,7 @@ import kami.claims.social.Perms
 import kami.claims.world.Effects
 import kami.libs.chat.Tone
 import kami.libs.economy.Flow
+import kami.libs.stats.Stats
 import kami.libs.text.Phrase
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
@@ -213,6 +214,7 @@ object Service {
         claimError(c, here(p), s.defaultType)?.let { throw Fail(it) }
         Realm.data.countries[c.id] = c
         Realm.join(c, p.stringUUID, Rank.PRESIDENT)
+        Stats.event("country.found", "c:${c.id}", "p:${p.stringUUID}")
         addClaim(c, here(p), s.defaultType, true)
         Effects.founded(p, c)
         return Phrase.of("kami_libs.format.join", Phrase.of("kami_claims.done.founded", v(n), chunks(Realm.freeAllowed(c))), Phrase.of("kami_claims.notice.release_lock"))

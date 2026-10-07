@@ -17,11 +17,13 @@ import kami.libs.discord.Links
 import kami.libs.discord.id
 import kami.libs.discord.Post
 import kami.libs.discord.Templates
+import kami.libs.stats.Stats
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
 import net.neoforged.neoforge.server.ServerLifecycleHooks
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 object Relay : DiscordFeature {
     private val sent = object : LinkedHashMap<Long, UUID>(64, 0.75f, true) {
@@ -34,12 +36,21 @@ object Relay : DiscordFeature {
     private const val PING_GAP_MS = 3_000L
     private val recent = HashMap<UUID, ArrayDeque<Long>>()
     private val pinged = HashMap<UUID, Long>()
+    private val spoke = ConcurrentHashMap<UUID, Long>()
+
+    fun lastMessage(id: UUID) = spoke[id] ?: 0L
+
+    private fun traffic(key: String, id: UUID) {
+        spoke[id] = System.currentTimeMillis()
+        Stats.add(key, "p:$id")
+    }
 
     override fun onReady() = Bot.status()
 
     fun chat(p: ServerPlayer, text: String) {
         val d = Config.s.discord
         if (!d.enabled || !d.chat.toDiscord || !allowed(p.uuid)) return
+        traffic("discord.out", p.uuid)
         val ids = LinkedHashSet<Long>()
         val out = Templates.outsideCode(text) { part, _ -> resolve(part, ids) }
         DiscordApi.chat(Post(Templates.fill(d.templates.username, values(p)), Avatars.of(p.uuid), out, ids)) { sent[it] = p.uuid }
@@ -71,6 +82,7 @@ object Relay : DiscordFeature {
         val link = Links.byDiscord(m.userId) ?: return
         val server = ServerLifecycleHooks.getCurrentServer() ?: return
         val author = link.id
+        traffic("discord.in", author)
         Talk.external(server, author, link.name, m)
         val targets = HashSet<UUID>()
         m.mentions.forEach { id -> Links.byDiscord(id)?.let { targets += it.id } }
@@ -84,6 +96,7 @@ object Relay : DiscordFeature {
         val now = System.currentTimeMillis()
         if (now - (pinged[p.uuid] ?: 0L) < PING_GAP_MS) return
         pinged[p.uuid] = now
+        Stats.add("discord.ping", "p:${p.uuid}")
         p.playNotifySound(SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.5f, 1.2f)
     }
 

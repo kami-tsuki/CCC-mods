@@ -55,6 +55,7 @@ internal class CountryDetailPage(private val app: KamiApp) : Page() {
     private var war: String? = null
     private var op = CountryAdmin.researchOps[0]
     private var controlsH = 0
+    private var stats: CountryStats? = null
 
     override val title get() = current()?.row?.name ?: tr("kami_claims.admin.nav.detail")
 
@@ -64,6 +65,7 @@ internal class CountryDetailPage(private val app: KamiApp) : Page() {
         if (next == id) return
         id = next
         tab = 0
+        stats = null
         leader = null
         war = null
         listOf(name, chunk, node, amount).forEach { it.set("") }
@@ -131,7 +133,8 @@ internal class CountryDetailPage(private val app: KamiApp) : Page() {
         val tabs = listOf(
             TabItem(tr("kami_claims.admin.tab.members"), Icons.PEOPLE, d.members.size),
             TabItem(tr("kami_claims.admin.tab.ledger"), Icons.LEDGER),
-            TabItem(tr("kami_claims.admin.tab.wars"), Icons.SHIELD, d.wars.size, Severity.DANGER)
+            TabItem(tr("kami_claims.admin.tab.wars"), Icons.SHIELD, d.wars.size, Severity.DANGER),
+            TabItem(tr("kami_claims.admin.nav.stats"), Icons.STATS)
         )
         ui.subTabs(r.top(CONTROL_H), tabs, tab, key = "country-tabs")?.let { tab = it }
         val body = r.dropTop(CONTROL_H + 6)
@@ -140,7 +143,8 @@ internal class CountryDetailPage(private val app: KamiApp) : Page() {
                 .opened?.let { m -> app.navigate(Route("player", mapOf("uuid" to m.uuid))) }
             1 -> ui.table(body, ledgerColumns(), d.ledger, ledger, { it.at to it.kind to it.balance }, severity = { if (it.amount >= 0) Severity.SUCCESS else Severity.DANGER },
                 emptyText = tr("kami_claims.admin.ledger.empty"), key = "country-ledger")
-            else -> ui.table(body, warColumns(), d.wars, wars, { it.id }, emptyText = tr("kami_claims.admin.wars.empty"), key = "country-wars")
+            2 -> ui.table(body, warColumns(), d.wars, wars, { it.id }, emptyText = tr("kami_claims.admin.wars.empty"), key = "country-wars")
+            else -> (stats ?: CountryStats(d.row.id).also { stats = it }).draw(ui, body)
         }
     }
 

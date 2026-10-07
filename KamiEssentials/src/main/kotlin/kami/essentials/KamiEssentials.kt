@@ -2,7 +2,9 @@ package kami.essentials
 
 import kami.libs.player.Presence
 import kami.libs.text.Phrase
+import kami.essentials.admin.Activity
 import kami.essentials.admin.AdminServer
+import kami.essentials.admin.DiscordAdmin
 import kami.essentials.admin.Moderation
 import kami.essentials.admin.Mutes
 import kami.essentials.admin.Warns
@@ -67,6 +69,8 @@ object KamiEssentials {
         if (FMLEnvironment.dist == Dist.CLIENT) ClientEssentials.init()
         EssentialsCommands.register()
         AdminServer.register()
+        DiscordAdmin.register()
+        Activity.register()
         FORGE_BUS.addListener<ServerStartedEvent> {
             loading("player flags") { Store.load() }
             loading("player records") { PlayerRecords.load(it.server) }
@@ -97,6 +101,7 @@ object KamiEssentials {
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { e ->
             val p = e.entity as? ServerPlayer ?: return@addListener
             Offline.joined(p)
+            Activity.login(p, PlayerRecords[p.uuid] == null)
             PlayerRecords.joined(p)
             Gate.join(p)
             Warns.deliver(p)
@@ -108,6 +113,7 @@ object KamiEssentials {
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { e ->
             val p = e.entity as? ServerPlayer ?: return@addListener
             Trades.drop(p, Phrase.of("kami_essentials.trade.reason.left", p.gameProfile.name))
+            Activity.logout(p)
             PlayerRecords.left(p)
             Sidebar.forget(p)
             Feed.leave(p)

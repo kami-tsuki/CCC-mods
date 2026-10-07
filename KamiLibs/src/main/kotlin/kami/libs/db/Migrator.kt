@@ -113,7 +113,7 @@ internal object Migrator {
     private fun zip(target: Path, world: Path, files: List<Path>) {
         ZipOutputStream(Files.newOutputStream(target)).use { out ->
             files.forEach { f ->
-                out.putNextEntry(ZipEntry(world.relativize(f).toString().replace('\\', '/')))
+                out.putNextEntry(ZipEntry((if (f.startsWith(world)) world.relativize(f).toString() else "external/${f.name}").replace('\\', '/')))
                 Files.copy(f, out)
                 out.closeEntry()
             }

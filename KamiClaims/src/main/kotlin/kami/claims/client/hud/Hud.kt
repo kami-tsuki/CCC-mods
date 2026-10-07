@@ -4,6 +4,7 @@ import kami.libs.ui.text.trJson
 import kami.libs.ui.text.tr
 import kami.claims.KamiClaims
 import kami.claims.client.ClientClaims
+import kami.claims.client.WarDisplay
 import kami.libs.ui.widget.Flags
 import kami.claims.client.app.Vocabulary
 import kami.claims.client.store.ClaimsStore
@@ -54,7 +55,7 @@ object Hud {
         if (ClientClaims.active(dim) && ClientClaims.prefs.hud) territory(g, dim, player.blockX, player.blockZ, now)
         crosshair(g, dim)
         toasts(g, now)
-        if (!warBroken) runCatching { war(g, now) }.onFailure { warBroken = true; KamiClaims.LOG.error("War banner disabled", it) }
+        if (!warBroken && ClientClaims.prefs.warDisplay.let { it == WarDisplay.HUD || it == WarDisplay.BOTH }) runCatching { war(g, now) }.onFailure { warBroken = true; KamiClaims.LOG.error("War banner disabled", it) }
     }
 
     private fun war(g: GuiGraphics, now: Long) {
@@ -62,7 +63,7 @@ object Hud {
         val left = if (w.ends > 0) Format.until(w.ends, now) else tr("kami_claims.warpage.open_ended")
         val text = tr("kami_claims.hud.war", tr("kami_claims.warpage.phase.${w.phase}"), w.enemy, left)
         val color = if (w.phase == "war") Palette.danger else Palette.warning
-        val box = Rect(4, 4, Draw.width(text) + 10, 15)
+        val box = HudLayout.place(g.guiWidth(), g.guiHeight(), Draw.width(text) + 10, ClientClaims.prefs.warX, ClientClaims.prefs.warY)
         Draw.sprite(g, Sprites.TOOLTIP, box)
         Draw.fill(g, Rect(box.x + 1, box.y + 1, 2, box.h - 2), color)
         Draw.text(g, text, box.x + 6, box.y + 4, color)
@@ -93,10 +94,9 @@ object Hud {
         }
         val textW = Draw.width(name) + (if (extra.isNotEmpty()) Draw.width("  $extra") else 0) + (distance?.let { Draw.width("   $it") } ?: 0)
         val w = textW + (if (country != null) 24 else 10)
-        val x = (g.guiWidth() - w) / 2
-        val box = Rect(x, 3, w, 15)
+        val box = HudLayout.place(g.guiWidth(), g.guiHeight(), w, ClientClaims.prefs.territoryX, ClientClaims.prefs.territoryY)
         Draw.sprite(g, Sprites.TOOLTIP, box)
-        var tx = x + 5
+        var tx = box.x + 5
         if (country != null) { Flags.draw(g, Rect(tx, box.y + 3, 12, 9), country.color, country.pattern, country.emblem, country.secondary); tx += 16 }
         tx = Draw.text(g, name, tx, box.y + 4, if (country == null) Palette.textMuted else Palette.text)
         if (extra.isNotEmpty()) tx = Draw.text(g, "  $extra", tx, box.y + 4, type?.color ?: Palette.textMuted)
@@ -107,7 +107,7 @@ object Hud {
             val slide = if (age < 250) (age / 250f) else if (age > 3200) ((3500 - age) / 300f) else 1f
             val bw = maxOf(Draw.width(b.title), Draw.width(b.body)) + 16
             val by = (box.bottom + 2 - 26 + 28 * slide).toInt()
-            val r = Rect((g.guiWidth() - bw) / 2, by, bw, 24)
+            val r = Rect((box.centerX - bw / 2).coerceIn(0, maxOf(0, g.guiWidth() - bw)), by, bw, 24)
             Draw.sprite(g, Sprites.TOAST, r)
             Draw.fill(g, Rect(r.x + 1, r.y + 1, bw - 2, 1), b.color)
             Draw.text(g, b.title, r.x + 8, r.y + 4, b.color)

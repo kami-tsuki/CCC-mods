@@ -219,6 +219,15 @@ internal object Discord {
         }
     }
 
+    fun info(userId: Long, timeoutMs: Long): GuildInfo? {
+        val guild = guild() ?: return null
+        val m = guild.getMemberById(userId)
+            ?: if (timeoutMs <= 0) return null.also { guild.retrieveMemberById(userId).queue({}, {}) }
+            else runCatching { guild.retrieveMemberById(userId).submit().get(timeoutMs, TimeUnit.MILLISECONDS) }.getOrNull() ?: return null
+        val role = verifiedRole(guild)
+        return GuildInfo(m.user.name, m.nickname.orEmpty(), m.effectiveAvatarUrl, m.timeJoined.toInstant().toEpochMilli(), m.roles.map { it.name }, role != null && m.roles.contains(role))
+    }
+
     fun holders(done: (Set<Long>?) -> Unit) {
         val result = fresh(done)
         val guild = guild() ?: return post { result(null) }

@@ -26,9 +26,13 @@ object ServerStats {
         while (series.size > SAMPLES) series.removeFirst()
     }
 
+    fun mspt(server: MinecraftServer) = server.averageTickTimeNanos / 1_000_000.0
+
+    fun tps(server: MinecraftServer) = minOf(20.0, 1000.0 / mspt(server).coerceAtLeast(0.001))
+
     fun snapshot(server: MinecraftServer, level: AdminPerms.Level): Dashboard {
         val now = System.currentTimeMillis()
-        val mspt = server.averageTickTimeNanos / 1_000_000.0
+        val mspt = mspt(server)
         val today = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         val online = server.playerList.players.map { it.uuid }.toSet()
         val records = PlayerRecords.all()
@@ -37,7 +41,7 @@ object ServerStats {
         val past = 1.0 - (now % Time.DAY_MS).toDouble() / Time.DAY_MS
         val net = ServerBank.days(day - 1).sumOf { (it.inflow - it.outflow) * if (it.day == day) 1.0 else past }.toLong()
         return Dashboard(
-            tps = minOf(20.0, 1000.0 / mspt.coerceAtLeast(0.001)),
+            tps = tps(server),
             mspt = mspt,
             online = server.playerCount,
             max = server.maxPlayers,

@@ -4,6 +4,7 @@ import kami.claims.Claim
 import kami.claims.Config
 import kami.claims.Country
 import kami.claims.Realm
+import kami.libs.stats.Stats
 import net.minecraft.world.entity.player.Player
 import kotlin.math.floor
 
@@ -17,6 +18,7 @@ object Bill {
     fun kill(attacker: Player, victim: Player, at: Claim?) {
         val (w, a, v) = versus(attacker, victim) ?: return
         add(w, a, at, s.billKill)
+        Stats.add("war.kill", "c:${a.id}", "c:${v.id}")
         w.side(v.id)?.deaths?.merge(v.id, 1) { x, y -> x + y }
     }
 

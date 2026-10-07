@@ -11,6 +11,7 @@ import kami.claims.service.Words
 import kami.claims.social.Mail
 import kami.libs.chat.Tone
 import kami.libs.log.Log
+import kami.libs.stats.Stats
 import kami.libs.text.Phrase
 import kami.libs.util.Time.HOUR_MS
 import net.neoforged.neoforge.server.ServerLifecycleHooks
@@ -117,6 +118,7 @@ object Queue {
             entry.paid = true
         }
         entry.state = NodeState.RESEARCHING
+        Stats.event("research.start", "c:${country.id}", entry.node)
         Realm.changed()
         ResearchSync.touch(country)
         return true
@@ -192,6 +194,7 @@ object Queue {
 
     fun complete(country: Country, node: Node) {
         markDone(country, node.key)
+        Stats.event("research.done", "c:${country.id}", node.key)
         Levels.grant(country, "research", node.xp ?: (XP_PER_NODE_LEVEL * maxOf(1, node.level)))
         if (settings.announce) Mail.broadcast(country, Phrase.of("kami_claims.research.mail.done", node.label().asValue()), Tone.OK)
         Realm.changed()

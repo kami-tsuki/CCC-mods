@@ -14,6 +14,7 @@ import kami.libs.admin.AdminMetrics
 import kami.libs.admin.AdminPerms
 import kami.libs.admin.Page
 import kami.libs.admin.Players
+import kami.libs.admin.StatsViews
 import kami.libs.admin.long
 import kami.libs.admin.page
 import kami.libs.admin.text
@@ -43,6 +44,7 @@ object AdminCountries {
     fun register() {
         AdminMetrics.register("kami_claims.metric.countries") { Realm.data.countries.values.count { it.active }.toLong() }
         AdminMetrics.register("kami_claims.metric.wars") { Realm.data.wars.count { it.active }.toLong() }
+        StatsViews.resolvers += { k -> k.takeIf { it.startsWith("c:") }?.let { Realm.country(it.substring(2))?.name } }
         Admin.view(CountryRequests.LIST) { ctx, a ->
             val text = a.text(0)?.lowercase().orEmpty()
             val rows = Realm.data.countries.values.filter { text.isEmpty() || text in it.name.lowercase() || text in it.id }.sortedBy { it.name.lowercase() }

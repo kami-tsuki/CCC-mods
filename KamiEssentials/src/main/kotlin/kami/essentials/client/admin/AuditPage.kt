@@ -6,6 +6,9 @@ import kami.libs.admin.Audit
 import kami.libs.ui.app.Dialog
 import kami.libs.ui.app.DialogKind
 import kami.libs.ui.app.Page
+import kami.libs.ui.app.SELECT_W
+import kami.libs.ui.app.TimeRange
+import kami.libs.ui.app.segmentWidth
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Row
 import kami.libs.ui.core.Ui

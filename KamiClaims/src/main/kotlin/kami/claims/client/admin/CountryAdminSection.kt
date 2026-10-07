@@ -30,14 +30,25 @@ import kami.libs.ui.widget.searchField
 object CountryAdminSection {
     const val LIST_PAGE = "countries.list"
     const val DETAIL_PAGE = "countries.detail"
+    const val STATS_PAGE = "countries.stats"
     private const val REFRESH_MS = 15_000L
 
     var shown: String? = null
     val detail = Remote(CountryRequests.DETAIL, CountryDetail.serializer(), REFRESH_MS) { listOfNotNull(shown) }
 
     fun register() = AdminSections.register(AdminSection("countries", 20, { "kami_claims.admin.nav.group" }, {
-        listOf(NavItem(LIST_PAGE, tr("kami_claims.admin.nav.list"), Icons.FLAG), NavItem(DETAIL_PAGE, tr("kami_claims.admin.nav.detail"), Icons.CROWN))
-    }, { app, id -> if (id == DETAIL_PAGE) CountryDetailPage(app) else CountryListPage(app) }))
+        listOf(
+            NavItem(LIST_PAGE, tr("kami_claims.admin.nav.list"), Icons.FLAG),
+            NavItem(DETAIL_PAGE, tr("kami_claims.admin.nav.detail"), Icons.CROWN),
+            NavItem(STATS_PAGE, tr("kami_claims.admin.nav.stats"), Icons.STATS)
+        )
+    }, { app, id ->
+        when (id) {
+            DETAIL_PAGE -> CountryDetailPage(app)
+            STATS_PAGE -> CountryStatsPage()
+            else -> CountryListPage(app)
+        }
+    }))
 
     fun openCountry(app: KamiApp, id: String) = app.navigate(Route(DETAIL_PAGE, mapOf("id" to id)))
 }

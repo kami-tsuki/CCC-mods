@@ -4,13 +4,11 @@ import kami.libs.admin.Page
 import kami.libs.admin.Where
 import kami.libs.db.Db
 import kami.libs.db.Session
-import kami.libs.util.Time.DAY_MS
+import kami.libs.stats.Stats
 import kotlinx.serialization.Serializable
+import kotlin.math.abs
 
 object Journal {
-    private const val KEEP = 90 * DAY_MS
-    private var pruned = -1L
-
     @Serializable
     class Entry(val id: Long, val at: Long, val party: String, val delta: Long, val flow: Flow, val counterparty: String? = null, val note: String = "", val ref: String = "")
 
@@ -25,7 +23,11 @@ object Journal {
     )
 
     fun leg(party: Party, delta: Long, flow: Flow, counterparty: Party? = null, note: String = "", ref: String = "") {
-        if (delta != 0L) Db.write { journalLeg(System.currentTimeMillis(), party, delta, flow, counterparty, note, ref) }
+        if (delta == 0L) return
+        Db.write { journalLeg(System.currentTimeMillis(), party, delta, flow, counterparty, note, ref) }
+        val f = flow.name.lowercase()
+        Stats.add("money.$f", party.key, if (delta > 0) "in" else "out", abs(delta))
+        Stats.add("money.tx", party.key, f)
     }
 
     fun query(filter: Filter, page: Int, size: Int = 50): Page<Entry> {
@@ -40,16 +42,6 @@ object Journal {
         return w.page("libs_journal", "id, at, party, delta, flow, counterparty, note, ref", "id DESC", page, size) {
             Entry(it.long("id"), it.long("at"), it.string("party"), it.long("delta"), Flow.valueOf(it.string("flow")), it.stringOrNull("counterparty"), it.string("note"), it.string("ref"))
         }
-    }
-
-    fun prune(now: Long = System.currentTimeMillis()) {
-        pruned = now / DAY_MS
-        Db.write { exec("DELETE FROM libs_journal WHERE at < ?", now - KEEP) }
-    }
-
-    internal fun tick() {
-        val now = System.currentTimeMillis()
-        if (now / DAY_MS != pruned) prune(now)
     }
 }
 

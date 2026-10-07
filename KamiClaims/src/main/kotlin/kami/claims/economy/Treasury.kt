@@ -17,6 +17,7 @@ import kami.libs.economy.Journal
 import kami.libs.economy.Party
 import kami.libs.economy.ServerBank
 import kami.libs.economy.ServerParty
+import kami.libs.stats.Stats
 
 object Treasury {
     fun room(c: Country): Long = (Levels.capacity(c, Capacity.TREASURY) - c.treasury).coerceAtLeast(0)
@@ -86,6 +87,7 @@ object Treasury {
             claims.size, claims.count { it.debt > 0 }, c.members.size, claims.count { it.owner != null },
             claims.groupingBy { it.type }.eachCount(), window.groupBy { it.kind.name }.mapValues { (_, list) -> list.sumOf { it.amount } }
         )
+        Stats.add("country.history", "c:${c.id}", "day")
         val overflow = c.history.size - Config.s.historyDays
         if (overflow > 0) c.history.subList(0, overflow).clear()
     }

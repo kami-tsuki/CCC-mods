@@ -34,7 +34,6 @@ object Gate : DiscordFeature {
     fun check(profile: GameProfile): Component? {
         if (!Config.s.discord.enabled) return null
         if (!DiscordApi.configured) return if (DiscordApi.broken) kick("unavailable") else null
-        if (Links.broken) return kick("unavailable")
         if (Links.get(profile.id) != null) return null
         if (!DiscordApi.ready) return kick("unavailable")
         val code = Codes.issue(profile.id, profile.name, Config.s.discord.verify.codeMinutes)
@@ -135,7 +134,7 @@ object Gate : DiscordFeature {
     }
 
     private fun reconcile() {
-        if (!DiscordApi.ready || Links.broken) return
+        if (!DiscordApi.ready) return
         val links = Links.all()
         DiscordApi.members(links.map { it.discordId }) { found ->
             if (found != null) {
@@ -151,7 +150,7 @@ object Gate : DiscordFeature {
             }
         }
         DiscordApi.holders { holders ->
-            if (holders != null && !Links.broken) {
+            if (holders != null) {
                 val linked = Links.all().mapTo(HashSet()) { it.discordId }
                 holders.filter { it !in linked }.forEach(DiscordApi::revoke)
             }
@@ -176,7 +175,7 @@ object Gate : DiscordFeature {
     }
 
     private fun dropAll(uuids: Collection<UUID>): List<Link> {
-        val removed = runCatching { Links.removeAll(uuids) }.onFailure { log.error("Cannot update the link file: {}", it.message) }.getOrDefault(emptyList())
+        val removed = runCatching { Links.removeAll(uuids) }.onFailure { log.error("Cannot update the links: {}", it.message) }.getOrDefault(emptyList())
         removed.forEach { DiscordApi.revoke(it.discordId) }
         return removed
     }
