@@ -21,12 +21,12 @@ object Bank {
 
     fun funds(id: UUID): Long = Numismatics.balance(id) + (Numismatics.online(id)?.let(::carried) ?: 0)
 
-    fun take(id: UUID, amount: Int, flow: Flow, counterparty: String = ""): Boolean =
-        withdraw(id, amount).also { if (it && amount > 0) Statement.record(id, -amount.toLong(), flow, counterparty) }
+    fun take(id: UUID, amount: Int, flow: Flow, counterparty: String = "", note: String = ""): Boolean =
+        withdraw(id, amount).also { if (it && amount > 0) Statement.record(id, -amount.toLong(), flow, counterparty, Statement.note(note)) }
 
-    fun give(id: UUID, amount: Int, flow: Flow, counterparty: String = ""): Boolean {
+    fun give(id: UUID, amount: Int, flow: Flow, counterparty: String = "", note: String = ""): Boolean {
         val got = deliver(id, amount) ?: return false
-        if (got > 0) Statement.record(id, got.toLong(), flow, counterparty)
+        if (got > 0) Statement.record(id, got.toLong(), flow, counterparty, Statement.note(note))
         return true
     }
 

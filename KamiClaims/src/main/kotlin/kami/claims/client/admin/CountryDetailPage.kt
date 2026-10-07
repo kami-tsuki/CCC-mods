@@ -33,6 +33,7 @@ import kami.libs.ui.style.TextStyle
 import kami.libs.ui.text.tr
 import kami.libs.ui.text.trOr
 import kami.libs.ui.widget.*
+import kami.libs.ui.text.noteLabel
 
 private const val HEADER_H = 24
 private const val TILE_H = 44
@@ -217,7 +218,7 @@ internal class CountryDetailPage(private val app: KamiApp) : Page() {
         Column.text<LedgerRow>(tr("kami_claims.admin.col.kind"), 70) { trOr("kami_claims.ledger.${it.kind.lowercase()}", it.kind) },
         Column.number<LedgerRow>(tr("kami_libs.common.amount"), 64, color = { if (it.amount >= 0) Palette.success else Palette.danger }, format = { Format.signedMoney(it) }) { it.amount },
         Column.number<LedgerRow>(tr("kami_claims.admin.col.treasury"), 64, color = { Palette.money }, format = { Format.money(it, compact = true) }) { it.balance },
-        Column.text<LedgerRow>(tr("kami_claims.admin.col.actor"), -1) { listOfNotNull(it.actor, it.note.ifEmpty { null }).joinToString(" · ") }
+        Column.text<LedgerRow>(tr("kami_claims.admin.col.actor"), -1) { listOfNotNull(it.actor, noteLabel(it.note).ifEmpty { null }).joinToString(" · ") }
     )
 
     private fun warColumns() = listOf(

@@ -11,13 +11,13 @@ import kami.claims.research.Queue
 import kami.claims.service.Announce
 import kami.claims.service.Fail
 import kami.claims.service.Naming
+import kami.claims.service.Words
 import kami.claims.service.Service
 import kami.claims.social.Mail
 import kami.claims.war.Stakes
-import kami.claims.war.WarPhase
 import kami.claims.war.WarResult
 import kami.claims.war.Wars
-import kami.claims.now
+import kami.libs.chat.Tone
 import kami.libs.text.Phrase
 import net.minecraft.server.MinecraftServer
 import kotlin.math.abs
@@ -52,14 +52,15 @@ object CountryAdmin {
         return batch.size
     }
 
-    fun endWar(c: Country, id: String) {
+    fun endWar(c: Country, id: String, reason: String) {
         val war = Realm.data.wars.firstOrNull { it.id == id && it.active && c.id in it.countries } ?: throw Fail("kami_claims.error.war.none")
-        if (war.phase == WarPhase.SETTLEMENT) throw Fail("kami_claims.admin.war_settling")
         war.stakes = Stakes()
         war.picks.clear()
         war.silent = true
+        war.offer = null
         Wars.end(war, WarResult.WHITE)
-        war.phaseEnds = now()
+        Wars.close(war, cooldown = false)
+        Wars.mail(war.countries, Phrase.of("kami_claims.mail.war.admin_ended", Words.v(reason)), Tone.WARN)
     }
 
     fun research(c: Country, op: String, node: String?): String? {

@@ -10,6 +10,7 @@ import kami.claims.research.Capacity
 import kami.claims.research.Buffs
 import kami.claims.research.Features
 import kami.claims.research.Levels
+import kami.claims.war.WarLocks
 import kami.libs.text.Phrase
 import kami.libs.util.Time.HOUR_MS
 import kotlin.math.max
@@ -73,6 +74,7 @@ object Planner {
     }
 
     fun unclaimLock(cl: Claim): Phrase? {
+        if (Realm.country(cl.country)?.let { WarLocks.staked(it, cl.key) } == true) return Phrase.of("kami_claims.error.war.locked.staked")
         if (cl.owner != null) return Phrase.of("kami_claims.error.plot_tenanted")
         val age = now() - cl.at
         if (age < s.dayMillis) return Phrase.of("kami_claims.block.new", Phrase.of("kami_libs.unit.hour.short", ((s.dayMillis - age) / HOUR_MS + 1).toString()))

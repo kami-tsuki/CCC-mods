@@ -12,6 +12,7 @@ import kami.claims.research.Goals
 import kami.claims.research.Levels
 import kami.claims.service.AlertLine
 import kami.claims.service.Diplomacy
+import kami.claims.service.Gifts
 import kami.claims.service.Housing
 import kami.claims.service.PlotBlock
 import kami.claims.service.Alerts
@@ -78,7 +79,7 @@ import kotlin.math.roundToInt
     val color: Int = 0, val members: Int = 0, val chunks: Int = 0, val income: Long = 0, val flag: FlagLine = FlagLine(), val manage: Boolean = false
 )
 @Serializable class Citizen(val country: String, val role: String, val via: String = "")
-@Serializable class PlayerLine(val id: String, val name: String, val citizenships: List<Citizen>, val online: Boolean = false)
+@Serializable class PlayerLine(val id: String, val name: String, val citizenships: List<Citizen>, val online: Boolean = false, val giftIn: Int = 0, val giftOut: Int = 0)
 @Serializable class Detail(
     val x: Int, val z: Int, val country: String, val relation: Int, val type: String, val owner: String, val roles: List<String>,
     val debt: Int, val price: Int, val period: Int, val free: Boolean, val capital: Boolean, val note: String,
@@ -417,7 +418,10 @@ object Sync {
                 power = if (admin) Power.score(x) else null
             )
         } else emptyList()
-        val players = if (world) Realm.home.keys.map { id -> PlayerLine(id, Names.of(p.server, id), citizenships(id), online(p, id)) }.sortedBy { it.name } else emptyList()
+        val players = if (world) (Realm.home.keys + p.server.playerList.players.map { it.stringUUID }).distinct().map { id ->
+            val other = UUID.fromString(id)
+            PlayerLine(id, Names.of(p.server, id), citizenships(id), online(p, id), Gifts.pending(other, p.uuid), Gifts.pending(p.uuid, other))
+        }.sortedBy { it.name } else emptyList()
         val ledger = if (c != null && ("ledger" in sections || "dashboard" in sections) && (delegated || View.privileged(c, me)))
             c.ledger.let { if ("ledger" in sections) it else it.takeLast(20) }.asReversed().map { LedgerLine(it.at, it.kind.name.lowercase(), it.amount, it.balance, it.actor?.let { a -> Names.of(p.server, a) } ?: "", it.note) }
         else emptyList()

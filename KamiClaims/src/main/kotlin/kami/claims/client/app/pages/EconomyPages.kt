@@ -25,6 +25,7 @@ import kami.libs.ui.text.trn
 import kami.libs.ui.widget.*
 import kotlin.math.max
 import net.minecraft.client.Minecraft
+import kami.libs.ui.text.noteLabel
 
 class BudgetPage(app: ClaimsApp) : ClaimsPage(app) {
     override val title get() = tr("kami_claims.nav.budget")
@@ -159,7 +160,7 @@ class LedgerPage(app: ClaimsApp) : ClaimsPage(app) {
         ui.table(tableRect, listOf(
             Column<LedgerLine>(tr("kami_claims.ledger.col.when"), 70, sort = compareBy { it.at }) { _, c, e -> Draw.text(g, Format.ago(e.at), c.x, c.y + 3, Palette.textMuted); tooltip("at:${e.at}", c, Format.exact(e.at)) },
             Column<LedgerLine>(tr("kami_claims.ledger.col.kind"), 110, sort = compareBy { it.kind }) { _, c, e -> val look = Vocabulary.ledger(e.kind); val x = c.x + Draw.leadIcon(g, look.icon, c.x, c.centerY) + 2; Draw.text(g, Draw.fit(look.label, c.right - x), x, c.y + 3, Palette.text) },
-            Column.text<LedgerLine>(tr("kami_claims.ledger.col.details"), -1, sortable = false) { e -> listOf(e.actor, e.note).filter { it.isNotEmpty() }.joinToString(" · ") },
+            Column.text<LedgerLine>(tr("kami_claims.ledger.col.details"), -1, sortable = false) { e -> listOf(e.actor, noteLabel(e.note)).filter { it.isNotEmpty() }.joinToString(" · ") },
             Column<LedgerLine>(tr("kami_claims.ledger.col.amount"), 70, Align.RIGHT, compareBy { it.amount }) { _, c, e -> moneyRight(c.right, c.y + 3, e.amount, signed = true) },
             Column<LedgerLine>(tr("kami_claims.ledger.col.balance"), 80, Align.RIGHT, compareBy { it.balance }) { _, c, e -> moneyRight(c.right, c.y + 3, e.balance) }
         ), rows, table, { "${it.at}${it.kind}${it.amount}" }, emptyText = tr("kami_claims.ledger.empty.filtered"), loading = stale(ClaimsStore.LEDGER))

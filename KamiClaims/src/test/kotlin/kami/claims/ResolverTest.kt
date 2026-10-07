@@ -61,6 +61,16 @@ class ResolverTest {
     }
 
     @Test
+    fun craftingTypeGlobsMatchTheSerializerOfRealRecipes() {
+        val alloy = RecipeFact("create:crafting/materials/andesite_alloy_from_zinc", "minecraft:crafting", listOf("create:andesite_alloy"), listOf("create:zinc_nugget"), serializer = "minecraft:crafting_shaped")
+        val facts = WorldFacts(listOf(alloy), emptyList(), itemTagged = { tag, id -> tag == "c:nuggets/zinc" && id == "create:zinc_nugget" }, modLoaded = { it != "c" })
+        val unlock = """{"type":"recipes","recipeType":"minecraft:crafting_*","input":"#c:nuggets/zinc","output":"create:andesite_alloy"}"""
+        val resolution = Resolver(facts, defs(listOf(node("alloy", unlock)))).run()
+        assertEquals(setOf(alloy.id), resolution.gated.recipes)
+        assertTrue(resolution.notes.isEmpty() && resolution.problems.isEmpty())
+    }
+
+    @Test
     fun selectorsResolveAgainstFacts() {
         val r = resolve(defs(listOf(
             node("a", recipe("minecraft:iron_*")),

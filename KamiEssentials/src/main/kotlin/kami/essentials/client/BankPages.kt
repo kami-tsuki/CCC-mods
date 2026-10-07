@@ -4,6 +4,7 @@ import kami.libs.economy.Account
 import kami.libs.economy.DayTotal
 import kami.libs.economy.FlowTotal
 import kami.libs.economy.Movement
+import kami.libs.economy.Statement
 import kami.libs.ui.anim.countUp
 import kami.libs.ui.app.Callout
 import kami.libs.ui.app.NavItem
@@ -28,6 +29,7 @@ import kami.libs.util.Time
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import kami.libs.economy.Flow as MoneyFlow
+import kami.libs.ui.text.noteLabel
 
 private const val TILE_H = 44
 private const val CHART_DAYS = 30
@@ -61,8 +63,11 @@ private fun flowSeverity(m: Movement) = if (m.amount >= 0) Severity.SUCCESS else
 private fun movementKey(m: Movement): Any = listOf(m.at, m.amount, m.flow, m.counterparty, m.item, m.qty)
 
 private fun detail(m: Movement): String {
+    val party = partyLabel(m.counterparty)
+    if (m.item.startsWith(Statement.NOTE)) return listOf(party, noteLabel(m.item)).filter { it.isNotEmpty() }.joinToString(", ")
     val item = ResourceLocation.tryParse(m.item)?.let { BuiltInRegistries.ITEM.getOptional(it).orElse(null) }?.description?.string
-    return if (item == null) partyLabel(m.counterparty) else if (m.qty > 1) "${Format.number(m.qty)}x $item" else item
+    val what = item?.let { if (m.qty > 1) "${Format.number(m.qty)}x $it" else it }
+    return listOfNotNull(what, party.ifEmpty { null }).joinToString(" · ")
 }
 
 private fun movementColumns() = listOf(

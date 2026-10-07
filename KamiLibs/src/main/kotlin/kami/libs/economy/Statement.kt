@@ -9,7 +9,7 @@ import java.util.UUID
 enum class Flow {
     MARKET_BUY, MARKET_SELL, AUCTION_BUY, AUCTION_SELL, REFUND, FEE, RENT, WAGES, TREASURY, OTHER,
     SERVER_SALE, SERVER_PURCHASE, TAX, UPKEEP, CLAIM, RESEARCH, LOAN, REWARD, WAR, DISBAND, ADMIN, ROUNDING, RECOVERY,
-    COIN_DEPOSIT, COIN_WITHDRAW, VENDOR, UNEXPLAINED
+    COIN_DEPOSIT, COIN_WITHDRAW, VENDOR, UNEXPLAINED, TRANSFER
 }
 
 @Serializable
@@ -46,13 +46,17 @@ object Statement {
     private const val MAX_MOVEMENTS = 500
     private const val KEEP_DAYS = 90
 
+    const val NOTE = "note:"
+
+    fun note(key: String, vararg args: Any) = if (key.isEmpty()) "" else NOTE + (listOf(key) + args.map { it.toString().replace("|", "/") }).joinToString("|")
+
     fun record(player: UUID, amount: Long, flow: Flow, counterparty: String = "", item: String = "", qty: Int = 0) {
         if (amount == 0L) return
         val now = System.currentTimeMillis()
         val today = now / DAY_MS
         val id = player.toString()
         val other = Party.parse(counterparty)
-        val note = listOfNotNull(counterparty.takeIf { other == null && it.isNotEmpty() }, item.takeIf { it.isNotEmpty() }?.let { if (qty > 0) "$qty x $it" else it }).joinToString(" | ")
+        val note = if (item.startsWith(NOTE)) item else listOfNotNull(counterparty.takeIf { other == null && it.isNotEmpty() }, item.takeIf { it.isNotEmpty() }?.let { if (qty > 0) "$qty x $it" else it }).joinToString(" | ")
         Db.write {
             journalLeg(now, PlayerParty(player), amount, flow, other, note, "")
             exec("INSERT INTO libs_statement (player, at, amount, flow, counterparty, item, qty) VALUES (?, ?, ?, ?, ?, ?, ?)", id, now, amount, flow.name, counterparty, item, qty)

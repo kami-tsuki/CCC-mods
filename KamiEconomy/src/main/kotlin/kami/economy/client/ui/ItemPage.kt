@@ -179,7 +179,9 @@ internal class ItemPage(val app: MarketApp) : Page() {
         if (most > 0) Draw.fill(ui.g, r.withWidth((r.w.toLong() * l.amount / most).toInt().coerceIn(1, r.w)), Palette.alpha(color, 0x28))
         if (l.mine) Draw.outline(ui.g, r, Palette.brass)
         if (l.country.isNotEmpty()) ui.flag(Rect(r.x + 2, r.y + 1, 11, 8), l.color, l.flag)
-        Draw.text(ui.g, Format.money(l.price.toLong()), r.x + 16, r.y + 1, if (l.mine) Palette.brass else if (embargo) Palette.textMuted else color)
+        val price = Format.money(l.price.toLong())
+        Draw.text(ui.g, price, r.x + 16, r.y + 1, if (l.mine) Palette.brass else if (embargo) Palette.textMuted else color)
+        if (l.tariff > 0 && !l.mine && !embargo) Draw.text(ui.g, tr("kami_economy.book.tariff", l.tariff), r.x + 20 + Draw.width(price), r.y + 1, Palette.warning)
         val amount = when {
             l.market -> tr("kami_libs.common.market")
             embargo -> tr("kami_libs.common.embargo")
@@ -193,6 +195,7 @@ internal class ItemPage(val app: MarketApp) : Page() {
             l.country.takeIf { it.isNotEmpty() }?.let { app.countryTip(it, l.relation) to Palette.textMuted },
             (if (bid || l.market) tr("kami_economy.book.tip.tax.you", if (l.market) app.snap.taxPct else app.taxFor(l.relation)) to Palette.warning
             else tr("kami_economy.book.tip.tax.seller", app.taxFor(l.relation)) to Palette.success).takeIf { !l.mine && !embargo },
+            (tr("kami_economy.book.tip.tariff", l.tariff, l.country) to Palette.warning).takeIf { l.tariff > 0 && !l.mine && !embargo },
             (tr("kami_economy.book.tip.mine") to Palette.brass).takeIf { l.mine }
         )))
     }

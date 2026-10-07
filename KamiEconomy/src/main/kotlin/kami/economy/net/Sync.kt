@@ -9,6 +9,7 @@ import kami.economy.economy.Auction
 import kami.economy.economy.Auctions
 import kami.economy.economy.Blacklist
 import kami.economy.economy.Classification
+import kami.economy.economy.FillLinePlan
 import kami.economy.economy.History
 import kami.economy.economy.Limits
 import kami.economy.economy.Matching
@@ -55,8 +56,9 @@ import kotlin.math.roundToInt
 @Serializable class HeldRow(val item: String, val held: Int, val lot: Int, val sell: Int, val net: Long, val source: String, val cap: Int)
 @Serializable class Level(
     val price: Int, val amount: Int, val market: Boolean = false,
-    val country: String = "", val color: Int = 0, val flag: FlagView? = null, val relation: String = "", val mine: Boolean = false
+    val country: String = "", val color: Int = 0, val flag: FlagView? = null, val relation: String = "", val mine: Boolean = false, val tariff: Int = 0
 )
+@Serializable class TariffLine(val country: String, val pct: Int, val amount: Long)
 @Serializable class StockLine(val room: Int, val capLeft: Int)
 @Serializable class Candle(val open: Int, val high: Int, val low: Int, val close: Int, val volume: Int, val at: Long)
 @Serializable class Chart(val start: Long, val open: Int, val candles: List<Candle>)
@@ -77,7 +79,7 @@ import kotlin.math.roundToInt
     val filled: Int, val listed: Int, val returned: Int, val reason: String,
     val gross: Long, val tax: Long, val tariff: Long, val total: Long, val avg: Int, val worst: Int, val levels: Int,
     val listGross: Long, val listTax: Long, val step: Int, val taxPct: Int, val tariffPct: Int, val relation: String,
-    val guaranteed: Int, val after: Int, val otherTax: Long = 0, val otherTaxPct: Int = 0
+    val guaranteed: Int, val after: Int, val otherTax: Long = 0, val otherTaxPct: Int = 0, val tariffs: List<TariffLine> = emptyList()
 )
 @Serializable class AuctionLine(
     val id: Long, val label: String, val stackData: String, val startPrice: Int, val buyNowPrice: Int, val currentBid: Int,
@@ -165,7 +167,8 @@ object Sync {
     }
 
     private fun marketRows(s: State, me: String): List<Row> =
-        (Market.data.books.keys + Stocks.items()).filter { s.hit(it) }.map { row(it, me) }.filter { it.buy > 0 || it.sell > 0 || it.status.isNotEmpty() }
+        (Market.data.books.keys + Market.data.traded.keys + Stocks.items()).filter { s.hit(it) }.map { row(it, me) }
+            .filter { it.buy > 0 || it.sell > 0 || it.sold + it.bought > 0 || it.last > 0 || it.status.isNotEmpty() }
             .sortedWith(compareByDescending<Row> { it.sold + it.bought }.thenBy { it.item })
 
     private fun orderRows(server: MinecraftServer, me: String, books: Collection<Book>, bid: Boolean, mineOnly: Boolean = false): List<OrderRow> = books.flatMap { b ->
@@ -213,9 +216,15 @@ object Sync {
     private fun levels(orders: List<Order>, me: String, relation: (String) -> Terms): List<Level> =
         orders.groupBy { it.price to Trade.country(it.owner) }.map { (key, list) ->
             val c = key.second?.let { ClaimsApi.country(it) }
+            val terms = relation(list.first().owner)
             Level(key.first, list.sumOf { it.amount }, country = c?.name ?: "", color = c?.color ?: 0, flag = c?.flag?.let(::flagView),
-                relation = relation(list.first().owner).relation.name.lowercase(), mine = list.any { it.owner == me })
+                relation = terms.relation.name.lowercase(), mine = list.any { it.owner == me }, tariff = terms.tariffPct)
         }
+
+    private fun tariffs(fills: List<FillLinePlan>, terms: (String) -> Terms): List<TariffLine> =
+        fills.filter { !it.market && it.tariff > 0 }.groupBy { Trade.country(it.owner) }.map { (country, list) ->
+            TariffLine(country?.let { ClaimsApi.country(it)?.name } ?: "", terms(list.first().owner).tariffPct, list.sumOf { it.tariff })
+        }.sortedByDescending { it.amount }
 
     private fun detail(p: ServerPlayer, s: State, me: String, funds: Long): Detail? {
         val item = s.detailItem
@@ -299,7 +308,7 @@ object Sync {
                     r.mode, r.item, r.qty, 0, plan.filled, 0, r.qty - plan.filled, lotReason(plan.filled),
                     gross, stock.sumOf { it.tax }, plan.fills.sumOf { it.tariff }, plan.totalSpurs, avg(gross, plan.filled, lot), plan.fills.maxOfOrNull { it.unitPrice } ?: 0, plan.fills.size,
                     0, 0, lot, if (stock.isEmpty()) 0 else Config.s.taxPct, terms.maxOfOrNull { it.tariffPct } ?: 0, relation(terms), 0, clamp(funds - plan.totalSpurs),
-                    plan.fills.filterNot { it.market }.sumOf { it.tax }, terms.maxOfOrNull { it.taxPct } ?: 0
+                    plan.fills.filterNot { it.market }.sumOf { it.tax }, terms.maxOfOrNull { it.taxPct } ?: 0, tariffs(plan.fills) { Trade.terms(me, it) }
                 )
             }
             "sell_market" -> {
@@ -351,7 +360,8 @@ object Sync {
         return Quote(
             r.mode, r.item, r.qty, price, filled, listed, r.qty - filled - listed, reason,
             plan?.gross ?: 0, plan?.tax ?: 0, plan?.tariff ?: 0, total, avg(plan?.gross ?: 0, filled, lot), fills.minOfOrNull { it.unitPrice } ?: 0, fills.size,
-            listGross, listTax, step, taxPct, terms.maxOfOrNull { it.tariffPct } ?: 0, relation(terms), plan?.capLots ?: 0, clamp(funds + total)
+            listGross, listTax, step, taxPct, terms.maxOfOrNull { it.tariffPct } ?: 0, relation(terms), plan?.capLots ?: 0, clamp(funds + total),
+            tariffs = tariffs(fills) { Trade.terms(it, me) }
         )
     }
 

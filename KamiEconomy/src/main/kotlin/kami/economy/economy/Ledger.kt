@@ -246,29 +246,35 @@ object Ledger {
         else -> 0
     }
 
-    private fun bank(id: Long, step: String, who: String, amount: Long, flow: Flow) {
+    private fun bank(id: Long, step: String, who: String, amount: Long, flow: Flow, note: String = "") {
         if (!attached || amount == 0L) return
         val party = Party.parse(who) ?: ServerParty
         val ref = "eco:$id:$step"
-        if (amount > 0) ServerBank.collect(party, amount, flow, ref = ref, once = true) else ServerBank.pay(party, -amount, flow, ref = ref, once = true)
+        if (amount > 0) ServerBank.collect(party, amount, flow, note, ref, once = true) else ServerBank.pay(party, -amount, flow, note, ref, once = true)
     }
 
+    private fun tradeNote(i: Intent) = Statement.note("kami_libs.note.trade", i.qty, i.item)
+
+    private fun taxNote(i: Intent) = Statement.note("kami_libs.note.market_tax", i.item)
+
+    private fun counterpartyOf(fills: List<LedgerFill>): String = fills.map { Party.parse(it.owner)?.key ?: ServerParty.key }.distinct().singleOrNull().orEmpty()
+
     private fun bankSale(i: Intent) {
-        bank(i.id, "sale", i.actor, i.fills.filter { it.owner.isNotEmpty() }.sumOf(::gross) - i.netSpurs - i.taxSpurs - i.fills.sumOf { it.tariff }, Flow.SERVER_SALE)
-        bank(i.id, "tax", i.actor, i.taxSpurs, Flow.TAX)
+        bank(i.id, "sale", i.actor, i.fills.filter { it.owner.isNotEmpty() }.sumOf(::gross) - i.netSpurs - i.taxSpurs - i.fills.sumOf { it.tariff }, Flow.SERVER_SALE, tradeNote(i))
+        bank(i.id, "tax", i.actor, i.taxSpurs, Flow.TAX, taxNote(i))
     }
 
     private fun bankStock(i: Intent) {
         val tax = i.fills.filter { it.owner.isEmpty() }.sumOf(::taxOf)
-        bank(i.id, "stock", i.actor, i.netSpurs - i.fills.filter { it.owner.isNotEmpty() }.sumOf { gross(it) + it.tariff } - tax, Flow.SERVER_PURCHASE)
-        bank(i.id, "stock_tax", i.actor, tax, Flow.TAX)
+        bank(i.id, "stock", i.actor, i.netSpurs - i.fills.filter { it.owner.isNotEmpty() }.sumOf { gross(it) + it.tariff } - tax, Flow.SERVER_PURCHASE, tradeNote(i))
+        bank(i.id, "stock_tax", i.actor, tax, Flow.TAX, taxNote(i))
     }
 
     private fun fee(i: Intent): Long = i.unitPrice - i.netSpurs - i.tariff
 
     private fun bankFee(i: Intent) {
         val fee = fee(i)
-        bank(i.id, "fee", i.seller, fee, if (fee < 0) Flow.RECOVERY else Flow.FEE)
+        bank(i.id, "fee", i.seller, fee, if (fee < 0) Flow.RECOVERY else Flow.FEE, Statement.note("kami_libs.note.auction_fee", i.item))
     }
 
     private fun returnToOwner(base: Intent, mutate: () -> Unit, deliver: () -> Unit) {
@@ -355,8 +361,9 @@ object Ledger {
         if (tariff <= 0 || step in intent.done) return intent
         val country = Trade.country(buyer)
         val next = intent.mark(step)
-        if (country == null) return next.also { bank(it.id, step, payer, tariff, Flow.TAX) }
-        val applied = runCatching { ClaimsApi.creditTariff(country, tariff) }.getOrElse { LOG.error("Tariff of {} for intent {} failed, returning it", tariff, intent.id, it); 0L }
+        val note = Statement.note("kami_libs.note.tariff", intent.item)
+        if (country == null) return next.also { bank(it.id, step, payer, tariff, Flow.TAX, note) }
+        val applied = runCatching { ClaimsApi.creditTariff(country, tariff, Party.parse(payer)?.key.orEmpty(), note) }.getOrElse { LOG.error("Tariff of {} for intent {} failed, returning it", tariff, intent.id, it); 0L }
         val unapplied = tariff - applied
         if (unapplied <= 0) return next
         val to = Trade.uuid(payer)
@@ -443,7 +450,7 @@ object Ledger {
             current = current.copy(state = LedgerState.BOOK_INSERTED, preBalance = Trade.uuid(current.actor)?.let { wallet.balance(it) } ?: current.preBalance)
             write(current)
         }
-        creditOrFreeze(current, "pay", current.actor, current.netSpurs, current.preBalance, Memo(Flow.MARKET_SELL, item = current.item, qty = current.qty))?.let {
+        creditOrFreeze(current, "pay", current.actor, current.netSpurs, current.preBalance, Memo(Flow.MARKET_SELL, counterpartyOf(current.fills).ifEmpty { ServerParty.key }, current.item, current.qty))?.let {
             bankSale(it)
             write(it.copy(state = LedgerState.PAID))
         }
@@ -505,7 +512,7 @@ object Ledger {
         val intent = Intent(id, IntentType.SELL, LedgerState.PENDING, actor = seller, item = item, qty = qty, unitPrice = (sale.gross / sale.lots).toInt(), taxSpurs = sale.tax, netSpurs = sale.net, instant = true, lot = lot, capLots = sale.guaranteed)
         write(intent)
         val current = stockSold(intent)
-        creditOrFreeze(current, "pay", current.actor, current.netSpurs, current.preBalance, Memo(Flow.MARKET_SELL, item = current.item, qty = current.qty))?.let {
+        creditOrFreeze(current, "pay", current.actor, current.netSpurs, current.preBalance, Memo(Flow.MARKET_SELL, counterpartyOf(current.fills).ifEmpty { ServerParty.key }, current.item, current.qty))?.let {
             bankSale(it)
             write(it.copy(state = LedgerState.PAID))
         }
@@ -532,7 +539,7 @@ object Ledger {
         if (wallet.balance(buyerId) < total) return BuyResult.InsufficientFunds
         val fills = plan.fills.map { it.toLedger() }
         val intent = Intent(Market.nextId(), IntentType.BUY, LedgerState.PENDING, actor = buyer, item = item, qty = plan.filled, netSpurs = plan.totalSpurs, fills = fills)
-        if (!debit(intent, buyerId, total, Memo(Flow.MARKET_BUY, item = intent.item, qty = intent.qty))) return BuyResult.InsufficientFunds
+        if (!debit(intent, buyerId, total, Memo(Flow.MARKET_BUY, counterpartyOf(intent.fills), intent.item, intent.qty))) return BuyResult.InsufficientFunds
         deliverBuy(intent.copy(state = LedgerState.DEBITED))
         fills.forEach { Notify.tell(it.owner, Tone.OK, "sold") { arrayOf(Notify.name(buyer), Notify.stack(item, it.qty), Phrase.money(net(it))) } }
         return BuyResult.Ok(plan.filled, plan.totalSpurs)
@@ -768,7 +775,7 @@ object Ledger {
                 write(intent)
             }
             intent = creditOrFreeze(intent, "pay:$idx", f.owner, net(f), pre, Memo(Flow.MARKET_SELL, intent.actor, intent.item, f.qty)) ?: return
-            bank(intent.id, "tax:$idx", f.owner, taxOf(f), Flow.TAX)
+            bank(intent.id, "tax:$idx", f.owner, taxOf(f), Flow.TAX, taxNote(intent))
             intent = creditTariff(intent, "tariff:$idx", intent.actor, intent.actor, f.tariff)
             intent = intent.copy(paid = intent.paid + f.orderId).also(::write)
         }
@@ -802,7 +809,7 @@ object Ledger {
                         write(intent.copy(state = LedgerState.PAID))
                     } else {
                         val current = if (intent.state == LedgerState.PENDING) stockSold(intent) else intent
-                        creditOrFreeze(current, "pay", current.actor, current.netSpurs, current.preBalance, Memo(Flow.MARKET_SELL, item = current.item, qty = current.qty))?.let {
+                        creditOrFreeze(current, "pay", current.actor, current.netSpurs, current.preBalance, Memo(Flow.MARKET_SELL, counterpartyOf(current.fills).ifEmpty { ServerParty.key }, current.item, current.qty))?.let {
                             bankSale(it)
                             write(it.copy(state = LedgerState.PAID))
                             traded(current.actor, "", current.netSpurs, current.item, current.qty)

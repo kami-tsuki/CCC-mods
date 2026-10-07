@@ -27,6 +27,6 @@ object Fakes {
         override fun tariff(buyerCountry: String, sellerCountry: String) = tariffs[buyerCountry to sellerCountry] ?: 0
         override fun capacity(player: UUID, key: String) = capacities[key]
         override fun lock(player: UUID, feature: String) = if (locked) Phrase.of("test.locked", feature) else null
-        override fun creditTariff(country: String, amount: Long): Long = minOf(amount, creditRoom).also { credits += country to it }
+        override fun creditTariff(country: String, amount: Long, payer: String, note: String): Long = minOf(amount, creditRoom).also { credits += country to it }
     }
 }

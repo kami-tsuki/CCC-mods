@@ -26,7 +26,7 @@ class RecoveryTest {
     }
 
     private class Failing : Fakes.Claims() {
-        override fun creditTariff(country: String, amount: Long): Long = error("injected")
+        override fun creditTariff(country: String, amount: Long, payer: String, note: String): Long = error("injected")
     }
 
     private val item = "test:item"

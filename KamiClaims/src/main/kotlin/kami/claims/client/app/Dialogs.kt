@@ -29,6 +29,23 @@ import kami.libs.ui.widget.NumberState
 import kami.libs.ui.widget.property
 
 object Dialogs {
+    fun gift(app: ClaimsApp, id: String, name: String) {
+        val amount = NumberState(1L)
+        app.open(Dialog(tr("kami_claims.gift.title", name), tr("kami_claims.gift.subtitle"), Icons.WITHDRAW) { s ->
+            val max = ClaimsStore.snap?.funds ?: 0L
+            var y = s.body.y
+            property(Rect(s.body.x, y, s.body.w, 11), tr("kami_claims.kpi.funds"), Format.money(max), Palette.money); y += 16
+            y += numberDialogBody(s, y, amount, tr("kami_libs.common.amount"), 1, max.coerceAtLeast(1), unit = "◎", help = tr("kami_claims.gift.help"))
+            s.used = y - s.body.y
+            val valid = amount.text.error == null && amount.value in 1..max
+            val reason = if (max <= 0) tr("kami_claims.money.disabled.no_coins") else tr("kami_claims.money.disabled.range", Format.number(max))
+            dialogButtons(s, tr("kami_claims.gift.send", Format.money(amount.value)), valid, reason) {
+                ClaimsStore.send("gift_send", id, amount.value.toString(), key = "gift:$id")
+                s.close()
+            }
+        })
+    }
+
     fun confirm(
         app: KamiApp, title: String, subtitle: String?, icon: Icon, items: List<Consequence>, primary: String, name: String, args: Array<String>,
         danger: Boolean = false, hold: Boolean = false, typed: String? = null, stale: () -> String? = { null }, key: String = name, after: () -> Unit = {}

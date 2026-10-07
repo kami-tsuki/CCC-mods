@@ -30,6 +30,7 @@ import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import java.util.UUID
 import kami.libs.economy.Flow as MoneyFlow
+import kami.libs.ui.text.noteLabel
 
 private const val TILE_H = 44
 private const val BANNER_H = 30
@@ -98,7 +99,7 @@ internal fun journalColumns(withParty: Boolean) = listOfNotNull(
     if (withParty) whoColumn<Journal.Entry>(tr("kami_essentials.admin.col.party"), 90) { it.party } else null,
     Column.text<Journal.Entry>(tr("kami_essentials.admin.col.flow"), 76, color = { flowColor(it.flow) }) { it.flow.label },
     whoColumn<Journal.Entry>(tr("kami_essentials.admin.col.counterparty"), 90) { it.counterparty },
-    Column.text<Journal.Entry>(tr("kami_essentials.admin.col.note"), -1) { it.note },
+    Column.text<Journal.Entry>(tr("kami_essentials.admin.col.note"), -1) { noteLabel(it.note) },
     Column.number<Journal.Entry>(tr("kami_essentials.admin.col.amount"), 70, color = { amountColor(it.delta) }, format = { Format.signedMoney(it) }) { it.delta }
 )
 

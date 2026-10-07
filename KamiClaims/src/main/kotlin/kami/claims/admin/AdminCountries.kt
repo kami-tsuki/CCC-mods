@@ -56,7 +56,7 @@ object AdminCountries {
         act(CountryRequests.RENAME) { ctx, c, a -> CountryAdmin.rename(c, a.text(0) ?: missing(ctx)) }
         act(CountryRequests.LEADER) { ctx, c, a -> CountryAdmin.leader(c, a.text(0) ?: missing(ctx), ctx.player.server) }
         act(CountryRequests.UNCLAIM) { ctx, c, a -> CountryAdmin.unclaim(c, a.text(0) ?: missing(ctx)) }
-        act(CountryRequests.WAR_END) { ctx, c, a -> CountryAdmin.endWar(c, a.text(0) ?: missing(ctx)) }
+        act(CountryRequests.WAR_END) { ctx, c, a -> CountryAdmin.endWar(c, a.text(0) ?: missing(ctx), ctx.reason) }
         act(CountryRequests.RESEARCH) { ctx, c, a -> CountryAdmin.research(c, a.text(0) ?: missing(ctx), a.getOrNull(1)) }
         act(CountryRequests.MONEY) { ctx, c, a ->
             val give = when (a.text(0) ?: missing(ctx)) {

@@ -21,7 +21,7 @@ class HousingTest : WithDb() {
 
     @AfterTest
     fun restore() {
-        Housing.pay = { _, _, _ -> true }
+        Housing.pay = { _, _, _, _ -> true }
         Housing.give = { _, _, _ -> true }
     }
 
@@ -107,7 +107,7 @@ class HousingTest : WithDb() {
         land.moveOutDays = 1
         val cl = plot(land, 0)
         Housing.claim(land, cl, "tenant")
-        Housing.pay = { _, _, _ -> false }
+        Housing.pay = { _, _, _, _ -> false }
         Housing.collect(land)
         Housing.collect(land)
         assertEquals(10L, cl.rentDebt)
@@ -127,7 +127,7 @@ class HousingTest : WithDb() {
         assertEquals(Tenancy.ACTIVE, cl.state)
 
         val paid = ArrayList<Int>()
-        Housing.pay = { _, n, _ -> paid += n; true }
+        Housing.pay = { _, n, _, _ -> paid += n; true }
         land.reclaimLocks.clear()
         Housing.claim(land, cl, "tenant")
         land.treasury = Levels.capacity(land, Capacity.TREASURY) - 3L
@@ -281,7 +281,7 @@ class HousingTest : WithDb() {
         Housing.claim(land, cl, "tenant")
         val rate = Housing.rate(land, cl).toLong()
         val paid = ArrayList<Int>()
-        Housing.pay = { _, n, _ -> paid += n; true }
+        Housing.pay = { _, n, _, _ -> paid += n; true }
         cl.rentDebt = 4
         assertEquals(4L + rate, Housing.payRent(land, cl, "tenant", 4 + rate))
         assertEquals(0L, cl.rentDebt)
@@ -302,7 +302,7 @@ class HousingTest : WithDb() {
         val land = country("land", 0).also { it.level = 30 }
         val plots = listOf("t1", "t2").mapIndexed { i, t -> Realm.join(land, t, Rank.CITIZEN); plot(land, i).also { Housing.claim(land, it, t) } }
         var calls = 0
-        Housing.pay = { _, _, _ -> if (calls++ > 0) error("boom") else true }
+        Housing.pay = { _, _, _, _ -> if (calls++ > 0) error("boom") else true }
         assertFailsWith<IllegalStateException> { Housing.collect(land) }
         assertEquals(Housing.rate(land, plots[0]).toLong(), land.treasury)
     }

@@ -2,6 +2,7 @@ package kami.claims.war
 
 import kami.claims.Config
 import kami.claims.Country
+import kami.claims.Key
 import kami.claims.Realm
 import kami.claims.service.Fail
 import kami.claims.service.Words.v
@@ -12,7 +13,17 @@ object WarLocks {
         if (cs.any(Wars::involved)) throw Fail("kami_claims.error.war.locked.$what")
     }
 
-    fun claims(c: Country) = lock("claims", c)
+    private val landOpen = setOf(WarPhase.DECLARATION, WarPhase.SETTLEMENT)
+
+    fun claims(c: Country) {
+        if (Wars.all(c).any { it.phase !in landOpen }) throw Fail("kami_claims.error.war.locked.claims")
+    }
+
+    fun retype(c: Country) {
+        if (Wars.fighting(c)) throw Fail("kami_claims.error.war.locked.retype")
+    }
+
+    fun staked(c: Country, k: Key) = Wars.all(c).any { w -> w.stakes.chunks.any { it.key == k } || w.picks.any { it.key == k } }
 
     fun diplomacy(vararg cs: Country) = lock("diplomacy", *cs)
 

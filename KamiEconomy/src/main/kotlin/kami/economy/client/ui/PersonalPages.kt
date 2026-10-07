@@ -5,6 +5,7 @@ import kami.economy.net.Net
 import kami.economy.net.OrderRow
 import kami.economy.net.Row
 import kami.libs.economy.Movement
+import kami.libs.economy.Statement
 import kami.libs.ui.app.KamiApp
 import kami.libs.ui.app.NavBadge
 import kami.libs.ui.app.NavItem
@@ -114,7 +115,7 @@ private class TradesPage : Page() {
 
     override fun draw(ui: Ui, r: Rect) {
         val loading = Personal.loading
-        val rows = Personal.account?.movements.orEmpty().filter { it.item.isNotEmpty() }
+        val rows = Personal.account?.movements.orEmpty().filter { it.item.isNotEmpty() && !it.item.startsWith(Statement.NOTE) }
         ui.table(r, columns, rows, table, { "${it.at}:${it.flow}:${it.amount}:${it.item}" }, rowHeight = ROW_H, emptyText = tr("kami_economy.personal.trades.empty"), key = "trades", loading = loading)
         ui.staleRows(r, loading && rows.isNotEmpty())
     }

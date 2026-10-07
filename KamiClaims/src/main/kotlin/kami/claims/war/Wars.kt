@@ -230,7 +230,7 @@ object Wars {
         }
     }
 
-    private fun close(war: War, cooldown: Boolean = true) {
+    internal fun close(war: War, cooldown: Boolean = true) {
         val t = now()
         war.phase = WarPhase.ENDED
         war.phaseEnds = 0

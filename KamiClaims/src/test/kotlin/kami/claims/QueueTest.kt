@@ -198,6 +198,34 @@ class QueueTest : WithDb() {
     }
 
     @Test
+    fun everyAutomaticTaskKindCreditsItsQueuedNode() {
+        val tasks = listOf(
+            """{"type":"mine","block":"minecraft:andesite"}""" to (Kinds.MINE to "minecraft:andesite"),
+            """{"type":"mine","blocks":["a:x","a:y"]}""" to (Kinds.MINE to "a:y"),
+            """{"type":"fell"}""" to (Kinds.FELL to ""),
+            """{"type":"place","block":"minecraft:stone"}""" to (Kinds.PLACE to "minecraft:stone"),
+            """{"type":"kill","entity":"minecraft:zombie"}""" to (Kinds.KILL to "minecraft:zombie"),
+            """{"type":"craft","output":"create:andesite_alloy"}""" to (Kinds.CRAFT to "create:andesite_alloy"),
+            """{"type":"smelt","output":"minecraft:iron_ingot"}""" to (Kinds.SMELT to "minecraft:iron_ingot"),
+            """{"type":"enchant"}""" to (Kinds.ENCHANT to ""),
+            """{"type":"break_item"}""" to (Kinds.BREAK_ITEM to "minecraft:iron_pickaxe"),
+            """{"type":"visit","dimension":"minecraft:the_nether"}""" to (Kinds.VISIT to "minecraft:the_nether"),
+            """{"type":"taxes","spurs":1}""" to (Kinds.TAXES to ""),
+            """{"type":"trade"}""" to (Kinds.TRADE to "minecraft:wheat"),
+            """{"type":"trade_value","spurs":1}""" to (Kinds.TRADE_VALUE to ""),
+            """{"type":"structure","structure":"minecraft:village"}""" to (Kinds.STRUCTURE to "minecraft:village"),
+            """{"type":"process","recipeType":"create:pressing","output":"create:iron_sheet"}""" to (Kinds.PROCESS to "create:pressing|create:iron_sheet"),
+            """{"type":"event","kind":"prospect","subject":"t1"}""" to ("prospect" to "t1")
+        )
+        val nodes = tasks.mapIndexed { i, (task, _) -> node("k$i", ""","tasks":[$task]""") }
+        Research.defs = Validator.build(ResearchSettings(baseline = emptyList()), LevelsConfig(xpFromLevel = 0, capacities = mapOf(Capacity.QUEUE_SLOTS to 99)), mapOf("g" to Group()), mapOf("t" to tree("country", *nodes.toTypedArray()))).defs
+        val c = country("alpha")
+        tasks.indices.forEach { Queue.enqueue(c, "t:k$it", null) }
+        tasks.forEach { (_, event) -> Progress.report(c, event.first, event.second, 1) }
+        assertEquals(tasks.indices.map { "t:k$it" to NodeState.READY }, c.research.queue.map { it.node to it.state })
+    }
+
+    @Test
     fun timerRunsOnlyWhileAHomeCitizenIsOnline() {
         val c = country("alpha")
         Queue.enqueue(c, "t:a", null)

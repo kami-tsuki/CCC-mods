@@ -44,9 +44,9 @@ object Diplomacy {
 
     fun tariff(buyer: Country, seller: Country) = if (sameFamily(buyer, seller)) 0 else policy(buyer, seller).tariffPct
 
-    fun creditTariff(c: Country, amount: Long): Long {
+    fun creditTariff(c: Country, amount: Long, payer: String = "", note: String = ""): Long {
         if (amount <= 0) return 0
-        val applied = Treasury.move(c, LedgerKind.TARIFF, amount)
+        val applied = Treasury.move(c, LedgerKind.TARIFF, amount, payer.ifEmpty { null }, note)
         Realm.changed()
         runCatching { Progress.report(c, "taxes", "", applied) }.onFailure { KamiClaims.LOG.error("Tariff progress failed for country ${c.id}", it) }
         return applied

@@ -155,7 +155,21 @@ class WarCoreTest : WithDb() {
         val (a, b) = setup()
         WarLocks.claims(a)
         Wars.declare(a, b, stakes = pot)
+        val war = Wars.all(a).single()
+        WarLocks.claims(a)
+        WarLocks.retype(a)
+        war.phase = WarPhase.PREPARATION
         assertFailsWith<Fail> { WarLocks.claims(a) }
+        WarLocks.retype(b)
+        war.phase = WarPhase.WAR
+        assertFailsWith<Fail> { WarLocks.claims(b) }
+        assertFailsWith<Fail> { WarLocks.retype(b) }
+        war.phase = WarPhase.SETTLEMENT
+        WarLocks.claims(a)
+        WarLocks.retype(a)
+        war.picks += ChunkRef(dim, 5, 0)
+        assertTrue(WarLocks.staked(a, ChunkRef(dim, 5, 0).key))
+        assertFalse(WarLocks.staked(a, ChunkRef(dim, 6, 0).key))
         assertFailsWith<Fail> { WarLocks.disband(b) }
         Realm.data.countries[a.id]!!.members["late"] = Member(Rank.CITIZEN, since = now() + 1000)
         assertFailsWith<Fail> { WarLocks.roster(a, "aurelia_p") }

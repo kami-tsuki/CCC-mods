@@ -38,6 +38,7 @@ import kami.libs.claims.Goal
 import kami.libs.claims.Locks
 import kami.libs.claims.Relation
 import kami.claims.service.Diplomacy
+import kami.claims.service.Gifts
 import kami.claims.service.View
 import kami.libs.config.Configs
 import kami.libs.log.Log
@@ -135,7 +136,7 @@ object KamiClaims {
                     Goals.capacity(key)?.let { Levels.capacity(c, it) }
                 }
 
-                override fun creditTariff(country: String, amount: Long): Long = Realm.live(country)?.let { Diplomacy.creditTariff(it, amount) } ?: 0
+                override fun creditTariff(country: String, amount: Long, payer: String, note: String): Long = Realm.live(country)?.let { Diplomacy.creditTariff(it, amount, payer, note) } ?: 0
 
                 override fun traded(a: String, b: String, value: Long) {
                     Reputation.trade(Realm.live(a) ?: return, Realm.live(b) ?: return, value)
@@ -166,6 +167,7 @@ object KamiClaims {
             Levels.reset()
             Guard.reset()
             Work.reset()
+            Gifts.reset()
             Upkeep.reset()
             Online.reset()
             WarBar.reset()

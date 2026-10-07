@@ -57,7 +57,10 @@ internal fun confirmQuote(app: MarketApp, q: Quote, lot: Int, warning: String? =
             if (q.filled > 0) add(ReceiptLine(tr("kami_economy.receipt.avg"), Format.money(q.avg.toLong()), tip = tr("kami_economy.receipt.avg.tip") + " " + tr("kami_economy.receipt.sweep", Format.money(q.worst.toLong()), q.levels)))
             add(ReceiptLine(tr("kami_economy.receipt.subtotal"), Format.money(q.gross), tip = tr("kami_economy.receipt.subtotal.tip")))
             if (q.tax > 0) add(ReceiptLine(tr("kami_economy.receipt.tax.you", q.taxPct), sign + Format.money(q.tax), ReceiptKind.CHARGE, q.myTaxTip(), Palette.warning))
-            if (q.tariff > 0) add(ReceiptLine(tr("kami_economy.receipt.tariff", q.tariffPct), sign + Format.money(q.tariff), ReceiptKind.CHARGE, tr("kami_economy.receipt.tariff.tip"), Palette.warning))
+            if (q.tariffs.isNotEmpty()) q.tariffs.forEach { t ->
+                val label = if (t.country.isEmpty()) tr("kami_economy.receipt.tariff", t.pct) else tr("kami_economy.receipt.tariff.country", t.country, t.pct)
+                add(ReceiptLine(label, sign + Format.money(t.amount), ReceiptKind.CHARGE, tr("kami_economy.receipt.tariff.tip"), Palette.warning))
+            } else if (q.tariff > 0) add(ReceiptLine(tr("kami_economy.receipt.tariff", q.tariffPct), sign + Format.money(q.tariff), ReceiptKind.CHARGE, tr("kami_economy.receipt.tariff.tip"), Palette.warning))
         }
         add(ReceiptLine(tr(if (q.buying) "kami_economy.receipt.pay" else "kami_economy.receipt.receive"), Format.money(q.total), ReceiptKind.TOTAL, tr("kami_economy.receipt.total.tip"), if (q.buying) Palette.danger else Palette.success))
         if (q.mode == "sell" && q.listed > 0) add(ReceiptLine(tr("kami_economy.receipt.tax.listing", q.taxPct), "-" + Format.money(q.listTax), ReceiptKind.CHARGE, tr("kami_economy.receipt.tax.listing.tip"), Palette.warning))

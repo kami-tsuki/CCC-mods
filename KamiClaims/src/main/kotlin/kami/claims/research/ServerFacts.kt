@@ -14,7 +14,7 @@ object ServerFacts {
             val outputs = result?.let { listOf(BuiltInRegistries.ITEM.getKey(it.item).toString()) }.orEmpty()
             val display = result?.let { listOf(ItemSpec.spec(it)) }.orEmpty()
             val inputs = runCatching { holder.value().ingredients.flatMap { ingredient -> ingredient.items.map { BuiltInRegistries.ITEM.getKey(it.item).toString() } }.distinct() }.getOrDefault(emptyList())
-            RecipeFact(holder.id().toString(), BuiltInRegistries.RECIPE_TYPE.getKey(holder.value().type).toString(), outputs, inputs, display)
+            RecipeFact(holder.id().toString(), BuiltInRegistries.RECIPE_TYPE.getKey(holder.value().type).toString(), outputs, inputs, display, BuiltInRegistries.RECIPE_SERIALIZER.getKey(holder.value().serializer).toString())
         }
         return WorldFacts(
             recipes,

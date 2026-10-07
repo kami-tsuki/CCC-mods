@@ -317,5 +317,20 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
             Draw.text(ui.g, Draw.fit(c.country, row.right - x), x, row.y, Palette.text)
             Draw.text(ui.g, Draw.fit(if (c.via.isNotEmpty()) tr("kami_claims.world.via", look.label, c.via) else look.label, row.right - x), x, row.y + 10, look.color)
         }
+        if (p.id == snap.me) return
+        val rest = f.rest
+        val pending = pending("gift:${p.id}")
+        var y = rest.bottom - CONTROL_H
+        if (p.giftIn > 0) {
+            val half = (rest.w - 3) / 2
+            if (ui.button(Rect(rest.x, y, half, CONTROL_H), tr("kami_claims.gift.accept"), Icons.CHECK, ButtonStyle.PRIMARY, pending = pending, key = "gift-accept")) act("gift_accept", p.id, key = "gift:${p.id}")
+            if (ui.button(Rect(rest.x + half + 3, y, rest.w - half - 3, CONTROL_H), tr("kami_claims.gift.decline"), Icons.BAN, pending = pending, key = "gift-decline")) act("gift_decline", p.id, key = "gift:${p.id}")
+            y -= 14
+            Draw.text(ui.g, Draw.fit(tr("kami_claims.gift.incoming", Format.money(p.giftIn.toLong())), rest.w), rest.x, y + 2, Palette.money)
+            y -= CONTROL_H + 3
+        }
+        if (p.giftOut > 0) {
+            if (ui.button(Rect(rest.x, y, rest.w, CONTROL_H), tr("kami_claims.gift.cancel", Format.money(p.giftOut.toLong())), Icons.REMOVE, pending = pending, key = "gift-cancel")) act("gift_cancel", p.id, key = "gift:${p.id}")
+        } else if (ui.button(Rect(rest.x, y, rest.w, CONTROL_H), tr("kami_claims.gift.action"), Icons.WITHDRAW, pending = pending, key = "gift-send")) Dialogs.gift(app, p.id, p.name)
     }
 }

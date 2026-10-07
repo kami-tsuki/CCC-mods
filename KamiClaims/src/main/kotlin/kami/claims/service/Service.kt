@@ -34,6 +34,8 @@ import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+import kami.libs.economy.CountryParty
+import kami.libs.economy.Statement
 
 class Fail(@Transient val phrase: Phrase, val reason: String = "", @Transient val target: Key? = null) : kami.libs.command.CommandFail(phrase::component) {
     constructor(key: String, vararg args: Any) : this(Phrase.of(key, *args))
@@ -190,11 +192,17 @@ object Service {
             "embargo" -> Diplomacy.setEmbargo(need(p, Cap.TRADE), country(arg(a, 0)), arg(a, 1) == "on")
             "min_reputation" -> Reputation.setMin(need(p, Cap.TRADE), num(a, 0))
             "fame_rate" -> Fame.rate(p, country(arg(a, 0)), num(a, 1))
+            "gift_send" -> Gifts.send(p, uuid(arg(a, 0)), num(a, 1))
+            "gift_accept" -> Gifts.accept(p, uuid(arg(a, 0)))
+            "gift_decline" -> Gifts.decline(p, uuid(arg(a, 0)))
+            "gift_cancel" -> Gifts.cancel(p, uuid(arg(a, 0)))
             else -> throw Fail("kami_claims.error.unknown_action")
         }
         Realm.changed()
         return text
     }
+
+    private fun uuid(raw: String): UUID = runCatching { UUID.fromString(raw) }.getOrNull() ?: throw Fail("kami_claims.error.unknown_player")
 
     private fun create(p: ServerPlayer, n: String): Phrase {
         if (Realm.of(p.stringUUID) != null) throw Fail("kami_claims.error.leave_first")
@@ -428,7 +436,7 @@ object Service {
 
     private fun typeRect(p: ServerPlayer, type: String, r: Rect): Phrase {
         val c = need(p, Cap.CLAIM)
-        WarLocks.claims(c)
+        WarLocks.retype(c)
         if (s.types[type] == null) throw Fail("kami_claims.error.unknown_type")
         val set = r.cells.toHashSet()
         val hit = Realm.claims(c.id).filter { it.key in set }
@@ -462,7 +470,7 @@ object Service {
 
     private fun retype(p: ServerPlayer, type: String, k: Key): Phrase {
         val c = need(p, Cap.CLAIM)
-        WarLocks.claims(c)
+        WarLocks.retype(c)
         val cl = mine(c, k)
         if (s.types[type] == null) throw Fail("kami_claims.error.unknown_type")
         if (cl.type != type) {
@@ -490,8 +498,8 @@ object Service {
         val c = home(p)
         if (n < 1) throw Fail(Phrase.of("kami_claims.error.amount"), "AMOUNT")
         if (n > Treasury.room(c)) throw Fail(Phrase.of("kami_claims.error.treasury_full", money(Treasury.room(c))), "AMOUNT")
-        if (!Bank.take(p.uuid, n, Flow.TREASURY, c.name)) throw Fail(Phrase.of("kami_claims.error.funds", money(n)), "FUNDS")
-        Treasury.move(c, LedgerKind.DEPOSIT, n.toLong(), p.stringUUID)
+        if (!Bank.take(p.uuid, n, Flow.TREASURY, CountryParty(c.id).key, "kami_libs.note.deposit")) throw Fail(Phrase.of("kami_claims.error.funds", money(n)), "FUNDS")
+        Treasury.move(c, LedgerKind.DEPOSIT, n.toLong(), p.stringUUID, Statement.note("kami_libs.note.deposit"))
         c.pending += n
         return Phrase.of("kami_claims.done.deposited", money(n), money(c.treasury))
     }
@@ -501,8 +509,8 @@ object Service {
         Loans.requireNoLoans(c)
         if (n < 1) throw Fail(Phrase.of("kami_claims.error.amount"), "AMOUNT")
         if (c.treasury < n) throw Fail(Phrase.of("kami_claims.error.treasury_short", money(c.treasury)), "FUNDS")
-        if (!Bank.give(p.uuid, n, Flow.TREASURY, c.name)) throw Fail("kami_claims.error.payout")
-        Treasury.move(c, LedgerKind.WITHDRAW, -n.toLong(), p.stringUUID)
+        if (!Bank.give(p.uuid, n, Flow.TREASURY, CountryParty(c.id).key, "kami_libs.note.withdraw")) throw Fail("kami_claims.error.payout")
+        Treasury.move(c, LedgerKind.WITHDRAW, -n.toLong(), p.stringUUID, Statement.note("kami_libs.note.withdraw"))
         return Phrase.of("kami_claims.done.withdrew", money(n))
     }
 

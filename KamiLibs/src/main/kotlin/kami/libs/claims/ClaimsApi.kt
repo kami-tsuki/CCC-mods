@@ -33,7 +33,7 @@ interface ClaimsProvider {
     fun relation(a: String, b: String): Relation = Relation.NEUTRAL
     fun tariff(buyerCountry: String, sellerCountry: String): Int = 0
     fun capacity(player: UUID, key: String): Int? = null
-    fun creditTariff(country: String, amount: Long): Long = 0
+    fun creditTariff(country: String, amount: Long, payer: String = "", note: String = ""): Long = 0
     fun level(player: UUID): Int? = null
     fun lock(player: UUID, feature: String): Phrase? = null
     fun limit(player: UUID, key: String, used: Int): Phrase? = null
@@ -75,7 +75,7 @@ object ClaimsApi {
         val cb = countryOf(b) ?: return false
         return !canTrade(ca, cb)
     }
-    fun creditTariff(country: String, amount: Long): Long = provider?.creditTariff(country, amount) ?: 0
+    fun creditTariff(country: String, amount: Long, payer: String = "", note: String = ""): Long = provider?.creditTariff(country, amount, payer, note) ?: 0
     fun level(player: UUID): Int? = provider?.level(player)
     fun lock(player: UUID, feature: String): Phrase? = provider?.lock(player, feature)
     fun limit(player: UUID, key: String, used: Int): Phrase? = provider?.limit(player, key, used)

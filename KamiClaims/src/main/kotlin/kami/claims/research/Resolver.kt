@@ -2,7 +2,9 @@ package kami.claims.research
 
 import kami.libs.mc.Selectors
 
-class RecipeFact(val id: String, val type: String, val outputs: List<String> = emptyList(), val inputs: List<String> = emptyList(), val display: List<String> = outputs)
+class RecipeFact(val id: String, val type: String, val outputs: List<String> = emptyList(), val inputs: List<String> = emptyList(), val display: List<String> = outputs, val serializer: String = type) {
+    fun typed(spec: String) = Selectors.glob(spec, type) || Selectors.glob(spec, serializer)
+}
 
 class WorldFacts(
     val recipes: List<RecipeFact>,
@@ -64,10 +66,10 @@ class Resolver(private val world: WorldFacts, private val defs: ResearchDefs) {
     private fun select(unlock: Unlock, where: String): Matched = when (unlock) {
         is GroupRef -> all(defs.groups[unlock.id]?.unlocks.orEmpty(), "$where via ${unlock.id}")
         is RecipeUnlock -> cached("recipe", listOf(unlock.id), where) { matchRecipes { Selectors.glob(unlock.id, it.id) } }
-        is RecipeTypeUnlock -> cached("recipe_type", listOf(unlock.id), where) { matchRecipes { Selectors.glob(unlock.id, it.type) } }
+        is RecipeTypeUnlock -> cached("recipe_type", listOf(unlock.id), where) { matchRecipes { it.typed(unlock.id) } }
         is RecipesUnlock -> cached("recipes", listOf(unlock.recipeType, unlock.input, unlock.output), where) {
             matchRecipes { recipe ->
-                (unlock.recipeType == null || Selectors.glob(unlock.recipeType, recipe.type)) &&
+                (unlock.recipeType == null || recipe.typed(unlock.recipeType)) &&
                     (unlock.output == null || recipe.outputs.any { matches(unlock.output, it, world.itemTagged) }) &&
                     (unlock.input == null || recipe.inputs.any { matches(unlock.input, it, world.itemTagged) })
             }
@@ -97,7 +99,7 @@ class Resolver(private val world: WorldFacts, private val defs: ResearchDefs) {
 
     private fun report(kind: String, specs: List<String?>, where: String) {
         val spec = specs.joinToString("|")
-        val given = specs.filterNotNull()
+        val given = specs.filterNotNull().filterNot { it.startsWith('#') }
         val namespaces = if (kind == "mod") given else given.map(Selectors::namespace)
         val missing = namespaces.firstOrNull { it != "*" && !world.modLoaded(it) }
         if (missing != null) notes += "$where: $kind $spec skipped, mod $missing is not installed"
