@@ -54,6 +54,7 @@ object ClientHooks {
         Highlights.register(KamiHighlighter())
         ResearchTooltip.init()
         ResearchPins.register()
+        Hud.register()
         MOD_BUS.addListener<RegisterKeyMappingsEvent> { it.register(open); it.register(borders) }
         MOD_BUS.addListener<RegisterGuiLayersEvent> {
             it.registerAboveAll(ResourceLocation.fromNamespaceAndPath("kami_claims", "territory")) { g, _ -> Hud.render(g); opening.render(g) }

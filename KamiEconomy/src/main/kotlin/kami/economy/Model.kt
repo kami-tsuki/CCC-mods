@@ -5,6 +5,7 @@ import kami.economy.economy.Catalog
 import kami.economy.economy.Ledger
 import kami.economy.economy.Stocks
 import kami.economy.economy.TradeStatus
+import kami.economy.economy.Watchlist
 import kami.economy.db.MarketTables
 import kami.libs.db.Db
 import kami.libs.db.Session
@@ -90,6 +91,7 @@ object Market {
         Ledger.attach()
         data.books.values.forEach { if (it.sells.removeAll { o -> o.synthetic }) dirty = true }
         TradeStatus.load()
+        Watchlist.load()
         reindex()
         data.books.keys.removeAll { k -> data.books.getValue(k).let { it.sells.isEmpty() && it.buys.isEmpty() } && Stocks.good(k) == null && !Blacklist.sellable(k) }
         Ledger.recover()

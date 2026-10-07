@@ -20,12 +20,10 @@ object ClaimsPersonal {
     fun register() = Personal.register(PersonalSection("claims", 20, { "kami_libs.common.country" }, ::items, ::create, ::refresh))
 
     private fun items(): List<NavItem> {
-        val hud = NavItem("${PREFIX}hud", tr("kami_claims.personal.hud"), Icons.EYE)
-        if (ClaimsStore.snap == null && !hasChannel()) return listOf(hud)
+        if (ClaimsStore.snap == null && !hasChannel()) return emptyList()
         return listOf(
             NavItem("${PREFIX}plots", tr("kami_claims.personal.plots"), Icons.HOUSE),
-            NavItem("${PREFIX}debts", tr("kami_claims.personal.debts"), Icons.DEBT, { DebtsPage.badge() }),
-            hud
+            NavItem("${PREFIX}debts", tr("kami_claims.personal.debts"), Icons.DEBT, { DebtsPage.badge() })
         )
     }
 
@@ -34,7 +32,6 @@ object ClaimsPersonal {
         return when (id) {
             "${PREFIX}plots" -> MyPlotsPage(host)
             "${PREFIX}debts" -> DebtsPage(host)
-            "${PREFIX}hud" -> HudPage()
             else -> null
         }
     }

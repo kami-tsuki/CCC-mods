@@ -112,7 +112,7 @@ internal class CountryDetailPage(private val app: KamiApp) : Page() {
     }
 
     private fun tiles(ui: Ui, r: Rect, d: CountryDetail) = ui.kpiRow(r, listOf(
-        KpiTile(tr("kami_claims.admin.col.treasury"), Format.money(d.row.treasury, compact = true), Icons.TREASURY, Palette.money, tip = Tip.text(Format.money(d.row.treasury), tr("kami_claims.admin.col.treasury"))),
+        KpiTile(tr("kami_claims.admin.col.treasury"), Format.money(d.row.treasury), Icons.TREASURY, Palette.money, tip = Tip.text(Format.money(d.row.treasury), tr("kami_claims.admin.col.treasury"))),
         KpiTile(tr("kami_claims.admin.col.leader"), d.row.leaderName.ifEmpty { tr("kami_libs.common.none") }, Icons.CROWN, sub = tr("kami_claims.admin.members_n", d.row.members),
             tip = d.row.leaderName.takeIf { it.isNotEmpty() }?.let { Tip.text(tr("kami_claims.admin.members_n", d.row.members), it) }),
         KpiTile(tr("kami_claims.admin.col.claims"), Format.number(d.row.claims.toLong()), Icons.AREA, sub = tr("kami_claims.admin.since", Format.exact(d.created))),
@@ -221,7 +221,7 @@ internal class CountryDetailPage(private val app: KamiApp) : Page() {
         Column.number<LedgerRow>(tr("kami_claims.admin.col.time"), 60, format = { Format.ago(it) }) { it.at },
         Column.text<LedgerRow>(tr("kami_claims.admin.col.kind"), 70) { trOr("kami_claims.ledger.${it.kind.lowercase()}", it.kind) },
         Column.number<LedgerRow>(tr("kami_libs.common.amount"), 64, color = { if (it.amount >= 0) Palette.success else Palette.danger }, format = { Format.signedMoney(it) }) { it.amount },
-        Column.number<LedgerRow>(tr("kami_claims.admin.col.treasury"), 64, color = { Palette.money }, format = { Format.money(it, compact = true) }) { it.balance },
+        Column.number<LedgerRow>(tr("kami_claims.admin.col.treasury"), 64, color = { Palette.money }, format = { Format.money(it) }) { it.balance },
         Column.text<LedgerRow>(tr("kami_claims.admin.col.actor"), -1) { listOfNotNull(it.actor, noteLabel(it.note).ifEmpty { null }).joinToString(" · ") }
     )
 

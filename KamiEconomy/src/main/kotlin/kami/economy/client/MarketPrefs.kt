@@ -10,7 +10,7 @@ class Prefs(
     var tourDone: Boolean = false,
     var chartRange: String = "week",
     var collapsedGroups: MutableSet<String> = mutableSetOf(),
-    var watch: MutableList<String> = mutableListOf()
+    var watch: MutableList<String>? = null
 )
 
 object MarketPrefs {
@@ -23,7 +23,7 @@ object MarketPrefs {
                     "tourDone" to "The guided tour was finished or skipped.",
                     "chartRange" to "Price chart range on the item page: day, week, month or all.",
                     "collapsedGroups" to "Navigation groups you collapsed.",
-                    "watch" to "Item ids pinned to your watchlist."
+                    "watch" to "Legacy local watchlist, uploaded to the server once and then removed."
                 )
             )
         ),

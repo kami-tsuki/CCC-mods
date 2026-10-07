@@ -52,9 +52,9 @@ class UiLogicTest {
 
     @Test
     fun compactNumbersKeepSmallValuesExact() {
-        assertEquals("99,999", Format.compact(99_999))
-        assertEquals("1.2M", Format.compact(1_234_567))
-        assertEquals("-150K", Format.compact(-150_000))
+        assertEquals("99,999", Format.number(99_999))
+        assertEquals("1.2M", Format.number(1_234_567))
+        assertEquals("-150.0k", Format.number(-150_000))
     }
 
     @Test

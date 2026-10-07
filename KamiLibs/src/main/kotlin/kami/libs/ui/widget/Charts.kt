@@ -48,7 +48,7 @@ internal fun niceStep(range: Double, ticks: Int): Double {
     }
 }
 
-fun Ui.lineChart(r: Rect, series: List<Series>, labels: List<String>, format: (Long) -> String = { Format.compact(it) }, zeroLine: Boolean = true, key: Any = "chart") {
+fun Ui.lineChart(r: Rect, series: List<Series>, labels: List<String>, format: (Long) -> String = { Format.number(it) }, zeroLine: Boolean = true, key: Any = "chart") {
     val all = series.flatMap { it.values }
     val count = series.maxOfOrNull { it.values.size } ?: 0
     Draw.fill(g, r, Palette.field)
@@ -111,7 +111,7 @@ fun Ui.lineChart(r: Rect, series: List<Series>, labels: List<String>, format: (L
     }
 }
 
-fun Ui.barChart(r: Rect, positive: List<Long>, negative: List<Long>, labels: List<String>, format: (Long) -> String = { Format.compact(it) }, key: Any = "bars") {
+fun Ui.barChart(r: Rect, positive: List<Long>, negative: List<Long>, labels: List<String>, format: (Long) -> String = { Format.number(it) }, key: Any = "bars") {
     val count = max(positive.size, negative.size)
     Draw.fill(g, r, Palette.field)
     if (count == 0) { Draw.textCentered(g, tr("kami_libs.chart.no_data"), r, Palette.textMuted); return }
@@ -197,7 +197,7 @@ fun forecast(start: Long, perDay: Long, days: Int): List<Long> = List(days) { st
 
 
 fun Ui.gradientLegend(
-    r: Rect, colors: List<Int>, min: Double, max: Double, format: (Double) -> String = { Format.compact(it.toLong()) },
+    r: Rect, colors: List<Int>, min: Double, max: Double, format: (Double) -> String = { Format.number(it.toLong()) },
     ticks: List<Double> = listOf(min, max), title: String? = null, key: Any = "gradient"
 ) {
     var y = r.y

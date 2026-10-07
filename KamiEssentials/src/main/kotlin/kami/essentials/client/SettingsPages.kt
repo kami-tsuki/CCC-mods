@@ -15,7 +15,11 @@ import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icon
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
+import kami.libs.ui.hud.HudEditor
+import kami.libs.ui.hud.HudLayout
+import kami.libs.ui.pin.Pins
 import kami.libs.ui.text.tr
+import net.minecraft.client.Minecraft
 import kami.libs.ui.widget.*
 
 private const val TOGGLE_CARD_H = 42
@@ -23,6 +27,8 @@ private const val STATUS_CARD_H = 80
 private const val LOOK_H = 92
 private const val FEEL_H = 128
 private const val CHANNEL_H = 70
+private const val HUD_BASE_H = 76
+private const val PIN_ROW_H = 18
 
 private fun Ui.toggleCard(r: Rect, title: String, icon: Icon, on: Boolean?, label: String, tip: String, key: String, change: (Boolean) -> Unit) {
     anchor("prefs:$key", r)
@@ -40,7 +46,8 @@ internal class InterfacePage : Page() {
     override val title get() = tr("kami_essentials.nav.interface")
     override val help get() = listOf(
         Callout("prefs:look", tr("kami_essentials.interface.look"), tr("kami_essentials.help.look")),
-        Callout("prefs:feel", tr("kami_essentials.interface.feel"), tr("kami_essentials.help.feel"))
+        Callout("prefs:feel", tr("kami_essentials.interface.feel"), tr("kami_essentials.help.feel")),
+        Callout("prefs:hud", tr("kami_essentials.interface.hud"), tr("kami_essentials.help.hud"))
     )
 
     private fun flush() {
@@ -62,6 +69,7 @@ internal class InterfacePage : Page() {
         ui.segmented(look.take(CONTROL_H), UiScale.choices.map { Option(it, Format.percent(it.toDouble())) }, UiScale.snap(p.uiScale), key = "ui-scale")?.let { p.uiScale = it; UiPrefs.save() }
         ui.fieldLabel(look.take(9), tr("kami_essentials.interface.colours"))
         ui.select(look.take(CONTROL_H), Palette.Vision.entries.map { Option(it.name, tr("kami_essentials.vision.${it.name.lowercase()}"), description = tr("kami_essentials.vision.${it.name.lowercase()}.desc")) }, p.vision, key = "vision")?.let { p.vision = it; UiPrefs.save() }
+        hud(ui, left.dropTop(LOOK_H + 10))
         val feelBox = right.top(FEEL_H)
         ui.anchor("prefs:feel", feelBox)
         val feel = Flow(ui.card(feelBox, tr("kami_essentials.interface.feel"), Icons.EYE), 4)
@@ -71,6 +79,26 @@ internal class InterfacePage : Page() {
         ui.slider(feel.take(CONTROL_H), p.sounds.toDouble(), 0.0, 1.0, 0.05, format = { Format.percent(it) }, key = "sounds")?.let { p.sounds = it.toFloat(); UiPrefs.apply(); dirty = true }
         ui.fieldLabel(feel.take(9), tr("kami_essentials.interface.tooltip_delay"), "${Format.number(p.tooltipDelay)} ms")
         ui.slider(feel.take(CONTROL_H), p.tooltipDelay.toDouble(), 0.0, 1500.0, 50.0, format = { "${Format.number(it.toLong())} ms" }, key = "tip-delay")?.let { p.tooltipDelay = it.toInt(); UiPrefs.apply(); dirty = true }
+    }
+}
+
+private fun hud(ui: Ui, area: Rect) {
+    val pins = Pins.all().toList()
+    val box = area.top(HUD_BASE_H + HudLayout.options.size * (CONTROL_H + 17) + maxOf(1, pins.size) * PIN_ROW_H)
+    ui.anchor("prefs:hud", box)
+    val f = Flow(ui.card(box, tr("kami_essentials.interface.hud"), Icons.EYE), 4)
+    HudLayout.options.forEachIndexed { i, o ->
+        ui.fieldLabel(f.take(9), o.label())
+        ui.segmented(f.take(CONTROL_H), o.choices.map { Option(it.first, it.second()) }, o.get(), key = "hud-option:$i")?.let(o.set)
+    }
+    if (ui.button(f.take(CONTROL_H), tr("kami_libs.hud.edit"), Icons.GEAR, key = "hud-edit")) Minecraft.getInstance().let { it.setScreen(HudEditor(it.screen)) }
+    ui.fieldLabel(f.take(9), tr("kami_essentials.interface.pins"))
+    if (pins.isEmpty()) f.take(PIN_ROW_H).let { Draw.text(ui.g, Draw.fit(tr("kami_essentials.interface.pins.none"), it.w), it.x, it.y + 3, Palette.textMuted) }
+    pins.forEach { w ->
+        val row = f.take(PIN_ROW_H - 4)
+        val items = Pins.items(w.id)
+        ui.toggle(row.dropRight(row.h + 4), !Pins.hidden(w.id), w.title(items), key = "pin-show:${w.id}")?.let { Pins.hide(w.id, !it) }
+        if (ui.iconButton(row.right(row.h), Icons.CLOSE, tr("kami_essentials.interface.pins.clear"), enabled = items.isNotEmpty(), key = "pin-clear:${w.id}")) Pins.clear(w.id)
     }
 }
 

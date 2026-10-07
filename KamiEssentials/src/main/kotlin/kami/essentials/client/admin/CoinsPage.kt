@@ -74,15 +74,15 @@ internal class CoinsPage(private val app: AdminApp) : Page() {
         val rangeOut = s?.days?.sumOf { it.terminalOut }
         val net = s?.let { it.terminalIn - it.terminalOut }
         val todayNet = s?.let { it.today.terminalIn - it.today.terminalOut }
-        val inRange = { v: Long? -> v?.let { tr("kami_essentials.admin.coins.in_range", Format.money(it, compact = true)) } }
+        val inRange = { v: Long? -> v?.let { tr("kami_essentials.admin.coins.in_range", Format.money(it)) } }
         ui.kpiRow(r, listOf(
-            KpiTile(tr("kami_essentials.admin.coins.world"), s?.let { Format.money(it.supply, compact = true) }, Icons.COIN, if ((s?.supply ?: 0) < 0) Palette.danger else Palette.money,
-                sub = s?.let { tr("kami_essentials.admin.in_out", Format.compact(it.minted), Format.compact(it.burned)) }, flashValue = s?.supply),
-            KpiTile(tr("kami_essentials.admin.coins.terminal_in"), s?.let { Format.money(it.terminalIn, compact = true) }, Icons.DEPOSIT, sub = inRange(rangeIn)),
-            KpiTile(tr("kami_essentials.admin.coins.terminal_out"), s?.let { Format.money(it.terminalOut, compact = true) }, Icons.WITHDRAW, sub = inRange(rangeOut)),
+            KpiTile(tr("kami_essentials.admin.coins.world"), s?.let { Format.money(it.supply) }, Icons.COIN, if ((s?.supply ?: 0) < 0) Palette.danger else Palette.money,
+                sub = s?.let { tr("kami_essentials.admin.in_out", Format.number(it.minted), Format.number(it.burned)) }, flashValue = s?.supply),
+            KpiTile(tr("kami_essentials.admin.coins.terminal_in"), s?.let { Format.money(it.terminalIn) }, Icons.DEPOSIT, sub = inRange(rangeIn)),
+            KpiTile(tr("kami_essentials.admin.coins.terminal_out"), s?.let { Format.money(it.terminalOut) }, Icons.WITHDRAW, sub = inRange(rangeOut)),
             KpiTile(tr("kami_essentials.admin.economy.net"), net?.let { Format.signedMoney(it) }, Icons.SCALES, net?.let { if (it > 0) Palette.warning else Palette.text } ?: Palette.text),
             KpiTile(tr("kami_libs.range.24h"), todayNet?.let { Format.signedMoney(it) }, Icons.CLOCK,
-                sub = s?.let { tr("kami_essentials.admin.in_out", Format.compact(it.today.terminalIn), Format.compact(it.today.terminalOut)) })
+                sub = s?.let { tr("kami_essentials.admin.in_out", Format.number(it.today.terminalIn), Format.number(it.today.terminalOut)) })
         ), key = "coins-kpi")
     }
 
@@ -90,7 +90,7 @@ internal class CoinsPage(private val app: AdminApp) : Page() {
         val body = ui.card(r, tr("kami_essentials.admin.coins.daily"), Icons.STATS)
         if (s == null) return ui.skeleton(body)
         ui.barChart(body, s.days.map { it.terminalIn }, s.days.map { it.terminalOut }, s.days.map { Format.dayLabel(it.day) },
-            format = { Format.money(it, compact = true) }, key = "coins-daily")
+            format = { Format.money(it) }, key = "coins-daily")
     }
 
     private fun sources(ui: Ui, r: Rect, s: CoinSummary?) {
@@ -98,8 +98,8 @@ internal class CoinsPage(private val app: AdminApp) : Page() {
         if (s == null) return ui.skeletonTable(body, 3)
         ui.table(body, listOf(
             Column.text<CoinSourceTotal>(tr("kami_essentials.admin.coins.source"), -1) { tr("kami_essentials.admin.coins.source.${it.source.name.lowercase()}") },
-            Column.number<CoinSourceTotal>(tr("kami_essentials.admin.coins.minted"), 56, color = { Palette.success }, format = { Format.money(it, compact = true) }) { it.minted },
-            Column.number<CoinSourceTotal>(tr("kami_essentials.admin.coins.burned"), 56, color = { Palette.danger }, format = { Format.money(it, compact = true) }) { it.burned }
+            Column.number<CoinSourceTotal>(tr("kami_essentials.admin.coins.minted"), 56, color = { Palette.success }, format = { Format.money(it) }) { it.minted },
+            Column.number<CoinSourceTotal>(tr("kami_essentials.admin.coins.burned"), 56, color = { Palette.danger }, format = { Format.money(it) }) { it.burned }
         ), s.sources, sourceTable, { it.source }, emptyText = tr("kami_essentials.admin.coins.sources.empty"), key = "coins-sources")
     }
 
@@ -109,8 +109,8 @@ internal class CoinsPage(private val app: AdminApp) : Page() {
         ui.pagedTable(body.dropTop(CONTROL_H, 4), players, listOf(
             playerColumn<CoinPlayer>(tr("kami_libs.common.name"), { it.uuid }, { it.name }),
             Column.secret<CoinPlayer>(tr("kami_essentials.admin.coins.uuid"), 80) { it.uuid },
-            Column.number<CoinPlayer>(tr("kami_essentials.admin.coins.deposited"), 64, format = { Format.money(it, compact = true) }) { it.deposited },
-            Column.number<CoinPlayer>(tr("kami_essentials.admin.coins.withdrawn"), 64, format = { Format.money(it, compact = true) }) { it.withdrawn },
+            Column.number<CoinPlayer>(tr("kami_essentials.admin.coins.deposited"), 64, format = { Format.money(it) }) { it.deposited },
+            Column.number<CoinPlayer>(tr("kami_essentials.admin.coins.withdrawn"), 64, format = { Format.money(it) }) { it.withdrawn },
             Column.number<CoinPlayer>(tr("kami_essentials.admin.economy.net"), 64, color = { if (it.flagged) Palette.warning else Palette.text }, format = { Format.signedMoney(it) }) { it.net },
             Column.number<CoinPlayer>(tr("kami_essentials.admin.coins.last"), 60, format = { Format.ago(it) }) { it.last }
         ), table, { it.uuid }, tr("kami_essentials.admin.coins.players.empty"), "coins-players", { if (it.flagged) Severity.WARNING else null })

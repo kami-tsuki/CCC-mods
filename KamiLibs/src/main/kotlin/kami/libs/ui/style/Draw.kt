@@ -176,12 +176,15 @@ object Draw {
 
     private fun invisible(color: Int) = color ushr 24 < Palette.MIN_VISIBLE_ALPHA
 
+    var hover: ((GuiGraphics, String, Int, Int, Int) -> Unit)? = null
+
     fun text(g: GuiGraphics, text: String, x: Int, y: Int, color: Int = Palette.text, shadow: Boolean = false): Int =
-        if (invisible(color)) x + font.width(text) else g.drawString(font, text, x, y, color, shadow)
+        if (invisible(color)) x + font.width(text) else g.drawString(font, text, x, y, color, shadow).also { hover?.invoke(g, text, x, y, it - x) }
 
     fun text(g: GuiGraphics, text: String, x: Int, y: Int, style: TextStyle, color: Int = style.color()): Int {
         val c = styled(text, style)
         if (invisible(color)) return x + font.width(c) * style.scale
+        hover?.invoke(g, text, x, y, font.width(c) * style.scale)
         if (style.scale == 1) return g.drawString(font, c, x, y, color, style.shadow)
         g.pose().pushPose()
         g.pose().translate(x.toFloat(), y.toFloat(), 0f)

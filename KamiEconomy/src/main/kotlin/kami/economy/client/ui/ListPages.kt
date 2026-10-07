@@ -7,6 +7,8 @@ import kami.economy.net.VendorLine
 import kami.libs.ui.app.Callout
 import kami.libs.ui.app.Page
 import kami.libs.ui.app.Route
+import kami.libs.ui.app.SELECT_W
+import kami.libs.ui.app.segmentWidth
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Ui
@@ -26,7 +28,9 @@ import net.minecraft.world.phys.Vec3
 
 private const val SEARCH_DELAY = 250L
 private const val ORDER_PANEL_W = 130
-private const val FILTER_W = 260
+private const val SEARCH_MAX = 200
+private const val SEARCH_MIN = 110
+private const val BAR_GAP = 6
 
 private fun demandColumn(app: MarketApp) = Column<Row>(tr("kami_economy.col.demand"), 56, sort = compareBy { if (it.infinite) Int.MAX_VALUE else it.demand }) { _, c, row ->
     val y = c.y + (c.h - 8) / 2
@@ -34,7 +38,7 @@ private fun demandColumn(app: MarketApp) = Column<Row>(tr("kami_economy.col.dema
         Draw.textRight(g, if (row.demand > 0) Format.number(row.demand) else "–", c.right, y, Palette.textSecondary)
         return@Column
     }
-    val text = "∞ " + Format.compact(row.left.toLong())
+    val text = "∞ " + Format.number(row.left.toLong())
     Draw.textRight(g, text, c.right, y, if (row.left > 0) Palette.success else Palette.textMuted)
     Draw.leadIcon(g, Icons.INFO, c.right - Draw.width(text) - 12, c.centerY, Palette.textMuted)
     tooltip("left:${row.item}", c, Tip.text(tr("kami_economy.tip.left", unitsText(row.left, app.stack(row.item).maxStackSize)), tr("kami_economy.nav.infinite")))
@@ -108,7 +112,8 @@ internal abstract class ListPage(val app: MarketApp, private val view: String) :
         app.view(view)
     }
 
-    protected fun searchBar(ui: Ui, r: Rect) {
+    protected fun searchBar(ui: Ui, bounds: Rect) {
+        val r = bounds.left(SEARCH_MAX)
         if (focusSearch) { ui.focus = ui.id("search"); focusSearch = false }
         val now = System.currentTimeMillis()
         if (ui.searchField(r, search) && remoteSearch) sendAt = now + SEARCH_DELAY
@@ -183,13 +188,15 @@ internal class MarketPage(app: MarketApp) : ListPage(app, "market") {
     override fun draw(ui: Ui, r: Rect) {
         held = app.carried.get().held
         val bar = r.top(SMALL_H)
-        val chips = bar.right(FILTER_W)
-        searchBar(ui, bar.dropRight(FILTER_W, 6))
-        ui.anchor("market:filters", chips)
         val snap = data
         val all = snap?.let { filtered(ui, "market:rows", it.rows) { row -> hit(row.item) } }.orEmpty()
         val orders = snap?.let { filtered(ui, "market:orders", it.orders) { o -> hit(o.item, o.ownerName, o.country) } }.orEmpty()
-        ui.segmented(chips, Filter.entries.map { f -> Option(f, tr("kami_economy.market.filter.${f.name.lowercase()}") + if (snap == null) "" else " ${all.count { keep(f, it) }}") }, filter, key = "filter")?.let { filter = it }
+        val options = Filter.entries.map { f -> Option(f, tr("kami_economy.market.filter.${f.name.lowercase()}") + if (snap == null) "" else " ${all.count { keep(f, it) }}") }
+        val compact = bar.w - segmentWidth(options) - BAR_GAP < SEARCH_MIN
+        val chips = bar.right(if (compact) SELECT_W else segmentWidth(options))
+        searchBar(ui, bar.dropRight(chips.w, BAR_GAP))
+        ui.anchor("market:filters", chips)
+        (if (compact) ui.select(chips, options, filter, key = "filter") else ui.segmented(chips, options, filter, key = "filter"))?.let { filter = it }
         val area = body(ui, r.dropTop(SMALL_H, 6))
         val split = !query.isEmpty && orders.isNotEmpty()
         val rowsArea = if (split) area.top(area.h * 3 / 5) else area

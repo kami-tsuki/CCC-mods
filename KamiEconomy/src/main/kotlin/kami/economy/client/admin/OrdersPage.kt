@@ -45,7 +45,7 @@ internal class OrdersPage(private val app: KamiApp) : Page() {
         Column.text<OrderRow>(tr("kami_economy.admin.col.side"), 48) { tr("kami_economy.admin.side.${it.side}") },
         itemColumn<OrderRow>(tr("kami_libs.common.item"), { it.item }, { it.label }),
         Column.text<OrderRow>(tr("kami_economy.admin.col.owner"), 80) { it.ownerName },
-        Column.number<OrderRow>(tr("kami_economy.admin.col.price"), 60, color = { Palette.money }, format = { Format.money(it, compact = true) }) { it.price.toLong() },
+        Column.number<OrderRow>(tr("kami_economy.admin.col.price"), 60, color = { Palette.money }, format = { Format.money(it) }) { it.price.toLong() },
         Column.number<OrderRow>(tr("kami_libs.common.amount"), 50) { it.amount.toLong() },
         Column.number<OrderRow>(tr("kami_economy.admin.col.lot"), 32) { it.lot.toLong() },
         Column.number<OrderRow>(tr("kami_economy.admin.col.placed"), 56, format = { Format.ago(it) }) { it.placedAt }

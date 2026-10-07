@@ -15,6 +15,11 @@ import kami.claims.client.world.Hint
 import kami.claims.service.AlertLine
 import kami.claims.service.View
 import kami.libs.ui.core.Rect
+import kami.libs.ui.hud.Anchor
+import kami.libs.ui.hud.HudElement
+import kami.libs.ui.hud.HudLayout
+import kami.libs.ui.hud.HudOption
+import kami.libs.ui.hud.HudPos
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icons
@@ -28,6 +33,20 @@ import kotlin.math.atan2
 import kotlin.math.roundToInt
 
 object Hud {
+    private const val WAR = "kami_claims:war"
+    private const val TERRITORY = "kami_claims:territory"
+
+    fun register() {
+        HudLayout.element(HudElement(WAR, HudPos(Anchor.TOP_LEFT), { tr("kami_claims.hud.sample_war") }, { Palette.danger }))
+        HudLayout.element(HudElement(TERRITORY, HudPos(Anchor.TOP), { tr("kami_claims.hud.sample_territory") }))
+        HudLayout.option(HudOption({ tr("kami_claims.hud.war_display") }, listOf(
+            WarDisplay.NONE.name to { tr("kami_claims.hud.display.none") },
+            WarDisplay.BOSS.name to { tr("kami_claims.hud.display.boss") },
+            WarDisplay.HUD.name to { tr("kami_claims.hud.display.hud") },
+            WarDisplay.BOTH.name to { tr("kami_claims.hud.display.both") }
+        ), { ClientClaims.prefs.warDisplay.name }, { ClientClaims.prefs.warDisplay = WarDisplay.valueOf(it); ClientClaims.savePrefs() }))
+    }
+
     private class Banner(val title: String, val body: String, val color: Int, val at: Long)
     private class HudToast(val alert: AlertLine, val at: Long)
 
@@ -63,7 +82,7 @@ object Hud {
         val left = if (w.ends > 0) Format.until(w.ends, now) else tr("kami_claims.warpage.open_ended")
         val text = tr("kami_claims.hud.war", tr("kami_claims.warpage.phase.${w.phase}"), w.enemy, left)
         val color = if (w.phase == "war") Palette.danger else Palette.warning
-        val box = HudLayout.place(g.guiWidth(), g.guiHeight(), Draw.width(text) + 10, ClientClaims.prefs.warX, ClientClaims.prefs.warY)
+        val box = HudLayout.place(WAR, g.guiWidth(), g.guiHeight(), Draw.width(text) + 10)
         Draw.sprite(g, Sprites.TOOLTIP, box)
         Draw.fill(g, Rect(box.x + 1, box.y + 1, 2, box.h - 2), color)
         Draw.text(g, text, box.x + 6, box.y + 4, color)
@@ -94,7 +113,7 @@ object Hud {
         }
         val textW = Draw.width(name) + (if (extra.isNotEmpty()) Draw.width("  $extra") else 0) + (distance?.let { Draw.width("   $it") } ?: 0)
         val w = textW + (if (country != null) 24 else 10)
-        val box = HudLayout.place(g.guiWidth(), g.guiHeight(), w, ClientClaims.prefs.territoryX, ClientClaims.prefs.territoryY)
+        val box = HudLayout.place(TERRITORY, g.guiWidth(), g.guiHeight(), w)
         Draw.sprite(g, Sprites.TOOLTIP, box)
         var tx = box.x + 5
         if (country != null) { Flags.draw(g, Rect(tx, box.y + 3, 12, 9), country.color, country.pattern, country.emblem, country.secondary); tx += 16 }

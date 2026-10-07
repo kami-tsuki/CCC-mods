@@ -8,7 +8,7 @@ import kami.libs.ui.style.Format
 
 object Words {
     fun v(x: Any): Phrase = Phrase.value(x)
-    fun num(n: Number): Phrase = Phrase.value(Format.number(n.toLong()))
+    fun num(n: Number): Phrase = Phrase.value(Format.full(n.toLong()))
     fun money(n: Number): Phrase = Phrase.money(n.toLong())
     fun count(key: String, n: Number): Phrase = Phrase.plural(key, n.toLong()).asValue()
     fun days(n: Number) = count("kami_claims.unit.day", n)
@@ -24,12 +24,12 @@ object Words {
     fun claimant(c: Claimant): Phrase = Phrase.of("kami_claims.claimant.${c.name.lowercase()}").asValue()
 
     fun rate(price: Number, period: Int): Phrase {
-        val amount = Phrase.of("kami_libs.unit.money", Format.number(price.toLong()))
+        val amount = Phrase.of("kami_libs.unit.money", Format.full(price.toLong()))
         return (if (period <= 1) Phrase.of("kami_libs.unit.per_day", amount) else Phrase.of("kami_claims.rate.every", amount, Phrase.plural("kami_claims.unit.day", period.toLong()))).asValue()
     }
 
     fun tribute(mode: TaxMode, amount: Double) = (
-        if (mode == TaxMode.PERCENT) Phrase.of("kami_claims.tribute.percent", Format.number((amount * 100).toLong()))
-        else Phrase.of("kami_claims.tribute.flat", Format.number(amount.toLong()))
+        if (mode == TaxMode.PERCENT) Phrase.of("kami_claims.tribute.percent", Format.full((amount * 100).toLong()))
+        else Phrase.of("kami_claims.tribute.flat", Format.full(amount.toLong()))
     ).asValue()
 }

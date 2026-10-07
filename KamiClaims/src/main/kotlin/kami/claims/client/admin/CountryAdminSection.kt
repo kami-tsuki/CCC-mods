@@ -61,7 +61,7 @@ internal fun countryColumns() = listOf(
     Column.text<CountryRow>(tr("kami_claims.admin.col.leader"), 80) { it.leaderName },
     Column.number<CountryRow>(tr("kami_claims.admin.col.members"), 56) { it.members.toLong() },
     Column.number<CountryRow>(tr("kami_claims.admin.col.claims"), 50) { it.claims.toLong() },
-    Column.number<CountryRow>(tr("kami_claims.admin.col.treasury"), 70, color = { Palette.money }, format = { Format.money(it, compact = true) }) { it.treasury },
+    Column.number<CountryRow>(tr("kami_claims.admin.col.treasury"), 70, color = { Palette.money }, format = { Format.money(it) }) { it.treasury },
     Column.number<CountryRow>(tr("kami_claims.admin.col.level"), 40) { it.level.toLong() },
     Column.number<CountryRow>(tr("kami_claims.kpi.power"), 44, format = { WarPage.power(it / 10.0) }) { (it.power * 10).toLong() },
     Column.number<CountryRow>(tr("kami_claims.admin.col.wars"), 40, color = { if (it.wars > 0) Palette.danger else Palette.text }) { it.wars.toLong() }

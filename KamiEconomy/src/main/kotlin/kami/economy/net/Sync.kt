@@ -21,6 +21,7 @@ import kami.economy.economy.Stocks
 import kami.economy.economy.Terms
 import kami.economy.economy.Trade
 import kami.economy.economy.TradeFlag
+import kami.economy.economy.Watchlist
 import kami.economy.economy.TradeStatus
 import kami.libs.admin.Subject
 import kami.libs.claims.ClaimsApi
@@ -93,7 +94,8 @@ import kotlin.math.roundToInt
     val mine: List<OrderRow>, val taxPct: Int, val allyTaxPct: Int, val auctionFeePct: Int,
     val detail: Detail?, val quote: Quote?, val msg: String, val ok: Boolean, val open: Boolean, val citizen: Boolean,
     val orderSlots: Slot, val auctionSlots: Slot, val goal: String, val goalValue: Long, val goalMax: Long, val truncated: Boolean,
-    val muted: List<String> = emptyList(), val subject: String = "", val subjectOrders: List<OrderRow> = emptyList()
+    val muted: List<String> = emptyList(), val subject: String = "", val subjectOrders: List<OrderRow> = emptyList(),
+    val watch: List<String> = emptyList(), val watchRows: List<Row> = emptyList()
 )
 
 private class QuoteReq(val mode: String, val item: String, val qty: Int, val price: Int)
@@ -377,11 +379,11 @@ object Sync {
         }
         val books = Market.data.books.values
         val goal = ClaimsApi.goals(p.uuid).firstOrNull()
+        val watch = Watchlist.of(me)
         val snap = Snap(
             funds, s.view,
             rows =when (s.view) {
                 "market" -> marketRows(s, me)
-                "watch" -> s.query.split(',').filter { it.isNotBlank() }.take(32).filter { Stocks.good(it) != null || Blacklist.sellable(it) }.map { row(it, me) }
                 "infinite" -> Stocks.items().filter { Stocks.infinite(it) && s.hit(it) }.map { row(it, me) }.sortedBy { it.item }
                 else -> emptyList()
             }.cap(),
@@ -405,7 +407,9 @@ object Sync {
             auctionSlots = slot(me, CountryCapacity.AUCTION_SLOTS, Limits.auctionUsed(me), Limits.auctionSlots(me)),
             goal = goal?.text?.json() ?: "", goalValue = goal?.value ?: 0, goalMax = goal?.max ?: 0,
             truncated = truncated, muted = Notify.muted(me).toList(),
-            subject = s.subject?.toString().orEmpty(), subjectOrders = s.subject?.let { mine(p.server, it.toString(), books) }.orEmpty()
+            subject = s.subject?.toString().orEmpty(), subjectOrders = s.subject?.let { mine(p.server, it.toString(), books) }.orEmpty(),
+            watch = watch.toList(),
+            watchRows = if (s.view == "watch" || s.view == "dashboard") watch.filter { Stocks.good(it) != null || Blacklist.sellable(it) }.map { row(it, me) } else emptyList()
         )
         return json.encodeToString(snap)
     }

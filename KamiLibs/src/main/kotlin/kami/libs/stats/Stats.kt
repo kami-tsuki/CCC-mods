@@ -52,13 +52,13 @@ object Stats {
     fun on(key: String) = LibConfig.s.stats[key.substringBefore('.')] != false
 
     fun event(key: String, subject: String = "", obj: String = "", v: Long = 1, at: Long = System.currentTimeMillis()) {
-        if (!on(key) || !Db.isOpen) return
+        if (!Db.isOpen || !on(key)) return
         val row = listOf<Any>(at, id(key), id(subject), id(obj), v)
         Db.write { exec("INSERT INTO libs_event (at, k, s, o, v) VALUES (?, ?, ?, ?, ?)", *row.toTypedArray()) }
     }
 
     fun add(key: String, subject: String = "", obj: String = "", n: Long = 1) {
-        if (n == 0L || !on(key) || !Db.isOpen) return
+        if (n == 0L || !Db.isOpen || !on(key)) return
         val cell = Cell(System.currentTimeMillis() / HOUR_MS, id(key), id(subject), id(obj))
         synchronized(pending) { pending.merge(cell, n, Long::plus) }
     }

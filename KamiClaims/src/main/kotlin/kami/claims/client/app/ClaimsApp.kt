@@ -225,7 +225,7 @@ class ClaimsApp : KamiApp() {
         if (ui.iconButton(row.iconSlot(), Icons.CLOSE, tr("kami_libs.common.close.tooltip"), key = "app-close")) Minecraft.getInstance().setScreen(null)
         bell(ui, row.iconSlot())
         if (info == null) {
-            kpi(ui, row.takeFromRight(110), Icons.COIN, tr("kami_claims.kpi.funds"), Format.money(snap.funds, compact = true), Palette.money, { Tip.text(tr("kami_claims.kpi.funds.tooltip"), tr("kami_claims.kpi.funds")) }, null)
+            kpi(ui, row.takeFromRight(110), Icons.COIN, tr("kami_claims.kpi.funds"), Format.money(snap.funds), Palette.money, { Tip.text(tr("kami_claims.kpi.funds.tooltip"), tr("kami_claims.kpi.funds")) }, null)
             return
         }
         if (ClientResearch.state.country.isNotEmpty()) {
@@ -237,7 +237,7 @@ class ClaimsApp : KamiApp() {
         val history = ClaimsStore.history.orEmpty()
         val weekAgo = history.getOrNull(history.size - 8)?.treasury
         val trend = weekAgo?.let { info.treasury - it }
-        kpi(ui, cells[0], Icons.TREASURY, tr("kami_claims.kpi.treasury"), Format.money(ui.countUp("treasury", info.treasury), compact = true), Palette.money,
+        kpi(ui, cells[0], Icons.TREASURY, tr("kami_claims.kpi.treasury"), Format.money(ui.countUp("treasury", info.treasury)), Palette.money,
             { Tip(tr("kami_claims.kpi.treasury"), listOf(tr("kami_claims.kpi.treasury.balance", Format.money(info.treasury)) to Palette.money,
                 (trend?.let { tr("kami_claims.kpi.treasury.week", Format.signedMoney(it)) } ?: tr("kami_claims.kpi.treasury.no_history")) to Palette.textSecondary,
                 tr("kami_claims.kpi.net.tax", Format.signedMoney(info.income)) to Palette.success,

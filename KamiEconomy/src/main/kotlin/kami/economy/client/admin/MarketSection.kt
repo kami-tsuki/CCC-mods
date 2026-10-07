@@ -31,7 +31,8 @@ object MarketSection {
                 NavItem("market.orders", tr("kami_economy.admin.nav.orders"), Icons.COIN),
                 NavItem("market.starter", tr("kami_economy.admin.nav.starter"), Icons.WHEAT),
                 NavItem("market.status", tr("kami_economy.admin.nav.status"), Icons.LOCK),
-                NavItem("market.frozen", tr("kami_economy.admin.nav.frozen"), Icons.WARNING)
+                NavItem("market.frozen", tr("kami_economy.admin.nav.frozen"), Icons.WARNING),
+                NavItem("market.stats", tr("kami_economy.admin.nav.stats"), Icons.STATS)
             )
         },
         { app, id ->
@@ -39,6 +40,7 @@ object MarketSection {
                 "market.starter" -> StarterPage(app)
                 "market.status" -> StatusPage(app)
                 "market.frozen" -> FrozenPage(app)
+                "market.stats" -> MarketStatsPage()
                 else -> OrdersPage(app)
             }
         }

@@ -5,6 +5,9 @@ import kami.libs.log.Log
 import kami.libs.ui.core.Cursor
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Ui
+import kami.libs.ui.hud.Anchor
+import kami.libs.ui.hud.HudLayout
+import kami.libs.ui.hud.HudPos
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
@@ -24,17 +27,16 @@ abstract class PinWindow(val id: String, val maxItems: Int = 1, val width: Int =
 }
 
 @Serializable
-class PinGeo(var x: Int, var y: Int, var w: Int, var h: Int)
+class PinGeo(var x: Int, var y: Int, var w: Int, var h: Int, var anchor: Anchor = Anchor.TOP_LEFT)
 
 @Serializable
-class PinData(val geo: MutableMap<String, PinGeo> = mutableMapOf(), val items: MutableMap<String, MutableList<String>> = mutableMapOf())
+class PinData(val geo: MutableMap<String, PinGeo> = mutableMapOf(), val items: MutableMap<String, MutableList<String>> = mutableMapOf(), val hidden: MutableSet<String> = mutableSetOf())
 
 object Pins {
     private const val TITLE_H = 11
     private const val GRIP = 6
     private const val MIN_W = 80
     private const val MIN_H = 30
-    private const val MARGIN = 4
 
     private class Drag(val id: String, val resize: Boolean, val dx: Int, val dy: Int)
 
@@ -46,6 +48,23 @@ object Pins {
     private var drag: Drag? = null
 
     fun register(window: PinWindow) { windows[window.id] = window }
+
+    fun all(): Collection<PinWindow> = windows.values
+
+    fun visible(w: PinWindow) = w.id !in data.hidden && w.shown(items(w.id))
+
+    fun hidden(id: String) = id in data.hidden
+
+    fun hide(id: String, hide: Boolean) { if (if (hide) data.hidden.add(id) else data.hidden.remove(id)) save() }
+
+    fun place(id: String, r: Rect, screen: Rect) {
+        val p = HudLayout.anchored(r, screen.w, screen.h)
+        data.geo[id] = PinGeo(p.dx, p.dy, r.w, r.h, p.anchor)
+    }
+
+    fun resetGeo() { data.geo.clear(); save() }
+
+    fun commit() = save()
 
     fun items(id: String): List<String> = data.items[id]?.toList().orEmpty()
 
@@ -73,9 +92,11 @@ object Pins {
 
     fun renderEditable(ui: Ui) = windows.values.forEach { window(ui, it, true) }
 
+    fun preview(ui: Ui) = windows.values.forEach { window(ui, it, false) }
+
     private fun window(ui: Ui, w: PinWindow, editing: Boolean) {
         val items = items(w.id)
-        if (!w.shown(items)) return
+        if (!visible(w)) return
         if (editing) follow(ui, w)
         val r = rect(w, ui.screen)
         val g = ui.g
@@ -107,23 +128,17 @@ object Pins {
             drag = null
             return save()
         }
-        val geo = data.geo.getOrPut(w.id) { rect(w, ui.screen).let { PinGeo(it.x, it.y, it.w, it.h) } }
-        if (d.resize) {
-            geo.w = ui.mouseX + d.dx - geo.x
-            geo.h = ui.mouseY + d.dy - geo.y
-        } else {
-            geo.x = ui.mouseX - d.dx
-            geo.y = ui.mouseY - d.dy
-        }
+        val r = rect(w, ui.screen)
+        place(w.id, if (d.resize) Rect(r.x, r.y, ui.mouseX + d.dx - r.x, ui.mouseY + d.dy - r.y) else Rect(ui.mouseX - d.dx, ui.mouseY - d.dy, r.w, r.h), ui.screen)
     }
 
-    private fun rect(w: PinWindow, screen: Rect): Rect {
+    fun rect(w: PinWindow, screen: Rect): Rect {
         val geo = data.geo[w.id]
         val width = (geo?.w ?: w.width).coerceIn(MIN_W, maxOf(MIN_W, screen.w))
         val height = (geo?.h ?: w.height).coerceIn(MIN_H, maxOf(MIN_H, screen.h))
-        val x = geo?.x ?: (screen.w - width - MARGIN)
-        val y = geo?.y ?: (MARGIN + windows.values.takeWhile { it !== w }.filter { it.shown(items(it.id)) }.sumOf { (data.geo[it.id]?.h ?: it.height) + MARGIN })
-        return Rect(x.coerceIn(0, maxOf(0, screen.w - width)), y.coerceIn(0, maxOf(0, screen.h - height)), width, height)
+        if (geo != null) return HudLayout.place(HudPos(geo.anchor, geo.x, geo.y), screen.w, screen.h, width, height)
+        val y = windows.values.takeWhile { it !== w }.filter { visible(it) && data.geo[it.id] == null }.sumOf { it.height + HudLayout.MARGIN }
+        return HudLayout.place(HudPos(Anchor.TOP_RIGHT, 0, y), screen.w, screen.h, width, height)
     }
 
     private fun save() {

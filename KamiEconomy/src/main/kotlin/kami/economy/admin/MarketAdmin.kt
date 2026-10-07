@@ -11,6 +11,7 @@ import kami.economy.economy.StackCodec
 import kami.economy.economy.Starters
 import kami.economy.economy.TradeFlag
 import kami.economy.economy.TradeStatus
+import kami.economy.economy.Watchlist
 import kami.economy.net.Net
 import kami.libs.admin.Admin
 import kami.libs.admin.AdminCtx
@@ -35,12 +36,14 @@ import net.minecraft.server.MinecraftServer
 
 object MarketAdmin {
     private const val MAX_ENTRIES = 50
+    private const val WATCH_TOP = 10
     private val SIDES = setOf("sell", "buy", "auction")
 
     fun register() {
         AdminMetrics.register("kami_economy.metric.volume24h") { History.dayVolume() }
         Admin.view("market.orders") { ctx, a -> encode(Page.serializer(OrderRow.serializer()), orders(ctx.player.server, a)) }
         Admin.view("market.starter") { _, _ -> encode(StarterList.serializer(), starters()) }
+        Admin.view("market.watch") { _, _ -> encode(WatchStats.serializer(), watchStats()) }
         Admin.view("market.frozen") { _, _ -> encode(ListSerializer(FrozenRow.serializer()), frozen()) }
         Admin.view("market.status") { _, a -> encode(Page.serializer(StatusRow.serializer()), statuses(a)) }
         Admin.act("market.cancel") { ctx, a -> cancel(ctx, a) }
@@ -87,6 +90,8 @@ object MarketAdmin {
         val p = Page.of(hits, page)
         return Page(p.rows.map { it.copy(ownerName = Notify.playerName(it.owner) ?: it.owner.take(8)) }, p.total, p.page, p.size)
     }
+
+    private fun watchStats() = Watchlist.summary(WATCH_TOP).let { s -> WatchStats(s.total, s.players, s.items, s.top.map { WatchTop(it.first, it.second) }) }
 
     private fun starters(): StarterList {
         val goods = Config.s.starterGoods

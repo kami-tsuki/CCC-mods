@@ -22,6 +22,7 @@ import kami.economy.economy.Stocks
 import kami.economy.economy.Auctions
 import kami.economy.economy.StackCodec
 import kami.economy.economy.TradeStatus
+import kami.economy.economy.Watchlist
 import kami.economy.economy.SellResult
 import kami.economy.economy.BuyResult
 import kami.economy.economy.OrderResult
@@ -131,6 +132,15 @@ object Net {
             }
             "notify" -> {
                 Notify.mute(p.stringUUID, a.args.getOrNull(0) ?: "", a.args.getOrNull(1) == "off")
+                send(p)
+            }
+            "watch" -> {
+                val item = a.args.getOrNull(0).orEmpty()
+                if (a.args.getOrNull(1) == "off") Watchlist.remove(p.stringUUID, item) else if (known(item)) Watchlist.add(p.stringUUID, item)
+                send(p)
+            }
+            "watch_import" -> {
+                Watchlist.import(p.stringUUID, a.args.getOrNull(0).orEmpty().split(',').distinct().filter(::known).take(Watchlist.CAP))
                 send(p)
             }
             "quote" -> {

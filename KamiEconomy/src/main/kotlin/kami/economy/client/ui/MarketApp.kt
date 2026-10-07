@@ -151,7 +151,15 @@ class MarketApp private constructor() : KamiApp() {
 
     fun detail(item: String): Detail? = details[item]
 
+    private fun importWatch(next: Snap) {
+        val legacy = MarketPrefs.prefs.watch ?: return
+        if (legacy.isNotEmpty() && next.watch.isEmpty()) request("watch_import", legacy.distinct().joinToString(","))
+        MarketPrefs.prefs.watch = null
+        MarketPrefs.save()
+    }
+
     fun update(next: Snap, notify: Boolean) {
+        if (!loaded) importWatch(next)
         snap = next
         loaded = true
         views["${next.view}|${queries[next.view].orEmpty()}"] = next

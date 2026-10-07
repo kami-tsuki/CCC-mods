@@ -112,7 +112,7 @@ class DashboardPage(private val app: PersonalApp) : Page() {
                 trend = Trend(net30, tr("kami_essentials.personal.balance.month", Format.signed(net30))), spark = trail, flashValue = a.balance,
                 onClick = { app.navigate(Route("bank.movements")) }),
             KpiTile(tr("kami_essentials.personal.net7"), Format.signedMoney(net7), Icons.STATS, amountColor(net7),
-                sub = tr("kami_essentials.personal.net7.sub", Format.compact(week.sumOf { it.income }), Format.compact(week.sumOf { it.expense })),
+                sub = tr("kami_essentials.personal.net7.sub", Format.number(week.sumOf { it.income }), Format.number(week.sumOf { it.expense })),
                 onClick = { app.navigate(Route("bank.breakdown")) }),
             KpiTile(tr("kami_essentials.personal.playtime"), Format.duration(a.playtime), Icons.CLOCK),
             KpiTile(tr("kami_essentials.personal.kd"), "${Format.number(a.kills)} / ${Format.number(a.deaths)}", Icons.FIRE,
@@ -121,7 +121,7 @@ class DashboardPage(private val app: PersonalApp) : Page() {
         val (left, right) = r.dropTop(TILE_H + 6).columns(listOf(1.35f, 1f), 6)
         ui.anchor("personal:chart", left)
         val chart = ui.card(left, tr("kami_essentials.personal.chart"), Icons.STATS, help = tr("kami_essentials.personal.help.chart.desc"))
-        ui.barChart(chart, days.map { it.income }, days.map { it.expense }, days.map { Format.dayLabel(it.day) }, format = { Format.money(it, compact = true) }, key = "personal-chart")
+        ui.barChart(chart, days.map { it.income }, days.map { it.expense }, days.map { Format.dayLabel(it.day) }, format = { Format.money(it) }, key = "personal-chart")
         val f = Flow(right, 6)
         val you = Flow(ui.card(f.take(48), tr("kami_libs.common.you"), Icons.PERSON), 1)
         ui.property(you.take(11), tr("kami_libs.common.country"), a.country ?: tr("kami_libs.common.none"), if (a.country == null) Palette.textMuted else Palette.text)
@@ -180,8 +180,8 @@ private class BreakdownPage : Page() {
         val box = ui.card(flows, tr("kami_essentials.bank.flows"), Icons.LEDGER)
         val columns = listOf(
             Column.text<FlowTotal>(tr("kami_essentials.bank.col.flow"), -1, color = { flowColor(it.flow) }) { it.flow.label },
-            Column.number<FlowTotal>(tr("kami_essentials.bank.income"), 60, color = { Palette.success }, format = { Format.money(it, compact = true) }) { it.income },
-            Column.number<FlowTotal>(tr("kami_essentials.bank.expense"), 60, color = { Palette.danger }, format = { Format.money(it, compact = true) }) { it.expense },
+            Column.number<FlowTotal>(tr("kami_essentials.bank.income"), 60, color = { Palette.success }, format = { Format.money(it) }) { it.income },
+            Column.number<FlowTotal>(tr("kami_essentials.bank.expense"), 60, color = { Palette.danger }, format = { Format.money(it) }) { it.expense },
             Column.number<FlowTotal>(tr("kami_essentials.bank.col.net"), 72, color = { amountColor(it.income - it.expense) }, format = { Format.signedMoney(it) }) { it.income - it.expense }
         )
         ui.table(box, columns, rows, table, { it.flow }, emptyText = tr("kami_essentials.bank.breakdown.empty"), key = "bank-flows", loading = Personal.loading)
@@ -196,7 +196,7 @@ private class BreakdownPage : Page() {
             ui.skeletonLines(Rect(body.x, body.y + size + 6, body.w, body.bottom - body.y - size - 6), 2)
             return
         }
-        ui.donut(Rect(body.x + (body.w - size) / 2, body.y, size, size), slices, Format.compact(slices.sumOf { it.value }), key)
+        ui.donut(Rect(body.x + (body.w - size) / 2, body.y, size, size), slices, Format.number(slices.sumOf { it.value }), key)
         if (slices.isEmpty()) Draw.textCentered(ui.g, tr("kami_libs.chart.no_data"), Rect(body.x, body.y + size + 2, body.w, 12), Palette.textMuted)
         else ui.legend(body.x, body.y + size + 6, body.w, slices.map { it.color to it.label })
     }

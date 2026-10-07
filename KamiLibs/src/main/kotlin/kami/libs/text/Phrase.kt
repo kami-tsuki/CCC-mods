@@ -43,8 +43,8 @@ class Phrase(val key: String = "", val args: List<Phrase> = emptyList(), val tex
         fun or(key: String, fallback: Phrase) = Phrase(key, fallback = fallback)
         fun literal(text: Any) = Phrase(text = text.toString())
         fun value(v: Any) = wrap(v).asValue()
-        fun plural(key: String, n: Long) = of(if (n == 1L) "$key.one" else "$key.other", Format.number(n))
-        fun money(n: Long) = of("kami_libs.unit.money", Format.number(n)).asValue()
+        fun plural(key: String, n: Long) = of(if (n == 1L) "$key.one" else "$key.other", Format.full(n))
+        fun money(n: Long) = of("kami_libs.unit.money", Format.full(n)).asValue()
 
         fun parse(text: String): Phrase? =
             if (text.startsWith("{\"")) runCatching { json.decodeFromString<Phrase>(text) }.getOrNull() else null

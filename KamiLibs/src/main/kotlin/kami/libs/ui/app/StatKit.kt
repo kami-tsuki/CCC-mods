@@ -62,7 +62,7 @@ fun idLabel(id: String): String {
 
 fun statLabel(row: StatRow) = row.name.ifEmpty { idLabel(row.key) }
 
-fun Ui.statChart(r: Rect, title: String, icon: Icon, lines: List<StatLine>, format: (Long) -> String = { Format.compact(it) }, key: String) {
+fun Ui.statChart(r: Rect, title: String, icon: Icon, lines: List<StatLine>, format: (Long) -> String = { Format.number(it) }, key: String) {
     val body = card(r, title, icon)
     val ats = lines.flatMap { l -> l.points.map { it.at } }.distinct().sorted()
     val chart = if (lines.size > 1) body.dropTop(legend(body.x, body.y, body.w, lines.map { it.color to it.label }) + 2) else body
@@ -96,7 +96,7 @@ fun Ui.statDonut(r: Rect, title: String, icon: Icon, rows: List<StatRow>, key: S
         return
     }
     val slices = rows.take(DONUT_ROWS).mapIndexed { i, row -> Slice(statLabel(row), row.v, Palette.chart[i % Palette.chart.size]) }
-    donut(body.left(body.h), slices, if (center) Format.compact(slices.sumOf { it.value }) else null, key = key)
+    donut(body.left(body.h), slices, if (center) Format.number(slices.sumOf { it.value }) else null, key = key)
     val side = body.dropLeft(body.h, GAP)
     if (side.w >= 40) legend(side.x, side.y, side.w, slices.map { it.color to tr("kami_libs.format.pair", it.label, format(it.value)) })
 }
@@ -133,7 +133,7 @@ fun Ui.statPage(key: String, r: Rect, range: TimeRange, board: StatBoard, tiles:
     if (board.stale) staleVeil(body)
 }
 
-fun statChartCard(title: String, icon: Icon, key: String, lines: List<StatLine>, format: (Long) -> String = { Format.compact(it) }) =
+fun statChartCard(title: String, icon: Icon, key: String, lines: List<StatLine>, format: (Long) -> String = { Format.number(it) }) =
     StatCard(STAT_CHART_H) { statChart(it, title, icon, lines, format, key) }
 
 fun statTopCard(title: String, icon: Icon, rows: List<StatRow>, format: (Long) -> String = { Format.number(it) }) =

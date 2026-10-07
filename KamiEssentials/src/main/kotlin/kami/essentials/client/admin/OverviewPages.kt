@@ -168,7 +168,7 @@ internal class DashboardPage(private val app: AdminApp) : Page() {
         if (metricsH > 0) {
             val body = ui.card(left.bottom(metricsH), tr("kami_essentials.admin.metrics"), Icons.DASHBOARD)
             body.grid(cols, METRIC_H, metrics.size, 4).forEachIndexed { i, cell ->
-                ui.statTile(cell, metricLabel(metrics[i].key), Format.compact(metrics[i].value), key = "metric:${metrics[i].key}")
+                ui.statTile(cell, metricLabel(metrics[i].key), Format.number(metrics[i].value), key = "metric:${metrics[i].key}")
             }
         }
         val audit = ui.card(right, tr("kami_essentials.admin.latest_audit"), Icons.SCROLL)
@@ -206,7 +206,7 @@ internal class BankPage : Page() {
         val outflow = days.map { l -> l.sumOf { it.outflow } }
         fun net(n: Int) = inflow.takeLast(n).sum() - outflow.takeLast(n).sum()
         fun netTile(label: String, n: Int) = KpiTile(label, s?.let { Format.signedMoney(net(n)) }, Icons.STATS, amountColor(net(n)),
-            sub = s?.let { tr("kami_essentials.admin.in_out", Format.compact(inflow.takeLast(n).sum()), Format.compact(outflow.takeLast(n).sum())) })
+            sub = s?.let { tr("kami_essentials.admin.in_out", Format.number(inflow.takeLast(n).sum()), Format.number(outflow.takeLast(n).sum())) })
         ui.kpiRow(r.top(TILE_H), listOf(
             KpiTile(tr("kami_essentials.admin.balance"), s?.let { Format.money(it.balance) }, Icons.TREASURY, Palette.money, flashValue = s?.balance),
             netTile(tr("kami_libs.range.24h"), 1),
@@ -216,7 +216,7 @@ internal class BankPage : Page() {
         val chartBox = r.dropTop(TILE_H + 6).top(CHART_H)
         val chart = ui.card(chartBox, tr("kami_essentials.admin.bank.daily"), Icons.STATS)
         if (s == null) ui.skeleton(chart)
-        else ui.barChart(chart, inflow, outflow, List(days.size) { Format.dayLabel(today - CHART_DAYS + 1 + it) }, format = { Format.money(it, compact = true) }, key = "bank-daily")
+        else ui.barChart(chart, inflow, outflow, List(days.size) { Format.dayLabel(today - CHART_DAYS + 1 + it) }, format = { Format.money(it) }, key = "bank-daily")
         val body = filter.draw(ui, r.dropTop(TILE_H + CHART_H + 12))
         ui.pagedTable(body, paged, journalColumns(false), table, { it.id }, tr("kami_essentials.admin.journal.empty"), "bank-moves", ::journalSeverity)
     }

@@ -16,22 +16,33 @@ object Format {
 
     fun localeOf(code: String): Locale = code.split('_', '-').let { Locale.of(it[0], it.getOrElse(1) { "" }.uppercase()) }
 
-    fun number(n: Long, locale: Locale = this.locale): String = NumberFormat.getIntegerInstance(locale).format(n)
+    private const val COMPACT_FROM = 100_000L
+    private val compacts = object : LinkedHashMap<String, String>(256, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?) = size > 256
+    }
+
+    fun full(n: Long, locale: Locale = this.locale): String = NumberFormat.getIntegerInstance(locale).format(n)
     fun number(n: Int): String = number(n.toLong())
+
+    fun expand(text: String): String? {
+        if (compacts.isEmpty() || text.none { it.isDigit() }) return null
+        return compacts.entries.firstOrNull { text.contains(it.key) }?.let { text.replace(it.key, it.value) }
+    }
 
     fun decimal(v: Double, digits: Int = 1, locale: Locale = this.locale): String = String.format(locale, "%.${digits}f", v)
 
-    fun compact(n: Long): String {
+    fun number(n: Long): String {
         val v = abs(n)
         val sign = if (n < 0) "-" else ""
-        if (v < 100_000) return sign + number(v)
+        if (v < COMPACT_FROM) return full(n)
         val units = listOf(1_000_000_000_000L to "trillion", 1_000_000_000L to "billion", 1_000_000L to "million", 1_000L to "thousand")
         val (div, unit) = units.first { v >= it.first }
-        val scaled = v.toDouble() / div
-        return sign + tr("kami_libs.unit.$unit", if (scaled < 10) decimal(scaled) else number(scaled.toLong()))
+        val text = sign + tr("kami_libs.unit.$unit", decimal(v.toDouble() / div))
+        compacts[text] = full(n)
+        return text
     }
 
-    fun money(n: Long, compact: Boolean = false) = tr("kami_libs.unit.money", if (compact) compact(n) else number(n))
+    fun money(n: Long) = tr("kami_libs.unit.money", number(n))
     fun signed(n: Long) = (if (n > 0) "+" else if (n < 0) "-" else "±") + number(abs(n))
     fun signedMoney(n: Long) = tr("kami_libs.unit.money", signed(n))
     fun perDay(amount: String) = tr("kami_libs.unit.per_day", amount)

@@ -64,8 +64,12 @@ object EcoDb {
         "CREATE TABLE eco_kept_coins (uuid TEXT NOT NULL, item TEXT NOT NULL, count INTEGER NOT NULL, PRIMARY KEY (uuid, item))"
     ))
 
+    private val v4 = Migration("eco", 4, "watchlist", ddl = listOf(
+        "CREATE TABLE eco_watch (player TEXT NOT NULL, item TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (player, item))"
+    ))
+
     fun register() {
-        Migrations.register("eco", listOf(v1, v2, v3), after = listOf("libs"))
+        Migrations.register("eco", listOf(v1, v2, v3, v4), after = listOf("libs"))
         SavePoint.register("economy") { SavePoint.join(Market.changes() + History.changes() + listOf(Ledger.changes(), TradeStatus.changes())) }
     }
 }

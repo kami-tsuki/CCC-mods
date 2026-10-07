@@ -66,11 +66,11 @@ internal class EconomyPage : Page() {
             val (topBox, bracketBox) = s.take(CARD_H).columns(2, GAP)
             val top = ui.card(topBox, tr("kami_essentials.admin.economy.top"), Icons.CROWN)
             if (now == null) ui.skeleton(top)
-            else ui.barChart(top, now.top.map { it.amount.coerceAtLeast(0) }, emptyList(), now.top.map { it.name }, format = { Format.money(it, compact = true) }, key = "eco-top")
+            else ui.barChart(top, now.top.map { it.amount.coerceAtLeast(0) }, emptyList(), now.top.map { it.name }, format = { Format.money(it) }, key = "eco-top")
             val brackets = ui.card(bracketBox, tr("kami_essentials.admin.economy.brackets"), Icons.STATS)
             if (now == null) ui.skeleton(brackets)
             else ui.barChart(brackets, now.brackets.map { it.count.toLong() }, emptyList(), now.brackets.map {
-                if (it.max <= 0) Format.money(0) else tr("kami_essentials.admin.economy.bracket", Format.compact(it.min), Format.compact(it.max))
+                if (it.max <= 0) Format.money(0) else tr("kami_essentials.admin.economy.bracket", Format.number(it.min), Format.number(it.max))
             }, format = { Format.number(it) }, key = "eco-brackets")
             val (giniBox, flowBox) = s.take(FLOW_H).columns(2, GAP)
             giniChart(ui, giniBox, days, stale)
@@ -80,14 +80,14 @@ internal class EconomyPage : Page() {
     }
 
     private fun kpis(ui: Ui, r: Rect, d: WealthDay?) = ui.kpiRow(r, listOf(
-        KpiTile(tr("kami_essentials.admin.economy.supply"), d?.let { Format.money(supply(it), compact = true) }, Icons.COIN, Palette.money, flashValue = d?.let(::supply)),
-        KpiTile(tr("kami_essentials.admin.economy.players"), d?.let { Format.money(it.players, compact = true) }, Icons.PEOPLE,
-            sub = d?.let { tr("kami_essentials.admin.economy.players.sub", Format.number(it.playerCount.toLong()), Format.money(it.median, compact = true)) }),
-        KpiTile(tr("kami_essentials.admin.economy.countries"), d?.let { Format.money(it.countries, compact = true) }, Icons.FLAG,
-            sub = d?.let { tr("kami_essentials.admin.economy.negative", Format.money(it.countriesNegative, compact = true)) }),
-        KpiTile(tr("kami_essentials.admin.economy.escrow"), d?.let { Format.money(it.escrow, compact = true) }, Icons.LOCK),
-        KpiTile(tr("kami_libs.metric.coins"), d?.let { Format.money(it.coins, compact = true) }, Icons.COIN),
-        KpiTile(tr("kami_essentials.admin.nav.bank"), d?.let { Format.money(it.bank, compact = true) }, Icons.TREASURY, amountColor(d?.bank ?: 0L))
+        KpiTile(tr("kami_essentials.admin.economy.supply"), d?.let { Format.money(supply(it)) }, Icons.COIN, Palette.money, flashValue = d?.let(::supply)),
+        KpiTile(tr("kami_essentials.admin.economy.players"), d?.let { Format.money(it.players) }, Icons.PEOPLE,
+            sub = d?.let { tr("kami_essentials.admin.economy.players.sub", Format.number(it.playerCount.toLong()), Format.money(it.median)) }),
+        KpiTile(tr("kami_essentials.admin.economy.countries"), d?.let { Format.money(it.countries) }, Icons.FLAG,
+            sub = d?.let { tr("kami_essentials.admin.economy.negative", Format.money(it.countriesNegative)) }),
+        KpiTile(tr("kami_essentials.admin.economy.escrow"), d?.let { Format.money(it.escrow) }, Icons.LOCK),
+        KpiTile(tr("kami_libs.metric.coins"), d?.let { Format.money(it.coins) }, Icons.COIN),
+        KpiTile(tr("kami_essentials.admin.nav.bank"), d?.let { Format.money(it.bank) }, Icons.TREASURY, amountColor(d?.bank ?: 0L))
     ), key = "eco-kpi")
 
     private fun supplyChart(ui: Ui, r: Rect, days: List<WealthDay>?, stale: Boolean) {
@@ -97,7 +97,7 @@ internal class EconomyPage : Page() {
             Series(tr("kami_essentials.admin.economy.supply"), days.map(::supply), Palette.chart[0], area = true),
             Series(tr("kami_essentials.admin.economy.players"), days.map { it.players }, Palette.chart[1]),
             Series(tr("kami_essentials.admin.economy.countries"), days.map { it.countries + it.countriesNegative }, Palette.chart[2])
-        ), days.map { Format.dayLabel(it.day) }, format = { Format.money(it, compact = true) }, key = "eco-supply")
+        ), days.map { Format.dayLabel(it.day) }, format = { Format.money(it) }, key = "eco-supply")
         if (stale) ui.staleVeil(body)
     }
 
@@ -115,7 +115,7 @@ internal class EconomyPage : Page() {
             Slice(tr("kami_libs.metric.coins"), d.coins.coerceAtLeast(0), Palette.chart[4]),
             Slice(tr("kami_essentials.admin.nav.bank"), d.bank.coerceAtLeast(0), Palette.chart[0])
         )
-        ui.donut(body.left(body.h), slices, Format.compact(slices.sumOf { it.value }), key = "eco-donut")
+        ui.donut(body.left(body.h), slices, Format.number(slices.sumOf { it.value }), key = "eco-donut")
         val side = body.dropLeft(body.h, GAP)
         val legend = ui.legend(side.x, side.y, side.w, slices.map { it.color to it.label })
         ui.stackedBar(Rect(side.x, side.y + legend + 4, side.w, 10), slices, key = "eco-stack")
@@ -148,11 +148,11 @@ internal class EconomyPage : Page() {
         ui.pager(body.top(CONTROL_H).right(110), index, days.size, key = "eco-day")?.let { picked = it }
         val rows = (d.minted.keys + d.voided.keys).sortedBy { it.ordinal }.map { FlowRow(it, d.minted[it] ?: 0L, d.voided[it] ?: 0L) }
         val chart = body.dropTop(CONTROL_H, 4).top(FLOW_CHART_H)
-        ui.barChart(chart, rows.map { it.minted }, rows.map { it.voided }, rows.map { it.flow.label }, format = { Format.money(it, compact = true) }, key = "eco-flows")
+        ui.barChart(chart, rows.map { it.minted }, rows.map { it.voided }, rows.map { it.flow.label }, format = { Format.money(it) }, key = "eco-flows")
         ui.table(body.dropTop(CONTROL_H + FLOW_CHART_H + 8), listOf(
             Column.text<FlowRow>(tr("kami_essentials.admin.col.flow"), -1) { it.flow.label },
-            Column.number<FlowRow>(tr("kami_essentials.admin.economy.minted"), 64, color = { Palette.success }, format = { Format.money(it, compact = true) }) { it.minted },
-            Column.number<FlowRow>(tr("kami_essentials.admin.economy.voided"), 64, color = { Palette.danger }, format = { Format.money(it, compact = true) }) { it.voided },
+            Column.number<FlowRow>(tr("kami_essentials.admin.economy.minted"), 64, color = { Palette.success }, format = { Format.money(it) }) { it.minted },
+            Column.number<FlowRow>(tr("kami_essentials.admin.economy.voided"), 64, color = { Palette.danger }, format = { Format.money(it) }) { it.voided },
             Column.number<FlowRow>(tr("kami_essentials.admin.economy.net"), 64, color = { amountColor(it.minted - it.voided) }, format = { Format.signedMoney(it) }) { it.minted - it.voided }
         ), rows, table, { it.flow }, emptyText = tr("kami_essentials.admin.economy.flows.empty"), key = "eco-flow-table")
     }

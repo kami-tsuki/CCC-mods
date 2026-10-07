@@ -84,11 +84,9 @@ internal class ItemPage(val app: MarketApp) : Page() {
     override fun actionsWidth() = SMALL_H
 
     override fun actions(ui: Ui, r: Rect) {
-        val pinned = item in MarketPrefs.prefs.watch
-        if (ui.iconButton(Rect(r.x, r.y, SMALL_H, SMALL_H), Icons.STAR, tr(if (pinned) "kami_economy.watch.unpin" else "kami_economy.watch.pin"), selected = pinned, key = "watch-pin")) {
-            if (pinned) MarketPrefs.prefs.watch.remove(item) else MarketPrefs.prefs.watch.add(item)
-            MarketPrefs.save()
-        }
+        val pinned = app.loaded && item in app.snap.watch
+        if (ui.iconButton(Rect(r.x, r.y, SMALL_H, SMALL_H), Icons.STAR, tr(if (pinned) "kami_economy.watch.unpin" else "kami_economy.watch.pin"), selected = pinned, key = "watch-pin"))
+            app.request("watch", item, if (pinned) "off" else "on")
     }
 
     override fun leaving(next: Route): Boolean {
@@ -110,7 +108,7 @@ internal class ItemPage(val app: MarketApp) : Page() {
             KpiTile(tr("kami_economy.col.sell"), d?.let { priceText(it.sell.toLong()) }, color = Palette.money, tip = Tip.text(tr("kami_economy.kpi.sell", d?.lot ?: 1))),
             KpiTile(tr("kami_economy.item.spread"), d?.let { if (it.buy > 0 && it.sell > 0) Format.money((it.buy - it.sell).toLong()) else "–" }, tip = Tip.text(tr("kami_economy.kpi.spread"))),
             KpiTile(tr("kami_economy.col.change"), d?.let { permille(delta) }, color = if (delta > 0) Palette.success else if (delta < 0) Palette.danger else Palette.textMuted, tip = Tip.text(tr("kami_economy.col.change.tip"))),
-            KpiTile(tr("kami_economy.item.sold_bought"), d?.let { "${Format.compact(it.sold)} / ${Format.compact(it.bought)}" }, tip = Tip.text(tr("kami_economy.kpi.traded")))
+            KpiTile(tr("kami_economy.item.sold_bought"), d?.let { "${Format.number(it.sold)} / ${Format.number(it.bought)}" }, tip = Tip.text(tr("kami_economy.kpi.traded")))
         ), key = "item-kpi")
         val main = r.dropTop(66)
         val ticketW = if (main.w < 440) main.w * 5 / 12 else TICKET_W

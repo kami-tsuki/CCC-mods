@@ -22,12 +22,15 @@ import kami.libs.ui.widget.*
 private const val KPI_H = 34
 private const val CARD_H = 124
 private const val STAT_H = 20
+private const val WATCH_H = 96
 private const val LEADER_H = 12
 private val MEDALS = listOf(0xFFE0B040.toInt(), 0xFFBFC3C9.toInt(), 0xFFB8733B.toInt())
 
 internal class DashboardPage(val app: MarketApp) : Page() {
     override val title get() = tr("kami_economy.nav.dashboard")
     override val help get() = listOf(Callout("dashboard:cards", tr("kami_economy.help.dashboard"), tr("kami_economy.help.dashboard.desc")))
+
+    private val watchList = WatchList(app, "dash-watch", app::openItem)
 
     override fun opened(route: Route) = app.view("dashboard")
 
@@ -40,7 +43,7 @@ internal class DashboardPage(val app: MarketApp) : Page() {
         val s = app.snap
         val wide = r.w >= 480
         val cardsH = if (wide) CARD_H else 3 * CARD_H + 12
-        ui.scroll("dashboard", r, KPI_H + cardsH + STAT_H + SMALL_H + 18) { c ->
+        ui.scroll("dashboard", r, KPI_H + cardsH + WATCH_H + STAT_H + SMALL_H + 24) { c ->
             val flow = Flow(c, 6)
             ui.kpiRow(flow.take(KPI_H), listOf(
                 KpiTile(tr("kami_economy.dash.funds"), Format.money(s.funds), Icons.COIN, Palette.money),
@@ -59,6 +62,10 @@ internal class DashboardPage(val app: MarketApp) : Page() {
                 top(ui, cells[1], tr("kami_economy.dash.bought"), dash.topBought) { it.bought }
                 leaders(ui, cells[2], dash)
             }
+            val watch = ui.card(flow.take(WATCH_H), tr("kami_economy.dash.watch"))
+            val watched = app.cached("dashboard")
+            if (watched != null && watched.watch.isEmpty()) Draw.text(ui.g, tr("kami_economy.dash.watch.empty"), watch.x, watch.y + 2, Palette.textMuted)
+            else watchList.draw(ui, watch, watched, app.loading("dashboard"))
             val stat = flow.take(STAT_H)
             if (dash == null) ui.skeleton(stat.top(8).withWidth(stat.w * 2 / 3))
             else Draw.paragraph(ui.g, tr("kami_economy.dash.stats", dash.items, dash.asks, dash.bids, dash.auctions, Format.number(dash.traded)), stat.x, stat.y, stat.w, Palette.textSecondary)
@@ -80,7 +87,7 @@ internal class DashboardPage(val app: MarketApp) : Page() {
             if (ui.hovering(line)) Draw.fill(ui.g, line, Palette.hover)
             ui.itemIcon(line.x + 1, line.y + 1, app.stack(row.item), key)
             val price = priceText(row.buy.toLong())
-            val count = Format.compact(units(row))
+            val count = Format.number(units(row))
             Draw.text(ui.g, price, line.right - Draw.width(price) - 2, line.y + 5, Palette.money)
             val countX = line.right - 62 - Draw.width(count)
             Draw.text(ui.g, count, countX, line.y + 5, Palette.textMuted)
@@ -103,7 +110,7 @@ internal class DashboardPage(val app: MarketApp) : Page() {
             var x = inner.x + 16
             if (l.flag != null || l.color != 0) { ui.flag(Rect(x, y, 11, 8), l.color, l.flag); x += 14 }
             Draw.text(ui.g, Draw.fit(l.name, inner.right - x - 60), x, y, Palette.text)
-            ui.moneyRight(inner.right, y, l.value, compact = true)
+            ui.moneyRight(inner.right, y, l.value)
             y += LEADER_H
         }
         return y

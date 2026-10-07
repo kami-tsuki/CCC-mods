@@ -55,7 +55,7 @@ private fun playerColumns() = listOf(
     playerColumn<PlayerRow>(tr("kami_libs.common.name"), { it.uuid }, { it.name }, { it.online }),
     Column.text<PlayerRow>(tr("kami_libs.common.country"), 80) { it.country.orEmpty() },
     Column.text<PlayerRow>(tr("kami_libs.common.rank"), 60) { it.rank.orEmpty() },
-    Column.number<PlayerRow>(tr("kami_essentials.admin.balance"), 64, color = { Palette.money }, format = { Format.money(it, compact = true) }) { it.balance },
+    Column.number<PlayerRow>(tr("kami_essentials.admin.balance"), 64, color = { Palette.money }, format = { Format.money(it) }) { it.balance },
     Column.number<PlayerRow>(tr("kami_essentials.admin.col.seen"), 60, format = { Format.ago(it) }) { it.lastSeen },
     Column.number<PlayerRow>(tr("kami_essentials.admin.col.playtime"), 56, format = { Format.duration(it) }) { it.playtimeMs },
     Column.number<PlayerRow>(tr("kami_essentials.admin.col.warns"), 40, color = { if (it.warns > 0) Palette.warning else Palette.textMuted }) { it.warns.toLong() },

@@ -49,7 +49,7 @@ internal class FrozenPage(private val app: KamiApp) : Page() {
         itemColumn<FrozenRow>(tr("kami_libs.common.item"), { it.item }),
         Column.number<FrozenRow>(tr("kami_economy.personal.col.qty"), 32) { it.qty.toLong() },
         tipColumn<FrozenRow>(tr("kami_economy.admin.col.owed"), 56, compareBy { it.owed }, { row -> row.payeeText().takeIf { it.isNotEmpty() }?.let { Tip.text(it, tr("kami_economy.admin.col.payees")) } },
-            Align.RIGHT, { Palette.money }) { Format.money(it.owed, compact = true) },
+            Align.RIGHT, { Palette.money }) { Format.money(it.owed) },
         Column<FrozenRow>("", 2 * ROW_H + 2) { _, cell, row ->
             val (release, close) = cell.columnsFixed(cell.h, cell.h, gap = 2)
             val args = listOf(row.id.toString())

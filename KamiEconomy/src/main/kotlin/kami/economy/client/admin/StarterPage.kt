@@ -47,7 +47,7 @@ import kotlinx.serialization.json.Json
 
 private val OPTIONAL = setOf("target", "cap", "max")
 
-private fun limit(v: Int?) = v?.takeIf { it > 0 }?.let { Format.compact(it.toLong()) } ?: "-"
+private fun limit(v: Int?) = v?.takeIf { it > 0 }?.let { Format.number(it.toLong()) } ?: "-"
 
 private fun limitsTip(g: StarterGood) = Tip(tr("kami_economy.admin.col.limits"), listOf(
     "${tr("kami_economy.admin.col.depth")}: ${Format.number(g.depth)}" to Palette.textSecondary,
@@ -70,7 +70,7 @@ internal class StarterPage(private val app: KamiApp) : Page() {
         num("lot", 28) { it.lot },
         num("target", 36) { it.target },
         tipColumn<StarterRow>(tr("kami_economy.admin.col.limits"), 52, compareBy { it.good.depth }, { limitsTip(it.good) }, Align.RIGHT) {
-            "${Format.compact(it.good.depth.toLong())}/${limit(it.good.dailyCap)}/${limit(it.good.max)}"
+            "${Format.number(it.good.depth.toLong())}/${limit(it.good.dailyCap)}/${limit(it.good.max)}"
         },
         Column<StarterRow>("∞", 22, tip = tr("kami_economy.admin.col.infinite")) { _, cell, row ->
             toggle(cell.inset(0, 1), row.good.infinite, enabled = lock == null, disabledReason = lock, tip = tr("kami_economy.admin.col.infinite"), key = "market-starter:inf:${row.good.item}")

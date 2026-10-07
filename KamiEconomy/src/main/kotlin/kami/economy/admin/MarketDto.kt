@@ -22,3 +22,9 @@ class FrozenRow(val id: Long, val type: String, val state: String, val actor: St
 
 @Serializable
 class StatusRow(val item: String, val flags: String, val reason: String, val by: String, val byName: String, val at: Long, val rev: String)
+
+@Serializable
+class WatchTop(val item: String, val count: Int)
+
+@Serializable
+class WatchStats(val total: Int, val players: Int, val items: Int, val top: List<WatchTop>)

@@ -47,7 +47,7 @@ class EcoDbTest {
         files.forEach { assertTrue(Files.exists(world.resolve("$it.migrated"))); assertFalse(Files.exists(world.resolve(it))) }
         Db.close()
         Db.open(file)
-        assertEquals(3, Db.read { one("SELECT COUNT(*) AS n FROM libs_migration WHERE module = 'eco'") { it.int("n") } })
+        assertEquals(4, Db.read { one("SELECT COUNT(*) AS n FROM libs_migration WHERE module = 'eco'") { it.int("n") } })
         check()
     }
 

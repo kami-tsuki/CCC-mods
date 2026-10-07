@@ -144,8 +144,8 @@ fun Ui.statusPill(x: Int, y: Int, label: String, severity: Severity, tip: String
     return w
 }
 
-fun Ui.money(x: Int, y: Int, amount: Long, signed: Boolean = false, compact: Boolean = false, color: Int? = null): Int {
-    val text = (if (signed) Format.signed(amount).substringBefore(" ") else if (compact) Format.compact(amount) else Format.number(amount))
+fun Ui.money(x: Int, y: Int, amount: Long, signed: Boolean = false, color: Int? = null): Int {
+    val text = if (signed) Format.signed(amount).substringBefore(" ") else Format.number(amount)
     val c = color ?: when {
         signed && amount > 0 -> Palette.success
         signed && amount < 0 -> Palette.danger
@@ -156,11 +156,10 @@ fun Ui.money(x: Int, y: Int, amount: Long, signed: Boolean = false, compact: Boo
     return Draw.component(g, Glyphs.component(Glyphs.Glyph.COIN), end + 1, y, Palette.money) - x
 }
 
-fun moneyWidth(amount: Long, signed: Boolean = false, compact: Boolean = false) =
-    Draw.width(if (signed) Format.signed(amount) else if (compact) Format.compact(amount) else Format.number(amount)) + 10
+fun moneyWidth(amount: Long, signed: Boolean = false) = Draw.width(if (signed) Format.signed(amount) else Format.number(amount)) + 10
 
-fun Ui.moneyRight(right: Int, y: Int, amount: Long, signed: Boolean = false, compact: Boolean = false, color: Int? = null) =
-    money(right - moneyWidth(amount, signed, compact), y, amount, signed, compact, color)
+fun Ui.moneyRight(right: Int, y: Int, amount: Long, signed: Boolean = false, color: Int? = null) =
+    money(right - moneyWidth(amount, signed), y, amount, signed, color)
 
 fun Ui.banner(r: Rect, severity: Severity, title: String, body: String? = null, action: String? = null, key: Any = "banner:$title"): Boolean {
     Draw.fill(g, r, severity.tint)

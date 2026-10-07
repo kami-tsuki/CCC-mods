@@ -23,7 +23,7 @@ import kami.libs.ui.widget.KpiTile
 
 private fun List<StatPoint>.lastValue() = lastOrNull()?.v?.toLong() ?: 0L
 
-private val moneyText = { v: Long -> Format.money(v, compact = true) }
+private val moneyText = { v: Long -> Format.money(v) }
 private val powerText = { v: Long -> WarPage.power(v / 100.0) }
 private val fameText = { v: Long -> WarPage.stars(v / 100.0) }
 
@@ -97,7 +97,7 @@ internal class CountryStatsPage : Page() {
         ui.statPage("country-stats", r, range, board, tiles, cards)
     }
 
-    private fun chart(title: String, icon: Icon, key: String, lines: List<StatLine>, format: (Long) -> String = { Format.compact(it) }) =
+    private fun chart(title: String, icon: Icon, key: String, lines: List<StatLine>, format: (Long) -> String = { Format.number(it) }) =
         statChartCard(title, icon, "country-stats:$key", lines, format)
 
     private fun top(title: String, icon: Icon, q: StatQuery, format: (Long) -> String = { Format.number(it) }) = statTopCard(title, icon, board[q].rows, format)
@@ -150,6 +150,6 @@ internal class CountryStats(id: String) {
         ui.statPage("country-detail-stats", r, range, board, tiles, cards)
     }
 
-    private fun chart(title: String, icon: Icon, key: String, lines: List<StatLine>, format: (Long) -> String = { Format.compact(it) }) =
+    private fun chart(title: String, icon: Icon, key: String, lines: List<StatLine>, format: (Long) -> String = { Format.number(it) }) =
         statChartCard(title, icon, "country-detail-stats:$key", lines, format)
 }

@@ -1,6 +1,7 @@
 package kami.libs.ui.core
 
 import kami.libs.ui.style.Draw
+import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icon
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
@@ -14,6 +15,7 @@ import kami.libs.ui.anim.Sparks
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.screens.Screen
+import org.joml.Vector3f
 import org.lwjgl.glfw.GLFW
 
 enum class Cursor(val shape: Int) { ARROW(GLFW.GLFW_ARROW_CURSOR), HAND(GLFW.GLFW_HAND_CURSOR), TEXT(GLFW.GLFW_IBEAM_CURSOR), MOVE(GLFW.GLFW_CROSSHAIR_CURSOR) }
@@ -89,6 +91,7 @@ class Ui {
     var anchors: Map<String, Rect> = emptyMap()
         private set
     private var tip: Tip? = null
+    private var numberTip: String? = null
     private var tipKey: String? = null
     private var shownTipKey: String? = null
     private var tipHover: String? = null
@@ -152,14 +155,20 @@ class Ui {
         anchorsNext.clear()
         nextBlockers = ArrayList()
         if (input.presses.isNotEmpty()) keyboardMode = false
+        numberTip = null
+        Draw.hover = { gg, text, x, y, w -> numberHover(gg, text, x, y, w, mx, my) }
         g.pose().pushPose()
         g.pose().scale(scale, scale, 1f)
         try {
             draw()
             runOverlays()
             drawParticles()
+            numberTip?.let { t -> if (tip == null) tooltip("number:$t", screen, t) }
             drawTooltip()
-        } finally { g.pose().popPose() }
+        } finally {
+            Draw.hover = null
+            g.pose().popPose()
+        }
         handleTabbing()
         blockers = nextBlockers
         escapes = nextEscapes.sortedByDescending { it.first }
@@ -264,6 +273,14 @@ class Ui {
             g.disableScissor()
             clips.removeAt(clips.lastIndex)
         }
+    }
+
+    private fun numberHover(g: GuiGraphics, text: String, x: Int, y: Int, w: Int, mx: Int, my: Int) {
+        val m = g.pose().last().pose()
+        val a = m.transformPosition(Vector3f(x.toFloat(), y.toFloat(), 0f))
+        val b = m.transformPosition(Vector3f((x + w).toFloat(), (y + 9).toFloat(), 0f))
+        if (mx < a.x || mx >= b.x || my < a.y || my >= b.y || !g.containsPointInScissor(mx, my)) return
+        Format.expand(text)?.let { numberTip = it }
     }
 
     fun tooltip(key: Any, r: Rect, delay: Long = tooltipDelay, build: () -> Tip?) {
