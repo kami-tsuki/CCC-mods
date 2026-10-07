@@ -24,7 +24,6 @@ object Queue {
         val online = players?.players?.mapTo(HashSet()) { it.stringUUID }.orEmpty()
         country.members.keys.count { it in online }
     }
-    var refreshCrafting: (Country) -> Unit = { RecipeFilter.refreshCrafting(it) }
 
     internal const val MAX_STEP_MS = 60_000L
     private const val XP_PER_NODE_LEVEL = 100L
@@ -178,7 +177,6 @@ object Queue {
             if (entry.remainingMs <= 0) Research.defs.node(entry.node)?.let { complete(country, it) }
         }
         autostart(country)
-        ResearchSync.refresh(country)
     }
 
     fun dropOrphans() = Realm.data.countries.values.filter { it.active }.forEach { country ->
@@ -191,6 +189,18 @@ object Queue {
         ResearchSync.touch(country)
     }
 
+    fun rescope(vararg countries: Country?) = countries.filterNotNull().forEach { country ->
+        val orphans = if (settings.enabled) country.research.queue.filter { Research.defs.nodeFor(country, it.node) == null } else emptyList()
+        orphans.forEach { entry ->
+            Research.defs.node(entry.node)?.takeIf { entry.paid && it.cost > 0 }?.let { Treasury.bank(country, LedgerKind.RESEARCH, it.cost, null, entry.node) }
+        }
+        if (orphans.isNotEmpty()) {
+            country.research.queue.removeAll(orphans)
+            Realm.changed()
+        }
+        ResearchSync.touch(country)
+    }
+
     fun complete(country: Country, node: Node) {
         markDone(country, node.key)
         Stats.event("research.done", "c:${country.id}", node.key)
@@ -198,7 +208,6 @@ object Queue {
         if (settings.announce) Mail.broadcast(country, Phrase.of("kami_claims.research.mail.done", node.label().asValue()), Tone.OK)
         Realm.changed()
         ResearchSync.touch(country)
-        refreshCrafting(country)
     }
 
     fun grant(country: Country, key: String) {
@@ -207,7 +216,6 @@ object Queue {
         markDone(country, key)
         Realm.changed()
         ResearchSync.touch(country)
-        refreshCrafting(country)
     }
 
     fun revoke(country: Country, key: String) {

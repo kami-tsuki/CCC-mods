@@ -93,7 +93,7 @@ class DebtsPage(private val host: KamiApp) : Page() {
         loans.forEach { loan ->
             val row = Row(stack.take(CONTROL_H), 4)
             val remaining = loan.total - loan.paid
-            val title = tr("kami_claims.research.unlock.loan", Format.money(loan.principal))
+            val title = if (loan.party.isEmpty()) tr("kami_claims.research.unlock.loan", Format.money(loan.principal)) else tr("kami_claims.loans.card.from", loan.party, Format.money(loan.principal))
             val reason = if (info.treasury < remaining) tr("kami_claims.loans.reason.funds", Format.money(remaining)) else null
             val label = tr("kami_claims.loans.repay")
             if (ui.edgeButton(row, label, Icons.CHECK, enabled = reason == null, disabledReason = reason, pending = ClaimsStore.isPending("loan_repay:${loan.id}"), key = "debts-loan:${loan.id}")) {

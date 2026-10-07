@@ -2,6 +2,7 @@ package kami.claims.research
 
 import kami.claims.Country
 import net.minecraft.resources.ResourceLocation
+import java.util.concurrent.ConcurrentHashMap
 
 class IdSet(ids: Set<String>) {
     private val byNamespace = ids.groupBy({ it.substringBefore(':', "minecraft") }, { it.substringAfter(':') }).mapValues { it.value.toHashSet() }
@@ -22,7 +23,7 @@ class Why(val gated: Boolean, val nodes: List<String>, val levels: List<Int>, va
 object Gate {
     private class Entry(val country: Country, val unlocked: Unlocked)
 
-    private val cache = HashMap<String, Entry>()
+    private val cache = ConcurrentHashMap<String, Entry>()
     private var gatedRecipes = IdSet.EMPTY
     private var gatedBlocks = IdSet.EMPTY
 

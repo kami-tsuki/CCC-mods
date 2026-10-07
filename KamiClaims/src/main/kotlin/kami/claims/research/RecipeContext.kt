@@ -57,6 +57,15 @@ class ContextStack(private val resolve: (source: Any, pos: Long) -> String?) {
     }
 }
 
+class RecipeScope(private val source: Any?, private val resolve: () -> String?) {
+    private val bypass by lazy(LazyThreadSafetyMode.NONE) { (source as? ServerPlayer)?.let(RecipeFilter::bypassed) == true }
+    private val country by lazy(LazyThreadSafetyMode.NONE) { Realm.country(resolve()) }
+
+    fun allows(recipe: ResourceLocation) = !Gate.gated(recipe) || bypass || Gate.recipe(country, recipe)
+
+    fun allowsBlock(block: ResourceLocation) = !Gate.gatedBlock(block) || bypass || Gate.block(country, block)
+}
+
 object RecipeContext {
     @Volatile
     private var serverThread: Thread? = null
@@ -67,8 +76,25 @@ object RecipeContext {
         serverThread = thread
     }
 
+    private var suspended = 0
+
     @JvmStatic
-    val active get() = stack.active && Thread.currentThread() === serverThread
+    val active get() = suspended == 0 && stack.active && Thread.currentThread() === serverThread
+
+    @JvmStatic
+    fun suspend(): Boolean {
+        if (Thread.currentThread() !== serverThread) return false
+        suspended++
+        return true
+    }
+
+    @JvmStatic
+    fun resume(suspendedHere: Boolean) {
+        if (suspendedHere) suspended--
+    }
+
+    @JvmStatic
+    fun scope(): RecipeScope? = if (active) RecipeScope(stack.source()) { stack.country() } else null
 
     @JvmStatic
     fun push(source: Any, pos: Long): Boolean {

@@ -90,7 +90,7 @@ object Wars {
         if (pair > t) throw Fail("kami_claims.error.war.pair_cooldown", v(target.name), hours(pair - t))
         if (all(attacker).any { target.id in it.countries }) throw Fail("kami_claims.error.war.already", v(target.name))
         if (kind == WarKind.REGULAR) listOf(attacker, target).forEach { if (of(it) != null) throw Fail("kami_claims.error.war.busy", v(it.name)) }
-        if (stakes.vassal && target.parent != null) Loans.requireNoLoans(target, "kami_claims.error.war.province_loans")
+        if (stakes.vassal && target.parent != null) Loans.requireNoResearchLoans(target, "kami_claims.error.war.province_loans")
         return StakeRules.validate(attacker, target, kind, stakes)
     }
 

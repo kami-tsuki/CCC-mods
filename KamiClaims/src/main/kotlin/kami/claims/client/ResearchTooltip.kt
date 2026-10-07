@@ -11,11 +11,17 @@ object ResearchTooltip {
     private const val MAX_NODES = 3
     private val cache = HashMap<String, List<Component>>()
     private var registered = false
+    private var seenRev = -1
 
     fun init() {
         if (registered) return
         registered = true
-        ClientResearch.listen { cache.clear() }
+        ClientResearch.listen {
+            if (ClientResearch.rev != seenRev) {
+                seenRev = ClientResearch.rev
+                cache.clear()
+            }
+        }
         FORGE_BUS.addListener<ItemTooltipEvent> { event ->
             val id = ItemSpec.spec(event.itemStack)
             event.toolTip.addAll(cache.getOrPut(id) { lines(id) })

@@ -59,7 +59,7 @@ object Treasury {
         LedgerKind.RESEARCH -> Flow.RESEARCH
         LedgerKind.LEVEL_REWARD -> Flow.REWARD
         LedgerKind.FEE -> Flow.FEE
-        LedgerKind.LOAN_IN, LedgerKind.LOAN_PAYMENT -> Flow.LOAN
+        LedgerKind.LOAN_IN, LedgerKind.LOAN_PAYMENT, LedgerKind.LOAN_RESERVE, LedgerKind.LOAN_RELEASE, LedgerKind.LOAN_RETURN -> Flow.LOAN
         LedgerKind.WAR_FEE, LedgerKind.WAR_STAKE, LedgerKind.WAR_BILL, LedgerKind.WAR_DEBT -> Flow.WAR
     }
 

@@ -79,8 +79,9 @@ class ResearchPacketTest {
             listOf(emptyList(), listOf(true), listOf(true, false, false)),
             buffs = BuffsView(true, 3, 2, 3, 12, listOf(BuffView("buffs:speed_2", "minecraft:speed", 1, "aura", 0, 2, 2, true), BuffView("buffs:instant_health_1", "minecraft:instant_health", 0, "pulse", 300, 1, 1, false))),
             loans = LoansView(
-                true, 2, listOf(ActiveLoanView("small", 1000, 1309, 286, 186, 6, 95)),
-                listOf(LoanOfferView("small", 1000, 30, 7, 1300, 186, true, 10, 0), LoanOfferView("huge", 1_000_000, 50, 30, 1_500_000, 50_000, false, 125, 4)), true
+                true, 2, 3, 4, listOf(ActiveLoanView("small", 1000, 1309, 286, 186, 6, 95, "", 1)), listOf(ActiveLoanView("c1", 500, 600, 0, 60, 10, 0, "beta", 0)),
+                listOf(LoanOfferView("small", 1000, 30, 7, 1300, 186, true, 10, 0), LoanOfferView("huge", 1_000_000, 50, 30, 1_500_000, 50_000, false, 125, 4)),
+                listOf(MarketLoanView("c2", "gamma", 200, 5, 10, 15, 230, 46, -1, 30, "kami_claims.loans.blocked.war")), listOf(OwnLoanView("c3", 300, 7, 5, true, 10, -1, true, 2, "delta")), true, 3000, "kami_claims.loans.blocked.slots", "kami_claims.loans.error.offer_limit"
             )
         )
         val back = ResearchWire.decodeState(ResearchWire.encodeState(state))
@@ -95,8 +96,15 @@ class ResearchPacketTest {
         assertEquals(state.levelMet, back.levelMet)
         assertEquals(listOf(true, 3, 2, 3, 12), listOf(back.buffs.unlocked, back.buffs.points, back.buffs.used, back.buffs.surchargePerBorderChunk, back.buffs.borderChunks))
         assertEquals(state.buffs.list.map { listOf(it.key, it.effect, it.amplifier, it.mode, it.cooldownSeconds, it.cost, it.tax, it.enabled) }, back.buffs.list.map { listOf(it.key, it.effect, it.amplifier, it.mode, it.cooldownSeconds, it.cost, it.tax, it.enabled) })
-        assertEquals(listOf(true, 2, true), listOf(back.loans.unlocked, back.loans.slots, back.loans.inDefault))
-        assertEquals(state.loans.active.map { listOf(it.id, it.principal, it.total, it.paid, it.perDay, it.daysLeft, it.overdue) }, back.loans.active.map { listOf(it.id, it.principal, it.total, it.paid, it.perDay, it.daysLeft, it.overdue) })
+        assertEquals(listOf(true, 2, 3, 4, true), listOf(back.loans.unlocked, back.loans.slots, back.loans.used, back.loans.blockDays, back.loans.inDefault))
+        assertEquals(listOf(3000, "kami_claims.loans.blocked.slots", "kami_claims.loans.error.offer_limit"), listOf(back.loans.repMax, back.loans.takeLock, back.loans.lendLock))
+        fun active(l: List<ActiveLoanView>) = l.map { listOf(it.id, it.principal, it.total, it.paid, it.perDay, it.daysLeft, it.overdue, it.party, it.missed) }
+        assertEquals(active(state.loans.active), active(back.loans.active))
+        assertEquals(active(state.loans.lent), active(back.loans.lent))
+        fun market(l: List<MarketLoanView>) = l.map { listOf(it.id, it.lender, it.amount, it.termDays, it.interestPct, it.effectivePct, it.total, it.perDay, it.minRep, it.maxRep, it.blocked) }
+        assertEquals(market(state.loans.market), market(back.loans.market))
+        fun own(l: List<OwnLoanView>) = l.map { listOf(it.id, it.amount, it.termDays, it.interestPct, it.tariff, it.minRep, it.maxRep, it.relist, it.state, it.borrower) }
+        assertEquals(own(state.loans.own), own(back.loans.own))
         assertEquals(state.loans.offers.map { listOf(it.id, it.amount, it.interestPct, it.termDays, it.total, it.perDay, it.unlocked, it.level, it.cooldownDays) }, back.loans.offers.map { listOf(it.id, it.amount, it.interestPct, it.termDays, it.total, it.perDay, it.unlocked, it.level, it.cooldownDays) })
     }
 }

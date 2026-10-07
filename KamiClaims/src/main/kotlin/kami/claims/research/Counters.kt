@@ -14,6 +14,6 @@ object Counters {
         if (amount <= 0) return
         country.counters.merge(kind, amount, Long::plus)
         if (subject.isNotBlank()) country.counters.merge("$kind:$subject", amount, Long::plus)
-        ResearchSync.refresh(country)
+        if (kind in Research.defs.counterKeys || "$kind:$subject" in Research.defs.counterKeys) ResearchSync.refresh(country)
     }
 }

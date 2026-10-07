@@ -5,7 +5,10 @@ import kami.claims.research.BuffState
 import kami.claims.research.Buffs
 import kami.claims.research.Capacity
 import kami.claims.research.Levels
+import kami.claims.research.Loans
+import kami.claims.research.Queue
 import kami.claims.research.ResearchState
+import kami.claims.net.ResearchSync
 import kami.claims.service.Housing
 import kami.claims.service.Announce
 import kami.claims.service.Work
@@ -96,7 +99,7 @@ class JobDef(var pay: Int, var quota: Int, var period: Int)
 class ProvinceOffer(val until: Long, val mode: TaxMode, val amount: Double, val answered: Boolean = false)
 
 @Serializable
-enum class LedgerKind { DEPOSIT, WITHDRAW, CLAIM, UPKEEP, PLOT_TAX, JOB_PAY, TRIBUTE_IN, TRIBUTE_OUT, ADJUST, TARIFF, RESEARCH, LEVEL_REWARD, FEE, LOAN_IN, LOAN_PAYMENT, WAR_FEE, WAR_STAKE, WAR_BILL, WAR_DEBT }
+enum class LedgerKind { DEPOSIT, WITHDRAW, CLAIM, UPKEEP, PLOT_TAX, JOB_PAY, TRIBUTE_IN, TRIBUTE_OUT, ADJUST, TARIFF, RESEARCH, LEVEL_REWARD, FEE, LOAN_IN, LOAN_PAYMENT, WAR_FEE, WAR_STAKE, WAR_BILL, WAR_DEBT, LOAN_RESERVE, LOAN_RELEASE, LOAN_RETURN }
 
 @Serializable
 class LedgerEntry(val at: Long, val kind: LedgerKind, val amount: Long, val balance: Long, val actor: String? = null, val note: String = "")
@@ -157,7 +160,16 @@ class Claim(
 }
 
 @Serializable
-class Loan(val id: String, val principal: Long, var total: Long, var paid: Long, val perDay: Long, val takenDay: Long, var overdue: Long = 0, var overdueDay: Long = 0)
+class Loan(val id: String, val principal: Long, var total: Long, var paid: Long, val perDay: Long, val takenDay: Long, var overdue: Long = 0, var overdueDay: Long = 0, val lender: String? = null, var missed: Int = 0)
+
+@Serializable
+enum class LendState { DISABLED, ACTIVE, LENT }
+
+@Serializable
+class LendOffer(
+    val id: String, val amount: Long, val termDays: Int, val interestPct: Int, val tariff: Boolean, val minRep: Int, val maxRep: Int, val relist: Boolean,
+    var state: LendState = LendState.DISABLED, var borrower: String? = null, val created: Long = now()
+)
 
 @Serializable
 class Rating(val stars: Int, val at: Long, val hours: Double)
@@ -209,6 +221,8 @@ class Country(
     val buffs: BuffState = BuffState(),
     val loans: MutableList<Loan> = mutableListOf(),
     val loanCooldowns: MutableMap<String, Long> = mutableMapOf(),
+    val lendOffers: MutableList<LendOffer> = mutableListOf(),
+    var loanBlockDay: Long = 0,
     val offer: Offer = Offer(mutableSetOf(Claimant.CITIZEN), Config.s.rentDefaults.toMutableMap()),
     var rentDebtLimit: Long = 50,
     var moveOutDays: Int = 3,
@@ -413,6 +427,8 @@ object Realm {
         c.requests.remove(id)
         home[id] = c.id
         syncAllies()
+        ResearchSync.refresh(c)
+        ResearchSync.menus(c)
         changed()
     }
 
@@ -424,6 +440,7 @@ object Realm {
         Work.forget(c, id)
         syncAllies()
         Housing.departed(c, id, reason)
+        ResearchSync.menus(null)
         changed()
     }
 
@@ -431,6 +448,7 @@ object Realm {
         if (!c.active) return
         WarDebt.forgive(c.id)
         Stats.event("country.disband", "c:${c.id}")
+        Loans.dissolve(c)
         Treasury.drain(c, Flow.DISBAND, "disband")
         val tenants = claims(c.id).filter { it.owner != null }
         unclaimAll(claims(c.id).filter { it.owner == null })
@@ -440,8 +458,10 @@ object Realm {
         c.requests.clear()
         c.parent?.let { country(it)?.provinces?.remove(c.id) }
         c.parent = null
-        c.provinces.forEach { pid -> country(pid)?.let { it.parent = null; it.provinceDebt = 0; it.independenceRequested = false } }
+        val children = c.provinces.mapNotNull { country(it) }
+        children.forEach { it.parent = null; it.provinceDebt = 0; it.independenceRequested = false }
         c.provinces.clear()
+        Queue.rescope(*children.toTypedArray())
         c.alliances.clear()
         c.allianceOffers.clear()
         data.countries.values.forEach { it.alliances.remove(c.id); it.allianceOffers.remove(c.id); it.tradePolicy.remove(c.id) }

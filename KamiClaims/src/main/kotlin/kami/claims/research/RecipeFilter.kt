@@ -6,28 +6,35 @@ import kami.claims.social.Perms
 import kami.libs.chat.Chat
 import kami.libs.chat.Tone
 import kami.libs.chat.bar
+import kami.libs.log.Log
 import kami.libs.text.Phrase
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
-import net.minecraft.world.inventory.CraftingContainer
+import net.minecraft.world.Container
+import net.minecraft.world.entity.player.Inventory
 import net.minecraft.world.item.crafting.RecipeHolder
 import net.minecraft.world.level.block.Block
 import net.neoforged.neoforge.server.ServerLifecycleHooks
 import java.lang.reflect.Method
+import java.util.Collections
+import java.util.IdentityHashMap
 import java.util.Optional
 
 object RecipeFilter {
+    private val log = Log.of("research")
+
     @JvmStatic
     fun locked(holder: RecipeHolder<*>) = !RecipeContext.allowed(holder.id)
 
     @JvmStatic
     fun <H : RecipeHolder<*>> holders(list: List<H>): List<H> {
-        if (list.isEmpty() || !RecipeContext.active) return list
+        if (list.isEmpty()) return list
+        val scope = RecipeContext.scope() ?: return list
         var kept: ArrayList<H>? = null
         for (i in list.indices) {
             val holder = list[i]
-            if (RecipeContext.allowed(holder.id)) kept?.add(holder)
+            if (scope.allows(holder.id)) kept?.add(holder)
             else if (kept == null) kept = ArrayList<H>(list.size).also { it.addAll(list.subList(0, i)) }
         }
         return kept ?: list
@@ -39,8 +46,9 @@ object RecipeFilter {
 
     @JvmStatic
     fun blockRecipes(recipes: List<Any>): List<Any> {
-        if (recipes.isEmpty() || !RecipeContext.active) return recipes
-        val kept = recipes.filter { RecipeContext.allowedBlock(resultBlock(it) ?: return@filter true) }
+        if (recipes.isEmpty()) return recipes
+        val scope = RecipeContext.scope() ?: return recipes
+        val kept = recipes.filter { scope.allowsBlock(resultBlock(it) ?: return@filter true) }
         return if (kept.size == recipes.size) recipes else kept
     }
 
@@ -68,13 +76,17 @@ object RecipeFilter {
         return true
     }
 
-    /** Recomputes the crafting result of members with an open grid, so a recipe unlocked mid-craft shows up without moving an item. */
-    fun refreshCrafting(country: Country) {
-        val players = ServerLifecycleHooks.getCurrentServer()?.playerList ?: return
-        players.players.filter { it.stringUUID in country.members }.forEach { player ->
+    fun refreshOpen(country: Country?) {
+        val players = ServerLifecycleHooks.getCurrentServer()?.playerList?.players ?: return
+        for (player in players) {
+            if (country != null && player.stringUUID !in country.members) continue
             val menu = player.containerMenu
-            val grid = menu.slots.firstOrNull { it.container is CraftingContainer }?.container ?: return@forEach
-            runCatching { RecipeContext.run(player, 0L) { menu.slotsChanged(grid) } }
+            val seen = Collections.newSetFromMap(IdentityHashMap<Container, Boolean>())
+            for (slot in menu.slots) {
+                if (slot.container is Inventory || !seen.add(slot.container)) continue
+                runCatching { RecipeContext.run(player, 0L) { menu.slotsChanged(slot.container) } }
+                    .onFailure { log.warn("Open menu refresh failed for {}", player.gameProfile.name, it) }
+            }
         }
     }
 }

@@ -19,20 +19,35 @@ import java.util.UUID
 
 object ResearchSync {
     private val log = Log.of("research")
+    private class Sent(val view: String, val own: String)
+
+    private const val REFRESH_TICKS = 10
+    private const val MAX_DEFS_BYTES = 900_000
+
     private val dirty = HashSet<String>()
-    private val sentCountry = HashMap<UUID, String>()
+    private val pending = HashSet<String>()
+    private val sentCountry = HashMap<UUID, Sent>()
     private val sentDefs = HashMap<UUID, Int>()
+    private val failing = HashSet<UUID>()
+    private val menus = HashSet<String?>()
     private var defsRev = 0
+    private var oversizeLogged = -1
+    private var ticks = 0
     private var defsPacket: ResearchDefsPacket? = null
 
     fun refresh(country: Country) {
-        dirty += country.id
+        pending += country.id
     }
 
     fun touch(country: Country) {
         Gate.invalidate(country)
         Buffs.prune(country)
         dirty += country.id
+        menus += country.id
+    }
+
+    fun menus(country: Country?) {
+        menus += country?.id
     }
 
     fun defsChanged() {
@@ -40,30 +55,66 @@ object ResearchSync {
         defsPacket = null
     }
 
-    fun reset() { dirty.clear(); sentCountry.clear(); sentDefs.clear() }
+    fun reset() { dirty.clear(); pending.clear(); sentCountry.clear(); sentDefs.clear(); failing.clear(); menus.clear() }
 
     fun forget(p: ServerPlayer) {
         sentCountry.remove(p.uuid)
         sentDefs.remove(p.uuid)
+        failing.remove(p.uuid)
     }
 
     fun flush(server: MinecraftServer) {
-        server.playerList.players.filter { it.connection.hasChannel(ResearchStatePacket.TYPE) }.forEach { p ->
-            runCatching { send(p) }.onFailure { log.error("Research sync failed for {}", p.gameProfile.name, it) }
+        if (++ticks % REFRESH_TICKS == 0 && pending.isNotEmpty()) {
+            dirty += pending
+            pending.clear()
+        }
+        val built = HashMap<String, StateView>()
+        for (p in server.playerList.players) {
+            if (!p.connection.hasChannel(ResearchStatePacket.TYPE)) continue
+            try {
+                send(p, built)
+                failing.remove(p.uuid)
+            } catch (e: Exception) {
+                sentCountry.remove(p.uuid)
+                if (failing.add(p.uuid)) log.error("Research sync failed for {}", p.gameProfile.name, e)
+            }
         }
         dirty.clear()
+        if (menus.isEmpty()) return
+        if (null in menus) RecipeFilter.refreshOpen(null) else menus.filterNotNull().forEach { id -> Realm.country(id)?.let(RecipeFilter::refreshOpen) }
+        menus.clear()
     }
 
-    private fun send(p: ServerPlayer) {
-        val home = Sync.viewed(p) ?: Realm.of(p.stringUUID)
+    private fun send(p: ServerPlayer, built: HashMap<String, StateView>) {
+        val own = Realm.of(p.stringUUID)
+        val viewed = Sync.viewed(p)
+        val shown = viewed ?: own
         val sendDefs = sentDefs[p.uuid] != defsRev
         if (sendDefs) {
-            PacketDistributor.sendToPlayer(p, defsPacket ?: ResearchDefsPacket(ResearchWire.encodeDefs(defs())).also { defsPacket = it })
+            pushDefs(p)
             sentDefs[p.uuid] = defsRev
         }
-        if (sendDefs || home?.id in dirty || sentCountry[p.uuid] != home?.id.orEmpty()) {
-            PacketDistributor.sendToPlayer(p, ResearchStatePacket(state(p, home)))
-            sentCountry[p.uuid] = home?.id.orEmpty()
+        val sent = sentCountry[p.uuid]
+        val view = shown?.id.orEmpty()
+        val ownId = own?.id.orEmpty()
+        val stale = sent == null || sent.view != view || sent.own != ownId || (shown != null && shown.id in dirty) || (own != null && own.id in dirty)
+        if (!sendDefs && !stale) return
+        val base = shown?.let { c -> built.getOrPut(c.id) { build(c) } } ?: StateView.NONE
+        val ownBase = own?.let { c -> built.getOrPut(c.id) { build(c) } }
+        val state = base.copy(
+            canManage = shown != null && Perms.has(p, Perms.capNode(Cap.RESEARCH)) && Oversight.may(shown, p, Cap.RESEARCH),
+            ownCountry = ownBase?.country.orEmpty(), ownLevel = ownBase?.level ?: 0, ownDone = ownBase?.done.orEmpty()
+        )
+        PacketDistributor.sendToPlayer(p, ResearchStatePacket(state))
+        sentCountry[p.uuid] = Sent(view, ownId)
+    }
+
+    private fun pushDefs(p: ServerPlayer) {
+        val packet = defsPacket ?: ResearchDefsPacket(ResearchWire.encodeDefs(defs())).also { defsPacket = it }
+        if (packet.data.size <= MAX_DEFS_BYTES) return PacketDistributor.sendToPlayer(p, packet)
+        if (oversizeLogged != defsRev) {
+            oversizeLogged = defsRev
+            log.error("Research defs are {} bytes, over the {} byte packet budget; clients get no research data", packet.data.size, MAX_DEFS_BYTES)
         }
     }
 
@@ -73,15 +124,14 @@ object ResearchSync {
         LevelView(level, config.xpFor(level), unlocks(config.rewards[level].orEmpty()), config.requirements(level).take(MAX_LINKS).map { it.describe().json() })
     }
 
-    internal fun state(p: ServerPlayer, country: Country?): StateView {
-        if (country == null) return StateView.NONE
+    internal fun build(country: Country): StateView {
         val levels = Research.defs.levels
         val level = Research.level(country)
         val trees = Research.defs.treesFor(country)
         val open = trees.flatMap { it.nodes }.filter { it.key !in country.research.done }
         return StateView(
             country.id, level, country.xp, levels.xpFor(level), if (level >= levels.top) 0 else levels.xpFor(level + 1), country.treasury,
-            Perms.has(p, Perms.capNode(Cap.RESEARCH)) && Oversight.may(country, p, Cap.RESEARCH),
+            false,
             country.research.done.keys.toList(),
             country.research.queue.map { entry ->
                 val tasks = Research.defs.node(entry.node)?.tasks.orEmpty()

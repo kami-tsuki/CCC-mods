@@ -8,6 +8,7 @@ import kami.claims.service.Oversight
 import kami.claims.service.Planner
 import kami.claims.service.Service
 import kami.claims.service.View
+import kami.claims.social.Perms
 import kami.claims.world.Effects
 import kami.libs.net.Packets
 
@@ -264,6 +265,7 @@ object Net {
 
     private fun close(p: ServerPlayer) {
         openPlayers -= p.uuid
+        Sync.view(p, "")
         val queue = deferred[p.uuid] ?: return
         queue.removeAll { it.kind == "open" && it.rids.isEmpty() }
         queue.filter { it.kind == "open" }.forEach { it.open = false }
@@ -271,6 +273,7 @@ object Net {
     }
 
     private fun perform(p: ServerPlayer, a: ActPayload) {
+        if (!Perms.has(p, Perms.USE)) return send(p, Reply(Phrase.of("kami_claims.error.permission").json(), false, a.rid, "DENIED"))
         val tick = p.server.tickCount
         if (!lastAct.ready(p.uuid, tick, Config.s.guiCooldown)) return send(p, Reply(Phrase.of("kami_claims.error.rate_limited").json(), false, a.rid, "COOLDOWN"))
         val reply = try {

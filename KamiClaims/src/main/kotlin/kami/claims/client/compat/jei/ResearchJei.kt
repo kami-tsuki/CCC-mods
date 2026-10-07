@@ -13,11 +13,14 @@ import mezz.jei.api.registration.IRecipeRegistration
 import mezz.jei.api.runtime.IJeiRuntime
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.item.crafting.RecipeHolder
+import net.neoforged.bus.api.EventPriority
 import net.neoforged.neoforge.client.event.ClientTickEvent
 import net.neoforged.neoforge.common.NeoForge
 import java.util.function.Consumer
 
 private typealias HolderType = RecipeType<RecipeHolder<*>>
+
+private const val CHUNK = 500
 
 @JeiPlugin
 class ResearchJei : IModPlugin {
@@ -30,8 +33,13 @@ class ResearchJei : IModPlugin {
     private val registered = LinkedHashSet<NodeView>()
     private var shown = emptySet<NodeView>()
     private var dirty = false
+    private var seenRev = -1
+    private val pending = ArrayDeque<Pair<Entry, Boolean>>()
     private var stopListening: (() -> Unit)? = null
-    private val onTick = Consumer<ClientTickEvent.Post> { if (dirty) refresh() }
+    private val onTick = Consumer<ClientTickEvent.Post> {
+        if (dirty) refresh()
+        drain()
+    }
 
     override fun getPluginUid(): ResourceLocation = ResourceLocation.fromNamespaceAndPath("kami_claims", "research")
 
@@ -50,9 +58,13 @@ class ResearchJei : IModPlugin {
         runtime = jeiRuntime
         index = null
         applied = emptySet()
+        pending.clear()
         dirty = true
-        stopListening = ClientResearch.listen { dirty = true; if (ClientResearch.defs !== indexedDefs) index = null }
-        NeoForge.EVENT_BUS.addListener(onTick)
+        stopListening = ClientResearch.listen {
+            if (ClientResearch.rev != seenRev) dirty = true
+            if (ClientResearch.defs !== indexedDefs) index = null
+        }
+        NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, ClientTickEvent.Post::class.java, onTick)
     }
 
     override fun onRuntimeUnavailable() {
@@ -62,6 +74,7 @@ class ResearchJei : IModPlugin {
         runtime = null
         index = null
         applied = emptySet()
+        pending.clear()
     }
 
     private fun open(): List<NodeView> = ClientResearch.trees.ifEmpty { ClientResearch.defs.trees }
@@ -72,13 +85,27 @@ class ResearchJei : IModPlugin {
     private fun refresh() {
         val manager = runtime?.recipeManager ?: return
         dirty = false
+        seenRev = ClientResearch.rev
         syncNodes(manager)
-        val diff = HiddenDiff.of(applied, ClientResearch.hiddenRecipes())
+        val target = ClientResearch.hiddenRecipes()
+        if (target === applied) return
+        val diff = HiddenDiff.of(applied, target)
+        applied = target
         if (diff.empty) return
         val entries = index ?: buildIndex(manager).also { index = it; indexedDefs = ClientResearch.defs }
-        toggle(manager, entries, diff.hide, hide = true)
-        toggle(manager, entries, diff.unhide, hide = false)
-        applied = ClientResearch.hiddenRecipes()
+        diff.hide.forEach { id -> entries[id]?.forEach { pending.addLast(it to true) } }
+        diff.unhide.forEach { id -> entries[id]?.forEach { pending.addLast(it to false) } }
+    }
+
+    private fun drain() {
+        val manager = runtime?.recipeManager ?: return
+        if (pending.isEmpty()) return
+        val batch = ArrayList<Pair<Entry, Boolean>>(CHUNK)
+        while (batch.size < CHUNK && pending.isNotEmpty()) batch += pending.removeFirst()
+        batch.groupBy { it.second to it.first.type }.forEach { (key, items) ->
+            val holders = items.map { it.first.holder }
+            if (key.first) manager.hideRecipes(key.second, holders) else manager.unhideRecipes(key.second, holders)
+        }
     }
 
     private fun syncNodes(manager: IRecipeManager) {
@@ -92,14 +119,6 @@ class ResearchJei : IModPlugin {
         (shown - wanted).takeIf { it.isNotEmpty() }?.let { manager.hideRecipes(ResearchCategory.TYPE, it) }
         (wanted - shown - fresh.toSet()).takeIf { it.isNotEmpty() }?.let { manager.unhideRecipes(ResearchCategory.TYPE, it) }
         shown = wanted
-    }
-
-    private fun toggle(manager: IRecipeManager, entries: Map<String, List<Entry>>, ids: Set<String>, hide: Boolean) {
-        ids.flatMap { entries[it].orEmpty() }
-            .groupBy({ it.type }, { it.holder })
-            .forEach { (type, holders) ->
-                if (hide) manager.hideRecipes(type, holders) else manager.unhideRecipes(type, holders)
-            }
     }
 
     @Suppress("UNCHECKED_CAST")

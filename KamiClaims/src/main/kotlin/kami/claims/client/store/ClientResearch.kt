@@ -23,6 +23,16 @@ object ClientResearch {
     private var blocks = IdExtras.empty(IdExtras.BLOCKS)
     private var hiddenBlocks = emptySet<String>()
     private var hidden = emptySet<String>()
+    private var doneSet = emptySet<String>()
+    private var availableSet = emptySet<String>()
+    private var queueByNode: Map<String, QueueView> = emptyMap()
+    private val missingCache = HashMap<String, List<NodeView>>()
+    private val unlockedByCache = HashMap<String, List<String>>()
+    private val unlockedByLevelsCache = HashMap<String, List<Int>>()
+    private var derivedFor: Triple<String, Int, List<String>>? = null
+    private var derivedDefs: DefsView? = null
+    var rev = 0
+        private set
     private var outputs: Map<String, List<String>>? = null
     private val listeners = ArrayList<() -> Unit>()
     private val changeListeners = ArrayList<(ResearchChange) -> Unit>()
@@ -54,7 +64,9 @@ object ClientResearch {
 
     fun total(node: NodeView) = node.timeMs + penalty(node.key)
 
-    fun missing(node: NodeView): List<NodeView> {
+    fun missing(node: NodeView): List<NodeView> = missingCache.getOrPut(node.key) { computeMissing(node) }
+
+    private fun computeMissing(node: NodeView): List<NodeView> {
         val memo = HashMap<String, Set<String>>()
         fun time(keys: Set<String>) = keys.sumOf { nodes[it]?.timeMs ?: 0L }
         fun deps(n: NodeView): Set<String> = memo[n.key] ?: run {
@@ -63,8 +75,8 @@ object ClientResearch {
             fun chain(key: String) = setOf(key) + (nodes[key]?.let(::deps) ?: emptySet())
             val any = n.anyRequires.mapNotNull { tree?.nodes?.getOrNull(it)?.key }
             val hard = n.requires.mapNotNull { tree?.nodes?.getOrNull(it)?.key }.filter { it !in any } + n.external
-            val choice = if (any.isEmpty() || any.any { it in state.done }) emptySet() else any.map(::chain).minBy(::time)
-            hard.filter { it !in state.done }.fold(choice) { acc, key -> acc + chain(key) }.also { memo[n.key] = it }
+            val choice = if (any.isEmpty() || any.any { it in doneSet }) emptySet() else any.map(::chain).minBy(::time)
+            hard.filter { it !in doneSet }.fold(choice) { acc, key -> acc + chain(key) }.also { memo[n.key] = it }
         }
         return deps(node).mapNotNull { nodes[it] }.sortedByDescending { it.timeMs }
     }
@@ -92,9 +104,11 @@ object ClientResearch {
 
     fun recipesLockingItem(itemId: String): List<String> = recipes.producing(itemId).let { all -> if (all.isNotEmpty() && hidden.containsAll(all)) all else emptyList() }
 
-    fun unlockedBy(recipeOrItemId: String): List<String> = (recipes.unlockedBy(recipeOrItemId) + blocks.unlockedBy(recipeOrItemId)).distinct()
+    fun unlockedBy(recipeOrItemId: String): List<String> =
+        unlockedByCache.getOrPut(recipeOrItemId) { (recipes.unlockedBy(recipeOrItemId) + blocks.unlockedBy(recipeOrItemId)).distinct() }
 
-    fun unlockedByLevels(recipeOrItemId: String): List<Int> = (recipes.unlockedByLevels(recipeOrItemId) + blocks.unlockedByLevels(recipeOrItemId)).distinct().sorted()
+    fun unlockedByLevels(recipeOrItemId: String): List<Int> =
+        unlockedByLevelsCache.getOrPut(recipeOrItemId) { (recipes.unlockedByLevels(recipeOrItemId) + blocks.unlockedByLevels(recipeOrItemId)).distinct().sorted() }
 
     fun levelRequirements(level: Int): List<Pair<Phrase, Boolean>> {
         val met = state.levelMet.getOrNull(level - 1).orEmpty()
@@ -116,11 +130,11 @@ object ClientResearch {
 
     fun conditionMet(key: String): List<Boolean>? = state.met[key]
 
-    fun queued(key: String): QueueView? = state.queue.firstOrNull { it.node == key }
+    fun queued(key: String): QueueView? = queueByNode[key]
 
     fun status(key: String): NodeStatus =
-        if (key in state.done) NodeStatus.DONE
-        else queued(key)?.let { NodeStatus.valueOf(it.state.name) } ?: if (key in state.available) NodeStatus.AVAILABLE else NodeStatus.LOCKED
+        if (key in doneSet) NodeStatus.DONE
+        else queued(key)?.let { NodeStatus.valueOf(it.state.name) } ?: if (key in availableSet) NodeStatus.AVAILABLE else NodeStatus.LOCKED
 
     fun receive(next: DefsView) {
         applyDefs(next)
@@ -153,6 +167,9 @@ object ClientResearch {
         recipes = IdExtras.decode(next.extras, IdExtras.RECIPES)
         blocks = IdExtras.decode(next.extras, IdExtras.BLOCKS)
         outputs = null
+        unlockedByCache.clear()
+        unlockedByLevelsCache.clear()
+        rev++
     }
 
     private fun applyState(next: StateView) {
@@ -161,16 +178,29 @@ object ClientResearch {
     }
 
     private fun loadState(next: StateView) {
+        val old = state
+        if (old.done != next.done || old.available != next.available || old.trees != next.trees || old.country != next.country || old.queue.size != next.queue.size ||
+            old.queue.indices.any { old.queue[it].node != next.queue[it].node || old.queue[it].state != next.queue[it].state }) rev++
         state = next
+        if (old.done != next.done) doneSet = next.done.toHashSet()
+        if (old.available != next.available) availableSet = next.available.toHashSet()
+        queueByNode = next.queue.associateBy { it.node }
+        missingCache.clear()
         receivedAt = System.currentTimeMillis()
     }
 
     private fun refreshDerived() {
         trees = defs.trees.filter { it.id in state.trees }
-        val done = if (state.country.isEmpty()) emptyList() else state.done
-        val level = if (state.country.isEmpty()) 0 else state.level
+        val key = Triple(state.ownCountry, state.ownLevel, state.ownDone)
+        if (derivedDefs === defs && derivedFor == key) return
+        derivedDefs = defs
+        derivedFor = key
+        val own = state.ownCountry.isNotEmpty()
+        val done = if (own) state.ownDone else emptyList()
+        val level = if (own) state.ownLevel else 0
         hidden = recipes.hidden(done, level)
         hiddenBlocks = blocks.hidden(done, level)
+        rev++
     }
 
     private fun notifyListeners() = listeners.toList().forEach { it() }

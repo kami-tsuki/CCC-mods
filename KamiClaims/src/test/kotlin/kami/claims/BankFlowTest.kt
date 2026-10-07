@@ -37,13 +37,11 @@ class BankFlowTest : WithDb() {
         Realm.reset(Data())
         Levels.day = { 1 }
         Levels.announce = {}
-        Queue.refreshCrafting = {}
     }
 
     @AfterTest
     fun restore() {
         Levels.day = ::today
-        Queue.refreshCrafting = { RecipeFilter.refreshCrafting(it) }
         Research.defs = ResearchDefs.EMPTY
     }
 

@@ -39,6 +39,7 @@ object CountryAdmin {
         next.rank = Rank.PRESIDENT
         Mail.broadcast(c, Phrase.of("kami_claims.mail.president"))
         Announce.fire("leaderHandover", c, mapOf("country" to c.name, "old" to old?.let { Names.of(server, it) }.orEmpty(), "leader" to Names.of(server, id)))
+        ResearchSync.refresh(c)
         Realm.changed()
     }
 

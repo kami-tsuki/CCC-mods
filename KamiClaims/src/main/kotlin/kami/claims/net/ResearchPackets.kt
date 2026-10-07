@@ -76,20 +76,34 @@ class BuffsView(val unlocked: Boolean, val points: Int, val used: Int, val surch
     }
 }
 
-class ActiveLoanView(val id: String, val principal: Long, val total: Long, val paid: Long, val perDay: Long, val daysLeft: Int, val overdue: Long)
+class ActiveLoanView(val id: String, val principal: Long, val total: Long, val paid: Long, val perDay: Long, val daysLeft: Int, val overdue: Long, val party: String = "", val missed: Int = 0)
 
 class LoanOfferView(
     val id: String, val amount: Long, val interestPct: Int, val termDays: Int, val total: Long, val perDay: Long,
     val unlocked: Boolean, val level: Int, val cooldownDays: Int
 )
 
-class LoansView(val unlocked: Boolean, val slots: Int, val active: List<ActiveLoanView>, val offers: List<LoanOfferView>, val inDefault: Boolean) {
+class MarketLoanView(
+    val id: String, val lender: String, val amount: Long, val termDays: Int, val interestPct: Int, val effectivePct: Int, val total: Long, val perDay: Long,
+    val minRep: Int, val maxRep: Int, val blocked: String
+)
+
+class OwnLoanView(
+    val id: String, val amount: Long, val termDays: Int, val interestPct: Int, val tariff: Boolean, val minRep: Int, val maxRep: Int, val relist: Boolean,
+    val state: Int, val borrower: String
+)
+
+class LoansView(
+    val unlocked: Boolean, val slots: Int, val used: Int, val blockDays: Int, val active: List<ActiveLoanView>, val lent: List<ActiveLoanView>,
+    val offers: List<LoanOfferView>, val market: List<MarketLoanView>, val own: List<OwnLoanView>, val inDefault: Boolean,
+    val repMax: Int, val takeLock: String, val lendLock: String
+) {
     companion object {
-        val NONE = LoansView(false, 0, emptyList(), emptyList(), false)
+        val NONE = LoansView(false, 0, 0, 0, emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), false, 0, "", "")
     }
 }
 
-class StateView(
+data class StateView(
     val country: String, val level: Int, val xp: Long, val xpFloor: Long, val xpCeiling: Long, val treasury: Long, val canManage: Boolean,
     val done: List<String>, val queue: List<QueueView>, val available: List<String>, val used: List<Int>, val max: List<Int>,
     val trees: List<String> = emptyList(), val met: Map<String, List<Boolean>> = emptyMap(), val levelMet: List<List<Boolean>> = emptyList(),
@@ -98,7 +112,8 @@ class StateView(
     val loans: LoansView = LoansView.NONE,
     val levelProgress: List<List<Pair<Long, Long>>> = emptyList(),
     val penalty: Map<String, Long> = emptyMap(),
-    val speedPct: Int = 0
+    val speedPct: Int = 0,
+    val ownCountry: String = "", val ownLevel: Int = 0, val ownDone: List<String> = emptyList()
 ) {
     fun used(key: Capacity) = used.getOrElse(key.ordinal) { 0 }
     fun max(key: Capacity) = max.getOrElse(key.ordinal) { 0 }
@@ -214,9 +229,11 @@ object ResearchWire {
         list(s.levelProgress) { row -> list(row) { varLong(it.first); varLong(it.second) } }
         list(s.penalty.entries.toList()) { utf(it.key, MAX_ID); varLong(it.value) }
         varInt(s.speedPct)
-    }.toBytes()
+        utf(s.ownCountry, MAX_COUNTRY).varInt(s.ownLevel)
+        list(s.ownDone) { utf(it, MAX_ID) }
+    }.toBytes().let { Blob.pack(it, DEFLATE_ABOVE) }
 
-    fun decodeState(data: ByteArray): StateView = WireReader(data).let { r ->
+    fun decodeState(data: ByteArray): StateView = WireReader(Blob.unpack(data, MAX_BYTES)).let { r ->
         StateView(
             r.utf(MAX_COUNTRY), r.varInt(), r.varLong(), r.varLong(), r.varLong(), r.varLong(), r.bool(),
             r.list(MAX_STATE_NODES) { r.utf(MAX_ID) },
@@ -234,7 +251,9 @@ object ResearchWire {
             r.loans(),
             r.list(MAX_LEVELS) { r.list(MAX_LINKS) { r.varLong() to r.varLong() } },
             r.list(MAX_STATE_NODES) { r.utf(MAX_ID) to r.varLong() }.toMap(),
-            r.varInt()
+            r.varInt(),
+            r.utf(MAX_COUNTRY), r.varInt(),
+            r.list(MAX_STATE_NODES) { r.utf(MAX_ID) }
         )
     }
 
@@ -250,23 +269,44 @@ object ResearchWire {
         list(MAX_STATE_NODES) { BuffView(utf(MAX_ID), utf(MAX_ID), varInt(), utf(MAX_MODE), varInt(), varInt(), varInt(), bool()) }
     )
 
+    private fun WireWriter.activeLoan(a: ActiveLoanView) =
+        utf(a.id, MAX_ID).varLong(a.principal).varLong(a.total).varLong(a.paid).varLong(a.perDay).varInt(a.daysLeft).varLong(a.overdue).utf(a.party, MAX_TEXT).varInt(a.missed)
+
+    private fun WireReader.activeLoan() = ActiveLoanView(utf(MAX_ID), varLong(), varLong(), varLong(), varLong(), varInt(), varLong(), utf(MAX_TEXT), varInt())
+
     private fun WireWriter.loans(l: LoansView) {
-        bool(l.unlocked).varInt(l.slots).bool(l.inDefault)
-        list(l.active) { a -> utf(a.id, MAX_ID).varLong(a.principal).varLong(a.total).varLong(a.paid).varLong(a.perDay).varInt(a.daysLeft).varLong(a.overdue) }
+        bool(l.unlocked).varInt(l.slots).varInt(l.used).varInt(l.blockDays).bool(l.inDefault).varInt(l.repMax).utf(l.takeLock, MAX_TEXT).utf(l.lendLock, MAX_TEXT)
+        list(l.active) { activeLoan(it) }
+        list(l.lent) { activeLoan(it) }
         list(l.offers) { o ->
             utf(o.id, MAX_ID).varLong(o.amount).varInt(o.interestPct).varInt(o.termDays).varLong(o.total).varLong(o.perDay).bool(o.unlocked).varInt(o.level).varInt(o.cooldownDays)
+        }
+        list(l.market) { m ->
+            utf(m.id, MAX_ID).utf(m.lender, MAX_TEXT).varLong(m.amount).varInt(m.termDays).varInt(m.interestPct).varInt(m.effectivePct).varLong(m.total).varLong(m.perDay)
+                .varInt(m.minRep).varInt(m.maxRep).utf(m.blocked, MAX_TEXT)
+        }
+        list(l.own) { o ->
+            utf(o.id, MAX_ID).varLong(o.amount).varInt(o.termDays).varInt(o.interestPct).bool(o.tariff).varInt(o.minRep).varInt(o.maxRep).bool(o.relist).varInt(o.state).utf(o.borrower, MAX_TEXT)
         }
     }
 
     private fun WireReader.loans(): LoansView {
         val unlocked = bool()
         val slots = varInt()
+        val used = varInt()
+        val blockDays = varInt()
         val inDefault = bool()
+        val repMax = varInt()
+        val takeLock = utf(MAX_TEXT)
+        val lendLock = utf(MAX_TEXT)
         return LoansView(
-            unlocked, slots,
-            list(MAX_LINKS) { ActiveLoanView(utf(MAX_ID), varLong(), varLong(), varLong(), varLong(), varInt(), varLong()) },
+            unlocked, slots, used, blockDays,
+            list(MAX_LINKS) { activeLoan() },
+            list(MAX_LINKS) { activeLoan() },
             list(MAX_LINKS) { LoanOfferView(utf(MAX_ID), varLong(), varInt(), varInt(), varLong(), varLong(), bool(), varInt(), varInt()) },
-            inDefault
+            list(MAX_LINKS) { MarketLoanView(utf(MAX_ID), utf(MAX_TEXT), varLong(), varInt(), varInt(), varInt(), varLong(), varLong(), varInt(), varInt(), utf(MAX_TEXT)) },
+            list(MAX_LINKS) { OwnLoanView(utf(MAX_ID), varLong(), varInt(), varInt(), bool(), varInt(), varInt(), bool(), varInt(), utf(MAX_TEXT)) },
+            inDefault, repMax, takeLock, lendLock
         )
     }
 }

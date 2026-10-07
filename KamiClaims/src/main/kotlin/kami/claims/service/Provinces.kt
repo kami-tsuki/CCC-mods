@@ -8,6 +8,7 @@ import kami.claims.ProvinceOffer
 import kami.claims.Realm
 import kami.claims.TaxMode
 import kami.claims.net.ResearchSync
+import kami.claims.research.Queue
 import kami.claims.now
 import kami.claims.overlordRanks
 import kami.claims.research.Capacity
@@ -68,7 +69,7 @@ object Provinces {
     fun request(child: Country, target: Country) {
         if (child.parent != null) throw Fail("kami_claims.error.already_province")
         WarLocks.warProvince(child)
-        Loans.requireNoLoans(child, "kami_claims.loans.error.province_join")
+        Loans.requireNoResearchLoans(child, "kami_claims.loans.error.province_join")
         WarLocks.diplomacy(child, target)
         if (target.id == child.id) throw Fail("kami_claims.error.province_self")
         if (target.parent != null) throw Fail("kami_claims.error.province_holder", v(target.name))
@@ -80,7 +81,7 @@ object Provinces {
     fun offer(child: Country, parent: Country): ProvinceOffer {
         if (child.parent != null) throw Fail("kami_claims.error.already_province")
         WarLocks.warProvince(child)
-        Loans.requireNoLoans(child, "kami_claims.loans.error.province_join")
+        Loans.requireNoResearchLoans(child, "kami_claims.loans.error.province_join")
         WarLocks.diplomacy(child, parent, *child.provinces.mapNotNull(Realm::country).toTypedArray())
         val offer = child.provinceInvites[parent.id] ?: throw Fail("kami_claims.error.no_province_invite")
         if (offer.until < now()) { child.provinceInvites.remove(parent.id); throw Fail("kami_claims.error.invite_expired") }
@@ -99,7 +100,7 @@ object Provinces {
         if ((parent.provinceRequests[child.id] ?: 0) < now()) throw Fail("kami_claims.error.no_province_request")
         if (child.parent != null) throw Fail("kami_claims.error.has_overlord")
         WarLocks.warProvince(child)
-        Loans.requireNoLoans(child, "kami_claims.loans.error.province_join")
+        Loans.requireNoResearchLoans(child, "kami_claims.loans.error.province_join")
         WarLocks.diplomacy(parent, child)
         Diplomacy.mutual(parent, child)
         parent.provinceRequests.remove(child.id)
@@ -115,6 +116,7 @@ object Provinces {
 
     fun finalize(child: Country, parent: Country, mode: TaxMode, amount: Double) {
         child.provinces.forEach { pid -> Realm.country(pid)?.let { it.parent = parent.id; it.resetOverlord() }; parent.provinces += pid }
+        val grand = child.provinces.mapNotNull { Realm.country(it) }
         child.provinces.clear()
         child.parent = parent.id
         child.taxMode = mode
@@ -127,6 +129,7 @@ object Provinces {
         parent.provinces += child.id
         Progress.report(parent, "province", child.id, 1, "province:${child.id}")
         Realm.syncAllies()
+        Queue.rescope(child, parent, *grand.toTypedArray())
         Mail.broadcast(child, Phrase.of("kami_claims.mail.province_joined", v(child.name), v(parent.name), Words.tribute(mode, amount)))
         Mail.broadcast(parent, Phrase.of("kami_claims.mail.province_added", v(child.name)))
         Announce.fire("provinceBecame", child, mapOf("province" to child.name, "parent" to parent.name, "other" to parent.name))
@@ -148,6 +151,7 @@ object Provinces {
         child.resetOverlord()
         parent.provinces.remove(child.id)
         Realm.syncAllies()
+        Queue.rescope(parent, child)
     }
 
     fun forgive(parent: Country, child: Country) {
@@ -221,6 +225,7 @@ object Provinces {
         child.independenceRequested = false
         child.resetOverlord()
         newParent.provinces += child.id
+        Queue.rescope(parent, child, newParent)
         Progress.report(newParent, "province", child.id, 1, "province:${child.id}")
         Realm.syncAllies()
         Mail.broadcast(child, Phrase.of("kami_claims.mail.province_given", v(child.name), v(newParent.name)))

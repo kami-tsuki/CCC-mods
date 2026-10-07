@@ -129,10 +129,6 @@ object KamiClaims {
 
                 override fun goals(player: UUID): List<Goal> = Realm.of(player.toString())?.let(Goals::of).orEmpty()
 
-                override fun allowedRecipe(country: String?, recipe: ResourceLocation) = Gate.recipe(Realm.live(country), recipe)
-
-                override fun allowedBlock(country: String?, block: ResourceLocation) = Gate.block(Realm.live(country), block)
-
                 override fun capacity(player: UUID, key: String): Int? = Realm.of(player.toString())?.let { c ->
                     Goals.capacity(key)?.let { Levels.capacity(c, it) }
                 }

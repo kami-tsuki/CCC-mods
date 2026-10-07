@@ -30,7 +30,12 @@ object Research {
     }
 
     fun resolve(server: MinecraftServer) {
-        val resolution = if (defs.settings.enabled) Resolver(ServerFacts.read(server), defs).run() else Resolution.EMPTY
+        val resolution = try {
+            if (defs.settings.enabled) Resolver(ServerFacts.read(server), defs).run() else Resolution.EMPTY
+        } catch (e: Exception) {
+            log.error("Research resolve failed; keeping the previous gate", e)
+            return
+        }
         Gate.install(resolution)
         problems = loadProblems + resolution.problems
         resolution.problems.forEach { log.warn("{}", it) }
@@ -41,6 +46,7 @@ object Research {
             log.info("{}: {} nodes, {} recipes, {} blocks", tree.id, tree.nodes.size, parts.flatMapTo(HashSet()) { it.recipes }.size, parts.flatMapTo(HashSet()) { it.blocks }.size)
         }
         ResearchSync.defsChanged()
+        ResearchSync.menus(null)
     }
 
     fun load(folder: ConfigFolder): List<String> {
@@ -53,7 +59,6 @@ object Research {
         val trees = folder.files("trees", TreeFile.serializer(), Defaults.trees, Docs.tree, "Research tree")
         val built = Validator.build(settings, levels, groups, trees, defs.trees, Defaults.trees)
         defs = built.defs
-        Gate.install(Resolution.EMPTY)
         Queue.dropOrphans()
         Levels.advanceAll()
         loadProblems = folder.problems + built.problems

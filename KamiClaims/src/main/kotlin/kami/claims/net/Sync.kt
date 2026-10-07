@@ -153,8 +153,12 @@ object Sync {
     private val subjects = HashMap<UUID, String>()
 
     fun focus(p: ServerPlayer, x: Int, z: Int) { focus[p.uuid] = Key(Service.here(p).dim, x, z) }
-    fun viewed(p: ServerPlayer): Country? =
-        viewing[p.uuid]?.let { Realm.country(it) }?.takeIf { it !== Realm.of(p.stringUUID) && Oversight.canView(it, p) }
+    fun viewed(p: ServerPlayer): Country? {
+        val name = viewing[p.uuid] ?: return null
+        val country = Realm.live(name)?.takeIf { it !== Realm.of(p.stringUUID) && Oversight.canView(it, p) }
+        if (country == null) viewing.remove(p.uuid)
+        return country
+    }
 
     fun view(p: ServerPlayer, name: String) { if (name.isBlank()) viewing.remove(p.uuid) else viewing[p.uuid] = name }
     fun watch(p: ServerPlayer, sections: List<String>) { watching[p.uuid] = sections.toSet() }

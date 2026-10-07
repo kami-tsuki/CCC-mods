@@ -2,7 +2,6 @@ package kami.libs.claims
 
 import kami.libs.text.Phrase
 import net.minecraft.core.BlockPos
-import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.level.Level
 import java.util.UUID
 
@@ -38,8 +37,6 @@ interface ClaimsProvider {
     fun lock(player: UUID, feature: String): Phrase? = null
     fun limit(player: UUID, key: String, used: Int): Phrase? = null
     fun goals(player: UUID): List<Goal> = emptyList()
-    fun allowedRecipe(country: String?, recipe: ResourceLocation): Boolean = true
-    fun allowedBlock(country: String?, block: ResourceLocation): Boolean = true
     fun traded(a: String, b: String, value: Long) {}
     fun tradeFactor(country: String): Double = 1.0
 }
@@ -80,8 +77,6 @@ object ClaimsApi {
     fun lock(player: UUID, feature: String): Phrase? = provider?.lock(player, feature)
     fun limit(player: UUID, key: String, used: Int): Phrase? = provider?.limit(player, key, used)
     fun goals(player: UUID): List<Goal> = provider?.goals(player).orEmpty()
-    fun allowedRecipe(country: String?, recipe: ResourceLocation): Boolean = provider?.allowedRecipe(country, recipe) ?: true
-    fun allowedBlock(country: String?, block: ResourceLocation): Boolean = provider?.allowedBlock(country, block) ?: true
     fun traded(a: String, b: String, value: Long) { provider?.traded(a, b, value) }
     fun tradeFactor(country: String): Double = provider?.tradeFactor(country) ?: 1.0
 

@@ -55,7 +55,7 @@ object Service {
     }
 
     private fun viewed(p: ServerPlayer): Country? =
-        acting?.let { Realm.country(it) ?: throw Fail("kami_claims.error.unknown_country") }?.takeIf { it !== Realm.of(p.stringUUID) }
+        acting?.let { Realm.live(it) ?: throw Fail("kami_claims.error.unknown_country") }?.takeIf { it !== Realm.of(p.stringUUID) }
 
     fun rankOf(c: Country, p: ServerPlayer) = c.members[p.stringUUID]?.rank ?: Rank.CITIZEN
 
@@ -87,6 +87,8 @@ object Service {
 
     private fun arg(a: List<String>, i: Int) = a.getOrNull(i) ?: throw Fail("kami_claims.error.missing_argument")
     private fun num(a: List<String>, i: Int) = arg(a, i).toIntOrNull() ?: throw Fail("kami_claims.error.number")
+
+    private fun long(a: List<String>, i: Int) = arg(a, i).toLongOrNull() ?: throw Fail("kami_claims.error.number")
     private fun <T : Enum<T>> find(values: Array<T>, text: String): T? = values.firstOrNull { it.name.equals(text, true) }
     private fun <T : Enum<T>> parse(values: Array<T>, text: String): T =
         find(values, text) ?: throw Fail("kami_claims.error.choice", v(values.joinToString { it.name.lowercase() }))
@@ -185,6 +187,10 @@ object Service {
             "province_independence", "province_withdraw", "province_decline", "province_tax", "province_manage", "province_access" -> province(p, name, a)
             "province_give" -> provinceGive(p, arg(a, 0), arg(a, 1), confirmed(a))
             "loan_take" -> Loans.take(need(p, Cap.WITHDRAW), arg(a, 0), p.stringUUID)
+            "loan_offer_create" -> Loans.createOffer(need(p, Cap.WITHDRAW), long(a, 0), num(a, 1), num(a, 2), arg(a, 3) == "on", num(a, 4), num(a, 5), arg(a, 6) == "on", p.stringUUID)
+            "loan_offer_toggle" -> Loans.toggleOffer(need(p, Cap.WITHDRAW), arg(a, 0), arg(a, 1) == "on", p.stringUUID)
+            "loan_offer_delete" -> Loans.deleteOffer(need(p, Cap.WITHDRAW), arg(a, 0))
+            "loan_borrow" -> Loans.borrow(need(p, Cap.WITHDRAW), arg(a, 0), long(a, 1), p.stringUUID)
             "loan_repay" -> Loans.repay(need(p, Cap.WITHDRAW), arg(a, 0), p.stringUUID)
             "buff_toggle" -> Buffs.toggle(need(p, Cap.RESEARCH), arg(a, 0))
             "research_enqueue", "research_start", "research_pause", "research_remove", "research_move", "research_deposit" -> researchAct(p, name, a)
@@ -325,6 +331,7 @@ object Service {
         if (rank == Rank.CHANCELLOR && c.members.values.any { it.rank == Rank.CHANCELLOR }) throw Fail("kami_claims.error.one_chancellor")
         if (m.rank != rank) Features.requireRank(c, rank)
         m.rank = rank
+        ResearchSync.refresh(c)
         Mail.direct(id, Phrase.of("kami_claims.mail.rank", Words.rank(rank)))
         return Phrase.of("kami_claims.done.rank")
     }
@@ -508,7 +515,6 @@ object Service {
 
     private fun withdraw(p: ServerPlayer, n: Int): Phrase {
         val c = need(p, Cap.WITHDRAW)
-        Loans.requireNoLoans(c)
         if (n < 1) throw Fail(Phrase.of("kami_claims.error.amount"), "AMOUNT")
         if (c.treasury < n) throw Fail(Phrase.of("kami_claims.error.treasury_short", money(c.treasury)), "FUNDS")
         if (!Bank.give(p.uuid, n, Flow.TREASURY, CountryParty(c.id).key, "kami_libs.note.withdraw")) throw Fail("kami_claims.error.payout")

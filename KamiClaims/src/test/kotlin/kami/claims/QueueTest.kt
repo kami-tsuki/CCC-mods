@@ -55,7 +55,6 @@ class QueueTest : WithDb() {
         install()
         Queue.clock = { time }
         Queue.onlineCount = { online }
-        Queue.refreshCrafting = {}
         Levels.day = { 1 }
         Levels.announce = {}
     }
