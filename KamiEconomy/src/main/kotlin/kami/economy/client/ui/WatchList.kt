@@ -21,9 +21,11 @@ internal class WatchList(private val app: MarketApp, private val key: String, pr
         }
     )
 
+    private val tableColumns = childColumns(app, columns, 1, 2)
+
     fun draw(ui: Ui, r: Rect, snap: Snap?, busy: Boolean) {
         val rows = snap?.watchRows.orEmpty()
-        ui.table(r, columns, rows, table, { it.item }, rowHeight = ROW_H, emptyText = tr("kami_libs.common.nothing_found"), key = key, loading = snap == null)
+        ui.table(r, tableColumns, rows, table, { it.item }, rowHeight = ROW_H, rowHeightOf = ::childHeight, regroup = ::groupRows, emptyText = tr("kami_libs.common.nothing_found"), key = key, loading = snap == null)
         ui.staleRows(r, busy && rows.isNotEmpty())
     }
 }

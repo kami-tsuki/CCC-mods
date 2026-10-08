@@ -361,6 +361,7 @@
   "kami_claims.error.job_field": "Felder: pay, quota, period.",
   "kami_claims.error.leave_first": "Verlasse zuerst deinen Staat.",
   "kami_claims.error.lower_ranks": "Du kannst nur niedrigere Ränge entfernen.",
+  "kami_claims.error.pardon_rank": "Nur ein Kanzler oder der Präsident kann eine Verbannung aufheben.",
   "kami_claims.error.member_ally": "Mitglieder können keine Verbündeten sein.",
   "kami_claims.error.missing_argument": "Argument fehlt.",
   "kami_claims.error.name": "Namen haben %1$s bis %2$s Zeichen: Buchstaben, Ziffern, _ oder -.",

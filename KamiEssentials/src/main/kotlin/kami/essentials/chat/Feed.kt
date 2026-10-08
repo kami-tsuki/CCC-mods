@@ -27,12 +27,13 @@ object Feed {
         val achieved = contents.key.startsWith(advancement)
         if (!joinLeave && !death && !achieved) return false
         val id = (contents.args.firstOrNull() as? Component)?.style?.hoverEvent?.getValue(HoverEvent.Action.SHOW_ENTITY)?.id
-        val hidden = id != null && id in Store.ids(Flag.INVISIBLE)
+        val invisible = Store.ids(Flag.INVISIBLE)
+        val hidden = invisible.isNotEmpty() && contents.args.any { (it as? Component)?.style?.hoverEvent?.getValue(HoverEvent.Action.SHOW_ENTITY)?.id in invisible }
         if (death || achieved) relay(message, contents, id, death)
         return when {
             joinLeave -> Config.s.joinLeave || hidden
-            death && (Config.s.deaths || hidden) -> death(message, id)
-            achieved && (Config.s.achievements || hidden) -> achievement(message, id, contents.key)
+            death && (Config.s.deaths || hidden) -> death(message, id, hidden)
+            achieved && (Config.s.achievements || hidden) -> achievement(message, id, contents.key, hidden)
             else -> false
         }
     }
@@ -55,20 +56,20 @@ object Feed {
         else Relay.advancement(p, message.string, (contents.args.getOrNull(1) as? Component)?.string.orEmpty(), contents.key.substringAfterLast('.'))
     }
 
-    private fun death(message: Component, id: UUID?): Boolean {
+    private fun death(message: Component, id: UUID?, hidden: Boolean): Boolean {
         val p = id?.let { ServerLifecycleHooks.getCurrentServer()?.playerList?.getPlayer(it) } ?: return false
-        send(p, Component.empty().append(Component.literal("[☠] ").withColor(Theme.MUTED)).append(message.copy().withColor(Theme.TEXT)), null)
+        send(p, Component.empty().append(Component.literal("[☠] ").withColor(Theme.MUTED)).append(message.copy().withColor(Theme.TEXT)), null, hidden)
         return true
     }
 
-    private fun achievement(message: Component, id: UUID?, key: String): Boolean {
+    private fun achievement(message: Component, id: UUID?, key: String, hidden: Boolean): Boolean {
         val p = id?.let { ServerLifecycleHooks.getCurrentServer()?.playerList?.getPlayer(it) } ?: return false
         val (icon, color) = when {
             key.endsWith("challenge") -> "[✪]" to Theme.WARN
             key.endsWith("goal") -> "[◎]" to Theme.ACCENT
             else -> "[✦]" to Theme.OK
         }
-        send(p, Component.empty().append(Component.literal("$icon ").withColor(color).withStyle(ChatFormatting.BOLD)).append(message.copy().withColor(Theme.TEXT)), null)
+        send(p, Component.empty().append(Component.literal("$icon ").withColor(color).withStyle(ChatFormatting.BOLD)).append(message.copy().withColor(Theme.TEXT)), null, hidden)
         return true
     }
 
@@ -77,8 +78,8 @@ object Feed {
         .append(" ")
         .append(Text.msg(key, Names.player(p)).withColor(Theme.MUTED))
 
-    private fun send(subject: ServerPlayer, line: Component, toggle: Phrase?) {
-        val hidden = toggle == null && Vanish.active(subject)
+    private fun send(subject: ServerPlayer, line: Component, toggle: Phrase?, masked: Boolean = Vanish.active(subject)) {
+        val hidden = toggle == null && masked
         val reason = (toggle ?: Phrase.of("kami_essentials.feed.invisible")).component()
         val note = Component.empty().append(line).append(Component.literal(" (").append(reason).append(")").withColor(Theme.MUTED))
         subject.server.sendSystemMessage(if (hidden || toggle != null) note else line)

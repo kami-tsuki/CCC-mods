@@ -18,6 +18,7 @@ import kami.libs.admin.Subject
 import kami.libs.net.ActPayload
 import kami.libs.net.SnapshotPayload
 import kami.libs.net.TickCooldown
+import kami.libs.util.RateLimit
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.server.MinecraftServer
@@ -87,6 +88,8 @@ class ClaimsPacket(val data: View.Payload) : CustomPacketPayload {
 }
 
 object Net {
+    private val READS = setOf("chunk", "view", "watch", "personal", "names")
+    private val reads = RateLimit<UUID>(20, 1000L)
     private var lastAct = TickCooldown(0)
     private var lastPreview = TickCooldown(2)
     private val sent = HashMap<UUID, Int>()
@@ -158,7 +161,7 @@ object Net {
     fun send(p: ServerPlayer, reply: Reply, open: Boolean = false) {
         if (!canOpen(p)) return
         lastSnapshot[p.uuid] = p.server.tickCount
-        PacketDistributor.sendToPlayer(p, Snapshot(Sync.encode(p, reply, open)))
+        Snapshot.send(p, Sync.encode(p, reply, open))
     }
 
     fun deny(p: ServerPlayer, d: Denied) = PacketDistributor.sendToPlayer(p, d)
@@ -190,6 +193,7 @@ object Net {
     fun forget(p: ServerPlayer) {
         lastAct.forget(p.uuid)
         lastPreview.forget(p.uuid)
+        reads.forget(p.uuid)
         lastSnapshot.remove(p.uuid)
         deferred.remove(p.uuid)
         sent.remove(p.uuid)
@@ -208,7 +212,7 @@ object Net {
         if (n.size < 4) return emptyList()
         val (x1, x2) = min(n[0], n[2]) to max(n[0], n[2])
         val (z1, z2) = min(n[1], n[3]) to max(n[1], n[3])
-        if ((x2 - x1 + 1).toLong() * (z2 - z1 + 1) > Config.s.maxRect) return emptyList()
+        if ((x2.toLong() - x1 + 1) * (z2.toLong() - z1 + 1) > Config.s.maxRect) return emptyList()
         return (x1..x2).flatMap { x -> (z1..z2).map { z -> Key(dim, x, z) } }
     }
 
@@ -231,6 +235,7 @@ object Net {
     }
 
     private fun handle(p: ServerPlayer, a: ActPayload) {
+        if (a.name in READS && !reads.allow(p.uuid)) return answer(p, a.name, a.rid)
         when (a.name) {
             "open" -> {
                 openPlayers += p.uuid

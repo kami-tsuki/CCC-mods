@@ -19,7 +19,7 @@ object TooltipHook {
 
     fun onTooltip(e: ItemTooltipEvent) {
         val item = e.itemStack.item
-        val info = PriceCache.of(BuiltInRegistries.ITEM.getKey(item).toString()) ?: return
+        val info = PriceCache.shown(BuiltInRegistries.ITEM.getKey(item).toString()) ?: return
         if (item !== lastItem || info !== lastInfo || Format.locale != lastLocale) {
             lastItem = item
             lastInfo = info

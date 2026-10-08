@@ -24,6 +24,7 @@ object ClientEconomy {
         FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> {
             MarketApp.instance.reset()
             MarketSection.clear()
+            kami.economy.economy.ClientVariants.map = emptyMap()
         }
         FORGE_BUS.addListener<ItemTooltipEvent> { TooltipHook.onTooltip(it) }
     }

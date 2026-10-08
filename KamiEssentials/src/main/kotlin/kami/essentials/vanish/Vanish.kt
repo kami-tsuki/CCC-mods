@@ -13,6 +13,7 @@ import kami.libs.chat.Chat
 import kami.libs.chat.Tone
 import kami.libs.chat.bar
 import kami.libs.chat.tell
+import kami.libs.stats.Staff
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket
 import net.minecraft.server.MinecraftServer
@@ -36,6 +37,7 @@ object Vanish {
     fun toggle(p: ServerPlayer, by: ServerPlayer?) {
         val on = !active(p)
         Store[Flag.INVISIBLE, p.uuid] = on
+        Staff.refresh(p)
         p.server.playerList.players.filter { it !== p && !sees(it) }.forEach {
             it.connection.send(if (on) ClientboundPlayerInfoRemovePacket(listOf(p.uuid)) else ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(listOf(p)))
         }

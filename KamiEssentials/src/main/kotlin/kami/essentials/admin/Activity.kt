@@ -1,13 +1,17 @@
 package kami.essentials.admin
 
+import kami.essentials.vanish.Vanish
+import kami.libs.stats.Staff
 import kami.libs.stats.Stats
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.damagesource.DamageSource
+import net.minecraft.world.damagesource.DamageTypes
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.neoforged.bus.api.EventPriority
 import net.neoforged.neoforge.common.util.FakePlayer
+import net.neoforged.neoforge.event.entity.EntityTeleportEvent
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent
 import net.neoforged.neoforge.event.entity.player.PlayerEvent
@@ -27,6 +31,7 @@ object Activity {
     private val tracks = HashMap<UUID, Track>()
 
     fun register() {
+        Staff.hidden += { Vanish.active(it) }
         Stats.gauge("server.online") { mapOf("" to (ServerLifecycleHooks.getCurrentServer()?.playerCount ?: 0).toLong()) }
         Stats.gauge("server.tps") { ServerLifecycleHooks.getCurrentServer()?.let { mapOf("" to (ServerStats.tps(it) * 100).toLong()) }.orEmpty() }
         Stats.gauge("server.mspt") { ServerLifecycleHooks.getCurrentServer()?.let { mapOf("" to (ServerStats.mspt(it) * 100).toLong()) }.orEmpty() }
@@ -35,21 +40,18 @@ object Activity {
         FORGE_BUS.addListener<ServerTickEvent.Post> { if (it.server.tickCount % 20 == 0) runCatching { sample(it.server.playerList.players) } }
         FORGE_BUS.addListener<LivingDeathEvent> { runCatching { death(it) } }
         FORGE_BUS.addListener<LivingDamageEvent.Post> { runCatching { damage(it) } }
+        FORGE_BUS.addListener<EntityTeleportEvent>(EventPriority.LOWEST) { if (!it.isCanceled) player(it.entity)?.let(::jumped) }
         FORGE_BUS.addListener<BlockEvent.BreakEvent>(EventPriority.LOWEST) { e ->
-            val p = player(e.player)
-            if (p != null && !idle(p)) Stats.add("block.mine", id(p), BuiltInRegistries.BLOCK.getKey(e.state.block).toString())
+            if (!e.isCanceled) player(e.player)?.let { Stats.add("block.mine", id(it), BuiltInRegistries.BLOCK.getKey(e.state.block).toString()) }
         }
         FORGE_BUS.addListener<BlockEvent.EntityPlaceEvent>(EventPriority.LOWEST) { e ->
-            val p = player(e.entity)
-            if (p != null && !idle(p)) Stats.add("block.place", id(p), BuiltInRegistries.BLOCK.getKey(e.placedBlock.block).toString())
+            if (!e.isCanceled) player(e.entity)?.let { Stats.add("block.place", id(it), BuiltInRegistries.BLOCK.getKey(e.placedBlock.block).toString()) }
         }
         FORGE_BUS.addListener<PlayerEvent.ItemCraftedEvent> { e ->
-            val p = player(e.entity)
-            if (p != null && !idle(p)) Stats.add("craft.item", id(p), BuiltInRegistries.ITEM.getKey(e.crafting.item).toString(), e.crafting.count.toLong())
+            player(e.entity)?.let { Stats.add("craft.item", id(it), BuiltInRegistries.ITEM.getKey(e.crafting.item).toString(), e.crafting.count.toLong()) }
         }
         FORGE_BUS.addListener<PlayerEvent.ItemSmeltedEvent> { e ->
-            val p = player(e.entity)
-            if (p != null && !idle(p)) Stats.add("craft.smelt", id(p), BuiltInRegistries.ITEM.getKey(e.smelting.item).toString(), e.smelting.count.toLong())
+            player(e.entity)?.let { Stats.add("craft.smelt", id(it), BuiltInRegistries.ITEM.getKey(e.smelting.item).toString(), e.smelting.count.toLong()) }
         }
     }
 
@@ -63,6 +65,10 @@ object Activity {
         tracks.remove(p.uuid)
         val at = joined.remove(p.uuid) ?: return
         Stats.event("session.logout", id(p), v = System.currentTimeMillis() - at)
+    }
+
+    fun jumped(p: ServerPlayer) {
+        tracks.remove(p.uuid)
     }
 
     private fun sample(players: List<ServerPlayer>) {
@@ -87,23 +93,26 @@ object Activity {
         val victim = player(e.entity)
         val killer = player(e.source.entity)
         if (victim != null) {
-            Stats.add("combat.death", id(victim), e.source.entity?.type?.let(::typeId) ?: damageId(e.source))
+            Stats.add(staffed("combat.death", e.source), id(victim), e.source.entity?.type?.let(::typeId) ?: damageId(e.source))
             if (killer != null && killer !== victim) {
                 Stats.add("combat.kill", id(killer), id(victim))
                 Stats.event("combat.pvp", id(killer), id(victim))
             }
-        } else if (killer != null && !idle(killer)) Stats.add("mob.kill", id(killer), typeId(e.entity.type))
+        } else if (killer != null) Stats.add("mob.kill", id(killer), typeId(e.entity.type))
     }
 
     private fun damage(e: LivingDamageEvent.Post) {
-        val n = (minOf(e.newDamage, e.entity.maxHealth) * 10).toLong()
-        player(e.entity)?.takeUnless(::idle)?.let { Stats.add("combat.taken", id(it), damageId(e.source), n) }
-        player(e.source.entity)?.takeUnless(::idle)?.let { Stats.add("combat.dealt", id(it), typeId(e.entity.type), n) }
+        val dmg = minOf(e.newDamage, e.entity.maxHealth)
+        if (!dmg.isFinite() || dmg <= 0f) return
+        val n = (dmg * 10).toLong()
+        player(e.entity)?.let { Stats.add(staffed("combat.taken", e.source), id(it), damageId(e.source), n) }
+        player(e.source.entity)?.let { Stats.add("combat.dealt", id(it), typeId(e.entity.type), n) }
     }
 
-    private fun player(e: Entity?) = (e as? ServerPlayer)?.takeUnless { it is FakePlayer }
+    private fun staffed(key: String, s: DamageSource) =
+        if (s.`is`(DamageTypes.GENERIC_KILL) || player(s.entity)?.let(Staff::active) == true) Staff.PREFIX + key else key
 
-    private fun idle(p: ServerPlayer) = p.isCreative || p.isSpectator
+    private fun player(e: Entity?) = (e as? ServerPlayer)?.takeUnless { it is FakePlayer }
 
     private fun id(p: ServerPlayer) = "p:${p.uuid}"
 

@@ -1,44 +1,37 @@
 package kami.economy.economy
 
 import kami.economy.Book
-import kami.economy.Config
 import kami.economy.Market
 import kotlin.math.max
 import kotlin.math.min
 
 object Pricing {
-    fun tick() {
-        Market.data.books.values.forEach { recompute(it) }
+    fun observe(item: String, perLot: Double, lots: Int, server: Boolean, buy: Boolean) {
+        if (lots <= 0) return
+        val c = Stocks.course(item)
+        Market.book(item).course = when {
+            !server -> Stocks.afterPlayer(item, c, perLot, lots)
+            buy -> Stocks.afterBuy(item, c, lots)
+            else -> Stocks.afterSell(item, c, lots)
+        }
         Market.dirty = true
     }
 
-    private fun recompute(book: Book) {
+    fun tick() {
+        if (Market.data.books.values.map { record(it) }.any { it }) Market.dirty = true
+        Stocks.prune()
+        Pegs.tick()
+    }
+
+    private fun record(book: Book): Boolean {
         val fills = book.recentFills
-        val open = if (book.midPrice > 0.0) book.midPrice else fills.firstOrNull()?.price?.toDouble() ?: 0.0
-
-        if (fills.isNotEmpty()) {
-            val totalQty = fills.sumOf { it.qty }
-            if (totalQty > 0) {
-                val weighted = fills.sumOf { it.price.toDouble() * it.qty } / totalQty
-                val base = if (book.midPrice <= 0.0) weighted else book.midPrice
-                val maxMove = base * (Config.s.categoryBounds[book.item]?.maxMovePct ?: Config.s.maxPriceMovePct)
-                book.midPrice = base + (weighted - base).coerceIn(-maxMove, maxMove)
-            }
-        }
-
-        val override = Config.s.categoryBounds[book.item]
-        val floor = override?.floor ?: Config.s.defaultFloor
-        val ceiling = override?.ceiling ?: Config.s.defaultCeiling
-        if (book.midPrice < floor) book.midPrice = floor.toDouble()
-        if (ceiling != null && book.midPrice > ceiling) book.midPrice = ceiling.toDouble()
-
-        if (fills.isNotEmpty()) {
-            val close = book.midPrice
-            val high = max(fills.maxOf { it.price }.toDouble(), max(open, close))
-            val low = min(fills.minOf { it.price }.toDouble(), min(open, close))
-            val volume = fills.sumOf { it.qty }.toLong()
-            History.record(book.item, open, high, low, close, volume)
-            fills.clear()
-        }
+        if (fills.isEmpty()) return false
+        val open = fills.first().price.toDouble()
+        val close = if (book.course > 0.0) book.course else fills.last().price.toDouble()
+        val high = max(fills.maxOf { it.price }.toDouble(), close)
+        val low = min(fills.minOf { it.price }.toDouble(), close)
+        History.record(book.item, open, high, low, close, fills.sumOf { it.qty.toLong() })
+        fills.clear()
+        return true
     }
 }

@@ -123,7 +123,7 @@ object MoneyGuard {
         }
         pending += alerts
         if (Db.isOpen) Db.write {
-            done.forEach { (id, w) -> journalLeg(now, PlayerParty(w.owner ?: id), w.sum, Flow.UNEXPLAINED, null, listOfNotNull("blaze banker $id".takeUnless { w.player }, "×${w.count}").joinToString(" "), "") }
+            done.filter { it.second.sum != 0L }.forEach { (id, w) -> journalLeg(now, PlayerParty(w.owner ?: id), w.sum, Flow.UNEXPLAINED, null, listOfNotNull("blaze banker $id".takeUnless { w.player }, "×${w.count}").joinToString(" "), "") }
         }
         return alerts
     }

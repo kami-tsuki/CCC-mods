@@ -19,5 +19,7 @@ object ClientHooks {
         MarketApp.receive(snap)
     }
 
-    fun priceDelta(d: PriceDelta) = d.entries.forEach { PriceCache.update(it.item, it.price) }
+    fun variants(map: Map<String, kami.economy.economy.Variant>) { kami.economy.economy.ClientVariants.map = map }
+
+    fun priceDelta(d: PriceDelta) = d.entries.forEach { PriceCache.lot(it.item, it.lot); PriceCache.update(it.item, it.price) }
 }

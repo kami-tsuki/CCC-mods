@@ -33,6 +33,7 @@ internal class AuctionsPage(app: MarketApp) : ListPage(app, "auctions") {
     private val stacks = HashMap<Long, ItemStack>()
     private val bid = NumberState(1)
     private var bidFor = -1L
+    private var bidMin = -1L
     override val title get() = tr("kami_libs.common.auctions")
     override val help get() = helpFor("auctions:table", "kami_economy.help.auctions")
 
@@ -42,8 +43,6 @@ internal class AuctionsPage(app: MarketApp) : ListPage(app, "auctions") {
         stacks[a.id] = decoded
         return decoded
     }
-
-    private fun minBid(a: AuctionLine) = maxOf(a.startPrice, a.currentBid + 1).toLong()
 
     private fun status(a: AuctionLine) = when {
         a.mine -> "yours"
@@ -89,6 +88,15 @@ internal class AuctionsPage(app: MarketApp) : ListPage(app, "auctions") {
         ui.property(flow.take(12), tr("kami_economy.col.seller"), a.sellerName)
         ui.property(flow.take(12), tr("kami_economy.col.bid"), Format.money(maxOf(a.currentBid, a.startPrice).toLong()))
         ui.property(flow.take(12), tr("kami_economy.market.auctions.col.ends"), Format.duration(a.expiresAt - System.currentTimeMillis()))
+        if (a.bids.isNotEmpty()) {
+            ui.section(flow.take(13), tr("kami_economy.auction.history"))
+            a.bids.asReversed().forEach { b ->
+                val row = flow.take(10)
+                val text = Format.money(b.amount.toLong()) + " · " + Format.ago(b.at)
+                Draw.textRight(ui.g, text, row.right, row.y, Palette.textMuted)
+                Draw.text(ui.g, Draw.fit(b.name, row.w - Draw.width(text) - 6), row.x, row.y, Palette.textSecondary)
+            }
+        }
         if (a.status.isNotEmpty()) {
             val text = tr("kami_economy.status.frozen", a.statusReason)
             val note = flow.take(Draw.paragraphHeight(text, r.w - 16))
@@ -101,13 +109,15 @@ internal class AuctionsPage(app: MarketApp) : ListPage(app, "auctions") {
                     tr("kami_economy.cancel.confirm"), danger = true) { app.request("auction_cancel", a.id.toString()); table.clear() }
             return
         }
-        val min = minBid(a)
-        if (bidFor != a.id) { bidFor = a.id; bid.commit(min) }
+        val min = a.minBid.toLong()
+        if (bidFor != a.id || bidMin != min) { bidFor = a.id; bidMin = min; if (bid.value < min) bid.commit(min) }
         val reason = tr("kami_libs.lock.no_country").takeUnless { app.snap.citizen }
         val bidLock = reason ?: frozenFor("auction_bid", a.status, a.statusReason)
         val buyLock = reason ?: frozenFor("auction_buy", a.status, a.statusReason)
-        ui.fieldLabel(flow.take(9), tr("kami_economy.auction.your_bid"))
-        ui.numberField(flow.take(CONTROL_H), bid, min, MAX_PRICE, key = "bid")
+        ui.fieldLabel(flow.take(9), tr("kami_economy.auction.your_bid"), tr("kami_economy.auction.min_bid", Format.money(min)))
+        val bidField = flow.take(CONTROL_H)
+        ui.numberField(bidField, bid, min, MAX_PRICE, key = "bid")
+        ui.tooltip("bid-tip", bidField, tr("kami_economy.auction.bid.tip"))
         if (ui.button(flow.take(SMALL_H), tr("kami_economy.market.auction.bid"), style = ButtonStyle.PRIMARY, enabled = bidLock == null, disabledReason = bidLock, key = "bid-go")) confirm(a, bid.value.toInt(), false)
         if (a.buyNowPrice > 0 && ui.button(flow.take(SMALL_H), tr("kami_economy.market.auction.buy_now", Format.money(a.buyNowPrice.toLong())), enabled = buyLock == null, disabledReason = buyLock, key = "buy-go")) confirm(a, a.buyNowPrice, true)
     }

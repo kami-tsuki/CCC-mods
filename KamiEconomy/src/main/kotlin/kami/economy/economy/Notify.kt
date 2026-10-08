@@ -15,7 +15,7 @@ object Notify {
     private const val NOTE = "note:"
     private val chat = Chat.of("market")
     private val topics = mapOf(
-        "order_filled" to "orders", "sold" to "orders",
+        "order_filled" to "orders", "sold" to "orders", "peg_funds" to "orders",
         "bid" to "sales", "auction_bought" to "sales", "auction_sold" to "sales", "auction_expired" to "sales",
         "outbid" to "bids", "bought_out" to "bids", "auction_won" to "bids"
     )

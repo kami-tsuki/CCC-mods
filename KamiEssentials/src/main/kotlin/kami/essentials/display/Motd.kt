@@ -2,6 +2,7 @@ package kami.essentials.display
 
 import kami.essentials.Config
 import kami.essentials.MotdSettings
+import kami.essentials.admin.Maintenance
 import kami.essentials.discord.Bot
 import kami.libs.chat.Theme
 import kami.libs.claims.ClaimsApi
@@ -46,7 +47,7 @@ object Motd {
         val m = Config.s.motd
         if (!m.enabled) return status.description()
         val s = current(m)
-        return centered(head(m, s)).withStyle { it.withInsertion("$MARKER${m.frameSeconds}") }.append("\n").append(centered(ticker(m, s)))
+        return centered(head(m, s)).withStyle { it.withInsertion("$MARKER${m.frameSeconds}") }.append("\n").append(centered(if (Maintenance.active) listOf(Piece(text("maintenance"), Theme.BAD)) else ticker(m, s)))
     }
 
     private fun current(m: MotdSettings): Snapshot {

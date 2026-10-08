@@ -27,6 +27,7 @@ object Perms : PermissionSet(KamiEssentials.ID) {
     val UNSTUCK = node("unstuck", true)
     val DISCORD_ADMIN = node("discord.admin", false)
     val DISCORD_RELOAD = node("discord.reload", false)
+    val MAINTENANCE_BYPASS = node("maintenance.bypass") { p -> p?.hasPermissions(2) ?: false }
 
     fun gate(n: PermissionNode<Boolean>): (CommandSourceStack) -> Boolean = { has(it, n) }
 }

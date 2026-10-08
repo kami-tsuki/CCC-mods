@@ -12,7 +12,7 @@ data class OrderRow(
 }
 
 @Serializable
-class StarterRow(val good: StarterGood, val stock: Int?, val items: Int, val status: String = "", val statusReason: String = "", val statusRev: String = "0")
+class StarterRow(val good: StarterGood, val supply: Int, val demand: Int, val course: Double, val items: Int, val status: String = "", val statusReason: String = "", val statusRev: String = "0")
 
 @Serializable
 class StarterList(val rows: List<StarterRow>, val rev: String)

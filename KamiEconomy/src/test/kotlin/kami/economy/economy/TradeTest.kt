@@ -122,13 +122,13 @@ class TradeTest {
     fun sellPlanFillsNeverLoseASpurForAnyRateCombination() {
         setup()
         Matching.insertBid(item, Order(1, ally.toString(), 6, 90))
-        val allyPlan = Matching.sellPlan(buyer.toString(), item, 90)
+        val allyPlan = Matching.sellPlan(item, 90, buyer.toString())
         assertEquals(90, allyPlan.filled)
         assertEquals(allyPlan.gross, allyPlan.net + allyPlan.tax + allyPlan.tariff)
 
         Market.data = kami.economy.Data()
         Matching.insertBid(item, Order(2, buyer.toString(), 7, 90))
-        val taxedPlan = Matching.sellPlan(taxed.toString(), item, 90)
+        val taxedPlan = Matching.sellPlan(item, 90, taxed.toString())
         assertEquals(90, taxedPlan.filled)
         assertEquals(taxedPlan.gross, taxedPlan.net + taxedPlan.tax + taxedPlan.tariff)
     }
@@ -137,7 +137,7 @@ class TradeTest {
     fun sellPlanFullyFillsAnOrderWithANonCleanRemainder() {
         setup()
         Matching.insertBid(item, Order(1, ally.toString(), 6, 90))
-        val plan = Matching.sellPlan(buyer.toString(), item, 90)
+        val plan = Matching.sellPlan(item, 90, buyer.toString())
         assertEquals(90, plan.filled)
         val fill = plan.fills.single()
         assertEquals(90, fill.qty)

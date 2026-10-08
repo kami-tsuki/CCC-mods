@@ -1,6 +1,7 @@
 package kami.essentials.discord
 
 import kami.essentials.Config
+import kami.essentials.admin.Maintenance
 import kami.essentials.vanish.Vanish
 import kami.libs.claims.ClaimsApi
 import kami.libs.discord.Avatars
@@ -35,6 +36,7 @@ object Bot {
             registered = true
             DiscordApi.register(Relay)
             DiscordApi.register(Gate)
+            DiscordApi.register(Maintenance)
         }
         DiscordApi.start(server, d.console.flushSeconds)
         lifecycle(d.events.start, d.templates.start, Theme.OK)

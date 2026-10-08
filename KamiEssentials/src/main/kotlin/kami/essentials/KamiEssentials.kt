@@ -6,6 +6,7 @@ import kami.essentials.admin.Activity
 import kami.essentials.admin.AdminServer
 import kami.essentials.admin.DiscordAdmin
 import kami.essentials.admin.Moderation
+import kami.essentials.admin.Maintenance
 import kami.essentials.admin.Mutes
 import kami.essentials.admin.Warns
 import kami.essentials.admin.PlayerRecords
@@ -71,6 +72,8 @@ object KamiEssentials {
         AdminServer.register()
         DiscordAdmin.register()
         Activity.register()
+        Maintenance.register()
+        FORGE_BUS.addListener<CommandEvent> { e -> if (!e.isCanceled) Maintenance.intercept(e) }
         FORGE_BUS.addListener<ServerStartedEvent> {
             loading("player flags") { Store.load() }
             loading("player records") { PlayerRecords.load(it.server) }
@@ -79,6 +82,7 @@ object KamiEssentials {
             loading("warns") { Warns.load() }
             loading("ban links") { Moderation.load() }
             loading("deliveries") { Deliveries.load() }
+            loading("maintenance") { Maintenance.load() }
             ServerStats.start()
             Bot.start(it.server)
         }
@@ -95,6 +99,7 @@ object KamiEssentials {
                 Sidebar.tick(it.server)
                 InlineFeatures.prune()
                 Unstuck.tick(it.server)
+                Maintenance.tick(it.server)
             }
             if (it.server.tickCount % 40 == 0) Vanish.tick(it.server)
         }

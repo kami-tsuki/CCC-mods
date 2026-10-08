@@ -45,13 +45,11 @@ object Upkeep {
 
     internal fun catchUp(today: Long) {
         if (Realm.data.day < 0) Realm.data.day = today
-        var d = Realm.data.day
         var n = 0
-        while (d < today && n++ < s.maxCatchUp) {
-            process(d + 1)
-            d++
+        while (Realm.data.day < today && n++ < s.maxCatchUp) {
+            process(Realm.data.day + 1)
+            Realm.data.day++
         }
-        Realm.data.day = d
     }
 
     /** Settles [day] for every country; a failing country is logged and skipped, the day is never retried (no double billing). */

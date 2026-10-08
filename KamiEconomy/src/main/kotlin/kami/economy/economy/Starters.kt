@@ -18,9 +18,10 @@ object Starters {
         val next = Config.s.copy(starterGoods = if (before == null) goods + good else goods.map { if (it.item == good.item) good else it }).sane()
         val saved = next.starterGoods.firstOrNull { it.item == good.item } ?: throw AdminFailure("kami_economy.admin.invalid_good")
         apply(next.starterGoods)
-        if (before?.infinite == true && !saved.infinite) {
-            items(saved.item).forEach { Market.data.stocks[it]?.lots = saved.target }
-            Market.dirty = true
+        if (before != null && (before.base != saved.base || before.supply != saved.supply || before.demand != saved.demand || before.resell != saved.resell)) {
+            val course = saved.base.toDouble().takeIf { before.base != saved.base }
+            val stock = before.supply != saved.supply || before.demand != saved.demand
+            items(saved.item).forEach { Stocks.set(it, saved.supply.takeIf { stock }, saved.demand.takeIf { stock }, course) }
         }
         push()
         return before to saved

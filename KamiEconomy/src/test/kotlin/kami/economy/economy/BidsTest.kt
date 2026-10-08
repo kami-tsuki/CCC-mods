@@ -79,8 +79,8 @@ class BidsTest {
         assertEquals(OrderResult.NotClean(2), Ledger.bid(bidderA.toString(), item, 1, 15))
         assertEquals(OrderResult.InsufficientFunds, Ledger.bid(bidderA.toString(), item, 10, 20))
         Matching.insertSell(item, Order(99, seller.toString(), 20, 5))
-        assertEquals(OrderResult.Crosses, Ledger.bid(bidderA.toString(), item, 2, 20))
-        assertEquals(100, wallet.funds)
+        assertEquals(OrderResult.Ok(0, 0, 2), Ledger.bid(bidderA.toString(), item, 2, 20))
+        assertEquals(60, wallet.funds)
     }
 
     @Test

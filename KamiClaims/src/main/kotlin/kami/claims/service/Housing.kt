@@ -154,7 +154,7 @@ object Housing {
         if (credit <= 0) return
         cl.rentCredit = 0
         val country = cl.country
-        if (runCatching { give(owner, credit.toInt(), country) }.getOrDefault(false)) Mail.direct(owner, Phrase.of("kami_claims.mail.rent_refund", money(credit), coords(cl)), Tone.INFO)
+        if (credit <= Int.MAX_VALUE && runCatching { give(owner, credit.toInt(), country) }.getOrDefault(false)) Mail.direct(owner, Phrase.of("kami_claims.mail.rent_refund", money(credit), coords(cl)), Tone.INFO)
         else {
             ServerBank.collect(Party.parse(owner) ?: ServerParty, credit, Flow.RECOVERY, "rent refund ${Realm.country(country)?.name ?: country} $owner")
             log.warn("Rent refund of {} to {} failed", credit, owner)
@@ -169,7 +169,7 @@ object Housing {
     fun treasuryBlocked(c: Country, cl: Claim) = cl.rentDebt > 0 && Treasury.room(c) <= 0
 
     fun payRent(c: Country, cl: Claim, owner: String, amount: Long): Long {
-        val (arrears, credit) = rentSplit(cl.rentDebt, cl.rentCredit, rate(c, cl).toLong(), Treasury.room(c), amount)
+        val (arrears, credit) = rentSplit(cl.rentDebt, cl.rentCredit, rate(c, cl).toLong(), Treasury.room(c), amount.coerceAtMost(Int.MAX_VALUE.toLong()))
         val paid = arrears + credit
         val note = when {
             arrears > 0 && credit > 0 -> "kami_libs.note.debt_prepay"

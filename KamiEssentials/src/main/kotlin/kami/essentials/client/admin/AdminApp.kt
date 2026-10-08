@@ -44,6 +44,7 @@ class AdminApp private constructor() : KamiApp() {
             ),
             "kami_essentials.admin.nav.activity" to mutableListOf(
                 NavItem("activity", tr("kami_essentials.admin.nav.activity"), Icons.STATS),
+                NavItem("staff", tr("kami_essentials.admin.nav.staff"), Icons.SHIELD),
                 NavItem("audit", tr("kami_essentials.admin.nav.audit"), Icons.SCROLL)
             ),
             "kami_essentials.admin.nav.players" to mutableListOf(
@@ -67,6 +68,7 @@ class AdminApp private constructor() : KamiApp() {
         "bank" -> BankPage()
         "journal" -> JournalPage(this)
         "activity" -> ActivityPage()
+        "staff" -> StaffPage()
         "audit" -> AuditPage(this)
         "players" -> DirectoryPage(this)
         "statistics" -> StatisticsPage()

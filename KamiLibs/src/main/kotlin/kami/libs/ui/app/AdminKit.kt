@@ -57,7 +57,7 @@ fun AdminReply.message(): String =
 fun <T> AdminReply.decode(serializer: KSerializer<T>): T? =
     data?.takeIf { ok }?.let { runCatching { snapshotJson.decodeFromJsonElement(serializer, it) }.getOrNull() }
 
-fun KamiApp.adminAct(name: String, args: List<String>, reason: String, onDone: () -> Unit = {}) {
+fun KamiApp.adminAct(name: String, args: List<String>, reason: String, onDone: (AdminReply) -> Unit = {}) {
     val key = name to args
     if (!AdminKit.begin(key)) return
     Admin.request(name, args, reason) { r ->
@@ -65,7 +65,7 @@ fun KamiApp.adminAct(name: String, args: List<String>, reason: String, onDone: (
         if (r.ok) {
             AdminKit.epoch++
             toast(Severity.SUCCESS, tr("kami_libs.common.done"))
-            onDone()
+            onDone(r)
         } else toast(Severity.DANGER, r.message())
     }
 }

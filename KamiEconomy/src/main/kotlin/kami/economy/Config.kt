@@ -7,19 +7,25 @@ import kotlinx.serialization.Serializable
 import kotlin.math.roundToInt
 
 @Serializable
-data class CategoryBounds(val floor: Int? = null, val ceiling: Int? = null, val maxMovePct: Double? = null)
-
-@Serializable
-data class StarterGood(val item: String, val base: Int, val lot: Int = 64, val target: Int = 64, val depth: Int = 32, val dailyCap: Int? = null, val infinite: Boolean = false, val max: Int? = null)
+data class StarterGood(
+    val item: String, val base: Int, val lot: Int = 64, val depth: Int = 32, val supply: Int = 0, val demand: Int = 0,
+    val floor: Int? = null, val ceiling: Int? = null, val spread: Double? = null, val sellCap: Int = 0, val resell: Boolean = true,
+    val target: Int? = null, val dailyCap: Int? = null, val infinite: Boolean? = null, val max: Int? = null
+) {
+    fun normalized(): StarterGood {
+        val clean = copy(target = null, dailyCap = null, infinite = null, max = null)
+        return when {
+            infinite == true -> clean.copy(supply = 0, demand = -1, resell = false, sellCap = dailyCap ?: 3, floor = floor ?: maxOf(1, base / 2))
+            target != null -> clean.copy(supply = target, demand = max ?: (target + depth * 0.7).toInt(), sellCap = dailyCap ?: sellCap)
+            else -> clean.copy(sellCap = dailyCap ?: sellCap)
+        }
+    }
+}
 
 @Serializable
 data class Settings(
     val marketTickInterval: Int = 60 * 20,
     val priceDeltaThresholdPct: Double = 0.01,
-    val maxPriceMovePct: Double = 0.05,
-    val defaultFloor: Int = 1,
-    val defaultCeiling: Int? = null,
-    val categoryBounds: Map<String, CategoryBounds> = emptyMap(),
 
     val sellTaxPct: Double = 0.10,
     val allyTaxRate: Double = 0.08,
@@ -34,10 +40,9 @@ data class Settings(
 
     val starterGoods: List<StarterGood> = emptyList(),
     val catalog: Int = 0,
-    val dailySellLots: Int = 3,
-    val resetHour: Int = 6,
-    val recoveryPct: Int = 5,
-    val band: List<Double> = listOf(0.5, 2.0),
+    val serverSpread: Double = 0.05,
+    val courseDepth: Int = 32,
+    val courseClip: Double = 0.05,
 
     val creativeItemIds: List<String> = listOf(
         "minecraft:barrier", "minecraft:command_block", "minecraft:chain_command_block", "minecraft:repeating_command_block",
@@ -69,10 +74,7 @@ data class Settings(
     val allyTaxPct: Int get() = (allyTaxRate * 100).roundToInt()
     val auctionFeeBps: Int get() = (auctionFeePct * 10_000).roundToInt()
 
-    val bandLow: Double get() = band.getOrNull(0)?.takeIf { it in 0.01..1.0 } ?: 0.5
-    val bandHigh: Double get() = band.getOrNull(1)?.takeIf { it in 1.0..100.0 } ?: 2.0
-
-    fun lotOf(item: String): Int = (lots[item] ?: kami.economy.economy.Stocks.good(item)?.lot)?.takeIf { it in 1..maxAmount } ?: 1
+    fun lotOf(item: String): Int = kami.economy.economy.Variants.of(item)?.let { kami.economy.economy.Variants.lot(item, lotOf(it.core)) } ?: (lots[item] ?: kami.economy.economy.Stocks.good(item)?.lot)?.takeIf { it in 1..maxAmount } ?: 1
 
     fun validPrice(price: Int) = price in 1..maxPrice
     fun validAmount(amount: Int) = amount in 1..maxAmount
@@ -80,10 +82,11 @@ data class Settings(
 
 internal fun Settings.sane(): Settings = copy(
     marketTickInterval = marketTickInterval.coerceAtLeast(20),
+    auctionDurationMillis = auctionDurationMillis.coerceIn(60_000L, 365 * DAY_MS),
+    guiCooldown = guiCooldown.coerceIn(1, 200),
     sellTaxPct = sellTaxPct.coerceIn(0.0, 0.9),
     allyTaxRate = allyTaxRate.coerceIn(0.0, 0.9),
     auctionFeePct = auctionFeePct.coerceIn(0.0, 0.9),
-    maxPriceMovePct = maxPriceMovePct.coerceIn(0.001, 1.0),
     listLimit = listLimit.coerceIn(20, 2000),
     discordMoveThresholdPct = discordMoveThresholdPct.coerceAtLeast(0.1),
     discordItemCooldownMinutes = discordItemCooldownMinutes.coerceAtLeast(1),
@@ -92,12 +95,12 @@ internal fun Settings.sane(): Settings = copy(
     discordItemIconUrl = discordItemIconUrl.trim(),
     maxPrice = maxPrice.coerceIn(1, 100_000_000),
     maxAmount = maxAmount.coerceIn(1, 1_000_000),
-    dailySellLots = dailySellLots.coerceAtLeast(0),
-    resetHour = resetHour.coerceIn(0, 23),
-    recoveryPct = recoveryPct.coerceIn(0, 100),
-    priceDeltaThresholdPct = priceDeltaThresholdPct.coerceAtLeast(0.0),
+    serverSpread = serverSpread.coerceIn(0.0, 0.5),
+    courseDepth = courseDepth.coerceAtLeast(1),
+    courseClip = courseClip.coerceIn(0.01, 1.0),
+    priceDeltaThresholdPct = priceDeltaThresholdPct.coerceIn(0.0, 1.0),
     auctionCheckIntervalTicks = auctionCheckIntervalTicks.coerceAtLeast(20),
-    starterGoods = starterGoods.filter { it.base > 0 && it.lot > 0 && it.target >= 0 && it.depth > 0 && (it.max ?: 1) > 0 }.map { g -> g.max?.let { g.copy(target = minOf(g.target, it)) } ?: g }
+    starterGoods = starterGoods.map { it.normalized() }.filter { g -> g.valid().also { ok -> if (!ok) LOG.warn("Dropped invalid starter good {}", g.item) } }
 )
 
 private val sections = listOf(
@@ -106,10 +109,6 @@ private val sections = listOf(
         mapOf(
             "marketTickInterval" to "Ticks between two price updates. 1200 is one minute.",
             "priceDeltaThresholdPct" to "Smallest price change, 0 to 1, that gets sent to players right away.",
-            "maxPriceMovePct" to "Most a price may move in one update, 0 to 1.",
-            "defaultFloor" to "Lowest price of any item.",
-            "defaultCeiling" to "Highest price of any item, or null for no limit.",
-            "categoryBounds" to "Own floor, ceiling and maxMovePct per item id. Leave a value null to use the default.",
             "sellTaxPct" to "Tax taken from every market sale, 0 to 0.9.",
             "allyTaxRate" to "Tax on player trades between allied countries or one country family, 0 to 0.9.",
             "maxPrice" to "Highest price per lot a player may ask or bid.",
@@ -130,12 +129,11 @@ private val sections = listOf(
     Section(
         "starter-items.json", "Basic goods the market buys and sells from its own stock, so new players can earn their first coins.",
         mapOf(
-            "starterGoods" to "Item id or #tag, base price per lot, lot size, target stock and depth in lots, optional own daily cap, optional max stock in lots. infinite = the market always buys it at the base price up to the daily cap per player and never sells it back.",
+            "starterGoods" to "Item id or #tag with base price per lot, lot size, depth in lots (how strongly a trade moves the course), supply and demand in lots (-1 = infinite; supply 0 = nothing to buy, demand 0 = nothing bought; demand also grows when players buy from the server), optional floor and ceiling price, optional spread, sellCap (lots per player in 24 hours the market buys, 0 = unlimited) and resell (false = lots the market buys are not added to its supply).",
             "catalog" to "Last bundled starter catalog merged into starterGoods. Goods you remove stay removed.",
-            "dailySellLots" to "Lots per player and day the market buys at the full base price.",
-            "resetHour" to "Server hour, 0 to 23, when the daily cap resets.",
-            "recoveryPct" to "Share of the gap to the target stock that closes each day, 0 to 100.",
-            "band" to "Lowest and highest price as a factor of the base price."
+            "serverSpread" to "Share the market adds to the course when it sells and takes off when it buys, 0 to 0.5.",
+            "courseDepth" to "Depth in lots for the course of items that are not starter goods.",
+            "courseClip" to "Most a single player trade may pull the course from its current value, 0.01 to 1."
         )
     ),
     Section(
@@ -165,3 +163,6 @@ private val sections = listOf(
 )
 
 object Config : ConfigModule<Settings>("economy", Settings.serializer(), Settings(), sections, "kami_economy.json", { it.sane() })
+
+private fun StarterGood.valid(): Boolean =
+    base > 0 && lot > 0 && depth > 0 && supply >= -1 && demand >= -1 && sellCap >= 0 && (floor ?: 1) >= 1 && (ceiling ?: Int.MAX_VALUE) >= (floor ?: maxOf(1, base / 2)) && (spread ?: 0.0) in 0.0..0.5

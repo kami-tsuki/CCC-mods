@@ -24,12 +24,14 @@ object Admin {
 
     private const val PER_SECOND = 20
     private const val QUEUE = 64
+    private const val IN_FLIGHT = 4
     private const val DENIED_EVERY = 60_000L
     private const val AUDIT = "audit"
     private val log = Log.of("library")
     private val handlers = ConcurrentHashMap<String, Handler>()
     private val denied = HashMap<UUID, Long>()
     private val limiter = RateLimit<UUID>(PER_SECOND, 1000L)
+    private val running = ConcurrentHashMap<UUID, Int>()
     private val worker = ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, LinkedBlockingQueue(QUEUE)) { Db.ViewThread(it, "kami-admin-views").apply { isDaemon = true } }
 
     val level get() = AdminClient.level
@@ -65,11 +67,28 @@ object Admin {
         if (refusal != null || h == null) return AdminNet.reply(p, AdminReply(false, error = refusal, rid = rid))
         if (!h.async) return reply(p, invoke(p, name, h, level, args), rid)
         val server = p.server
+        val id = p.uuid
+        if (running.merge(id, 1, Int::plus)!! > IN_FLIGHT) return busy(p, id, rid)
         try {
-            worker.execute { reply(p, invoke(p, name, h, level, args), rid, server) }
+            worker.execute {
+                try {
+                    reply(p, invoke(p, name, h, level, args), rid, server)
+                } finally {
+                    release(id)
+                }
+            }
         } catch (e: RejectedExecutionException) {
-            AdminNet.reply(p, AdminReply(false, error = "kami_libs.admin.busy", rid = rid))
+            busy(p, id, rid)
         }
+    }
+
+    private fun busy(p: ServerPlayer, id: UUID, rid: Int) {
+        release(id)
+        AdminNet.reply(p, AdminReply(false, error = "kami_libs.admin.busy", rid = rid))
+    }
+
+    private fun release(id: UUID) {
+        running.computeIfPresent(id) { _, n -> (n - 1).takeIf { it > 0 } }
     }
 
     private fun reply(p: ServerPlayer, r: AdminReply, rid: Int, server: MinecraftServer? = null) {
@@ -105,7 +124,8 @@ object Admin {
             AdminReply(true, audited?.let { JsonObject(it - AUDIT) } ?: data)
         } catch (e: AdminFailure) {
             AdminReply(false, JsonArray(e.args.map { JsonPrimitive(it) }), e.key)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            if (e is VirtualMachineError) throw e
             log.error("Admin request {} by {} failed", name, p.scoreboardName, e)
             AdminReply(false, error = "kami_libs.admin.error")
         }

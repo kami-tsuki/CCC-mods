@@ -4,6 +4,7 @@ import kami.essentials.discord.Gate
 import kami.essentials.discord.Relay
 import kami.libs.admin.Admin
 import kami.libs.admin.AdminCtx
+import kami.libs.admin.AdminPerms
 import kami.libs.admin.Players
 import kami.libs.admin.text
 import kami.libs.db.Db
@@ -46,6 +47,7 @@ object DiscordAdmin {
         Admin.view("players.discord") { ctx, a -> Db.json.encodeToJsonElement(DiscordDetail.serializer(), detail(target(ctx, a))) }
         Admin.act("players.discord.unlink") { ctx, a ->
             val id = target(ctx, a)
+            if (id != ctx.player.uuid && !AdminPerms.outranks(ctx.player, Players.profile(ctx.player.server, id))) ctx.fail("kami_essentials.admin.outranked")
             val link = Links.get(id) ?: ctx.fail("kami_essentials.admin.discord_not_linked", id)
             Gate.unlink(id)
             Admin.done(id, audit = mapOf("discord" to link.discordId.toString()))

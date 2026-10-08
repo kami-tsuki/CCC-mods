@@ -14,7 +14,7 @@ object Staff {
     val hidden = CopyOnWriteArrayList<(ServerPlayer) -> Boolean>()
     private val modes = ConcurrentHashMap.newKeySet<String>()
     private val until = ConcurrentHashMap<String, Long>()
-    private val own = setOf("staff", "discord", "money")
+    private val own = setOf("staff", "server", "discord", "money")
     private val kept = setOf("session.login", "session.logout", "market.watch")
 
     fun active(subject: String) = subject in modes || (until[subject] ?: 0L) > System.currentTimeMillis()
@@ -26,8 +26,10 @@ object Staff {
 
     fun refresh(p: ServerPlayer, mode: GameType = p.gameMode.gameModeForPlayer) {
         if (p is FakePlayer) return
-        if (mode == GameType.CREATIVE || mode == GameType.SPECTATOR || hidden.any { runCatching { it(p) }.getOrDefault(false) }) modes.add(subject(p)) else modes.remove(subject(p))
+        if (mode == GameType.CREATIVE || mode == GameType.SPECTATOR || veiled(p)) modes.add(subject(p)) else modes.remove(subject(p))
     }
+
+    fun veiled(p: ServerPlayer) = hidden.any { runCatching { it(p) }.getOrDefault(false) }
 
     fun mark(p: ServerPlayer) {
         if (p !is FakePlayer) until[subject(p)] = System.currentTimeMillis() + LibConfig.s.staffCommandSeconds * 1000L

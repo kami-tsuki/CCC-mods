@@ -1,5 +1,8 @@
 package kami.economy.client.admin
 
+import kami.libs.ui.style.Severity
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonArray
 import kami.economy.admin.OrderRow
 import kami.economy.client.ui.ROW_H
 import kami.libs.ui.app.KamiApp
@@ -58,10 +61,14 @@ internal class OrdersPage(private val app: KamiApp) : Page() {
             picked.size > MAX_CANCEL -> tr("kami_economy.admin.cancel.too_many", MAX_CANCEL)
             else -> null
         }
-        val pending = adminPending("market.cancel", listOf(picked.joinToString(",")))
+        val pending = lock == null && adminPending("market.cancel", listOf(picked.joinToString(",")))
+        val shown = paged.rows.map { it.entry }.take(MAX_CANCEL)
+        val shownLock = lockUnless(adminManager) ?: tr("kami_economy.admin.cancel.none").takeIf { shown.isEmpty() }
+        val shownPending = shownLock == null && adminPending("market.cancel", listOf(shown.joinToString(",")))
         val body = ui.filterBar(r, "market-orders:filters") { bar ->
             val row = Row(bar, 6)
             if (ui.edgeButton(row, tr("kami_economy.admin.cancel", picked.size), Icons.CROSS, ButtonStyle.DANGER, lock == null, lock, pending = pending, key = "market-orders:cancel")) cancel(picked)
+            if (ui.edgeButton(row, tr("kami_economy.admin.cancel_shown", shown.size), Icons.CROSS, ButtonStyle.DANGER, shownLock == null, shownLock, pending = shownPending, key = "market-orders:cancel-shown")) cancel(shown)
             val chips = row.takeFromRight(190)
             ui.chipFlow(Stack(chips.x, chips.y + 2, chips.w), SIDES.map { ChipSpec(tr("kami_economy.admin.side.$it"), selected = it == side) }, "market-orders:side")
                 ?.let { side = SIDES[it] }
@@ -72,6 +79,10 @@ internal class OrdersPage(private val app: KamiApp) : Page() {
     }
 
     private fun cancel(picked: List<String>) = reasonDialog({ app.open(it) }, tr("kami_economy.admin.cancel.title", picked.size), danger = true) { reason, _, _ ->
-        app.adminAct("market.cancel", listOf(picked.joinToString(",")), reason) { table.clear() }
+        app.adminAct("market.cancel", listOf(picked.joinToString(",")), reason) { r ->
+            table.clear()
+            val failed = ((r.data as? JsonObject)?.get("failed") as? JsonArray)?.size ?: 0
+            if (failed > 0) app.toast(Severity.WARNING, tr("kami_economy.admin.cancel.failed", failed))
+        }
     }
 }

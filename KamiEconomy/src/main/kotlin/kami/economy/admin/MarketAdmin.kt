@@ -9,6 +9,7 @@ import kami.economy.economy.Ledger
 import kami.economy.economy.Notify
 import kami.economy.economy.StackCodec
 import kami.economy.economy.Starters
+import kami.economy.economy.Stocks
 import kami.economy.economy.TradeFlag
 import kami.economy.economy.TradeStatus
 import kami.economy.economy.Watchlist
@@ -26,6 +27,7 @@ import kami.libs.db.Db
 import kami.libs.mc.ItemSpec
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -47,6 +49,7 @@ object MarketAdmin {
         Admin.view("market.frozen") { _, _ -> encode(ListSerializer(FrozenRow.serializer()), frozen()) }
         Admin.view("market.status") { _, a -> encode(Page.serializer(StatusRow.serializer()), statuses(a)) }
         Admin.act("market.cancel") { ctx, a -> cancel(ctx, a) }
+        Admin.act("market.server_set") { ctx, a -> serverSet(ctx, a) }
         Admin.act("market.status_set") { ctx, a -> setStatus(ctx, a) }
         Admin.act("market.starter_upsert") { ctx, a ->
             val good = a.text(0)?.let { runCatching { Configs.json().decodeFromString(StarterGood.serializer(), it) }.getOrNull() } ?: ctx.fail("kami_economy.admin.invalid_good")
@@ -98,8 +101,9 @@ object MarketAdmin {
         return StarterList(goods.map { g ->
             val items = Starters.items(g.item)
             val status = TradeStatus.all()[g.item]
+            val stock = items.firstNotNullOfOrNull(Stocks::stock)
             StarterRow(
-                g, items.mapNotNull { Market.data.stocks[it]?.lots }.takeIf { !g.infinite && it.isNotEmpty() }?.sum(), items.size,
+                g, stock?.supply ?: 0, stock?.demand ?: 0, items.firstOrNull()?.let(Stocks::course) ?: g.base.toDouble(), items.size,
                 status?.let { TradeFlag.csv(it.flags) }.orEmpty(), status?.reason.orEmpty(), TradeStatus.rev(g.item)
             )
         }, Starters.rev(goods))
@@ -142,10 +146,26 @@ object MarketAdmin {
             if (side !in SIDES || id == null) ctx.fail("kami_economy.admin.bad_entries", MAX_ENTRIES)
             Triple(side, e.substringAfter(':').substringBeforeLast(':', ""), id)
         }
-        val owners = parsed.mapNotNull { (side, item, id) -> Ledger.cancelAsServer(side, item, id, ctx.reason) }
+        val results = entries.zip(parsed).map { (e, p) -> e to Ledger.cancelAsServer(p.first, p.second, p.third, ctx.reason) }
+        val owners = results.mapNotNull { it.second }
         if (owners.isEmpty()) ctx.fail("kami_economy.admin.nothing_cancelled")
         Net.broadcastOpen(ctx.player.server)
-        return Admin.done(owners.distinct().joinToString(","), "cancelled" to JsonPrimitive(owners.size))
+        val failed = results.filter { it.second == null }.map { JsonPrimitive(it.first) }
+        return Admin.done(owners.distinct().joinToString(","), "cancelled" to JsonPrimitive(owners.size), "failed" to JsonArray(failed))
+    }
+
+    private fun serverSet(ctx: AdminCtx, a: List<String>): JsonObject {
+        val key = a.text(0) ?: ctx.fail("kami_economy.admin.unknown_good", "")
+        val items = Starters.items(key).ifEmpty { ctx.fail("kami_economy.admin.unknown_good", key) }
+        fun count(i: Int): Int? = a.text(i)?.let { if (it == "inf") -1 else it.toIntOrNull()?.takeIf { v -> v >= 0 } ?: ctx.fail("kami_economy.admin.invalid_good") }
+        val supply = count(1)
+        val demand = count(2)
+        val course = a.text(3)?.let { it.toDoubleOrNull()?.takeIf { v -> v > 0 } ?: ctx.fail("kami_economy.admin.invalid_good") }
+        fun state(item: String) = Stocks.stock(item)?.let { "supply=${it.supply},demand=${it.demand},course=${Stocks.course(item)}" }.orEmpty()
+        val before = state(items.first())
+        items.forEach { Stocks.set(it, supply, demand, course) }
+        Net.broadcastOpen(ctx.player.server)
+        return Admin.done(key, audit = mapOf("before" to before, "after" to state(items.first())))
     }
 
     private fun diff(key: String, before: StarterGood?, after: StarterGood?): JsonObject {

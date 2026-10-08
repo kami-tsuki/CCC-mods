@@ -4,6 +4,7 @@ import com.mojang.authlib.GameProfile
 import kami.essentials.Perms
 import kami.essentials.discord.Bot
 import kami.essentials.discord.Gate
+import kami.libs.admin.AdminPerms
 import kami.libs.command.Ctx
 import kami.libs.command.KamiCommands
 import kami.libs.command.arg
@@ -32,6 +33,8 @@ object DiscordCommands {
     private fun linked(profile: GameProfile): Link = Links.get(profile.id) ?: fail(Phrase.of("kami_essentials.discord.command.not_linked", Phrase.value(profile.name)))
 
     private fun unlink(ctx: Ctx, profile: GameProfile) {
+        val me = ctx.source.player
+        if (me != null && profile.id != me.uuid && !AdminPerms.outranks(me, profile)) fail(Phrase.of("kami_essentials.admin.outranked"))
         val link = linked(profile)
         Gate.unlink(profile.id)
         ctx.ok(Phrase.of("kami_essentials.discord.command.unlinked", Phrase.value(link.name)))

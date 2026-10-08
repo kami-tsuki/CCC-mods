@@ -361,6 +361,7 @@
   "kami_claims.error.job_field": "Fields: pay, quota, period.",
   "kami_claims.error.leave_first": "Leave your country first.",
   "kami_claims.error.lower_ranks": "You can only remove lower ranks.",
+  "kami_claims.error.pardon_rank": "Only a chancellor or the president can lift a banishment.",
   "kami_claims.error.member_ally": "Members can't be allies.",
   "kami_claims.error.missing_argument": "Missing argument.",
   "kami_claims.error.name": "Names use %1$s to %2$s letters, digits, _ or -.",

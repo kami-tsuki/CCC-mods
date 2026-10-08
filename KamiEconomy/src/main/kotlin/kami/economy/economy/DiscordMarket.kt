@@ -100,7 +100,7 @@ object DiscordMarket {
         }
         val all = items()
         if (!seeded) {
-            all.forEach { i -> Matching.effectiveSellPrice(i)?.let { last[i] = it } }
+            all.forEach { i -> Matching.bestAsk(i, "")?.let { last[i] = it } }
             seeded = true
             index = null
             lastFlush = now
@@ -124,7 +124,7 @@ object DiscordMarket {
     private fun items(): Set<String> = Market.data.books.keys + Stocks.items()
 
     private fun watch(item: String, now: Long): Move? {
-        val price = Matching.effectiveSellPrice(item) ?: return null
+        val price = Matching.bestAsk(item, "") ?: return null
         val prev = last[item]
         if (prev == null) {
             last[item] = price
@@ -228,7 +228,7 @@ object DiscordMarket {
         if (list.isEmpty()) return ctx.reply(ctx.text(ID, "kami_economy.discord.watchlist.empty"))
         val now = now()
         val body = list.take(LINES).joinToString("\n") { item ->
-            val price = Matching.effectiveSellPrice(item)?.let { DiscordFormat.money(it.toLong()) } ?: "–"
+            val price = Matching.bestAsk(item, "")?.let { DiscordFormat.money(it.toLong()) } ?: "–"
             "${nameOf(item)} $price ${DiscordFormat.change(History.change(item, now) / 10.0)}"
         }
         ctx.reply(Card(ctx.text(ID, "kami_economy.discord.watchlist"), body, DiscordFormat.NEUTRAL, footer = "${minOf(list.size, LINES)}/${list.size}", timestamp = now))
@@ -240,20 +240,20 @@ object DiscordMarket {
         val now = now()
         val book = Matching.bookFor(item)
         val lot = Config.s.lotOf(item)
-        val ask = Matching.effectiveSellPrice(item)
+        val ask = Matching.bestAsk(item, "")
         val bid = Matching.bestBid(item)
         val permille = History.change(item, now)
         fun t(key: String, vararg a: Any) = ctx.text(ID, "kami_economy.discord.$key", *a)
         fun money(v: Int?) = v?.let { DiscordFormat.money(it.toLong()) } ?: "–"
         val bidDepth = book.buys.filter { it.amount > 0 && it.price == bid }.sumOf { it.amount.toLong() }
-        val askDepth = if (Matching.bestPrice(item) == ask) book.sells.filter { it.amount > 0 && it.price == ask }.sumOf { it.amount.toLong() } else (Stocks.stock(item)?.lots ?: 0).toLong() * lot
-        val week = History.series(item, Range.WEEK, now, book.midPrice).buckets
+        val askDepth = if (Matching.bestPrice(item) == ask) book.sells.filter { it.amount > 0 && it.price == ask }.sumOf { it.amount.toLong() } else Stocks.supplyLeft(item).takeIf { it != Int.MAX_VALUE }.let { (it ?: 0).toLong() } * lot
+        val week = History.series(item, Range.WEEK, now, book.course).buckets
         val range = if (week.isEmpty()) "–" else "${DiscordFormat.money(week.minOf { it.low }.toLong())} – ${DiscordFormat.money(week.maxOf { it.high }.toLong())}"
-        val closes = History.series(item, Range.DAY, now, book.midPrice).buckets.map { it.close }
+        val closes = History.series(item, Range.DAY, now, book.course).buckets.map { it.close }
         val spark = if (closes.size <= SPARK) closes else (1..SPARK).map { closes[it * closes.size / SPARK - 1] }
         val fields = mutableListOf(
             EmbedField(t("price", lot), money(ask), true),
-            EmbedField(t("lastmid"), "${money(book.lastFill.takeIf { it > 0 })} / ${money(book.midPrice.toInt().takeIf { it > 0 })}", true),
+            EmbedField(t("lastmid"), "${money(book.lastFill.takeIf { it > 0 })} / ${money(book.course.toInt().takeIf { it > 0 })}", true),
             EmbedField(t("change"), DiscordFormat.change(permille / 10.0), true),
             EmbedField(t("bid"), "${money(bid)} ($bidDepth)", true),
             EmbedField(t("ask"), "${money(ask)} ($askDepth)", true),

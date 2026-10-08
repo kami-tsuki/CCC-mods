@@ -50,14 +50,4 @@ class VendorsTest {
         Market.data.vendors += vendor(4, 40, 64)
         assertEquals(35, Stocks.vendorPrice(item))
     }
-
-    @Test
-    fun vendorPriceFeedsRecovery() {
-        setup()
-        Stocks.stock(item)
-        Market.data.vendors += vendor(1, 40, 64)
-        Market.data.day = 1
-        Stocks.rollover(System.currentTimeMillis())
-        assertEquals(22.0, Market.data.stocks.getValue(item).base, 1e-9)
-    }
 }

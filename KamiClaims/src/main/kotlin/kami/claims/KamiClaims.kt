@@ -175,17 +175,21 @@ object KamiClaims {
         FORGE_BUS.addListener<ServerStoppedEvent>(EventPriority.LOWEST) { RealmDb.unload() }
         FORGE_BUS.addListener<ServerTickEvent.Post> {
             val t = it.server.tickCount
-            if (t % 20 == 0) it.server.playerList.players.forEach(Guard::announce)
-            Structures.tick(t, it.server.playerList.players)
-            if (t % 10 == 0) it.server.playerList.players.forEach(Effects::borders)
-            Net.push(it.server)
-            if (t % 20 == 0) Queue.tick()
-            if (t % 20 == 0) Online.sample(it.server.playerList.players)
-            if (t % 20 == 0) runCatching { WarBar.tick(it.server.playerList.players) }.onFailure { e -> LOG.error("War bar failed", e) }
-            if (t % 4 == 0) TempBlocks.tick(it.server)
-            if (t % 100 == 0) Levels.advanceAll()
-            if (t % 1200 == 0) Upkeep.tick(it.server)
-            if (t % 1200 == 0) runCatching { Wars.tick() }.onFailure { e -> LOG.error("War tick failed", e) }
+            val players = it.server.playerList.players
+            fun task(name: String, every: Int, run: () -> Unit) {
+                if (t % every == 0) runCatching(run).onFailure { e -> LOG.error("{} tick failed", name, e) }
+            }
+            task("Announce", 20) { players.forEach(Guard::announce) }
+            task("Structures", 1) { Structures.tick(t, players) }
+            task("Borders", 10) { players.forEach(Effects::borders) }
+            task("Push", 1) { Net.push(it.server) }
+            task("Research", 20) { Queue.tick() }
+            task("Online", 20) { Online.sample(players) }
+            task("War bar", 20) { WarBar.tick(players) }
+            task("Temp blocks", 4) { TempBlocks.tick(it.server) }
+            task("Levels", 100) { Levels.advanceAll() }
+            task("Upkeep", 1200) { Upkeep.tick(it.server) }
+            task("War", 1200) { Wars.tick() }
         }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { (it.entity as? ServerPlayer)?.let { p -> touch(p); Mail.deliver(p); Online.login(p); runCatching { WarBar.tick(listOf(p)) }.onFailure { e -> LOG.error("War bar failed", e) } } }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { (it.entity as? ServerPlayer)?.let { p -> touch(p); Guard.forget(p); Net.forget(p); Structures.forget(p); Online.logout(p); WarBar.forget(p) } }

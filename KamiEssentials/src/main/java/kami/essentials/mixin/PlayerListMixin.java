@@ -1,6 +1,7 @@
 package kami.essentials.mixin;
 
 import com.mojang.authlib.GameProfile;
+import kami.essentials.admin.Maintenance;
 import kami.essentials.chat.Feed;
 import kami.essentials.discord.Gate;
 import net.minecraft.network.chat.Component;
@@ -23,6 +24,11 @@ public abstract class PlayerListMixin {
     @Inject(method = "canPlayerLogin(Ljava/net/SocketAddress;Lcom/mojang/authlib/GameProfile;)Lnet/minecraft/network/chat/Component;", at = @At("RETURN"), cancellable = true)
     private void kami$gate(SocketAddress address, GameProfile profile, CallbackInfoReturnable<Component> cir) {
         if (cir.getReturnValue() != null || !((PlayerList) (Object) this).getServer().isDedicatedServer()) return;
+        Component closed = Maintenance.INSTANCE.check(profile);
+        if (closed != null) {
+            cir.setReturnValue(closed);
+            return;
+        }
         Component kick = Gate.INSTANCE.check(profile);
         if (kick != null) cir.setReturnValue(kick);
     }

@@ -1,32 +1,24 @@
 package kami.economy.economy
 
 import kami.economy.Config
-import kami.economy.Fill
 import kami.economy.Market
+import kami.economy.Sale
 import kami.economy.StarterGood
 import kami.economy.Stock
 import kami.economy.Vendor
 import kami.economy.now
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZoneId
 import kotlin.math.ceil
-import kotlin.math.exp
 import kotlin.math.floor
-import kotlin.math.ln
+import kotlin.math.pow
 import kotlin.math.roundToInt
-import kotlin.math.sign
-
-class StockSale(val lots: Int, val guaranteed: Int, val gross: Long, val tax: Long, val after: Int, val full: Boolean = false) {
-    val net: Long get() = gross - tax
-}
 
 object Stocks {
     const val ORDER_ID = -1L
-    private const val ALL = "*"
-    private const val BASE_SPREAD = 3.0
+    const val INF = -1
+    private const val UNSET = -2
+    private const val WINDOW = 24 * 60 * 60 * 1000L
     private var goods: Map<String, StarterGood> = emptyMap()
+    private var configured: Map<String, StarterGood> = emptyMap()
     private var present: (String) -> Boolean = { true }
     private var resolve: (String) -> List<String> = { emptyList() }
 
@@ -37,161 +29,135 @@ object Stocks {
     }
 
     fun reindex() {
-        goods = Config.s.starterGoods.flatMap { g -> (if (g.item.startsWith("#")) resolve(g.item.drop(1)) else listOf(g.item).filter(present)).map { it to g } }.toMap()
+        configured = Config.s.starterGoods.flatMap { g -> (if (g.item.startsWith("#")) resolve(g.item.drop(1)) else listOf(g.item).filter(present)).map { it to g } }.toMap()
+        goods = configured.filterKeys { Variants.of(it) == null }
+        Market.data.stocks.keys.toList().forEach { stock(it) }
+        goods.keys.forEach { i -> Market.peek(i)?.takeIf { it.course > 0.0 }?.let { it.course = clampCourse(i, it.course) } }
     }
 
     fun good(item: String): StarterGood? = goods[item]
+
+    fun configured(item: String): StarterGood? = configured[item]
 
     fun items(): Set<String> = goods.keys
 
     fun stock(item: String): Stock? {
         val g = goods[item] ?: return null
-        return Market.data.stocks.getOrPut(item) { Market.dirty = true; Stock(g.target, g.base.toDouble()) }
-    }
-
-    private fun curve(u: Double): Double {
-        val lo = Config.s.bandLow
-        val hi = Config.s.bandHigh
-        return when {
-            u > ln(hi) -> hi - 1 + hi * (u - ln(hi))
-            u < ln(lo) -> lo - 1 + lo * (u - ln(lo))
-            else -> exp(u) - 1
+        val s = Market.data.stocks.getOrPut(item) { Market.dirty = true; Stock(g.supply, g.demand) }
+        if (s.demand == UNSET) {
+            s.demand = g.demand
+            if (!g.resell) s.supply = g.supply
+            Market.dirty = true
         }
+        return s
     }
 
-    fun value(item: String, from: Int, to: Int): Double {
-        val g = goods[item] ?: return 0.0
-        val s = stock(item) ?: return 0.0
-        val d = g.depth.toDouble()
-        return s.base * d * (curve((g.target - from) / d) - curve((g.target - to) / d))
+    fun course(item: String): Double = Market.peek(item)?.course?.takeIf { it > 0.0 } ?: goods[item]?.base?.toDouble() ?: 0.0
+
+    fun spread(item: String): Double = goods[item]?.spread ?: Config.s.serverSpread
+
+    fun floor(item: String): Int = goods[item]?.let { it.floor ?: maxOf(1, it.base / 2) } ?: 1
+
+    fun ceiling(item: String): Int? = goods[item]?.ceiling
+
+    fun depth(item: String): Int = goods[item]?.depth ?: Config.s.courseDepth
+
+    fun infiniteDemand(item: String): Boolean = stock(item)?.demand == INF
+
+    private fun clampCourse(item: String, c: Double): Double = floor(item).toDouble().let { lo -> c.coerceIn(lo, maxOf(lo, ceiling(item)?.toDouble() ?: Double.MAX_VALUE)) }
+
+    private fun toInt(x: Double): Int = x.coerceAtMost(Int.MAX_VALUE.toDouble()).toInt()
+
+    fun bidAt(item: String, c: Double): Int = maxOf(floor(item), toInt(floor(c * (1 - spread(item)) + 1e-9)))
+
+    fun askAt(item: String, c: Double): Int = maxOf(toInt(ceil(c * (1 + spread(item)) - 1e-9)), bidAt(item, c) + 1, 1)
+
+    private fun step(item: String): Double = spread(item) / (1 + depth(item))
+
+    fun afterBuy(item: String, c: Double, lots: Int): Double = clampCourse(item, c * (1 + step(item)).pow(lots))
+
+    fun afterSell(item: String, c: Double, lots: Int): Double = clampCourse(item, c * (1 - step(item)).pow(lots))
+
+    fun afterPlayer(item: String, c: Double, price: Double, lots: Int): Double {
+        if (c <= 0.0) return clampCourse(item, price)
+        val clip = Config.s.courseClip
+        val p = price.coerceIn(c * (1 - clip), c * (1 + clip))
+        return clampCourse(item, c + lots.toDouble() / (lots + depth(item)) * (p - c))
     }
 
-    fun price(item: String, lots: Int? = null): Double {
-        val g = goods[item] ?: return 0.0
-        val s = stock(item) ?: return 0.0
-        return s.base * exp((g.target - (lots ?: s.lots)).toDouble() / g.depth).coerceIn(Config.s.bandLow, Config.s.bandHigh)
+    fun supplyLeft(item: String): Int {
+        val s = stock(item) ?: return 0
+        return if (s.supply == INF) Int.MAX_VALUE else s.supply
     }
 
-    private fun clampBase(g: StarterGood, base: Double): Double = base.coerceIn(g.base / BASE_SPREAD, g.base * BASE_SPREAD)
-
-    fun basePrice(item: String): Int {
-        val g = goods[item] ?: return 1
-        if (g.infinite) return g.base.coerceAtLeast(1)
-        return clampBase(g, stock(item)?.base ?: g.base.toDouble()).roundToInt().coerceAtLeast(1)
+    fun demandLeft(item: String, player: String): Int {
+        val s = stock(item) ?: return 0
+        return minOf(if (s.demand == INF) Int.MAX_VALUE else s.demand.coerceAtLeast(0), capLeft(player, item))
     }
 
-    fun limit(item: String): Int {
-        val g = goods[item] ?: return 0
-        return minOf(ceil(g.target - g.depth * ln(Config.s.bandLow) - 1e-9).toInt().coerceAtLeast(g.target), g.max ?: Int.MAX_VALUE)
-    }
+    fun ask(item: String): Int? = if (supplyLeft(item) > 0) askAt(item, course(item)) else null
 
-    fun infinite(item: String): Boolean = goods[item]?.infinite == true
-
-    /** Lots the market still takes; infinite goods never fill up, they are only limited per player by [capLeft]. */
-    fun room(item: String): Int = if (infinite(item)) Int.MAX_VALUE / 2 else stock(item)?.let { (limit(item) - it.lots).coerceAtLeast(0) } ?: 0
-
-    fun room(item: String, player: String): Int = if (infinite(item)) capLeft(player, item) else room(item)
-
-    fun ask(item: String): Int? = goods[item]?.let { plan(item, it.lot) }?.paid?.coerceIn(1, Int.MAX_VALUE.toLong())?.toInt()
-
-    fun bid(player: String, item: String): Int? =
-        stock(item)?.takeIf { room(item, player) > 0 }?.let { if (capLeft(player, item) > 0) basePrice(item) else price(item).roundToInt() }
-
-    private fun floorSpurs(x: Double): Long = floor(x + 1e-9).toLong()
-
-    private fun ceilSpurs(x: Double): Long = ceil(x - 1e-9).toLong()
-
-    private fun capKey(item: String) = if (goods[item]?.dailyCap != null) item else ALL
-
-    private fun cap(item: String): Int = goods[item]?.dailyCap ?: Config.s.dailySellLots
+    fun bid(item: String, player: String): Int? = if (demandLeft(item, player) > 0) bidAt(item, course(item)) else null
 
     fun capLeft(player: String, item: String): Int {
-        if (item !in goods) return 0
-        return (cap(item) - (Market.data.sold[player]?.get(capKey(item)) ?: 0)).coerceAtLeast(0)
+        val g = goods[item] ?: return Int.MAX_VALUE
+        if (g.sellCap <= 0) return Int.MAX_VALUE
+        val from = now() - WINDOW
+        return (g.sellCap - Market.data.sold[player]?.get(g.item).orEmpty().sumOf { if (it.at > from) it.lots else 0 }).coerceAtLeast(0)
     }
 
-    fun sale(player: String, item: String, lots: Int): StockSale? {
-        val s = stock(item) ?: return null
-        val guaranteed = minOf(lots, capLeft(player, item))
-        if (infinite(item)) {
-            val gross = guaranteed.toLong() * basePrice(item)
-            return StockSale(lots, guaranteed, gross, Matching.tax(gross), basePrice(item), full = lots > guaranteed)
-        }
-        val gross = floorSpurs(guaranteed.toDouble() * basePrice(item) + value(item, s.lots + guaranteed, s.lots + lots))
-        return StockSale(lots, guaranteed, gross, Matching.tax(gross), price(item, s.lots + lots).roundToInt(), full = lots > room(item))
-    }
-
-    fun plan(item: String, qty: Int): FillLinePlan? {
-        val s = stock(item) ?: return null
-        if (infinite(item)) return null
-        val lot = goods.getValue(item).lot
-        val lots = minOf(qty / lot, s.lots)
-        if (lots <= 0) return null
-        val cost = ceilSpurs(value(item, s.lots - lots, s.lots))
-        return FillLinePlan(ORDER_ID, "", lots * lot, (cost / lots).toInt(), lot, cost)
-    }
+    private fun grow(x: Int, lots: Int): Int = (x.toLong() + lots).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
 
     fun take(item: String, lots: Int) {
         val s = stock(item) ?: return
-        s.lots = (s.lots - lots).coerceAtLeast(0)
+        if (s.supply != INF) s.supply = (s.supply - lots).coerceAtLeast(0)
+        if (s.demand != INF) s.demand = grow(s.demand, lots)
         Market.dirty = true
     }
 
-    fun sold(player: String, item: String, lots: Int, guaranteed: Int, perLot: Int) {
+    fun sold(player: String, item: String, lots: Int) {
         val s = stock(item) ?: return
-        if (!infinite(item)) s.lots += lots
-        if (guaranteed > 0) Market.data.sold.getOrPut(player) { mutableMapOf() }.merge(capKey(item), guaranteed, Int::plus)
-        val book = Market.book(item)
-        book.lastFill = perLot
-        book.recentFills += Fill(perLot, lots * goods.getValue(item).lot, now())
+        val g = goods.getValue(item)
+        if (s.demand != INF) s.demand = (s.demand - lots).coerceAtLeast(0)
+        if (s.supply != INF && g.resell) s.supply = grow(s.supply, lots)
+        if (g.sellCap > 0) {
+            val list = Market.data.sold.getOrPut(player) { mutableMapOf() }.getOrPut(g.item) { mutableListOf() }
+            list.removeAll { it.at <= now() - WINDOW }
+            list += Sale(now(), lots)
+        }
         Market.dirty = true
     }
 
-    fun observe(item: String, perLot: Int) {
-        val s = stock(item) ?: return
-        val sample = perLot.toDouble().coerceIn(s.base * Config.s.bandLow, s.base * Config.s.bandHigh)
-        s.observed = if (s.observed <= 0.0) sample else s.observed * 0.8 + sample * 0.2
+    fun prune() {
+        val from = now() - WINDOW
+        var changed = false
+        Market.data.sold.values.forEach { m ->
+            m.values.forEach { l -> if (l.removeAll { it.at <= from }) changed = true }
+            m.values.removeAll { it.isEmpty() }
+        }
+        if (Market.data.sold.values.removeAll { it.isEmpty() }) changed = true
+        if (changed) Market.dirty = true
     }
 
-    fun vendorPrice(item: String): Int? = vendorPrice(item, Market.data.vendors.filter { it.item == item })
+    fun set(item: String, supply: Int?, demand: Int?, course: Double?) {
+        val s = stock(item) ?: return
+        supply?.let { s.supply = it }
+        demand?.let { s.demand = it }
+        course?.takeIf { it > 0.0 }?.let { Market.book(item).course = clampCourse(item, it) }
+        Market.dirty = true
+    }
 
-    private fun vendorPrice(item: String, vendors: List<Vendor>): Int? {
+    fun vendorPrice(item: String): Int? = vendorPrices(item)[item]
+
+    fun vendorPrices(only: String? = null): Map<String, Int> =
+        Market.data.vendors.filter { it.price > 0 && it.count > 0 && (only == null || it.item == only) }.groupBy { it.item }.mapValues { (item, list) -> median(item, list) }
+
+    private fun median(item: String, vendors: List<Vendor>): Int {
         val lot = Config.s.lotOf(item)
-        val prices = vendors.filter { it.price > 0 && it.count > 0 }
+        val prices = vendors
             .groupBy { it.owner.ifEmpty { "${it.dim}:${it.x},${it.y},${it.z}" } }
             .map { (_, list) -> list.minOf { (it.price.toLong() * lot / it.count.toDouble()).roundToInt().coerceAtLeast(1) } }.sorted()
-        if (prices.isEmpty()) return null
         val mid = prices.size / 2
         return if (prices.size % 2 == 1) prices[mid] else (prices[mid - 1] + prices[mid] + 1) / 2
-    }
-
-    fun day(millis: Long): Long =
-        LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneId.systemDefault()).minusHours(Config.s.resetHour.toLong()).toLocalDate().toEpochDay()
-
-    fun nextReset(): Long =
-        LocalDate.ofEpochDay(day(now()) + 1).atTime(Config.s.resetHour, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-
-    fun rollover(millis: Long = now()) {
-        val today = day(millis)
-        val data = Market.data
-        if (today == data.day) return
-        if (data.day != 0L) recover()
-        data.day = today
-        data.sold.clear()
-        Market.dirty = true
-    }
-
-    private fun recover() {
-        val byItem = Market.data.vendors.groupBy { it.item }
-        Market.data.stocks.forEach { (item, s) ->
-            val g = goods[item] ?: return@forEach
-            byItem[item]?.let { vendorPrice(item, it) }?.let { observe(item, it) }
-            val gap = g.target - s.lots
-            val move = (gap * Config.s.recoveryPct / 100.0).roundToInt()
-            s.lots += if (move == 0 && Config.s.recoveryPct > 0) gap.sign else move
-            val moved = if (s.observed > 0.0) s.base + (s.observed - s.base).coerceIn(-s.base * 0.1, s.base * 0.1) else s.base
-            s.base = clampBase(g, moved)
-            if (s.observed > 0.0) s.observed = s.base + (s.observed - s.base) * 0.95
-        }
     }
 }

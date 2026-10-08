@@ -42,9 +42,9 @@ object Provinces {
 
     private fun ownProvince(parent: Country, child: Country) { if (child.parent != parent.id) throw Fail("kami_claims.error.not_province") }
 
-    private fun canHold(parent: Country) {
+    private fun canHold(parent: Country, child: Country? = null) {
         if (parent.parent != null) throw Fail("kami_claims.error.province_nested")
-        Features.requireRoom(parent, Capacity.PROVINCES, parent.provinces.size)
+        Features.requireRoom(parent, Capacity.PROVINCES, parent.provinces.size + (child?.provinces?.size ?: 0))
     }
 
     fun agreementLines(child: Country, parent: Country, offer: ProvinceOffer): List<Phrase> =
@@ -56,7 +56,7 @@ object Provinces {
         )
 
     fun invite(parent: Country, target: Country, mode: TaxMode, amount: Double) {
-        canHold(parent)
+        canHold(parent, target)
         WarLocks.diplomacy(parent, target)
         WarLocks.warProvince(target)
         if (target.id == parent.id) throw Fail("kami_claims.error.province_self")
@@ -91,12 +91,12 @@ object Provinces {
 
     fun accept(child: Country, parent: Country) {
         val offer = offer(child, parent)
-        canHold(parent)
+        canHold(parent, child)
         finalize(child, parent, offer.mode, offer.amount)
     }
 
     fun approve(parent: Country, child: Country, mode: TaxMode, amount: Double): ProvinceOffer {
-        canHold(parent)
+        canHold(parent, child)
         if ((parent.provinceRequests[child.id] ?: 0) < now()) throw Fail("kami_claims.error.no_province_request")
         if (child.parent != null) throw Fail("kami_claims.error.has_overlord")
         WarLocks.warProvince(child)

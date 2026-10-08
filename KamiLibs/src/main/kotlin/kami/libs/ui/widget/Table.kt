@@ -74,6 +74,14 @@ class TableState<T> {
         return sortedRows
     }
 
+    private var groupedFrom: List<T>? = null
+    private var groupedRows: List<T> = emptyList()
+
+    fun grouped(rows: List<T>, build: (List<T>) -> List<T>): List<T> {
+        if (groupedFrom !== rows) { groupedRows = build(rows); groupedFrom = rows }
+        return groupedRows
+    }
+
     fun clear() { selected.clear() }
 }
 
@@ -82,7 +90,8 @@ class TableEvents<T>(val opened: T?, val contextOn: T?, val selectionChanged: Bo
 fun <T> Ui.table(
     r: Rect, columns: List<Column<T>>, rows: List<T>, state: TableState<T>, keyOf: (T) -> Any,
     multi: Boolean = false, rowHeight: Int = TABLE_ROW_H, severity: (T) -> Severity? = { null }, emptyText: String = tr("kami_libs.table.empty"),
-    highlight: (T) -> Boolean = { false }, key: Any = "table", loading: Boolean = false
+    highlight: (T) -> Boolean = { false }, key: Any = "table", loading: Boolean = false,
+    rowHeightOf: ((T) -> Int)? = null, regroup: ((List<T>) -> List<T>)? = null
 ): TableEvents<T> {
     val header = r.top(TABLE_HEADER_H)
     val body = r.dropTop(TABLE_HEADER_H)
@@ -91,7 +100,7 @@ fun <T> Ui.table(
         state.sortColumn.takeIf { it in columns.indices }?.let { c ->
             columns[c].sort?.let { cmp -> rows.sortedWith(if (state.descending) cmp.reversed() else cmp) }
         } ?: rows
-    }
+    }.let { list -> regroup?.let { state.grouped(list, it) } ?: list }
     val flexible = columns.count { it.width < 0 }
     val fixed = columns.filter { it.width >= 0 }.sumOf { it.width } + checkW + (columns.size + 1) * CELL_PAD + 4
     val flexW = if (flexible > 0) (r.w - fixed).coerceAtLeast(20) / flexible else 0
@@ -137,6 +146,8 @@ fun <T> Ui.table(
         }
         return TableEvents(null, null, false)
     }
+    val tops = rowHeightOf?.let { h -> IntArray(sorted.size + 1).also { t -> sorted.forEachIndexed { i, row -> t[i + 1] = t[i] + h(row) } } }
+    fun topOf(i: Int) = tops?.get(i) ?: i * rowHeight
     if (focused(key) || hovering(body)) {
         val down = input.takeKey(GLFW.GLFW_KEY_DOWN)
         val up = input.takeKey(GLFW.GLFW_KEY_UP)
@@ -147,18 +158,18 @@ fun <T> Ui.table(
             val next = sorted[(focusIndex + step).coerceIn(0, sorted.lastIndex)]
             state.focusKey = keyOf(next)
             if (!multi) { state.selected.clear(); state.selected += keyOf(next); changed = true }
-            remember("scroll:$key:rows") { ScrollState() }.scrollTo(sorted.indexOf(next) * rowHeight)
+            remember("scroll:$key:rows") { ScrollState() }.scrollTo(topOf(sorted.indexOf(next)))
         }
         if (enter != null && focusIndex >= 0) opened = sorted[focusIndex]
     }
     focusable(key)
-    scroll("$key:rows", body, sorted.size * rowHeight) { content ->
-        val first = ((body.y - content.y) / rowHeight).coerceAtLeast(0)
-        val last = ((body.bottom - content.y) / rowHeight).coerceAtMost(sorted.lastIndex)
+    scroll("$key:rows", body, topOf(sorted.size)) { content ->
+        val first = if (tops == null) ((body.y - content.y) / rowHeight).coerceAtLeast(0) else (0..sorted.lastIndex).firstOrNull { tops[it + 1] > body.y - content.y } ?: sorted.lastIndex
+        val last = if (tops == null) ((body.bottom - content.y) / rowHeight).coerceAtMost(sorted.lastIndex) else ((first..sorted.lastIndex).firstOrNull { tops[it] >= body.bottom - content.y }?.minus(1) ?: sorted.lastIndex)
         for (index in first..last) {
             val row = sorted[index]
             val k = keyOf(row)
-            val rr = Rect(content.x, content.y + index * rowHeight, content.w, rowHeight)
+            val rr = Rect(content.x, content.y + topOf(index), content.w, tops?.let { it[index + 1] - it[index] } ?: rowHeight)
             val chosen = k in state.selected
             val over = hovering(rr)
             Draw.fill(g, rr, when {

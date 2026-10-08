@@ -21,6 +21,7 @@ import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Row
 import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Ui
+import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
@@ -42,18 +43,23 @@ import kami.libs.ui.widget.iconButton
 import kami.libs.ui.widget.numberField
 import kami.libs.ui.widget.searchField
 import kami.libs.ui.widget.textField
-import kami.libs.ui.widget.toggle
 import kotlinx.serialization.json.Json
 
-private val OPTIONAL = setOf("target", "cap", "max")
+private val OPTIONAL = setOf("floor", "ceiling", "sell_cap")
+
+private fun count(v: Int) = if (v < 0) "∞" else Format.number(v.toLong())
 
 private fun limit(v: Int?) = v?.takeIf { it > 0 }?.let { Format.number(it.toLong()) } ?: "-"
 
 private fun limitsTip(g: StarterGood) = Tip(tr("kami_economy.admin.col.limits"), listOf(
     "${tr("kami_economy.admin.col.depth")}: ${Format.number(g.depth)}" to Palette.textSecondary,
-    "${tr("kami_economy.admin.col.cap")}: ${limit(g.dailyCap)}" to Palette.textSecondary,
-    "${tr("kami_economy.admin.col.max")}: ${limit(g.max)}" to Palette.textSecondary
+    "${tr("kami_economy.admin.col.spread")}: ${g.spread?.let { Format.percent(it, 1) } ?: "-"}" to Palette.textSecondary,
+    "${tr("kami_economy.admin.col.sell_cap")}: ${limit(g.sellCap)}" to Palette.textSecondary,
+    "${tr("kami_economy.admin.col.ceiling")}: ${limit(g.ceiling)}" to Palette.textSecondary,
+    "${tr("kami_economy.admin.col.resell")}: ${if (g.resell) "✓" else "–"}" to Palette.textSecondary
 ))
+
+private fun courseText(v: Double) = java.math.BigDecimal(v).setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()
 
 internal class StarterPage(private val app: KamiApp) : Page() {
     override val title get() = tr("kami_economy.admin.nav.starter")
@@ -68,20 +74,20 @@ internal class StarterPage(private val app: KamiApp) : Page() {
         itemColumn<StarterRow>(tr("kami_libs.common.item"), { it.good.item }),
         num("base", 40) { it.base },
         num("lot", 28) { it.lot },
-        num("target", 36) { it.target },
+        num("floor", 36) { it.floor },
         tipColumn<StarterRow>(tr("kami_economy.admin.col.limits"), 52, compareBy { it.good.depth }, { limitsTip(it.good) }, Align.RIGHT) {
-            "${Format.number(it.good.depth.toLong())}/${limit(it.good.dailyCap)}/${limit(it.good.max)}"
+            "${Format.number(it.good.depth.toLong())}/${limit(it.good.sellCap)}/${limit(it.good.ceiling)}"
         },
-        Column<StarterRow>("∞", 22, tip = tr("kami_economy.admin.col.infinite")) { _, cell, row ->
-            toggle(cell.inset(0, 1), row.good.infinite, enabled = lock == null, disabledReason = lock, tip = tr("kami_economy.admin.col.infinite"), key = "market-starter:inf:${row.good.item}")
-                ?.let { upsert(row.good.copy(infinite = it), rev, tr("kami_economy.admin.starter.edit")) }
-        },
-        Column.text<StarterRow>(tr("kami_economy.admin.col.stock"), 44, Align.RIGHT) { if (it.good.infinite) "∞" else it.stock?.let { v -> Format.number(v) } ?: "-" },
-        Column<StarterRow>("", 3 * ROW_H + 4) { _, cell, row ->
-            val (statusR, editR, removeR) = cell.columnsFixed(cell.h, cell.h, cell.h, gap = 2)
+        Column.text<StarterRow>(tr("kami_economy.admin.col.supply"), 40, Align.RIGHT) { count(it.supply) },
+        Column.text<StarterRow>(tr("kami_economy.admin.col.demand"), 40, Align.RIGHT) { count(it.demand) },
+        Column.text<StarterRow>(tr("kami_economy.admin.col.course"), 44, Align.RIGHT) { Format.decimal(it.course, 1) },
+        Column<StarterRow>("", 4 * ROW_H + 6) { _, cell, row ->
+            val (statusR, liveR, editR, removeR) = cell.columnsFixed(cell.h, cell.h, cell.h, cell.h, gap = 2)
             val tip = if (row.status.isEmpty()) tr("kami_economy.admin.status.edit") else statusTip(row.status, row.statusReason)
             if (iconButton(statusR, Icons.LOCK, tip, lock == null, row.status.isNotEmpty(), key = "market-starter:status:${row.good.item}", disabledReason = lock))
                 app.statusDialog(row.good.item, row.status, row.statusRev)
+            if (iconButton(liveR, Icons.COIN, tr("kami_economy.admin.starter.live"), lock == null, key = "market-starter:live:${row.good.item}", disabledReason = lock))
+                live(row)
             if (iconButton(editR, Icons.EDIT, tr("kami_economy.admin.starter.edit"), lock == null, key = "market-starter:edit:${row.good.item}", disabledReason = lock))
                 edit(rev, row.good, emptySet())
             if (iconButton(removeR, Icons.REMOVE, tr("kami_libs.common.remove"), lock == null, key = "market-starter:remove:${row.good.item}", disabledReason = lock, pending = adminPending("market.starter_remove", listOf(row.good.item, rev))))
@@ -113,14 +119,64 @@ internal class StarterPage(private val app: KamiApp) : Page() {
         app.adminAct("market.starter_remove", listOf(key, rev), reason)
     }
 
+    private fun Ui.amountRow(b: Rect, y: Int, label: String, st: NumberState, inf: Boolean, key: String): Boolean? {
+        fieldLabel(Rect(b.x, y, b.w, 9), label)
+        val cols = Rect(b.x, y + 11, b.w, CONTROL_H).columns(2, 8)
+        numberField(cols[0], st, min = 0, max = 1_000_000, enabled = !inf, key = "$key-n")
+        return checkbox(cols[1], tr("kami_economy.admin.col.infinite"), inf, key = "$key-inf")
+    }
+
+    private fun amount(inf: Boolean, st: NumberState) = if (inf) -1 else (Format.parseAmount(st.text.text) ?: st.value).toInt()
+
+    private fun live(row: StarterRow) {
+        val supply = NumberState(row.supply.coerceAtLeast(0).toLong())
+        val demand = NumberState(row.demand.coerceAtLeast(0).toLong())
+        val course = TextState(courseText(row.course))
+        var supplyInf = row.supply < 0
+        var demandInf = row.demand < 0
+        app.open(Dialog(tr("kami_economy.admin.starter.live"), MarketSection.itemName(row.good.item), Icons.COIN, DialogKind.CONFIRM, 300) { s ->
+            val b = s.body
+            var y = b.y
+            amountRow(b, y, tr("kami_economy.admin.col.supply"), supply, supplyInf, "live-supply")?.let { supplyInf = it }
+            y += 11 + CONTROL_H + 6
+            amountRow(b, y, tr("kami_economy.admin.col.demand"), demand, demandInf, "live-demand")?.let { demandInf = it }
+            y += 11 + CONTROL_H + 6
+            val parsed = course.text.trim().toDoubleOrNull()?.takeIf { it > 0 }
+            course.error = if (parsed == null) tr("kami_economy.admin.starter.course.invalid") else null
+            fieldLabel(Rect(b.x, y, b.w, 9), tr("kami_economy.admin.col.course"))
+            textField(Rect(b.x, y + 11, b.w, CONTROL_H), course, "1.0", maxLength = 12, allow = { it.isDigit() || it == '.' }, key = "live-course")
+            y += 11 + CONTROL_H + 4
+            fieldHelp(Rect(b.x, y, b.w, 9), course, tr("kami_economy.admin.starter.live.help"))
+            y += 12
+            s.used = y - b.y
+            fun send(inf: Boolean, st: NumberState, old: Int) = amount(inf, st).let { if (it == old) "" else if (it < 0) "inf" else it.toString() }
+            val next = if (parsed != null && course.text.trim() != courseText(row.course)) course.text.trim() else ""
+            val args = listOf(row.good.item, send(supplyInf, supply, row.supply), send(demandInf, demand, row.demand), next)
+            val error = course.error ?: supply.text.error.takeUnless { supplyInf } ?: demand.text.error.takeUnless { demandInf }
+                ?: tr("kami_economy.admin.starter.live.unchanged").takeIf { args.drop(1).all { it.isEmpty() } }
+            dialogButtons(s, tr("kami_libs.common.confirm"), error == null, error) {
+                reasonDialog({ app.open(it) }, tr("kami_economy.admin.starter.live")) { reason, _, _ ->
+                    app.adminAct("market.server_set", args, reason)
+                }
+                s.close()
+            }
+        })
+    }
+
     private fun edit(rev: String, good: StarterGood?, existing: Set<String>) {
         val g = good ?: StarterGood("", 1)
         val item = TextState(g.item)
         val fields = linkedMapOf(
-            "base" to NumberState(g.base.toLong()), "lot" to NumberState(g.lot.toLong()), "target" to NumberState(g.target.toLong()),
-            "depth" to NumberState(g.depth.toLong()), "cap" to NumberState((g.dailyCap ?: 0).toLong()), "max" to NumberState((g.max ?: 0).toLong())
+            "base" to NumberState(g.base.toLong()), "lot" to NumberState(g.lot.toLong()), "depth" to NumberState(g.depth.toLong()),
+            "floor" to NumberState((g.floor ?: 0).toLong()),
+            "ceiling" to NumberState((g.ceiling ?: 0).toLong()), "sell_cap" to NumberState(g.sellCap.toLong())
         )
-        var infinite = g.infinite
+        val spread = TextState(g.spread?.let { java.math.BigDecimal(it * 100).setScale(1, java.math.RoundingMode.HALF_UP).toPlainString() } ?: "")
+        val supply = NumberState(g.supply.coerceAtLeast(0).toLong())
+        val demand = NumberState(g.demand.coerceAtLeast(0).toLong())
+        var supplyInf = g.supply < 0
+        var demandInf = g.demand < 0
+        var resell = g.resell
         val title = tr(if (good == null) "kami_economy.admin.starter.add" else "kami_economy.admin.starter.edit")
         app.open(Dialog(title, good?.let { MarketSection.itemName(it.item) }, Icons.EDIT, DialogKind.CONFIRM, 300) { s ->
             val b = s.body
@@ -145,13 +201,35 @@ internal class StarterPage(private val app: KamiApp) : Page() {
                 }
                 y += 11 + CONTROL_H + 6
             }
-            checkbox(Rect(b.x, y, b.w, 12), tr("kami_economy.admin.col.infinite"), infinite, key = "starter-infinite")?.let { infinite = it }
+            val spreadText = spread.text.trim()
+            val spreadPct = spreadText.toDoubleOrNull()
+            spread.error = if (spreadText.isEmpty() || spreadPct == -1.0 || spreadPct != null && spreadPct in 0.0..50.0) null else tr("kami_economy.admin.starter.spread.invalid")
+            fieldLabel(Rect(b.x, y, b.w, 9), tr("kami_economy.admin.starter.spread"))
+            textField(Rect(b.x, y + 11, b.w, CONTROL_H), spread, "", maxLength = 6, allow = { it.isDigit() || it == '.' || it == '-' }, key = "starter-spread", suffix = "%")
+            y += 11 + CONTROL_H + 4
+            fieldHelp(Rect(b.x, y, b.w, 9), spread, null)
+            y += 12
+            amountRow(b, y, tr("kami_economy.admin.col.supply"), supply, supplyInf, "starter-supply")?.let { supplyInf = it }
+            y += 11 + CONTROL_H + 6
+            amountRow(b, y, tr("kami_economy.admin.col.demand"), demand, demandInf, "starter-demand")?.let { demandInf = it }
+            y += 11 + CONTROL_H + 6
+            checkbox(Rect(b.x, y, b.w, 12), tr("kami_economy.admin.col.resell"), resell, key = "starter-resell")?.let { resell = it }
             y += 16
+            if (amount(supplyInf, supply) == 0 && amount(demandInf, demand) == 0) {
+                val idle = tr("kami_economy.admin.starter.idle")
+                y += Draw.paragraph(this.g, idle, b.x, y, b.w, Palette.warning) + 4
+            }
             s.used = y - b.y
-            val error = item.error ?: fields.entries.firstNotNullOfOrNull { (k, st) -> st.text.error?.let { "${tr("kami_economy.admin.col.$k")}: $it" } }
+            val error = item.error ?: spread.error ?: fields.entries.firstNotNullOfOrNull { (k, st) -> st.text.error?.let { "${tr("kami_economy.admin.col.$k")}: $it" } } ?: supply.text.error.takeUnless { supplyInf } ?: demand.text.error.takeUnless { demandInf }
             dialogButtons(s, tr("kami_libs.common.confirm"), error == null, error) {
                 val v = fields.mapValues { (Format.parseAmount(it.value.text.text) ?: it.value.value).toInt() }
-                upsert(StarterGood(spec, v.getValue("base"), v.getValue("lot"), v.getValue("target"), v.getValue("depth"), v.getValue("cap").takeIf { it > 0 }, infinite, v.getValue("max").takeIf { it > 0 }), rev, title)
+                upsert(
+                    StarterGood(
+                        spec, v.getValue("base"), v.getValue("lot"), v.getValue("depth"), amount(supplyInf, supply), amount(demandInf, demand),
+                        v.getValue("floor").takeIf { it > 0 }, v.getValue("ceiling").takeIf { it > 0 }, spreadPct?.takeIf { it >= 0 }?.let { it / 100.0 },
+                        v.getValue("sell_cap"), resell
+                    ), rev, title
+                )
                 s.close()
             }
         })

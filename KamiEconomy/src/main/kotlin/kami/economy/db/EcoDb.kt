@@ -40,15 +40,13 @@ object EcoDb {
     )
 
     private val v1 = Migration("eco", 1, "schema", legacy = listOf(MARKET, HISTORY, WAL), ddl = schema) { world ->
-        val market = Legacy.read(world, MARKET, Data.serializer()) ?: Data()
+        check(Legacy.read(world, MARKET, Data.serializer()) == null) { "$MARKET import is no longer supported; start from a kami.db written by an older version" }
         val history = Legacy.read(world, HISTORY, HistoryData.serializer()) ?: HistoryData()
         val wal = legacyIntents(world.resolve(WAL))
-        MarketTables.all.forEach { it.insert(this, market) }
+        MarketTables.all.first().insert(this, Data())
         HistoryTables.all.forEach { it.insert(this, history) }
         intentTable.insert(this, wal)
         return@Migration {
-            Verify.sameJson("eco market", Data.serializer(), market, MarketTables.read(this))
-            Verify.equal("eco market totals", MarketTables.totals(market), MarketTables.totals(this))
             Verify.sameJson("eco history", HistoryData.serializer(), history, HistoryTables.read(this))
             Verify.equal("eco history totals", HistoryTables.totals(history), HistoryTables.totals(this))
             Verify.sameJson("eco intents", ListSerializer(Intent.serializer()), wal.sortedBy { it.id }, intents())
@@ -68,8 +66,20 @@ object EcoDb {
         "CREATE TABLE eco_watch (player TEXT NOT NULL, item TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (player, item))"
     ))
 
+    private val v5 = Migration("eco", 5, "market_rework", ddl = listOf(
+        "CREATE TABLE eco_server (item TEXT PRIMARY KEY, supply INTEGER NOT NULL, demand INTEGER NOT NULL)",
+        "INSERT INTO eco_server (item, supply, demand) SELECT item, lots, -2 FROM eco_stock",
+        "INSERT OR IGNORE INTO eco_book (item, last_fill, mid_price, recent_fills) SELECT item, 0, base, '[]' FROM eco_stock WHERE base > 0",
+        "UPDATE eco_book SET mid_price = (SELECT base FROM eco_stock s WHERE s.item = eco_book.item) WHERE item IN (SELECT item FROM eco_stock WHERE base > 0)",
+        "DROP TABLE eco_stock",
+        "DELETE FROM eco_sold",
+        "ALTER TABLE eco_order ADD COLUMN peg INTEGER",
+        "ALTER TABLE eco_order ADD COLUMN peg_limit INTEGER",
+        "ALTER TABLE eco_auction ADD COLUMN bids TEXT NOT NULL DEFAULT '[]'"
+    ))
+
     fun register() {
-        Migrations.register("eco", listOf(v1, v2, v3, v4), after = listOf("libs"))
+        Migrations.register("eco", listOf(v1, v2, v3, v4, v5), after = listOf("libs"))
         SavePoint.register("economy") { SavePoint.join(Market.changes() + History.changes() + listOf(Ledger.changes(), TradeStatus.changes())) }
     }
 }

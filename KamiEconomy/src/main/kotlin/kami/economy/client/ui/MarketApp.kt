@@ -5,6 +5,7 @@ import kami.economy.client.MarketPrefs
 import kami.economy.client.PriceCache
 import kami.economy.client.admin.MarketSection
 import kami.economy.economy.Blacklist
+import kami.economy.economy.ClientVariants as Variants
 import kami.economy.economy.Classification
 import kami.economy.net.Detail
 import kami.economy.net.FlagView
@@ -55,7 +56,7 @@ private const val VIEW_WAIT_MS = 10_000L
 internal const val MAX_PRICE = 1_000_000L
 
 internal fun searchIds(q: SearchQuery, extra: Collection<String>, max: Int = MAX_IDS): String =
-    if (q.isEmpty) "" else ItemSearch.ids(q, extra).joinToString(",").takeIf { it.length <= max } ?: "*"
+    if (q.isEmpty) "" else ItemSearch.ids(q, extra).map(Variants::core).distinct().joinToString(",").takeIf { it.length <= max } ?: "*"
 
 internal class Throttled<T>(private val load: () -> T) {
     private var at = 0L
@@ -92,6 +93,7 @@ internal fun stackHint(units: Int, stack: Int): String {
 }
 
 internal fun unitsText(units: Int, stack: Int): String {
+    if (units < 0) return "∞"
     val hint = stackHint(units, stack)
     return Format.number(units) + if (hint.isEmpty()) "" else " ($hint)"
 }
@@ -173,6 +175,8 @@ class MarketApp private constructor() : KamiApp() {
         latest[next.view] = next
         if (awaiting == next.view) awaiting = null
         next.detail?.let { details[it.item] = it }
+        (next.rows + next.watchRows).forEach { PriceCache.lot(it.item, it.lot) }
+        next.detail?.let { PriceCache.lot(it.item, it.lot) }
         if (notify && next.msg.isNotEmpty()) toast(if (next.ok) Severity.SUCCESS else Severity.DANGER, trJson(next.msg))
     }
 
@@ -290,8 +294,15 @@ class MarketApp private constructor() : KamiApp() {
         return x + w + 6
     }
 
-    fun openItem(item: String, side: String = "buy", kind: String = "instant") =
-        navigate(Route("item", mapOf("item" to item, "side" to side, "kind" to kind)))
+    fun openItem(item: String, side: String = "buy", kind: String = "instant") {
+        val core = Variants.core(item)
+        navigate(Route("item", buildMap {
+            put("item", core)
+            put("side", side)
+            put("kind", kind)
+            if (core != item) put("variant", item)
+        }))
+    }
 
     fun taxFor(relation: String) = if (relation == "allied" || relation == "family") snap.allyTaxPct else snap.taxPct
 

@@ -4,6 +4,9 @@ import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.StreamCodec
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import kotlinx.serialization.json.Json
+import kami.libs.KamiLibs
+import net.minecraft.server.level.ServerPlayer
+import net.neoforged.neoforge.network.PacketDistributor
 
 class ActPayload(
     val name: String,
@@ -51,16 +54,27 @@ class ActPayload(
 class SnapshotPayload(val json: String, private val payloadType: CustomPacketPayload.Type<SnapshotPayload>) : CustomPacketPayload {
     override fun type() = payloadType
 
-    class Channel(val type: CustomPacketPayload.Type<SnapshotPayload>, val codec: StreamCodec<RegistryFriendlyByteBuf, SnapshotPayload>) {
+    class Channel(val type: CustomPacketPayload.Type<SnapshotPayload>, val codec: StreamCodec<RegistryFriendlyByteBuf, SnapshotPayload>, private val maxBytes: Int = Int.MAX_VALUE) {
         operator fun invoke(json: String) = SnapshotPayload(json, type)
+
+        fun send(p: ServerPlayer, json: String): Boolean {
+            if (json.length > maxBytes || json.length > PACKET_LIMIT / 3 && json.toByteArray(Charsets.UTF_8).size > minOf(PACKET_LIMIT, maxBytes.toLong() * 3)) {
+                KamiLibs.LOG.warn("Dropped a {} snapshot of {} chars for {}, it exceeds the packet limit", type.id(), json.length, p.scoreboardName)
+                return false
+            }
+            PacketDistributor.sendToPlayer(p, invoke(json))
+            return true
+        }
     }
 
     companion object {
         fun channel(net: Packets.ModPackets, path: String = "snapshot", maxBytes: Int = 1_048_576): Channel {
             val type = CustomPacketPayload.Type<SnapshotPayload>(net.id(path))
             val codec = net.codec<SnapshotPayload>({ b, v -> b.writeUtf(v.json, maxBytes) }, { b -> SnapshotPayload(b.readUtf(maxBytes), type) })
-            return Channel(type, codec)
+            return Channel(type, codec, maxBytes)
         }
+
+        private const val PACKET_LIMIT = 1_048_000L
     }
 }
 

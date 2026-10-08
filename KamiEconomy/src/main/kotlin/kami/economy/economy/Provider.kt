@@ -7,6 +7,7 @@ import kami.libs.economy.Quote
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.item.ItemStack
+import kotlin.math.roundToInt
 
 object EconomyProvider : MarketProvider {
     override fun value(item: ItemStack): Long = if (item.isEmpty) 0 else valueOf(Blacklist.itemId(item), item.count)
@@ -23,11 +24,9 @@ object EconomyProvider : MarketProvider {
     }
 
     fun valueOf(id: String, count: Int): Long {
-        val perLot = when {
-            Stocks.infinite(id) -> Matching.bestBid(id) ?: Stocks.basePrice(id)
-            Stocks.good(id) != null -> Stocks.basePrice(id)
-            else -> Matching.bestPrice(id)
-        } ?: return 0
-        return perLot.toLong() * count / Config.s.lotOf(id)
+        val v = Variants.of(id)
+        val core = v?.core ?: id
+        val perLot = if (Stocks.good(core) != null) Stocks.course(core).roundToInt() else Matching.bestPrice(core) ?: return 0
+        return perLot.toLong() * count * (v?.mul ?: 1) / (Config.s.lotOf(core).toLong() * (v?.div ?: 1))
     }
 }

@@ -17,10 +17,13 @@ import java.util.concurrent.TimeUnit
 enum class AuctionState { OPEN, SOLD, EXPIRED, CANCELLED }
 
 @Serializable
+class AuctionBid(val bidder: String, val amount: Int, val at: Long)
+
+@Serializable
 class Auction(
     val id: Long, val seller: String, val stackData: String, val label: String,
     val startPrice: Int, val buyNowPrice: Int?, var currentBid: Int, var currentBidder: String,
-    val expiresAt: Long, var state: AuctionState
+    var expiresAt: Long, var state: AuctionState, val bids: MutableList<AuctionBid> = mutableListOf()
 )
 
 object StackCodec {
@@ -50,7 +53,10 @@ object StackCodec {
 object Auctions {
     private val RETENTION_MILLIS = TimeUnit.DAYS.toMillis(7)
 
-    fun minBid(a: Auction) = maxOf(a.startPrice, a.currentBid + 1)
+    private const val SNIPE_MILLIS = 60_000L
+    const val BID_HISTORY = 30
+
+    fun minBid(a: Auction): Int = if (a.currentBid <= 0) a.startPrice else (a.currentBid.toLong() + maxOf(1, Math.ceilDiv(a.currentBid, 20))).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
 
     fun open(): List<Auction> = Market.data.auctions.filter { it.state == AuctionState.OPEN }
 
@@ -64,8 +70,13 @@ object Auctions {
 
     fun applyBid(id: Long, bidder: String, amount: Int) {
         val a = find(id) ?: return
+        if (a.currentBid == amount && a.currentBidder == bidder) return
         a.currentBid = amount
         a.currentBidder = bidder
+        val t = now()
+        a.bids += AuctionBid(bidder, amount, t)
+        while (a.bids.size > BID_HISTORY) a.bids.removeAt(0)
+        if (a.expiresAt - t <= SNIPE_MILLIS) a.expiresAt = t + SNIPE_MILLIS
         Market.dirty = true
     }
 
@@ -91,7 +102,7 @@ object Auctions {
         val t = now()
         open().filter { it.expiresAt <= t }.forEach { a ->
             if (a.currentBidder.isEmpty()) Ledger.auctionSweepExpireUnsold(a.id)
-            else if (TradeStatus.auctions(StackCodec.itemId(a.stackData))) Ledger.auctionSweepSettle(a.id)
+            else Ledger.auctionSweepSettle(a.id)
         }
         if (Market.data.auctions.removeAll { it.state != AuctionState.OPEN && it.expiresAt < t - RETENTION_MILLIS }) Market.dirty = true
     }

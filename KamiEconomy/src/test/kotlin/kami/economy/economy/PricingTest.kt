@@ -1,61 +1,72 @@
 package kami.economy.economy
 
-import kami.economy.Book
 import kami.economy.Config
+import kami.economy.Data
 import kami.economy.Fill
 import kami.economy.Market
 import kami.economy.Settings
+import kami.economy.StarterGood
+import kotlin.math.pow
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class PricingTest {
+    private val item = "test:oak_log"
+
     private fun reset() {
-        Market.data = kami.economy.Data()
-        Config.s = Settings()
+        Market.data = Data()
+        Config.s = Settings(starterGoods = listOf(StarterGood(item, 20, 64, 32, 100, 100)))
+        Stocks.index { emptyList() }
     }
 
     @Test
-    fun midPriceMovesTowardWeightedFillsButIsBounded() {
+    fun serverFillsMoveTheCourseInClosedForm() {
         reset()
-        Config.s = Settings(maxPriceMovePct = 0.10)
-        val book = Market.book("test:item")
-        book.midPrice = 100.0
-        book.recentFills += Fill(200, 10, 0)
-        Pricing.tick()
-        assertEquals(110.0, book.midPrice, 0.001)
-        assertTrue(book.recentFills.isEmpty())
+        val step = 0.05 / 33
+        Pricing.observe(item, 21.0, 2, server = true, buy = true)
+        assertEquals(20.0 * (1 + step).pow(2), Stocks.course(item), 1e-9)
+        val up = Stocks.course(item)
+        Pricing.observe(item, 19.0, 3, server = true, buy = false)
+        assertEquals(up * (1 - step).pow(3), Stocks.course(item), 1e-9)
     }
 
     @Test
-    fun midPriceUnchangedWithNoFillsThisWindow() {
+    fun playerFillsAreClippedToTheCourseBand() {
         reset()
-        val book = Market.book("test:item")
-        book.midPrice = 42.0
-        Pricing.tick()
-        assertEquals(42.0, book.midPrice, 0.001)
+        Pricing.observe(item, 1000.0, 32, server = false, buy = true)
+        assertEquals(20.5, Stocks.course(item), 1e-9)
+        reset()
+        Pricing.observe(item, 1.0, 32, server = false, buy = false)
+        assertEquals(19.5, Stocks.course(item), 1e-9)
     }
 
+    @Test
+    fun zeroLotsDoNotMoveTheCourse() {
+        reset()
+        Pricing.observe(item, 50.0, 0, server = false, buy = true)
+        assertEquals(20.0, Stocks.course(item), 1e-9)
+    }
 
     @Test
     fun noCandleRecordedWhenNothingTradedThisTick() {
         reset()
-        val item = "test:idle-${System.nanoTime()}"
-        Market.book(item).midPrice = 50.0
+        val idle = "test:idle-${System.nanoTime()}"
+        Market.book(idle).course = 50.0
         Pricing.tick()
-        assertTrue(History.series(item, Range.DAY, System.currentTimeMillis(), 0.0).buckets.isEmpty())
+        assertTrue(History.series(idle, Range.DAY, System.currentTimeMillis(), 0.0).buckets.isEmpty())
     }
 
     @Test
     fun candleRecordedOnlyWhenTradesHappened() {
         reset()
-        val item = "test:active-${System.nanoTime()}"
-        val book = Market.book(item)
-        book.midPrice = 50.0
+        val active = "test:active-${System.nanoTime()}"
+        val book = Market.book(active)
+        book.course = 50.0
         book.recentFills += Fill(55, 3, 0)
         Pricing.tick()
-        val history = History.series(item, Range.DAY, System.currentTimeMillis(), 0.0).buckets
+        val history = History.series(active, Range.DAY, System.currentTimeMillis(), 0.0).buckets
         assertEquals(1, history.size)
         assertEquals(3L, history.first().volume)
         assertFalse(book.recentFills.isNotEmpty())
@@ -63,8 +74,8 @@ class PricingTest {
 
     @Test
     fun valueUsesTheBasePrice() {
-        Market.data = kami.economy.Data()
-        Config.s = Settings(starterGoods = listOf(kami.economy.StarterGood("test:iron_ingot", 40)))
+        Market.data = Data()
+        Config.s = Settings(starterGoods = listOf(StarterGood("test:iron_ingot", 40)))
         Stocks.index { emptyList() }
         assertEquals(40L, EconomyProvider.valueOf("test:iron_ingot", 64))
         assertEquals(20L, EconomyProvider.valueOf("test:iron_ingot", 32))

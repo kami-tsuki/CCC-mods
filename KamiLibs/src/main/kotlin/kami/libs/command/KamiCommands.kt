@@ -49,14 +49,15 @@ object KamiCommands {
     private fun shortcut(dispatcher: CommandDispatcher<CommandSourceStack>, alias: String, target: CommandNode<CommandSourceStack>) {
         val old = dispatcher.root.getChild(alias)
         if (old != null && !drop(dispatcher.root, alias)) return
-        val node = lit(alias).requires { target.requirement.test(it) || old?.requirement?.test(it) == true }.executes(target.command)
-        target.children.forEach(node::then)
-        old?.children?.filter { it is LiteralCommandNode && target.getChild(it.name) == null }?.forEach { c ->
-            val guarded = c.createBuilder().requires { old.requirement.test(it) && c.requirement.test(it) }
-            if (c.redirect == null) c.children.forEach(guarded::then)
-            node.then(guarded)
-        }
+        val node = lit(alias).requires { target.requirement.test(it) || old?.requirement?.test(it) == true }
+        if (target.command != null || old?.command != null) node.executes { c -> (if (target.requirement.test(c.source)) target.command else old?.command?.takeIf { old.requirement.test(c.source) })?.run(c) ?: 0 }
+        target.children.forEach { node.then(guard(it, target)) }
+        old?.children?.filter { it is LiteralCommandNode && target.getChild(it.name) == null }?.forEach { node.then(guard(it, old)) }
         dispatcher.root.addChild(node.build())
+    }
+
+    private fun guard(c: CommandNode<CommandSourceStack>, root: CommandNode<CommandSourceStack>) = c.createBuilder().requires { root.requirement.test(it) && c.requirement.test(it) }.also { b ->
+        if (c.redirect == null) c.children.forEach(b::then)
     }
 
     private fun drop(node: CommandNode<CommandSourceStack>, name: String) = runCatching {

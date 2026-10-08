@@ -4,6 +4,8 @@ import kami.economy.economy.Blacklist
 import kami.economy.economy.Catalog
 import kami.economy.economy.Ledger
 import kami.economy.economy.Stocks
+import kami.economy.economy.VariantScan
+import kami.economy.economy.Variants
 import kami.economy.economy.TradeStatus
 import kami.economy.economy.Watchlist
 import kami.economy.db.MarketTables
@@ -23,9 +25,11 @@ class Order(
     val owner: String,
     var price: Int,
     var amount: Int,
-    val placedAt: Long = now(),
+    var placedAt: Long = now(),
     val synthetic: Boolean = false,
-    val lot: Int = 1
+    val lot: Int = 1,
+    var peg: Int? = null,
+    var pegLimit: Int? = null
 )
 
 @Serializable
@@ -37,7 +41,7 @@ class Book(
     val sells: MutableList<Order> = mutableListOf(),
     val buys: MutableList<Order> = mutableListOf(),
     var lastFill: Int = 0,
-    var midPrice: Double = 0.0,
+    var course: Double = 0.0,
     val recentFills: MutableList<Fill> = mutableListOf()
 )
 
@@ -45,7 +49,10 @@ class Book(
 class Traded(var sold: Long = 0, var bought: Long = 0)
 
 @Serializable
-class Stock(var lots: Int, var base: Double, var observed: Double = 0.0)
+class Stock(var supply: Int, var demand: Int)
+
+@Serializable
+class Sale(val at: Long, val lots: Int)
 
 @Serializable
 class Vendor(
@@ -67,9 +74,8 @@ class Data(
     val auctions: MutableList<kami.economy.economy.Auction> = mutableListOf(),
     val frozen: MutableList<Long> = mutableListOf(),
     val stocks: MutableMap<String, Stock> = mutableMapOf(),
-    val sold: MutableMap<String, MutableMap<String, Int>> = mutableMapOf(),
+    val sold: MutableMap<String, MutableMap<String, MutableList<Sale>>> = mutableMapOf(),
     val traded: MutableMap<String, Traded> = mutableMapOf(),
-    var day: Long = 0,
     val vendors: MutableList<Vendor> = mutableListOf(),
     val muted: MutableMap<String, MutableSet<String>> = mutableMapOf(),
     var version: Int = 0
@@ -95,7 +101,7 @@ object Market {
         reindex()
         data.books.keys.removeAll { k -> data.books.getValue(k).let { it.sells.isEmpty() && it.buys.isEmpty() } && Stocks.good(k) == null && !Blacklist.sellable(k) }
         Ledger.recover()
-        Catalog.relot()
+        foldVariants()
     }
 
     fun unload() {
@@ -107,10 +113,48 @@ object Market {
     private fun resolve(tag: String): List<String> =
         BuiltInRegistries.ITEM.getTagOrEmpty(TagKey.create(Registries.ITEM, ResourceLocation.parse(tag))).map { BuiltInRegistries.ITEM.getKey(it.value()).toString() }
 
+    fun starterIds(): Set<String> = Config.s.starterGoods.flatMapTo(HashSet()) { if (it.item.startsWith("#")) resolve(it.item.drop(1)) else listOf(it.item) }
+
+    fun variantsChanged() = reindex()
+
+    private fun foldVariants() {
+        if (!attached) return
+        Variants.map.forEach { (id, v) ->
+            data.books[id]?.let { b ->
+                b.sells.filter { !it.synthetic && it.owner.isNotEmpty() }.forEach { Ledger.cancelAsServer("sell", id, it.id, "variant") }
+                b.buys.filter { !it.synthetic && it.owner.isNotEmpty() }.forEach { Ledger.cancelAsServer("buy", id, it.id, "variant") }
+                data.books.remove(id)
+                dirty = true
+            }
+            data.traded.remove(id)?.let { t ->
+                val core = data.traded.getOrPut(v.core) { Traded() }
+                core.sold += t.sold * v.mul / v.div
+                core.bought += t.bought * v.mul / v.div
+                dirty = true
+            }
+            data.stocks.remove(id)?.let { s ->
+                dirty = true
+                val core = Stocks.stock(v.core) ?: return@let
+                val g = Stocks.configured(id) ?: return@let
+                val coreLot = Config.s.lotOf(v.core).coerceAtLeast(1)
+                fun fold(cur: Int, live: Int, base: Int): Int {
+                    if (cur < 0 || live < 0 || base < 0) return cur
+                    val lots = (live.toLong() - base) * g.lot * v.mul / v.div / coreLot
+                    return (cur + lots).coerceIn(0, Int.MAX_VALUE.toLong()).toInt()
+                }
+                core.supply = fold(core.supply, s.supply, g.supply)
+                core.demand = fold(core.demand, s.demand, g.demand)
+            }
+        }
+        Watchlist.canonicalize()
+    }
+
     fun reindex() {
         Catalog.merge(::resolve)
+        VariantScan.apply()
         TradeStatus.reindex()
         Stocks.index({ ResourceLocation.tryParse(it)?.let(BuiltInRegistries.ITEM::containsKey) == true }, ::resolve)
+        foldVariants()
     }
 
     internal fun changes(): List<(Session.() -> Unit)?> = if (attached) MarketTables.all.map { it.sync(data) } else emptyList()
@@ -129,6 +173,8 @@ object Market {
         dirty = true
         return take
     }
+
+    fun queued(uuid: String, id: String): Boolean = data.pendingDelivery[uuid]?.any { it.id == id } == true
 
     fun queueDelivery(uuid: String, item: String, qty: Int, id: String = "", parked: Boolean = false) {
         val list = data.pendingDelivery.getOrPut(uuid) { mutableListOf() }

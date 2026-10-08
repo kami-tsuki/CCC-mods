@@ -112,11 +112,11 @@ object CoinWatch {
 
     fun players(sort: String?, page: Int, name: (UUID) -> String = UUID::toString): Page<CoinPlayer> {
         val order = sorts[sort] ?: sorts.getValue("net")
-        val p = page.coerceAtLeast(0)
+        val p = page.coerceIn(0, Page.MAX_PAGE)
         val flag = LibConfig.s.coinFlagNet
         val count = "SELECT COUNT(DISTINCT party) AS n FROM libs_journal WHERE $TERMINAL_LEGS"
-        val select = "SELECT party, SUM(CASE WHEN flow = 'COIN_DEPOSIT' THEN delta ELSE 0 END) AS dep, SUM(CASE WHEN flow = 'COIN_WITHDRAW' THEN -delta ELSE 0 END) AS wd, " +
-            "SUM(delta) AS net, MAX(at) AS last FROM libs_journal WHERE $TERMINAL_LEGS GROUP BY party ORDER BY $order, party LIMIT ? OFFSET ?"
+        val select = "SELECT party, TOTAL(CASE WHEN flow = 'COIN_DEPOSIT' THEN delta ELSE 0 END) AS dep, TOTAL(CASE WHEN flow = 'COIN_WITHDRAW' THEN -delta ELSE 0 END) AS wd, " +
+            "TOTAL(delta) AS net, MAX(at) AS last FROM libs_journal WHERE $TERMINAL_LEGS GROUP BY party ORDER BY $order, party LIMIT ? OFFSET ?"
         val now = System.currentTimeMillis()
         val cached = synchronized(cache) { cache[order to p]?.takeIf { now - it.at < CACHE_MS } }
         val (total, rows) = cached?.let { it.total to it.rows } ?: Db.scan {

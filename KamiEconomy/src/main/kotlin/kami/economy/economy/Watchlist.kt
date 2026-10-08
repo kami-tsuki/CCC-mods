@@ -14,6 +14,18 @@ object Watchlist {
             .forEach { (player, item, at) -> lists.getOrPut(player) { LinkedHashMap() }[item] = at }
     }
 
+    fun canonicalize() = lists.toList().forEach { (player, list) ->
+        list.entries.filter { Variants.of(it.key) != null }.map { it.key to it.value }.forEach { (variant, at) ->
+            val core = Variants.core(variant)
+            if (core !in list) {
+                list[core] = at
+                Db.write { exec("INSERT OR REPLACE INTO eco_watch (player, item, at) VALUES (?, ?, ?)", player, core, at) }
+                Stats.add("market.watch", "p:$player", core, 1)
+            }
+            remove(player, variant)
+        }
+    }
+
     fun of(player: String): Collection<String> = lists[player]?.keys.orEmpty()
 
     fun has(player: String, item: String) = lists[player]?.containsKey(item) == true

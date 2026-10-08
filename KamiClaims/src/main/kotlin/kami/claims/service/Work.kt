@@ -49,8 +49,9 @@ object Work {
 
     fun retyped(cl: Claim) = cl.workers.clear()
 
-    fun jobAdd(c: Country, id: String, job: String): Phrase {
+    fun jobAdd(c: Country, actor: Rank, actorId: String, id: String, job: String): Phrase {
         val m = c.members[id] ?: throw Fail("kami_claims.error.not_member")
+        if (actor != Rank.PRESIDENT && (id == actorId || m.rank >= actor)) throw Fail("kami_claims.error.lower_ranks")
         val cfg = Config.s.jobs[job] ?: throw Fail("kami_claims.error.unknown_job")
         if (job in m.jobs) throw Fail("kami_claims.error.job_has")
         Features.require(c, Features.claimType(cfg.type))

@@ -8,6 +8,7 @@ import kami.economy.Vendor
 import kami.economy.economy.Auction
 import kami.economy.economy.Auctions
 import kami.economy.economy.Blacklist
+import kami.economy.economy.BuyPlan
 import kami.economy.economy.Classification
 import kami.economy.economy.FillLinePlan
 import kami.economy.economy.History
@@ -20,6 +21,7 @@ import kami.economy.economy.StackCodec
 import kami.economy.economy.Stocks
 import kami.economy.economy.Terms
 import kami.economy.economy.Trade
+import kami.economy.economy.Variants
 import kami.economy.economy.TradeFlag
 import kami.economy.economy.Watchlist
 import kami.economy.economy.TradeStatus
@@ -39,11 +41,12 @@ import java.util.UUID
 import kotlin.math.roundToInt
 
 @Serializable class FlagView(val pattern: Int = 0, val emblem: Int = 0, val secondary: Int = 0xFFFFFF)
-@Serializable class Row(
+@Serializable class VariantRow(val item: String, val mul: Int, val div: Int, val lot: Int, val buy: Int, val sell: Int)
+@Serializable data class Row(
     val item: String, val lot: Int, val buy: Int, val sell: Int, val available: Int, val demand: Int,
     val last: Int, val change: Int, val volume: Int, val sold: Long, val bought: Long, val starter: Boolean,
     val vendorPrice: Int, val myAsk: Int, val myBid: Int, val infinite: Boolean, val left: Int,
-    val status: String = "", val statusReason: String = ""
+    val status: String = "", val statusReason: String = "", val variants: List<VariantRow> = emptyList()
 )
 @Serializable class OrderRow(
     val id: Long, val item: String, val owner: String, val ownerName: String, val country: String,
@@ -55,12 +58,11 @@ import kotlin.math.roundToInt
     val dim: String, val x: Int, val y: Int, val z: Int, val price: Int, val sell: Boolean, val stock: Int, val embargo: Boolean
 )
 @Serializable class HeldRow(val item: String, val held: Int, val lot: Int, val sell: Int, val net: Long, val source: String, val cap: Int)
-@Serializable class Level(
+@Serializable data class Level(
     val price: Int, val amount: Int, val market: Boolean = false,
     val country: String = "", val color: Int = 0, val flag: FlagView? = null, val relation: String = "", val mine: Boolean = false, val tariff: Int = 0
 )
 @Serializable class TariffLine(val country: String, val pct: Int, val amount: Long)
-@Serializable class StockLine(val room: Int, val capLeft: Int)
 @Serializable class Candle(val open: Int, val high: Int, val low: Int, val close: Int, val volume: Int, val at: Long)
 @Serializable class Chart(val start: Long, val open: Int, val candles: List<Candle>)
 @Serializable class Leader(val name: String, val value: Long, val color: Int = 0, val flag: FlagView? = null)
@@ -70,21 +72,24 @@ import kotlin.math.roundToInt
 )
 @Serializable class Detail(
     val item: String, val lot: Int, val buy: Int, val sell: Int,
-    val held: Int, val maxAffordable: Int, val last: Int, val change: Int, val sold: Long, val bought: Long, val chart: Chart,
-    val stock: StockLine?, val asks: List<Level>, val bids: List<Level>, val mine: List<OrderRow>,
-    val vendors: List<VendorLine>, val available: Int, val demand: Int, val infinite: Boolean, val stockBid: Int, val resetAt: Long, val maxAmount: Int,
-    val status: String = "", val statusReason: String = ""
+    val held: Int, val maxAffordable: Int, val last: Int, val sold: Long, val bought: Long, val chart: Chart,
+    val asks: List<Level>, val bids: List<Level>, val mine: List<OrderRow>,
+    val vendors: List<VendorLine>, val available: Int, val demand: Int, val infinite: Boolean, val maxAmount: Int,
+    val course: Double, val spread: Double, val capLeft: Int, val buyServer: Boolean, val sellServer: Boolean, val followable: Boolean,
+    val status: String = "", val statusReason: String = "", val variants: List<VariantRow> = emptyList()
 )
-@Serializable class Quote(
+@Serializable data class Quote(
     val mode: String, val item: String, val qty: Int, val price: Int,
     val filled: Int, val listed: Int, val returned: Int, val reason: String,
     val gross: Long, val tax: Long, val tariff: Long, val total: Long, val avg: Int, val worst: Int, val levels: Int,
     val listGross: Long, val listTax: Long, val step: Int, val taxPct: Int, val tariffPct: Int, val relation: String,
-    val guaranteed: Int, val after: Int, val otherTax: Long = 0, val otherTaxPct: Int = 0, val tariffs: List<TariffLine> = emptyList()
+    val after: Int, val otherTax: Long = 0, val otherTaxPct: Int = 0, val tariffs: List<TariffLine> = emptyList(), val leftover: Int = 0
 )
+@Serializable class BidLine(val name: String, val amount: Int, val at: Long)
 @Serializable class AuctionLine(
     val id: Long, val label: String, val stackData: String, val startPrice: Int, val buyNowPrice: Int, val currentBid: Int,
-    val currentBidder: String, val expiresAt: Long, val mine: Boolean, val sellerName: String, val status: String = "", val statusReason: String = ""
+    val currentBidder: String, val expiresAt: Long, val mine: Boolean, val sellerName: String,
+    val minBid: Int, val bids: List<BidLine>, val status: String = "", val statusReason: String = ""
 )
 @Serializable class Slot(val used: Int = 0, val max: Int = 0, val hint: String = "")
 @Serializable class Snap(
@@ -149,27 +154,40 @@ object Sync {
 
     private fun flagView(f: FlagInfo) = FlagView(f.pattern, f.emblem, f.secondary)
 
-    private fun State.hit(item: String) = ids?.contains(item) ?: true
+    private fun State.hit(item: String): Boolean {
+        val set = ids ?: return true
+        return item in set || Variants.core(item) in set || Variants.family(item).any { it.first in set }
+    }
+
+    private fun unlimited(v: Int) = if (v == Int.MAX_VALUE) -1 else v
+
+    private var vendorPrices = emptyMap<String, Int>()
 
     private fun row(item: String, me: String): Row {
         val lot = Config.s.lotOf(item)
         val book = Matching.bookFor(item)
-        val stockBid = Matching.stockBid(me, item)
         val now = System.currentTimeMillis()
         val traded = Market.data.traded[item]
-        val infinite = Stocks.infinite(item)
         val status = TradeStatus.of(item)
+        val buy = Matching.bestAsk(item, me) ?: 0
+        val sell = Matching.bestBidFor(item, me) ?: 0
         return Row(
-            item, lot, Matching.bestAsk(item, me) ?: 0, Matching.bestBidFor(item, me) ?: 0,
-            Matching.available(item, me), Matching.openBids(item, me).sumOf { it.amount } + if (stockBid != null) Stocks.room(item, me) * lot else 0,
+            item, lot, buy, sell,
+            Matching.available(item, me), Matching.demand(item, me),
             book.lastFill, History.change(item, now), History.dayVolume(item, now).toInt(), traded?.sold ?: 0, traded?.bought ?: 0, Stocks.good(item) != null,
-            Stocks.vendorPrice(item) ?: 0, book.sells.firstOrNull { it.owner == me }?.price ?: 0, book.buys.firstOrNull { it.owner == me }?.price ?: 0,
-            infinite, if (infinite) Stocks.capLeft(me, item) * lot else 0, status?.let { TradeFlag.csv(it.flags) }.orEmpty(), status?.reason.orEmpty()
+            vendorPrices[item] ?: 0, book.sells.firstOrNull { it.owner == me }?.price ?: 0, book.buys.firstOrNull { it.owner == me }?.price ?: 0,
+            Stocks.infiniteDemand(item), unlimited(Stocks.capLeft(me, item)), status?.let { TradeFlag.csv(it.flags) }.orEmpty(), status?.reason.orEmpty(), variantRows(item, lot, buy, sell)
         )
     }
 
+    private fun variantRows(core: String, lot: Int, buy: Int, sell: Int): List<VariantRow> = Variants.family(core).map { (id, v) ->
+        VariantRow(id, v.mul, v.div, Variants.lot(id, lot), scaled(id, buy, lot), scaled(id, sell, lot))
+    }
+
+    private fun scaled(id: String, price: Int, lot: Int): Int = if (price <= 0) 0 else clamp(Variants.scale(id, price.toLong(), lot))
+
     private fun marketRows(s: State, me: String): List<Row> =
-        (Market.data.books.keys + Market.data.traded.keys + Stocks.items()).filter { s.hit(it) }.map { row(it, me) }
+        (Market.data.books.keys + Market.data.traded.keys + Stocks.items()).filter { Variants.of(it) == null && s.hit(it) }.map { row(it, me) }
             .filter { it.buy > 0 || it.sell > 0 || it.sold + it.bought > 0 || it.last > 0 || it.status.isNotEmpty() }
             .sortedWith(compareByDescending<Row> { it.sold + it.bought }.thenBy { it.item })
 
@@ -204,15 +222,21 @@ object Sync {
         p.inventory.items.filter { !it.isEmpty && Blacklist.classify(it) == Classification.ALLOWED }
             .groupBy { Blacklist.itemId(it) }.mapValues { (_, stacks) -> stacks.sumOf { it.count } }
 
-    private fun held(p: ServerPlayer, me: String, s: State): List<HeldRow> = inventory(p).filterKeys { s.hit(it) }.map { (item, count) ->
-        val lot = Config.s.lotOf(item)
-        val plan = Matching.sellPlan(me, item, (count - count % lot).coerceAtMost(Config.s.maxAmount)).takeIf { it.filled > 0 && it.net > 0 }
+    private fun held(p: ServerPlayer, me: String, s: State): List<HeldRow> = inventory(p).filterKeys { s.hit(it) }.mapNotNull { (item, count) ->
+        val core = Variants.core(item)
+        val coreLot = Config.s.lotOf(core)
+        val lot = if (core == item) coreLot else Variants.lot(item, coreLot)
+        val capped = count.coerceAtMost(Config.s.maxAmount)
+        val whole = capped - capped % lot
+        val coreWhole = if (core == item) whole else Variants.coreQty(item, whole) ?: return@mapNotNull null
+        val bid = Matching.bestBidFor(core, me) ?: 0
+        val plan = Matching.sellPlan(core, coreWhole, me).takeIf { it.filled > 0 && it.net > 0 }
         val source = when {
             plan == null -> "none"
             plan.fills.any { it.market } -> "stock"
             else -> "bids"
         }
-        HeldRow(item, count, lot, Matching.bestBidFor(item, me) ?: 0, plan?.net ?: 0, source, count.coerceAtMost(Config.s.maxAmount))
+        HeldRow(item, count, lot, bid.let { if (core == item) it else scaled(item, it, coreLot) }, plan?.net ?: 0, source, count.coerceAtMost(Config.s.maxAmount))
     }
 
     private fun levels(orders: List<Order>, me: String, relation: (String) -> Terms): List<Level> =
@@ -233,19 +257,28 @@ object Sync {
         if (item.isEmpty()) return null
         val r = row(item, me)
         val book = Matching.bookFor(item)
-        val series = History.series(item, s.range, System.currentTimeMillis(), book.midPrice)
+        val series = History.series(item, s.range, System.currentTimeMillis(), book.course)
         val chart = Chart(series.start, series.open.roundToInt(), series.buckets.map { Candle(it.open.roundToInt(), it.high.roundToInt(), it.low.roundToInt(), it.close.roundToInt(), it.volume.toInt(), it.at) })
-        val stockBid = Matching.stockBid(me, item)
-        val stock = Stocks.good(item)?.let { StockLine(Stocks.room(item, me), Stocks.capLeft(me, item)) }
-        val stockAsk = Stocks.ask(item)?.let { Level(it, (Stocks.stock(item)?.lots ?: 0) * r.lot, market = true) }
-        val stockBidLevel = stockBid?.let { Level(it, Stocks.room(item, me) * r.lot, market = true) }
-        val asks = (levels(book.sells.filter { it.amount > 0 }, me) { Trade.terms(me, it) } + listOfNotNull(stockAsk)).sortedBy { it.price }.take(5)
-        val bids = (levels(Matching.bids(item), me) { Trade.terms(it, me) } + listOfNotNull(stockBidLevel)).sortedByDescending { it.price }.take(5)
+        val supply = unlimited(Stocks.supplyLeft(item))
+        val demandLeft = unlimited(Stocks.demandLeft(item, me))
+        val stockAsk = Matching.stockAsk(item)?.let { Level(it, if (supply < 0) -1 else clamp(supply.toLong() * r.lot), market = true) }
+        val stockBid = Stocks.bid(item, me)?.let { Level(it, if (demandLeft < 0) -1 else clamp(demandLeft.toLong() * r.lot), market = true) }
+        val playerAsks = levels(book.sells.filter { it.amount > 0 }, me) { Trade.terms(me, it) }
+        val playerBids = levels(Matching.bids(item), me) { Trade.terms(it, me) }
+        val asks = (playerAsks + listOfNotNull(stockAsk)).sortedBy { it.price }.take(5)
+        val bids = (playerBids + listOfNotNull(stockBid)).sortedByDescending { it.price }.take(5)
+        val serverTax = Config.s.taxPct / 100.0
+        val bestPlayerAsk = book.sells.filter { it.amount > 0 && it.owner != me }.map { it.price * (1 + Trade.terms(me, it.owner).tariffPct / 100.0) to Trade.terms(me, it.owner) }
+            .filter { !it.second.blocked }.minOfOrNull { it.first }
+        val bestPlayerBid = Matching.openBids(item, me).maxOfOrNull { val t = Trade.terms(it.owner, me); it.price * (1 - (t.taxPct + t.tariffPct) / 100.0) }
+        val buyServer = stockAsk != null && (bestPlayerAsk == null || stockAsk.price * (1 + serverTax) < bestPlayerAsk)
+        val sellServer = stockBid != null && (bestPlayerBid == null || stockBid.price * (1 - serverTax) > bestPlayerBid)
         val vendors = Market.data.vendors.filter { it.item == item && it.price > 0 }.map { vendorLine(it, p.server, me) }.sortedBy { it.price }.take(50)
         return Detail(
-            item, r.lot, r.buy, r.sell, inventory(p)[item] ?: 0, Matching.maxAffordable(item, funds, me), r.last, r.change, r.sold, r.bought,
-            chart, stock, asks, bids, mine(p.server, me, listOf(book)), vendors,
-            r.available, r.demand, r.infinite, stockBid ?: 0, Stocks.nextReset(), Config.s.maxAmount, r.status, r.statusReason
+            item, r.lot, r.buy, r.sell, inventory(p)[item] ?: 0, Matching.maxAffordable(item, funds, me), r.last, r.sold, r.bought,
+            chart, asks, bids, mine(p.server, me, listOf(book)), vendors,
+            r.available, r.demand, r.infinite, Config.s.maxAmount,
+            Stocks.course(item), Stocks.spread(item), r.left, buyServer, sellServer, Stocks.good(item) != null, r.status, r.statusReason, r.variants
         )
     }
 
@@ -262,6 +295,7 @@ object Sync {
         val status = TradeStatus.of(auctionSpec(server, a))
         return AuctionLine(
             a.id, a.label, a.stackData, a.startPrice, a.buyNowPrice ?: -1, a.currentBid, a.currentBidder, a.expiresAt, a.seller == me, name(server, a.seller),
+            Auctions.minBid(a), a.bids.takeLast(Auctions.BID_HISTORY).map { BidLine(name(server, it.bidder), it.amount, it.at) },
             status?.let { TradeFlag.csv(it.flags) }.orEmpty(), status?.reason.orEmpty()
         )
     }
@@ -272,8 +306,8 @@ object Sync {
         val traded = Market.data.traded
         val books = Market.data.books.values
         val built = Dash(
-            traded.entries.filter { it.value.sold > 0 }.sortedByDescending { it.value.sold }.take(5).map { row(it.key, "") },
-            traded.entries.filter { it.value.bought > 0 }.sortedByDescending { it.value.bought }.take(5).map { row(it.key, "") },
+            traded.entries.filter { Variants.of(it.key) == null && it.value.sold > 0 }.sortedByDescending { it.value.sold }.take(5).map { row(it.key, "") },
+            traded.entries.filter { Variants.of(it.key) == null && it.value.bought > 0 }.sortedByDescending { it.value.bought }.take(5).map { row(it.key, "") },
             Numismatics.richest(3).map { (id, balance) -> Leader(name(server, id.toString()), balance) },
             ClaimsApi.countries().filter { it.treasury > 0 }.sortedByDescending { it.treasury }.take(3).map { Leader(it.name, it.treasury, it.color, flagView(it.flag)) },
             traded.values.count { it.sold + it.bought > 0 }, books.sumOf { b -> b.sells.count { it.amount > 0 } }, books.sumOf { b -> b.buys.count { it.amount > 0 } },
@@ -292,6 +326,21 @@ object Sync {
 
     private fun clamp(v: Long): Int = v.coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt()
 
+    private fun quoteFor(me: String, funds: Long, r: QuoteReq): Quote? {
+        val v = Variants.of(r.item) ?: return quote(me, funds, r)
+        val coreLot = Config.s.lotOf(v.core)
+        val lot = Variants.lot(r.item, coreLot)
+        val whole = r.qty - r.qty % lot
+        val coreQty = Variants.coreQty(r.item, whole)?.takeIf { it > 0 } ?: return null
+        val q = quote(me, funds, QuoteReq(r.mode, v.core, coreQty, r.price)) ?: return null
+        fun units(core: Int) = clamp(core.toLong() * v.div / v.mul)
+        fun price(p: Int) = if (p <= 0) 0 else clamp(Variants.scale(r.item, p.toLong(), coreLot))
+        return q.copy(
+            item = r.item, qty = r.qty, filled = units(q.filled), listed = units(q.listed), returned = r.qty - units(q.filled) - units(q.listed),
+            avg = price(q.avg), worst = price(q.worst), step = lot, leftover = (q.filled.toLong() * v.div % v.mul / v.div).toInt(), reason = if (q.reason.isEmpty() && whole < r.qty) "lot" else q.reason
+        )
+    }
+
     private fun quote(me: String, funds: Long, r: QuoteReq): Quote? {
         val lot = Config.s.lotOf(r.item)
         val whole = r.qty - r.qty % lot
@@ -303,22 +352,15 @@ object Sync {
         return when (r.mode) {
             "buy" -> {
                 val plan = Matching.plan(r.item, whole, me)
-                val stock = plan.fills.filter { it.market }
-                val terms = plan.fills.filterNot { it.market }.map { Trade.terms(me, it.owner) }
-                val gross = plan.fills.sumOf { it.gross }
-                Quote(
-                    r.mode, r.item, r.qty, 0, plan.filled, 0, r.qty - plan.filled, lotReason(plan.filled),
-                    gross, stock.sumOf { it.tax }, plan.fills.sumOf { it.tariff }, plan.totalSpurs, avg(gross, plan.filled, lot), plan.fills.maxOfOrNull { it.unitPrice } ?: 0, plan.fills.size,
-                    0, 0, lot, if (stock.isEmpty()) 0 else Config.s.taxPct, terms.maxOfOrNull { it.tariffPct } ?: 0, relation(terms), 0, clamp(funds - plan.totalSpurs),
-                    plan.fills.filterNot { it.market }.sumOf { it.tax }, terms.maxOfOrNull { it.taxPct } ?: 0, tariffs(plan.fills) { Trade.terms(me, it) }
-                )
+                buyQuote(me, funds, r, plan, 0, 0, lot, lotReason(plan.filled), 0)
             }
             "sell_market" -> {
-                val plan = Matching.sellPlan(me, r.item, whole).takeIf { it.filled > 0 && it.net > 0 }
+                val plan = Matching.sellPlan(r.item, whole, me).takeIf { it.filled > 0 && it.net > 0 }
                 sellQuote(me, funds, r, plan, 0, 0, lot, lotReason(plan?.filled ?: 0), 0, 0)
             }
             "sell" -> {
                 val price = Matching.listPrice(me, r.item, r.price)
+                if (Matching.ownCross(me, r.item, price, false)) return sellQuote(me, funds, r, null, price, 0, Matching.step(price) * lot, "own", 0, 0)
                 val q = Matching.sellQuote(me, r.item, r.qty, price)
                 val rest = whole - q.filled
                 val reason = when {
@@ -332,24 +374,45 @@ object Sync {
             }
             "bid" -> {
                 val step = Matching.step(r.price.coerceAtLeast(1)) * lot
-                val amount = r.qty - r.qty % step
-                val total = amount.toLong() / lot * r.price
                 val refusal = when {
-                    amount <= 0 -> "step"
                     Matching.bookFor(r.item).buys.any { it.owner == me } -> "exists"
                     Limits.marketFull(me) -> "slots"
-                    Matching.effectiveSellPrice(r.item)?.let { it <= r.price } == true -> "crosses"
+                    Matching.ownCross(me, r.item, r.price, true) -> "own"
                     else -> null
                 }
-                val listed = if (refusal == null) amount else 0
-                val reason = refusal ?: if (amount < r.qty) "step" else ""
-                Quote(
-                    r.mode, r.item, r.qty, r.price, 0, listed, r.qty - listed, reason, total, 0, 0, total, 0, 0, 0, total, 0, step,
-                    Config.s.taxPct, 0, "", 0, clamp(funds - total), if (listed > 0) Matching.tax(total) else 0, Config.s.taxPct
-                )
+                if (refusal != null) return buyQuote(me, funds, r, null, r.price, 0, step, refusal, 0)
+                val amount = r.qty - r.qty % step
+                if (amount <= 0) return buyQuote(me, funds, r, null, r.price, 0, step, "step", 0)
+                val plan = Matching.plan(r.item, amount, me, r.price)
+                val rest = amount - plan.filled
+                val listed = rest - rest % step
+                val reason = when {
+                    rest > listed -> "step"
+                    amount < r.qty -> "lot"
+                    else -> ""
+                }
+                buyQuote(me, funds, r, plan, r.price, listed, step, reason, listed.toLong() / lot * r.price)
             }
             else -> null
         }
+    }
+
+    private fun buyQuote(me: String, funds: Long, r: QuoteReq, plan: BuyPlan?, price: Int, listed: Int, step: Int, reason: String, listGross: Long): Quote {
+        val lot = Config.s.lotOf(r.item)
+        val fills = plan?.fills.orEmpty()
+        val filled = plan?.filled ?: 0
+        val stock = fills.filter { it.market }
+        val terms = fills.filterNot { it.market }.map { Trade.terms(me, it.owner) }
+        val gross = fills.sumOf { it.gross }
+        val total = (plan?.totalSpurs ?: 0) + listGross
+        val listTaxPct = if (listed > 0) Config.s.taxPct else 0
+        return Quote(
+            r.mode, r.item, r.qty, price, filled, listed, r.qty - filled - listed, reason,
+            gross, stock.sumOf { it.tax }, fills.sumOf { it.tariff }, total, avg(gross, filled, lot), fills.maxOfOrNull { it.unitPrice } ?: 0, fills.size,
+            listGross, 0, step, if (stock.isEmpty()) 0 else Config.s.taxPct, terms.maxOfOrNull { it.tariffPct } ?: 0, relation(terms), clamp(funds - total),
+            fills.filterNot { it.market }.sumOf { it.tax } + if (listed > 0) Matching.tax(listGross) else 0, maxOf(terms.maxOfOrNull { it.taxPct } ?: 0, listTaxPct),
+            tariffs(fills) { Trade.terms(me, it) }
+        )
     }
 
     private fun sellQuote(me: String, funds: Long, r: QuoteReq, plan: SellPlan?, price: Int, listed: Int, step: Int, reason: String, listGross: Long, listTax: Long): Quote {
@@ -362,7 +425,7 @@ object Sync {
         return Quote(
             r.mode, r.item, r.qty, price, filled, listed, r.qty - filled - listed, reason,
             plan?.gross ?: 0, plan?.tax ?: 0, plan?.tariff ?: 0, total, avg(plan?.gross ?: 0, filled, lot), fills.minOfOrNull { it.unitPrice } ?: 0, fills.size,
-            listGross, listTax, step, taxPct, terms.maxOfOrNull { it.tariffPct } ?: 0, relation(terms), plan?.capLots ?: 0, clamp(funds + total),
+            listGross, listTax, step, taxPct, terms.maxOfOrNull { it.tariffPct } ?: 0, relation(terms), clamp(funds + total),
             tariffs = tariffs(fills) { Trade.terms(it, me) }
         )
     }
@@ -370,6 +433,7 @@ object Sync {
     fun encode(p: ServerPlayer, msg: String, ok: Boolean, open: Boolean): String {
         val s = states.getOrPut(p.uuid) { State() }
         val me = p.stringUUID
+        vendorPrices = Stocks.vendorPrices()
         val funds = Numismatics.balance(p.uuid)
         val limit = Config.s.listLimit
         var truncated = false
@@ -384,7 +448,7 @@ object Sync {
             funds, s.view,
             rows =when (s.view) {
                 "market" -> marketRows(s, me)
-                "infinite" -> Stocks.items().filter { Stocks.infinite(it) && s.hit(it) }.map { row(it, me) }.sortedBy { it.item }
+                "infinite" -> Stocks.items().filter { Variants.of(it) == null && Stocks.infiniteDemand(it) && s.hit(it) }.map { row(it, me) }.sortedBy { it.item }
                 else -> emptyList()
             }.cap(),
             orders = when (s.view) {
@@ -401,7 +465,7 @@ object Sync {
             dash = if (s.view == "dashboard") dash(p.server) else null,
             mine = mine(p.server, me, books),
             taxPct = Config.s.taxPct, allyTaxPct = Config.s.allyTaxPct, auctionFeePct = (Config.s.auctionFeePct * 100).roundToInt(),
-            detail = detail(p, s, me, funds), quote = s.quote?.let { quote(me, funds, it) },
+            detail = detail(p, s, me, funds), quote = s.quote?.let { quoteFor(me, funds, it) },
             msg = msg, ok = ok, open = open, citizen = ClaimsApi.isCitizen(p.uuid),
             orderSlots = slot(me, CountryCapacity.MARKET_SLOTS, Limits.marketUsed(me), Limits.marketSlots(me)),
             auctionSlots = slot(me, CountryCapacity.AUCTION_SLOTS, Limits.auctionUsed(me), Limits.auctionSlots(me)),
@@ -409,7 +473,7 @@ object Sync {
             truncated = truncated, muted = Notify.muted(me).toList(),
             subject = s.subject?.toString().orEmpty(), subjectOrders = s.subject?.let { mine(p.server, it.toString(), books) }.orEmpty(),
             watch = watch.toList(),
-            watchRows = if (s.view == "watch" || s.view == "dashboard") watch.filter { Stocks.good(it) != null || Blacklist.sellable(it) }.map { row(it, me) } else emptyList()
+            watchRows = if (s.view == "watch" || s.view == "dashboard") watch.filter { Variants.of(it) == null && (Stocks.good(it) != null || Blacklist.sellable(it)) }.map { row(it, me) } else emptyList()
         )
         return json.encodeToString(snap)
     }

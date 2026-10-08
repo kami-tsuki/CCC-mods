@@ -13,7 +13,7 @@ import kami.economy.economy.Notify
 import kami.economy.economy.EconomyProvider
 import kami.economy.economy.Pricing
 import kami.economy.economy.Starters
-import kami.economy.economy.Stocks
+import kami.economy.economy.VariantScan
 import kami.economy.economy.StackCodec
 import kami.economy.net.Net
 import kami.economy.world.CoinRules
@@ -31,6 +31,7 @@ import net.neoforged.bus.api.EventPriority
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
 import net.neoforged.fml.loading.FMLEnvironment
+import net.neoforged.neoforge.event.OnDatapackSyncEvent
 import net.neoforged.neoforge.event.entity.player.PlayerEvent
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent
 import net.neoforged.neoforge.event.server.ServerStartedEvent
@@ -64,24 +65,25 @@ object KamiEconomy {
         MarketAdmin.register()
         DiscordMarket.register()
         CoinRules.register()
-        FORGE_BUS.addListener<ServerStartedEvent> { Notify.server = it.server; History.load(); Market.load(); DiscordMarket.reset() }
+        FORGE_BUS.addListener<ServerStartedEvent> { Notify.server = it.server; History.load(); VariantScan.read(it.server); Market.load(); DiscordMarket.reset() }
+        FORGE_BUS.addListener<OnDatapackSyncEvent> { if (it.player == null) runCatching { VariantScan.read(it.playerList.server); Market.variantsChanged() }.onFailure { e -> LOG.error("Variant rescan failed", e) } }
         FORGE_BUS.addListener<ServerStoppingEvent> { Notify.server = null }
         FORGE_BUS.addListener<ServerStoppedEvent>(EventPriority.LOWEST) { Market.unload(); History.unload() }
         FORGE_BUS.addListener<ServerTickEvent.Post> {
             val server = it.server
             val t = server.tickCount
-            VendorRegistry.drain()
-            if (t % Config.s.marketTickInterval == 0) {
-                Stocks.rollover()
-                Pricing.tick()
-                Net.pushPrices(server)
-                DiscordMarket.tick()
-                Net.broadcastOpen(server)
+            fun task(name: String, every: Int, run: () -> Unit) {
+                if (t % every == 0) runCatching(run).onFailure { e -> LOG.error("{} tick failed", name, e) }
             }
-            if (t % Config.s.auctionCheckIntervalTicks == 0) Auctions.sweep()
-            if (t % HOUSEKEEPING_TICKS == 0) VendorRegistry.recheck(server)
+            task("Vendor drain", 1) { VendorRegistry.drain() }
+            task("Pricing", Config.s.marketTickInterval) { Pricing.tick() }
+            task("Price push", Config.s.marketTickInterval) { Net.pushPrices(server) }
+            task("Discord market", Config.s.marketTickInterval) { DiscordMarket.tick() }
+            task("Market broadcast", Config.s.marketTickInterval) { Net.broadcastOpen(server) }
+            task("Auctions", Config.s.auctionCheckIntervalTicks) { Auctions.sweep() }
+            task("Vendors", HOUSEKEEPING_TICKS) { VendorRegistry.recheck(server) }
         }
-        FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { (it.entity as? ServerPlayer)?.let { p -> deliver(p, login = true); Net.sendFullPrices(p) } }
+        FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { (it.entity as? ServerPlayer)?.let { p -> deliver(p, login = true); Net.sendFullPrices(p); Net.sendVariants(p) } }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { (it.entity as? ServerPlayer)?.let { p -> Net.forget(p) } }
         FORGE_BUS.addListener<PlayerInteractEvent.RightClickBlock> { Vendors.onUse(it); if (!it.isCanceled) VendorRegistry.touch(it.level, it.pos) }
         FORGE_BUS.addListener<BlockEvent.EntityPlaceEvent> { VendorRegistry.touch(it.level, it.pos) }

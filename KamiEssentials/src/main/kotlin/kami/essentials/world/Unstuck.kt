@@ -1,5 +1,6 @@
 package kami.essentials.world
 
+import kami.essentials.admin.Activity
 import kami.essentials.chat.Talk
 import kami.libs.chat.Chat
 import kami.libs.chat.Tone
@@ -39,6 +40,7 @@ object Unstuck {
         p.stopRiding()
         p.teleportTo(level, target.x + 0.5, target.y.toDouble(), target.z + 0.5, p.yRot, p.xRot)
         p.resetFallDistance()
+        Activity.jumped(p)
         saved(p).putLong(LAST_USE, System.currentTimeMillis())
         idle.remove(p.uuid)
         p.tell(Talk.chat.ok(Phrase.of("kami_essentials.unstuck.done")))
@@ -74,6 +76,7 @@ object Unstuck {
         for (r in 1..SEARCH_CHUNKS) {
             val ring = (-r..r).flatMap { d -> listOf(cx + d to cz - r, cx + d to cz + r, cx - r to cz + d, cx + r to cz + d) }.distinct()
             ring.sortedBy { (x, z) -> (x - cx) * (x - cx) + (z - cz) * (z - cz) }.forEach { (x, z) ->
+                if (!level.hasChunk(x, z)) return@forEach
                 val at = ClaimsApi.at(dim, x, z)?.country
                 if (at != country && (at == null || at == own)) top(level, (x shl 4) + 8, (z shl 4) + 8, level.minBuildHeight)?.let { return BlockPos((x shl 4) + 8, it, (z shl 4) + 8) }
             }

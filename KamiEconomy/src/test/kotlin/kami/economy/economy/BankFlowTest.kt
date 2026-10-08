@@ -33,7 +33,7 @@ class BankFlowTest {
 
     @BeforeTest
     fun setUp() {
-        Config.s = Settings(starterGoods = listOf(StarterGood(item, 20)))
+        Config.s = Settings(starterGoods = listOf(StarterGood(item, 20, supply = 1000, demand = 1000)))
         Market.data = Data()
         Stocks.index { emptyList() }
         TestDb.open()
@@ -60,7 +60,7 @@ class BankFlowTest {
     @Test
     fun stockSaleAndPurchaseMoveTheBankByTheOppositeAmount() {
         val start = total()
-        assertTrue(Ledger.sellToStock(seller.toString(), item, 64) is SellResult.Ok)
+        assertTrue(Ledger.sellNow(seller.toString(), item, 64) is SellResult.Sold)
         assertTrue(purse.balance(seller) > 1_000L)
         assertConserved(start)
         assertTrue(Ledger.buy(buyer.toString(), item, 128) is BuyResult.Ok)

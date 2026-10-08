@@ -80,9 +80,8 @@ class AdminMarketTest {
         assertEquals(2, Config.s.starterGoods.size)
         assertFailsWith<AdminFailure> { Starters.upsert(StarterGood(other, 6), rev) }
 
-        Stocks.stock(other)!!.lots = 3
-        Starters.upsert(Stocks.good(other)!!.copy(infinite = false), Starters.rev())
-        assertEquals(64, Stocks.stock(other)!!.lots)
+        assertEquals(-1, Stocks.stock(other)!!.demand)
+        Starters.upsert(Stocks.good(other)!!.copy(demand = 10), Starters.rev())
 
         Matching.insertSell(other, Order(Market.nextId(), seller.toString(), 9, 1))
         Starters.remove(other, Starters.rev())

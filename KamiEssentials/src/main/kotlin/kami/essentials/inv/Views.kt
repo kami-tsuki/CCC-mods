@@ -2,6 +2,8 @@ package kami.essentials.inv
 
 import com.mojang.authlib.GameProfile
 import kami.essentials.chat.Talk
+import kami.essentials.vanish.Vanish
+import kami.libs.admin.AdminPerms
 import kami.libs.chat.tell
 import kami.libs.command.fail
 import kami.libs.text.Phrase
@@ -24,15 +26,18 @@ object Views {
         online: (ServerPlayer) -> Container, offline: (Offline) -> Container,
     ) {
         val live = viewer.server.playerList.getPlayer(target.id)
+        if (live != null && Vanish.hides(live, viewer)) fail(Phrase.of("kami_essentials.views.never_played", Phrase.value(target.name)))
+        if (edit && target.id != viewer.uuid && !AdminPerms.outranks(viewer, target)) fail(Phrase.of("kami_essentials.admin.outranked"))
         val data = if (live == null) Offline.of(viewer.server, target.id) ?: fail(Phrase.of("kami_essentials.views.never_played", Phrase.value(target.name))) else null
         val source = if (live != null) online(live) else offline(data!!)
-        val valid: () -> Boolean = if (live != null) { { !live.hasDisconnected() } } else { { data!!.live } }
+        val valid: () -> Boolean = if (live != null) { { !live.hasDisconnected() && !live.isRemoved } } else { { data!!.live } }
         val notes = listOfNotNull("kami_essentials.views.offline".takeIf { data != null }, "kami_essentials.views.read_only".takeUnless { edit }).map { Phrase.of(it) }
         val base = if (live === viewer) Phrase.of("kami_essentials.views.$what.own") else Phrase.of("kami_essentials.views.$what.other", target.name)
         val label = notes.fold(base) { out, note -> Phrase.of("kami_essentials.views.note", out, note) }
         val title = label.component()
         data?.viewers?.add(viewer)
-        viewer.openMenu(SimpleMenuProvider({ id, inv, _ -> ViewMenu(id, inv, source, layout, edit, valid) { data?.let { Offline.release(it, viewer) } } }, title))
+        val opened = viewer.openMenu(SimpleMenuProvider({ id, inv, _ -> ViewMenu(id, inv, source, layout, edit, valid) { data?.let { Offline.release(it, viewer) } } }, title))
+        if (opened.isEmpty) return data?.let { Offline.release(it, viewer) } ?: Unit
         if (live !== viewer) viewer.tell(Talk.chat.info(Phrase.of("kami_essentials.views.opened", label.asValue())))
     }
 }

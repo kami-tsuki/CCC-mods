@@ -82,6 +82,7 @@ object AdminServer {
         Admin.act("players.ban") { ctx, a ->
             val server = ctx.player.server
             val id = known(ctx, guarded(ctx, a))
+            Moderation.banned(server, id)?.let { issuer(ctx, it.getSource()) }
             val until = Moderation.expiry(a.text(1) ?: "perm", System.currentTimeMillis())
             val ips = if (a.flag(2)) listOfNotNull(PlayerRecords[id]?.lastIp).ifEmpty { ctx.fail("kami_essentials.admin.no_ip") } else emptyList()
             ips.flatMap(PlayerRecords::onIp).distinct().firstOrNull { !AdminPerms.outranks(ctx.player, profile(server, it)) }
@@ -98,11 +99,12 @@ object AdminServer {
         }
         Admin.act("players.kick") { ctx, a ->
             val id = guarded(ctx, a)
-            if (!Moderation.kick(ctx.player.server, id, ctx.reason)) ctx.fail("kami_essentials.admin.offline")
+            if (visible(ctx, id) == null || !Moderation.kick(ctx.player.server, id, ctx.reason)) ctx.fail("kami_essentials.admin.offline")
             Admin.done(id)
         }
         Admin.act("players.mute") { ctx, a ->
             val id = guarded(ctx, a)
+            Mutes[id]?.let { issuer(ctx, it.by) }
             val now = System.currentTimeMillis()
             val mute = Mute(ctx.reason, ctx.player.gameProfile.name, now, Moderation.expiry(a.text(1) ?: "perm", now))
             Mutes.mute(id, mute)
@@ -134,13 +136,14 @@ object AdminServer {
         Admin.act("players.teleport") { ctx, a ->
             val id = target(ctx, a)
             val server = ctx.player.server
-            val live = server.playerList.getPlayer(id)
+            val live = visible(ctx, id)
             if (live != null) ctx.player.teleportTo(live.serverLevel(), live.x, live.y, live.z, live.yRot, live.xRot)
             else {
                 val spot = PlayerRecords[id]?.let { PlayerRecords.position(server, it) } ?: ctx.fail("kami_essentials.admin.no_position")
                 val level = ResourceLocation.tryParse(spot.dim)?.let { server.getLevel(ResourceKey.create(Registries.DIMENSION, it)) } ?: ctx.fail("kami_essentials.admin.no_position")
                 ctx.player.teleportTo(level, spot.x, spot.y, spot.z, spot.yaw, spot.pitch)
             }
+            Activity.jumped(ctx.player)
             Admin.done(id)
         }
         Admin.act("players.inventory_edit") { ctx, a ->
@@ -226,12 +229,15 @@ object AdminServer {
     private fun visible(ctx: AdminCtx, id: UUID) = ctx.player.server.playerList.getPlayer(id)?.takeUnless { Vanish.hides(it, ctx.player) }
 
     private fun inventory(ctx: AdminCtx, a: List<String>, edit: Boolean): JsonObject {
-        if (!Perms.has(ctx.player, if (edit) Perms.INVSEE_EDIT else Perms.INVSEE)) ctx.fail("kami_libs.admin.denied")
+        val ender = a.flag(1)
+        val node = if (ender) (if (edit) Perms.ENDERCHEST_EDIT else Perms.ENDERCHEST_OTHERS) else if (edit) Perms.INVSEE_EDIT else Perms.INVSEE
+        if (!Perms.has(ctx.player, node)) ctx.fail("kami_libs.admin.denied")
         val id = target(ctx, a)
         val server = ctx.player.server
-        if (server.playerList.getPlayer(id) == null && !Offline.saved(server, id)) ctx.fail("kami_essentials.admin.no_data")
+        val live = server.playerList.getPlayer(id)
+        if (live != null && Vanish.hides(live, ctx.player) || live == null && !Offline.saved(server, id)) ctx.fail("kami_essentials.admin.no_data")
         val profile = profile(server, id)
-        if (a.flag(1)) Views.enderchest(ctx.player, profile, edit) else Views.inventory(ctx.player, profile, edit)
+        if (ender) Views.enderchest(ctx.player, profile, edit) else Views.inventory(ctx.player, profile, edit)
         return Admin.done(id)
     }
 

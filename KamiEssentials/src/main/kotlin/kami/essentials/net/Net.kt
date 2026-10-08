@@ -25,7 +25,6 @@ import kotlinx.serialization.json.Json
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import net.neoforged.neoforge.event.tick.ServerTickEvent
-import net.neoforged.neoforge.network.PacketDistributor
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
 import thedarkcolour.kotlinforforge.neoforge.forge.FORGE_BUS
 import java.util.UUID
@@ -75,7 +74,7 @@ object Net {
         if (!cooldown.ready(p.uuid, p.server.tickCount)) return
         val q = pending.remove(p.uuid) ?: return
         q.sets.forEach { (k, v) -> set(p, k, v) }
-        PacketDistributor.sendToPlayer(p, snapshotChannel(Json.encodeToString(snap(p, Subject.resolve(p, q.subject), !q.subject.isNullOrBlank()))))
+        snapshotChannel.send(p, Json.encodeToString(snap(p, Subject.resolve(p, q.subject), !q.subject.isNullOrBlank())))
     }
 
     private fun tick(server: MinecraftServer) {

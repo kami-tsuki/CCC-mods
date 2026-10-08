@@ -138,7 +138,7 @@ object Service {
             "kick" -> kick(p, who(p, a, 0), false)
             "banish" -> kick(p, who(p, a, 0), true)
             "ally" -> ally(p, who(p, a, 0))
-            "clear" -> need(p, Cap.MEMBERS).let { it.outsiders.remove(who(p, a, 0)); Phrase.of("kami_claims.done.relation_cleared") }
+            "clear" -> need(p, Cap.MEMBERS).let { c -> who(p, a, 0).let { id -> pardon(c, p, id); c.outsiders.remove(id) }; Phrase.of("kami_claims.done.relation_cleared") }
             "rank" -> rank(p, who(p, a, 0), parse(Rank.values(), arg(a, 1)))
             "president" -> president(p, who(p, a, 0), confirmed(a))
             "claim" -> claim(p, arg(a, 0), num(a, 1).coerceIn(0, 8), a.getOrNull(2)?.let { spot(p, a, 2) })
@@ -159,7 +159,7 @@ object Service {
             "plot_limit" -> plotLimit(p, need(p, Cap.TAX), arg(a, 0), num(a, 1))
             "job_set" -> jobSet(p, arg(a, 0), arg(a, 1), num(a, 2))
             "job_edit" -> { jobSet(p, arg(a, 0), "pay", num(a, 1)); jobSet(p, arg(a, 0), "quota", num(a, 2)); jobSet(p, arg(a, 0), "period", num(a, 3)) }
-            "job_add" -> Work.jobAdd(need(p, Cap.JOBS), who(p, a, 0), arg(a, 1))
+            "job_add" -> need(p, Cap.JOBS).let { Work.jobAdd(it, delegatedRank(it, p), p.stringUUID, who(p, a, 0), arg(a, 1)) }
             "job_remove" -> Work.jobRemove(need(p, Cap.JOBS), who(p, a, 0), arg(a, 1))
             "assign" -> need(p, Cap.JOBS).let { Work.assign(it, who(p, a, 0), mine(it, spot(p, a, 1))) }
             "unassign" -> need(p, Cap.JOBS).let { Work.unassign(it, delegatedRank(it, p), p.stringUUID, who(p, a, 0), mine(it, spot(p, a, 1))) }
@@ -318,8 +318,13 @@ object Service {
     private fun ally(p: ServerPlayer, id: String): Phrase {
         val c = need(p, Cap.MEMBERS)
         if (c.members.containsKey(id)) throw Fail("kami_claims.error.member_ally")
+        pardon(c, p, id)
         c.outsiders[id] = Rank.ALLIED
         return Phrase.of("kami_claims.done.allied")
+    }
+
+    private fun pardon(c: Country, p: ServerPlayer, id: String) {
+        if (c.outsiders[id] == Rank.BANISHED && delegatedRank(c, p) < Rank.CHANCELLOR) throw Fail("kami_claims.error.pardon_rank")
     }
 
     private fun rank(p: ServerPlayer, id: String, rank: Rank): Phrase {
@@ -404,7 +409,7 @@ object Service {
         val x2 = max(num(a, i), num(a, i + 2))
         val z1 = min(num(a, i + 1), num(a, i + 3))
         val z2 = max(num(a, i + 1), num(a, i + 3))
-        if ((x2 - x1 + 1).toLong() * (z2 - z1 + 1) > s.maxRect) throw Fail("kami_claims.error.too_big", chunks(s.maxRect))
+        if ((x2.toLong() - x1 + 1) * (z2.toLong() - z1 + 1) > s.maxRect) throw Fail("kami_claims.error.too_big", chunks(s.maxRect))
         return Rect((x1..x2).flatMap { x -> (z1..z2).map { z -> Key(dim, x, z) } })
     }
 

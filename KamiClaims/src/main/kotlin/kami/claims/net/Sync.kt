@@ -3,6 +3,7 @@ package kami.claims.net
 import kami.claims.*
 import kami.claims.economy.Bank
 import kami.claims.economy.Treasury
+import kami.libs.stats.Staff
 import kami.libs.admin.Subject
 import kami.claims.research.Buffs
 import kami.claims.research.Capacity
@@ -171,7 +172,7 @@ object Sync {
         previews[p.uuid] = PreviewLine(kind, type, plan.cells.map { PreviewCell(it.key.x, it.key.z, it.outcome.name, it.reason?.json() ?: "") }, plan.costNow, plan.upkeepPerDay, key)
     }
 
-    private fun online(p: ServerPlayer, id: String) = runCatching { p.server.playerList.getPlayer(UUID.fromString(id)) != null }.getOrDefault(false)
+    private fun online(p: ServerPlayer, id: String) = runCatching { p.server.playerList.getPlayer(UUID.fromString(id))?.let { it === p || !Staff.veiled(it) } }.getOrNull() == true
 
     private fun flag(c: Country) = FlagLine(c.flag.pattern, c.flag.emblem, c.flag.secondary)
 
@@ -422,7 +423,7 @@ object Sync {
                 power = if (admin) Power.score(x) else null
             )
         } else emptyList()
-        val players = if (world) (Realm.home.keys + p.server.playerList.players.map { it.stringUUID }).distinct().mapNotNull { id ->
+        val players = if (world) (Realm.home.keys + p.server.playerList.players.filter { it === p || !Staff.veiled(it) }.map { it.stringUUID }).distinct().mapNotNull { id ->
             val other = runCatching { UUID.fromString(id) }.getOrNull() ?: return@mapNotNull null
             PlayerLine(id, Names.of(p.server, id), citizenships(id), online(p, id), Gifts.pending(other, p.uuid), Gifts.pending(p.uuid, other))
         }.sortedBy { it.name } else emptyList()
