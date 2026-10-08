@@ -198,7 +198,7 @@ private fun Settings.sane() = copy(
             presenceDebounceSeconds = discord.status.presenceDebounceSeconds.coerceAtLeast(15),
             topicMinutes = discord.status.topicMinutes.coerceAtLeast(10)
         ),
-        verify = discord.verify.copy(codeMinutes = discord.verify.codeMinutes.coerceIn(1, 60), attempts = discord.verify.attempts.coerceAtLeast(1))
+        verify = discord.verify.copy(codeMinutes = discord.verify.codeMinutes.coerceIn(1, 60), attempts = discord.verify.attempts.coerceAtLeast(1), windowMinutes = discord.verify.windowMinutes.coerceAtLeast(1))
     ),
     motd = motd.copy(frameSeconds = motd.frameSeconds.coerceIn(5, 300), itemsPerFrame = motd.itemsPerFrame.coerceIn(1, 4), frames = motd.frames.coerceIn(1, 20)),
 )

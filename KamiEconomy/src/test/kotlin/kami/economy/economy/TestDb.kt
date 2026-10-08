@@ -43,5 +43,5 @@ object TestDb {
         Db.flush()
     }
 
-    fun states(): List<String> = Db.read { query("SELECT state FROM eco_intent") { it.string("state") } }
+    fun states(): List<String> = Db.read(fresh = true) { query("SELECT state FROM eco_intent") { it.string("state") } }
 }

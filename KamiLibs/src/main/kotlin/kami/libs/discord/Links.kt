@@ -25,7 +25,12 @@ private class Index(links: Collection<Link>) {
 }
 
 internal fun restrict(path: Path) {
-    runCatching { Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rw-------")) }
+    try {
+        Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rw-------"))
+    } catch (_: UnsupportedOperationException) {
+    } catch (e: Exception) {
+        Discord.log.warn("Cannot restrict the permissions of {}: {}", path, e.message)
+    }
 }
 
 internal fun Row.link() = Link(string("uuid"), string("name"), long("discord_id"), string("discord_name"), long("linked_at"))
@@ -61,7 +66,7 @@ object Links {
 
     fun put(link: Link): Boolean = synchronized(writes) {
         try {
-            Db.durable { exec(UPSERT, *link.row().toTypedArray()) }
+            Db.durableAsync { exec(UPSERT, *link.row().toTypedArray()) }
         } catch (e: Exception) {
             log.error("Cannot save the link of {}: {}", link.name, e.message)
             return false
@@ -85,7 +90,7 @@ object Links {
         val removed = synchronized(this) { byUuid.values.filter { it.uuid in keys } }
         if (removed.isEmpty()) return removed
         try {
-            Db.durable { removed.forEach { exec("DELETE FROM libs_discord_link WHERE uuid = ?", it.uuid) } }
+            Db.durableAsync { removed.forEach { exec("DELETE FROM libs_discord_link WHERE uuid = ?", it.uuid) } }
         } catch (e: Exception) {
             log.error("Cannot remove links: {}", e.message)
             return emptyList()
@@ -102,12 +107,14 @@ object Links {
     }
 
     fun rename(uuid: UUID, name: String, discordName: String? = null) {
-        synchronized(this) {
-            val link = byUuid[uuid.toString()]?.takeIf { it.name != name || (discordName != null && it.discordName != discordName) } ?: return
+        synchronized(writes) {
+            val link = synchronized(this) { byUuid[uuid.toString()] }?.takeIf { it.name != name || (discordName != null && it.discordName != discordName) } ?: return
             val next = link.copy(name = name, discordName = discordName ?: link.discordName)
-            Db.write { exec(UPSERT, *next.row().toTypedArray()) }
-            byUuid[next.uuid] = next
-            index = null
+            Db.write { exec("UPDATE libs_discord_link SET name = ?, discord_name = ? WHERE uuid = ?", next.name, next.discordName, next.uuid) }
+            synchronized(this) {
+                byUuid[next.uuid] = next
+                index = null
+            }
         }
     }
 

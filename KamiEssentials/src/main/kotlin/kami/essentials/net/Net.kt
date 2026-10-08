@@ -11,6 +11,7 @@ import kami.essentials.discord.Gate
 import kami.essentials.display.Sidebar
 import kami.essentials.vanish.Vanish
 import kami.libs.admin.Subject
+import kami.libs.discord.DiscordPrefs
 import kami.libs.discord.Links
 import kami.libs.economy.Account
 import kami.libs.log.Log
@@ -34,7 +35,7 @@ private val actChannel = ActPayload.channel(packets, maxArgs = 3, maxArg = 36, w
 private val snapshotChannel = SnapshotPayload.channel(packets, maxBytes = 131072)
 
 @Serializable
-class Snap(val channel: String, val channels: List<String>, val sidebar: Boolean?, val trades: Boolean?, val dmSound: Boolean, val invisible: Boolean?, val discordOn: Boolean = false, val discord: String? = null, val discordPing: Boolean = true, val account: Account? = null, val viewing: String? = null)
+class Snap(val channel: String, val channels: List<String>, val sidebar: Boolean?, val trades: Boolean?, val dmSound: Boolean, val invisible: Boolean?, val discordOn: Boolean = false, val discord: String? = null, val discordPing: Boolean = true, val discordAlerts: Boolean = false, val account: Account? = null, val viewing: String? = null)
 
 object Net {
     private class Pending(var subject: String?, val sets: LinkedHashMap<String, String> = LinkedHashMap())
@@ -94,6 +95,7 @@ object Net {
             "trades" -> if (Perms.has(p, Perms.TRADE)) Store[Flag.NO_TRADES, p.uuid] = !on
             "dm_sound" -> Store[Flag.QUIET_DM, p.uuid] = !on
             "discord_ping" -> Store[Flag.QUIET_DISCORD, p.uuid] = !on
+            "discord_alerts" -> if (Config.s.discord.enabled && Links.get(p.uuid) != null) DiscordPrefs.set(p.uuid, DiscordPrefs.MARKET_ALERTS, on)
             "discord_unlink" -> if (Config.s.discord.enabled) Gate.unlink(p.uuid)
             "invisible" -> if (Perms.has(p, Perms.INVIS) && Vanish.active(p) != on) Vanish.toggle(p, null)
         }
@@ -105,7 +107,7 @@ object Net {
         (!Store[Flag.NO_TRADES, p.uuid]).takeIf { Perms.has(p, Perms.TRADE) },
         !Store[Flag.QUIET_DM, p.uuid],
         Vanish.active(p).takeIf { Perms.has(p, Perms.INVIS) },
-        Config.s.discord.enabled, Links.get(p.uuid)?.discordName, !Store[Flag.QUIET_DISCORD, p.uuid], account(p.server, id),
+        Config.s.discord.enabled, Links.get(p.uuid)?.discordName, !Store[Flag.QUIET_DISCORD, p.uuid], DiscordPrefs.on(p.uuid, DiscordPrefs.MARKET_ALERTS), account(p.server, id),
         id.toString().takeIf { viewing }
     )
 }

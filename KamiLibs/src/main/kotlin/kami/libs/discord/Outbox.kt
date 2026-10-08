@@ -4,6 +4,7 @@ import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.WebhookClient
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
+import net.dv8tion.jda.api.exceptions.ErrorResponseException
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException
 import net.dv8tion.jda.api.requests.restaction.MessageCreateAction
 import net.dv8tion.jda.api.requests.restaction.WebhookMessageCreateAction
@@ -27,6 +28,7 @@ internal object Outbox {
         var dropped = 0
     }
 
+    private const val BAD_REQUEST = 400
     private const val CAP = 200
     private const val CONSOLE_CAP = 2000
     private const val LIMIT = MESSAGE_MAX - 20
@@ -136,7 +138,7 @@ internal object Outbox {
 
     private fun text(content: String) = Task({ it.sendMessage(content).setAllowedMentions(emptySet()) }, { it.sendMessage(content).setAllowedMentions(emptySet()) })
 
-    fun embed(embed: MessageEmbed) = Task({ it.sendMessageEmbeds(embed) }, { it.sendMessageEmbeds(embed) })
+    fun embed(embed: MessageEmbed) = Task({ it.sendMessageEmbeds(embed).setAllowedMentions(emptySet()) }, { it.sendMessageEmbeds(embed).setAllowedMentions(emptySet()) })
 
     private fun send(lane: Lane, channel: Channel, task: Task, retry: Boolean, mine: Int) {
         Webhooks.get(channel) { client ->
@@ -153,7 +155,7 @@ internal object Outbox {
                     if (retry && Webhooks.stale(e)) {
                         Webhooks.invalidate(channel)
                         send(lane, channel, task, false, mine)
-                    } else if (Webhooks.stale(e)) {
+                    } else if (Webhooks.stale(e) || (e as? ErrorResponseException)?.response?.code == BAD_REQUEST) {
                         sendPlain(lane, channel, task, mine)
                     } else {
                         fail(e)

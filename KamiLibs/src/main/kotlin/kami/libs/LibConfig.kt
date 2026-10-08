@@ -17,9 +17,10 @@ data class LibSettings(
     val unexplainedSingle: Long = 5_000,
     val stats: Map<String, Boolean> = linkedMapOf(
         "server" to true, "session" to true, "combat" to true, "mob" to true, "block" to true, "craft" to true,
-        "move" to true, "money" to true, "market" to true, "country" to true, "war" to true, "research" to true, "loan" to true, "discord" to true
+        "move" to true, "money" to true, "market" to true, "country" to true, "war" to true, "research" to true, "loan" to true, "discord" to true, "staff" to true
     ),
-    val statsSampleSeconds: Int = 300
+    val statsSampleSeconds: Int = 300,
+    val staffCommandSeconds: Int = 15
 )
 
 object LibConfig {
@@ -43,8 +44,9 @@ object LibConfig {
             Section(
                 "stats.json", "Statistics collected for the admin app. Everything is kept forever.",
                 mapOf(
-                    "stats" to "Collect a statistics group (false turns it off): server, session, combat, mob, block, craft, move, money, market, country, war, research, loan, discord.",
-                    "statsSampleSeconds" to "Seconds between samples of gauges like online players, ping, TPS and country treasuries."
+                    "stats" to "Collect a statistics group (false turns it off): server, session, combat, mob, block, craft, move, money, market, country, war, research, loan, discord, staff. Activity of players in creative, spectator or /invis and right after an op command or admin action is kept apart under staff and only shown in the admin app.",
+                    "statsSampleSeconds" to "Seconds between samples of gauges like online players, ping, TPS and country treasuries.",
+                    "staffCommandSeconds" to "Seconds after an op command or admin app action during which a player's activity counts as staff activity."
                 )
             )
         ),
@@ -57,7 +59,8 @@ object LibConfig {
                 unexplainedAlert = s.unexplainedAlert.coerceAtLeast(1),
                 unexplainedSingle = s.unexplainedSingle.coerceAtLeast(1),
                 stats = LibSettings().stats + s.stats,
-                statsSampleSeconds = s.statsSampleSeconds.coerceAtLeast(30)
+                statsSampleSeconds = s.statsSampleSeconds.coerceAtLeast(30),
+                staffCommandSeconds = s.staffCommandSeconds.coerceIn(0, 3600)
             )
         }
     )

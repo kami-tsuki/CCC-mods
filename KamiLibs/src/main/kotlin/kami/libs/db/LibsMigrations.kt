@@ -10,5 +10,5 @@ import kami.libs.economy.Wealth
 import kami.libs.stats.Stats
 
 internal object LibsMigrations {
-    fun register() = Migrations.register("libs", listOf(StatementMigration.schema, AdminSchema.migration, BankRefs.migration, Wealth.migration, Coins.migration, MoneyGuard.migration, Stats.migration, DiscordDb.migration), after = emptyList())
+    fun register() = Migrations.register("libs", listOf(StatementMigration.schema, AdminSchema.migration, BankRefs.migration, Wealth.migration, Coins.migration, MoneyGuard.migration, Stats.migration, DiscordDb.migration, DiscordDb.pref, DiscordDb.ban), after = emptyList())
 }

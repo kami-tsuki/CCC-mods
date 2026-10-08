@@ -39,12 +39,12 @@ object Mutes {
 
     fun mute(id: UUID, m: Mute) {
         mutes[id] = m
-        Db.write { exec("INSERT OR REPLACE INTO ess_mute (uuid, reason, \"by\", since, until) VALUES (?, ?, ?, ?, ?)", id.toString(), m.reason, m.by, m.since, m.until) }
+        Db.durableAsync { exec("INSERT OR REPLACE INTO ess_mute (uuid, reason, \"by\", since, until) VALUES (?, ?, ?, ?, ?)", id.toString(), m.reason, m.by, m.since, m.until) }
     }
 
     fun unmute(id: UUID): Boolean {
         if (mutes.remove(id) == null) return false
-        Db.write { exec("DELETE FROM ess_mute WHERE uuid = ?", id.toString()) }
+        Db.durableAsync { exec("DELETE FROM ess_mute WHERE uuid = ?", id.toString()) }
         return true
     }
 

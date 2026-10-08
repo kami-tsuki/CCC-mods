@@ -26,7 +26,7 @@ object Audit {
     fun record(actor: Party, actorName: String, action: String, target: String, reason: String, args: Map<String, String> = emptyMap(), ok: Boolean = true) {
         val stored = args.entries.take(MAX_ARGS).associate { it.key.take(MAX_ARG) to it.value.take(MAX_ARG) }
         runCatching {
-            Db.durable {
+            Db.durableAsync {
                 exec(
                     "INSERT INTO libs_audit (at, actor, actor_name, action, target, reason, args, ok) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                     System.currentTimeMillis(), actor.key, actorName.take(MAX_ARG), action.take(MAX_ARG), target.take(MAX_ARG), reason.take(MAX_ARG), Db.json.encodeToString(argsSerializer, stored), ok

@@ -6,6 +6,7 @@ import kami.libs.admin.Durations
 import kami.libs.chat.duration
 import kami.libs.db.Db
 import kami.libs.db.Session
+import kami.libs.discord.DiscordBans
 import kami.libs.text.Phrase
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.players.BanListEntry
@@ -46,7 +47,7 @@ object Moderation {
         added.forEach { server.playerList.ipBans.add(IpBanListEntry(it, now, by, expires, reason)) }
         if (added.isNotEmpty()) {
             links.getOrPut(profile.id) { ConcurrentHashMap.newKeySet() }.addAll(added)
-            Db.write { batch("INSERT OR IGNORE INTO ess_ban_ip (uuid, ip) VALUES (?, ?)", added.map { listOf(profile.id.toString(), it) }) }
+            Db.durableAsync { batch("INSERT OR IGNORE INTO ess_ban_ip (uuid, ip) VALUES (?, ?)", added.map { listOf(profile.id.toString(), it) }) }
         }
         val screen = screen(reason, until, now.time).component()
         (listOfNotNull(server.playerList.getPlayer(profile.id)) + ips.flatMap { server.playerList.getPlayersWithAddress(it) }).distinct().forEach { it.connection.disconnect(screen) }
@@ -57,7 +58,8 @@ object Moderation {
         banned(server, id) ?: return null
         server.playerList.bans.remove(GameProfile(id, ""))
         val linked = links.remove(id).orEmpty().toList()
-        if (linked.isNotEmpty()) Db.write { exec("DELETE FROM ess_ban_ip WHERE uuid = ?", id.toString()) }
+        DiscordBans.clear(id)
+        if (linked.isNotEmpty()) Db.durableAsync { exec("DELETE FROM ess_ban_ip WHERE uuid = ?", id.toString()) }
         val ips = linked.filter { ip -> server.playerList.ipBans.isBanned(ip) && links.none { (other, set) -> ip in set && banned(server, other) != null } }
         ips.forEach { server.playerList.ipBans.remove(it) }
         return ips

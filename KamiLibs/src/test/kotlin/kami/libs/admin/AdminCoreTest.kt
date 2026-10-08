@@ -84,12 +84,14 @@ class AdminCoreTest {
     fun auditInsertAndPage() {
         val actor = PlayerParty(UUID.randomUUID())
         listOf("players.kick", "players.ban", "market.cancel").forEach { Audit.record(actor, "Kami", it, "t", "because", mapOf("0" to it), it != "players.ban") }
+        Db.flush()
         val first = Audit.query(Audit.Filter(action = "players."), 0, 1)
         assertEquals(2L, first.total)
         assertEquals(listOf("players.ban"), first.rows.map { it.action })
         assertEquals(listOf("players.kick"), Audit.query(Audit.Filter(action = "players."), 1, 1).rows.map { it.action })
         assertEquals(mapOf("0" to "market.cancel"), Audit.query(Audit.Filter(actor = "kami", ok = true), 0, 50).rows.first().args)
         Audit.record(actor, "Kami", "players.ban.ip", "t", "because", mapOf("ips" to "1.2.3.4") + (0..9).associate { "$it" to "y".repeat(300) })
+        Db.flush()
         val view = Audit.query(Audit.Filter(action = "players.ban.ip"), 0).rows.single().args
         assertEquals(8, view.size)
         assertEquals("***", view["ips"])

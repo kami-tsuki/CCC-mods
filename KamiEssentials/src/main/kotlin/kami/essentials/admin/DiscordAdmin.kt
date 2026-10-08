@@ -8,6 +8,7 @@ import kami.libs.admin.Players
 import kami.libs.admin.text
 import kami.libs.db.Db
 import kami.libs.discord.DiscordApi
+import kami.libs.discord.DiscordPrefs
 import kami.libs.discord.Links
 import kami.libs.stats.Stats
 import kotlinx.serialization.Serializable
@@ -33,7 +34,8 @@ class DiscordDetail(
     val sentToDiscord: Long = 0,
     val pings: Long = 0,
     val lastMessage: Long = 0,
-    val history: List<DiscordEvent> = emptyList()
+    val history: List<DiscordEvent> = emptyList(),
+    val marketAlerts: Boolean = false
 )
 
 object DiscordAdmin {
@@ -52,10 +54,13 @@ object DiscordAdmin {
             val id = target(ctx, a)
             val link = Links.get(id) ?: ctx.fail("kami_essentials.admin.discord_not_linked", id)
             if (!DiscordApi.ready) ctx.fail("kami_essentials.admin.discord_down")
-            val info = DiscordApi.info(link.discordId) ?: ctx.fail("kami_essentials.admin.discord_not_member", link.discordName)
             val server = ctx.player.server
-            Links.rename(id, server.playerList.getPlayer(id)?.gameProfile?.name ?: server.profileCache?.get(id)?.orElse(null)?.name ?: link.name, info.userName)
-            DiscordApi.grant(link.discordId)
+            DiscordApi.info(link.discordId) { info ->
+                if (info != null && Links.get(id)?.discordId == link.discordId) {
+                    Links.rename(id, server.playerList.getPlayer(id)?.gameProfile?.name ?: server.profileCache?.get(id)?.orElse(null)?.name ?: link.name, info.userName)
+                    DiscordApi.grant(link.discordId)
+                }
+            }
             Admin.done(id, audit = mapOf("discord" to link.discordId.toString()))
         }
     }
@@ -76,7 +81,8 @@ object DiscordAdmin {
         val info = DiscordApi.info(link.discordId, 0)
         return DiscordDetail(
             true, link.discordId.toString(), link.discordName, link.linkedAt, info?.nickname.orEmpty(), info?.avatar.orEmpty(), info?.joined ?: 0, info?.roles.orEmpty(),
-            info?.verified == true, info != null, DiscordApi.ready, sentToMc, sentToDiscord, pings, Relay.lastMessage(id), history
+            info?.verified == true, info != null, DiscordApi.ready, sentToMc, sentToDiscord, pings, Relay.lastMessage(id), history,
+            DiscordPrefs.on(id, DiscordPrefs.MARKET_ALERTS)
         )
     }
 }

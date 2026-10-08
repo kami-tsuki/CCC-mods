@@ -299,7 +299,7 @@ object Sync {
             )
         }
 
-    private fun homes(me: String): List<HomeLine> = Realm.data.claims.filter { it.owner == me && it.plot }.mapNotNull { cl ->
+    internal fun homes(me: String): List<HomeLine> = Realm.data.claims.filter { it.owner == me && it.plot }.mapNotNull { cl ->
         Realm.data.countries[cl.country]?.let { c -> HomeLine(c.name, cl.dim, cl.x, cl.z, cl.state.name.lowercase(), Housing.rate(c, cl), cl.rentDebt, cl.until, cl.category?.name?.lowercase().orEmpty(), cl.rentCredit, (today() + 1) * Config.s.dayMillis - now(), Treasury.room(c)) }
     }
 

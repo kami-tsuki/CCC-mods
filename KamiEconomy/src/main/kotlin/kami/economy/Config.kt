@@ -54,7 +54,13 @@ data class Settings(
     val guiCooldown: Int = 4,
 
     val allowCreativeVendors: Boolean = false,
-    val levelLocks: Boolean = true
+    val levelLocks: Boolean = true,
+
+    val discordMoveThresholdPct: Double = 10.0,
+    val discordItemCooldownMinutes: Int = 60,
+    val discordDigestHours: Int = 6,
+    val discordAlertCooldownMinutes: Int = 60,
+    val discordItemIconUrl: String = ""
 ) {
     val storageItemSet: Set<String> by lazy { storageItemIds.toHashSet() }
     val creativeItemSet: Set<String> by lazy { creativeItemIds.toHashSet() }
@@ -79,6 +85,11 @@ internal fun Settings.sane(): Settings = copy(
     auctionFeePct = auctionFeePct.coerceIn(0.0, 0.9),
     maxPriceMovePct = maxPriceMovePct.coerceIn(0.001, 1.0),
     listLimit = listLimit.coerceIn(20, 2000),
+    discordMoveThresholdPct = discordMoveThresholdPct.coerceAtLeast(0.1),
+    discordItemCooldownMinutes = discordItemCooldownMinutes.coerceAtLeast(1),
+    discordDigestHours = discordDigestHours.coerceAtLeast(0),
+    discordAlertCooldownMinutes = discordAlertCooldownMinutes.coerceAtLeast(1),
+    discordItemIconUrl = discordItemIconUrl.trim(),
     maxPrice = maxPrice.coerceIn(1, 100_000_000),
     maxAmount = maxAmount.coerceIn(1, 1_000_000),
     dailySellLots = dailySellLots.coerceAtLeast(0),
@@ -143,7 +154,12 @@ private val sections = listOf(
             "listLimit" to "Most rows of one list sent to a player, 20 to 2000.",
             "guiCooldown" to "Ticks between two GUI actions of one player.",
             "allowCreativeVendors" to "Allow the creative vendor block from Numismatics.",
-            "levelLocks" to "Enforce the country level feature locks economy:auctions and economy:vendors. A feature no level reward mentions stays unlocked."
+            "levelLocks" to "Enforce the country level feature locks economy:auctions and economy:vendors. A feature no level reward mentions stays unlocked.",
+            "discordMoveThresholdPct" to "Price move in percent, since the last Discord post, that posts an item to the market channel and alerts watchers.",
+            "discordItemCooldownMinutes" to "Minutes before the same item may be posted to Discord again.",
+            "discordDigestHours" to "Hours between two market digests in the Discord market channel. 0 turns the digest off.",
+            "discordAlertCooldownMinutes" to "Minutes between two price alert direct messages to one player.",
+            "discordItemIconUrl" to "Optional https URL pattern for item icons in Discord embeds. {namespace} and {path} are replaced with the item id parts, e.g. https://example.com/icons/{namespace}/{path}.png. Empty shows no icons."
         )
     )
 )

@@ -143,11 +143,12 @@ internal class DiscordPage(private val app: PersonalApp) : Page() {
     override val title get() = tr("kami_essentials.nav.discord")
     override val help get() = listOf(
         Callout("prefs:discord", tr("kami_essentials.prefs.discord.account"), tr("kami_essentials.prefs.discord.help.account")),
-        Callout("prefs:discord_ping", tr("kami_essentials.prefs.discord.pings"), tr("kami_essentials.prefs.discord.help.pings"))
+        Callout("prefs:discord_ping", tr("kami_essentials.prefs.discord.pings"), tr("kami_essentials.prefs.discord.help.pings")),
+        Callout("prefs:discord_alerts", tr("kami_essentials.prefs.discord.alerts"), tr("kami_essentials.prefs.discord.help.alerts"))
     )
 
     override fun draw(ui: Ui, r: Rect) {
-        val s = app.snap ?: return ui.settingsSkeleton(r, 2)
+        val s = app.snap ?: return ui.settingsSkeleton(r, 3)
         val f = Flow(r.columns(2, 10)[0], 6)
         val box = f.take(STATUS_CARD_H)
         ui.anchor("prefs:discord", box)
@@ -158,5 +159,6 @@ internal class DiscordPage(private val app: PersonalApp) : Page() {
             confirmDialog(app::open, tr("kami_essentials.prefs.discord.unlink.title"), s.discord, Icons.CROSS,
                 listOf(Consequence(tr("kami_essentials.prefs.discord.unlink.body"))), tr("kami_essentials.prefs.discord.unlink"), danger = true) { app.set("discord_unlink", "on") }
         ui.toggleCard(f.take(TOGGLE_CARD_H), tr("kami_essentials.prefs.discord.pings"), Icons.BELL, app.shown("discord_ping", s.discordPing), tr("kami_essentials.prefs.discord.ping"), tr("kami_essentials.prefs.discord.ping.tip"), "discord_ping") { app.set("discord_ping", it) }
+        ui.toggleCard(f.take(TOGGLE_CARD_H), tr("kami_essentials.prefs.discord.alerts"), Icons.BELL, app.shown("discord_alerts", s.discordAlerts).takeIf { s.discord != null }, tr("kami_essentials.prefs.discord.alert"), tr("kami_essentials.prefs.discord.alert.tip"), "discord_alerts") { app.set("discord_alerts", it) }
     }
 }

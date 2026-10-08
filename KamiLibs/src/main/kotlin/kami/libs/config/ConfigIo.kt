@@ -35,8 +35,10 @@ internal fun backupConfig(path: Path, version: Int) {
 
 fun writeAtomic(path: Path, text: String, prepare: (Path) -> Unit = {}) {
     val tmp = path.resolveSibling("${path.fileName}.tmp")
-    Files.writeString(tmp, text)
+    Files.deleteIfExists(tmp)
+    Files.createFile(tmp)
     prepare(tmp)
+    Files.writeString(tmp, text)
     FileChannel.open(tmp, StandardOpenOption.WRITE).use { it.force(true) }
     try {
         Files.move(tmp, path, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)

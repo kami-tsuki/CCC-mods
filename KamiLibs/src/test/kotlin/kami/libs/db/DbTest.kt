@@ -52,6 +52,7 @@ class DbTest {
         val rows = Rows<String>("t_item", listOf("id"), listOf("qty"))
         rows.sync(mapOf("a" to listOf("a", 1), "b" to listOf("b", 2)))
         rows.sync(mapOf("a" to listOf("a", 5)))
+        Db.flush()
         assertEquals(listOf("a" to 5), Db.read { query("SELECT id, qty FROM t_item") { it.string("id") to it.int("qty") } })
     }
 

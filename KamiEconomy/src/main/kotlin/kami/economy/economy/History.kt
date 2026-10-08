@@ -158,6 +158,8 @@ object History {
         return if (open > 0) ((last - open) * 1000 / open).roundToInt() else 0
     }
 
+    fun items(): Set<String> = tracks.keys
+
     fun dayVolume(item: String, now: Long) = tracks[item]?.five?.volumeSince(now - DAY_MS) ?: 0L
 
     fun dayVolume(now: Long = System.currentTimeMillis()) = tracks.values.sumOf { it.five.volumeSince(now - DAY_MS) }

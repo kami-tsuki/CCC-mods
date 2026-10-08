@@ -65,8 +65,11 @@ object CoinWatch {
 
     fun register() {
         Admin.view("coins.summary") { _, a -> Db.json.encodeToJsonElement(CoinSummary.serializer(), summary(a.int(0) ?: WEEK)) }
-        Admin.view("coins.players") { ctx, a ->
-            Db.json.encodeToJsonElement(Page.serializer(CoinPlayer.serializer()), players(a.text(0), a.page(1)) { Players.profile(ctx.player.server, it).name })
+        Admin.view("coins.players", async = true) { ctx, a ->
+            val page = players(a.text(0), a.page(1))
+            val names = ctx.onServer { page.rows.mapNotNull { r -> runCatching { UUID.fromString(r.uuid) }.getOrNull()?.let { r.uuid to Players.profile(ctx.player.server, it).name } }.toMap() }
+            val named = Page(page.rows.map { CoinPlayer(it.uuid, names[it.uuid] ?: it.name, it.deposited, it.withdrawn, it.last, it.flagged) }, page.total, page.page, page.size)
+            Db.json.encodeToJsonElement(Page.serializer(CoinPlayer.serializer()), named)
         }
         Admin.view("money.unexplained") { ctx, a ->
             Db.json.encodeToJsonElement(Page.serializer(UnexplainedAccount.serializer()), MoneyGuard.accounts(a.page(0)) { Players.profile(ctx.player.server, it).name })

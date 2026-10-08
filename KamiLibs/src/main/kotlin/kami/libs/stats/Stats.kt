@@ -8,12 +8,14 @@ import kami.libs.util.Time.HOUR_MS
 import java.util.concurrent.ConcurrentHashMap
 
 object Stats {
-    enum class Agg(val sql: String) {
-        SUM("SELECT (at / ?) * ? b, SUM(v) v FROM libs_event WHERE k = ? AND at >= ?$FILTER GROUP BY b ORDER BY b"),
-        AVG("SELECT (at / ?) * ? b, AVG(v) v FROM libs_event WHERE k = ? AND at >= ?$FILTER GROUP BY b ORDER BY b"),
-        MAX("SELECT (at / ?) * ? b, MAX(v) v FROM libs_event WHERE k = ? AND at >= ?$FILTER GROUP BY b ORDER BY b"),
-        COUNT("SELECT (at / ?) * ? b, COUNT(*) v FROM libs_event WHERE k = ? AND at >= ?$FILTER GROUP BY b ORDER BY b"),
-        DISTINCT("SELECT (at / ?) * ? b, COUNT(DISTINCT s) v FROM libs_event WHERE k = ? AND at >= ?$FILTER GROUP BY b ORDER BY b")
+    enum class Agg(select: String) {
+        SUM("TOTAL(v)"),
+        AVG("AVG(v)"),
+        MAX("MAX(v)"),
+        COUNT("COUNT(*)"),
+        DISTINCT("COUNT(DISTINCT s)");
+
+        val sql = variants("SELECT (at / ?) * ? b, $select v FROM libs_event WHERE k = ? AND at >= ?", " GROUP BY b ORDER BY b")
     }
 
     class Point(val at: Long, val v: Double)
@@ -41,7 +43,9 @@ object Stats {
     private var sampled = 0L
     @Volatile
     private var origin: Long? = null
+    @Volatile
     private var flushed = 0L
+    private val flushing = java.util.concurrent.atomic.AtomicBoolean()
 
     fun load() {
         origin = null
@@ -54,15 +58,32 @@ object Stats {
     fun on(key: String) = LibConfig.s.stats[key.substringBefore('.')] != false
 
     fun event(key: String, subject: String = "", obj: String = "", v: Long = 1, at: Long = System.currentTimeMillis()) {
-        if (!Db.isOpen || !on(key)) return
-        val row = listOf<Any>(at, id(key), id(subject), id(obj), v)
-        Db.write { exec("INSERT INTO libs_event (at, k, s, o, v) VALUES (?, ?, ?, ?, ?)", *row.toTypedArray()) }
+        val k = routed(key, subject) ?: return
+        Db.write { exec("INSERT INTO libs_event (at, k, s, o, v) VALUES (?, ?, ?, ?, ?)", at, k, id(subject), id(obj), v) }
     }
 
     fun add(key: String, subject: String = "", obj: String = "", n: Long = 1) {
-        if (n == 0L || !Db.isOpen || !on(key)) return
-        val cell = Cell(System.currentTimeMillis() / HOUR_MS, id(key), id(subject), id(obj))
-        synchronized(pending) { pending.merge(cell, n, Long::plus) }
+        if (n == 0L) return
+        val k = routed(key, subject) ?: return
+        val cell = Cell(System.currentTimeMillis() / HOUR_MS, k, id(subject), id(obj))
+        if (synchronized(pending) { pending.merge(cell, n, ::saturated); pending.size } > PENDING_MAX && flushing.compareAndSet(false, true)) {
+            try {
+                flush()
+            } finally {
+                flushing.set(false)
+            }
+        }
+    }
+
+    private fun routed(key: String, subject: String): Int? {
+        if (!Db.isOpen || !on(key)) return null
+        val k = Staff.route(key, subject)
+        return if (k === key || on(k)) id(k) else null
+    }
+
+    private fun saturated(a: Long, b: Long): Long {
+        val r = a + b
+        return if ((a xor r) and (b xor r) < 0) if (a < 0) Long.MIN_VALUE else Long.MAX_VALUE else r
     }
 
     fun gauge(key: String, sample: () -> Map<String, Long>) {
@@ -98,7 +119,7 @@ object Stats {
         else -> 7 * DAY_MS
     }
 
-    fun first(): Long = origin ?: Db.read(fresh = false) {
+    fun first(): Long = origin ?: Db.read {
         one("SELECT value FROM libs_meta WHERE key = ?", ORIGIN) { it.long("value") }
             ?: one("SELECT MIN(a) m FROM (SELECT MIN(at) a FROM libs_event UNION ALL SELECT MIN(h) * ? FROM libs_count)", HOUR_MS) { it.longOrNull("m") }?.also { found ->
                 Db.write { exec("INSERT OR IGNORE INTO libs_meta (key, value) VALUES (?, ?)", ORIGIN, found.toString()) }
@@ -106,92 +127,103 @@ object Stats {
     }.also { origin = it } ?: System.currentTimeMillis()
 
     private const val ORIGIN = "stats.origin"
-    private const val FILTER = " AND (? IS NULL OR s = ?) AND (? IS NULL OR o = ?)"
-    private const val COUNTED = "SELECT (h / ?) * ? b, SUM(n) v FROM libs_count WHERE k = ? AND h >= ?$FILTER GROUP BY b ORDER BY b"
-    private const val TOTAL = "SELECT COALESCE(SUM(n), 0) v FROM libs_count WHERE k = ? AND h >= ?$FILTER"
-    private const val TOP_S = "SELECT s g, SUM(n) v FROM libs_count WHERE k = ? AND h >= ?$FILTER GROUP BY g ORDER BY v DESC LIMIT ?"
-    private const val TOP_O = "SELECT o g, SUM(n) v FROM libs_count WHERE k = ? AND h >= ?$FILTER GROUP BY g ORDER BY v DESC LIMIT ?"
+    private const val PENDING_MAX = 5000
+    private val COUNTED = variants("SELECT (h / ?) * ? b, TOTAL(n) v FROM libs_count WHERE k = ? AND h >= ?", " GROUP BY b ORDER BY b")
+    private val TOTAL = variants("SELECT TOTAL(n) v FROM libs_count WHERE k = ? AND h >= ?", "")
+    private val TOTALS = variants("SELECT k, TOTAL(n) v FROM libs_count WHERE k IN (SELECT value FROM json_each(?)) AND h >= ?", " GROUP BY k")
+    private val TOP_S = variants("SELECT s g, TOTAL(n) v FROM libs_count WHERE k = ? AND h >= ?", " GROUP BY g ORDER BY v DESC LIMIT ?")
+    private val TOP_O = variants("SELECT o g, TOTAL(n) v FROM libs_count WHERE k = ? AND h >= ?", " GROUP BY g ORDER BY v DESC LIMIT ?")
+    private val UNIQUES = Array(2) { v ->
+        val f = if (v == 1) " AND o = ?" else ""
+        "SELECT COUNT(*) v FROM (SELECT s FROM libs_event WHERE k = ? AND at >= ?$f UNION SELECT s FROM libs_count WHERE k = ? AND h >= ?$f)"
+    }
+    private val EVENTS = Array(2) { v -> "SELECT at, o, v FROM libs_event WHERE k = ? AND at >= ?${if (v == 1) " AND s = ?" else ""} ORDER BY at DESC LIMIT ?" }
 
-    private fun args(vararg head: Any, s: Int?, o: Int?, tail: List<Any> = emptyList()): Array<Any?> = arrayOf(*head, s, s, o, o, *tail.toTypedArray())
+    private fun args(vararg head: Any, s: Int?, o: Int?, tail: List<Any> = emptyList()): Array<Any?> = arrayOf(*head, *listOfNotNull(s, o).toTypedArray(), *tail.toTypedArray())
+
+    private fun pick(s: Int?, o: Int?) = (if (s != null) 1 else 0) or (if (o != null) 2 else 0)
 
     fun series(key: String, from: Long?, agg: Agg = Agg.AVG, subject: String? = null, bucket: Long = bucket(from), obj: String? = null): List<Point> {
         val k = ids[key] ?: return emptyList()
         val s = subject?.let { ids[it] ?: return emptyList() }
         val o = obj?.let { ids[it] ?: return emptyList() }
-        return Db.read(fresh = false) {
-            query(
-agg.sql, *args(bucket, bucket, k, from ?: 0L, s = s, o = o)) { Point(it.long("b"), it.double("v")) }
+        return Db.scan {
+            query(agg.sql[pick(s, o)], *args(bucket, bucket, k, from ?: 0L, s = s, o = o)) { Point(it.long("b"), it.double("v")) }
         }
     }
 
     fun counted(key: String, from: Long?, subject: String? = null, bucket: Long = bucket(from), obj: String? = null): List<Point> {
-        flush()
         val k = ids[key] ?: return emptyList()
         val s = subject?.let { ids[it] ?: return emptyList() }
         val o = obj?.let { ids[it] ?: return emptyList() }
         val hours = bucket / HOUR_MS
-        return Db.read(fresh = false) {
-            query(
-COUNTED, *args(hours, hours, k, (from ?: 0L) / HOUR_MS, s = s, o = o)) { Point(it.long("b") * HOUR_MS, it.double("v")) }
+        return Db.scan {
+            query(COUNTED[pick(s, o)], *args(hours, hours, k, (from ?: 0L) / HOUR_MS, s = s, o = o)) { Point(it.long("b") * HOUR_MS, it.double("v")) }
         }
     }
 
     fun total(key: String, from: Long?, subject: String? = null, obj: String? = null): Long {
-        flush()
         val k = ids[key] ?: return 0
         val s = subject?.let { ids[it] ?: return 0 }
         val o = obj?.let { ids[it] ?: return 0 }
-        return Db.read(fresh = false) {
-            one(TOTAL, *args(k, (from ?: 0L) / HOUR_MS, s = s, o = o)) { it.long("v") }
+        return Db.scan {
+            one(TOTAL[pick(s, o)], *args(k, (from ?: 0L) / HOUR_MS, s = s, o = o)) { it.long("v") }
         } ?: 0
     }
 
+    fun totals(keys: List<String>, windows: List<Long?>, subject: String? = null): List<Map<String, Long>> {
+        val s = subject?.let { ids[it] ?: return windows.map { emptyMap() } }
+        val known = keys.mapNotNull { key -> ids[key]?.let { key to it } }
+        val wanted = known.joinToString(",", "[", "]") { it.second.toString() }
+        return Db.scan {
+            windows.map { from ->
+                val sums = query(TOTALS[pick(s, null)], *args(wanted, (from ?: 0L) / HOUR_MS, s = s, o = null)) { it.int("k") to it.long("v") }.toMap()
+                known.associate { (key, k) -> key to (sums[k] ?: 0L) }
+            }
+        }
+    }
+
     fun distinct(key: String, from: Long?, obj: String? = null): Long {
-        flush()
         val k = ids[key] ?: return 0
         val o = obj?.let { ids[it] ?: return 0 }
         val since = from ?: 0L
-        return Db.read(fresh = false) {
-            one(
-                "SELECT COUNT(*) v FROM (SELECT s FROM libs_event WHERE k = ? AND at >= ? AND (? IS NULL OR o = ?) UNION SELECT s FROM libs_count WHERE k = ? AND h >= ? AND (? IS NULL OR o = ?))",
-                k, since, o, o, k, since / HOUR_MS, o, o
-            ) { it.long("v") }
+        return Db.scan {
+            one(UNIQUES[if (o != null) 1 else 0], *listOfNotNull<Any>(k, since, o, k, since / HOUR_MS, o).toTypedArray()) { it.long("v") }
         } ?: 0
     }
 
     fun top(key: String, from: Long?, by: String = "s", subject: String? = null, limit: Int = 20, obj: String? = null): List<Top> {
-        flush()
         val k = ids[key] ?: return emptyList()
         val s = subject?.let { ids[it] ?: return emptyList() }
         val o = obj?.let { ids[it] ?: return emptyList() }
-        return Db.read(fresh = false) {
-            query(if (by == "o") TOP_O else TOP_S, *args(k, (from ?: 0L) / HOUR_MS, s = s, o = o, tail = listOf(limit))) { Top(names[it.int("g")].orEmpty(), it.long("v")) }
+        return Db.scan {
+            query((if (by == "o") TOP_O else TOP_S)[pick(s, o)], *args(k, (from ?: 0L) / HOUR_MS, s = s, o = o, tail = listOf(limit))) { Top(names[it.int("g")].orEmpty(), it.long("v")) }
         }
     }
 
     fun events(key: String, from: Long?, subject: String? = null, limit: Int = 100): List<Triple<Long, String, Long>> {
         val k = ids[key] ?: return emptyList()
         val s = subject?.let { ids[it] ?: return emptyList() }
-        return Db.read(fresh = false) {
-            query(
-"SELECT at, o, v FROM libs_event WHERE k = ? AND at >= ? AND (? IS NULL OR s = ?) ORDER BY at DESC LIMIT ?", k, from ?: 0L, s, s, limit) { Triple(it.long("at"), names[it.int("o")].orEmpty(), it.long("v")) }
+        return Db.scan {
+            query(EVENTS[pick(s, null)], *listOfNotNull<Any>(k, from ?: 0L, s, limit).toTypedArray()) { Triple(it.long("at"), names[it.int("o")].orEmpty(), it.long("v")) }
         }
     }
 
     fun latest(key: String): Map<String, Long> {
         val k = ids[key] ?: return emptyMap()
-        return Db.read(fresh = false) {
+        return Db.scan {
             query("SELECT s, v FROM libs_event WHERE k = ? AND at = (SELECT MAX(at) FROM libs_event WHERE k = ?)", k, k) { names[it.int("s")].orEmpty() to it.long("v") }
         }.toMap()
     }
 
-    fun id(key: String): Int = ids[key] ?: synchronized(ids) {
-        ids[key] ?: nextId.incrementAndGet().also { i ->
-            names[i] = key
-            ids[key] = i
+    fun id(key: String): Int = ids.computeIfAbsent(key) {
+        nextId.incrementAndGet().also { i ->
             Db.write { exec("INSERT INTO libs_key (id, key) VALUES (?, ?)", i, key) }
+            names[i] = key
         }
     }
 
     fun name(id: Int): String = names[id].orEmpty()
 }
+
+private fun variants(head: String, tail: String) = Array(4) { head + (if (it and 1 != 0) " AND s = ?" else "") + (if (it and 2 != 0) " AND o = ?" else "") + tail }

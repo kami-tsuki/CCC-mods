@@ -7,12 +7,16 @@ import kami.libs.discord.Avatars
 import kami.libs.discord.DiscordApi
 import kami.libs.discord.Embed
 import kami.libs.discord.Templates
+import kami.libs.log.Log
 import kami.libs.chat.Theme
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import net.neoforged.neoforge.server.ServerLifecycleHooks
 
 object Bot {
+    private val log = Log.of("discord")
+    var misconfigured = false
+        private set
     private var running = false
     private var registered = false
     private var startedAt = 0L
@@ -23,6 +27,8 @@ object Bot {
         val d = Config.s.discord
         if (!d.enabled || running || !server.isDedicatedServer) return
         running = true
+        misconfigured = DiscordApi.keys.token.isNotBlank() && !DiscordApi.configured
+        if (misconfigured) log.error("Discord is enabled but guildId or chatChannelId in config/kami-discord-bot.json is invalid. Verification is off.")
         startedAt = System.currentTimeMillis()
         apply()
         if (!registered) {

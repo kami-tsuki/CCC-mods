@@ -6,6 +6,7 @@ import kami.economy.command.EconomyCommands
 import kami.economy.economy.Auctions
 import kami.economy.economy.Blacklist
 import kami.economy.db.EcoDb
+import kami.economy.economy.DiscordMarket
 import kami.economy.economy.History
 import kami.economy.economy.Ledger
 import kami.economy.economy.Notify
@@ -61,8 +62,9 @@ object KamiEconomy {
         ServerBank.keep(Ledger::holds)
         WealthSources.register()
         MarketAdmin.register()
+        DiscordMarket.register()
         CoinRules.register()
-        FORGE_BUS.addListener<ServerStartedEvent> { Notify.server = it.server; History.load(); Market.load() }
+        FORGE_BUS.addListener<ServerStartedEvent> { Notify.server = it.server; History.load(); Market.load(); DiscordMarket.reset() }
         FORGE_BUS.addListener<ServerStoppingEvent> { Notify.server = null }
         FORGE_BUS.addListener<ServerStoppedEvent>(EventPriority.LOWEST) { Market.unload(); History.unload() }
         FORGE_BUS.addListener<ServerTickEvent.Post> {
@@ -73,6 +75,7 @@ object KamiEconomy {
                 Stocks.rollover()
                 Pricing.tick()
                 Net.pushPrices(server)
+                DiscordMarket.tick()
                 Net.broadcastOpen(server)
             }
             if (t % Config.s.auctionCheckIntervalTicks == 0) Auctions.sweep()

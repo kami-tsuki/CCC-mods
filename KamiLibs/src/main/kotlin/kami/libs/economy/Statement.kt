@@ -84,11 +84,17 @@ object Statement {
 
     fun days(player: UUID): List<DayTotal> = Db.read { days(player.toString()) }
 
+    fun net(player: UUID, vararg days: Int): List<Long> = Db.read {
+        val id = player.toString()
+        val today = System.currentTimeMillis() / DAY_MS
+        days.map { d -> one("SELECT COALESCE(SUM(income - expense), 0) v FROM libs_statement_day WHERE player = ? AND day > ?", id, today - d) { it.long("v") } ?: 0L }
+    }
+
     fun totals(player: UUID, days: Int): List<FlowTotal> = totals(movements(player), System.currentTimeMillis(), days)
 
     class Book(val movements: List<Movement>, val days: List<DayTotal>, val week: List<FlowTotal>, val month: List<FlowTotal>)
 
-    fun book(player: UUID): Book = Db.read(fresh = false) {
+    fun book(player: UUID): Book = Db.read {
         val id = player.toString()
         val list = movements(id)
         val now = System.currentTimeMillis()

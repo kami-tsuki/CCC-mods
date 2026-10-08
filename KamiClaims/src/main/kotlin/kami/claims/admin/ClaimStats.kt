@@ -29,7 +29,7 @@ object ClaimStats {
         Stats.gauge("country.count") { mapOf("" to countries().size.toLong()) }
         Stats.gauge("country.active") { mapOf("" to onlineBy().size.toLong()) }
         Stats.gauge("country.treasury") { each { it.treasury } }
-        Stats.gauge("country.chunks") { each { Realm.claims(it.id).size.toLong() } }
+        Stats.gauge("country.chunks") { Realm.data.claims.groupingBy { it.country }.eachCount().let { by -> each { by[it.id]?.toLong() ?: 0 } } }
         Stats.gauge("country.members") { each { it.members.size.toLong() } }
         Stats.gauge("country.online") { onlineBy().let { by -> each { by[it.id]?.toLong() ?: 0 } } }
         Stats.gauge("country.provinces") { each { it.provinces.size.toLong() } }

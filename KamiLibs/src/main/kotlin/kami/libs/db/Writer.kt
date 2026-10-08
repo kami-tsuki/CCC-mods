@@ -2,19 +2,24 @@ package kami.libs.db
 
 import kami.libs.log.Log
 import java.sql.Connection
+import java.sql.SQLException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.locks.ReentrantLock
 
 internal class Writer(private val connection: Connection) {
-    private class Job(val block: Session.() -> Unit, val durable: Boolean, val done: CompletableFuture<Unit>?)
+    private class Group(val blocks: List<Session.() -> Unit>, val durable: Boolean, val done: CompletableFuture<Unit>?)
 
-    private val log = Log.of("library")
     private val session = Session(connection)
-    private val queue = ArrayDeque<Job>()
+    private val queue = ArrayDeque<Group>()
+    private var queued = 0
+    private val gate = ReentrantLock()
     private var closed = false
+    private var crowded = false
+    private var stalled = false
     private val thread = Executors.newSingleThreadScheduledExecutor { Thread(it, THREAD).apply { isDaemon = true } }
 
     init {
@@ -31,8 +36,13 @@ internal class Writer(private val connection: Connection) {
         val done = if (wait) CompletableFuture<Unit>() else null
         synchronized(queue) {
             check(!closed) { "database is closed" }
-            blocks.forEachIndexed { i, block -> queue.addLast(Job(block, durable, done.takeIf { i == blocks.lastIndex })) }
-            if (done != null || queue.size >= BATCH) thread.execute(::commit)
+            queue.addLast(Group(blocks, durable, done))
+            queued += blocks.size
+            if (queued > HIGH_WATER && !crowded) {
+                crowded = true
+                log.warn("The database write queue holds {} writes; the disk is not keeping up", queued)
+            }
+            if (done != null || durable || queued >= BATCH) thread.execute(::commit)
         }
         try {
             done?.join()
@@ -52,29 +62,87 @@ internal class Writer(private val connection: Connection) {
     }
 
     private fun commit() {
-        val batch = synchronized(queue) { queue.toList() }
-        if (batch.isEmpty()) return
-        val errors = run(batch)?.let { e ->
-            log.warn("Database commit of {} queued writes failed, retrying them one by one: {}", batch.size, e.toString())
-            batch.map { run(listOf(it)) }
-        } ?: List(batch.size) { null }
-        synchronized(queue) { repeat(batch.size) { queue.removeFirst() } }
-        batch.zip(errors).forEach { (job, e) ->
-            if (e == null) job.done?.complete(Unit)
-            else {
-                invalidate()
-                log.error("Dropped a database write that also failed on its own; synced tables are rewritten in full on their next sync", e)
-                job.done?.completeExceptionally(e)
-            }
+        gate.lock()
+        try {
+            drain()
+        } catch (e: Throwable) {
+            log.error("Database commit failed; the queued writes stay queued and are tried again", e)
+        } finally {
+            gate.unlock()
         }
     }
 
-    private fun run(jobs: List<Job>): Throwable? {
-        val full = jobs.any { it.durable }
+    private fun drain() {
+        while (true) {
+            val slice = synchronized(queue) { slice() }
+            if (slice.isEmpty() || !settle(slice)) return
+        }
+    }
+
+    private fun slice(): List<Group> {
+        val out = ArrayList<Group>()
+        var n = 0
+        for (g in queue) {
+            if (out.isNotEmpty() && n + g.blocks.size > BATCH) break
+            out += g
+            n += g.blocks.size
+            if (n >= BATCH) break
+        }
+        return out
+    }
+
+    private fun settle(slice: List<Group>): Boolean {
+        val failed = run(slice)
+        if (failed == null) {
+            slice.forEach { finish(it, null) }
+            return true
+        }
+        if (isBusy(failed)) return stall(failed)
+        log.warn("Database commit of {} queued write groups failed, retrying them one by one: {}", slice.size, failed.toString())
+        for (g in slice) {
+            val e = run(listOf(g))
+            if (e != null && isBusy(e)) return stall(e)
+            finish(g, e)
+        }
+        return true
+    }
+
+    private fun stall(e: Throwable): Boolean {
+        failure = e.toString()
+        if (!stalled) {
+            stalled = true
+            log.warn("The database is busy; queued writes stay queued and are tried again: {}", e.toString())
+        }
+        return false
+    }
+
+    private fun finish(group: Group, error: Throwable?) {
+        synchronized(queue) {
+            queue.removeFirst()
+            queued -= group.blocks.size
+            if (queued < BATCH) crowded = false
+        }
+        if (error == null) {
+            if (stalled) {
+                stalled = false
+                log.info("Database writes succeed again")
+            }
+            group.done?.complete(Unit)
+            return
+        }
+        invalidate()
+        drop(error, group.blocks.size)
+        group.done?.completeExceptionally(error)
+    }
+
+    private fun isBusy(e: Throwable) = e is SQLException && (e.errorCode and 0xFF).let { it == SQLITE_BUSY || it == SQLITE_LOCKED }
+
+    private fun run(groups: List<Group>): Throwable? {
+        val full = groups.any { it.durable }
         return try {
             if (full) session.exec("PRAGMA synchronous=FULL")
             session.exec("BEGIN IMMEDIATE")
-            jobs.forEach { it.block(session) }
+            groups.forEach { g -> g.blocks.forEach { it(session) } }
             session.exec("COMMIT")
             null
         } catch (e: Throwable) {
@@ -89,18 +157,63 @@ internal class Writer(private val connection: Connection) {
         synchronized(queue) { closed = true }
         thread.shutdown()
         if (!thread.awaitTermination(1, TimeUnit.MINUTES)) {
-            log.error("Database writer did not stop within a minute; {} queued writes are left uncommitted", synchronized(queue) { queue.size })
+            log.error("Database writer did not stop within a minute; committing the {} remaining queued writes now", synchronized(queue) { queued })
+            thread.shutdownNow()
+        }
+        if (!gate.tryLock(GATE_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+            log.error("Database writer is still committing after {} seconds; skipping the final commit", GATE_TIMEOUT_SECONDS)
             return
         }
-        commit()
-        runCatching { session.exec("PRAGMA wal_checkpoint(TRUNCATE)") }.onFailure { log.warn("Database checkpoint failed: {}", it.toString()) }
-        connection.close()
+        try {
+            repeat(BUSY_RETRIES) { attempt ->
+                if (attempt > 0 && busy) Thread.sleep(BACKOFF_MS)
+                drain()
+            }
+            abandon()
+            runCatching { session.exec("PRAGMA wal_checkpoint(TRUNCATE)") }.onFailure { log.warn("Database checkpoint failed: {}", it.toString()) }
+            connection.close()
+        } finally {
+            gate.unlock()
+        }
+    }
+
+    private fun abandon() {
+        val left = synchronized(queue) { queue.toList().also { queue.clear(); queued = 0 } }
+        if (left.isEmpty()) return
+        log.error("Dropped {} database writes at shutdown because the database stayed busy", left.sumOf { it.blocks.size })
+        val e = IllegalStateException("database closed while busy")
+        left.forEach { it.done?.completeExceptionally(e) }
     }
 
     companion object {
         private const val BATCH = 500
+        private const val HIGH_WATER = 10_000
+        private const val BUSY_RETRIES = 3
+        private const val BACKOFF_MS = 200L
+        private const val GATE_TIMEOUT_SECONDS = 30L
+        private const val SQLITE_BUSY = 5
+        private const val SQLITE_LOCKED = 6
         private const val THREAD = "kami-db"
         private val epoch = AtomicLong()
+        private val dropped = AtomicLong()
+        private val log = Log.of("library")
+
+        @Volatile
+        var failure: String? = null
+            private set
+
+        @Volatile
+        var lastDropAt = 0L
+            private set
+
+        val dropCount: Long get() = dropped.get()
+
+        private fun drop(e: Throwable, count: Int) {
+            failure = e.toString()
+            lastDropAt = System.currentTimeMillis()
+            if (dropped.incrementAndGet() == 1L) log.error("Dropped {} database writes that failed; synced tables are rewritten in full on their next sync", count, e)
+            else log.warn("Dropped {} more database writes: {}", count, e.toString())
+        }
 
         val drops: Long get() = epoch.get()
 

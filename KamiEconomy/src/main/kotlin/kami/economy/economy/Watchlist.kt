@@ -18,6 +18,10 @@ object Watchlist {
 
     fun has(player: String, item: String) = lists[player]?.containsKey(item) == true
 
+    fun forEach(action: (String, Set<String>) -> Unit) = lists.forEach { (player, list) -> action(player, list.keys) }
+
+    fun count(item: String) = lists.values.count { item in it }
+
     fun add(player: String, item: String): Boolean {
         val list = lists.getOrPut(player) { LinkedHashMap() }
         if (item in list || list.size >= CAP) return false

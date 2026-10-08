@@ -115,6 +115,7 @@ internal class PlayerDiscord(private val app: AdminApp, private val uuid: String
         ui.prop(f, tr("kami_essentials.admin.discord.to_mc"), Format.number(x.sentToMc))
         ui.prop(f, tr("kami_essentials.admin.discord.to_discord"), Format.number(x.sentToDiscord))
         ui.prop(f, tr("kami_essentials.admin.discord.pings"), Format.number(x.pings))
+        ui.prop(f, tr("kami_essentials.admin.discord.market_alerts"), yes(x.marketAlerts), if (x.marketAlerts) Palette.success else Palette.textMuted)
         ui.prop(f, tr("kami_essentials.admin.discord.last_message"), if (x.lastMessage > 0) Format.ago(x.lastMessage) else tr("kami_libs.common.none"))
     }
 }

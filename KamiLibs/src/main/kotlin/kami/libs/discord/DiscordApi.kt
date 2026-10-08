@@ -3,6 +3,7 @@ package kami.libs.discord
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.JDA
 import net.minecraft.server.MinecraftServer
+import java.util.UUID
 
 internal const val MESSAGE_MAX = 2000
 
@@ -16,18 +17,28 @@ class Inbound(
     val replyTo: Long?, val replyName: String?, val replySnippet: String?, val mentions: Set<Long>, val attachments: List<Attachment>
 )
 
-class SlashOption(val name: String, val description: String, val required: Boolean = true)
+class SlashOption(
+    val name: String, val description: String, val required: Boolean = true,
+    val complete: ((String) -> List<String>)? = null, val choices: List<String> = emptyList()
+)
+
 class SlashCommand(
     val name: String, val description: String, val options: List<SlashOption> = emptyList(), val admin: Boolean = false,
-    val subcommands: List<SlashCommand> = emptyList(), val run: (SlashCtx) -> Unit = {}
+    val subcommands: List<SlashCommand> = emptyList(), val public: Boolean = false, val linked: Boolean = false, val run: (SlashCtx) -> Unit = {}
 )
 
 interface SlashCtx {
     val userId: Long
     val userName: String
     val admin: Boolean
+    val player: UUID?
+    val locale: String
     fun opt(name: String): String?
     fun reply(text: String)
+    fun reply(card: Card)
+    fun fail(text: String) = reply(text)
+    fun background(action: () -> Unit) = action()
+    fun text(modId: String, key: String, vararg args: Any): String = DiscordText.get(modId, locale, key, *args)
 }
 
 class Member(val id: Long, val hasRole: Boolean)
@@ -49,6 +60,8 @@ object DiscordApi {
     val keys: DiscordKeys get() = Discord.keys
     val configured: Boolean get() = keys.let { it.token.isNotBlank() && it.guildId.toLongOrNull() != null && it.chatChannelId.toLongOrNull() != null }
 
+    val marketOn: Boolean get() = ready && Discord.marketId != 0L
+
     val broken: Boolean get() = !configured && KeyFile.broken
 
     fun register(feature: DiscordFeature) {
@@ -68,7 +81,7 @@ object DiscordApi {
         Outbox.submit(Outbox.Channel.CHAT, Outbox.Task({ c ->
             c.sendMessage(text).setUsername(name).setAllowedMentions(emptySet()).mentionUsers(*ids).also { if (post.avatar.isNotBlank()) it.setAvatarUrl(post.avatar) }
         }, { c ->
-            c.sendMessage("${Templates.code(name)}: $text").setAllowedMentions(emptySet()).mentionUsers(*ids)
+            c.sendMessage("${Templates.code(name)}: $text".take(MESSAGE_MAX)).setAllowedMentions(emptySet()).mentionUsers(*ids)
         }) { id -> Discord.post { sent(id) } })
     }
 
@@ -82,6 +95,14 @@ object DiscordApi {
         Outbox.submit(Outbox.Channel.CHAT, Outbox.embed(built))
     }
 
+    fun market(card: Card): Boolean {
+        var queued = false
+        Discord.guard("market") { queued = Push.market(card) }
+        return queued
+    }
+
+    fun dm(userId: Long, card: Card) = Discord.guard("dm") { Push.dm(userId, card) }
+
     fun console(line: String) = Discord.guard("console") {
         if (Discord.active && Discord.consoleOn) Outbox.console(Sanitize.console(line))
     }
@@ -93,6 +114,7 @@ object DiscordApi {
     fun revoke(userId: Long) = Discord.guard("role") { Discord.role(userId, false) }
     fun members(ids: Collection<Long>, result: (Map<Long, Member>?) -> Unit) = Discord.guard("members", { Discord.post { result(null) } }) { Discord.members(ids, result) }
     fun info(userId: Long, timeoutMs: Long = 1500): GuildInfo? = runCatching { Discord.info(userId, timeoutMs) }.getOrNull()
+    fun info(userId: Long, result: (GuildInfo?) -> Unit) = Discord.guard("info", { Discord.post { result(null) } }) { Discord.info(userId, result) }
     fun holders(result: (Set<Long>?) -> Unit) = Discord.guard("holders", { Discord.post { result(null) } }) { Discord.holders(result) }
     fun bans(result: (Set<Long>?) -> Unit) = Discord.guard("bans", { Discord.post { result(null) } }) { Discord.bans(result) }
     fun banned(userId: Long, result: (Boolean?) -> Unit) = Discord.guard("ban", { Discord.post { result(null) } }) { Discord.banned(userId, result) }

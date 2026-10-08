@@ -33,8 +33,9 @@ class Session internal constructor(private val connection: Connection) {
         connection.prepareStatement(sql).use { bind(it, params); run(it) }
 
     private fun bind(s: PreparedStatement, values: List<Any?>) = values.forEachIndexed { i, v ->
-        if (v is Double && !v.isFinite()) log.warn("Non-finite number bound as 0 in {}", s)
-        s.setObject(i + 1, if (v is Double && !v.isFinite()) 0.0 else v)
+        val bad = v is Double && !v.isFinite() || v is Float && !v.isFinite()
+        if (bad) log.warn("Non-finite number bound as 0 in {}", s)
+        s.setObject(i + 1, if (bad) 0.0 else v)
     }
 }
 

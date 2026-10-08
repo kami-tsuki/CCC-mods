@@ -1,13 +1,16 @@
 package kami.libs.discord
 
 import kami.libs.config.ConfigFolder
+import kami.libs.config.ConfigMigration
 import kotlinx.serialization.Serializable
+import java.nio.file.Files
 import net.neoforged.fml.loading.FMLPaths
 
 @Serializable
 data class DiscordKeys(
     val token: String = "", val guildId: String = "", val chatChannelId: String = "", val consoleChannelId: String = "",
-    val chatWebhookUrl: String = "", val consoleWebhookUrl: String = "", val verifiedRoleId: String = "", val adminRoleId: String = "", val inviteLink: String = ""
+    val chatWebhookUrl: String = "", val consoleWebhookUrl: String = "", val verifiedRoleId: String = "", val adminRoleId: String = "", val inviteLink: String = "",
+    val marketChannelId: String = ""
 ) {
     override fun toString() = "DiscordKeys(***)"
 }
@@ -24,7 +27,8 @@ internal object KeyFile {
         "consoleWebhookUrl" to "Optional webhook URL for the console channel. Empty lets the bot create its own webhook.",
         "verifiedRoleId" to "Id of the role given to linked players. Empty disables role handling.",
         "adminRoleId" to "Id of the role allowed to use admin slash commands.",
-        "inviteLink" to "Invite link shown to players who still have to verify."
+        "inviteLink" to "Invite link shown to players who still have to verify.",
+        "marketChannelId" to "Id of the channel that receives market price updates. Empty disables them."
     )
 
     private val path by lazy { FMLPaths.CONFIGDIR.get().resolve("kami-discord-bot.json") }
@@ -33,12 +37,13 @@ internal object KeyFile {
 
     fun load(): DiscordKeys {
         folder.startLoad()
-        val keys = folder.file("kami-discord-bot.json", DiscordKeys.serializer(), DiscordKeys(), docs, "Kami Discord bot keys").trimmed()
+        val keys = folder.file("kami-discord-bot.json", DiscordKeys.serializer(), DiscordKeys(), docs, "Kami Discord bot keys", listOf(ConfigMigration(1) { it })).trimmed()
         restrict(path)
+        path.resolveSibling(".backup").resolve("${path.fileName}.v0.json").takeIf(Files::exists)?.let(::restrict)
         return keys
     }
 
     private fun DiscordKeys.trimmed() = DiscordKeys(
-        token.trim(), guildId.trim(), chatChannelId.trim(), consoleChannelId.trim(), chatWebhookUrl.trim(), consoleWebhookUrl.trim(), verifiedRoleId.trim(), adminRoleId.trim(), inviteLink.trim()
+        token.trim(), guildId.trim(), chatChannelId.trim(), consoleChannelId.trim(), chatWebhookUrl.trim(), consoleWebhookUrl.trim(), verifiedRoleId.trim(), adminRoleId.trim(), inviteLink.trim(), marketChannelId.trim()
     )
 }

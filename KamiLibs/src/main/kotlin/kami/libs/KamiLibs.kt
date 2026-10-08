@@ -9,8 +9,11 @@ import kami.libs.admin.AutoRefreshNet
 import kami.libs.net.VersionCheck
 import kami.libs.command.KamiCommands
 import kami.libs.db.Db
+import kami.libs.db.DbWatch
 import kami.libs.db.SavePoint
 import kami.libs.discord.Codes
+import kami.libs.discord.DiscordBans
+import kami.libs.discord.DiscordPrefs
 import kami.libs.discord.KeyFile
 import kami.libs.discord.Links
 import kami.libs.economy.CoinWatch
@@ -18,6 +21,7 @@ import kami.libs.economy.Coins
 import kami.libs.economy.MoneyGuard
 import kami.libs.economy.ServerBank
 import kami.libs.economy.Wealth
+import kami.libs.stats.Staff
 import kami.libs.stats.Stats
 import kami.libs.log.Log
 import kami.libs.ui.UiClient
@@ -29,6 +33,7 @@ import net.neoforged.bus.api.EventPriority
 import net.neoforged.fml.loading.FMLEnvironment
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
+import net.neoforged.neoforge.event.CommandEvent
 import net.neoforged.neoforge.event.RegisterCommandsEvent
 import net.neoforged.neoforge.event.entity.player.PlayerEvent
 import net.neoforged.neoforge.event.level.LevelEvent
@@ -64,18 +69,22 @@ object KamiLibs {
             Coins.load()
             MoneyGuard.load()
             Stats.load()
+            Staff.clear()
             Links.load()
+            DiscordBans.load()
+            DiscordPrefs.load()
             Codes.load()
             AutoRefreshNet.load()
         }
-        FORGE_BUS.addListener<ServerTickEvent.Post> { Wealth.tick(); MoneyGuard.tick(it.server); CoinWatch.tick(it.server); Stats.tick(); AutoRefreshNet.tick(it.server) }
-        FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { (it.entity as? ServerPlayer)?.let(AutoRefreshNet::login) }
-        FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { Admin.forget(it.entity.uuid); Coins.logout(it.entity.uuid) }
+        FORGE_BUS.addListener<ServerTickEvent.Post> { Wealth.tick(); MoneyGuard.tick(it.server); CoinWatch.tick(it.server); Stats.tick(); if (it.server.tickCount % 20 == 0) Staff.tick(it.server.playerList.players); DbWatch.tick(it.server); AutoRefreshNet.tick(it.server) }
+        FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent>(EventPriority.HIGHEST) { (it.entity as? ServerPlayer)?.let { p -> Staff.refresh(p); AutoRefreshNet.login(p) } }
+        FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent>(EventPriority.LOWEST) { Admin.forget(it.entity.uuid); Coins.logout(it.entity.uuid); Staff.forget(it.entity.uuid) }
+        FORGE_BUS.addListener<PlayerEvent.PlayerChangeGameModeEvent>(EventPriority.LOWEST) { e -> if (!e.isCanceled) (e.entity as? ServerPlayer)?.let { Staff.refresh(it, e.newGameMode) } }
+        FORGE_BUS.addListener<CommandEvent>(EventPriority.LOWEST) { e -> if (!e.isCanceled) runCatching { Staff.command(e) } }
         FORGE_BUS.addListener<LevelEvent.Save> {
             if ((it.level as? ServerLevel)?.dimension() != Level.OVERWORLD) return@addListener
             Stats.flush()
             SavePoint.run()
-            if (Db.isOpen) Db.flush()
         }
         FORGE_BUS.addListener<ServerStoppedEvent>(EventPriority.LOW) { Stats.flush(); SavePoint.run() }
         FORGE_BUS.addListener<ServerStoppedEvent>(EventPriority.LOWEST) { Db.close() }

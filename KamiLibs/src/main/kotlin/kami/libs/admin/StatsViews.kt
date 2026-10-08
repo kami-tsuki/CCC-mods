@@ -27,14 +27,16 @@ object StatsViews {
     val resolvers = CopyOnWriteArrayList<(String) -> String?>()
 
     internal fun register() {
-        Admin.view(QUERY) { ctx, a ->
+        Admin.view(QUERY, async = true) { ctx, a ->
             val bucket = Stats.bucket(a.firstOrNull()?.split('|')?.long(5))
-            val server = ctx.player.server
-            Db.json.encodeToJsonElement(StatsReply.serializer(), StatsReply(bucket, a.take(MAX_REQUESTS).map { run(server, it.split('|'), bucket) }))
+            val results = a.take(MAX_REQUESTS).map { run(it.split('|'), bucket) }
+            val keys = results.flatMap { r -> r.rows.map { it.key } }.toSet()
+            val names = if (keys.isEmpty()) emptyMap() else ctx.onServer { keys.associateWith { name(ctx.player.server, it) } }
+            Db.json.encodeToJsonElement(StatsReply.serializer(), StatsReply(bucket, results.map { r -> StatResult(r.points, r.rows.map { StatRow(it.key, it.v, names[it.key].orEmpty()) }, r.total) }))
         }
     }
 
-    private fun run(server: MinecraftServer, p: List<String>, bucket: Long): StatResult {
+    private fun run(p: List<String>, bucket: Long): StatResult {
         val key = p.text(0) ?: return StatResult()
         val from = p.long(5)
         val subject = p.text(3)
@@ -44,15 +46,13 @@ object StatsViews {
             "counted" -> StatResult(points = Stats.counted(key, from, subject, bucket, obj).map { StatPoint(it.at, it.v) })
             "total" -> StatResult(total = Stats.total(key, from, subject, obj).toDouble())
             "distinct" -> StatResult(total = Stats.distinct(key, from, obj).toDouble())
-            "top" -> StatResult(rows = Stats.top(key, from, p.text(4) ?: "s", subject, TOP_ROWS, obj).map { row(server, it.key, it.v) })
-            "latest" -> StatResult(rows = Stats.latest(key).entries.sortedByDescending { it.value }.take(LATEST_ROWS).map { row(server, it.key, it.value) })
+            "top" -> StatResult(rows = Stats.top(key, from, p.text(4) ?: "s", subject, TOP_ROWS, obj).map { StatRow(it.key, it.v) })
+            "latest" -> StatResult(rows = Stats.latest(key).entries.sortedByDescending { it.value }.take(LATEST_ROWS).map { StatRow(it.key, it.value) })
             else -> StatResult()
         }
     }
 
     private fun agg(raw: String?) = Stats.Agg.entries.firstOrNull { it.name.equals(raw, true) } ?: Stats.Agg.AVG
-
-    private fun row(server: MinecraftServer, key: String, v: Long) = StatRow(key, v, name(server, key))
 
     private fun name(server: MinecraftServer, key: String): String {
         if (!key.startsWith("p:")) return resolvers.firstNotNullOfOrNull { it(key) }.orEmpty()

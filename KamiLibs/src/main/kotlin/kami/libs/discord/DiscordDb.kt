@@ -37,4 +37,14 @@ internal object DiscordDb {
             )
         }
     }
+
+    val ban = Migration(
+        "libs", 10, "discord_ban",
+        ddl = listOf("CREATE TABLE libs_discord_ban (discord_id INTEGER PRIMARY KEY, uuid TEXT NOT NULL, at INTEGER NOT NULL)")
+    )
+
+    val pref = Migration(
+        "libs", 9, "discord_pref",
+        ddl = listOf("CREATE TABLE libs_discord_pref (uuid TEXT NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY (uuid, key)) WITHOUT ROWID")
+    )
 }

@@ -22,7 +22,8 @@ object Codes {
     private const val UPSERT = "INSERT OR REPLACE INTO libs_discord_code (code, uuid, name, expires_at) VALUES (?, ?, ?, ?)"
     private val random = SecureRandom()
     private val byCode = HashMap<String, Pending>()
-    private val failures = HashMap<Long, ArrayDeque<Long>>()
+    private val spent = HashSet<String>()
+    private val failures =HashMap<Long, ArrayDeque<Long>>()
 
     @Synchronized
     fun load() {
@@ -46,7 +47,7 @@ object Codes {
         }
         evict()
         var code: String
-        do code = String(CharArray(LENGTH) { ALPHABET[random.nextInt(ALPHABET.length)] }) while (code in byCode)
+        do code = String(CharArray(LENGTH) { ALPHABET[random.nextInt(ALPHABET.length)] }) while (code in byCode || code in spent)
         val pending = Pending(uuid, name, expires)
         byCode[code] = pending
         store(code, pending)
@@ -57,8 +58,12 @@ object Codes {
     @Synchronized
     fun consume(code: String): Pending? {
         val key = normal(code)
+        if (key in spent) return null
         val pending = byCode.remove(key) ?: return null
-        runCatching { Db.durable { exec("DELETE FROM libs_discord_code WHERE code = ?", key) } }.onFailure { log.error("Cannot delete the used link code: {}", it.message) }
+        runCatching { Db.durableAsync { exec("DELETE FROM libs_discord_code WHERE code = ?", key) } }.onFailure {
+            spent += key
+            log.error("Cannot delete the used link code: {}", it.message)
+        }
         return pending.takeIf { it.expiresAt > System.currentTimeMillis() }
     }
 

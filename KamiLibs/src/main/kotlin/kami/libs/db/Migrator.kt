@@ -3,12 +3,14 @@ package kami.libs.db
 import kami.libs.log.Log
 import kotlinx.serialization.encodeToString
 import net.neoforged.fml.ModList
+import org.sqlite.JDBC
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Properties
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import kotlin.io.path.name
@@ -20,6 +22,7 @@ internal object Migrator {
     private val stamp = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")
     private const val KEEP = 10
     private const val DAILY_KEEP = 7
+    private const val REUSE_MS = 3_600_000L
 
     fun run(db: Session, file: Path, world: Path) {
         quickCheck(db)
@@ -39,10 +42,13 @@ internal object Migrator {
         }
         val backups = file.resolveSibling("backups").also { Files.createDirectories(it) }
         val time = LocalDateTime.now().format(stamp)
-        val pre = if (applied.isEmpty()) null else backups.resolve("kami-$time-pre.db").also { db.exec("VACUUM INTO ?", it.toString()) }
+        val key = Integer.toHexString(pending.map { "${it.module}:${it.version}:${it.checksum}" }.hashCode())
+        val pre = if (applied.isEmpty()) null else kept(backups, "kami-", "-$key-pre.db", verify = true) ?: backups.resolve("kami-$time-$key-pre.db").also { copy(db, it) }
         val legacy = pending.flatMap { m -> m.legacy.flatMap { listOf(it, "$it.bak", "$it.bak2", "$it.wal") } }
             .distinct().map { world.resolve(it) }.filter { Files.exists(it) }
-        val zip = if (legacy.isEmpty()) null else backups.resolve("legacy-$time.zip").also { zip(it, world, legacy) }
+        val zip = if (legacy.isEmpty()) null else kept(backups, "legacy-", "-$key.zip") ?: backups.resolve("legacy-$time-$key.zip").also { zip(it, world, legacy) }
+        prune(backups, "kami-", "-pre.db", KEEP)
+        prune(backups, "legacy-", ".zip", KEEP)
         var current: Migration? = null
         try {
             db.exec("BEGIN IMMEDIATE")
@@ -68,7 +74,6 @@ internal object Migrator {
             runCatching { Files.move(p, p.resolveSibling("${p.name}.migrated")) }
                 .onFailure { log.error("Could not rename migrated legacy file {}: {}", p, it.toString()) }
         }
-        prune(backups)
         log.info("Applied {} database migrations: {}", pending.size, pending.joinToString { "${it.module} v${it.version} ${it.name}" })
     }
 
@@ -114,37 +119,53 @@ internal object Migrator {
     }
 
     private fun zip(target: Path, world: Path, files: List<Path>) {
-        ZipOutputStream(Files.newOutputStream(target)).use { out ->
+        val partial = partial(target)
+        ZipOutputStream(Files.newOutputStream(partial)).use { out ->
             files.forEach { f ->
                 out.putNextEntry(ZipEntry((if (f.startsWith(world)) world.relativize(f).toString() else "external/${f.name}").replace('\\', '/')))
                 Files.copy(f, out)
                 out.closeEntry()
             }
         }
+        Files.move(partial, target, StandardCopyOption.ATOMIC_MOVE)
     }
+
+    private fun partial(target: Path) = target.resolveSibling("${target.name}.tmp").also { Files.deleteIfExists(it) }
+
+    private fun copy(db: Session, target: Path) {
+        val partial = partial(target)
+        try {
+            db.exec("VACUUM INTO ?", partial.toString())
+            check(verified(partial)) { "backup copy failed its integrity check" }
+            Files.move(partial, target, StandardCopyOption.ATOMIC_MOVE)
+        } catch (e: Throwable) {
+            runCatching { Files.deleteIfExists(partial) }
+            throw e
+        }
+    }
+
+    private fun verified(file: Path) = runCatching {
+        JDBC.createConnection("jdbc:sqlite:$file", Properties()).use { c -> Session(c).query("PRAGMA quick_check") { it.string("quick_check") } == listOf("ok") }
+    }.getOrDefault(false)
 
     fun daily(db: Session, file: Path): Boolean {
         val backups = file.resolveSibling("backups").also { Files.createDirectories(it) }
         val target = backups.resolve("kami-daily-${LocalDate.now()}.db")
         if (Files.exists(target)) return true
-        val partial = target.resolveSibling("${target.name}.tmp")
-        val done = runCatching {
-            Files.deleteIfExists(partial)
-            db.exec("VACUUM INTO ?", partial.toString())
-            Files.move(partial, target, StandardCopyOption.ATOMIC_MOVE)
-        }.onFailure {
-            runCatching { Files.deleteIfExists(partial) }
-            log.warn("Could not write the daily database backup: {}", it.toString())
-        }.isSuccess
-        Files.list(backups).use { s -> s.filter { it.name.startsWith("kami-daily-") && it.name.endsWith(".db") }.sorted().toList() }.dropLast(DAILY_KEEP).forEach { runCatching { Files.delete(it) } }
+        listed(backups, "kami-", ".tmp").forEach { runCatching { Files.delete(it) } }
+        val done = runCatching { copy(db, target) }.onFailure { log.warn("Could not write the daily database backup: {}", it.toString()) }.isSuccess
+        if (done) prune(backups, "kami-daily-", ".db", DAILY_KEEP)
         return done
     }
 
-    private fun prune(backups: Path) {
-        Files.list(backups).use { s -> s.filter { it.name.startsWith("kami-") && it.name.endsWith("-pre.db") }.sorted().toList() }
-            .dropLast(KEEP)
-            .forEach { runCatching { Files.delete(it) } }
-    }
+    private fun listed(backups: Path, prefix: String, suffix: String) =
+        Files.list(backups).use { s -> s.filter { it.name.startsWith(prefix) && it.name.endsWith(suffix) }.sorted().toList() }
+
+    private fun kept(backups: Path, prefix: String, suffix: String, verify: Boolean = false) =
+        listed(backups, prefix, suffix).lastOrNull()?.takeIf { System.currentTimeMillis() - Files.getLastModifiedTime(it).toMillis() < REUSE_MS && (!verify || verified(it)) }
+
+    private fun prune(backups: Path, prefix: String, suffix: String, keep: Int) =
+        listed(backups, prefix, suffix).dropLast(keep).forEach { runCatching { Files.delete(it) } }
 
     private fun report(failed: Migration?, cause: Throwable, file: Path, pre: Path?, zip: Path?) = buildString {
         appendLine("Kami database migration failed; the server will not start. The database was rolled back unchanged.")

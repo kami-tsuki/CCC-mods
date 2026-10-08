@@ -20,18 +20,20 @@ internal object Sanitize {
 
     fun cap(text: String, max: Int): Pair<String, Boolean> = if (text.length <= max) text to false else text.take(max) to true
 
-    fun outbound(text: String): String {
-        return Templates.outsideCode(clean(text), ::escape)
-            .replace("@everyone", "@${ZWSP}everyone")
-            .replace("@here", "@${ZWSP}here")
-            .replace(roleMention) { "<@$ZWSP&${it.groupValues[1]}>" }
-    }
+    fun outbound(text: String): String = mentions(Templates.outsideCode(clean(text), ::escape))
+
+    fun card(text: String): String = mentions(clean(text))
+
+    private fun mentions(text: String) = text
+        .replace("@everyone", "@${ZWSP}everyone")
+        .replace("@here", "@${ZWSP}here")
+        .replace(roleMention) { "<@$ZWSP&${it.groupValues[1]}>" }
 
     private fun escape(part: String, lineStart: Boolean) = MarkdownSanitizer.escape(part).replace(if (lineStart) heading else inlineHeading, "$1$ZWSP$2").replace(brackets, "\\\\$0")
 
     fun name(text: String): String {
-        val safe = clean(text).replace('\n', ' ').take(80).trim().replace(reserved) { "${it.value.take(1)}$ZWSP${it.value.drop(1)}" }
-        return if (safe.length >= 2) safe else safe.padEnd(2, '_').ifBlank { "Minecraft" }
+        val safe = clean(text).replace('\n', ' ').trim().replace(reserved) { "${it.value.take(1)}$ZWSP${it.value.drop(1)}" }.take(80).trim()
+        return if (safe.isBlank()) "Minecraft" else safe.padEnd(2, '_')
     }
 
     fun console(line: String): String = clean(ansi.replace(line, "")).replace("```", "'''")

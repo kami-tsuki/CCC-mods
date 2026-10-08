@@ -44,14 +44,14 @@ object Warns {
     fun warn(id: UUID, reason: String, by: String, at: Long, delivered: Boolean): Warn {
         val w = Warn(next.incrementAndGet(), id, reason, by, at, delivered)
         warns[w.id] = w
-        Db.write { exec("INSERT INTO ess_warn (id, uuid, reason, \"by\", at, delivered) VALUES (?, ?, ?, ?, ?, ?)", w.id, id.toString(), reason, by, at, if (delivered) 1 else 0) }
+        Db.durableAsync { exec("INSERT INTO ess_warn (id, uuid, reason, \"by\", at, delivered) VALUES (?, ?, ?, ?, ?, ?)", w.id, id.toString(), reason, by, at, if (delivered) 1 else 0) }
         return w
     }
 
     fun revoke(warnId: Long, revoke: Revoke): Warn? {
         val w = warns[warnId]?.takeIf { it.revoke == null }?.copy(revoke = revoke) ?: return null
         warns[warnId] = w
-        Db.write { exec("UPDATE ess_warn SET revoked_by = ?, revoked_at = ?, revoke_reason = ? WHERE id = ?", revoke.by, revoke.at, revoke.reason, warnId) }
+        Db.durableAsync { exec("UPDATE ess_warn SET revoked_by = ?, revoked_at = ?, revoke_reason = ? WHERE id = ?", revoke.by, revoke.at, revoke.reason, warnId) }
         return w
     }
 
@@ -62,7 +62,7 @@ object Warns {
             if (w.revoke == null) p.tell(Talk.chat.warn(phrase(w)))
             warns[w.id] = w.copy(delivered = true)
         }
-        Db.write { exec("UPDATE ess_warn SET delivered = 1 WHERE uuid = ? AND delivered = 0", p.uuid.toString()) }
+        Db.durableAsync { exec("UPDATE ess_warn SET delivered = 1 WHERE uuid = ? AND delivered = 0", p.uuid.toString()) }
     }
 
     fun phrase(w: Warn): Phrase = Phrase.of("kami_essentials.admin.warned", Phrase.value(w.reason), Phrase.value(w.by))

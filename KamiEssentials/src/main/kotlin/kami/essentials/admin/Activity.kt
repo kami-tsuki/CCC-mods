@@ -96,7 +96,7 @@ object Activity {
     }
 
     private fun damage(e: LivingDamageEvent.Post) {
-        val n = (e.newDamage * 10).toLong()
+        val n = (minOf(e.newDamage, e.entity.maxHealth) * 10).toLong()
         player(e.entity)?.takeUnless(::idle)?.let { Stats.add("combat.taken", id(it), damageId(e.source), n) }
         player(e.source.entity)?.takeUnless(::idle)?.let { Stats.add("combat.dealt", id(it), typeId(e.entity.type), n) }
     }

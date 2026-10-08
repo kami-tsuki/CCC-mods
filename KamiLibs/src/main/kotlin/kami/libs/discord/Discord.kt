@@ -17,6 +17,7 @@ import net.dv8tion.jda.api.interactions.commands.build.Commands
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandGroupData
 import net.dv8tion.jda.api.requests.ErrorResponse
 import net.dv8tion.jda.api.requests.GatewayIntent
 import net.dv8tion.jda.api.utils.ChunkingFilter
@@ -27,13 +28,16 @@ import net.minecraft.server.MinecraftServer
 import java.util.EnumSet
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 internal object Discord {
     val log = Log.of("discord")
-    val features = CopyOnWriteArrayList<DiscordFeature>()
+    val features = CopyOnWriteArrayList<DiscordFeature>(listOf(Mc))
 
     @Volatile var state = DiscordState.OFF
     @Volatile var keys = DiscordKeys()
@@ -45,6 +49,11 @@ internal object Discord {
     @Volatile private var lastTopic: String? = null
     @Volatile private var lastTopicAttempt = 0L
     @Volatile private var lastPresence: String? = null
+    private const val QUEUE_CAP = 500
+    private val backlog = AtomicInteger()
+    private val dropped = AtomicInteger()
+    @Volatile private var lastDropLog = 0L
+    private val worker = ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, LinkedBlockingQueue(64)) { r -> Thread(r, "kami-discord-work").apply { isDaemon = true } }
     const val CLOSE_MS = 5000L
     private const val TOPIC_COOLDOWN_MS = 300_000L
     private val RETRY_SECONDS = longArrayOf(5, 15, 60)
@@ -56,6 +65,7 @@ internal object Discord {
     val guildId get() = connected.guildId.toLongOrNull() ?: 0L
     val chatId get() = connected.chatChannelId.toLongOrNull() ?: 0L
     val consoleId get() = connected.consoleChannelId.toLongOrNull() ?: 0L
+    val marketId get() = connected.marketChannelId.toLongOrNull() ?: 0L
 
     fun warnOnce(kind: String, message: String) {
         if (warned.add(kind)) log.warn(message)
@@ -70,11 +80,35 @@ internal object Discord {
         }
     }
 
-    fun post(action: () -> Unit) {
-        server?.execute { runCatching(action).onFailure { log.error("Discord callback failed: {}", it.toString()) } }
+    fun post(droppable: Boolean = false, action: () -> Unit) {
+        val s = server ?: return
+        if (droppable && backlog.incrementAndGet() > QUEUE_CAP) {
+            backlog.decrementAndGet()
+            dropped.incrementAndGet()
+            val now = System.currentTimeMillis()
+            if (now - lastDropLog > MINUTE_MS) {
+                lastDropLog = now
+                log.warn("Discord task queue is full, dropped {} tasks", dropped.getAndSet(0))
+            }
+            return
+        }
+        s.execute {
+            try {
+                runCatching(action).onFailure { log.error("Discord callback failed: {}", it.toString()) }
+            } finally {
+                if (droppable) backlog.decrementAndGet()
+            }
+        }
     }
 
-    fun each(action: (DiscordFeature) -> Unit) = post { features.forEach { f -> runCatching { action(f) }.onFailure { log.error("Discord feature failed: {}", it.toString()) } } }
+    fun each(droppable: Boolean = false, action: (DiscordFeature) -> Unit) = post(droppable) { features.forEach { f -> runCatching { action(f) }.onFailure { log.error("Discord feature failed: {}", it.toString()) } } }
+
+    fun work(action: () -> Unit): Boolean = try {
+        worker.execute { runCatching(action).onFailure { log.error("Discord task failed: {}", it.toString()) } }
+        true
+    } catch (_: RejectedExecutionException) {
+        false
+    }
 
     @Synchronized
     fun start(server: MinecraftServer, flushSeconds: Int) {
@@ -143,16 +177,23 @@ internal object Discord {
         if (!adopted) return
         Webhooks.clear()
         guard("permissions") { audit(guild) }
+        guard("market") { market(guild) }
         guard("commands") { guild.updateCommands().addCommands(commands().map(::data)).queue(null) { log.error("Slash command registration failed: {}", it.message) } }
         guard("outbox") { Outbox.open() }
         each { it.onReady() }
+    }
+
+    private fun market(guild: Guild) {
+        if (marketId == 0L) return log.info("Discord market updates are off, set marketChannelId in kami-discord-bot.json to turn them on")
+        val channel = guild.getGuildChannelById(marketId) ?: return log.warn("Discord market channel {} was not found in the guild, market updates are off", marketId)
+        log.info("Discord market updates go to #{}", channel.name)
     }
 
     private fun audit(guild: Guild) {
         val self = guild.selfMember
         if (self.hasPermission(Permission.ADMINISTRATOR)) return
         val missing = listOf(Permission.MANAGE_ROLES, Permission.BAN_MEMBERS).filterNot { self.hasPermission(it) }.map { it.getName() } +
-            listOf(chatId to listOf(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MANAGE_WEBHOOKS, Permission.MANAGE_CHANNEL), consoleId to listOf(Permission.VIEW_CHANNEL, Permission.MANAGE_WEBHOOKS))
+            listOf(chatId to listOf(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MANAGE_WEBHOOKS, Permission.MANAGE_CHANNEL), consoleId to listOf(Permission.VIEW_CHANNEL, Permission.MANAGE_WEBHOOKS), marketId to listOf(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MESSAGE_EMBED_LINKS))
                 .flatMap { (id, perms) -> guild.getGuildChannelById(id)?.let { c -> perms.filterNot { self.hasPermission(c, it) }.map { "${it.getName()} in #${c.name}" } }.orEmpty() }
         log.info("Discord bot roles: {}", self.roles.joinToString { it.name })
         if (missing.isNotEmpty()) log.warn("Discord bot is missing permissions: {}", missing.joinToString())
@@ -224,6 +265,18 @@ internal object Discord {
         val m = guild.getMemberById(userId)
             ?: if (timeoutMs <= 0) return null.also { guild.retrieveMemberById(userId).queue({}, {}) }
             else runCatching { guild.retrieveMemberById(userId).submit().get(timeoutMs, TimeUnit.MILLISECONDS) }.getOrNull() ?: return null
+        return guildInfo(guild, m)
+    }
+
+    fun info(userId: Long, done: (GuildInfo?) -> Unit) {
+        val result = fresh(done)
+        val guild = guild() ?: return post { result(null) }
+        val cached = guild.getMemberById(userId)
+        if (cached != null) return post { result(guildInfo(guild, cached)) }
+        guild.retrieveMemberById(userId).queue({ m -> post { result(guildInfo(guild, m)) } }, { post { result(null) } })
+    }
+
+    private fun guildInfo(guild: Guild, m: net.dv8tion.jda.api.entities.Member): GuildInfo {
         val role = verifiedRole(guild)
         return GuildInfo(m.user.name, m.nickname.orEmpty(), m.effectiveAvatarUrl, m.timeJoined.toInstant().toEpochMilli(), m.roles.map { it.name }, role != null && m.roles.contains(role))
     }
@@ -342,10 +395,16 @@ internal object Discord {
     private fun data(c: SlashCommand): SlashCommandData {
         val data = Commands.slash(c.name, c.description)
         if (c.subcommands.isEmpty()) data.addOptions(c.options.map(::option))
-        else data.addSubcommands(c.subcommands.map { SubcommandData(it.name, it.description).addOptions(it.options.map(::option)) })
+        else {
+            val (groups, subs) = c.subcommands.partition { it.subcommands.isNotEmpty() }
+            data.addSubcommands(subs.map(::sub))
+            data.addSubcommandGroups(groups.map { g -> SubcommandGroupData(g.name, g.description).addSubcommands(g.subcommands.map(::sub)) })
+        }
         if (c.admin) data.setDefaultPermissions(DefaultMemberPermissions.DISABLED)
         return data
     }
 
-    private fun option(o: SlashOption) = OptionData(OptionType.STRING, o.name, o.description, o.required)
+    private fun sub(c: SlashCommand) = SubcommandData(c.name, c.description).addOptions(c.options.map(::option))
+
+    private fun option(o: SlashOption) = OptionData(OptionType.STRING, o.name, o.description, o.required, o.complete != null).also { d -> o.choices.forEach { d.addChoice(it, it) } }
 }

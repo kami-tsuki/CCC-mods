@@ -3,9 +3,12 @@ package kami.essentials.discord
 import com.mojang.authlib.GameProfile
 import kami.essentials.Config
 import kami.essentials.chat.Names
+import kami.essentials.chat.Talk
 import kami.libs.chat.Theme
+import kami.libs.chat.tell
 import kami.libs.discord.Codes
 import kami.libs.discord.DiscordApi
+import kami.libs.discord.DiscordBans
 import kami.libs.discord.DiscordFeature
 import kami.libs.discord.DiscordText
 import kami.libs.discord.Link
@@ -24,6 +27,8 @@ import java.util.UUID
 
 object Gate : DiscordFeature {
     private val log = Log.of("discord")
+    private val userId = Regex("""<@(\d+)>|(\d+)""")
+    private val warned = HashSet<UUID>()
     private val server get() = ServerLifecycleHooks.getCurrentServer()
 
     private fun text(key: String, vararg args: Any) = DiscordText.get("kami_essentials", Config.s.discord.language, "kami_essentials.discord.$key", *args)
@@ -60,6 +65,7 @@ object Gate : DiscordFeature {
     private fun verify(ctx: SlashCtx) {
         val d = Config.s.discord.verify
         if (Codes.limited(ctx.userId, d.attempts, d.windowMinutes)) return ctx.reply(text("verify.limited"))
+        if (DiscordBans.banned(ctx.userId) != null) return ctx.reply(text("verify.banned"))
         if (Links.byDiscord(ctx.userId) != null) return ctx.reply(text("verify.taken"))
         val code = ctx.opt("code").orEmpty()
         val pending = Codes.consume(code)
@@ -91,7 +97,7 @@ object Gate : DiscordFeature {
     }
 
     private fun find(ctx: SlashCtx): List<Link> {
-        ctx.opt("user")?.filter(Char::isDigit)?.toLongOrNull()?.let { return listOfNotNull(Links.byDiscord(it)) }
+        ctx.opt("user")?.let { raw -> return userId.matchEntire(raw.trim())?.let { m -> m.groupValues[1].ifEmpty { m.groupValues[2] }.toLongOrNull() }?.let { listOfNotNull(Links.byDiscord(it)) }.orEmpty() }
         val name = ctx.opt("player")?.trim() ?: return emptyList()
         server?.profileCache?.get(name)?.orElse(null)?.let { p -> Links.get(p.id)?.let { return listOf(it) } }
         return Links.byName(name)
@@ -128,6 +134,7 @@ object Gate : DiscordFeature {
     }
 
     fun join(p: ServerPlayer) {
+        if (Bot.misconfigured && p.hasPermissions(2) && warned.add(p.uuid)) p.tell(Talk.chat.warn(Phrase.of("kami_essentials.discord.misconfigured")))
         val link = Links.get(p.uuid) ?: return
         if (link.name != p.gameProfile.name) Links.rename(p.uuid, p.gameProfile.name)
         if (DiscordApi.ready) DiscordApi.grant(link.discordId)
@@ -171,7 +178,9 @@ object Gate : DiscordFeature {
         uuids.forEach { server?.playerList?.getPlayer(it)?.connection?.disconnect(kick(reason)) }
 
     fun mcBanned(uuid: UUID) {
-        if (Config.s.discord.verify.banSync) dropAll(listOf(uuid))
+        if (!Config.s.discord.verify.banSync) return
+        Links.get(uuid)?.let { DiscordBans.mark(it.discordId, uuid) }
+        dropAll(listOf(uuid))
     }
 
     private fun dropAll(uuids: Collection<UUID>): List<Link> {
@@ -183,6 +192,7 @@ object Gate : DiscordFeature {
     private fun banAll(links: Collection<Link>) {
         val bans = server?.playerList?.bans
         val uuids = links.map { it.id }
+        links.forEach { DiscordBans.mark(it.discordId, it.id) }
         dropAll(uuids)
         links.forEach { bans?.add(UserBanListEntry(GameProfile(it.id, it.name), null, "Discord", null, null)) }
         kickAll(uuids, "banned")
