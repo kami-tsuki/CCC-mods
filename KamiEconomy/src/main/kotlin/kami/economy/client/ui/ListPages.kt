@@ -70,6 +70,13 @@ private fun Ui.drawUnit(r: Rect, price: Long, lot: Int, color: Int) {
 internal fun <T> unitPriceColumn(title: String, width: Int, color: (T) -> Int = { Palette.text }, lot: (T) -> Int, price: (T) -> Long) =
     Column<T>(title, width, Align.RIGHT, compareBy<T> { price(it) * 1000 / lot(it).coerceAtLeast(1) }, tr("kami_economy.col.per_item")) { _, r, row -> drawUnit(r, price(row), lot(row), color(row)) }
 
+private fun ownAware(c: Column<Row>, side: String, own: (Row) -> Int) = Column<Row>(c.title, c.width, c.align, c.sort, c.tip) { g, cell, row ->
+    c.cell(this, g, cell, row)
+    val mine = own(row).takeIf { it > 0 && !row.isChild() } ?: return@Column
+    Draw.text(g, "•", cell.x + 1, cell.y + (cell.h - 8) / 2, Palette.info)
+    tooltip("own-$side:${row.item}", cell) { Tip(tr("kami_economy.own.$side"), listOf(tr("kami_economy.own.tip", Format.unitMoney(mine.toLong(), row.lot)) to Palette.textSecondary)) }
+}
+
 private fun childTip(row: Row) = Tip(MarketSection.stack(row.item).hoverName.string, listOfNotNull(
     variantRatio(row.item).takeIf { it.isNotEmpty() }?.let { it to Palette.textSecondary },
     tr("kami_economy.variant.price", Format.unitMoney(row.buy.toLong(), row.lot), Format.unitMoney(row.sell.toLong(), row.lot)) to Palette.textSecondary,
@@ -227,8 +234,8 @@ internal class MarketPage(app: MarketApp) : ListPage(app, "market") {
             extra = { cell, row -> tooltip("market-tip:${row.item}", cell) { rowTip(row) } }
         ) { app.openItem(it.item) },
         Column.number<Row>(tr("kami_economy.col.lot"), 36) { it.lot.toLong() },
-        unitPriceColumn<Row>(tr("kami_economy.col.buy"), 66, lot = { it.lot }) { it.buy.toLong() },
-        unitPriceColumn<Row>(tr("kami_economy.col.sell"), 66, lot = { it.lot }) { it.sell.toLong() },
+        ownAware(unitPriceColumn<Row>(tr("kami_economy.col.buy"), 66, lot = { it.lot }) { it.buy.toLong() }, "ask") { it.myAsk },
+        ownAware(unitPriceColumn<Row>(tr("kami_economy.col.sell"), 66, lot = { it.lot }) { it.sell.toLong() }, "bid") { it.myBid },
         Column.number<Row>(tr("kami_economy.col.available"), 52, format = { if (it == Long.MAX_VALUE) "∞" else Format.number(it) }) { if (it.available < 0) Long.MAX_VALUE else it.available.toLong() },
         demandColumn(),
         Column.number<Row>(tr("kami_economy.col.change"), 52, tip = tr("kami_economy.col.change.tip"), color = { if (it.change > 0) Palette.success else if (it.change < 0) Palette.danger else Palette.textMuted }, format = ::permille) { it.change.toLong() },
