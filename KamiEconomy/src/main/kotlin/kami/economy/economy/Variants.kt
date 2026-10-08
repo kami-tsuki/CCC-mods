@@ -46,14 +46,19 @@ object Variants : VariantIndex() {
 
     private fun pow9(k: Int): Int = generateSequence(1) { it * 9 }.elementAt(k)
 
+    private fun bulk(id: String): Int = when {
+        "block" in id || "storage" in id || "bale" in id || "compressed" in id -> 2
+        "nugget" in id || "shard" in id || "piece" in id -> 1
+        else -> 0
+    }
+
     private fun coreOf(chain: List<String>, starter: (String) -> Boolean): Int {
-        if (chain.size == 2) {
-            val starters = chain.filter(starter)
-            return if (starters.size == 1) chain.indexOf(starters[0]) else if ("nugget" in chain[0]) 1 else 0
+        val candidates = when {
+            chain.size == 2 -> listOf(0, 1)
+            chain.size % 2 == 1 -> listOf(chain.size / 2)
+            else -> listOf(chain.size / 2 - 1, chain.size / 2)
         }
-        val mid = chain.size / 2
-        val candidates = if (chain.size % 2 == 1) listOf(mid) else listOf(mid - 1, mid)
-        return candidates.sortedWith(compareBy<Int>({ !starter(chain[it]) }, { "nugget" in chain[it] || "block" in chain[it] })).first()
+        return candidates.sortedWith(compareBy<Int>({ bulk(chain[it]) }, { !starter(chain[it]) }, { it })).first()
     }
 
     fun derive(pairs: List<Pair<String, String>>, starter: (String) -> Boolean): Map<String, Variant> {

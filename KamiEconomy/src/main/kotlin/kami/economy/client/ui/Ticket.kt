@@ -10,6 +10,7 @@ import kami.libs.ui.app.ReceiptLine
 import kami.libs.ui.app.receiptDialog
 import kami.libs.ui.core.Flow
 import kami.libs.ui.core.Rect
+import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
@@ -54,7 +55,7 @@ internal fun confirmQuote(app: MarketApp, q: Quote, lot: Int, warning: String? =
     val lines = buildList {
         add(ReceiptLine(stack.hoverName.string, unitsText(q.qty, size)))
         if (q.filled > 0 || q.mode == "bid") {
-            if (q.filled > 0) add(ReceiptLine(tr("kami_economy.receipt.avg"), Format.money(q.avg.toLong()), tip = tr("kami_economy.receipt.avg.tip") + " " + tr("kami_economy.receipt.sweep", Format.money(q.worst.toLong()), q.levels)))
+            if (q.filled > 0) add(ReceiptLine(tr("kami_economy.receipt.avg"), Format.unitMoney(q.avg.toLong(), lot), tip = tr("kami_economy.receipt.avg.tip") + " " + tr("kami_economy.receipt.sweep", Format.unitMoney(q.worst.toLong(), lot), q.levels)))
             add(ReceiptLine(tr("kami_economy.receipt.subtotal"), Format.money(q.gross), tip = tr("kami_economy.receipt.subtotal.tip")))
             if (q.tax > 0) add(ReceiptLine(tr("kami_economy.receipt.tax.you", q.taxPct), sign + Format.money(q.tax), ReceiptKind.CHARGE, q.myTaxTip(), Palette.warning))
             if (q.tariffs.isNotEmpty()) q.tariffs.forEach { t ->
@@ -65,7 +66,7 @@ internal fun confirmQuote(app: MarketApp, q: Quote, lot: Int, warning: String? =
         add(ReceiptLine(tr(if (q.buying) "kami_economy.receipt.pay" else "kami_economy.receipt.receive"), Format.money(q.total), ReceiptKind.TOTAL, tr("kami_economy.receipt.total.tip"), if (q.buying) Palette.danger else Palette.success))
         if (q.mode == "sell" && q.listed > 0) add(ReceiptLine(tr("kami_economy.receipt.tax.listing", q.taxPct), "-" + Format.money(q.listTax), ReceiptKind.CHARGE, tr("kami_economy.receipt.tax.listing.tip"), Palette.warning))
         if (q.otherTax > 0) add(ReceiptLine(tr(q.sellersKey(), q.otherTaxPct), Format.money(q.otherTax), ReceiptKind.CHARGE, tr("kami_economy.receipt.tax.sellers.tip"), Palette.textMuted))
-        if (q.listed > 0) add(ReceiptLine(tr("kami_economy.receipt.listed.${q.mode}", unitsText(q.listed, size), Format.money(q.price.toLong()), Format.money(q.listValue())), "", ReceiptKind.NOTE, tr("kami_economy.ticket.tip.rest")))
+        if (q.listed > 0) add(ReceiptLine(tr("kami_economy.receipt.listed.${q.mode}", unitsText(q.listed, size), Format.unitMoney(q.price.toLong(), lot), Format.money(q.listValue())), "", ReceiptKind.NOTE, tr("kami_economy.ticket.tip.rest")))
         if (q.returned > 0) add(ReceiptLine(tr("kami_economy.receipt.returned", unitsText(q.returned, size)) + reason, "", ReceiptKind.NOTE, tr("kami_economy.ticket.tip.returned")))
         add(ReceiptLine(tr("kami_economy.receipt.balance"), Format.money(app.snap.funds) + " → " + Format.money(q.after.toLong()), tip = tr("kami_economy.ticket.tip.after")))
     }
@@ -112,6 +113,8 @@ internal class Ticket(private val app: MarketApp) {
     fun heldOf(d: Detail) = if (v != null) app.carried.get().held[variant] ?: 0 else d.held
 
     private fun cv(n: Int): Int = v?.takeIf { n > 0 }?.let { (n.toLong() * it.div / it.mul).coerceAtMost(Int.MAX_VALUE.toLong()).toInt() } ?: n
+
+    fun unitsOf(n: Int) = cv(n)
 
     fun open(item: String, buy: Boolean, order: Boolean, variant: String = "") {
         this.item = item
@@ -170,7 +173,7 @@ internal class Ticket(private val app: MarketApp) {
 
     private fun fill(d: Detail, lot: Int, held: Int): Fill {
         val (qty, why) = when {
-            !buy -> held.toLong() to "held"
+            !buy -> (held - held % lot).toLong() to "held"
             order -> app.snap.funds / price.value.coerceAtLeast(1) * lot to "funds"
             d.available < 0 || d.maxAffordable < d.available -> cv(d.maxAffordable).toLong() to "funds"
             else -> cv(d.maxAffordable).toLong() to "supply"
@@ -184,15 +187,14 @@ internal class Ticket(private val app: MarketApp) {
         return buildList {
             if (q.filled > 0) {
                 add(Line(tr("kami_economy.ticket.now.${q.mode}", unitsText(q.filled, size), Format.money(q.total)), Palette.text, tr("kami_economy.ticket.tip.now")))
-                if (q.leftover > 0) add(Line(tr("kami_economy.ticket.leftover", q.leftover, MarketSection.stack(item).hoverName.string), Palette.textMuted, tr("kami_economy.ticket.tip.leftover")))
-                add(Line(tr("kami_economy.ticket.sweep", Format.money(q.avg.toLong()), Format.money(q.worst.toLong()), q.levels), Palette.textMuted, tr("kami_economy.ticket.tip.sweep")))
+                add(Line(tr("kami_economy.ticket.sweep", Format.unitMoney(q.avg.toLong(), lot), Format.unitMoney(q.worst.toLong(), lot), q.levels), Palette.textMuted, tr("kami_economy.ticket.tip.sweep")))
             }
-            if (q.listed > 0) add(Line(tr("kami_economy.ticket.rest.${q.mode}", unitsText(q.listed, size), Format.money(q.price.toLong()), Format.money(q.listValue())), Palette.textSecondary, tr("kami_economy.ticket.tip.rest")))
+            if (q.listed > 0) add(Line(tr("kami_economy.ticket.rest.${q.mode}", unitsText(q.listed, size), Format.unitMoney(q.price.toLong(), lot), Format.money(q.listValue())), Palette.textSecondary, tr("kami_economy.ticket.tip.rest")))
             if (q.tax > 0) add(Line(tr("kami_economy.ticket.tax.you", Format.money(q.tax), q.taxPct), Palette.warning, q.myTaxTip()))
             if (q.mode == "sell" && q.listed > 0) add(Line(tr("kami_economy.ticket.tax.listing", Format.money(q.listTax), q.taxPct), Palette.warning, tr("kami_economy.receipt.tax.listing.tip")))
             if (q.otherTax > 0) add(Line(tr(if (q.mode == "bid") "kami_economy.ticket.tax.sellers.bid" else "kami_economy.ticket.tax.sellers", Format.money(q.otherTax), q.otherTaxPct), Palette.textMuted, tr("kami_economy.receipt.tax.sellers.tip")))
             if (q.returned > 0) add(Line(tr("kami_economy.receipt.returned", unitsText(q.returned, size)) + returnReason(q, lot).let { if (it.isEmpty()) "" else " ($it)" }, Palette.warning, tr("kami_economy.ticket.tip.returned")))
-            if (q.mode == "sell" && q.price > 0 && q.price != price.value.toInt()) add(Line(tr("kami_economy.ticket.forced", Format.money(q.price.toLong())), Palette.warning, tr("kami_economy.ticket.tip.forced")))
+            if (q.mode == "sell" && q.price > 0 && q.price != price.value.toInt()) add(Line(tr("kami_economy.ticket.forced", Format.unitMoney(q.price.toLong(), lot)), Palette.warning, tr("kami_economy.ticket.tip.forced")))
             add(Line(tr("kami_economy.ticket.after", Format.money(q.after.toLong())), Palette.textMuted, tr("kami_economy.ticket.tip.after")))
         }
     }
@@ -212,7 +214,7 @@ internal class Ticket(private val app: MarketApp) {
 
     private fun stockNote(ui: Ui, f: Flow, d: Detail) {
         if (buy || order || d.capLeft < 0) return
-        val text = if (d.capLeft == 0) tr("kami_economy.stock.capped") else tr("kami_economy.stock.cap", Format.number(d.capLeft.toLong() * d.lot))
+        val text = if (d.capLeft == 0) tr("kami_economy.stock.capped") else tr("kami_economy.stock.cap", Format.number(cv((d.capLeft.toLong() * d.lot).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()).toLong()))
         note(ui, f, "stock", text, tr("kami_economy.stock.tip"))
     }
 
@@ -243,6 +245,7 @@ internal class Ticket(private val app: MarketApp) {
             ui.skeleton(f.take(CONTROL_H))
             return
         }
+        if (variant.isNotEmpty() && d.variants.none { it.item == variant }) variant = ""
         seed(d)
         val lot = lotOf(d).coerceAtLeast(1)
         val size = MarketSection.stack(shown).maxStackSize
@@ -264,12 +267,12 @@ internal class Ticket(private val app: MarketApp) {
         stat(ui, f, "lot", tr("kami_economy.col.lot"), tr("kami_economy.ticket.lot_size", Format.number(lot)), tr("kami_economy.ticket.tip.lot", Format.number(lot), Format.number(d.maxAmount)))
         stockNote(ui, f, d)
         val hint = stackHint(qty.value.toInt(), size).takeIf { it.isNotEmpty() }?.let { "= $it" }
-        ui.fieldLabel(f.take(9), tr("kami_economy.ticket.qty"), hint)
+        ui.fieldLabel(f.take(9), if (v != null) tr("kami_economy.ticket.qty_of", Draw.fit(MarketSection.stack(shown).hoverName.string, 90)) else tr("kami_economy.ticket.qty"), hint)
         ui.numberField(f.take(CONTROL_H), qty, 1, limit, key = "qty")
         val presets = f.take(SMALL_H).columns(3, 3)
         if (ui.button(presets[0], tr("kami_economy.ticket.lot"), tip = presetTip("kami_economy.ticket.preset.lot", lot, fill, why), key = "p-lot")) qty.commit(lot.toLong().coerceAtMost(limit))
         if (ui.button(presets[1], tr("kami_economy.ticket.stack"), enabled = size > 1, disabledReason = tr("kami_economy.ticket.preset.nostack"), tip = presetTip("kami_economy.ticket.preset.stack", size, fill, why), key = "p-stack")) qty.commit(size.toLong().coerceAtMost(limit))
-        if (ui.button(presets[2], tr("kami_libs.field.max"), enabled = fill.qty > 0, disabledReason = tr("kami_economy.ticket.max.none", why), tip = tr("kami_economy.ticket.max.tip", unitsText(fill.qty.toInt(), size), why), key = "p-max")) qty.commit(fill.qty)
+        if (ui.button(presets[2], tr("kami_libs.field.max"), enabled = fill.qty > 0, disabledReason = if (!buy && held in 1 until lot) tr("kami_economy.ticket.max.sublot", Format.number(lot)) else tr("kami_economy.ticket.max.none", why), tip = tr("kami_economy.ticket.max.tip", unitsText(fill.qty.toInt(), size), why), key = "p-max")) qty.commit(fill.qty)
         if (!d.followable) follow = false
         if (order) {
             priceBlock(ui, f, d, lot)
@@ -295,16 +298,47 @@ internal class Ticket(private val app: MarketApp) {
         if (d.mine.isNotEmpty()) mine(ui, f, d)
     }
 
+    private class Pick(val id: String, val shownId: String, val mul: Int, val div: Int, val lot: Int, val buy: Int, val sell: Int)
+
     private fun selector(ui: Ui, f: Flow, d: Detail) {
         if (d.variants.isEmpty()) return
-        val options = buildList {
-            d.variants.filter { it.mul < it.div }.forEach { add(Option(it.item, tr("kami_economy.variant.small"), description = MarketSection.stack(it.item).hoverName.string)) }
-            add(Option("", tr("kami_economy.variant.core"), description = MarketSection.stack(item).hoverName.string))
-            d.variants.filter { it.mul > it.div }.forEach { add(Option(it.item, tr("kami_economy.variant.big"), description = MarketSection.stack(it.item).hoverName.string)) }
+        val picks = (d.variants.map { Pick(it.item, it.item, it.mul, it.div, it.lot, it.buy, it.sell) } + Pick("", item, 1, 1, d.lot, d.buy, d.sell))
+            .sortedBy { it.mul.toDouble() / it.div }
+        val coreName = MarketSection.stack(item).hoverName.string
+        val current = if (order) "" else variant
+        val row = f.take(20)
+        val cells = row.columns(picks.size, 3)
+        picks.forEachIndexed { i, p ->
+            val r = cells[i]
+            val stack = MarketSection.stack(p.shownId)
+            val chosen = p.id == current
+            val locked = order && p.id != ""
+            val hover = ui.hovering(r)
+            Draw.fill(ui.g, r, if (chosen) Palette.alpha(Palette.brass, 0x40) else if (hover && !locked) Palette.hover else Palette.alpha(0x000000, 0x20))
+            Draw.outline(ui.g, r, if (chosen) Palette.brass else Palette.borderSubtle)
+            val ix = r.x + (r.w - 16) / 2
+            val iy = r.y + (r.h - 16) / 2
+            ui.g.renderItem(stack, ix, iy)
+            if (locked) Draw.fill(ui.g, r, Palette.alpha(0x000000, 0x80))
+            ui.tooltip("variant:${p.shownId}", r) {
+                val name = stack.hoverName.string
+                val big = p.mul >= p.div
+                val lines = listOfNotNull(
+                    (if (p.id.isEmpty()) tr("kami_economy.variant.base") else tr(if (big) "kami_economy.variant.ratio.big" else "kami_economy.variant.ratio.small", name, coreName, Format.number((if (big) p.mul / p.div else p.div / p.mul).toLong()))) to Palette.textSecondary,
+                    tr("kami_economy.variant.price", Format.unitMoney(p.buy.toLong(), p.lot), Format.unitMoney(p.sell.toLong(), p.lot)) to Palette.textSecondary,
+                    tr("kami_economy.tip.lot", p.lot) to Palette.textMuted,
+                    (tr("kami_economy.variant.order_locked", coreName, orderRatio(picks, coreName)) to Palette.warning).takeIf { locked }
+                )
+                Tip(name, lines)
+            }
+            if (!locked && !chosen && hover && ui.pressed(r) != null) variant = p.id
         }
-        val current = if (d.variants.any { it.item == variant }) variant else ""
-        ui.segmented(f.take(SMALL_H), options, current, key = "variant")?.let { variant = it }
-        if (order && current.isNotEmpty()) note(ui, f, "variant", tr("kami_economy.variant.resting", MarketSection.stack(item).hoverName.string), tr("kami_economy.variant.resting.tip"))
+    }
+
+    private fun orderRatio(picks: List<Pick>, coreName: String): String {
+        val p = picks.lastOrNull { it.id.isNotEmpty() } ?: return ""
+        val big = p.mul >= p.div
+        return tr(if (big) "kami_economy.variant.ratio.big" else "kami_economy.variant.ratio.small", MarketSection.stack(p.shownId).hoverName.string, coreName, Format.number((if (big) p.mul / p.div else p.div / p.mul).toLong()))
     }
 
     private fun pegPrice(d: Detail): Long {
@@ -316,7 +350,7 @@ internal class Ticket(private val app: MarketApp) {
     private fun priceBlock(ui: Ui, f: Flow, d: Detail, lot: Int) {
         val following = follow
         if (following) price.commit(pegPrice(d))
-        ui.fieldLabel(f.take(9), tr("kami_economy.market.price_lot", lot))
+        ui.fieldLabel(f.take(9), tr("kami_economy.market.price_lot", lot), tr("kami_economy.price.each", Format.unitMoney(price.value, lot)))
         val field = f.take(CONTROL_H)
         ui.numberField(field, price, 1, MAX_PRICE, enabled = !following, key = "price")
         if (following) ui.tooltip("price-follow", field, tr("kami_economy.follow.price", signedPct(offset.value)))
@@ -326,7 +360,7 @@ internal class Ticket(private val app: MarketApp) {
         val top = f.take(SMALL_H).columns(2, 3)
         val bottom = f.take(SMALL_H).columns(2, 3)
         val side = if (buy) "bid" else "ask"
-        if (ui.button(top[0], tr("kami_economy.price.match"), enabled = best > 0, disabledReason = none, tip = tr("kami_economy.price.match.tip.$side", Format.money(best.toLong())), key = "p-match")) price.commit(best.toLong())
+        if (ui.button(top[0], tr("kami_economy.price.match"), enabled = best > 0, disabledReason = none, tip = tr("kami_economy.price.match.tip.$side", Format.unitMoney(best.toLong(), lot)), key = "p-match")) price.commit(best.toLong())
         if (ui.button(top[1], tr("kami_economy.price.beat"), enabled = best > 0, disabledReason = none, tip = tr("kami_economy.price.beat.tip.$side"), key = "p-beat")) price.commit(if (buy) best + 1L else max(1L, best - 1L))
         if (ui.button(bottom[0], tr("kami_economy.price.minus"), tip = tr("kami_economy.price.minus.tip"), key = "p-minus")) price.commit(max(1L, p - max(1L, p * 5 / 100)))
         if (ui.button(bottom[1], tr("kami_economy.price.plus"), tip = tr("kami_economy.price.plus.tip"), key = "p-plus")) price.commit(p + max(1L, p * 5 / 100))
@@ -347,7 +381,7 @@ internal class Ticket(private val app: MarketApp) {
         ui.section(f.take(13), tr("kami_economy.ticket.mine"))
         d.mine.take(4).forEach { o ->
             val row = f.take(SMALL_H)
-            val text = tr(if (o.bid) "kami_economy.ticket.mine.bid" else "kami_economy.ticket.mine.ask", unitsText(o.amount, MarketSection.stack(o.item).maxStackSize), Format.money(o.price.toLong()))
+            val text = tr(if (o.bid) "kami_economy.ticket.mine.bid" else "kami_economy.ticket.mine.ask", unitsText(o.amount, MarketSection.stack(o.item).maxStackSize), Format.unitMoney(o.price.toLong(), o.lot))
             Draw.text(ui.g, Draw.fit(text, row.w - 2 * SMALL_H - 6), row.x, row.y + 4, Palette.textSecondary)
             if (ui.iconButton(Rect(row.right - 2 * SMALL_H - 2, row.y, SMALL_H, SMALL_H), Icons.EDIT, tr("kami_economy.reprice.action"), key = "mine-edit:${o.id}")) app.reprice(app, o)
             if (ui.iconButton(Rect(row.right - SMALL_H, row.y, SMALL_H, SMALL_H), Icons.CROSS, tr("kami_economy.cancel.action"), key = "mine-cancel:${o.id}")) app.cancel(app, o)

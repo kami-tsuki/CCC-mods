@@ -62,6 +62,12 @@ object Format {
     }
 
     fun money(n: Long) = tr("kami_libs.unit.money", number(n))
+    fun unitMoney(lotPrice: Long, lot: Int): String {
+        if (lotPrice <= 0 || lot <= 0) return "–"
+        val v = lotPrice.toDouble() / lot
+        return tr("kami_libs.unit.money", if (v < 100) decimal(v, if (v < 10) 2 else 1) else number(Math.round(v)))
+    }
+
     fun signed(n: Long) = (if (n > 0) "+" else if (n < 0) "-" else "±") + number(abs(n))
     fun signedMoney(n: Long) = tr("kami_libs.unit.money", signed(n))
     fun perDay(amount: String) = tr("kami_libs.unit.per_day", amount)

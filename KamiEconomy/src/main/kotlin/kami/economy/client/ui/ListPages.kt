@@ -34,7 +34,7 @@ private const val ORDER_PANEL_W = 130
 private const val SEARCH_MAX = 200
 private const val SEARCH_MIN = 110
 private const val BAR_GAP = 6
-private const val CHILD_H = 13
+private const val CHILD_H = 14
 private const val CHILD_INDENT = 10
 
 internal fun Row.isChild() = Variants.of(item) != null
@@ -50,24 +50,61 @@ private fun factorText(item: String): String {
     return if (v.mul >= v.div) "×" + Format.number((v.mul / v.div).toLong()) else "÷" + Format.number((v.div / v.mul).toLong())
 }
 
+internal fun variantRatio(item: String): String {
+    val v = Variants.of(item) ?: return ""
+    val big = v.mul >= v.div
+    return tr(if (big) "kami_economy.variant.ratio.big" else "kami_economy.variant.ratio.small", MarketSection.stack(item).hoverName.string, MarketSection.stack(v.core).hoverName.string, Format.number((if (big) v.mul / v.div else v.div / v.mul).toLong()))
+}
+
+private fun Ui.drawUnit(r: Rect, price: Long, lot: Int, color: Int) {
+    val text = Format.unitMoney(price, lot)
+    val y = r.y + (r.h - 8) / 2
+    val suffix = if (price > 0 && lot > 1) "/" + Format.number(lot.toLong()) else ""
+    val sw = if (suffix.isEmpty()) 0 else Draw.width(suffix)
+    if (sw > 0 && Draw.width(text) + sw + 1 <= r.w) {
+        Draw.textRight(g, suffix, r.right, y, Palette.textMuted)
+        Draw.textRight(g, text, r.right - sw - 1, y, color)
+    } else Draw.textRight(g, text, r.right, y, color)
+}
+
+internal fun <T> unitPriceColumn(title: String, width: Int, color: (T) -> Int = { Palette.text }, lot: (T) -> Int, price: (T) -> Long) =
+    Column<T>(title, width, Align.RIGHT, compareBy<T> { price(it) * 1000 / lot(it).coerceAtLeast(1) }, tr("kami_economy.col.per_item")) { _, r, row -> drawUnit(r, price(row), lot(row), color(row)) }
+
+private fun childTip(row: Row) = Tip(MarketSection.stack(row.item).hoverName.string, listOfNotNull(
+    variantRatio(row.item).takeIf { it.isNotEmpty() }?.let { it to Palette.textSecondary },
+    tr("kami_economy.variant.price", Format.unitMoney(row.buy.toLong(), row.lot), Format.unitMoney(row.sell.toLong(), row.lot)) to Palette.textSecondary,
+    tr("kami_economy.tip.lot", row.lot) to Palette.textMuted
+))
+
 internal fun childColumns(app: MarketApp, cols: List<Column<Row>>, buy: Int, sell: Int): List<Column<Row>> = cols.mapIndexed { i, c ->
     Column<Row>(c.title, c.width, c.align, c.sort, c.tip) { gg, cell, row ->
         if (!row.isChild()) c.cell(this, gg, cell, row)
-        else when (i) {
-            0 -> {
-                val tag = factorText(row.item)
-                val tagW = Draw.width(tag) + 4
-                val stack = MarketSection.stack(row.item)
-                val area = Rect(cell.x + CHILD_INDENT, cell.y, cell.w - CHILD_INDENT, cell.h)
-                if (itemCell(area.dropRight(tagW), stack, stack.hoverName.string, "child:${row.item}", Palette.textSecondary)) app.openItem(row.item)
-                val tagCell = Rect(area.right - tagW, cell.y, tagW, cell.h)
-                Draw.textRight(g, tag, area.right, cell.y + (cell.h - 8) / 2, Palette.textMuted)
-                tooltip("child-tag:${row.item}", tagCell, tr(if (Variants.of(row.item)!!.mul >= Variants.of(row.item)!!.div) "kami_economy.variant.tip.big" else "kami_economy.variant.tip.small", tag, row.lot))
+        else {
+            Draw.fill(g, Rect(cell.x - 3, cell.y, cell.w + 6, cell.h), Palette.alpha(0x000000, 0x24))
+            when (i) {
+                0 -> {
+                    val tag = factorText(row.item)
+                    val tagW = Draw.width(tag) + 4
+                    val stack = MarketSection.stack(row.item)
+                    val area = Rect(cell.x + CHILD_INDENT, cell.y, cell.w - CHILD_INDENT, cell.h)
+                    Draw.text(g, "└", cell.x + 2, cell.y + (cell.h - 8) / 2, Palette.textMuted)
+                    if (itemCell(area.dropRight(tagW), stack, stack.hoverName.string, "child:${row.item}", Palette.textSecondary)) app.openItem(row.item)
+                    Draw.textRight(g, tag, area.right, cell.y + (cell.h - 8) / 2, Palette.textMuted)
+                    tooltip("child-tip:${row.item}", area.dropLeft(cell.h)) { childTip(row) }
+                }
+                buy -> drawUnit(cell, row.buy.toLong(), row.lot, Palette.textSecondary)
+                sell -> drawUnit(cell, row.sell.toLong(), row.lot, Palette.textSecondary)
+                else -> Unit
             }
-            buy -> Draw.textRight(g, priceText(row.buy.toLong()), cell.right, cell.y + (cell.h - 8) / 2, Palette.textSecondary)
-            sell -> Draw.textRight(g, priceText(row.sell.toLong()), cell.right, cell.y + (cell.h - 8) / 2, Palette.textSecondary)
-            else -> Unit
         }
+    }
+}
+
+internal fun groupHeld(rows: List<HeldRow>): List<HeldRow> {
+    if (rows.none { Variants.of(it.item) != null }) return rows
+    val byCore = rows.groupBy { Variants.core(it.item) }
+    return rows.map { Variants.core(it.item) }.distinct().flatMap { core ->
+        byCore.getValue(core).sortedBy { r -> Variants.of(r.item)?.let { it.mul.toDouble() / it.div } ?: 1.0 }
     }
 }
 
@@ -120,7 +157,7 @@ internal fun orderColumns(app: MarketApp, side: Boolean, owner: Boolean, fill: B
             if (o.country.isNotEmpty()) tooltip("order-country:${o.id}", c, app.countryTip(o.country, o.relation))
         })
     }
-    add(Column.number<OrderRow>(tr("kami_economy.col.price"), 64, tip = tr("kami_economy.col.per_lot"), format = { Format.money(it) }) { it.price.toLong() })
+    add(unitPriceColumn<OrderRow>(tr("kami_economy.col.price"), 64, lot = { it.lot }) { it.price.toLong() })
     add(unitsColumn<OrderRow>(tr("kami_libs.common.amount"), 90, { MarketSection.stack(it.item).maxStackSize }) { it.amount })
     add(Column.number<OrderRow>(tr("kami_economy.col.age"), 50, format = { Format.ago(it) }) { it.placedAt })
     add(Column.text<OrderRow>(tr("kami_libs.common.status"), 64, color = { if (it.best) Palette.success else Palette.warning }) {
@@ -190,8 +227,8 @@ internal class MarketPage(app: MarketApp) : ListPage(app, "market") {
             extra = { cell, row -> tooltip("market-tip:${row.item}", cell) { rowTip(row) } }
         ) { app.openItem(it.item) },
         Column.number<Row>(tr("kami_economy.col.lot"), 36) { it.lot.toLong() },
-        Column.number<Row>(tr("kami_economy.col.buy"), 66, tip = tr("kami_economy.col.per_lot"), format = ::priceText) { it.buy.toLong() },
-        Column.number<Row>(tr("kami_economy.col.sell"), 66, tip = tr("kami_economy.col.per_lot"), format = ::priceText) { it.sell.toLong() },
+        unitPriceColumn<Row>(tr("kami_economy.col.buy"), 66, lot = { it.lot }) { it.buy.toLong() },
+        unitPriceColumn<Row>(tr("kami_economy.col.sell"), 66, lot = { it.lot }) { it.sell.toLong() },
         Column.number<Row>(tr("kami_economy.col.available"), 52, format = { if (it == Long.MAX_VALUE) "∞" else Format.number(it) }) { if (it.available < 0) Long.MAX_VALUE else it.available.toLong() },
         demandColumn(),
         Column.number<Row>(tr("kami_economy.col.change"), 52, tip = tr("kami_economy.col.change.tip"), color = { if (it.change > 0) Palette.success else if (it.change < 0) Palette.danger else Palette.textMuted }, format = ::permille) { it.change.toLong() },
@@ -205,13 +242,13 @@ internal class MarketPage(app: MarketApp) : ListPage(app, "market") {
 
     private fun rowTip(row: Row) = Tip(MarketSection.stack(row.item).hoverName.string, listOfNotNull(
         row.status.takeIf { it.isNotEmpty() }?.let { statusTip(it, row.statusReason) to Palette.warning },
-        row.last.takeIf { it > 0 }?.let { tr("kami_economy.tip.last", Format.money(it.toLong())) to Palette.textSecondary },
+        row.last.takeIf { it > 0 }?.let { tr("kami_economy.tip.last", Format.unitMoney(it.toLong(), row.lot)) to Palette.textSecondary },
         tr("kami_economy.tip.volume", Format.number(row.volume)) to Palette.textSecondary,
         tr("kami_economy.tip.totals", Format.number(row.sold), Format.number(row.bought)) to Palette.textSecondary,
         tr("kami_economy.tip.lot", row.lot) to Palette.textSecondary,
         row.vendorPrice.takeIf { it > 0 }?.let { tr("kami_economy.market.vendors.price", Format.money(it.toLong())) to Palette.textSecondary },
-        row.myAsk.takeIf { it > 0 }?.let { tr("kami_economy.tip.my_ask", Format.money(it.toLong())) to Palette.brass },
-        row.myBid.takeIf { it > 0 }?.let { tr("kami_economy.tip.my_bid", Format.money(it.toLong())) to Palette.brass }
+        row.myAsk.takeIf { it > 0 }?.let { tr("kami_economy.tip.my_ask", Format.unitMoney(it.toLong(), row.lot)) to Palette.brass },
+        row.myBid.takeIf { it > 0 }?.let { tr("kami_economy.tip.my_bid", Format.unitMoney(it.toLong(), row.lot)) to Palette.brass }
     ))
 
     private fun keep(f: Filter, row: Row) = when (f) {
@@ -219,7 +256,7 @@ internal class MarketPage(app: MarketApp) : ListPage(app, "market") {
         Filter.STARTER -> row.starter
         Filter.SELLERS -> row.available != 0
         Filter.BUYERS -> row.demand != 0 && !(row.left == 0 && row.demand < 0)
-        Filter.HELD -> row.item in held
+        Filter.HELD -> row.item in held || row.variants.any { it.item in held }
     }
 
     override fun draw(ui: Ui, r: Rect) {
@@ -238,7 +275,7 @@ internal class MarketPage(app: MarketApp) : ListPage(app, "market") {
         val split = !query.isEmpty && orders.isNotEmpty()
         val rowsArea = if (split) area.top(area.h * 3 / 5) else area
         ui.anchor("market:table", rowsArea)
-        val shown = all.filter { keep(filter, it) }
+        val shown = ui.filtered("market:shown", listOf(filter, search.text, held, snap?.rows, all)) { all.filter { keep(filter, it) } }
         ui.table(rowsArea, tableColumns, shown, table, { it.item }, rowHeight = ROW_H, rowHeightOf = ::childHeight, regroup = ::groupRows, emptyText = tr("kami_libs.common.nothing_found"), key = "market:$filter", loading = loading).opened?.let { app.openItem(it.item) }
         ui.staleRows(rowsArea, stale && shown.isNotEmpty())
         if (split) {
@@ -261,13 +298,21 @@ internal class InstantPage(val app: MarketApp) : Page() {
     override val help get() = listOf(Callout("instant:table", tr("kami_economy.help.instant"), tr("kami_economy.help.instant.desc")))
 
     private val columns = listOf(
-        itemColumn<HeldRow>({ it.item }, { "instant:${it.item}" }) { app.openItem(it.item, "sell", "instant") },
+        itemColumn<HeldRow>({ it.item }, { "instant:${it.item}" },
+            area = { c, h -> c.dropRight(factorText(h.item).let { if (it.isEmpty()) 0 else Draw.width(it) + 4 }) },
+            extra = { cell, h -> factorText(h.item).takeIf { it.isNotEmpty() }?.let { Draw.text(g, it, cell.right + 2, cell.y + (cell.h - 8) / 2, Palette.textMuted) } }
+        ) { app.openItem(it.item, "sell", "instant") },
         unitsColumn<HeldRow>(tr("kami_economy.col.held"), 90, { MarketSection.stack(it.item).maxStackSize }) { it.held },
-        Column.number<HeldRow>(tr("kami_economy.col.sell"), 66, tip = tr("kami_economy.col.per_lot"), format = ::priceText) { it.sell.toLong() },
+        unitPriceColumn<HeldRow>(tr("kami_economy.col.sell"), 66, lot = { it.lot }) { it.sell.toLong() },
         Column.number<HeldRow>(tr("kami_economy.col.receive"), 70, tip = tr("kami_economy.col.receive.tip"), color = { if (it.net > 0) Palette.success else Palette.textMuted }, format = ::priceText) { it.net },
         Column.text<HeldRow>(tr("kami_economy.col.source"), 80, color = { if (it.source == "none") Palette.danger else Palette.textSecondary }) { tr("kami_economy.source.${it.source}") },
         Column<HeldRow>("", 54) { _, c, h ->
-            val reason = if (!app.snap.citizen) tr("kami_libs.lock.no_country") else tr("kami_economy.action.no_buyers").takeIf { h.net <= 0 }
+            val reason = when {
+                !app.snap.citizen -> tr("kami_libs.lock.no_country")
+                h.held < h.lot -> tr("kami_economy.action.below_lot", Format.number(h.lot))
+                h.net <= 0 -> tr("kami_economy.action.no_buyers")
+                else -> null
+            }
             if (button(Rect(c.x, c.y + 1, c.w, c.h - 2), tr("kami_economy.instant.sell_all"), enabled = reason == null, disabledReason = reason, key = "all:${h.item}")) {
                 pending = Pending(h.item, h.cap, h.lot)
                 app.request("quote", "sell_market", h.item, h.cap.toString(), "0")
@@ -295,7 +340,7 @@ internal class InstantPage(val app: MarketApp) : Page() {
         ui.anchor("instant:table", area)
         val snap = app.cached("instant")
         val held = snap?.let { box.filter(ui, "instant:rows", it.held) { h -> box.hit(h.item) } }.orEmpty()
-        ui.table(area, columns, held, table, { it.item }, rowHeight = ROW_H, emptyText = tr("kami_economy.instant.empty"), loading = snap == null || app.loading("instant")).opened?.let { app.openItem(it.item, "sell", "instant") }
+        ui.table(area, columns, held, table, { it.item }, rowHeight = ROW_H, regroup = ::groupHeld, emptyText = tr("kami_economy.instant.empty"), loading = snap == null || app.loading("instant")).opened?.let { app.openItem(it.item, "sell", "instant") }
         ui.staleRows(area, snap != null && app.loading("instant") && held.isNotEmpty())
         if (extra > 0) {
             val text = tr("kami_economy.instant.auction_only", extra)
@@ -332,7 +377,7 @@ internal class OrdersPage(app: MarketApp, private val bid: Boolean?) : ListPage(
         val stack = MarketSection.stack(o.item)
         ui.itemSlot(head.left(22), stack, key = "orders-panel-item")
         Draw.text(ui.g, Draw.fit(stack.hoverName.string, head.w - 28), head.x + 26, head.y + 7, TextStyle.HEADING)
-        ui.property(flow.take(12), tr("kami_economy.col.price"), Format.money(o.price.toLong()))
+        ui.property(flow.take(12), tr("kami_economy.col.price"), Format.unitMoney(o.price.toLong(), o.lot))
         ui.property(flow.take(12), tr("kami_libs.common.amount"), unitsText(o.amount, stack.maxStackSize))
         if (ui.button(flow.take(SMALL_H), tr("kami_economy.reprice.action"), Icons.EDIT, key = "panel-reprice")) app.reprice(app, o)
         if (ui.button(flow.take(SMALL_H), tr("kami_economy.cancel.action"), Icons.CROSS, style = ButtonStyle.DANGER, key = "panel-cancel")) app.cancel(app, o)
@@ -387,7 +432,7 @@ internal class InfinitePage(app: MarketApp) : ListPage(app, "infinite") {
 
     private val columns = listOf(
         itemColumn<Row>({ it.item }, { "inf:${it.item}" }, area = { c, row -> c.dropRight(tradeLock(c, row.status, row.statusReason, "inf-lock:${row.item}")) }) { app.openItem(it.item, "sell", "instant") },
-        Column.number<Row>(tr("kami_economy.col.sell"), 66, tip = tr("kami_economy.col.per_lot"), format = ::priceText) { it.sell.toLong() },
+        unitPriceColumn<Row>(tr("kami_economy.col.sell"), 66, lot = { it.lot }) { it.sell.toLong() },
         unitsColumn<Row>(tr("kami_economy.col.left"), 90, { MarketSection.stack(it.item).maxStackSize }) { if (it.left < 0) -1 else (it.left.toLong() * it.lot).coerceAtMost(Int.MAX_VALUE.toLong()).toInt() },
         Column<Row>("", 54) { _, c, row ->
             if (button(Rect(c.x, c.y + 1, c.w, c.h - 2), tr("kami_economy.market.sell_now"), enabled = row.sell > 0, key = "inf-sell:${row.item}")) app.openItem(row.item, "sell", "instant")
@@ -400,7 +445,7 @@ internal class InfinitePage(app: MarketApp) : ListPage(app, "infinite") {
         searchBar(ui, r.top(SMALL_H))
         val area = body(ui, r.dropTop(SMALL_H, 6))
         ui.anchor("infinite:table", area)
-        val rows = data?.let { filtered(ui, "infinite:rows", it.rows.filter { row -> row.infinite }) { row -> hit(row.item) || row.variants.any { hit(it.item) } } }.orEmpty()
+        val rows = data?.let { snap -> ui.filtered("infinite:shown", listOf(search.text, snap.rows)) { filtered(ui, "infinite:rows", snap.rows.filter { row -> row.infinite }) { row -> hit(row.item) || row.variants.any { hit(it.item) } } } }.orEmpty()
         ui.table(area, tableColumns, rows, table, { it.item }, rowHeight = ROW_H, rowHeightOf = ::childHeight, regroup = ::groupRows, emptyText = tr("kami_libs.common.nothing_found"), loading = loading).opened?.let { app.openItem(it.item, "sell", "instant") }
         ui.staleRows(area, stale && rows.isNotEmpty())
     }

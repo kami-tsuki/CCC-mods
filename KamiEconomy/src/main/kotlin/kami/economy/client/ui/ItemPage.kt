@@ -110,9 +110,9 @@ internal class ItemPage(val app: MarketApp) : Page() {
         val lotShown = d?.let { ticket.lotOf(it) } ?: 1
         fun source(server: Boolean) = tr(if (server) "kami_economy.source.server" else "kami_economy.source.player")
         ui.kpiRow(r.dropTop(26).top(34), listOf(
-            KpiTile(tr("kami_economy.col.buy"), d?.let { priceText(sp(it.buy.toLong())) }, color = Palette.money, tip = d?.takeIf { it.buy > 0 }?.let { Tip.text(tr("kami_economy.kpi.buy", lotShown), source(it.buyServer)) } ?: Tip.text(tr("kami_economy.kpi.buy", 1))),
-            KpiTile(tr("kami_economy.col.sell"), d?.let { priceText(sp(it.sell.toLong())) }, color = Palette.money, tip = d?.takeIf { it.sell > 0 }?.let { Tip.text(tr("kami_economy.kpi.sell", lotShown), source(it.sellServer)) } ?: Tip.text(tr("kami_economy.kpi.sell", 1))),
-            KpiTile(tr("kami_economy.item.course"), d?.let { priceText(sp(it.course.roundToLong())) }, tip = Tip.text(tr("kami_economy.kpi.course", d?.let { Format.percent(it.spread, 1) } ?: "–"))),
+            KpiTile(tr("kami_economy.col.buy"), d?.let { Format.unitMoney(sp(it.buy.toLong()), lotShown) }, color = Palette.money, tip = d?.takeIf { it.buy > 0 }?.let { Tip.text(tr("kami_economy.kpi.buy", lotShown), source(it.buyServer)) } ?: Tip.text(tr("kami_economy.kpi.buy", 1))),
+            KpiTile(tr("kami_economy.col.sell"), d?.let { Format.unitMoney(sp(it.sell.toLong()), lotShown) }, color = Palette.money, tip = d?.takeIf { it.sell > 0 }?.let { Tip.text(tr("kami_economy.kpi.sell", lotShown), source(it.sellServer)) } ?: Tip.text(tr("kami_economy.kpi.sell", 1))),
+            KpiTile(tr("kami_economy.item.course"), d?.let { Format.unitMoney(sp(it.course.roundToLong()), lotShown) }, tip = Tip.text(tr("kami_economy.kpi.course", d?.let { Format.percent(it.spread, 1) } ?: "–"))),
             KpiTile(tr("kami_economy.item.change", range), d?.let { permille(delta) }, color = if (delta > 0) Palette.success else if (delta < 0) Palette.danger else Palette.textMuted, tip = Tip.text(tr("kami_economy.item.change.tip", range))),
             KpiTile(tr("kami_economy.item.sold_bought"), d?.let { "${Format.number(it.sold)} / ${Format.number(it.bought)}" }, tip = Tip.text(tr("kami_economy.kpi.traded")))
         ), key = "item-kpi")
@@ -125,9 +125,10 @@ internal class ItemPage(val app: MarketApp) : Page() {
     }
 
     private fun left(ui: Ui, r: Rect, d: Detail?) {
-        val asks = d?.asks.orEmpty().take(BOOK_ROWS).reversed().map { l -> d?.let { l.copy(price = ticket.priceOf(it, l.price.toLong()).toInt()) } ?: l }
-        val bids = d?.bids.orEmpty().take(BOOK_ROWS).map { l -> d?.let { l.copy(price = ticket.priceOf(it, l.price.toLong()).toInt()) } ?: l }
+        val asks = d?.asks.orEmpty().take(BOOK_ROWS).reversed().map { l -> d?.let { l.copy(price = ticket.priceOf(it, l.price.toLong()).toInt(), amount = ticket.unitsOf(l.amount)) } ?: l }
+        val bids = d?.bids.orEmpty().take(BOOK_ROWS).map { l -> d?.let { l.copy(price = ticket.priceOf(it, l.price.toLong()).toInt(), amount = ticket.unitsOf(l.amount)) } ?: l }
         val vendors = d?.vendors.orEmpty()
+        val lot = d?.let { ticket.lotOf(it) } ?: 1
         val rows = (asks.size + bids.size).coerceAtLeast(1) * BOOK_ROW + BOOK_MID
         val vendorH = if (vendors.isEmpty()) 0 else 20 + if (vendorsOpen) vendors.take(VENDOR_ROWS).size * BOOK_ROW else 0
         val unit = d?.let { ticket.priceOf(it, 1_000_000L) } ?: 1_000_000L
@@ -150,9 +151,9 @@ internal class ItemPage(val app: MarketApp) : Page() {
             if (d == null) ui.skeletonLines(Rect(c.x, y, c.w, BOOK_ROW), 1)
             else if (asks.isEmpty() && bids.isEmpty()) Draw.text(ui.g, tr("kami_economy.market.book.empty"), c.x, y + 1, Palette.textMuted)
             val most = (asks + bids).maxOfOrNull { it.amount } ?: 0
-            asks.forEachIndexed { i, l -> bookRow(ui, Rect(c.x, y + i * BOOK_ROW, c.w, BOOK_ROW), l, Palette.danger, most, "ask$i", false) }
+            asks.forEachIndexed { i, l -> bookRow(ui, Rect(c.x, y + i * BOOK_ROW, c.w, BOOK_ROW), l, Palette.danger, most, "ask$i", false, lot) }
             y += asks.size * BOOK_ROW + BOOK_MID
-            bids.forEachIndexed { i, l -> bookRow(ui, Rect(c.x, y + i * BOOK_ROW, c.w, BOOK_ROW), l, Palette.success, most, "bid$i", true) }
+            bids.forEachIndexed { i, l -> bookRow(ui, Rect(c.x, y + i * BOOK_ROW, c.w, BOOK_ROW), l, Palette.success, most, "bid$i", true, lot) }
             y += bids.size.coerceAtLeast(if (asks.isEmpty()) 1 else 0) * BOOK_ROW + 6
             if (vendors.isNotEmpty()) vendorBlock(ui, Rect(c.x, y, c.w, vendorH), d)
         }
@@ -182,12 +183,12 @@ internal class ItemPage(val app: MarketApp) : Page() {
         Draw.text(ui.g, if (scrubbing) Format.exact(shown.at) else tr("kami_economy.chart.caption.${span.arg}"), x, r.y + 11, Palette.textMuted)
     }
 
-    private fun bookRow(ui: Ui, r: Rect, l: Level, color: Int, most: Int, key: String, bid: Boolean) {
+    private fun bookRow(ui: Ui, r: Rect, l: Level, color: Int, most: Int, key: String, bid: Boolean, lot: Int) {
         val embargo = l.relation == "embargo"
         if (most > 0) Draw.fill(ui.g, r.withWidth(if (l.amount < 0) r.w else (r.w.toLong() * l.amount / most).toInt().coerceIn(1, r.w)), Palette.alpha(color, 0x28))
         if (l.mine) Draw.outline(ui.g, r, Palette.brass)
         if (l.country.isNotEmpty()) ui.flag(Rect(r.x + 2, r.y + 1, 11, 8), l.color, l.flag)
-        val price = Format.money(l.price.toLong())
+        val price = Format.unitMoney(l.price.toLong(), lot)
         Draw.text(ui.g, price, r.x + 16, r.y + 1, if (l.mine) Palette.brass else if (embargo) Palette.textMuted else color)
         var used = r.x + 16 + Draw.width(price)
         if (l.tariff > 0 && !l.mine && !embargo) {
@@ -204,7 +205,7 @@ internal class ItemPage(val app: MarketApp) : Page() {
         val shown = Draw.fit(amount, (r.right - 3 - used - 6).coerceAtLeast(0))
         Draw.text(ui.g, shown, r.right - Draw.width(shown) - 3, r.y + 1, if (embargo) Palette.danger else Palette.textMuted)
         val side = if (bid) "bid" else "ask"
-        val kind = tr(if (l.market) "kami_economy.book.tip.market.$side" else "kami_economy.book.tip.$side", qty, Format.money(l.price.toLong()))
+        val kind = tr(if (l.market) "kami_economy.book.tip.market.$side" else "kami_economy.book.tip.$side", qty, Format.unitMoney(l.price.toLong(), lot))
         ui.tooltip("book:$key", r, Tip(lines = listOfNotNull(
             kind to Palette.textSecondary,
             l.country.takeIf { it.isNotEmpty() }?.let { app.countryTip(it, l.relation) to Palette.textMuted },

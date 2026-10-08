@@ -12,26 +12,29 @@ import net.minecraft.world.item.crafting.ShapelessRecipe
 object VariantScan {
     private var pairs: List<Pair<String, String>> = emptyList()
 
-    private fun CraftingRecipe.single(): String? =
-        ingredients.map { i -> i.items.map(ItemSpec::spec).distinct() }.takeIf { l -> l.isNotEmpty() && l.all { it.size == 1 } }?.map { it[0] }?.distinct()?.singleOrNull()
+    private fun CraftingRecipe.inputs(): Set<String>? =
+        ingredients.filterNot { it.isEmpty }.map { i -> i.items.map(ItemSpec::spec).toSet() }.takeIf { l -> l.isNotEmpty() && l.all { it.isNotEmpty() && it == l[0] } }?.get(0)
+
+    private fun CraftingRecipe.slots() = ingredients.count { !it.isEmpty }
 
     fun read(server: MinecraftServer) {
         val access = server.registryAccess()
-        val compress = HashSet<Pair<String, String>>()
-        val expand = HashSet<Pair<String, String>>()
+        val compress = HashMap<String, MutableSet<String>>()
+        val expand = HashMap<String, MutableSet<String>>()
         server.recipeManager.getAllRecipesFor(RecipeType.CRAFTING).forEach { holder ->
             val r = holder.value()
             if (r !is ShapedRecipe && r !is ShapelessRecipe) return@forEach
             val out = runCatching { r.getResultItem(access) }.getOrNull()?.takeUnless { it.isEmpty } ?: return@forEach
-            val input = r.single() ?: return@forEach
+            val input = r.inputs() ?: return@forEach
             val result = ItemSpec.spec(out)
+            if (result in input) return@forEach
             when {
-                input == result -> Unit
-                out.count == 1 && r.ingredients.size == 9 && (r !is ShapedRecipe || (r.width == 3 && r.height == 3)) -> compress += input to result
-                out.count == 9 && r.ingredients.size == 1 -> expand += result to input
+                out.count == 1 && r.slots() == 9 && (r !is ShapedRecipe || (r.width == 3 && r.height == 3)) -> compress.getOrPut(result) { HashSet() } += input
+                out.count == 9 && r.slots() == 1 -> expand.getOrPut(result) { HashSet() } += input
             }
         }
-        pairs = compress.filter { it in expand && Blacklist.sellable(it.first) && Blacklist.sellable(it.second) }
+        pairs = expand.flatMap { (small, bigs) -> bigs.filter { big -> compress[big]?.contains(small) == true }.map { small to it } }
+            .filter { Blacklist.sellable(it.first) && Blacklist.sellable(it.second) }.distinct()
         apply()
     }
 

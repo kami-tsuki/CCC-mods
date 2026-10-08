@@ -12,7 +12,15 @@ object PriceCache {
 
     fun lot(item: String, lot: Int) { lots[item] = lot }
 
-    fun lotOf(item: String): Int = lots[item] ?: 1
+    fun lotOf(item: String): Int? = lots[item]
+
+    fun shownLot(item: String): Int? {
+        val core = Variants.core(item)
+        val coreLot = lots[core] ?: return null
+        return if (core == item) coreLot else Variants.lot(item, coreLot)
+    }
+
+    fun clearShown() = shownCache.clear()
 
     val items: Set<String> get() = prices.keys
 
@@ -33,9 +41,10 @@ object PriceCache {
         if (Variants.of(item) == null) return prices[item]
         val core = Variants.core(item)
         val base = prices[core] ?: return null
+        val coreLot = lotOf(core) ?: return null
         val cached = shownCache[item]
         if (cached != null && cached.first === base) return cached.second
-        val made = PriceInfo(Variants.scale(item, base.price.toLong(), lotOf(core)).coerceIn(0, Int.MAX_VALUE.toLong()).toInt(), base.direction)
+        val made = PriceInfo(Variants.scale(item, base.price.toLong(), coreLot).coerceIn(0, Int.MAX_VALUE.toLong()).toInt(), base.direction)
         shownCache[item] = base to made
         return made
     }
