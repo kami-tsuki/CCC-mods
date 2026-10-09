@@ -1,5 +1,6 @@
 package kami.claims.client.admin
 
+import kami.libs.ui.core.Memo
 import kami.claims.client.app.pages.WarPage
 import kami.libs.admin.StatPoint
 import kami.libs.ui.app.Page
@@ -26,12 +27,19 @@ private val moneyText = { v: Long -> Format.money(v) }
 private val powerText = { v: Long -> WarPage.power(v / 100.0) }
 private val fameText = { v: Long -> WarPage.stars(v / 100.0) }
 
+private fun List<StatPoint>.mean() = filter { it.v.isFinite() }.let { p -> if (p.isEmpty()) 0L else (p.sumOf { it.v } / p.size).toLong() }
+
+private val durationText = { v: Long -> Format.duration(v) }
+
 private fun average(label: String) = tr("kami_claims.admin.stats.average", label)
 
 private fun perCountry(label: String) = tr("kami_claims.admin.stats.per_country", label)
 
 internal class CountryStatsPage : Page() {
-    override val title get() = tr("kami_claims.admin.nav.stats")
+    private val pageCards = Memo()
+    private val pageGain = Memo()
+    private val pageTiles = Memo()
+    override val title get() = tr("kami_libs.common.statistics")
     private val range = TimeRange("country-stats:range")
     private val board = StatBoard(range)
     private val countries = board.series("country.count")
@@ -55,21 +63,31 @@ internal class CountryStatsPage : Page() {
     private val warKills = board.counted("war.kill")
     private val warKillsBy = board.top("war.kill")
     private val research = board.series("research.done", "count")
+    private val xpGain = board.counted("xp.gain")
+    private val xpBy = board.top("xp.gain")
+    private val xpSource = board.top("xp.gain", "o")
+    private val nodePick = board.top("research.node", "o")
+    private val researchTime = board.series("research.time")
+    private val researchWait = board.series("research.wait")
 
     override fun draw(ui: Ui, r: Rect) {
-        val gain = board[claimed].points.delta(board[unclaimed].points)
-        val tiles = listOf(
+        val data = board.remote.data ?: board.remote.latest
+        val gain = pageGain.of(data) { board[claimed].points.delta(board[unclaimed].points) }
+        val tiles = pageTiles.of(data, Format.locale) { listOf(
             KpiTile(tr("kami_claims.metric.countries"), Format.number(board[countries].points.lastValue()), Icons.FLAG),
             KpiTile(tr("kami_claims.admin.stats.active"), Format.number(board[active].points.lastValue()), Icons.PEOPLE),
-            KpiTile(average(tr("kami_claims.admin.col.treasury")), moneyText(board[treasury].points.lastValue()), Icons.TREASURY, Palette.money),
+            KpiTile(average(tr("kami_libs.flow.treasury")), moneyText(board[treasury].points.lastValue()), Icons.TREASURY, Palette.money),
             KpiTile(tr("kami_claims.admin.stats.gain"), Format.signed(gain.total().toLong()), Icons.AREA),
             KpiTile(tr("kami_claims.admin.stats.declarations"), Format.number(board[declared].points.total().toLong()), Icons.SHIELD),
             KpiTile(tr("kami_claims.admin.stats.war_kills"), Format.number(board[warKills].points.total().toLong()), Icons.DANGER),
-            KpiTile(tr("kami_claims.admin.stats.research"), Format.number(board[research].points.total().toLong()), Icons.SCROLL)
-        )
-        val cards = listOf(
-            board.chartCard(average(tr("kami_claims.admin.col.treasury")), Icons.TREASURY, "country-stats:treasury", treasury, Palette.money, format = moneyText),
-            board.topCard(perCountry(tr("kami_claims.admin.col.treasury")), Icons.TREASURY, treasuryBy, moneyText),
+            KpiTile(tr("kami_claims.admin.stats.research"), Format.number(board[research].points.total().toLong()), Icons.SCROLL),
+            KpiTile(tr("kami_claims.admin.stats.xp.total"), Format.number(board[xpGain].points.total().toLong()), Icons.STAR),
+            KpiTile(tr("kami_claims.admin.stats.xp.avg_time"), durationText(board[researchTime].points.mean()), Icons.CLOCK),
+            KpiTile(tr("kami_claims.admin.stats.xp.avg_wait"), durationText(board[researchWait].points.mean()), Icons.CLOCK)
+        ) }
+        val cards = pageCards.of(data, Format.locale) { listOf(
+            board.chartCard(average(tr("kami_libs.flow.treasury")), Icons.TREASURY, "country-stats:treasury", treasury, Palette.money, format = moneyText),
+            board.topCard(perCountry(tr("kami_libs.flow.treasury")), Icons.TREASURY, treasuryBy, moneyText),
             board.chartCard(average(tr("kami_claims.admin.col.claims")), Icons.AREA, "country-stats:chunks", chunks, Palette.chart[2]),
             statChartCard(tr("kami_claims.admin.stats.gain"), Icons.MAP, "country-stats:gain", listOf(StatLine(tr("kami_claims.admin.stats.gain"), gain, Palette.chart[1], true))),
             board.topCard(perCountry(tr("kami_claims.admin.col.claims")), Icons.AREA, chunksBy),
@@ -81,23 +99,31 @@ internal class CountryStatsPage : Page() {
             ),
             board.topCard(perCountry(tr("kami_libs.common.members")), Icons.PEOPLE, membersBy),
             board.topCard(perCountry(tr("kami_libs.common.online")), Icons.PERSON, onlineBy),
-            board.topCard(perCountry(tr("kami_claims.admin.col.level")), Icons.STAR, levelBy),
+            board.topCard(perCountry(tr("kami_libs.common.level")), Icons.STAR, levelBy),
             board.topCard(perCountry(tr("kami_claims.warpage.fame")), Icons.CROWN, fameBy, fameText),
             board.topCard(perCountry(tr("kami_claims.kpi.power")), Icons.SHIELD, powerBy, powerText),
             board.chartCard(tr("kami_claims.admin.stats.declarations"), Icons.SHIELD, "country-stats:declared", declared, Palette.danger),
             board.chartCard(tr("kami_claims.admin.stats.war_kills"), Icons.DANGER, "country-stats:war-kills", warKills, Palette.danger),
             board.topCard(perCountry(tr("kami_claims.admin.stats.war_kills")), Icons.DANGER, warKillsBy),
             board.chartCard(tr("kami_claims.admin.stats.research"), Icons.SCROLL, "country-stats:research", research, Palette.chart[6]),
+            board.chartCard(tr("kami_claims.admin.stats.xp.gained"), Icons.STAR, "country-stats:xp", xpGain, Palette.chart[0]),
+            board.topCard(perCountry(tr("kami_claims.admin.stats.xp.gained")), Icons.STAR, xpBy),
+            board.topCard(tr("kami_claims.admin.stats.xp.by_source"), Icons.STAR, xpSource),
+            board.topCard(tr("kami_claims.admin.stats.xp.nodes"), Icons.TREE, nodePick),
+            board.chartCard(tr("kami_claims.admin.stats.xp.research_time"), Icons.CLOCK, "country-stats:research-time", researchTime, Palette.chart[5], false, durationText),
             statChartCard(
                 tr("kami_claims.metric.countries"), Icons.FLAG, "country-stats:countries",
                 listOf(StatLine(tr("kami_claims.metric.countries"), board[countries].points, Palette.chart[2]), StatLine(tr("kami_claims.admin.stats.active"), board[active].points, Palette.chart[1], true))
             )
-        )
+        ) }
         ui.statPage("country-stats", r, range, board, tiles, cards)
     }
 }
 
 internal class CountryStats(id: String) {
+    private val detailCards = Memo()
+    private val detailGain = Memo()
+    private val detailTiles = Memo()
     private val subject = "c:$id"
     private val range = TimeRange("country-detail-stats:range")
     private val board = StatBoard(range)
@@ -114,6 +140,13 @@ internal class CountryStats(id: String) {
     private val declared = board.series("war.declare", "count", subject)
     private val warKills = board.counted("war.kill", subject)
     private val research = board.series("research.done", "count", subject)
+    private val xpGain = board.counted("xp.gain", subject)
+    private val xpSource = board.top("xp.gain", "o", subject)
+    private val xpTotal = board.series("xp.total", subject = subject)
+    private val nodePick = board.top("research.node", "o", subject)
+    private val researchTime = board.series("research.time", subject = subject)
+    private val researchWait = board.series("research.wait", subject = subject)
+    private val queue = board.series("research.queue", subject = subject)
     private val offerCreated = board.series("loan.offer.create", "count", subject)
     private val offerOn = board.total("loan.offer.on", subject)
     private val offerOff = board.total("loan.offer.off", subject)
@@ -136,15 +169,20 @@ internal class CountryStats(id: String) {
     private val block = board.series("loan.block", subject = subject)
 
     fun draw(ui: Ui, r: Rect) {
-        val gain = board[claimed].points.delta(board[unclaimed].points)
-        val tiles = listOf(
-            KpiTile(tr("kami_claims.admin.col.treasury"), moneyText(board[treasury].points.lastValue()), Icons.TREASURY, Palette.money),
+        val data = board.remote.data ?: board.remote.latest
+        val gain = detailGain.of(data) { board[claimed].points.delta(board[unclaimed].points) }
+        val tiles = detailTiles.of(data, Format.locale) { listOf(
+            KpiTile(tr("kami_libs.flow.treasury"), moneyText(board[treasury].points.lastValue()), Icons.TREASURY, Palette.money),
             KpiTile(tr("kami_claims.admin.col.claims"), Format.number(board[chunks].points.lastValue()), Icons.AREA),
             KpiTile(tr("kami_claims.admin.stats.gain"), Format.signed(gain.total().toLong()), Icons.MAP),
             KpiTile(tr("kami_libs.common.members"), Format.number(board[members].points.lastValue()), Icons.PEOPLE),
             KpiTile(tr("kami_claims.admin.stats.declarations"), Format.number(board[declared].points.total().toLong()), Icons.SHIELD),
             KpiTile(tr("kami_claims.admin.stats.war_kills"), Format.number(board[warKills].points.total().toLong()), Icons.DANGER),
             KpiTile(tr("kami_claims.admin.stats.research"), Format.number(board[research].points.total().toLong()), Icons.SCROLL),
+            KpiTile(tr("kami_claims.admin.stats.xp.total"), Format.number(board[xpGain].points.total().toLong()), Icons.STAR),
+            KpiTile(tr("kami_claims.admin.stats.xp.avg_time"), durationText(board[researchTime].points.mean()), Icons.CLOCK),
+            KpiTile(tr("kami_claims.admin.stats.xp.avg_wait"), durationText(board[researchWait].points.mean()), Icons.CLOCK),
+            KpiTile(tr("kami_claims.admin.stats.xp.queue"), Format.number(board[queue].points.lastValue()), Icons.SCROLL),
             KpiTile(tr("kami_claims.admin.stats.loan.offers_created"), Format.number(board[offerCreated].points.total().toLong()), Icons.DEBT),
             KpiTile(tr("kami_claims.admin.stats.loan.offers_on"), Format.number(board[offerOn].total.toLong()), Icons.CHECK),
             KpiTile(tr("kami_claims.admin.stats.loan.offers_off"), Format.number(board[offerOff].total.toLong()), Icons.LOCK),
@@ -165,9 +203,9 @@ internal class CountryStats(id: String) {
             KpiTile(tr("kami_claims.admin.stats.loan.debt"), moneyText(board[debt].points.lastValue()), Icons.DEBT, Palette.danger),
             KpiTile(tr("kami_claims.admin.stats.loan.lent"), moneyText(board[lent].points.lastValue()), Icons.EXPENSE, Palette.money),
             KpiTile(tr("kami_claims.admin.stats.loan.block"), Format.number(board[block].points.lastValue()), Icons.CLOCK)
-        )
-        val cards = listOf(
-            board.chartCard(tr("kami_claims.admin.col.treasury"), Icons.TREASURY, "country-detail-stats:treasury", treasury, Palette.money, format = moneyText),
+        ) }
+        val cards = detailCards.of(data, Format.locale) { listOf(
+            board.chartCard(tr("kami_libs.flow.treasury"), Icons.TREASURY, "country-detail-stats:treasury", treasury, Palette.money, format = moneyText),
             board.chartCard(tr("kami_claims.admin.col.claims"), Icons.AREA, "country-detail-stats:chunks", chunks, Palette.chart[2]),
             statChartCard(tr("kami_claims.admin.stats.gain"), Icons.MAP, "country-detail-stats:gain", listOf(StatLine(tr("kami_claims.admin.stats.gain"), gain, Palette.chart[1], true))),
             statChartCard(
@@ -175,14 +213,19 @@ internal class CountryStats(id: String) {
                 listOf(StatLine(tr("kami_libs.common.members"), board[members].points, Palette.chart[1]), StatLine(tr("kami_libs.common.online"), board[online].points, Palette.chart[2], true))
             ),
             board.chartCard(tr("kami_claims.admin.stats.provinces"), Icons.CHAIN, "country-detail-stats:provinces", provinces, Palette.chart[3], false),
-            board.chartCard(tr("kami_claims.admin.col.level"), Icons.STAR, "country-detail-stats:level", level, Palette.chart[0], false),
+            board.chartCard(tr("kami_libs.common.level"), Icons.STAR, "country-detail-stats:level", level, Palette.chart[0], false),
             board.chartCard(tr("kami_claims.warpage.fame"), Icons.CROWN, "country-detail-stats:fame", fame, Palette.chart[4], false, fameText),
             board.chartCard(tr("kami_claims.kpi.power"), Icons.SHIELD, "country-detail-stats:power", power, Palette.chart[5], false, powerText),
             board.chartCard(tr("kami_claims.admin.stats.war_kills"), Icons.DANGER, "country-detail-stats:war-kills", warKills, Palette.danger),
             board.chartCard(tr("kami_claims.admin.stats.research"), Icons.SCROLL, "country-detail-stats:research", research, Palette.chart[6]),
+            board.chartCard(tr("kami_claims.admin.stats.xp.gained"), Icons.STAR, "country-detail-stats:xp", xpGain, Palette.chart[0]),
+            board.chartCard(tr("kami_claims.admin.stats.xp.stock"), Icons.STAR, "country-detail-stats:xp-total", xpTotal, Palette.chart[3], false),
+            board.topCard(tr("kami_claims.admin.stats.xp.by_source"), Icons.STAR, xpSource),
+            board.topCard(tr("kami_claims.admin.stats.xp.nodes"), Icons.TREE, nodePick),
+            board.chartCard(tr("kami_claims.admin.stats.xp.research_time"), Icons.CLOCK, "country-detail-stats:research-time", researchTime, Palette.chart[5], false, durationText),
             board.chartCard(tr("kami_claims.admin.stats.loan.debt"), Icons.DEBT, "country-detail-stats:loan-debt", debt, Palette.danger, false, moneyText),
             board.chartCard(tr("kami_claims.admin.stats.loan.taken_sum"), Icons.INCOME, "country-detail-stats:loan-taken", takenSum, Palette.money, format = moneyText)
-        )
+        ) }
         ui.statPage("country-detail-stats", r, range, board, tiles, cards)
     }
 }

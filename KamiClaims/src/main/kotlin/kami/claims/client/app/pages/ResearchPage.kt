@@ -26,6 +26,8 @@ import org.lwjgl.glfw.GLFW
 class ResearchPage(app: ClaimsApp) : ClaimsPage(app) {
     override val title get() = tr("kami_claims.nav.research")
 
+    override val subtitle: String? get() = boostHint("research")
+
     private val detail = ResearchDetail(this)
     private val views = HashMap<String, TechTreeState>()
     private val cache = HashMap<String, List<TechNode>>()
@@ -159,7 +161,7 @@ class ResearchPage(app: ClaimsApp) : ClaimsPage(app) {
             matches.isEmpty() -> tr("kami_libs.common.nothing_found")
             else -> tr("kami_claims.research.match", matchIndex + 1, matches.size)
         }
-        Draw.text(ui.g, Draw.fit(hint, row.rest.w), row.rest.x + 2, bar.y + 5, Palette.textMuted)
+        ui.fitText(row.rest.x + 2, bar.y + 5, row.rest.w, hint, Palette.textMuted)
     }
 
     private fun find(query: String): List<String> {

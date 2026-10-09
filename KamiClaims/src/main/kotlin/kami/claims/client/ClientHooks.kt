@@ -6,6 +6,7 @@ import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.personal.ClaimsPersonal
 import kami.claims.client.app.ResearchPins
 import kami.claims.client.hud.Hud
+import kami.claims.client.xaero.XaeroClaims
 import kami.claims.client.map.MiniMap
 import kami.claims.client.store.ClaimsStore
 import kami.claims.client.store.ClientResearch
@@ -15,6 +16,7 @@ import kami.claims.client.world.BlockHint
 import kami.claims.client.world.Borders
 import kami.claims.net.Denied
 import kami.claims.net.Snap
+import kami.claims.war.Selection
 import kami.libs.net.SnapshotPayload
 import kami.libs.net.decode
 import kami.claims.service.View
@@ -26,7 +28,6 @@ import kami.libs.ui.app.Route
 import kami.libs.ui.style.Icons
 import kami.libs.ui.map.TerrainCache
 import kami.libs.ui.text.tr
-import kami.libs.xaero.Highlights
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.contents.TranslatableContents
@@ -38,6 +39,8 @@ import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent
 import net.neoforged.neoforge.client.event.RenderHighlightEvent
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent
+import net.neoforged.neoforge.client.event.RenderNameTagEvent
+import net.neoforged.neoforge.common.util.TriState
 import org.lwjgl.glfw.GLFW
 import thedarkcolour.kotlinforforge.neoforge.forge.FORGE_BUS
 import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
@@ -45,17 +48,18 @@ import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 object ClientHooks {
     private val open = registerOpenKey("kami_claims", GLFW.GLFW_KEY_K) { openApp() }
     fun openKey(): String = open.translatedKeyMessage.string
+    fun bordersKey(): String = borders.translatedKeyMessage.string
     fun openKeyId() = open.key
     private val borders = KeyMapping("key.kami_claims.borders", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_B, "key.categories.kami_claims")
     private var ticks = 0
     private var echoUntil = 0L
-    private val opening = OpenWait({ tr("kami_claims.open.loading") }, { tr("kami_claims.open.timeout") }, { tr("kami_claims.open.timeout.desc") })
+    private val opening = OpenWait({ tr("kami_libs.common.loading") }, { tr("kami_claims.open.timeout") }, { tr("kami_libs.common.no_answer") })
 
     fun init() {
         Modules.register(AppModule("country", "kami_libs.common.country", Icons.FLAG, 10) { openApp() })
         ClaimsPersonal.register()
         CountryAdminSection.register()
-        Highlights.register(KamiHighlighter())
+        XaeroClaims.register()
         ResearchTooltip.init()
         ResearchPins.register()
         Hud.register()
@@ -68,11 +72,13 @@ object ClientHooks {
         FORGE_BUS.addListener<RenderHighlightEvent.Block> { BlockHint.highlight(it) }
         FORGE_BUS.addListener<CustomizeGuiOverlayEvent.BossEventProgress> { hideWarBar(it) }
         FORGE_BUS.addListener<RenderLevelStageEvent> { Borders.renderWalls(it) }
+        FORGE_BUS.addListener<RenderNameTagEvent> { if (VisibilityState.isHidden(it.entity.uuid)) it.setCanRender(TriState.FALSE) }
         FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingIn> {
             applyPrefs()
+            VisibilityState.clear()
             ClaimsStore.watch(emptyList(), force = true)
         }
-        FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> { TerrainCache.clear(); ClientResearch.clear(); ClaimsStore.clear(); opening.done(); MiniMap.clear(); Hud.reset() }
+        FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> { TerrainCache.clear(); ClientResearch.clear(); ClaimsStore.clear(); opening.done(); MiniMap.clear(); Hud.reset(); VisibilityState.clear(); ClientClaims.war = 0 }
     }
 
     private fun hideWarBar(e: CustomizeGuiOverlayEvent.BossEventProgress) = runCatching {
@@ -94,7 +100,7 @@ object ClientHooks {
         while (borders.consumeClick()) if (mc.screen == null) Borders.cycle()
         ClaimsStore.tick()
         Borders.tick()
-        if (mc.player != null && ++ticks % 1200 == 0 && mc.screen == null) ClaimsStore.watch(emptyList(), force = true)
+        if (mc.player != null && ++ticks % 1200 == 0 && mc.screen == null) ClaimsStore.watch(Hud.idleWatch(), force = true)
     }
 
     fun request(name: String, vararg args: String) = ClaimsStore.quiet(name, *args)
@@ -107,12 +113,13 @@ object ClientHooks {
         if (!ClaimsApp.instance.isOpen) ClaimsApp.open()
     }
 
-    fun openResearch(key: String) {
+    fun openRoute(target: Route) {
         val app = ClaimsApp.instance
-        val target = Route("research", focus = key)
         if (app.route == target) app.page(target.page).opened(target) else app.navigate(target, sound = false)
         openApp()
     }
+
+    fun openResearch(key: String) = openRoute(Route("research", focus = key))
 
     fun snapshot(s: SnapshotPayload) {
         val snap = s.decode<Snap>() ?: return
@@ -128,6 +135,8 @@ object ClientHooks {
     fun claims(payload: View.Payload) = ClientClaims.update(payload)
 
     fun denied(d: Denied) = BlockHint.denied(d)
+
+    fun positions(s: Selection) = VisibilityState.receive(s)
 
     fun researchDefs(defs: DefsView) = ClientResearch.receive(defs)
 

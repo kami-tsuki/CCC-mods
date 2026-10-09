@@ -26,6 +26,7 @@ private const val H = 130
 private const val SLOT = 18
 private const val TEXT_Y = 24
 private const val LINE = 10
+private const val MAX_LINES = (H - TEXT_Y) / LINE
 private const val TEXT = 0xFF404040.toInt()
 
 class GuideCategory(guiHelper: IGuiHelper) : IRecipeCategory<GuideOre> {
@@ -45,8 +46,17 @@ class GuideCategory(guiHelper: IGuiHelper) : IRecipeCategory<GuideOre> {
         val font = Minecraft.getInstance()?.font ?: return
         val x = recipe.blocks.size * SLOT + 4
         g.drawString(font, GeoText.oreLabel(recipe.id), x, 9, TEXT, false)
-        lines(recipe).flatMap { font.split(Component.literal(it), W) }.take((H - TEXT_Y) / LINE)
-            .forEachIndexed { i, line -> g.drawString(font, line, 0, TEXT_Y + i * LINE, TEXT, false) }
+        val all = lines(recipe).flatMap { font.split(Component.literal(it), W) }
+        val shown = if (all.size > MAX_LINES) all.take(MAX_LINES - 1) else all
+        shown.forEachIndexed { i, line -> g.drawString(font, line, 0, TEXT_Y + i * LINE, TEXT, false) }
+        if (all.size > MAX_LINES) g.drawString(font, "…", 0, TEXT_Y + shown.size * LINE, TEXT, false)
+    }
+
+    override fun getTooltipStrings(recipe: GuideOre, recipeSlotsView: IRecipeSlotsView, mouseX: Double, mouseY: Double): List<Component> {
+        val font = Minecraft.getInstance()?.font ?: return emptyList()
+        val all = lines(recipe).flatMap { font.split(Component.literal(it), W) }
+        if (all.size <= MAX_LINES || mouseY < TEXT_Y + (MAX_LINES - 1) * LINE || mouseY >= H) return emptyList()
+        return lines(recipe).map { Component.literal(it) }
     }
 
     private fun stack(id: String) = ResourceLocation.tryParse(id)?.let { BuiltInRegistries.ITEM.getOptional(it).orElse(null) }
@@ -61,12 +71,12 @@ class GuideCategory(guiHelper: IGuiHelper) : IRecipeCategory<GuideOre> {
             val parts = listOfNotNull(trOr("kami_geology.shape.$shape", GeoText.name(shape)), range(o.height), tr("kami_geology.jei.density", Format.percent(o.chance), o.spacing))
             tr("kami_geology.jei.deposits", parts.joinToString(" · "))
         },
-        tr("kami_geology.jei.biomes", o.provinces.entries.sortedByDescending { it.value }.joinToString(" · ") { GeoText.provinceLabel(it.key) + " " + Format.percent(it.value) }
+        tr("kami_libs.common.provinces_list", o.provinces.entries.sortedByDescending { it.value }.joinToString(" · ") { GeoText.provinceLabel(it.key) + " " + Format.percent(it.value) }
             .ifEmpty { tr("kami_geology.jei.everywhere") }),
         o.anchor?.let { tr("kami_geology.jei.anchor", GeoText.oreLabel(it), Format.percent(o.anchorChance)) },
         o.halo.takeIf { it.isNotEmpty() }?.let { tr("kami_geology.jei.signs", it.joinToString(", ", transform = ::blockName)) },
         o.core?.let { tr("kami_geology.jei.core", blockName(it), Format.percent(o.coreChance)) },
-        o.scatter.takeIf { it > 0 }?.let { tr("kami_geology.jei.veins", it) + (range(o.scatterHeight)?.let { y -> " · $y" } ?: "") },
+        o.scatter.takeIf { it > 0 }?.let { tr("kami_geology.jei.veins", Format.decimal(it, 2)) + (range(o.scatterHeight)?.let { y -> " · $y" } ?: "") },
         Guide.data.dimensions.takeUnless { it == listOf("minecraft:overworld") }
             ?.let { tr("kami_geology.jei.dimensions", it.joinToString(", ") { d -> GeoText.name(d.substringAfter(':')) }) }
     )

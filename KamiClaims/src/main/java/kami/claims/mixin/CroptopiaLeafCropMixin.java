@@ -10,7 +10,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
 
-/** Croptopia fruit leaves ripen in their own randomTick (no CropGrowEvent): only ripen under open sky. */
 @Pseudo
 @Mixin(targets = "com.epherical.croptopia.blocks.LeafCropBlock")
 public abstract class CroptopiaLeafCropMixin {

@@ -5,6 +5,7 @@ import kami.claims.Country
 import kami.claims.LedgerKind
 import kami.claims.Realm
 import kami.claims.now
+import kami.claims.research.Loans
 import kami.claims.service.Announce
 import kami.claims.service.Fail
 import kami.claims.service.Words.count
@@ -91,6 +92,7 @@ object Negotiation {
 
     internal fun check(c: Country, war: War, o: WarOffer): Long {
         legal(war, o)
+        if ((o.stakes?.money ?: 0) > 0) Loans.requireNoDebt(c, "kami_claims.loans.error.disband")
         val attacker = Wars.country(war.attacker.main)
         return if (o.from == c.id && c.id != attacker.id) 0 else fund(attacker, war, o)
     }
@@ -144,5 +146,5 @@ object Negotiation {
         Phrase.of("kami_claims.war.term.ceasefire", days(o.ceasefireDays)).takeIf { o.ceasefireDays > 0 },
         Phrase.of("kami_claims.war.term.extend", days(o.extendDays)).takeIf { o.extendDays > 0 },
         o.billPct?.let { Phrase.of("kami_claims.war.term.bill", num(it)) }
-    ).reduce { a, b -> Phrase.of("kami_claims.war.term.and", a, b) }
+    ).reduce { a, b -> Phrase.of("kami_libs.format.list", a, b) }
 }

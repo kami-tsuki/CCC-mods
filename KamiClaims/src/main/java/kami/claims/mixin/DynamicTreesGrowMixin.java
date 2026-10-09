@@ -10,7 +10,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Every growth step of a DynamicTrees tree counts as one grown tree; DynamicTrees fires no growth event of its own. */
 @Pseudo
 @Mixin(targets = "com.dtteam.dynamictrees.tree.species.Species")
 public abstract class DynamicTreesGrowMixin {

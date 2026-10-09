@@ -28,7 +28,8 @@ import kotlin.math.roundToInt
 
 object DiscordClaims {
     private const val CHOICES = 25
-    private const val MAX_PLOTS = 15
+    private const val MAX_PLOTS = 5
+    private const val MAX_WARS = 2
 
     fun register() {
         Mc.add(SlashCommand("country", "Show a country", listOf(SlashOption("name", "Country name, defaults to your own", required = false, complete = ::names)), public = true, run = ::country))
@@ -46,8 +47,8 @@ object DiscordClaims {
         val id = player.toString()
         val c = Realm.of(id) ?: return emptyList()
         val rank = c.rank(id)?.let { DiscordText.get(KamiClaims.ID, locale, "kami_claims.rank.${it.name.lowercase()}") }
-        val fields = mutableListOf(EmbedField(text(locale, "field.country"), listOfNotNull(DiscordFormat.escape(c.name), rank).joinToString(" · ")))
-        if (View.privileged(c, id)) fields += EmbedField(text(locale, "field.treasury"), DiscordFormat.money(c.treasury))
+        val fields = mutableListOf(EmbedField(text(locale, "field.country"), listOfNotNull(DiscordFormat.country(c.name), rank).joinToString(" · ")))
+        if (View.privileged(c, id)) fields += EmbedField(text(locale, "field.treasury"), DiscordFormat.moneyFull(c.treasury))
         return fields
     }
 
@@ -61,18 +62,15 @@ object DiscordClaims {
 
     private fun card(c: Country, locale: String): Card {
         val online = Announce.server?.playerList?.players?.count { it.stringUUID in c.members } ?: 0
-        val fields = mutableListOf(
-            EmbedField(text(locale, "field.level"), c.level.toString()),
-            EmbedField(text(locale, "field.members"), text(locale, "members", c.members.size, online)),
-            EmbedField(text(locale, "field.claims"), Realm.claims(c.id).size.toString()),
-            EmbedField(text(locale, "field.provinces"), c.provinces.size.toString()),
-            EmbedField(text(locale, "field.reputation"), whole(c.reputation))
+        val head = listOf("${text(locale, "field.level")} ${c.level}", text(locale, "members", c.members.size, online), war(c, locale)).joinToString(" · ")
+        val fields = DiscordFormat.fields(
+            text(locale, "field.claims") to Realm.claimCount(c.id).toString(),
+            text(locale, "field.provinces") to c.provinces.size.toString(),
+            text(locale, "field.power") to DiscordFormat.num(Power.score(c).let { if (it.isFinite()) it.roundToInt().toLong() else 0L }),
+            Fame.score(c)?.let { text(locale, "field.fame") to String.format(Locale.ROOT, "%.1f / 5", it) }
         )
-        Fame.score(c)?.let { fields += EmbedField(text(locale, "field.fame"), String.format(Locale.ROOT, "%.1f / 5", it)) }
-        fields += EmbedField(text(locale, "field.power"), whole(Power.score(c)))
-        fields += EmbedField(text(locale, "field.war"), war(c, locale), false)
-        fields += EmbedField(text(locale, "field.founded"), "<t:${c.created / 1000}:D>")
-        return Card(c.name, color = View.color(c), fields = fields, timestamp = now())
+        val footer = "${text(locale, "field.reputation")} ${whole(c.reputation)} · ${text(locale, "field.founded")}"
+        return Card.compact(c.name, head, View.color(c), fields, footer, c.created)
     }
 
     private fun whole(n: Double) = if (n.isFinite()) n.roundToInt().toString() else "0"
@@ -82,7 +80,7 @@ object DiscordClaims {
         if (wars.isEmpty()) return text(locale, "war.none")
         return wars.joinToString("\n") { w ->
             val other = Wars.name(if (w.attacker.main == c.id) w.defender.main else w.attacker.main)
-            text(locale, "war.line", DiscordFormat.escape(other), text(locale, "phase.${w.phase.name.lowercase()}"))
+            text(locale, "war.line", DiscordFormat.country(other), text(locale, "phase.${w.phase.name.lowercase()}"))
         }
     }
 
@@ -91,34 +89,34 @@ object DiscordClaims {
         val locale = ctx.locale
         val day = Config.s.dayMillis
         val at = now()
-        val plots = mutableListOf<EmbedField>()
+        val plots = mutableListOf<String>()
         var rentDebt = 0L
         var earliest = Long.MAX_VALUE
         Sync.homes(me).forEach { h ->
             rentDebt += h.debt
-            val lines = mutableListOf(text(locale, "plot.rent", DiscordFormat.money(h.rent), DiscordFormat.money(h.credit)))
-            if (h.state == Tenancy.MOVING_OUT.name.lowercase()) lines += text(locale, "plot.moving", DiscordFormat.ago(h.until))
+            val parts = mutableListOf(text(locale, "plot.rent", DiscordFormat.money(h.rent), DiscordFormat.money(h.credit)))
+            if (h.state == Tenancy.MOVING_OUT.name.lowercase()) parts += text(locale, "plot.moving", DiscordFormat.ago(h.until))
             else if (h.rent > 0) {
                 val due = at + h.nextBill + h.credit / h.rent * day
                 if (h.debt == 0L) earliest = minOf(earliest, due)
-                lines += text(locale, "plot.covered", DiscordFormat.ago(due), "<t:${due / 1000}:f>")
+                parts += text(locale, "plot.covered", DiscordFormat.ago(due))
             }
-            if (h.debt > 0) lines += text(locale, "plot.debt", DiscordFormat.money(h.debt))
-            plots += EmbedField("${DiscordFormat.escape(h.country)} (${h.x}, ${h.z})", lines.joinToString("\n"), false)
+            if (h.debt > 0) parts += text(locale, "plot.debt", DiscordFormat.money(h.debt))
+            plots += "${DiscordFormat.country(h.country)} (${h.x}, ${h.z}) · ${parts.joinToString(" · ")}"
         }
-        val fields = plots.take(MAX_PLOTS).toMutableList()
-        if (plots.size > MAX_PLOTS) fields += EmbedField(text(locale, "plot.more", plots.size - MAX_PLOTS), "\u200B", false)
+        val fields = mutableListOf<EmbedField>()
+        if (plots.isNotEmpty()) fields += DiscordFormat.wide(text(locale, "plots"), plots.take(MAX_PLOTS).joinToString("\n"))
         var owed = rentDebt
         val own = Realm.of(me)?.takeIf { (it.rank(me) ?: Rank.BANISHED) >= Rank.OFFICER }
         if (own != null) {
             if (own.loans.isNotEmpty()) {
                 val overdue = own.loans.sumOf { it.overdue }
                 owed += overdue
-                fields += EmbedField(text(locale, "loans"), text(locale, "loans.value", own.loans.size, DiscordFormat.money(own.loans.sumOf { Loans.remaining(it) }), DiscordFormat.money(overdue)), false)
+                fields += DiscordFormat.wide(text(locale, "loans"), text(locale, "loans.value", own.loans.size, DiscordFormat.money(own.loans.sumOf { Loans.remaining(it) }), DiscordFormat.money(overdue)))
             }
             if (own.warDebts.isNotEmpty()) {
-                owed += own.warDebts.values.sum()
-                fields += EmbedField(text(locale, "war_debts"), own.warDebts.entries.joinToString("\n") { "${DiscordFormat.escape(Wars.name(it.key))} · ${DiscordFormat.money(it.value)}" }, false)
+                owed = own.warDebts.values.fold(owed) { a, b -> if (a > Long.MAX_VALUE - b) Long.MAX_VALUE else a + b }
+                fields += DiscordFormat.wide(text(locale, "war_debts"), own.warDebts.entries.take(MAX_PLOTS).joinToString("\n") { "${DiscordFormat.country(Wars.name(it.key))} · ${DiscordFormat.money(it.value)}" })
             }
         }
         val head = buildList {
@@ -126,6 +124,7 @@ object DiscordClaims {
             if (rentDebt > 0) add(text(locale, "rent_debt", DiscordFormat.money(rentDebt)))
             if (isEmpty()) add(text(locale, if (fields.isEmpty()) "none" else "clear"))
         }.joinToString("\n")
-        ctx.reply(Card(text(locale, "debts.title"), head, if (owed > 0) DiscordFormat.BAD else DiscordFormat.GOOD, fields, timestamp = now()))
+        val more = if (plots.size > MAX_PLOTS) text(locale, "plot.more", plots.size - MAX_PLOTS) else null
+        ctx.reply(Card.compact(text(locale, "debts.title"), head, if (owed > 0) DiscordFormat.BAD else DiscordFormat.GOOD, fields, more, now()))
     }
 }

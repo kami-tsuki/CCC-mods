@@ -1,6 +1,7 @@
 package kami.libs.admin
 
 import net.minecraft.server.level.ServerPlayer
+import kami.libs.util.toUuidOrNull
 import java.util.UUID
 
 object Subject {
@@ -17,5 +18,5 @@ object Subject {
         if (!subject.isNullOrBlank() && parse(subject) != self) throw AdminFailure("kami_libs.admin.read_only")
     }
 
-    private fun parse(subject: String?) = subject?.let { runCatching { UUID.fromString(it.trim()) }.getOrNull() }
+    private fun parse(subject: String?) = subject?.let { it.trim().toUuidOrNull() }
 }

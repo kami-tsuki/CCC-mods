@@ -9,6 +9,7 @@ import kami.libs.ui.app.Page
 import kami.libs.ui.app.SELECT_W
 import kami.libs.ui.app.TimeRange
 import kami.libs.ui.app.segmentWidth
+import kami.libs.ui.core.Memo
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Row
 import kami.libs.ui.core.Ui
@@ -27,12 +28,18 @@ private val PRIVATE_ARGS = setOf("ips", "ip")
 
 internal fun actionLabel(name: String) = trOr("kami_essentials.admin.action.$name", name)
 
-private fun argLabel(key: String) = key.toIntOrNull()?.let { tr("kami_essentials.admin.arg.n", it + 1) } ?: trOr("kami_essentials.admin.arg.$key", key)
+internal fun filterLabel(id: String) = tr(if (id == "all" || id == "online") "kami_libs.common.$id" else "kami_essentials.admin.filter.$id")
+
+private fun argLabel(key: String) = key.toIntOrNull()?.let { tr("kami_essentials.admin.arg.n", it + 1) } ?: trOr(if (key == "amount") "kami_libs.common.amount" else "kami_essentials.admin.arg.$key", key)
 
 private fun result(ok: Boolean) = tr(if (ok) "kami_essentials.admin.audit.ok" else "kami_essentials.admin.audit.failed")
 
-internal fun auditColumns(withTarget: Boolean = true) = listOfNotNull(
-    Column.number<Audit.Entry>(tr("kami_essentials.admin.col.when"), 56, format = { Format.ago(it) }) { it.at },
+private val auditMemo = arrayOf(Memo(), Memo())
+
+internal fun auditColumns(withTarget: Boolean = true) = auditMemo[if (withTarget) 1 else 0].of(Format.locale) { buildAuditColumns(withTarget) }
+
+private fun buildAuditColumns(withTarget: Boolean) = listOfNotNull(
+    Column.number<Audit.Entry>(tr("kami_libs.common.when"), 56, format = { Format.ago(it) }) { it.at },
     Column.text<Audit.Entry>(tr("kami_essentials.admin.col.actor"), 70) { it.actorName },
     Column.text<Audit.Entry>(tr("kami_essentials.admin.col.action"), 90) { actionLabel(it.action) },
     if (withTarget) whoColumn<Audit.Entry>(tr("kami_essentials.admin.col.target"), 70) { it.target } else null,
@@ -41,7 +48,7 @@ internal fun auditColumns(withTarget: Boolean = true) = listOfNotNull(
 )
 
 internal fun compactAuditColumns() = listOf(
-    Column.number<Audit.Entry>(tr("kami_essentials.admin.col.when"), 56, format = { Format.ago(it) }) { it.at },
+    Column.number<Audit.Entry>(tr("kami_libs.common.when"), 56, format = { Format.ago(it) }) { it.at },
     Column.text<Audit.Entry>(tr("kami_essentials.admin.col.actor"), 70) { it.actorName },
     Column.text<Audit.Entry>(tr("kami_essentials.admin.col.action"), -1) { actionLabel(it.action) }
 )
@@ -98,7 +105,7 @@ internal class AuditPage(private val app: AdminApp) : Page() {
             val row = Row(bar, 6)
             val narrow = bar.w < NARROW_W
             range.draw(ui, row.takeFromRight(range.width(narrow)))
-            val results = listOf("all", "ok", "failed").map { Option(it, tr("kami_essentials.admin.audit.$it")) }
+            val results = listOf("all", "ok", "failed").map { Option(it, if (it == "all") tr("kami_libs.common.all") else tr("kami_essentials.admin.audit.$it")) }
             if (narrow) ui.select(row.takeFromRight(SELECT_W), results, ok, key = "audit:ok")?.let { ok = it }
             else ui.segmented(row.takeFromRight(segmentWidth(results)), results, ok, key = "audit:ok")?.let { ok = it }
             val w = (row.rest.w - 12) / 3

@@ -17,12 +17,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class StocksTest {
-    private class Purse(var funds: Long) : Wallet {
-        override fun balance(id: UUID) = funds
-        override fun deduct(id: UUID, amount: Int): Int = minOf(amount.toLong(), funds).toInt().also { funds -= it }
-        override fun deposit(id: UUID, amount: Int): Boolean { funds += amount; return true }
-    }
-
     private val item = "test:oak_log"
     private val player = UUID.randomUUID().toString()
     private val hour = 60 * 60 * 1000L
@@ -55,7 +49,7 @@ class StocksTest {
         setup()
         TestDb.open()
         ServerBank.load()
-        Ledger.wallet = Purse(1_000_000)
+        Ledger.wallet = Till(1_000_000, true)
         assertTrue(Ledger.buy(player, item, 64 * 4) is BuyResult.Ok)
         val high = Stocks.course(item)
         assertTrue(high > 20.0)

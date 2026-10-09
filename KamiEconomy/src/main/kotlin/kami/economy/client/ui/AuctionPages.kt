@@ -1,6 +1,7 @@
 package kami.economy.client.ui
 
 import kami.economy.economy.Blacklist
+import kami.economy.client.admin.MarketSection
 import kami.economy.economy.StackCodec
 import kami.economy.net.AuctionLine
 import kami.libs.ui.app.Callout
@@ -8,6 +9,9 @@ import kami.libs.ui.app.Consequence
 import kami.libs.ui.app.Page
 import kami.libs.ui.app.ReceiptKind
 import kami.libs.ui.app.ReceiptLine
+import kami.libs.ui.app.Route
+import kami.libs.ui.app.SELECT_W
+import kami.libs.ui.app.segmentWidth
 import kami.libs.ui.app.confirmDialog
 import kami.libs.ui.app.receiptDialog
 import kami.libs.ui.core.Rect
@@ -16,6 +20,7 @@ import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
+import kami.libs.ui.style.Severity
 import kami.libs.ui.style.TextStyle
 import kami.libs.ui.text.ItemSearch
 import kami.libs.ui.text.tr
@@ -24,24 +29,38 @@ import net.minecraft.client.Minecraft
 import net.minecraft.world.item.ItemStack
 
 private const val AUCTION_PANEL_W = 150
-private const val SCOPE_W = 150
-private const val SOON_MS = 300_000L
+private const val BID_ROWS = 5
+
+private enum class Scope(val label: String) {
+    ALL("kami_libs.common.all"), MINE("kami_economy.scope.mine"), WINNING("kami_economy.auction.filter.winning"), SOON("kami_economy.auction.filter.soon")
+}
 
 internal class AuctionsPage(app: MarketApp) : ListPage(app, "auctions") {
-    private var mine = false
-    private val table = TableState<AuctionLine>()
+    private var scope = Scope.ALL
+    private val table = TableState<AuctionLine>().apply { sortColumn = 4 }
     private val stacks = HashMap<Long, ItemStack>()
     private val bid = NumberState(1)
     private var bidFor = -1L
     private var bidMin = -1L
     override val title get() = tr("kami_libs.common.auctions")
-    override val help get() = helpFor("auctions:table", "kami_economy.help.auctions")
+    override val help get() = listOf(Callout("auctions:table", tr("kami_libs.common.auctions"), tr("kami_economy.help.auctions.desc")))
+
+    override fun opened(route: Route) {
+        super.opened(route)
+        stacks.clear()
+    }
 
     private fun stack(a: AuctionLine): ItemStack {
-        stacks[a.id]?.let { return it }
-        val decoded = Minecraft.getInstance().level?.registryAccess()?.let { runCatching { StackCodec.decode(a.stackData, it) }.getOrNull() } ?: return ItemStack.EMPTY
-        stacks[a.id] = decoded
-        return decoded
+        if (a.stackData.isEmpty()) return ItemStack.EMPTY
+        val access = Minecraft.getInstance().level?.registryAccess() ?: return ItemStack.EMPTY
+        return stacks[a.id] ?: (runCatching { StackCodec.decode(a.stackData, access) }.getOrNull() ?: ItemStack.EMPTY).also { if (!it.isEmpty) stacks[a.id] = it }
+    }
+
+    private fun keep(a: AuctionLine) = when (scope) {
+        Scope.ALL -> true
+        Scope.MINE -> a.mine
+        Scope.WINNING -> status(a) == "high"
+        Scope.SOON -> a.expiresAt - System.currentTimeMillis() < AUCTION_SOON_MS
     }
 
     private fun status(a: AuctionLine) = when {
@@ -50,27 +69,34 @@ internal class AuctionsPage(app: MarketApp) : ListPage(app, "auctions") {
         else -> ""
     }
 
-    private val columns = listOf(
+    private val columns by localized { listOf(
         Column<AuctionLine>(tr("kami_libs.common.item"), -1, sort = textOrder { it.label }) { _, c, a ->
             val cell = c.dropRight(tradeLock(c, a.status, a.statusReason, "auction-lock:${a.id}"))
             if (itemCell(cell, stack(a), a.label, "auction:${a.id}", if (a.mine) Palette.brass else Palette.text)) table.selected.apply { clear(); add(a.id) }
         },
         Column.text<AuctionLine>(tr("kami_economy.col.seller"), 80, color = { Palette.textSecondary }) { it.sellerName },
         Column.number<AuctionLine>(tr("kami_economy.col.bid"), 70, format = { Format.money(it) }) { maxOf(it.currentBid, it.startPrice).toLong() },
-        Column.text<AuctionLine>(tr("kami_economy.market.auctions.col.buy_now"), 70, Align.RIGHT) { if (it.buyNowPrice > 0) Format.money(it.buyNowPrice.toLong()) else "–" },
+        Column.number<AuctionLine>(tr("kami_economy.col.buy_now"), 70, format = ::priceText) { it.buyNowPrice.toLong() },
         Column.number<AuctionLine>(tr("kami_economy.market.auctions.col.ends"), 70,
-            color = { if (it.expiresAt - System.currentTimeMillis() < SOON_MS) Palette.danger else Palette.text },
+            color = { if (it.expiresAt - System.currentTimeMillis() < AUCTION_SOON_MS) Palette.danger else Palette.text },
             format = { Format.duration(it - System.currentTimeMillis()) }) { it.expiresAt },
-        Column.text<AuctionLine>(tr("kami_libs.common.status"), 90, color = { Palette.success }) {
-            status(it).let { s -> if (s.isEmpty()) "" else tr("kami_economy.auction.status.$s") }
+        Column<AuctionLine>(tr("kami_libs.common.status"), 90, sort = textOrder { status(it) }) { _, c, a ->
+            val s = status(a)
+            if (s.isNotEmpty()) statusPill(c.x, c.y + (c.h - 13) / 2, tr("kami_economy.auction.status.$s"), if (s == "high") Severity.SUCCESS else Severity.INFO, key = "as:${a.id}", maxWidth = c.w)
         }
-    )
+    ) }
+
+    private val scopeOptions by localized { Scope.entries.map { Option(it, tr(it.label)) } }
 
     override fun draw(ui: Ui, r: Rect) {
         val bar = r.top(SMALL_H)
-        searchBar(ui, bar.dropRight(SCOPE_W, 6))
-        ui.segmented(bar.right(SCOPE_W), listOf(Option(false, tr("kami_libs.common.all")), Option(true, tr("kami_economy.scope.mine"))), mine, key = "scope")?.let { mine = it; table.clear() }
-        val rows = data?.let { snap -> filtered(ui, "auctions:rows", snap.auctions.filter { !mine || it.mine }) { ItemSearch.matches(query, stack(it), it.label) } }.orEmpty()
+        val options = scopeOptions
+        val compact = bar.w - segmentWidth(options) - BAR_GAP < SEARCH_MIN
+        val chips = bar.right(if (compact) SELECT_W else segmentWidth(options))
+        searchBar(ui, bar.dropRight(chips.w, BAR_GAP))
+        (if (compact) ui.select(chips, options, scope, key = "scope") else ui.segmented(chips, options, scope, key = "scope"))?.let { scope = it; table.clear() }
+        data?.let { snap -> if (stacks.size > snap.auctions.size) stacks.keys.retainAll(snap.auctions.mapTo(HashSet()) { it.id }) }
+        val rows = data?.let { snap -> filtered(ui, "auctions:rows", snap.auctions.filter(::keep)) { ItemSearch.matches(query, stack(it), it.label) } }.orEmpty()
         val area = body(ui, r.dropTop(SMALL_H, 6))
         val selected = rows.firstOrNull { it.id in table.selected }
         val tableArea = if (selected != null) area.dropRight(AUCTION_PANEL_W, 6) else area
@@ -84,18 +110,19 @@ internal class AuctionsPage(app: MarketApp) : ListPage(app, "auctions") {
         val flow = ui.sidePanel(r)
         val head = flow.take(22)
         ui.itemSlot(head.left(22), stack(a), key = "auction-panel-item")
-        Draw.text(ui.g, Draw.fit(a.label, head.w - 28), head.x + 26, head.y + 7, TextStyle.HEADING)
+        ui.fitText(head.x + 26, head.y + 7, head.w - 28, a.label, style = TextStyle.HEADING)
         ui.property(flow.take(12), tr("kami_economy.col.seller"), a.sellerName)
         ui.property(flow.take(12), tr("kami_economy.col.bid"), Format.money(maxOf(a.currentBid, a.startPrice).toLong()))
         ui.property(flow.take(12), tr("kami_economy.market.auctions.col.ends"), Format.duration(a.expiresAt - System.currentTimeMillis()))
         if (a.bids.isNotEmpty()) {
             ui.section(flow.take(13), tr("kami_economy.auction.history"))
-            a.bids.asReversed().forEach { b ->
+            a.bids.asReversed().take(BID_ROWS).forEach { b ->
                 val row = flow.take(10)
                 val text = Format.money(b.amount.toLong()) + " · " + Format.ago(b.at)
                 Draw.textRight(ui.g, text, row.right, row.y, Palette.textMuted)
-                Draw.text(ui.g, Draw.fit(b.name, row.w - Draw.width(text) - 6), row.x, row.y, Palette.textSecondary)
+                ui.fitText(row.x, row.y, row.w - Draw.width(text) - 6, b.name, Palette.textSecondary)
             }
+            if (a.bids.size > BID_ROWS) flow.take(10).let { Draw.text(ui.g, tr("kami_libs.common.more", a.bids.size - BID_ROWS), it.x, it.y, Palette.textMuted) }
         }
         if (a.status.isNotEmpty()) {
             val text = tr("kami_economy.status.frozen", a.statusReason)
@@ -129,12 +156,12 @@ internal class AuctionsPage(app: MarketApp) : ListPage(app, "auctions") {
             add(ReceiptLine(tr(if (buyNow) "kami_economy.auction.buy_price" else "kami_economy.auction.your_bid"), Format.money(amount.toLong())))
             add(ReceiptLine(tr("kami_economy.receipt.pay"), Format.money(amount.toLong()), ReceiptKind.TOTAL))
             if (!buyNow) add(ReceiptLine(tr("kami_economy.auction.refund"), "", ReceiptKind.NOTE))
-            add(ReceiptLine(tr("kami_economy.receipt.balance"), Format.money(funds) + " → " + Format.money(funds - amount)))
+            add(ReceiptLine(tr("kami_libs.common.balance"), Format.money(funds) + " → " + Format.money(funds - amount)))
         }
         receiptDialog(
-            app::open, tr(if (buyNow) "kami_economy.auction.receipt.buy" else "kami_economy.auction.receipt.bid"), Icons.SCALES, lines,
-            tr(if (buyNow) "kami_economy.auction.buy" else "kami_economy.market.auction.bid"),
-            warning = tr("kami_economy.market.buy.funds").takeIf { funds < amount },
+            app::open, tr(if (buyNow) "kami_economy.receipt.title.buy" else "kami_economy.auction.receipt.bid"), Icons.SCALES, lines,
+            tr(if (buyNow) "kami_economy.col.buy_now" else "kami_economy.market.auction.bid"),
+            warning = tr("kami_economy.action.no_funds").takeIf { funds < amount },
             stale = { if (app.cached("auctions")?.auctions.orEmpty().any { it.id == a.id && it.currentBid == a.currentBid }) null else tr("kami_economy.receipt.stale") }
         ) {
             if (buyNow) {
@@ -149,25 +176,27 @@ internal class AuctionsPage(app: MarketApp) : ListPage(app, "auctions") {
 
 internal class AuctionCreatePage(val app: MarketApp) : Page() {
     private val table = TableState<Stored>()
+    private val box = SearchBox(MarketSection::stack)
     private val start = NumberState(1)
     private val buyNow = NumberState(0)
     private var chosen = -1
     override val title get() = tr("kami_economy.nav.create")
     override val help get() = listOf(Callout("create:table", tr("kami_economy.help.create"), tr("kami_economy.help.create.desc")))
 
-    private val columns = listOf(
+    private val columns by localized { listOf(
         Column<Stored>(tr("kami_libs.common.item"), -1, sort = textOrder { it.stack.hoverName.string }) { _, c, e ->
             if (itemCell(c, e.stack, e.stack.hoverName.string, "create:${e.slot}")) table.selected.apply { clear(); add(e.slot) }
         },
         Column.number<Stored>(tr("kami_libs.common.amount"), 60) { it.stack.count.toLong() }
-    )
+    ) }
 
     override fun draw(ui: Ui, r: Rect) {
-        val rows = app.carried.get().auctionOnly
+        val rows = app.carried.get().auctionOnly.let { all -> box.filter(ui, "create:rows", all) { ItemSearch.matches(box.query, it.stack) } }
         val selected = rows.firstOrNull { it.slot in table.selected }
         if ((selected?.slot ?: -1) != chosen) { chosen = selected?.slot ?: -1; start.commit(1); buyNow.commit(0) }
-        Draw.text(ui.g, Draw.fit(tr("kami_economy.market.auction_only"), r.w), r.x, r.y, Palette.textSecondary)
-        val area = r.dropTop(16)
+        ui.fitText(r.x, r.y, r.w, tr("kami_economy.market.auction_only"), Palette.textSecondary)
+        ui.searchField(r.dropTop(14).top(SMALL_H).left(SEARCH_MAX), box.text)
+        val area = r.dropTop(14 + SMALL_H + 6)
         val tableArea = if (selected != null) area.dropRight(AUCTION_PANEL_W + 20, 6) else area
         ui.anchor("create:table", tableArea)
         ui.table(tableArea, columns, rows, table, { it.slot }, rowHeight = ROW_H, emptyText = tr("kami_economy.create.empty"))
@@ -178,7 +207,7 @@ internal class AuctionCreatePage(val app: MarketApp) : Page() {
         val flow = ui.sidePanel(r)
         val head = flow.take(22)
         ui.itemSlot(head.left(22), e.stack, key = "create-item")
-        Draw.text(ui.g, Draw.fit(e.stack.hoverName.string, head.w - 28), head.x + 26, head.y + 7, TextStyle.HEADING)
+        ui.fitText(head.x + 26, head.y + 7, head.w - 28, e.stack.hoverName.string, style = TextStyle.HEADING)
         ui.fieldLabel(flow.take(9), tr("kami_economy.market.auction.start_price"))
         ui.numberField(flow.take(CONTROL_H), start, 1, MAX_PRICE, key = "start")
         ui.fieldLabel(flow.take(9), tr("kami_economy.market.auction.buy_now_optional"))

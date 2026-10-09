@@ -16,13 +16,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class TradeTest {
-    private class Purse(var funds: Long) : Wallet {
-        val deposits = mutableMapOf<UUID, Long>()
-        override fun balance(id: UUID) = funds
-        override fun deduct(id: UUID, amount: Int): Int = minOf(amount.toLong(), funds).toInt().also { funds -= it }
-        override fun deposit(id: UUID, amount: Int): Boolean { deposits.merge(id, amount.toLong(), Long::plus); return true }
-    }
-
     private val buyer = UUID.randomUUID()
     private val neutral = UUID.randomUUID()
     private val ally = UUID.randomUUID()
@@ -80,10 +73,10 @@ class TradeTest {
         assertEquals(14, fill.tax)
         assertEquals(21, fill.tariff)
         assertEquals(161, plan.totalSpurs)
-        val purse = Purse(1000).also { Ledger.wallet = it }
+        val purse = Till(1000).also { Ledger.wallet = it }
         assertTrue(Ledger.buy(buyer.toString(), item, 20) is BuyResult.Ok)
         assertEquals(839, purse.funds)
-        assertEquals(126, purse.deposits[taxed])
+        assertEquals(126, purse.received(taxed))
         assertEquals(listOf("aurelia" to 21L), claims.credits)
     }
 
@@ -111,10 +104,10 @@ class TradeTest {
     fun sellingIntoABidPaysTariffToTheBuyersCountry() {
         val claims = setup()
         Matching.insertBid(item, Order(1, buyer.toString(), 7, 100))
-        val purse = Purse(0).also { Ledger.wallet = it }
+        val purse = Till(0).also { Ledger.wallet = it }
         val result = Ledger.sellNow(taxed.toString(), item, 30)
         assertEquals(SellResult.Sold(20, 105), result)
-        assertEquals(105L, purse.deposits[taxed])
+        assertEquals(105L, purse.received(taxed))
         assertEquals(listOf("aurelia" to 21L), claims.credits)
     }
 

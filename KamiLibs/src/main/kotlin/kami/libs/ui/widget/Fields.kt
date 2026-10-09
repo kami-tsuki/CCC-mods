@@ -96,6 +96,10 @@ fun Ui.textField(
     if (autoFocus && remember("autofocus:$key") { booleanArrayOf(false) }.let { if (!it[0]) { it[0] = true; true } else false }) focus = id
     if (enabled && hover) cursor = Cursor.TEXT
     val wasFocused = focus == id
+    var changed = false
+    val showClear = clearable && state.text.isNotEmpty() && enabled
+    val clearRect = Rect(r.right - 18, r.y + (r.h - 12) / 2, 12, 12)
+    if (showClear && pressed(clearRect) != null) { state.set(""); changed = true; focus = id }
     if (enabled && pressed(r) != null) {
         focus = id
         state.move(state.text.length, false)
@@ -106,11 +110,9 @@ fun Ui.textField(
     Draw.sprite(g, Sprites.input(focused, invalid, enabled, hover), r)
     var left = r.x + 5
     icon?.let { left = r.x + 4 + Draw.leadIcon(g, it, r.x + 4, r.centerY, Palette.textMuted) }
-    val showClear = clearable && state.text.isNotEmpty() && enabled
     val suffixW = suffix?.let { Draw.width(it) + 6 } ?: 0
     val right = r.right - 5 - suffixW - (if (showClear) 14 else 0)
     val inner = Rect(left, r.y, max(4, right - left), r.h)
-    var changed = false
     var submitted = false
     if (focused) {
         markTyping()
@@ -127,8 +129,8 @@ fun Ui.textField(
                 GLFW.GLFW_KEY_END -> { state.move(state.text.length, k.shift); true }
                 GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> { submitted = true; state.touched = true; true }
                 GLFW.GLFW_KEY_A -> if (k.ctrl) { state.anchor = 0; state.cursor = state.text.length; true } else false
-                GLFW.GLFW_KEY_C -> if (k.ctrl) { Minecraft.getInstance().keyboardHandler.clipboard = state.selected(); true } else false
-                GLFW.GLFW_KEY_X -> if (k.ctrl) { Minecraft.getInstance().keyboardHandler.clipboard = state.selected(); changed = state.delete(false, false) || changed; true } else false
+                GLFW.GLFW_KEY_C -> if (k.ctrl) { if (state.hasSelection) Minecraft.getInstance().keyboardHandler.clipboard = state.selected(); true } else false
+                GLFW.GLFW_KEY_X -> if (k.ctrl) { if (state.hasSelection) Minecraft.getInstance().keyboardHandler.clipboard = state.selected(); changed = state.delete(false, false) || changed; true } else false
                 GLFW.GLFW_KEY_V -> if (k.ctrl) { changed = state.insert(Minecraft.getInstance().keyboardHandler.clipboard, maxLength, allow) || changed; true } else false
                 else -> false
             }
@@ -151,11 +153,10 @@ fun Ui.textField(
     }
     suffix?.let { Draw.text(g, it, r.right - suffixW, r.y + (r.h - 8) / 2, Palette.textMuted) }
     if (showClear) {
-        val c = Rect(r.right - 18, r.y + (r.h - 12) / 2, 12, 12)
+        val c = clearRect
         if (hovering(c)) cursor = Cursor.HAND
         Draw.tintedIcon(g, Icons.CLOSE, c.x - 2, c.y - 2, 16, if (hovering(c)) Palette.text else Palette.textMuted)
         tooltip("$key:clear", c, tr("kami_libs.field.clear.tooltip"))
-        if (pressed(c) != null) { state.set(""); changed = true }
     }
     state.error?.takeIf { invalid }?.let { e -> tooltip(key, r) { Tip.disabled(e) } }
     val blurred = wasFocused && focus != id
@@ -224,10 +225,10 @@ fun Ui.numberField(
         if (button(dec, "-", style = ButtonStyle.GHOST, enabled = enabled && state.value > min, key = "$key:dec")) apply(state.value - stepSize())
         if (button(inc, "+", style = ButtonStyle.GHOST, enabled = enabled && state.value < max, key = "$key:inc")) apply(state.value + stepSize())
     }
-    val wheel = wheel(field)
+    val wheel = if (focused("$key:text")) wheel(field) else 0.0
     if (enabled && wheel != 0.0) apply(state.value + (if (wheel > 0) 1 else -1) * stepSize())
-    val res = textField(field, state.text, "", enabled = enabled, maxLength = 16, allow = { it.isDigit() || it in ",._kKmM-" }, key = "$key:text", suffix = unit)
-    val parsed = Format.parseAmount(state.text.text)
+    val res = textField(field, state.text, "", enabled = enabled, maxLength = 16, allow = { it.isDigit() || it in ",._kKmMbB-" }, key = "$key:text", suffix = unit)
+    val parsed = Format.parseAmount(state.text.text, min < 0)
     state.text.error = when {
         parsed == null -> tr("kami_libs.field.number.error.invalid")
         parsed < min -> tr("kami_libs.field.number.error.min", Format.number(min))
@@ -257,7 +258,7 @@ fun Ui.slider(r: Rect, value: Double, min: Double, max: Double, step: Double, en
         if (input.takeKey(GLFW.GLFW_KEY_LEFT) != null) result = snap(value - step)
         if (input.takeKey(GLFW.GLFW_KEY_RIGHT) != null) result = snap(value + step)
     }
-    val w = wheel(r)
+    val w = if (focused(key)) wheel(r) else 0.0
     if (enabled && w != 0.0) result = snap(value + if (w > 0) step else -step)
     val shown = result ?: value
     val f = if (max > min) ((shown - min) / (max - min)).toFloat() else 0f

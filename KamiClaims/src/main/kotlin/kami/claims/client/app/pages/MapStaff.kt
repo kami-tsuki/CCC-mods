@@ -2,7 +2,7 @@ package kami.claims.client.app.pages
 
 import kami.claims.client.app.ClaimsPage
 import kami.claims.client.app.Vocabulary
-import kami.claims.client.rankOf
+import kami.claims.client.app.rankOf
 import kami.claims.client.store.ClaimsStore
 import kami.claims.net.Detail
 import kami.claims.service.View
@@ -16,6 +16,7 @@ import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr
+import kami.libs.ui.widget.fitText
 import kami.libs.ui.widget.CONTROL_H
 import kami.libs.ui.widget.Option
 import kami.libs.ui.widget.SMALL_H
@@ -47,13 +48,13 @@ class StaffPanel(private val page: ClaimsPage) {
                 val label = Draw.fit(name, NAME_W)
                 Worker(id, label, Draw.width(label) + SMALL_H, byId[id]?.rank?.let(::rankOf)?.let { it >= ClaimsStore.rank } == true, tr("kami_libs.common.remove_x", name), "unassign:$id")
             }
-            Staff(rows, Format.number(rows.size), tr("kami_claims.error.lower_ranks"), tr("kami_claims.map.work.you"), tr("kami_claims.map.work.none"), tr("kami_claims.common.workers"), tr("kami_claims.map.work.assign"), tr("kami_claims.map.work.nobody"))
+            Staff(rows, Format.number(rows.size), tr("kami_claims.error.rank_below"), tr("kami_claims.map.work.you"), tr("kami_claims.map.work.none"), tr("kami_claims.common.workers"), tr("kami_claims.map.work.assign"), tr("kami_claims.map.work.nobody"))
         }
         f.skip(4)
         if (works) {
             val row = f.take(TABLE_ROW_H)
             val tx = row.x + Draw.leadIcon(ui.g, Icons.CHECK, row.x, row.centerY, Palette.textMuted) + 2
-            Draw.text(ui.g, Draw.fit(staff.you, row.right - tx), tx, row.y + 3, Palette.textMuted)
+            ui.fitText(tx, row.y + 3, row.right - tx, staff.you, Palette.textMuted)
         }
         if (!manage) return
         val options = optionsMemo.of(members, d, job, Format.locale) {
@@ -69,7 +70,7 @@ class StaffPanel(private val page: ClaimsPage) {
         if (!open) return
         if (staff.rows.isEmpty()) {
             val row = f.take(TABLE_ROW_H)
-            Draw.text(ui.g, Draw.fit(staff.none, row.w), row.x, row.y + 3, Palette.textMuted)
+            ui.fitText(row.x, row.y + 3, row.w, staff.none, Palette.textMuted)
             return
         }
         f.skip(2)

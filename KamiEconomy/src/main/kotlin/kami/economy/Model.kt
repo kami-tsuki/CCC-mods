@@ -9,6 +9,7 @@ import kami.economy.economy.Variants
 import kami.economy.economy.TradeStatus
 import kami.economy.economy.Watchlist
 import kami.economy.db.MarketTables
+import kami.economy.quest.Quests
 import kami.libs.db.Db
 import kami.libs.db.Session
 import kotlinx.serialization.Serializable
@@ -46,7 +47,7 @@ class Book(
 )
 
 @Serializable
-class Traded(var sold: Long = 0, var bought: Long = 0)
+class Traded(var sold: Long = 0, var bought: Long = 0, var last: Long = 0)
 
 @Serializable
 class Stock(var supply: Int, var demand: Int)
@@ -96,6 +97,7 @@ object Market {
         attached = true
         Ledger.attach()
         data.books.values.forEach { if (it.sells.removeAll { o -> o.synthetic }) dirty = true }
+        runCatching { Quests.load() }.onFailure { LOG.error("Quests could not be loaded", it) }
         TradeStatus.load()
         Watchlist.load()
         reindex()
@@ -107,7 +109,9 @@ object Market {
     fun unload() {
         attached = false
         Ledger.detach()
+        Quests.unload()
         TradeStatus.unload()
+        Watchlist.unload()
     }
 
     private fun resolve(tag: String): List<String> =
@@ -130,6 +134,7 @@ object Market {
                 val core = data.traded.getOrPut(v.core) { Traded() }
                 core.sold += t.sold * v.mul / v.div
                 core.bought += t.bought * v.mul / v.div
+                core.last = maxOf(core.last, t.last)
                 dirty = true
             }
             data.stocks.remove(id)?.let { s ->

@@ -85,7 +85,7 @@ class MinCitizens(val min: Int) : Condition {
 @Serializable
 @SerialName("chunks")
 class MinChunks(val min: Int, val chunkType: String? = null) : Condition {
-    override fun met(country: Country) = Realm.claims(country.id).count { chunkType == null || it.type == chunkType } >= min
+    override fun met(country: Country) = Realm.claimsView(country.id).count { chunkType == null || it.type == chunkType } >= min
     override fun describe() =
         if (chunkType == null) Phrase.of(textKey("chunks"), Phrase.value(min)) else Phrase.of(textKey("chunks_type"), Phrase.value(min), Phrase.literal(chunkType))
 }
@@ -153,7 +153,7 @@ class MinCounter(val key: String, val min: Long) : Condition {
 @Serializable
 @SerialName("plots")
 class MinPlots(val min: Int, val chunkType: String = "residential") : Condition {
-    override fun met(country: Country) = Realm.claims(country.id).count { it.type == chunkType && it.owner != null } >= min
+    override fun met(country: Country) = Realm.claimsView(country.id).count { it.type == chunkType && it.owner != null } >= min
     override fun describe() = Phrase.of(textKey("plots"), Phrase.value(min), Phrase.literal(chunkType))
 }
 

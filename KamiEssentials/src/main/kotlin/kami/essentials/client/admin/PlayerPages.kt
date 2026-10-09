@@ -20,6 +20,7 @@ import kami.libs.ui.app.Route
 import kami.libs.ui.app.reasonDialog
 import kami.libs.ui.app.remoteFailed
 import kami.libs.ui.core.Flow
+import kami.libs.ui.core.Memo
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Row
 import kami.libs.ui.core.Stack
@@ -38,27 +39,29 @@ import kami.libs.ui.widget.*
 private val FILTERS = listOf("all", "online", "banned", "muted")
 private val SORTS = listOf("name", "seen", "balance", "playtime")
 private const val HEADER_H = 28
-private const val PROP_H = 11
-private const val INFO_H = 96
 private const val WARNS_H = 100
 private const val PREFETCH_MS = 250L
 
 private fun rowSeverity(p: PlayerRow) = if (p.banned) Severity.DANGER else if (p.muted) Severity.WARNING else null
 
 private fun state(p: PlayerRow) = when {
-    p.banned -> tr("kami_essentials.admin.state.banned")
-    p.muted -> tr("kami_essentials.admin.state.muted")
+    p.banned -> tr("kami_essentials.admin.filter.banned")
+    p.muted -> tr("kami_essentials.admin.filter.muted")
     p.online -> tr("kami_libs.common.online")
     else -> ""
 }
 
-private fun playerColumns() = listOf(
+private val playerColumnMemo = Memo()
+
+private fun playerColumns() = playerColumnMemo.of(Format.locale) { buildPlayerColumns() }
+
+private fun buildPlayerColumns() = listOf(
     playerColumn<PlayerRow>(tr("kami_libs.common.name"), { it.uuid }, { it.name }, { it.online }),
     Column.text<PlayerRow>(tr("kami_libs.common.country"), 80) { it.country.orEmpty() },
     Column.text<PlayerRow>(tr("kami_libs.common.rank"), 60) { it.rank.orEmpty() },
-    Column.number<PlayerRow>(tr("kami_essentials.admin.balance"), 64, color = { Palette.money }, format = { Format.money(it) }) { it.balance },
-    Column.number<PlayerRow>(tr("kami_essentials.admin.col.seen"), 60, format = { Format.ago(it) }) { it.lastSeen },
-    Column.number<PlayerRow>(tr("kami_essentials.admin.col.playtime"), 56, format = { Format.duration(it) }) { it.playtimeMs },
+    Column.number<PlayerRow>(tr("kami_libs.common.balance"), 64, color = { Palette.money }, format = { Format.money(it) }) { it.balance },
+    Column.number<PlayerRow>(tr("kami_libs.common.last_seen"), 60, format = { Format.ago(it) }) { it.lastSeen },
+    Column.number<PlayerRow>(tr("kami_libs.common.playtime"), 56, format = { Format.duration(it) }) { it.playtimeMs },
     Column.number<PlayerRow>(tr("kami_essentials.admin.col.warns"), 40, color = { if (it.warns > 0) Palette.warning else Palette.textMuted }) { it.warns.toLong() },
     Column.text<PlayerRow>(tr("kami_libs.common.state"), 50, color = { rowSeverity(it)?.color ?: Palette.success }) { state(it) }
 )
@@ -86,9 +89,12 @@ internal class DirectoryPage(private val app: AdminApp) : Page() {
         val body = ui.filterBar(r, "players:filters") { bar ->
             val row = Row(bar, 6)
             ui.select(row.takeFromRight(110), SORTS.map { Option(it, tr("kami_essentials.admin.sort.$it")) }, sort, key = "players:sort")?.let { sort = it }
-            val chips = row.takeFromRight(190)
-            ui.chipFlow(Stack(chips.x, chips.y + 2, chips.w), FILTERS.map { ChipSpec(tr("kami_essentials.admin.filter.$it"), selected = it == filter) }, "players:filter")
-                ?.let { filter = FILTERS[it] }
+            if (bar.w < NARROW_W) ui.select(row.takeFromRight(100), FILTERS.map { Option(it, filterLabel(it)) }, filter, key = "players:filter-select")?.let { filter = it }
+            else {
+                val chips = row.takeFromRight(190)
+                ui.chipFlow(Stack(chips.x, chips.y + 2, chips.w), FILTERS.map { ChipSpec(filterLabel(it), selected = it == filter) }, "players:filter")
+                    ?.let { filter = FILTERS[it] }
+            }
             ui.searchField(row.remaining(), search, key = "players:search")
         }
         paged.rows.forEach { AdminData.remember(it.uuid, it.name) }
@@ -123,7 +129,7 @@ internal class PlayerPage(private val app: AdminApp) : Page() {
     private val warnsTable = TableState<WarnRow>()
     private val amount = TextState()
 
-    override val title get() = current()?.row?.name ?: uuid?.let(AdminData::known) ?: tr("kami_essentials.admin.nav.player")
+    override val title get() = current()?.row?.name ?: uuid?.let(AdminData::known) ?: tr("kami_libs.common.details")
 
     override fun opened(route: Route) {
         val next = route.param("uuid") ?: return
@@ -148,16 +154,20 @@ internal class PlayerPage(private val app: AdminApp) : Page() {
 
     private fun lock(d: PlayerDetail) = lockUnless(adminManager) ?: if (d.canManage) null else tr("kami_essentials.admin.outranked")
 
-    private fun tabs(d: PlayerDetail) = listOfNotNull(
-        Tab("overview", TabItem(tr("kami_essentials.admin.tab.overview"), Icons.PERSON), ::overview),
-        Tab("profile", TabItem(tr("kami_essentials.admin.tab.profile"), Icons.EYE), ::profile),
-        Tab("money", TabItem(tr("kami_essentials.admin.tab.money"), Icons.COIN), ::moneyTab),
-        Tab("moderation", TabItem(tr("kami_essentials.admin.tab.moderation"), Icons.BAN), ::moderation),
-        Tab("stats", TabItem(tr("kami_essentials.admin.tab.stats"), Icons.STATS), ::statsTab),
+    private val tabMemo = Memo()
+
+    private fun tabs(d: PlayerDetail): List<Tab> = tabMemo.of(Format.locale, d.lastIp != null || d.knownIps != null || d.alts != null) { buildTabs(d) }
+
+    private fun buildTabs(d: PlayerDetail) = listOfNotNull(
+        Tab("overview", TabItem(tr("kami_libs.common.overview"), Icons.PERSON), ::overview),
+        Tab("profile", TabItem(tr("kami_libs.common.profile"), Icons.EYE), ::profile),
+        Tab("money", TabItem(tr("kami_libs.common.money"), Icons.COIN), ::moneyTab),
+        Tab("moderation", TabItem(tr("kami_essentials.admin.nav.moderation"), Icons.BAN), ::moderation),
+        Tab("stats", TabItem(tr("kami_libs.common.statistics"), Icons.STATS), ::statsTab),
         Tab("staff", TabItem(tr("kami_essentials.admin.tab.staff"), Icons.SHIELD), ::staffTab),
-        Tab("discord", TabItem(tr("kami_essentials.admin.tab.discord"), Icons.CHAIN), ::discordTab),
+        Tab("discord", TabItem(tr("kami_essentials.nav.discord"), Icons.CHAIN), ::discordTab),
         Tab("position", TabItem(tr("kami_essentials.admin.tab.position"), Icons.LOCATE), ::position),
-        Tab("inventory", TabItem(tr("kami_essentials.admin.tab.inventory"), Icons.CHEST), ::inventory),
+        Tab("inventory", TabItem(tr("kami_essentials.inline.inventory"), Icons.CHEST), ::inventory),
         if (d.lastIp != null || d.knownIps != null || d.alts != null) Tab("network", TabItem(tr("kami_essentials.admin.tab.network"), Icons.GLOBE), ::network) else null
     )
 
@@ -197,18 +207,15 @@ internal class PlayerPage(private val app: AdminApp) : Page() {
         ui.avatar(d.row.uuid, r.x, r.y + 2, 24, d.row.online)
         val balance = Format.money(d.row.balance)
         val balanceW = Draw.width(balance, TextStyle.HEADING)
-        Draw.text(ui.g, Draw.fit(d.row.name, r.w - 38 - balanceW, TextStyle.HEADING), r.x + 30, r.y + 3, TextStyle.HEADING)
+        ui.fitText(r.x + 30, r.y + 3, r.w - 38 - balanceW, d.row.name, TextStyle.HEADING.color(), TextStyle.HEADING)
         var x = r.x + 30
         val y = r.y + 15
-        x += ui.statusPill(x, y, if (d.row.online) tr("kami_libs.common.online") else tr("kami_essentials.admin.state.offline"), if (d.row.online) Severity.SUCCESS else Severity.NEUTRAL) + 4
-        if (d.ban != null) x += ui.statusPill(x, y, tr("kami_essentials.admin.state.banned"), Severity.DANGER) + 4
-        if (d.mute != null) x += ui.statusPill(x, y, tr("kami_essentials.admin.state.muted"), Severity.WARNING) + 4
-        listOfNotNull(d.row.country, d.row.rank).joinToString(" · ").takeIf { it.isNotEmpty() }?.let { Draw.text(ui.g, Draw.fit(it, r.right - x - 2), x + 2, y + 3, Palette.textMuted) }
+        x += ui.statusPill(x, y, if (d.row.online) tr("kami_libs.common.online") else tr("kami_libs.common.offline"), if (d.row.online) Severity.SUCCESS else Severity.NEUTRAL) + 4
+        if (d.ban != null) x += ui.statusPill(x, y, tr("kami_essentials.admin.filter.banned"), Severity.DANGER) + 4
+        if (d.mute != null) x += ui.statusPill(x, y, tr("kami_essentials.admin.filter.muted"), Severity.WARNING) + 4
+        listOfNotNull(d.row.country, d.row.rank).joinToString(" · ").takeIf { it.isNotEmpty() }?.let { ui.fitText(x + 2, y + 3, r.right - x - 2, it, Palette.textMuted) }
         Draw.textRight(ui.g, balance, r.right, r.y + 3, Palette.money, TextStyle.HEADING)
     }
-
-    private fun Ui.prop(f: Flow, label: String, value: String, color: Int = Palette.text, copy: Boolean = false) =
-        property(f.take(PROP_H), label, value, color, copy, key = "player-prop:$label:$value")
 
     private fun overview(ui: Ui, r: Rect, d: PlayerDetail) {
         val (left, right) = r.columns(2, 8)
@@ -217,18 +224,18 @@ internal class PlayerPage(private val app: AdminApp) : Page() {
         ui.prop(a, tr("kami_libs.common.name"), d.row.name, copy = true)
         ui.prop(a, tr("kami_libs.common.country"), d.row.country ?: tr("kami_libs.common.none"))
         ui.prop(a, tr("kami_libs.common.rank"), d.row.rank ?: tr("kami_libs.common.none"))
-        ui.prop(a, tr("kami_essentials.admin.balance"), Format.money(d.row.balance), Palette.money)
-        ui.prop(a, tr("kami_essentials.admin.col.playtime"), Format.duration(d.row.playtimeMs))
+        ui.prop(a, tr("kami_libs.common.balance"), Format.money(d.row.balance), Palette.money)
+        ui.prop(a, tr("kami_libs.common.playtime"), Format.duration(d.row.playtimeMs))
         val b = Flow(ui.card(right.top(INFO_H), tr("kami_essentials.admin.activity"), Icons.CLOCK), 2)
         ui.prop(b, tr("kami_essentials.admin.first_join"), Format.exact(d.firstJoin))
-        ui.prop(b, tr("kami_essentials.admin.col.seen"), if (d.row.online) tr("kami_libs.common.online") else "${Format.exact(d.lastSeen)} (${Format.ago(d.lastSeen)})")
-        ui.prop(b, tr("kami_essentials.admin.state.banned"), d.ban?.let { until(it.until) } ?: tr("kami_libs.common.none"), if (d.ban != null) Palette.danger else Palette.text)
-        ui.prop(b, tr("kami_essentials.admin.state.muted"), d.mute?.let { until(it.until) } ?: tr("kami_libs.common.none"), if (d.mute != null) Palette.warning else Palette.text)
+        ui.prop(b, tr("kami_libs.common.last_seen"), if (d.row.online) tr("kami_libs.common.online") else "${Format.exact(d.lastSeen)} (${Format.ago(d.lastSeen)})")
+        ui.prop(b, tr("kami_essentials.admin.filter.banned"), d.ban?.let { until(it.until) } ?: tr("kami_libs.common.none"), if (d.ban != null) Palette.danger else Palette.text)
+        ui.prop(b, tr("kami_essentials.admin.filter.muted"), d.mute?.let { until(it.until) } ?: tr("kami_libs.common.none"), if (d.mute != null) Palette.warning else Palette.text)
     }
 
     private fun moneyTab(ui: Ui, r: Rect, d: PlayerDetail) {
         val row = Row(r.top(CONTROL_H), 6)
-        ui.textField(row.take(100), amount, tr("kami_libs.common.amount"), Icons.COIN, allow = { it.isDigit() || it in "kmbKMB.," }, key = "player-amount")
+        ui.textField(row.take(100), amount, tr("kami_libs.common.amount"), Icons.COIN, allow = ::isAmountChar, key = "player-amount")
         val value = Format.parseAmount(amount.text)?.takeIf { it > 0 }
         val reason = lockUnless(adminManager) ?: tr("kami_essentials.admin.money.invalid").takeIf { value == null }
         fun moneyButton(kind: String, icon: Icon, danger: Boolean) {
@@ -268,7 +275,7 @@ internal class PlayerPage(private val app: AdminApp) : Page() {
         action(tr("kami_essentials.admin.warn"), Icons.WARNING, outrank, act = "players.warn") {
             reasonDialog({ app.open(it) }, tr("kami_essentials.admin.warn.title", name)) { why, _, _ -> app.adminAct("players.warn", listOf(id), why) }
         }
-        action(tr("kami_essentials.admin.kick"), Icons.CLOSE, outrank ?: tr("kami_essentials.admin.kick.offline").takeUnless { d.row.online }, true, "players.kick") {
+        action(tr("kami_essentials.admin.kick"), Icons.CLOSE, outrank ?: tr("kami_essentials.admin.offline").takeUnless { d.row.online }, true, "players.kick") {
             app.adminConfirmAct(tr("kami_essentials.admin.kick.title", name), "players.kick", listOf(id), danger = true)
         }
         var rest = r.dropTop(CONTROL_H + 6)
@@ -296,7 +303,7 @@ internal class PlayerPage(private val app: AdminApp) : Page() {
         }
         val box = r.top(INFO_H).withWidth(minOf(r.w, 260))
         val f = Flow(ui.card(box, tr(if (p.live) "kami_essentials.admin.position.live" else "kami_essentials.admin.position.logout"), Icons.LOCATE), 2)
-        ui.prop(f, tr("kami_essentials.admin.position.dim"), trOr("kami_essentials.admin.dim.${p.dim.replace(':', '.')}", p.dim))
+        ui.prop(f, tr("kami_essentials.admin.arg.dim"), trOr("kami_essentials.admin.dim.${p.dim.replace(':', '.')}", p.dim))
         ui.prop(f, "X", Format.decimal(p.x))
         ui.prop(f, "Y", Format.decimal(p.y))
         ui.prop(f, "Z", Format.decimal(p.z))
@@ -307,9 +314,9 @@ internal class PlayerPage(private val app: AdminApp) : Page() {
     }
 
     private fun profile(ui: Ui, r: Rect, d: PlayerDetail) {
-        val f = Flow(ui.card(r.top(64).withWidth(minOf(r.w, 260)), tr("kami_essentials.admin.tab.profile"), Icons.EYE), 4)
+        val f = Flow(ui.card(r.top(64).withWidth(minOf(r.w, 260)), tr("kami_libs.common.profile"), Icons.EYE), 4)
         val line = f.take(PROP_H)
-        Draw.text(ui.g, Draw.fit(tr("kami_essentials.admin.profile.body"), line.w), line.x, line.y, Palette.textMuted)
+        ui.fitText(line.x, line.y, line.w, tr("kami_essentials.admin.profile.body"), Palette.textMuted)
         if (ui.button(f.take(CONTROL_H), tr("kami_essentials.admin.profile.open"), Icons.EYE, ButtonStyle.PRIMARY, Personal.available, key = "profile-open"))
             Personal.view(Personal.Subject(d.row.uuid, d.row.name))
     }
@@ -318,9 +325,9 @@ internal class PlayerPage(private val app: AdminApp) : Page() {
         val lock = lock(d)
         r.top(64).columns(2, 8).forEachIndexed { i, cell ->
             val ender = i == 1
-            val label = tr(if (ender) "kami_essentials.admin.inventory.ender" else "kami_essentials.admin.inventory.main")
+            val label = tr(if (ender) "kami_essentials.inline.ender_chest" else "kami_essentials.inline.inventory")
             val (viewBox, editBox) = ui.card(cell, label, if (ender) Icons.CHEST else Icons.PERSON).top(CONTROL_H).columns(2, 6)
-            if (ui.button(viewBox, tr("kami_essentials.admin.inventory.view"), Icons.EYE, key = "inv-view-$i")) app.adminView("players.inventory", listOf(d.row.uuid, ender.toString()))
+            if (ui.button(viewBox, tr("kami_libs.common.view"), Icons.EYE, key = "inv-view-$i")) app.adminView("players.inventory", listOf(d.row.uuid, ender.toString()))
             if (ui.button(editBox, tr("kami_essentials.admin.inventory.edit"), Icons.EDIT, enabled = lock == null, disabledReason = lock,
                     pending = adminPending("players.inventory_edit", listOf(d.row.uuid, ender.toString())), key = "inv-edit-$i"))
                 app.adminConfirmAct(tr("kami_essentials.admin.inventory.edit.title", label, d.row.name), "players.inventory_edit", listOf(d.row.uuid, ender.toString()))

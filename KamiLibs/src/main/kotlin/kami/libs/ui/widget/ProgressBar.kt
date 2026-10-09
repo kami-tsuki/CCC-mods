@@ -16,12 +16,20 @@ const val PROGRESS_LABELLED_H = 20
 private const val PAUSED_HATCH_ALPHA = 0x30
 private const val SHIMMER_ALPHA = 0x60
 
+internal fun Ui.drawBar(bar: Rect, fraction: Float, color: Int): Rect {
+    Draw.sprite(g, Sprites.TRACK, bar)
+    val filled = bar.withWidth(max(2, (bar.w * fraction.coerceIn(0f, 1f)).toInt()))
+    if (fraction > 0f) Draw.tinted(g, Sprites.FILL, filled, color)
+    return filled
+}
+
 fun Ui.progressBar(
     r: Rect, value: Long, max: Long, label: String? = null, remaining: String? = null, color: Int = Palette.brass,
-    doneColor: Int = Palette.success, shimmer: Boolean = false, paused: Boolean = false, key: Any = label ?: "bar"
+    doneColor: Int = Palette.success, shimmer: Boolean = false, paused: Boolean = false, key: Any? = null
 ) {
+    val k = key ?: label ?: autoKey("bar")
     val fraction = if (max <= 0) 0f else (value.toFloat() / max).coerceIn(0f, 1f)
-    val shown = anim("bar:$key", fraction, speed = 10f)
+    val shown = anim("bar:$k", fraction, speed = 10f)
     val fill = if (fraction >= 1f) doneColor else color
     val count = "${Format.number(value)} / ${Format.number(max)}"
     val labelled = r.h >= PROGRESS_LABELLED_H
@@ -32,9 +40,7 @@ fun Ui.progressBar(
         Draw.text(g, Draw.fit(label ?: "", r.w - Draw.width(right) - 8), r.x, r.y + 1, Palette.textSecondary)
         Draw.textRight(g, right, r.right, r.y + 1, rightColor)
     }
-    Draw.sprite(g, Sprites.TRACK, bar)
-    val filled = bar.withWidth(max(2, (bar.w * shown).toInt()))
-    if (shown > 0f) Draw.tinted(g, Sprites.FILL, filled, fill)
+    val filled = drawBar(bar, shown, fill)
     if (shimmer && !paused && shown > 0f && fraction < 1f) shimmer(filled, Palette.alpha(0xFFFFFF, SHIMMER_ALPHA))
     if (paused) Draw.hatch(g, bar.inset(1), Palette.alpha(Palette.warning, PAUSED_HATCH_ALPHA))
     if (!labelled && bar.h >= 10) Draw.textCentered(g, count, bar, Palette.textInverse)

@@ -7,12 +7,10 @@ import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
-import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
-import kotlin.math.roundToLong
 
 internal object HeatmapDraw {
     val ramp = intArrayOf(0x440154, 0x3B528B, 0x21918C, 0x5EC962, 0xFDE725)
@@ -29,11 +27,6 @@ internal object HeatmapDraw {
         val scaled = t.coerceIn(0.0, 1.0) * (ramp.size - 1)
         val i = min(scaled.toInt(), ramp.size - 2)
         return blend(0xFF000000.toInt() or ramp[i], ramp[i + 1], scaled - i) and 0xFFFFFF
-    }
-
-    fun short(v: Double): String {
-        val n = v.roundToLong()
-        return if (abs(n) >= 1_000) "${n / 1_000}k" else n.toString()
     }
 
     fun grid(g: GuiGraphics, view: Viewport, r: Rect) {
@@ -74,6 +67,6 @@ internal object HeatmapDraw {
         val sx = view.screenX(player.x).roundToInt()
         val sy = view.screenY(player.z).roundToInt()
         Draw.box(g, Rect(sx - 3, sy - 3, 7, 7), 0xFFFFFFFF.toInt(), 0xFF000000.toInt())
-        Draw.text(g, tr("kami_geology.map.you"), sx + 6, sy - 4, Palette.tipText, shadow = true)
+        Draw.text(g, tr("kami_libs.common.you"), sx + 6, sy - 4, Palette.tipText, shadow = true)
     }
 }

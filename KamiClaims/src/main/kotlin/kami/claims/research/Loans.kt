@@ -68,6 +68,10 @@ object Loans {
         if (country.loans.isNotEmpty() || lent(country) > 0) throw Fail(key)
     }
 
+    fun requireNoDebt(country: Country, key: String) {
+        if (country.loans.isNotEmpty()) throw Fail(key)
+    }
+
     fun requireNoResearchLoans(country: Country, key: String) {
         if (country.loans.any { it.lender == null }) throw Fail(key)
     }
@@ -77,7 +81,7 @@ object Loans {
     private fun party(loan: Loan) = loan.lender?.let { "c:$it" } ?: "r:${loan.id}"
 
     private fun sync(country: Country, peers: Boolean) {
-        Realm.changed()
+        Realm.changed(false)
         if (peers) refreshAll() else ResearchSync.refresh(country)
     }
 
@@ -249,7 +253,7 @@ object Loans {
         activate(country, offer, actor)
         country.lendOffers += offer
         Stats.event("loan.offer.create", "c:${country.id}", id, amount)
-        Realm.changed()
+        Realm.changed(false)
         refreshAll()
         return Phrase.of("kami_claims.loans.done.offer_created", Words.money(amount))
     }
@@ -264,7 +268,7 @@ object Loans {
             activate(country, offer, actor)
         } else release(country, offer)
         Stats.add(if (on) "loan.offer.on" else "loan.offer.off", "c:${country.id}")
-        Realm.changed()
+        Realm.changed(false)
         refreshAll()
         return done
     }
@@ -288,7 +292,7 @@ object Loans {
         }
         country.lendOffers.remove(offer)
         Stats.add("loan.offer.delete", "c:${country.id}")
-        Realm.changed()
+        Realm.changed(false)
         refreshAll()
         return done
     }
@@ -312,7 +316,7 @@ object Loans {
         Stats.add("loan.lend", "c:${lender.id}", "c:${country.id}", offer.amount)
         Mail.officers(lender, Phrase.of("kami_claims.mail.loan_borrowed", Words.v(country.name), Words.money(offer.amount)), Tone.OK)
         disableOffers(country)
-        Realm.changed()
+        Realm.changed(false)
         refreshAll()
         return Phrase.of("kami_claims.loans.done.taken", Words.money(offer.amount), Words.money(perDay))
     }
@@ -346,7 +350,7 @@ object Loans {
         }
         country.lendOffers.clear()
         country.loans.clear()
-        Realm.changed()
+        Realm.changed(false)
         refreshAll()
     }
 

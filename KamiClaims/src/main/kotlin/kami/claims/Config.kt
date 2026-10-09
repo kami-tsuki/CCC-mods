@@ -167,6 +167,19 @@ data class WarSettings(
 }
 
 @Serializable
+data class VisibilitySettings(
+    val hideNametags: Boolean = true,
+    val hideEnemiesOnMinimap: Boolean = true,
+    val shareMemberPositions: Boolean = true,
+    val adminSeeAll: Boolean = true,
+    val fairPlay: Boolean = true,
+    val positionIntervalTicks: Int = 40,
+    val opLevel: Int = 2
+) {
+    fun sane() = copy(positionIntervalTicks = positionIntervalTicks.coerceAtLeast(10), opLevel = opLevel.coerceIn(0, 4))
+}
+
+@Serializable
 data class Settings(
     val dayMillis: Long = Time.DAY_MS,
     val dimensions: List<String> = listOf("minecraft:overworld"),
@@ -203,6 +216,16 @@ data class Settings(
     val tempBlockSecondsPerHardness: Double = 3.0,
     val tempBlockMinSeconds: Double = 2.0,
     val tempBlockLimit: Int = 4096,
+    val tempBlockFixedSeconds: Map<String, Double> = linkedMapOf(
+        "minecraft:torch" to 300.0,
+        "minecraft:wall_torch" to 300.0,
+        "minecraft:soul_torch" to 600.0,
+        "minecraft:soul_wall_torch" to 600.0,
+        "minecraft:stone_button" to 60.0,
+        "minecraft:lever" to 60.0,
+        "#minecraft:wooden_buttons" to 30.0
+    ),
+    val nomanslandFrameTakeOnly: Boolean = true,
     val pistonProtection: Boolean = true,
     val skyRule: Boolean = true,
     val skyFreeDimensions: List<String> = listOf("minecraft:the_nether", "minecraft:the_end"),
@@ -224,6 +247,7 @@ data class Settings(
     val mailLimit: Int = 10,
     val announce: Map<String, Announcement> = Announcement.defaults,
     val war: WarSettings = WarSettings(),
+    val visibility: VisibilitySettings = VisibilitySettings(),
     val types: Map<String, TypeDef> = linkedMapOf(
         "civic" to type(1, rule = rule(Access.CITIZEN, Access.CITIZEN, Access.ALLIED, Access.CITIZEN)),
         "mining" to type(3, job = "miner", rule = rule(Access.JOB, Access.JOB, Access.ALLIED, Access.JOB, true)),
@@ -272,7 +296,8 @@ private fun Settings.sane(): Settings {
         ledgerSize = ledgerSize.coerceIn(20, 5000),
         historyDays = historyDays.coerceIn(7, 730),
         announce = Announcement.defaults + announce,
-        war = war.sane()
+        war = war.sane(),
+        visibility = visibility.sane()
     )
 }
 
@@ -283,7 +308,7 @@ private val sections = listOf(
             "dayMillis" to "Length of one upkeep day in milliseconds. 86400000 is one real day.",
             "dimensions" to "Dimensions where land can be claimed.",
             "freeChunks" to "Chunks every country gets for free, the capital included.",
-            "maxCountries" to "Most independent countries the server allows at once; provinces do not count. 0 means no limit.",
+            "maxCountries" to "Most independent countries at once (provinces excluded). 0 = no limit.",
             "freeBonusMembers" to "Members needed for one extra free chunk.",
             "freeBonusCap" to "Most extra free chunks a country can earn from members.",
             "maxDebt" to "Unpaid days before a chunk is lost.",
@@ -295,7 +320,7 @@ private val sections = listOf(
             "renameCost" to "Spurs from the treasury for renaming a country when it has no rename token.",
             "capitalMoveCost" to "Spurs from the treasury for moving the capital when the country has no capital move token.",
             "maxRect" to "Most chunks one area selection may cover.",
-            "maxCatchUp" to "Most missed days worked off at once after downtime.",
+            "maxCatchUp" to "Most missed days processed at once after downtime.",
             "nameLength" to "Shortest and longest country name.",
             "provinceTaxRateBounds" to "Lowest and highest percent tribute a province can pay, 0 to 1.",
             "maxProvinceDebt" to "Missed tribute payments before the ruling country gets an urgent warning.",
@@ -309,7 +334,7 @@ private val sections = listOf(
         "chunk-types.json", "Chunk types, their daily price and who may do what.",
         mapOf(
             "defaultType" to "Type of a freshly claimed chunk.",
-            "types" to "price is paid every period days. Access: NONE, OFFICER, ASSIGNED, JOB, WORKER, CITIZEN, ALLIED or ANY.",
+            "types" to "price is paid every period days. Access levels: NONE, OFFICER, ASSIGNED, JOB, WORKER, CITIZEN, ALLIED, ANY.",
             "types.*.period" to "Days between two payments.",
             "types.*.job" to "Job that works in this chunk type, or null.",
             "types.*.rule" to "Default rules. Countries can change them in game.",
@@ -324,7 +349,7 @@ private val sections = listOf(
         mapOf(
             "jobShare" to "Most of the daily income that may go to job pay, 0 to 1.",
             "maxJobPay" to "Highest pay a country can set for one job.",
-            "jobs" to "type is the chunk type, actions count towards the quota, blocks limits what counts (tags start with #).",
+            "jobs" to "type = chunk type; actions count toward the quota; blocks limits what counts (tags start with #).",
             "jobs.*.quota" to "Actions needed per period to get paid.",
             "jobs.*.period" to "Days per work period."
         )
@@ -344,17 +369,19 @@ private val sections = listOf(
         "protection.json", "Protection outside of countries and a few global rules.",
         mapOf(
             "freeBlocks" to "Blocks anyone may place anywhere, like train tracks.",
-            "nomanslandAllow" to "What players may do in unclaimed land: BREAK, PLACE, INTERACT or CONTAINER. Blocks and entities in the kami_claims:wild_blocked tags (pots, depots, item frames) stay unusable regardless.",
+            "nomanslandAllow" to "What players may do in unclaimed land: BREAK, PLACE, INTERACT or CONTAINER. Blocks in the kami_claims:wild_blocked tags stay unusable.",
             "nomanslandPvp" to "Players may fight in unclaimed land.",
             "mobGriefing" to "Mobs like creepers and endermen may change blocks in the claim dimensions.",
             "nomanslandExplosions" to "Explosions break blocks in unclaimed land.",
             "nomanslandFire" to "Fire spreads in unclaimed land.",
             "nomanslandFluid" to "Fluids flow in unclaimed land.",
-            "tempBlockSecondsPerHardness" to "Blocks in the kami_claims:temp_blocks tag (dirt, stone, deepslate) may be placed in unclaimed land when placing is not allowed there, but crumble after hardness times this many seconds. Pistons cannot move them.",
+            "tempBlockSecondsPerHardness" to "Blocks in the kami_claims:temp_blocks tag (dirt, stone, deepslate) can be placed in unclaimed land where placing is denied. They crumble after hardness × this many seconds. Pistons cannot move them.",
             "tempBlockMinSeconds" to "The shortest time a temporary block lasts, in seconds.",
-            "tempBlockLimit" to "How many temporary blocks may exist at once on the server. Placing more is refused until some crumble.",
+            "tempBlockFixedSeconds" to "Fixed lifetime in seconds for temporary blocks that ignore hardness. Keys are block ids or #tags; an exact id wins over a tag.",
+            "nomanslandFrameTakeOnly" to "In unclaimed land, item frames are take-only: players can take the item out but not insert, rotate or break. Lootr frames stay usable but cannot be broken.",
+            "tempBlockLimit" to "Most temporary blocks on the server at once; more are refused until some crumble.",
             "pistonProtection" to "Stop pistons from pushing blocks across claim borders.",
-            "skyRule" to "Crops and saplings only grow with open sky above them. Only blocks with a full top or bottom face block it, like full blocks, slabs, stairs and farmland. Thin blocks like torches, chains and fences, leaves, DynamicTrees branches, any glass block or variant and the kami_claims:sky_transparent tag let light through. Applies everywhere, claimed or not.",
+            "skyRule" to "Crops and saplings grow only with open sky above. Full top or bottom faces block it (blocks, slabs, stairs, farmland). Thin blocks, leaves, glass and the kami_claims:sky_transparent tag do not. Applies everywhere.",
             "skyFreeDimensions" to "Dimensions where the open sky rule is not applied, like the Nether."
         )
     ),
@@ -384,7 +411,7 @@ private val sections = listOf(
             "war.cooldownDays" to "Days after a war in which neither main country can declare or be declared on.",
             "war.pairCooldownDays" to "Days before the same attacker can declare on the same target again.",
             "war.foundingGraceDays" to "Days after founding in which a country cannot declare or be declared on.",
-            "war.downtimeGapMinutes" to "Server downtime in minutes after which all war timers are paused for the gap.",
+            "war.downtimeGapMinutes" to "Downtime (min) after which war timers pause for the gap",
             "war.reminderHours" to "Hours between reminders to a defender that has not answered.",
             "war.feePct" to "Declaration fee as part of the stake value, 0 to 1.",
             "war.feeMin" to "Lowest declaration fee in Spur.",
@@ -403,7 +430,7 @@ private val sections = listOf(
             "war.exhaustionDefenderDay" to "Exhaustion percent the defender gains per war day.",
             "war.exhaustionDeath" to "Exhaustion percent per death caused by the enemy.",
             "war.exhaustionPerThousand" to "Exhaustion percent per 1000 Spur on the enemy's bill.",
-            "war.exhaustionLossPerDayCap" to "Cap on exhaustion percent from deaths and the enemy's bill, per war day (at least one day).",
+            "war.exhaustionLossPerDayCap" to "Daily cap on exhaustion from deaths and the enemy bill (at least one day)",
             "war.debtGarnish" to "Part of a debtor's deposits and tax income that goes to the creditor, 0 to 1.",
             "war.safeChunkLevel" to "Country level that unlocks the first war-protected chunk.",
             "war.onlineMinutes" to "Minutes a combatant must be logged in to count as online.",
@@ -414,7 +441,7 @@ private val sections = listOf(
             "war.famePriorStars" to "Stars new countries are pulled toward.",
             "war.famePriorWeight" to "Weight of the prior stars.",
             "war.fameFullWeightHours" to "Playtime in hours for a full rating weight.",
-            "war.fameExtremeFactor" to "Weight factor for voters whose ratings are at least 80% the lowest or highest, 0 to 1.",
+            "war.fameExtremeFactor" to "Weight for voters rating ≥80% lowest or highest (0-1)",
             "war.fameShowWeight" to "Total rating weight needed before fame is shown.",
             "war.repStart" to "Reputation of a new country and the value it decays toward.",
             "war.repMax" to "Highest reputation.",
@@ -422,10 +449,10 @@ private val sections = listOf(
             "war.repDecay" to "Part of the distance to the start value recovered each day, 0 to 1.",
             "war.repWeeklyGainCap" to "Most reputation one source can add per week.",
             "war.repWeeklyLossCap" to "Most reputation lost per week in total.",
-            "war.repGuardLevel" to "Agree and withdraw only change reputation if both countries reach this level.",
+            "war.repGuardLevel" to "Min level of both countries for Agree/Withdraw to change reputation",
             "war.repFeeMin" to "Lowest reputation factor on the declaration fee.",
             "war.repFeeMax" to "Highest reputation factor on the declaration fee.",
-            "war.repTradeFee" to "Largest change of the cross-country trade fee at the reputation extremes, 0 to 1.",
+            "war.repTradeFee" to "Largest change of the cross-country trade fee at reputation extremes (0-1)",
             "war.repTrade" to "K factor of a trade with another country.",
             "war.repTradeRepeat" to "Factor for repeated trades with the same partner, 0 to 1.",
             "war.repTradeMax" to "Most repeated trades with one partner that count per window.",
@@ -453,17 +480,25 @@ private val sections = listOf(
             "war.repUpkeepLoss" to "Reputation lost each upkeep cycle that loses chunks.",
             "war.repCleanWar" to "Reputation for a bill under the clean war share of the stake value.",
             "war.repCleanWarPct" to "Clean war share of the stake value, 0 to 1.",
-            "war.repFarDamage" to "Most reputation lost for damage far from the front.",
-            "war.repFar" to "Reputation lost per animal killed or enemy block broken far from the own front during a war.",
+            "war.repFarDamage" to "Most reputation lost for far-front damage",
+            "war.repFar" to "Reputation per animal or enemy block far from the front",
             "war.repEmbargoSpam" to "Reputation lost per embargo or tariff flip on the same country.",
             "war.repEmbargoDays" to "Days of the embargo flip window.",
-            "war.power" to "Power score factors: weight and the scale where the factor reaches about three quarters. Keys: research, treasury, members, chunks, provinces, provinceMembers, allies."
+            "war.power" to "Power factors as weight and scale (factor reaches ~75% at scale). Keys: research, treasury, members, chunks, provinces, provinceMembers, allies.",
+            "visibility" to "Nametags and minimap during wars. Applies from a declaration until the war ends, to members of every country in an active war.",
+            "visibility.hideNametags" to "Hide the nametags of warring-country members from players outside their country (uses scoreboard teams named kc_<country>; players already in another team are skipped).",
+            "visibility.hideEnemiesOnMinimap" to "Hide enemy players on the Xaero minimap (clients with Xaero's Minimap only).",
+            "visibility.shareMemberPositions" to "Show country members to each other on the Xaero minimap even out of render range.",
+            "visibility.adminSeeAll" to "Operators see every player on the Xaero minimap, even out of render range.",
+            "visibility.fairPlay" to "Players in an active war lose the Xaero cave map and radar (fair play) and see only the claim scope on the map. Operators are exempt.",
+            "visibility.positionIntervalTicks" to "Ticks between minimap position updates per player, at least 10.",
+            "visibility.opLevel" to "Permission level that counts as operator for minimap visibility, 0 to 4."
         )
     ),
     Section(
-        "discord.json", "Country events sent to global chat and the Discord chat channel. Needs the Discord bot of KamiEssentials for Discord.",
+        "discord.json", "Country events to global chat and Discord. Discord needs the KamiEssentials bot.",
         mapOf(
-            "announce" to "Per event: mc sends it to global chat (needs broadcast in messages.json), discord sends the template to Discord. Templates fill {country}, {leader}, {old}, {level}, {other}, {province}, {parent}, {choice}, {phase}, {result} and {side} depending on the event: founded {country} {leader}, levelUp {country} {level}, allianceFormed and allianceEnded {country} {other}, provinceBecame, provinceReleased, provinceGiven and warProvince {province} {parent} {other}, embargoOn and embargoOff {country} {other}, leaderHandover and succession {country} {old} {leader}, disbanded {country}, warDeclared {country} {other}, warAnswered {country} {other} {choice}, warPhase {country} {other} {phase}, warEnded {country} {other} {result}, warJoined {country} {other} {side}.",
+            "announce" to "Per event: mc = global chat (needs broadcast in messages.json), discord = template for Discord. Template fields differ per event, see the default templates.",
             "announce.*.mc" to "Send this event to global chat.",
             "announce.*.discord" to "Send this event to Discord.",
             "announce.*.template" to "Discord text with placeholders in braces."

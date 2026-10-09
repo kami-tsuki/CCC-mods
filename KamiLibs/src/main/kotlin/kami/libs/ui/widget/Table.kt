@@ -32,20 +32,13 @@ class Column<T>(
         fun <T> text(title: String, width: Int, align: Align = Align.LEFT, sortable: Boolean = true, tip: String? = null, color: (T) -> Int = { Palette.text }, value: (T) -> String) =
             Column(title, width, align, if (sortable) textOrder(value) else null, tip) { _, r, row ->
                 val full = value(row)
-                val s = Draw.fit(full, r.w)
-                if (s != full) tooltip("cell:${r.x},${r.y}", r, full)
-                val x = when (align) {
-                    Align.LEFT -> r.x
-                    Align.RIGHT -> r.right - Draw.width(s)
-                    Align.CENTER -> r.x + (r.w - Draw.width(s)) / 2
-                }
-                Draw.text(g, s, x, r.y + (r.h - 8) / 2, color(row))
+                cellText(r, full, color(row), align, "cell:$full:${r.x}:${r.y}")
             }
 
         fun <T> number(title: String, width: Int, tip: String? = null, color: (T) -> Int = { Palette.text }, format: (Long) -> String = { Format.number(it) }, value: (T) -> Long) =
             Column(title, width, Align.RIGHT, compareBy(value), tip) { _, r, row ->
-                val s = format(value(row))
-                Draw.text(g, s, r.right - Draw.width(s), r.y + (r.h - 8) / 2, color(row))
+                val full = format(value(row))
+                cellText(r, full, color(row), Align.RIGHT, "cell:$full:${r.x}:${r.y}")
             }
     }
 }
@@ -82,6 +75,35 @@ class TableState<T> {
         return groupedRows
     }
 
+    private var widthsColumns: List<Column<T>>? = null
+    private var widthsW = -1
+    private var widthsCheck = -1
+    private var widths: List<Int> = emptyList()
+
+    fun widths(columns: List<Column<T>>, w: Int, checkW: Int): List<Int> {
+        if (widthsColumns !== columns || widthsW != w || widthsCheck != checkW || widths.size != columns.size) {
+            val flexible = columns.count { it.width < 0 }
+            val fixed = columns.sumOf { if (it.width >= 0) it.width else 0 } + checkW + (columns.size + 1) * CELL_PAD + 4
+            val flexW = if (flexible > 0) (w - fixed).coerceAtLeast(20) / flexible else 0
+            widths = columns.map { if (it.width < 0) flexW else it.width }
+            widthsColumns = columns
+            widthsW = w
+            widthsCheck = checkW
+        }
+        return widths
+    }
+
+    private var prunedFrom: List<T>? = null
+
+    fun prune(rows: List<T>, keyOf: (T) -> Any) {
+        if (prunedFrom === rows || rows.isEmpty()) return
+        prunedFrom = rows
+        if (selected.isEmpty()) return
+        val keys = HashSet<Any>(rows.size * 2)
+        rows.forEach { keys += keyOf(it) }
+        selected.retainAll(keys)
+    }
+
     fun clear() { selected.clear() }
 }
 
@@ -101,10 +123,8 @@ fun <T> Ui.table(
             columns[c].sort?.let { cmp -> rows.sortedWith(if (state.descending) cmp.reversed() else cmp) }
         } ?: rows
     }.let { list -> regroup?.let { state.grouped(list, it) } ?: list }
-    val flexible = columns.count { it.width < 0 }
-    val fixed = columns.filter { it.width >= 0 }.sumOf { it.width } + checkW + (columns.size + 1) * CELL_PAD + 4
-    val flexW = if (flexible > 0) (r.w - fixed).coerceAtLeast(20) / flexible else 0
-    val widths = columns.map { if (it.width < 0) flexW else it.width }
+    state.prune(rows, keyOf)
+    val widths = state.widths(columns, r.w, checkW)
     Draw.fill(g, header, Palette.raised)
     Draw.hline(g, header.x, header.bottom - 1, header.w, Palette.border)
     var x = header.x + CELL_PAD
@@ -116,7 +136,7 @@ fun <T> Ui.table(
         }
         x += checkW + CELL_PAD
     }
-    columns.forEachIndexed { i, c ->
+    clip(header) { columns.forEachIndexed { i, c ->
         val cell = Rect(x, header.y, widths[i], header.h)
         if (i > 0) Draw.vline(g, x - CELL_PAD / 2 - 1, header.y + 3, header.h - 6, Palette.borderSubtle)
         val sortable = c.sort != null
@@ -132,7 +152,7 @@ fun <T> Ui.table(
             if (state.sortColumn == i) state.descending = !state.descending else { state.sortColumn = i; state.descending = false }
         }
         x += widths[i] + CELL_PAD
-    }
+    } }
     var opened: T? = null
     var context: T? = null
     var changed = false
@@ -202,7 +222,7 @@ fun <T> Ui.table(
                 if (double) opened = row
                 when {
                     multi && input.ctrl -> if (!state.selected.remove(k)) state.selected += k
-                    multi && input.shift && state.selected.isNotEmpty() -> {
+                    multi && input.shift && state.selected.isNotEmpty() && sorted.indexOfFirst { keyOf(it) in state.selected } >= 0 -> {
                         val anchor = sorted.indexOfFirst { keyOf(it) in state.selected }
                         (minOf(anchor, index)..maxOf(anchor, index)).forEach { j -> state.selected += keyOf(sorted[j]) }
                     }

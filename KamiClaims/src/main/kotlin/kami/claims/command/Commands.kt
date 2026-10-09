@@ -119,14 +119,14 @@ private fun Node.countryCore(countries: () -> Collection<String>): Node =
             ctx.status(Realm.country(ctx.text("country")) ?: fail(Phrase.of("kami_claims.error.unknown_country_named", Phrase.value(ctx.text("country")))))
         }))
     .then(lit("list").does { ctx ->
-        val all = Realm.data.countries.values.sortedByDescending { Realm.claims(it.id).size }
+        val all = Realm.data.countries.values.sortedByDescending { Realm.claimCount(it.id) }
         if (all.isEmpty()) return@does ctx.info(Phrase.of("kami_claims.list.empty", Phrase.value("/claims create <name>")))
         ctx.info(count("kami_claims.unit.country", all.size))
         all.forEach { c ->
             ctx.row {
                 run(Component.literal(c.name), "/claims info ${c.id}", Phrase.of("kami_claims.chat.info.tooltip", c.name).component())
                 muted("  ")
-                add(Phrase.of("kami_libs.format.list", count("kami_claims.unit.member", c.members.size), chunks(Realm.claims(c.id).size)), Theme.MUTED)
+                add(Phrase.of("kami_libs.format.list", count("kami_claims.unit.member", c.members.size), chunks(Realm.claimCount(c.id))), Theme.MUTED)
             }
         }
     })
@@ -153,9 +153,9 @@ private fun Node.countryMembership(countries: () -> Collection<String>): Node {
                     ctx.row {
                         value(n)
                         muted("  ")
-                        button(Phrase.of("kami_claims.chat.approve"), "/claims approve $n", Phrase.of("kami_claims.chat.approve.tooltip", n))
+                        button(Phrase.of("kami_libs.common.accept"), "/claims approve $n", Phrase.of("kami_claims.chat.approve.tooltip", n))
                         text(" ")
-                        button(Phrase.of("kami_claims.chat.deny"), "/claims deny $n", Phrase.of("kami_claims.chat.deny.tooltip", n))
+                        button(Phrase.of("kami_libs.common.decline"), "/claims deny $n", Phrase.of("kami_claims.chat.deny.tooltip", n))
                     }
                 }
             }
@@ -208,7 +208,7 @@ private fun Node.countryJobs(jobs: () -> Collection<String>): Node =
                     ctx.row {
                         text("• ${Names.of(ctx.source.server, id)} ")
                         add(Phrase.of("kami_claims.jobs.member", Words.job(job), num(state.progress)), Theme.MUTED)
-                        val zone = Realm.claims(c.id).count { id in it.workers && it.type == s.jobs[job]?.type }
+                        val zone = Realm.claimsView(c.id).count { id in it.workers && it.type == s.jobs[job]?.type }
                         if (zone > 0) { muted(" · "); add(Phrase.of("kami_claims.jobs.zone", chunks(zone)), Theme.MUTED) }
                     }
                 }

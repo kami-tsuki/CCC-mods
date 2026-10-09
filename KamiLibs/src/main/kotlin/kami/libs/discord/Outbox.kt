@@ -129,7 +129,7 @@ internal object Outbox {
 
     private fun pump(lane: Lane, channel: Channel) {
         if (!lane.open || lane.busy) return
-        val task = if (lane.dropped > 0) notice(lane.dropped).also { lane.dropped = 0 } else lane.queue.removeFirstOrNull() ?: return
+        val task = lane.queue.removeFirstOrNull() ?: if (lane.dropped > 0) notice(lane.dropped).also { lane.dropped = 0 } else return
         lane.busy = true
         send(lane, channel, task, true, gen)
     }

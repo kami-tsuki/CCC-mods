@@ -13,4 +13,9 @@ object Templates {
     }
 
     fun code(value: String): String = if (value.isBlank()) value else "`${value.replace('`', '\'')}`"
+
+    fun player(value: String): String = DiscordFormat.player(value)
+
+    fun fillCoded(template: String, values: Map<String, String>, plain: Set<String> = setOf("level")): String =
+        fill(template, values.mapValues { (k, v) -> if (k in plain) v else code(v) })
 }

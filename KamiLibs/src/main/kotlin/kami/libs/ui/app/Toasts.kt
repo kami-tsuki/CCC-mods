@@ -13,6 +13,7 @@ import kami.libs.ui.style.Sprites
 import kami.libs.ui.style.TextStyle
 import kami.libs.ui.style.UiSound
 import kami.libs.ui.text.tr
+import kami.libs.ui.widget.fitText
 import kami.libs.ui.widget.iconFor
 import kami.libs.ui.widget.link
 
@@ -27,6 +28,20 @@ class Toast(val severity: Severity, val title: String, val body: String? = null,
     var shown = 0.0
     var leaving = 0f
     var dismissed = false
+    private var linesW = -1
+    private var lines: List<String> = emptyList()
+    var bodyCut = false
+        private set
+
+    fun lines(width: Int): List<String> {
+        if (width != linesW) {
+            val all = body?.let { Draw.lines(it, width) } ?: emptyList()
+            lines = all.take(3)
+            bodyCut = all.size > 3
+            linesW = width
+        }
+        return lines
+    }
     val y = Spring(Float.NaN)
     val lifetime get() = when (severity) {
         Severity.DANGER -> Long.MAX_VALUE
@@ -53,8 +68,8 @@ class Toasts {
         var next = 0
         while (next < items.size) {
             val t = items[next++]
-            val w = 190
-            val bodyLines = t.body?.let { Draw.wrap(it, w - 30).take(3) } ?: emptyList()
+            val w = minOf(190, area.w - 8).coerceAtLeast(60)
+            val bodyLines = t.lines(w - 30)
             val h = 18 + bodyLines.size * Draw.LINE + (if (t.action != null) 11 else 0) + 4
             val slot = y.toFloat()
             if (t.y.value.isNaN() || ui.reduceMotion) t.y.value = slot
@@ -72,8 +87,9 @@ class Toasts {
             Draw.sprite(ui.g, Sprites.TOAST, box)
             Draw.vline(ui.g, box.x, box.y, box.h, t.severity.color)
             Draw.icon(ui.g, iconFor(t.severity), box.x + 5, box.y + 3)
-            Draw.text(ui.g, Draw.fit(t.title, w - 44), box.x + 24, box.y + 7, TextStyle.HEADING, t.severity.color)
-            bodyLines.forEachIndexed { li, line -> ui.g.drawString(Draw.font, line, box.x + 24, box.y + 18 + li * Draw.LINE, Palette.textSecondary, false) }
+            ui.fitText(box.x + 24, box.y + 7, w - 44, t.title, t.severity.color, TextStyle.HEADING, key = "toast-title:${t.id}")
+            bodyLines.forEachIndexed { li, line -> Draw.text(ui.g, line, box.x + 24, box.y + 18 + li * Draw.LINE, Palette.textSecondary) }
+            if (t.bodyCut && bodyLines.isNotEmpty()) ui.tooltip("toast-body:${t.id}", Rect(box.x + 24, box.y + 18, w - 30, bodyLines.size * Draw.LINE), t.body)
             if (t.lifetime != Long.MAX_VALUE) {
                 val left = (1.0 - t.shown * 1000 / t.lifetime).coerceIn(0.0, 1.0)
                 Draw.fill(ui.g, Rect(box.x + 1, box.bottom - 2, ((box.w - 2) * left).toInt(), 1), Palette.alpha(t.severity.color, 0x90))

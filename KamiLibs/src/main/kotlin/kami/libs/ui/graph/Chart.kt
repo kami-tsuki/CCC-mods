@@ -32,7 +32,7 @@ object PriceChart {
     private const val TICKS = 4
     private const val LABEL_SPACING = 64
 
-    private fun num(v: Double) = Format.number(v.roundToInt())
+    private fun num(v: Double) = Format.rate(v)
 
     private fun slotX(plot: Rect, i: Int, count: Int) = plot.x + (2 * i + 1) * plot.w / (2 * count)
 
@@ -57,12 +57,12 @@ object PriceChart {
         var lo = if (count == 0) 0.0 else series.minOf { if (line) it.close else it.low }
         var hi = if (count == 0) 1.0 else series.maxOf { if (line) it.close else it.high }
         reference?.let { lo = min(lo, it); hi = max(hi, it) }
-        val pad = if (hi > lo) (hi - lo) * 0.08 else max(1.0, hi * 0.05)
+        val pad = if (hi > lo) (hi - lo) * 0.08 else max(0.01, hi * 0.05)
         val bottom = ui.anim("$key:lo", (lo - pad).toFloat(), GLIDE).toDouble()
         val top = ui.anim("$key:hi", (hi + pad).toFloat(), GLIDE).toDouble()
         fun py(v: Double) = price.bottom - ((v - bottom) / (top - bottom) * price.h).roundToInt()
 
-        val step = max(1.0, niceStep(top - bottom, TICKS))
+        val step = max(0.01, niceStep(top - bottom, TICKS))
         var tick = ceil(bottom / step) * step
         while (tick <= top) {
             val y = py(tick)
@@ -200,7 +200,7 @@ object PriceChart {
         )
         return Tip(timeFormat(c.at), lines + listOf(
             tr("kami_libs.chart.candle.volume", num(c.volume)) to Palette.textSecondary,
-            tr("kami_libs.chart.change", Format.signed(diff.roundToLong()), pct) to tone
+            tr("kami_libs.format.paren", Format.signed(diff.roundToLong()), pct) to tone
         ))
     }
 }

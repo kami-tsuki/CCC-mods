@@ -19,6 +19,7 @@ import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr
 import kami.libs.ui.text.trOr
+import kami.libs.ui.widget.cellText
 import kami.libs.ui.widget.Align
 import kami.libs.ui.widget.Column
 import kami.libs.ui.widget.textOrder
@@ -39,13 +40,13 @@ internal class FrozenPage(private val app: KamiApp) : Page() {
     override val title get() = tr("kami_economy.admin.nav.frozen")
     override val subtitle get() = tr("kami_economy.admin.frozen.help")
     private val remote = Remote("market.frozen", ListSerializer(FrozenRow.serializer()))
-    private val table = TableState<FrozenRow>()
+    private val table = TableState<FrozenRow>().apply { sortColumn = 4; descending = true }
     private val box = MarketSection.searchBox()
 
     private fun columns(lock: String?) = listOf(
-        tipColumn<FrozenRow>(tr("kami_economy.admin.col.type"), 84, compareBy { it.id }, { Tip("#${it.id} ${it.typeText()}", listOf(it.stateText() to Palette.textSecondary)) }) { it.typeText() },
-        Column<FrozenRow>(tr("kami_economy.admin.col.owner"), 64, sort = textOrder { it.actorName }) { _, r, row ->
-            if (row.actorName.isEmpty()) secret(r, row.actor, "frozen-owner:${row.actor}") else Draw.text(g, Draw.fit(row.actorName, r.w), r.x, r.y + (r.h - 8) / 2, Palette.text)
+        tipColumn<FrozenRow>(tr("kami_libs.common.type"), 84, compareBy { it.id }, { Tip("#${it.id} ${it.typeText()}", listOf(it.stateText() to Palette.textSecondary)) }) { it.typeText() },
+        Column<FrozenRow>(tr("kami_libs.common.owner"), 64, sort = textOrder { it.actorName }) { _, r, row ->
+            if (row.actorName.isEmpty()) secret(r, row.actor, "frozen-owner:${row.actor}") else cellText(r, row.actorName, key = "frozen-name:${row.actor}")
         },
         itemColumn<FrozenRow>(tr("kami_libs.common.item"), { it.item }),
         Column.number<FrozenRow>(tr("kami_economy.personal.col.qty"), 32) { it.qty.toLong() },
@@ -57,7 +58,7 @@ internal class FrozenPage(private val app: KamiApp) : Page() {
             val releaseLock = lock ?: tr("kami_economy.admin.frozen.nothing_owed").takeIf { row.owed <= 0 }
             if (iconButton(release, Icons.CHECK, tr("kami_economy.admin.frozen.release"), releaseLock == null, key = "frozen-release:${row.id}", disabledReason = releaseLock, pending = adminPending("market.frozen_release", args)))
                 app.adminConfirmAct(tr("kami_economy.admin.frozen.release.title", row.id, Format.money(row.owed)), "market.frozen_release", args)
-            if (iconButton(close, Icons.TREASURY, tr("kami_economy.admin.frozen.close"), lock == null, key = "frozen-close:${row.id}", disabledReason = lock, pending = adminPending("market.frozen_close", args)))
+            if (iconButton(close, Icons.TREASURY, tr("kami_libs.common.close"), lock == null, key = "frozen-close:${row.id}", disabledReason = lock, pending = adminPending("market.frozen_close", args)))
                 app.adminConfirmAct(tr("kami_economy.admin.frozen.close.title", row.id), "market.frozen_close", args, danger = true)
         }
     )

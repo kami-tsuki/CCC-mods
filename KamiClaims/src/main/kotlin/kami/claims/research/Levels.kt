@@ -11,6 +11,7 @@ import kami.claims.service.Words
 import kami.claims.social.Mail
 import kami.claims.today
 import kami.libs.chat.Tone
+import kami.libs.stats.Stats
 import kami.libs.text.Phrase
 import kotlinx.serialization.Serializable
 import kotlin.math.floor
@@ -83,6 +84,7 @@ data class LevelsConfig(
 }
 
 object Levels {
+    private const val BOOST = "#boost"
     private const val MAX_SPEED = 90
     private val blocked = HashMap<String, Int>()
 
@@ -91,9 +93,26 @@ object Levels {
     var day: () -> Long = ::today
     var announce: (Country) -> Unit = { Announce.fire("levelUp", it, mapOf("country" to it.name, "level" to it.level.toString())) }
 
-    fun capacity(country: Country, key: Capacity): Int = Research.defs.levels.capacity(key) +
-        Research.unlocks<CapacityUnlock>(country).added(key) +
-        Research.defs.levels.rewardedCapacity(Research.level(country), key)
+    private data class Stamp(val rev: Int, val done: Int, val level: Int)
+
+    private var memoDefs: Any? = null
+
+    private val memo = HashMap<Pair<String, Capacity>, Pair<Stamp, Int>>()
+
+    fun capacity(country: Country, key: Capacity): Int {
+        if (memoDefs !== Research.defs) {
+            memoDefs = Research.defs
+            memo.clear()
+        }
+        val stamp = Stamp(Realm.rev, country.research.done.size, country.level)
+        val id = country.id to key
+        memo[id]?.let { if (it.first == stamp) return it.second }
+        val value = Research.defs.levels.capacity(key) +
+            Research.unlocks<CapacityUnlock>(country).added(key) +
+            Research.defs.levels.rewardedCapacity(Research.level(country), key)
+        memo[id] = stamp to value
+        return value
+    }
 
     fun researchSpeed(country: Country, online: Int): Int {
         val level = Research.level(country)
@@ -112,7 +131,10 @@ object Levels {
         country.rewardedLevel = if (stuck == null) level else stuck - 1
     }
 
-    fun forget(country: String) = blocked.remove(country)
+    fun forget(country: String) {
+        blocked.remove(country)
+        memo.keys.removeAll { it.first == country }
+    }
 
     private fun pay(country: Country, level: Int, rewards: List<Unlock>): Boolean {
         val money = rewards.filterIsInstance<MoneyReward>().sumOf { it.amount }
@@ -128,15 +150,15 @@ object Levels {
     fun advanceAll() = Realm.data.countries.values.filter { it.active }.forEach(::advance)
 
     fun used(country: Country, key: Capacity) = when (key) {
-        Capacity.CHUNKS -> Realm.claims(country.id).size
+        Capacity.CHUNKS -> Realm.claimCount(country.id)
         Capacity.PROVINCES -> country.provinces.size
         Capacity.CITIZENS -> country.members.size
         Capacity.RESEARCH_SLOTS -> Queue.researching(country)
         Capacity.QUEUE_SLOTS -> Queue.waiting(country)
         Capacity.TREASURY -> country.treasury.coerceIn(0, Int.MAX_VALUE.toLong()).toInt()
         Capacity.OFFICERS -> country.members.values.count { it.rank == Rank.OFFICER }
-        Capacity.FREE_CHUNKS -> Realm.claims(country.id).count { it.free }
-        Capacity.PLOTS -> Realm.claims(country.id).filter { it.owner != null }.groupingBy { it.owner }.eachCount().values.maxOrNull() ?: 0
+        Capacity.FREE_CHUNKS -> Realm.claimsView(country.id).count { it.free }
+        Capacity.PLOTS -> Realm.claimsView(country.id).filter { it.owner != null }.groupingBy { it.owner }.eachCount().values.maxOrNull() ?: 0
         Capacity.JOB_SLOTS -> country.members.values.maxOfOrNull { it.jobs.size } ?: 0
         Capacity.MARKET_SLOTS, Capacity.AUCTION_SLOTS -> 0
     }
@@ -160,10 +182,20 @@ object Levels {
         val gained = if (config.dailyCap > 0) minOf(xp, config.dailyCap - used) else xp
         if (gained <= 0) return
         country.xpToday[source] = used + gained
-        award(country, gained)
+        val extra = gained * Boosts.pct(country, "xp") / 100.0 + (country.xpFrac[BOOST] ?: 0.0)
+        val whole = floor(extra).toLong()
+        country.xpFrac[BOOST] = extra - whole
+        Stats.add("xp.gain", "c:${country.id}", source, gained)
+        Stats.add("xp.gain", "c:${country.id}", "boost", whole)
+        apply(country, gained + whole)
     }
 
     fun award(country: Country, xp: Long) {
+        Stats.add("xp.gain", "c:${country.id}", "admin", xp)
+        apply(country, xp)
+    }
+
+    private fun apply(country: Country, xp: Long) {
         country.xp += xp
         ResearchSync.refresh(country)
         advance(country)
@@ -180,9 +212,10 @@ object Levels {
 
     private fun leveledUp(country: Country) {
         val level = country.level
+        Stats.event("level.up", "c:${country.id}", "L$level", level.toLong())
         Mail.broadcast(country, Phrase.of("kami_claims.level.mail.up", Words.v(level)), Tone.OK)
         if (Research.defs.levels.announce) announce(country)
-        Realm.changed()
+        Realm.changed(false)
         ResearchSync.touch(country)
     }
 }

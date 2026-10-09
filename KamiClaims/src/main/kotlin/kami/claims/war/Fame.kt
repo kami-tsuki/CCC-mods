@@ -27,6 +27,7 @@ object Fame {
             if (left > 0) throw Fail("kami_claims.error.fame.cooldown", days(ceil(left.toDouble() / Config.s.dayMillis).toLong()))
         }
         c.ratings[id] = Rating(stars, now(), hours)
+        Realm.changed()
         return Phrase.of("kami_claims.done.fame.rated", v(c.name), v(fmt(stars / 2.0)))
     }
 

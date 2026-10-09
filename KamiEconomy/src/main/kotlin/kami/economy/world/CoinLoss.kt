@@ -69,7 +69,7 @@ object CoinLoss {
     @JvmStatic
     fun shopPaid(ticker: Any, stack: ItemStack): ItemStack {
         ticker as BlockEntity
-        val spurs = value(stack)
+        val spurs = stack.coinValue()
         val where = at(ticker.blockPos)
         val owner = shopOwner(ticker)
         val from = payer.get()
@@ -94,7 +94,7 @@ object CoinLoss {
         val stack = entity.item.copy()
         val owner = claimant(dropOwner.get(), entity.target, (entity as ItemOwnerAccessor).kamiThrower())
         entity.discard()
-        if (owner != null) CoinRules.keep(owner, stack) else burn(null, value(stack), "lost coins ${at(entity.blockPosition())}")
+        if (owner != null) CoinRules.keep(owner, stack) else burn(null, stack.coinValue(), "lost coins ${at(entity.blockPosition())}")
     }
 
     private fun crafted(e: PlayerEvent.ItemCraftedEvent) {
@@ -114,8 +114,6 @@ object CoinLoss {
         is BlazeOwnerAccessor -> be.kamiBankerOwner()
         else -> null
     }
-
-    private fun value(stack: ItemStack): Long = (stack.item as? CoinItem)?.let { it.coin.value.toLong() * stack.count } ?: 0L
 
     private fun at(pos: BlockPos) = "${pos.x},${pos.y},${pos.z}"
 }

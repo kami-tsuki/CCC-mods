@@ -35,8 +35,6 @@ object PriceCache {
         prices[item] = PriceInfo(price, dir)
     }
 
-    fun of(item: String): PriceInfo? = prices[item]
-
     fun shown(item: String): PriceInfo? {
         if (Variants.of(item) == null) return prices[item]
         val core = Variants.core(item)

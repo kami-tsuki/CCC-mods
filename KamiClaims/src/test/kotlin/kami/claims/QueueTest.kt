@@ -355,4 +355,30 @@ class QueueTest : WithDb() {
         c.research.done["t:a"] = 1
         assertEquals("t:a", Queue.node(c, "t:a").key)
     }
+
+    @Test
+    fun boostsQueueTickOnlineAndMultiplyResearchAndXp() {
+        install(LevelsConfig(xpFromLevel = 0, capacities = mapOf(Capacity.RESEARCH_SLOTS to 1, Capacity.QUEUE_SLOTS to 2), sources = mapOf("s" to XpSource(1.0))))
+        val c = country("alpha")
+        assertTrue(Boosts.add(c, "research", 50, 100_000))
+        assertTrue(Boosts.add(c, "research", 100, 100_000))
+        assertTrue(!Boosts.add(c, "other", 50, 1000))
+        assertTrue(!Boosts.add(c, "xp", 0, 1000))
+        assertEquals(50, Boosts.pct(c, "research"))
+        Queue.enqueue(c, "t:a", null)
+        Queue.start(c, "t:a", null)
+        online = 0
+        Queue.tick(c, 50_000)
+        assertEquals(100_000L, c.boosts["research"]!!.first().leftMs)
+        online = 1
+        Queue.tick(c, 60_000)
+        assertEquals(510_000L, c.research.queue.single().remainingMs)
+        assertEquals(40_000L, c.boosts["research"]!!.first().leftMs)
+        assertEquals(2, c.boosts["research"]!!.size)
+        Queue.tick(c, 200_000)
+        assertNull(c.boosts["research"])
+        Boosts.add(c, "xp", 50, 100_000)
+        Levels.grant(c, "s", 10)
+        assertEquals(15L, c.xp)
+    }
 }

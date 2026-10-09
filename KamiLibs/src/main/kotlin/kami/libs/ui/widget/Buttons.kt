@@ -33,37 +33,55 @@ fun buttonWidth(label: String, icon: Icon? = null) = Draw.width(label) + (if (ic
 
 fun Ui.edgeButton(
     r: Rect, label: String, icon: Icon? = null, style: ButtonStyle = ButtonStyle.SECONDARY, enabled: Boolean = true,
-    disabledReason: String? = null, tip: String? = null, pending: Boolean = false, left: Boolean = false, key: Any = label
+    disabledReason: String? = null, tip: String? = null, pending: Boolean = false, left: Boolean = false, key: Any? = null
 ) = button(if (left) r.left(buttonWidth(label, icon)) else r.right(buttonWidth(label, icon)), label, icon, style, enabled, disabledReason, tip, pending, key)
 
 fun Ui.edgeButton(
     row: Row, label: String, icon: Icon? = null, style: ButtonStyle = ButtonStyle.SECONDARY, enabled: Boolean = true,
-    disabledReason: String? = null, tip: String? = null, pending: Boolean = false, left: Boolean = false, key: Any = label
+    disabledReason: String? = null, tip: String? = null, pending: Boolean = false, left: Boolean = false, key: Any? = null
 ) = button(if (left) row.take(buttonWidth(label, icon)) else row.takeFromRight(buttonWidth(label, icon)), label, icon, style, enabled, disabledReason, tip, pending, key)
 
 fun Row.iconSlot() = takeFromRight(SMALL_H).centered(SMALL_H, SMALL_H)
 
 fun Ui.adaptiveButton(
     row: Row, narrow: Boolean, label: String, icon: Icon, style: ButtonStyle = ButtonStyle.SECONDARY, enabled: Boolean = true,
-    disabledReason: String? = null, pending: Boolean = false, key: Any = label
-) = if (narrow) iconButton(row.iconSlot(), icon, label, enabled = enabled && !pending, disabledReason = disabledReason, key = key)
-else edgeButton(row, label, icon, style, enabled, disabledReason, pending = pending, key = key)
+    disabledReason: String? = null, pending: Boolean = false, key: Any? = null
+): Boolean {
+    val k = key ?: autoKey(label)
+    return if (narrow) iconButton(row.iconSlot(), icon, label, enabled = enabled && !pending, disabledReason = disabledReason, key = k)
+    else edgeButton(row, label, icon, style, enabled, disabledReason, pending = pending, key = k)
+}
 
 private fun Ui.hoverWash(r: Rect, feel: Feel) =
     Draw.fill(g, r.inset(1), Palette.alpha(0xFFFFFF, (HOVER_LIGHTEN * feel.hover * (1f - feel.press)).toInt()))
 
-fun Ui.button(
-    r: Rect, label: String, icon: Icon? = null, style: ButtonStyle = ButtonStyle.SECONDARY, enabled: Boolean = true,
-    disabledReason: String? = null, tip: String? = null, pending: Boolean = false, key: Any = label
-): Boolean {
+private class Press(val id: String, val hover: Boolean, val down: Boolean)
+
+private fun Ui.pressStart(key: Any, r: Rect, usable: Boolean): Press {
     val id = focusable(key)
     val hover = hover(key, r)
-    val usable = enabled && !pending
-    val pressedNow = hover && usable && isDown() && active == id
     if (usable && hover) cursor = Cursor.HAND
     if (usable && pressed(r) != null) active = id
-    val feel = feel(key, hover && usable, pressedNow)
-    Draw.sprite(g, style.look.of(false, pressedNow, usable), r)
+    return Press(id, hover, hover && usable && isDown() && active == id)
+}
+
+private fun Ui.pressEnd(key: Any, p: Press, usable: Boolean): Boolean {
+    val released = active == p.id && released() != null
+    if (released) active = null
+    val fired = usable && ((released && p.hover) || activatedByKey(key))
+    if (fired) UiSound.click()
+    return fired
+}
+
+fun Ui.button(
+    r: Rect, label: String, icon: Icon? = null, style: ButtonStyle = ButtonStyle.SECONDARY, enabled: Boolean = true,
+    disabledReason: String? = null, tip: String? = null, pending: Boolean = false, key: Any? = null
+): Boolean {
+    val k = key ?: autoKey(label)
+    val usable = enabled && !pending
+    val p = pressStart(k, r, usable)
+    val feel = feel(k, p.hover && usable, p.down)
+    Draw.sprite(g, style.look.of(false, p.down, usable), r)
     if (usable) hoverWash(r, feel)
     val sink = if (feel.press > 0.5f) 1 else 0
     val color = if (usable) style.text() else Palette.textDisabled
@@ -75,57 +93,59 @@ fun Ui.button(
     x += iconSlot
     val shown = Draw.fit(label, r.w - 6 - (x - r.x))
     if (label.isNotEmpty()) Draw.text(g, shown, x, r.y + (r.h - 8) / 2 + sink, TextStyle.BODY, color)
-    controlTip(key, r, enabled, disabledReason, tip ?: label.takeIf { it != shown })
-    focusRing(key, r)
-    val released = active == id && released() != null
-    if (released) active = null
-    val fired = usable && ((released && hover) || activatedByKey(key))
-    if (fired) UiSound.click()
-    return fired
+    controlTip(k, r, enabled, disabledReason, tip ?: label.takeIf { it != shown })
+    focusRing(k, r)
+    return pressEnd(k, p, usable)
 }
 
-fun Ui.iconButton(r: Rect, icon: Icon, tip: String, enabled: Boolean = true, selected: Boolean = false, key: Any = icon.sprite.path, disabledReason: String? = null, pending: Boolean = false): Boolean {
-    val id = focusable(key)
-    val hover = hover(key, r)
+fun Ui.iconButton(r: Rect, icon: Icon, tip: String, enabled: Boolean = true, selected: Boolean = false, key: Any? = null, disabledReason: String? = null, pending: Boolean = false): Boolean {
+    val k = key ?: autoKey(icon.sprite.path)
     val usable = enabled && !pending
-    if (usable && hover) cursor = Cursor.HAND
-    if (usable && pressed(r) != null) active = id
+    val p = pressStart(k, r, usable)
     val look = if (selected) Sprites.Look.SECONDARY else Sprites.Look.GHOST
-    val down = usable && active == id && isDown()
-    val feel = feel(key, hover && usable, down)
-    Draw.sprite(g, look.of(false, down, usable), r)
+    val feel = feel(k, p.hover && usable, p.down)
+    Draw.sprite(g, look.of(false, p.down, usable), r)
     if (usable) hoverWash(r, feel)
     if (selected) Draw.hline(g, r.x + 2, r.bottom - 1, r.w - 4, Palette.brass)
     val x = r.x + (r.w - Draw.ICON) / 2
     val y = r.y + (r.h - Draw.ICON) / 2 + if (feel.press > 0.5f) 1 else 0
     if (pending) spinner(r.x + (r.w - 8) / 2, r.centerY - 4, Palette.textDisabled)
     else if (enabled) Draw.icon(g, icon, x, y) else Draw.tintedIcon(g, icon, x, y, Draw.ICON, Palette.iconOff)
-    controlTip(key, r, enabled, disabledReason, tip)
-    focusRing(key, r)
-    val released = active == id && released() != null
-    if (released) active = null
-    val fired = usable && ((released && hover) || activatedByKey(key))
-    if (fired) UiSound.click()
-    return fired
+    controlTip(k, r, enabled, disabledReason, tip)
+    focusRing(k, r)
+    return pressEnd(k, p, usable)
 }
 
-fun Ui.holdButton(r: Rect, label: String, holdMs: Long = 1500, enabled: Boolean = true, disabledReason: String? = null, key: Any = "hold:$label"): Boolean {
-    val id = focusable(key)
-    val hover = hover(key, r)
-    val state = remember("holdStart:$key") { longArrayOf(0L) }
+private const val MIN_HOLD_MS = 400L
+private const val KEY_CONFIRM_MS = 1500L
+
+fun Ui.holdButton(r: Rect, label: String, holdMs: Long = 1500, enabled: Boolean = true, disabledReason: String? = null, key: Any? = null): Boolean {
+    val k = key ?: autoKey("hold:$label")
+    val ms = holdMs.coerceAtLeast(MIN_HOLD_MS)
+    val id = focusable(k)
+    val hover = hover(k, r)
+    val state = remember("holdStart:$k") { longArrayOf(0L, 0L) }
     if (enabled && hover) cursor = Cursor.HAND
-    if (enabled && pressed(r) != null) { active = id; state[0] = wallMillis }
+    if (enabled && pressed(r) != null) { active = id; state[0] = wallMillis; UiSound.click() }
     val holding = enabled && active == id && isDown() && hover
     if (!holding) state[0] = 0L
-    val progress = if (state[0] == 0L) 0f else ((wallMillis - state[0]).toFloat() / holdMs).coerceIn(0f, 1f)
+    var confirmed = false
+    if (enabled && activatedByKey(k, repeats = false)) {
+        if (state[1] != 0L && wallMillis - state[1] <= KEY_CONFIRM_MS) confirmed = true else { state[1] = wallMillis; UiSound.click() }
+    }
+    if (state[1] != 0L && wallMillis - state[1] > KEY_CONFIRM_MS) state[1] = 0L
+    val progress = if (state[0] != 0L) ((wallMillis - state[0]).toFloat() / ms).coerceIn(0f, 1f)
+    else if (state[1] != 0L) 1f - (wallMillis - state[1]).toFloat() / KEY_CONFIRM_MS else 0f
     Draw.sprite(g, Sprites.Look.DANGER.of(hover && enabled, holding, enabled), r)
     if (progress > 0f) Draw.fill(g, Rect(r.x + 1, r.y + 1, ((r.w - 2) * progress).toInt(), r.h - 2), Palette.alpha(0xFFFFFF, 0x28))
     val text = if (holding) tr("kami_libs.common.keep_holding") else label
     Draw.textCentered(g, Draw.fit(text, r.w - 8), r, if (enabled) Palette.textInverse else Palette.textDisabled)
-    controlTip(key, r, enabled, disabledReason, tr("kami_libs.common.hold_to_confirm.tooltip", Format.decimal(holdMs / 1000.0)))
+    controlTip(k, r, enabled, disabledReason, tr("kami_libs.common.hold_to_confirm.tooltip", Format.decimal(ms / 1000.0)))
+    focusRing(k, r)
     if (released() != null && active == id) active = null
-    if (progress >= 1f) {
+    if (confirmed || (state[0] != 0L && progress >= 1f)) {
         state[0] = 0L
+        state[1] = 0L
         active = null
         UiSound.confirm()
         return true
@@ -133,9 +153,10 @@ fun Ui.holdButton(r: Rect, label: String, holdMs: Long = 1500, enabled: Boolean 
     return false
 }
 
-fun Ui.link(x: Int, y: Int, label: String, key: Any = "link:$label"): Boolean {
+fun Ui.link(x: Int, y: Int, label: String, key: Any? = null): Boolean {
+    val k = key ?: autoKey("link:$label")
     val r = Rect(x, y - 1, Draw.width(label), 10)
-    val hover = hover(key, r)
+    val hover = hover(k, r)
     if (hover) cursor = Cursor.HAND
     Draw.text(g, label, x, y, TextStyle.LINK)
     if (hover) Draw.hline(g, x, y + 9, r.w, Palette.link)
@@ -179,13 +200,14 @@ fun Ui.pager(r: Rect, page: Int, pages: Int, key: Any = "pager"): Int? {
     return result
 }
 
-fun Ui.disclosure(r: Rect, label: String, open: Boolean, trailing: String? = null, key: Any = "disclosure:$label", hairline: Boolean = false): Boolean {
-    val hover = hover(key, r)
+fun Ui.disclosure(r: Rect, label: String, open: Boolean, trailing: String? = null, key: Any? = null, hairline: Boolean = false): Boolean {
+    val k = key ?: autoKey("disclosure:$label")
+    val hover = hover(k, r)
     if (hover) Draw.fill(g, r, Palette.hover)
     val color = if (hover) Palette.text else Palette.textSecondary
     Draw.tintedIcon(g, if (open) Icons.CHEVRON_DOWN else Icons.CHEVRON_RIGHT, r.x - 2, r.centerY - Draw.ICON / 2, Draw.ICON, color)
     Draw.text(g, label, r.x + 11, r.centerY - 4, color)
     trailing?.let { Draw.textRight(g, it, r.right - 2, r.centerY - 4, Palette.textMuted) }
     if (hairline) Draw.hline(g, r.x, r.bottom - 1, r.w, Palette.borderSubtle)
-    return clickable(key, r)
+    return clickable(k, r)
 }

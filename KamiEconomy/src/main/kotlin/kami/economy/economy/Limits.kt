@@ -1,5 +1,6 @@
 package kami.economy.economy
 
+import kami.libs.util.toUuidOrNull
 import kami.economy.Config
 import kami.economy.Market
 import kami.libs.claims.ClaimsApi
@@ -26,9 +27,9 @@ object Limits {
 
     fun hint(player: String, key: String, used: Int): String = limit(player, key, used)?.json() ?: ""
 
-    private fun limit(player: String, key: String, used: Int): Phrase? = Trade.uuid(player)?.let { ClaimsApi.limit(it, key, used) }
+    private fun limit(player: String, key: String, used: Int): Phrase? = player.toUuidOrNull()?.let { ClaimsApi.limit(it, key, used) }
 
     private fun denial(player: String, key: String, name: String, used: Int, max: Int): Phrase = limit(player, key, used) ?: Locks.capacity(Phrase.of(name), max, null, null)
 
-    private fun slots(player: String, key: String, fallback: Int): Int = Trade.uuid(player)?.let { ClaimsApi.capacity(it, key, fallback) } ?: fallback
+    private fun slots(player: String, key: String, fallback: Int): Int = player.toUuidOrNull()?.let { ClaimsApi.capacity(it, key, fallback) } ?: fallback
 }

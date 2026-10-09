@@ -43,8 +43,26 @@ import net.minecraft.world.entity.HasCustomInventoryScreen
 import net.minecraft.world.entity.OwnableEntity
 import net.minecraft.world.entity.NeutralMob
 import net.minecraft.world.entity.animal.Animal
+import net.minecraft.world.entity.npc.AbstractVillager
+import net.minecraft.tags.DamageTypeTags
+import net.minecraft.world.phys.EntityHitResult
+import net.neoforged.bus.api.Event
+import net.neoforged.bus.api.EventPriority
+import net.neoforged.bus.api.ICancellableEvent
+import net.neoforged.fml.ModList
+import thedarkcolour.kotlinforforge.neoforge.forge.FORGE_BUS
+import java.util.function.Consumer
+import net.neoforged.neoforge.event.entity.ProjectileImpactEvent
 import net.minecraft.world.entity.monster.Enemy
 import net.minecraft.world.entity.item.PrimedTnt
+import net.minecraft.world.entity.projectile.FishingHook
+import net.minecraft.world.entity.projectile.Snowball
+import net.minecraft.world.entity.projectile.ThrownEgg
+import net.minecraft.world.entity.projectile.ThrownEnderpearl
+import net.minecraft.world.entity.projectile.ThrownExperienceBottle
+import net.minecraft.world.entity.projectile.ThrownPotion
+import net.minecraft.world.entity.projectile.AbstractArrow
+import net.minecraft.world.entity.projectile.AbstractHurtingProjectile
 import net.minecraft.world.entity.projectile.Projectile
 import net.minecraft.world.entity.decoration.ItemFrame
 import net.minecraft.world.entity.vehicle.ContainerEntity
@@ -86,17 +104,26 @@ import net.neoforged.neoforge.event.level.ExplosionEvent
 import net.neoforged.neoforge.event.level.PistonEvent
 
 object Guard {
-    private const val REMEMBERED_PLACEMENTS = 8192
+    private const val REMEMBERED_PLACEMENTS = 65536
     private val tags = HashMap<String, TagKey<Block>>()
-    // Separate from Placed on purpose: Placed is marked by research for countable players only, this one by every in-claim placement that reached credit().
     private val paidPlaces =RecentSet<Pair<String, Long>>(REMEMBERED_PLACEMENTS)
     private val last = HashMap<String, Key?>()
-    private val lastDenied = HashMap<String, Pair<String, Long>>()
-    /** Blocks that take items on use but only give them back when broken, so using them needs the break right too. */
+    private val lastDenied = HashMap<String, Pair<Pair<Action, Key>, Long>>()
+    private val hierarchy = object : ClassValue<Set<String>>() {
+        override fun computeValue(type: Class<*>) = generateSequence(type) { it.superclass }.mapTo(HashSet()) { it.name }
+    }
+    private val typeNames = object : ClassValue<Set<String>>() {
+        override fun computeValue(type: Class<*>): Set<String> {
+            val out = HashSet<String>()
+            fun walk(c: Class<*>?) { if (c != null && out.add(c.name)) { walk(c.superclass); c.interfaces.forEach(::walk) } }
+            walk(type)
+            return out
+        }
+    }
+    private val trainingTargets: TagKey<EntityType<*>> by lazy { TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath("kami_claims", "training_target")) }
     private val breakToEmpty: TagKey<Block> by lazy { TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("kami_claims", "break_to_empty")) }
     private val farmingPlants: TagKey<Block> by lazy { TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("kami_claims", "farming_plants")) }
     private val forestryPlants: TagKey<Block> by lazy { TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("kami_claims", "forestry_plants")) }
-    /** Blocks and entities nobody may use in no man's land because items put into them are lost (pots, depots, item frames). */
     private val wildBlocks: TagKey<Block> by lazy { TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("kami_claims", "wild_blocked")) }
     private val wildEntities: TagKey<EntityType<*>> by lazy { TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath("kami_claims", "wild_blocked")) }
     private const val BOAT_OWNER = "kami_claims_owner"
@@ -110,7 +137,11 @@ object Guard {
         lastDenied.clear()
     }
 
-    private fun dim(level: LevelAccessor) = (level as? Level)?.dimension()?.location()?.toString()
+    private val dims = java.util.concurrent.ConcurrentHashMap<net.minecraft.resources.ResourceKey<Level>, String>()
+    private fun dim(level: LevelAccessor): String? {
+        val key = (level as? Level)?.dimension() ?: return null
+        return dims.getOrPut(key) { key.location().toString() }
+    }
     private fun key(dim: String, pos: BlockPos) = Key(dim, pos.x shr 4, pos.z shr 4)
     private fun id(block: Block) = BuiltInRegistries.BLOCK.getKey(block).toString()
 
@@ -209,11 +240,12 @@ object Guard {
 
     private fun explain(p: ServerPlayer, level: LevelAccessor, pos: BlockPos, action: Action) {
         val dim = dim(level) ?: return
-        val text = reason(level, pos, p, action)
+        val spot = action to key(dim, pos)
         val now = System.currentTimeMillis()
         val previous = lastDenied[p.stringUUID]
-        if (previous != null && previous.first == text.json() && now - previous.second < 2000) return
-        lastDenied[p.stringUUID] = text.json() to now
+        if (previous != null && previous.first == spot && now - previous.second < 2000) return
+        lastDenied[p.stringUUID] = spot to now
+        val text = reason(level, pos, p, action)
         val cl = Realm.index[key(dim, pos)]
         val c = cl?.let { Realm.data.countries[it.country] }
         val distance = borderDistance(dim, pos, p.blockPosition())
@@ -226,7 +258,7 @@ object Guard {
         else id(state.block) == spec
 
     private fun credit(p: ServerPlayer, pos: BlockPos, action: Action, state: BlockState) {
-        val dim = p.level().dimension().location().toString()
+        val dim = dim(p.level())!!
         val cl = Realm.index[key(dim, pos)] ?: return
         val spot = dim to pos.asLong()
         val repeat = when (action) {
@@ -248,7 +280,6 @@ object Guard {
         if (!check(e.level, e.pos, e.player, Action.BREAK, e.state.block)) e.isCanceled = true
     }
 
-    /** Registered at LOWEST (before the research listener that clears [Placed]) and skipped for cancelled breaks, so only breaks that happen pay. */
     fun onBreakCredit(e: BlockEvent.BreakEvent) {
         val p = e.player as? ServerPlayer ?: return
         if (p is FakePlayer) return
@@ -283,9 +314,8 @@ object Guard {
         return placed
     }
 
-    private fun extends(type: Class<*>, name: String): Boolean = generateSequence(type) { it.superclass }.any { it.name == name }
+    private fun extends(type: Class<*>, name: String): Boolean = name in hierarchy.get(type)
 
-    /** The chunk type a plant may only be planted in: crops in farming, saplings (DynamicTrees too) in forestry; null for other blocks. */
     private fun plantType(block: Block): String? {
         val state = block.defaultBlockState()
         return when {
@@ -298,7 +328,6 @@ object Guard {
     private fun plantType(item: Item): String? =
         if (item is BlockItem) plantType(item.block) else if (extends(item.javaClass, DT_SEED)) "forestry" else null
 
-    /** Plants only go into claimed chunks of their type; elsewhere planting is denied with a hint where it belongs. */
     private fun plantAllowed(level: LevelAccessor, pos: BlockPos, who: Entity?, type: String?): Boolean {
         if (type == null) return true
         val dim = dim(level)?.takeIf { it in Config.s.dimensionSet } ?: return true
@@ -324,7 +353,7 @@ object Guard {
         val level = e.level
         if (level.isClientSide) return
         val be = level.getBlockEntity(e.pos)
-        val action = if (be is MenuProvider || be is Container) Action.CONTAINER else Action.INTERACT
+        val action = if (be is MenuProvider || container(level, e.pos)) Action.CONTAINER else Action.INTERACT
         val state = level.getBlockState(e.pos)
         if (!check(level, e.pos, e.entity, action, state.block)) return run { e.isCanceled = true }
         if (state.`is`(breakToEmpty) && !e.itemStack.isEmpty && !check(level, e.pos, e.entity, Action.BREAK, state.block)) {
@@ -343,10 +372,6 @@ object Guard {
         (e.entity as? ServerPlayer)?.let { resync(it, at) }
     }
 
-    /**
-     * A held block (seeds and berries included), DynamicTrees seed or placeable entity must not be used where placing or planting is denied. Only the item use is
-     * stopped, so the clicked block still opens; the inventory is resent because the client already took the item.
-     */
     private fun guardPlacing(e: PlayerInteractEvent.RightClickBlock, clicked: BlockState) {
         val player = e.entity as? ServerPlayer ?: return
         val at = if (clicked.canBeReplaced()) e.pos else e.pos.relative(e.face ?: Direction.UP)
@@ -386,6 +411,15 @@ object Guard {
             else -> return
         }
         if (e.level.isClientSide || target is Player) return
+        if (wildFrame(target)) {
+            val ok = FrameRule.allows(FrameRule.Kind.USE, lootr(target), !(target as ItemFrame).item.isEmpty, e.itemStack.isEmpty)
+            val player = e.entity as? ServerPlayer
+            if (!ok && (player == null || !Perms.has(player, Perms.BYPASS))) {
+                e.isCanceled = true
+                player?.bar(Chat.bar(Tone.BAD, Phrase.of("kami_claims.guard.denied.frame").component()))
+            }
+            return
+        }
         val wild = target.type.`is`(wildEntities) && unclaimed(e.level, target.blockPosition())
         if (wild || !check(e.level, target.blockPosition(), e.entity, Action.INTERACT, null, !stash(target))) e.isCanceled = true
     }
@@ -393,14 +427,42 @@ object Guard {
     @JvmStatic
     fun ownBoat(boat: Boat, player: Player) = boat.persistentData.putString(BOAT_OWNER, player.stringUUID)
 
-    fun onAttack(e: AttackEntityEvent) {
-        val target = e.target
-        if (e.entity.level().isClientSide || !(target is HangingEntity || target is ArmorStand || target is VehicleEntity)) return
-        if (target is Boat && (unclaimed(target.level(), target.blockPosition()) || target.persistentData.getString(BOAT_OWNER) == e.entity.stringUUID)) return
-        if (!check(e.entity.level(), target.blockPosition(), e.entity, Action.BREAK, null, !stash(target))) e.isCanceled = true
+    private fun breakDenied(attacker: Entity, target: Entity, projectile: Boolean = false): Boolean {
+        if (attacker.level().isClientSide || !(target is HangingEntity || target is ArmorStand || target is VehicleEntity) || projectile && trainingTarget(target)) return false
+        if (target is Boat && (unclaimed(target.level(), target.blockPosition()) || target.persistentData.getString(BOAT_OWNER) == attacker.stringUUID)) return false
+        return !check(attacker.level(), target.blockPosition(), attacker, Action.BREAK, null, !stash(target))
     }
 
-    /** Trampling farmland is off everywhere: jumping on it would let anyone wreck fields. */
+    private fun trainingTarget(target: Entity) = PvpRules.trainingTarget(typeNames.get(target.javaClass), target.type.`is`(trainingTargets))
+
+    private fun wildFrame(target: Entity) = target is ItemFrame && Config.s.nomanslandFrameTakeOnly &&
+        dim(target.level())?.let { it in Config.s.dimensionSet } == true && unclaimed(target.level(), target.blockPosition())
+
+    private fun lootr(e: Entity) = BuiltInRegistries.ENTITY_TYPE.getKey(e.type).namespace == "lootr" || e.javaClass.name.contains("LootrItemFrame")
+
+    fun onAttack(e: AttackEntityEvent) {
+        val frame = e.target
+        if (!e.entity.level().isClientSide && wildFrame(frame) && FrameRule.allows(FrameRule.Kind.ATTACK, lootr(frame), !(frame as ItemFrame).item.isEmpty, true)) return
+        if (breakDenied(e.entity, e.target)) e.isCanceled = true
+    }
+
+    fun onProjectile(e: ProjectileImpactEvent) {
+        val target = (e.rayTraceResult as? EntityHitResult)?.entity ?: return
+        if (target is Player) {
+            if (target.level().isClientSide) return
+            if (harmless(e.projectile)) return
+            val shooter = culprit(e.projectile)?.takeUnless { it is FakePlayer || it === target } ?: return
+            if (!pvpAllowed(shooter, target)) e.isCanceled = true
+            return
+        }
+        if (e.projectile !is AbstractArrow && e.projectile !is AbstractHurtingProjectile) return
+        val shooter = culprit(e.projectile) ?: return
+        if (breakDenied(shooter, target, true)) e.isCanceled = true
+    }
+
+    private fun harmless(p: Entity) = p is ThrownPotion || p is ThrownEnderpearl || p is ThrownExperienceBottle || p is FishingHook || p is Snowball || p is ThrownEgg ||
+        p.javaClass.simpleName.contains("WindCharge")
+
     fun onTrample(e: BlockEvent.FarmlandTrampleEvent) {
         e.isCanceled = true
     }
@@ -439,7 +501,6 @@ object Guard {
         if (!Config.s.pistonProtection && !war) return
         val origin = Realm.index[key(dim, e.pos)]
         val pushed = helper.toPush + helper.toPush.map { it.relative(helper.pushDirection) }
-        // a retracting piston must always be allowed to pull its own head back (cancelling would leave it stuck extended), so only the pulled blocks are checked then
         val moved = if (e.pistonMoveType.isExtend) pushed + helper.toDestroy + e.faceOffsetPos else pushed
         val crossesShield = war && WarGuard.shielded(origin).let { s -> moved.any { WarGuard.shielded(Realm.index[key(dim, it)]) != s } }
         if (crossesShield || Config.s.pistonProtection && moved.any { val target = Realm.index[key(dim, it)]; target?.country != origin?.country || target?.tenant != origin?.tenant }) e.isCanceled = true
@@ -458,19 +519,65 @@ object Guard {
         if (owner is ServerPlayer && owner !is FakePlayer) allowed(level, pos, owner, Action.PLACE) || Perms.has(owner, Perms.BYPASS)
         else fireAllowed(level, pos)
 
+    fun transferAllowed(level: LevelAccessor, from: BlockPos, to: BlockPos): Boolean {
+        if (from.x shr 4 == to.x shr 4 && from.z shr 4 == to.z shr 4) return true
+        val dim = dim(level)?.takeIf { it in Config.s.dimensionSet } ?: return true
+        val a = Realm.index[key(dim, from)]
+        val b = Realm.index[key(dim, to)]
+        return a?.country == b?.country && a?.tenant == b?.tenant
+    }
+
     fun fluidAllowed(level: LevelAccessor, from: BlockPos, to: BlockPos): Boolean {
         val dim = dim(level)?.takeIf { it in Config.s.dimensionSet } ?: return true
         return Housing.fluidFlows(Realm.index[key(dim, from)], Realm.index[key(dim, to)], Config.s.nomanslandFluid)
     }
 
-    fun onDamage(e: LivingIncomingDamageEvent) {
-        val victim = e.entity as? Player ?: return
-        val attacker = culprit(e.source.entity ?: e.source.directEntity) ?: return
-        val dim = dim(victim.level())?.takeIf { it in Config.s.dimensionSet } ?: return
+    private fun livestock(v: Entity) = v is AbstractVillager || v is Animal && v !is Enemy && v !is NeutralMob || (v as? OwnableEntity)?.ownerUUID != null
+
+    private fun pvpAllowed(attacker: Player, victim: Player): Boolean {
+        val dim = dim(victim.level())?.takeIf { it in Config.s.dimensionSet } ?: return true
         val cl = Realm.index[key(dim, victim.blockPosition())]
-        WarGuard.pvp(attacker, victim, cl)?.let { if (!it) e.isCanceled = true; return }
-        val pvp = if (cl == null) Config.s.nomanslandPvp else cl.def?.rule?.pvp == true
-        if (!pvp) e.isCanceled = true
+        return PvpRules.allowed(WarGuard.pvp(attacker, victim, cl), cl != null, cl?.def?.rule?.pvp == true, Config.s.nomanslandPvp)
+    }
+
+    fun registerTacz() {
+        if (!ModList.get().isLoaded("tacz")) return
+        try {
+            val type = Class.forName("com.tacz.guns.api.event.common.EntityHurtByGunEvent\$Pre")
+            val hurt = type.getMethod("getHurtEntity")
+            val attacker = type.getMethod("getAttacker")
+            var failed = false
+            @Suppress("UNCHECKED_CAST")
+            FORGE_BUS.addListener(EventPriority.HIGH, false, type as Class<Event>, Consumer<Event> { ev ->
+                if (failed) return@Consumer
+                try {
+                    val victim = hurt.invoke(ev) as? Player ?: return@Consumer
+                    if (victim.level().isClientSide) return@Consumer
+                    val shooter = culprit(attacker.invoke(ev) as? Entity)?.takeUnless { it is FakePlayer || it === victim } ?: return@Consumer
+                    if (pvpAllowed(shooter, victim)) return@Consumer
+                    (ev as ICancellableEvent).isCanceled = true
+                } catch (t: Throwable) {
+                    failed = true
+                    KamiClaims.LOG.warn("TACZ PvP guard disabled: {}", t.toString())
+                }
+            })
+        } catch (t: Throwable) {
+            KamiClaims.LOG.warn("TACZ PvP guard unavailable: {}", t.toString())
+        }
+    }
+
+    fun onDamage(e: LivingIncomingDamageEvent) {
+        val source = e.source.entity ?: e.source.directEntity
+        val attacker = culprit(source) ?: return
+        val mob = e.entity
+        if (mob !is Player) {
+            if (attacker is FakePlayer || !livestock(mob) || e.source.`is`(DamageTypeTags.IS_EXPLOSION) || (mob as? OwnableEntity)?.ownerUUID == attacker.uuid) return
+            val mobDim = dim(mob.level())?.takeIf { it in Config.s.dimensionSet } ?: return
+            if (Realm.index[key(mobDim, mob.blockPosition())] == null) return
+            if (!check(mob.level(), mob.blockPosition(), attacker, Action.BREAK, null)) e.isCanceled = true
+            return
+        }
+        if (!pvpAllowed(attacker, mob)) e.isCanceled = true
     }
 
     fun onHurt(e: LivingDamageEvent.Post) {
@@ -490,21 +597,21 @@ object Guard {
         val cl = Realm.index[key(dim, victim.blockPosition())]
         when {
             victim is Player -> Bill.kill(killer, victim, cl)
-            cl != null && (victim is Animal && victim !is Enemy && victim !is NeutralMob || (victim as? OwnableEntity)?.owner != null) -> Bill.animal(killer, cl)
+            cl != null && livestock(victim) && victim !is AbstractVillager -> Bill.animal(killer, cl)
         }
     }
 
     private fun culprit(e: Entity?): Player? = when (e) {
         is Player -> e
         is Projectile -> culprit(e.owner)
-        is OwnableEntity -> culprit(e.owner)
+        is OwnableEntity -> culprit(e.owner) ?: e.ownerUUID?.let { (e as Entity).level().server?.playerList?.getPlayer(it) }?.takeIf { it.level() == (e as Entity).level() }
         is PrimedTnt -> culprit(e.owner)
         else -> null
     }
 
     fun announce(p: ServerPlayer) {
         if (!Config.s.notify) return
-        val dim = p.level().dimension().location().toString()
+        val dim = dim(p.level())!!
         val k = if (dim in Config.s.dimensionSet) key(dim, p.blockPosition()) else null
         val id = p.stringUUID
         if (last.containsKey(id) && last[id] == k) return

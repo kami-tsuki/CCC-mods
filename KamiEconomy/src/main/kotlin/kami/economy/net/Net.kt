@@ -30,6 +30,8 @@ import kami.economy.economy.SellResult
 import kami.economy.economy.BuyResult
 import kami.economy.economy.OrderResult
 import kami.economy.client.ClientHooks
+import kami.economy.quest.Quests
+import kami.libs.stats.Staff
 import kami.libs.net.ActPayload
 import kami.libs.net.Packets
 import kami.libs.net.SnapshotPayload
@@ -95,7 +97,7 @@ object Net {
     private fun allPrices(): List<PriceEntry> {
         val items = (Market.data.books.keys + Stocks.items()).distinct().filter { Variants.of(it) == null }
         return items.mapNotNull { item ->
-            val price = Matching.bestAsk(item, "") ?: return@mapNotNull null
+            val price = Matching.anyAsk(item) ?: return@mapNotNull null
             PriceEntry(item, price, Config.s.lotOf(item))
         }
     }
@@ -221,6 +223,60 @@ object Net {
         is OrderResult.Limit -> Limits.marketDenial(me) to false
     }
 
+    private fun giveBack(p: ServerPlayer, me: String, id: String, count: Int) {
+        if (count > 0 && !KamiEconomy.give(p, id, count)) {
+            LOG.error("Could not restore {} x{} to {}, queued as delivery", id, count, p.name.string)
+            Market.queueDelivery(me, id, count, parked = true)
+        }
+    }
+
+    private fun questDeliver(p: ServerPlayer, me: String, args: List<String>): Pair<Phrase, Boolean> {
+        val id = args.getOrNull(0)?.toLongOrNull() ?: return Phrase.of("kami_economy.quest.closed") to false
+        val raw = args.intArg(1, "kami_economy.action.invalid_quantity")
+        if (!Config.s.validAmount(raw)) return outOfRange()
+        if (Staff.active("p:$me")) return Phrase.of("kami_economy.quest.staff") to false
+        val quest = Quests.get(id)?.takeIf { it.open && it.left > 0 } ?: return Phrase.of("kami_economy.quest.closed") to false
+        val item = quest.item
+        TradeStatus.denial("sell_market", item)?.let { return it to false }
+        val lot = quest.lot
+        val qty = minOf(raw, quest.left).let { it - it % lot }
+        if (qty <= 0) return Phrase.of("kami_economy.action.below_lot", lot) to false
+        val matching = p.inventory.items.filter { !it.isEmpty && Blacklist.itemId(it) == item && Blacklist.classify(it) == Classification.ALLOWED }
+        if (matching.sumOf { it.count } < qty) return Phrase.of("kami_economy.action.not_enough_items", qty) to false
+        var remaining = qty
+        for (stack in matching) {
+            if (remaining <= 0) break
+            val take = minOf(remaining, stack.count)
+            stack.shrink(take)
+            remaining -= take
+        }
+        val attempt = runCatching { Ledger.questDeliver(me, id, qty) }
+        if (attempt.isFailure) {
+            LOG.error("quest_deliver failed for $item", attempt.exceptionOrNull())
+            giveBack(p, me, item, qty)
+            return Phrase.of("kami_economy.action.sell_failed") to false
+        }
+        return when (val result = attempt.getOrThrow()) {
+            is SellResult.Sold -> {
+                giveBack(p, me, item, qty - result.filled)
+                KamiEconomy.deliver(p)
+                Phrase.of("kami_economy.quest.delivered", result.filled, item, Phrase.money(result.net)) to true
+            }
+            is SellResult.IntentOpen -> {
+                giveBack(p, me, item, qty - result.kept)
+                Phrase.of("kami_economy.action.sell_processing") to false
+            }
+            is SellResult.Frozen -> {
+                giveBack(p, me, item, qty - result.kept)
+                Phrase.of("kami_economy.action.frozen") to false
+            }
+            else -> {
+                giveBack(p, me, item, qty)
+                (if (result == SellResult.NoBuyers) Phrase.of("kami_economy.quest.closed") else Phrase.of("kami_economy.action.sell_failed")) to false
+            }
+        }
+    }
+
     private fun sell(p: ServerPlayer, me: String, market: Boolean, args: List<String>): Pair<Phrase, Boolean> {
         val variant = args.itemArg()
         val item = Variants.core(variant)
@@ -243,18 +299,12 @@ object Net {
             stack.shrink(take)
             remaining -= take
         }
-        fun giveBack(id: String, count: Int) {
-            if (count > 0 && !KamiEconomy.give(p, id, count)) {
-                LOG.error("Could not restore {} x{} to {}, queued as delivery", id, count, p.name.string)
-                Market.queueDelivery(me, id, count, parked = true)
-            }
-        }
         fun restore(count: Int) {
             val v = Variants.of(variant)
-            if (v == null) return giveBack(item, count)
+            if (v == null) return giveBack(p, me, item, count)
             val whole = (count.toLong() * v.div / v.mul).toInt()
-            giveBack(variant, whole)
-            giveBack(item, count - (whole.toLong() * v.mul / v.div).toInt())
+            giveBack(p, me, variant, whole)
+            giveBack(p, me, item, count - (whole.toLong() * v.mul / v.div).toInt())
         }
         val attempt = runCatching { if (market) Ledger.sellNow(me, item, qty) else Ledger.sell(me, item, qty, price, peg, pegLimit) }
         if (attempt.isFailure) {
@@ -285,6 +335,10 @@ object Net {
             is SellResult.IntentOpen -> {
                 restore(qty - result.kept)
                 Phrase.of("kami_economy.action.sell_processing") to false
+            }
+            is SellResult.Frozen -> {
+                restore(qty - result.kept)
+                Phrase.of("kami_economy.action.frozen") to false
             }
             else -> {
                 restore(qty)
@@ -334,7 +388,9 @@ object Net {
 
     private fun cancelBid(me: String, args: List<String>): Pair<Phrase, Boolean> {
         val item = coreArg(args)
-        val refund = Ledger.cancelBid(me, item) ?: return Phrase.of("kami_economy.action.no_bid") to false
+        var frozen = false
+        val refund = Ledger.cancelBid(me, item, onFrozen = { frozen = true }) ?: return Phrase.of("kami_economy.action.no_bid") to false
+        if (frozen) return Phrase.of("kami_economy.action.frozen") to false
         return Phrase.of("kami_economy.action.bid_cancelled", Phrase.money(refund)) to true
     }
 
@@ -355,7 +411,7 @@ object Net {
         val listed = runCatching { Ledger.auctionList(me, taken, startPrice, buyNow, p.server.registryAccess()) }
         if (listed.getOrNull() !is ListResult.Ok) {
             listed.exceptionOrNull()?.let { LOG.error("auction_list failed for ${taken.item}", it) }
-            if (!p.inventory.add(taken)) p.drop(taken, false)
+            if (!p.inventory.add(taken)) KamiEconomy.dropOwned(p, taken)
             return when {
                 listed.isFailure -> Phrase.of("kami_economy.action.auction_failed") to false
                 listed.getOrNull() == ListResult.TooLarge -> Phrase.of("kami_economy.action.auction_too_large") to false
@@ -407,6 +463,7 @@ object Net {
             }
             BuyResult.InsufficientFunds -> Phrase.of("kami_economy.action.no_funds") to false
             BuyResult.NothingAvailable -> Phrase.of("kami_economy.action.nothing_available") to false
+            BuyResult.Frozen -> Phrase.of("kami_economy.action.frozen") to false
             BuyResult.IntentOpen -> Phrase.of("kami_economy.action.buy_processing") to false
             BuyResult.OutOfRange -> outOfRange()
         }
@@ -441,17 +498,19 @@ object Net {
     }
 
     private fun statusItem(name: String, args: List<String>): String? = when (name) {
-        "auction_bid", "auction_buy" -> args.getOrNull(0)?.toLongOrNull()?.let(Auctions::find)?.let { StackCodec.itemId(it.stackData) }?.let(Variants::core)
-        else -> args.getOrNull(0)?.let(Variants::core)
+        "auction_bid", "auction_buy" -> args.getOrNull(0)?.toLongOrNull()?.let(Auctions::find)?.let { StackCodec.itemId(it.stackData) }
+        "quest_deliver" -> null
+        else -> args.getOrNull(0)
     }
 
     private fun act(p: ServerPlayer, name: String, args: List<String>): Pair<Phrase, Boolean> {
         val me = p.stringUUID
         Gate.denial(p.uuid, name)?.let { return it to false }
-        statusItem(name, args)?.let { TradeStatus.denial(name, it) }?.let { return it to false }
+        statusItem(name, args)?.let { id -> TradeStatus.denial(name, id) ?: Variants.core(id).takeIf { it != id }?.let { TradeStatus.denial(name, it) } }?.let { return it to false }
         return try {
             when (name) {
                 "sell", "sell_market" -> sell(p, me, name == "sell_market", args)
+                "quest_deliver" -> questDeliver(p, me, args)
                 "bid" -> bid(p, me, args)
                 "cancel_bid" -> cancelBid(me, args)
                 "auction_list" -> auctionList(p, me, args)

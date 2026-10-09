@@ -42,6 +42,10 @@ object Borders {
     }
 
     private val cached = HashMap<Int, List<Edge>>()
+    private val grounds = HashMap<Edge, FloatArray>()
+    private val shown = HashMap<Int, List<Edge>>()
+    private var shownX = 0
+    private var shownZ = 0
     private var cacheX = 0
     private var cacheZ = 0
     private var cacheSecond = 0L
@@ -55,15 +59,20 @@ object Borders {
         val px = player.blockX
         val pz = player.blockZ
         val second = System.currentTimeMillis() shr 10
-        if (px != cacheX || pz != cacheZ || second != cacheSecond || dim != cacheDim || ClientClaims.rev != cacheRev) {
+        val cx = px shr 4
+        val cz = pz shr 4
+        if (cx != cacheX || cz != cacheZ || second != cacheSecond || dim != cacheDim || ClientClaims.rev != cacheRev) {
             cached.clear()
-            cacheX = px
-            cacheZ = pz
+            grounds.clear()
+            shown.clear()
+            cacheX = cx
+            cacheZ = cz
             cacheSecond = second
             cacheDim = dim
             cacheRev = ClientClaims.rev
         }
-        return cached.getOrPut(radius) { compute(dim, px, pz, radius) }
+        if (px != shownX || pz != shownZ) { shown.clear(); shownX = px; shownZ = pz }
+        return shown.getOrPut(radius) { cached.getOrPut(radius) { compute(dim, px, pz, radius + 16) }.filter { distance(it, px, pz) <= radius } }
     }
 
     private fun compute(dim: String, px: Int, pz: Int, radius: Int): List<Edge> {
@@ -214,12 +223,15 @@ object Borders {
             val r = (edge.color shr 16) and 255
             val g = (edge.color shr 8) and 255
             val b = edge.color and 255
+            val heights = grounds.getOrPut(edge) {
+                FloatArray(length) { i -> level.getHeight(Heightmap.Types.MOTION_BLOCKING, if (horizontal) edge.x0 + i else edge.x0, if (horizontal) edge.z0 else edge.z0 + i).toFloat() }
+            }
             for (i in 0 until length) {
                 val x0 = (if (horizontal) edge.x0 + i else edge.x0).toFloat()
                 val z0 = (if (horizontal) edge.z0 else edge.z0 + i).toFloat()
                 val x1 = if (horizontal) x0 + 1 else x0
                 val z1 = if (horizontal) z0 else z0 + 1
-                val ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x0.toInt(), z0.toInt()).toFloat()
+                val ground = heights[i]
                 val top = ground + 4f
                 val alpha = if (edge.blocked) 0x50 else 0x30
                 vc.addVertex(m, x0, ground, z0).setColor(r, g, b, alpha)

@@ -23,7 +23,7 @@ object Heatmap {
     private const val SAMPLE_Y = 64
     private val logMax = ln(1.0 + UNIT_MAX)
 
-    class Query(val x0: Int, val z0: Int, val cell: Int, val w: Int, val h: Int, val y0: Int, val y1: Int) {
+    class Query(val x0: Int, val z0: Int, val cell: Int, val w: Int, val h: Int, val y0: Int, val y1: Int, val graded: Boolean = true) {
         val xb get() = x0 + w * cell - 1
         val zb get() = z0 + h * cell - 1
     }
@@ -58,7 +58,8 @@ object Heatmap {
         val out = FloatArray(q.w * q.h)
         if (ore.deposit == null) return out
         var started = System.nanoTime()
-        val sites = world.sitesIn(ore, q.x0, q.z0, q.xb, q.zb)
+        val sites = world.sitesIn(ore, q.x0, q.z0, q.xb, q.zb, cancelled)
+        if (cancelled()) return null
         timing?.sites?.addAndGet(System.nanoTime() - started)
         started = System.nanoTime()
         for (site in sites) {
@@ -122,7 +123,7 @@ object Heatmap {
 
         val sub = if (cell >= 16) 2 else 1
         val weight = 1.0 / (sub * sub)
-        val density = min(1.0, deposit.density * site.grade.density)
+        val density = min(1.0, if (q.graded) deposit.density * site.grade.density else deposit.density)
         val coreRadius = if (site.hasCore) site.ore.config.core?.radius ?: 0.0 else 0.0
         val chance = DoubleUnaryOperator { r -> if (r < coreRadius) 1.0 else density * Painter.fringe(r, deposit.bodyRadius, deposit.fringe) }
         val analytic = cell >= ANALYTIC_CELL && deposit.shape.kind != Kind.PIPE

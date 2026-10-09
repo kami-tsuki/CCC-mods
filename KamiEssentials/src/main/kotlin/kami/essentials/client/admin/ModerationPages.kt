@@ -49,7 +49,7 @@ private class RestrictionPage<T>(
         val columns = listOf(
             playerColumn<T>(tr("kami_libs.common.name"), { map(it).uuid }, { map(it).name }),
             Column.text<T>(tr("kami_libs.admin.reason"), -1) { map(it).reason },
-            Column.text<T>(tr("kami_essentials.admin.col.by"), 70) { map(it).by },
+            Column.text<T>(tr("kami_libs.common.by"), 70) { map(it).by },
             Column.number<T>(tr("kami_essentials.admin.col.since"), 56, format = { Format.ago(it) }) { map(it).since },
             Column.number<T>(tr("kami_essentials.admin.col.until"), 64, format = { if (it == Long.MAX_VALUE) tr("kami_essentials.admin.permanent") else Format.until(it) }) { map(it).until ?: Long.MAX_VALUE },
             Column.text<T>(ip, Draw.width(ip) + 4, color = { Palette.warning }) { if (map(it).ip) ip else "" },
@@ -79,8 +79,8 @@ private val WARN_FILTERS = listOf("active", "revoked", "all")
 internal fun warnColumns(app: AdminApp, lock: String?, withPlayer: Boolean) = listOfNotNull(
     if (withPlayer) playerColumn<WarnRow>(tr("kami_libs.common.name"), { it.uuid }, { it.name }) else null,
     Column.text<WarnRow>(tr("kami_libs.admin.reason"), -1) { it.reason },
-    Column.text<WarnRow>(tr("kami_essentials.admin.col.by"), 70) { it.by },
-    Column.number<WarnRow>(tr("kami_essentials.admin.col.when"), 56, format = { Format.ago(it) }) { it.at },
+    Column.text<WarnRow>(tr("kami_libs.common.by"), 70) { it.by },
+    Column.number<WarnRow>(tr("kami_libs.common.when"), 56, format = { Format.ago(it) }) { it.at },
     Column.text<WarnRow>(tr("kami_libs.common.state"), 110, color = { if (it.revoked == null) Palette.warning else Palette.textMuted }) { w ->
         w.revoked?.let { tr("kami_essentials.admin.warn.revoked", it.by, it.reason) } ?: tr("kami_essentials.admin.filter.active")
     },
@@ -102,7 +102,7 @@ internal class WarnPage(private val app: AdminApp) : Page() {
         val body = ui.filterBar(r, "warns:filters") { bar ->
             val row = Row(bar, 6)
             val chips = row.takeFromRight(170)
-            ui.chipFlow(Stack(chips.x, chips.y + 2, chips.w), WARN_FILTERS.map { ChipSpec(tr("kami_essentials.admin.filter.$it"), selected = it == filter) }, "warns:filter")
+            ui.chipFlow(Stack(chips.x, chips.y + 2, chips.w), WARN_FILTERS.map { ChipSpec(filterLabel(it), selected = it == filter) }, "warns:filter")
                 ?.let { filter = WARN_FILTERS[it] }
             ui.searchField(row.remaining(), search, key = "warns:search")
         }

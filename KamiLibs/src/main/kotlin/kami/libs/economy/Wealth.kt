@@ -2,6 +2,7 @@ package kami.libs.economy
 
 import kami.libs.admin.Admin
 import kami.libs.admin.AdminMetrics
+import kami.libs.admin.Players
 import kami.libs.db.Db
 import kami.libs.db.Migration
 import kami.libs.db.Rows
@@ -95,6 +96,7 @@ object Wealth {
         val snap = Snap(value, Db.json.encodeToString(WealthDay.serializer(), value))
         synchronized(this) {
             stored[day] = snap
+            stored.headMap(day - KEEP).clear()
         }
     }
 
@@ -103,9 +105,9 @@ object Wealth {
         source("bank") { ServerBank.balance }
         source("coins") { Coins.supply }
         AdminMetrics.register("kami_libs.metric.coins") { Coins.supply }
-        Admin.view("wealth.live") { _, _ -> Db.json.encodeToJsonElement(WealthDay.serializer(), live()) }
+        Admin.view("wealth.live") { _, _ -> Db.encode(WealthDay.serializer(), live()) }
         Admin.view("wealth.history") { _, a ->
-            Db.json.encodeToJsonElement(ListSerializer(WealthDay.serializer()), history(a.firstOrNull()?.trim()?.toIntOrNull() ?: 30))
+            Db.encode(ListSerializer(WealthDay.serializer()), history(a.firstOrNull()?.trim()?.toIntOrNull() ?: 30))
         }
     }
 
@@ -175,6 +177,6 @@ object Wealth {
     }
 
     private fun name(party: String): String = (Party.parse(party) as? PlayerParty)?.let { p ->
-        ServerLifecycleHooks.getCurrentServer()?.profileCache?.get(p.uuid)?.orElse(null)?.name
+        ServerLifecycleHooks.getCurrentServer()?.let { Players.name(it, p.uuid) }
     } ?: party
 }

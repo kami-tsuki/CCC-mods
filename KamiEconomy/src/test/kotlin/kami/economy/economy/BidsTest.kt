@@ -13,53 +13,22 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class BidsTest {
-    private class FakeWallet(var funds: Long) : Wallet {
-        val deposits = mutableListOf<Pair<UUID, Int>>()
-        override fun balance(id: UUID) = funds
-        override fun deduct(id: UUID, amount: Int): Int {
-            val taken = minOf(amount.toLong(), funds).toInt()
-            funds -= taken
-            return taken
-        }
-        override fun deposit(id: UUID, amount: Int): Boolean {
-            deposits += id to amount
-            return true
-        }
-    }
-
     private val item = "test:item"
     private val bidderA = UUID.randomUUID()
     private val bidderB = UUID.randomUUID()
     private val seller = UUID.randomUUID()
 
-    private fun setup(funds: Long = 1000): FakeWallet {
+    private fun setup(funds: Long = 1000): Till {
         Config.s = Settings()
         Market.data = Data()
         TestDb.open()
-        return FakeWallet(funds).also { Ledger.wallet = it }
+        return Till(funds).also { Ledger.wallet = it }
     }
 
     @AfterTest
     fun tearDown() = TestDb.close()
 
     private fun bids() = Market.book(item).buys
-
-    private class KeyedWallet(private val initial: Long) : Wallet {
-        val balances = mutableMapOf<UUID, Long>()
-        val deposits = mutableListOf<Pair<UUID, Int>>()
-        override fun balance(id: UUID) = balances.getOrDefault(id, initial)
-        override fun deduct(id: UUID, amount: Int): Int {
-            val bal = balance(id)
-            val taken = minOf(amount.toLong(), bal).toInt()
-            balances[id] = bal - taken
-            return taken
-        }
-        override fun deposit(id: UUID, amount: Int): Boolean {
-            deposits += id to amount
-            balances[id] = balance(id) + amount
-            return true
-        }
-    }
 
     @Test
     fun bidHoldsEscrowAndCancelRefundsIt() {
@@ -206,7 +175,7 @@ class BidsTest {
         Config.s = Settings()
         Market.data = Data()
         TestDb.open()
-        val wallet = KeyedWallet(750)
+        val wallet = Purse(initial = 750)
         Ledger.wallet = wallet
         Matching.insertBid(item, Order(9, bidderA.toString(), 15, 10))
         val intent = Intent(21, IntentType.REPRICE_BID, LedgerState.BOOK_INSERTED, actor = bidderA.toString(), item = item, orderId = 9, unitPrice = 15, netSpurs = -50, preBalance = 750)
@@ -226,9 +195,9 @@ class BidsTest {
         Config.s = Settings()
         Market.data = Data()
         TestDb.open()
-        val wallet = KeyedWallet(750)
+        val wallet = Purse(initial = 750)
         Ledger.wallet = wallet
-        wallet.balances[bidderA] = 800
+        wallet.funds[bidderA] = 800
         Matching.insertBid(item, Order(9, bidderA.toString(), 15, 10))
         val intent = Intent(20, IntentType.REPRICE_BID, LedgerState.BOOK_INSERTED, actor = bidderA.toString(), item = item, orderId = 9, unitPrice = 15, netSpurs = -50, preBalance = 750)
         TestDb.wal(intent)
@@ -247,9 +216,9 @@ class BidsTest {
         Config.s = Settings()
         Market.data = Data()
         TestDb.open()
-        val wallet = KeyedWallet(0)
+        val wallet = Purse()
         Ledger.wallet = wallet
-        wallet.balances[seller] = 207
+        wallet.funds[seller] = 207
         val fills = listOf(LedgerFill(1, bidderA.toString(), 12, 20, tax = 0))
         val intent = Intent(30, IntentType.SELL_NOW, LedgerState.BOOK_INSERTED, actor = seller.toString(), item = item, qty = 12, netSpurs = 207, fills = fills, preBalance = 0)
         TestDb.wal(intent)
@@ -290,9 +259,9 @@ class BidsTest {
         Config.s = Settings()
         Market.data = Data()
         TestDb.open()
-        val wallet = KeyedWallet(0)
+        val wallet = Purse()
         Ledger.wallet = wallet
-        wallet.balances[seller] = 100
+        wallet.funds[seller] = 100
         val intent = Intent(70, IntentType.SELL, LedgerState.BOOK_INSERTED, actor = seller.toString(), item = item, qty = 10, netSpurs = 50, instant = true, lot = 1, preBalance = 100)
         TestDb.wal(intent)
         TestDb.restart()
@@ -321,9 +290,9 @@ class BidsTest {
         Config.s = Settings()
         Market.data = Data()
         TestDb.open()
-        val wallet = KeyedWallet(0)
+        val wallet = Purse()
         Ledger.wallet = wallet
-        wallet.balances[bidderB] = 150
+        wallet.funds[bidderB] = 150
         val intent = Intent(40, IntentType.AUCTION_BID, LedgerState.BOOK_INSERTED, actor = bidderA.toString(), auctionId = 1, unitPrice = 100, prevBidder = bidderB.toString(), prevBid = 50, prevBalance = 100)
         TestDb.wal(intent)
         TestDb.restart()
@@ -341,10 +310,10 @@ class BidsTest {
         Config.s = Settings()
         Market.data = Data()
         TestDb.open()
-        val wallet = KeyedWallet(0)
+        val wallet = Purse()
         Ledger.wallet = wallet
-        wallet.balances[bidderB] = 150
-        wallet.balances[seller] = 90
+        wallet.funds[bidderB] = 150
+        wallet.funds[seller] = 90
         Market.data.pendingDelivery.getOrPut(bidderA.toString()) { mutableListOf() } += Delivery(stackData = "stack-2", id = "42:d")
         val intent = Intent(
             42, IntentType.AUCTION_SETTLE, LedgerState.BOOK_INSERTED, actor = bidderA.toString(), seller = seller.toString(),

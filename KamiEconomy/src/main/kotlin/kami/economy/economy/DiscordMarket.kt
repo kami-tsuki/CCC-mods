@@ -1,5 +1,6 @@
 package kami.economy.economy
 
+import kami.libs.util.toUuidOrNull
 import kami.economy.Config
 import kami.economy.KamiEconomy
 import kami.economy.Market
@@ -39,9 +40,10 @@ internal fun labels(ids: Collection<String>, name: (String) -> String): List<Pai
 object DiscordMarket {
     private const val ID = KamiEconomy.ID
     private const val BATCH = 10
-    private const val LINES = 25
+    private const val LINES = 10
+    private const val MOVES = 6
     private const val SPARK = 24
-    private const val TOP = 5
+    private const val TOP = 3
     private const val FLUSH_MINUTES = 1L
     private const val FLUSH_ATTEMPTS = 3
     private const val AUTOCOMPLETE = 25
@@ -152,7 +154,7 @@ object DiscordMarket {
         }
     }
 
-    private fun alertable(who: String) = Trade.uuid(who)?.let { DiscordPrefs.on(it, DiscordPrefs.MARKET_ALERTS) && Links.get(it) != null } == true
+    private fun alertable(who: String) = who.toUuidOrNull()?.let { DiscordPrefs.on(it, DiscordPrefs.MARKET_ALERTS) && Links.get(it) != null } == true
 
     private fun flush(now: Long) {
         val batch = pending.values.sortedByDescending { abs(it.permille) }.take(BATCH)
@@ -169,7 +171,7 @@ object DiscordMarket {
             val (who, list) = entries.next()
             if (now - (dmAt[who] ?: 0L) < cooldown) continue
             entries.remove()
-            val link = Trade.uuid(who)?.takeIf { DiscordPrefs.on(it, DiscordPrefs.MARKET_ALERTS) }?.let(Links::get) ?: continue
+            val link = who.toUuidOrNull()?.takeIf { DiscordPrefs.on(it, DiscordPrefs.MARKET_ALERTS) }?.let(Links::get) ?: continue
             val valid = list.values.filter { Watchlist.has(who, it.item) }
             if (valid.isEmpty()) continue
             dmAt[who] = now
@@ -185,16 +187,23 @@ object DiscordMarket {
             0 -> DiscordFormat.BAD
             else -> DiscordFormat.NEUTRAL
         }
-        val body = list.joinToString("\n") {
-            DiscordText.get(ID, locale, "kami_economy.discord.move", nameOf(it.item), DiscordFormat.money(it.from.toLong()), DiscordFormat.money(it.to.toLong()), DiscordFormat.change(it.permille / 10.0), it.volume)
+        val body = list.take(MOVES).joinToString("\n") {
+            DiscordText.get(ID, locale, "kami_economy.discord.move", arrow(it.permille), nameOf(it.item), each(it.item, it.from), each(it.item, it.to), pct(it.permille), DiscordFormat.num(it.volume.toLong()))
         }
-        return Card(DiscordText.get(ID, locale, "kami_economy.discord.moves"), body, color, timestamp = now())
+        val more = (list.size - MOVES).takeIf { it > 0 }?.let { DiscordText.get(ID, locale, "kami_economy.discord.more", it) }
+        return Card.compact(DiscordText.get(ID, locale, "kami_economy.discord.moves"), body, color, footer = more, timestamp = now())
     }
+
+    private fun each(item: String, price: Number) = DiscordFormat.each(price.toDouble() / Config.s.lotOf(item))
+
+    private fun arrow(permille: Int) = if (permille > 0) "▲" else if (permille < 0) "▼" else "="
+
+    private fun pct(permille: Int) = (if (permille > 0) "+" else if (permille < 0) "-" else "") + DiscordFormat.pct(abs(permille) / 10.0)
 
     private fun digest(now: Long): Card {
         val locale = DiscordText.FALLBACK
-        val total = DiscordText.get(ID, locale, "kami_economy.discord.total", History.dayVolume(now))
-        return Card(DiscordText.get(ID, locale, "kami_economy.discord.digest"), total, DiscordFormat.GOLD, overview(locale, now, false), timestamp = now)
+        val total = DiscordText.get(ID, locale, "kami_economy.discord.total", DiscordFormat.num(History.dayVolume(now)))
+        return Card.compact(DiscordText.get(ID, locale, "kami_economy.discord.digest"), total, DiscordFormat.GOLD, overview(locale, now, false), timestamp = now)
     }
 
     private fun overview(locale: String, now: Long, watched: Boolean = true): List<EmbedField> {
@@ -205,11 +214,11 @@ object DiscordMarket {
         val traded = tracked.map { it to History.dayVolume(it, now).toInt() }.filter { it.second > 0 }.sortedByDescending { it.second }.take(TOP)
         val (gain, lose) = movers(tracked.map { it to History.change(it, now) }, TOP)
         val fields = mutableListOf(
-            EmbedField(t("gainers"), lines(gain) { DiscordFormat.change(it / 10.0) }, true),
-            EmbedField(t("losers"), lines(lose) { DiscordFormat.change(it / 10.0) }, true),
-            EmbedField(t("traded"), lines(traded) { "×$it" }, false)
+            EmbedField(t("gainers"), lines(gain) { "`${pct(it)}`" }, true),
+            EmbedField(t("losers"), lines(lose) { "`${pct(it)}`" }, true),
+            DiscordFormat.wide(t("traded"), lines(traded) { "×${DiscordFormat.num(it.toLong())}" })
         )
-        if (watched) fields += EmbedField(t("watched"), lines(Watchlist.summary(TOP).top) { "×$it" }, false)
+        if (watched) fields += DiscordFormat.wide(t("watched"), lines(Watchlist.summary(TOP).top) { "×${DiscordFormat.num(it.toLong())}" })
         return fields
     }
 
@@ -220,7 +229,7 @@ object DiscordMarket {
 
     private fun top(ctx: SlashCtx) {
         val now = now()
-        ctx.reply(Card(ctx.text(ID, "kami_economy.discord.top"), color = DiscordFormat.NEUTRAL, fields = overview(ctx.locale, now), timestamp = now))
+        ctx.reply(Card.compact(ctx.text(ID, "kami_economy.discord.top"), color = DiscordFormat.NEUTRAL, fields = overview(ctx.locale, now), timestamp = now))
     }
 
     private fun watchlist(ctx: SlashCtx) {
@@ -228,10 +237,11 @@ object DiscordMarket {
         if (list.isEmpty()) return ctx.reply(ctx.text(ID, "kami_economy.discord.watchlist.empty"))
         val now = now()
         val body = list.take(LINES).joinToString("\n") { item ->
-            val price = Matching.bestAsk(item, "")?.let { DiscordFormat.money(it.toLong()) } ?: "–"
-            "${nameOf(item)} $price ${DiscordFormat.change(History.change(item, now) / 10.0)}"
+            val price = Matching.bestAsk(item, "")?.let { each(item, it) } ?: "–"
+            val change = History.change(item, now)
+            "**${nameOf(item)}** $price ${arrow(change)} ${DiscordFormat.pct(abs(change) / 10.0)}"
         }
-        ctx.reply(Card(ctx.text(ID, "kami_economy.discord.watchlist"), body, DiscordFormat.NEUTRAL, footer = "${minOf(list.size, LINES)}/${list.size}", timestamp = now))
+        ctx.reply(Card.compact(ctx.text(ID, "kami_economy.discord.watchlist"), body, DiscordFormat.NEUTRAL, footer = "${minOf(list.size, LINES)}/${list.size}", timestamp = now))
     }
 
     private fun check(ctx: SlashCtx) {
@@ -244,30 +254,26 @@ object DiscordMarket {
         val bid = Matching.bestBid(item)
         val permille = History.change(item, now)
         fun t(key: String, vararg a: Any) = ctx.text(ID, "kami_economy.discord.$key", *a)
-        fun money(v: Int?) = v?.let { DiscordFormat.money(it.toLong()) } ?: "–"
+        fun money(v: Number?) = v?.let { each(item, it) } ?: "–"
         val bidDepth = book.buys.filter { it.amount > 0 && it.price == bid }.sumOf { it.amount.toLong() }
         val askDepth = if (Matching.bestPrice(item) == ask) book.sells.filter { it.amount > 0 && it.price == ask }.sumOf { it.amount.toLong() } else Stocks.supplyLeft(item).takeIf { it != Int.MAX_VALUE }.let { (it ?: 0).toLong() } * lot
         val week = History.series(item, Range.WEEK, now, book.course).buckets
-        val range = if (week.isEmpty()) "–" else "${DiscordFormat.money(week.minOf { it.low }.toLong())} – ${DiscordFormat.money(week.maxOf { it.high }.toLong())}"
+        val range = if (week.isEmpty()) "–" else "${money(week.minOf { it.low }).removeSuffix(" ${DiscordFormat.SPUR}")} – ${money(week.maxOf { it.high })}"
         val closes = History.series(item, Range.DAY, now, book.course).buckets.map { it.close }
         val spark = if (closes.size <= SPARK) closes else (1..SPARK).map { closes[it * closes.size / SPARK - 1] }
-        val fields = mutableListOf(
-            EmbedField(t("price", lot), money(ask), true),
-            EmbedField(t("lastmid"), "${money(book.lastFill.takeIf { it > 0 })} / ${money(book.course.toInt().takeIf { it > 0 })}", true),
-            EmbedField(t("change"), DiscordFormat.change(permille / 10.0), true),
-            EmbedField(t("bid"), "${money(bid)} ($bidDepth)", true),
-            EmbedField(t("ask"), "${money(ask)} ($askDepth)", true),
-            EmbedField(t("volume"), History.dayVolume(item, now).toString(), true),
-            EmbedField(t("range"), range, true),
-            EmbedField(t("watchers"), Watchlist.count(item).toString(), true)
-        )
-        if (spark.isNotEmpty()) fields += EmbedField(t("trend"), DiscordFormat.spark(spark), false)
+        val fields = DiscordFormat.fields(
+            t("bid") to "${money(bid)} ×${DiscordFormat.num(bidDepth)}",
+            t("ask") to "${money(ask)} ×${DiscordFormat.num(askDepth)}",
+            t("range") to range
+        ).toMutableList()
+        if (spark.isNotEmpty()) fields += DiscordFormat.wide(t("trend"), DiscordFormat.spark(spark))
+        val head = t("check.head", money(ask), "${arrow(permille)} ${DiscordFormat.pct(abs(permille) / 10.0)}", DiscordFormat.num(History.dayVolume(item, now)))
         val color = when {
             permille > 0 -> DiscordFormat.GOOD
             permille < 0 -> DiscordFormat.BAD
             else -> DiscordFormat.NEUTRAL
         }
-        ctx.reply(Card(nameOf(item), color = color, fields = fields, footer = item, timestamp = now, thumbnail = icon(item)))
+        ctx.reply(Card.compact(nameOf(item), head, color, fields, t("check.footer", item, Watchlist.count(item)), now, icon(item)))
     }
 
     private fun icon(item: String): String? = Config.s.discordItemIconUrl.takeIf { it.isNotEmpty() }?.let { url ->

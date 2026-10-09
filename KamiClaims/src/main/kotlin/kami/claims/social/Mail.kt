@@ -1,5 +1,6 @@
 package kami.claims.social
 
+import kami.libs.util.toUuidOrNull
 import kami.claims.*
 import kami.libs.chat.Chat
 import kami.libs.chat.Tone
@@ -14,7 +15,7 @@ object Mail {
     private val server get() = ServerLifecycleHooks.getCurrentServer()
 
     fun direct(id: String, text: Phrase, tone: Tone = Tone.INFO) {
-        val online = runCatching { UUID.fromString(id) }.getOrNull()?.let { server?.playerList?.getPlayer(it) }
+        val online = id.toUuidOrNull()?.let { server?.playerList?.getPlayer(it) }
         if (online != null) {
             online.tell(chat.say(tone, text.component()))
             return

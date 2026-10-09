@@ -76,11 +76,11 @@ object Goals {
     }
 
     internal fun progress(country: Country, cond: Condition): Pair<Long, Long> = when (cond) {
-        is MinChunks -> Realm.claims(country.id).count { cond.chunkType == null || it.type == cond.chunkType }.toLong() to cond.min.toLong()
+        is MinChunks -> Realm.claimsView(country.id).count { cond.chunkType == null || it.type == cond.chunkType }.toLong() to cond.min.toLong()
         is MinCitizens -> country.members.size.toLong() to cond.min.toLong()
         is MinTreasury -> country.treasury.coerceAtLeast(0) to cond.min
         is MinCounter -> (country.counters[cond.key] ?: 0L) to cond.min
-        is MinPlots -> Realm.claims(country.id).count { it.type == cond.chunkType && it.owner != null }.toLong() to cond.min.toLong()
+        is MinPlots -> Realm.claimsView(country.id).count { it.type == cond.chunkType && it.owner != null }.toLong() to cond.min.toLong()
         is MinProvinces -> country.provinces.size.toLong() to cond.min.toLong()
         is MinAllies -> country.alliances.size.toLong() to cond.min.toLong()
         else -> 0L to 1L

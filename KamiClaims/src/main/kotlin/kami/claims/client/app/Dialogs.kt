@@ -26,6 +26,7 @@ import kami.libs.ui.style.Icon
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
+import kami.libs.ui.widget.playerField
 import kami.libs.ui.widget.property
 
 object Dialogs {
@@ -68,7 +69,7 @@ object Dialogs {
         ), tr("kami_claims.plots.rent.action", cost), "plot_claim", arrayOf(x.toString(), z.toString()))
     }
 
-    fun removeTenant(app: ClaimsApp, x: Int, z: Int, owner: String) = confirm(app, tr("kami_claims.confirm.plot_remove.title", owner), tr("kami_claims.plot.at", x, z), Icons.BAN, listOf(
+    fun removeTenant(app: ClaimsApp, x: Int, z: Int, owner: String) = confirm(app, tr("kami_claims.plots.untrust.title", owner), tr("kami_claims.plot.at", x, z), Icons.BAN, listOf(
         Consequence(tr("kami_claims.confirm.plot_remove.body", Format.days((ClaimsStore.info?.moveOutDays ?: 0).toLong())), Severity.DANGER),
         Consequence(tr("kami_claims.plots.remove.builds"), Severity.WARNING)
     ), tr("kami_libs.common.remove"), "plot_remove", arrayOf(x.toString(), z.toString(), "confirm"), danger = true, hold = true)
@@ -78,6 +79,18 @@ object Dialogs {
         !NameRules.valid(text) -> tr("kami_claims.wizard.name.error.chars")
         ClaimsStore.countries.any { it.name.equals(text, true) } -> tr("kami_claims.error.name_taken")
         else -> null
+    }
+
+    fun invite(app: ClaimsApp, name: TextState) {
+        app.open(Dialog(tr("kami_libs.common.invite"), null, Icons.INVITE) { s ->
+            playerField(Rect(s.body.x, s.body.y, s.body.w, CONTROL_H), name, offline = { ClaimsStore.snap?.names.orEmpty() }, query = { ClaimsStore.quiet("names", it) }, key = "invite-dialog")
+            s.used = CONTROL_H + 4
+            dialogButtons(s, tr("kami_libs.common.invite"), name.text.length >= 3, tr("kami_claims.field.player.disabled")) {
+                ClaimsStore.send("invite", name.text, key = "invite")
+                name.set("")
+                s.close()
+            }
+        })
     }
 
     fun rename(app: ClaimsApp) {
@@ -122,11 +135,11 @@ object Dialogs {
     }
 
     fun money(app: ClaimsApp, deposit: Boolean, suggested: Long = 10) {
-        app.open(amountDialog(tr(if (deposit) "kami_claims.money.deposit" else "kami_libs.common.withdraw"), tr("kami_claims.kpi.treasury"), if (deposit) Icons.DEPOSIT else Icons.WITHDRAW, suggested,
+        app.open(amountDialog(tr(if (deposit) "kami_libs.common.deposit" else "kami_libs.common.withdraw"), tr("kami_libs.flow.treasury"), if (deposit) Icons.DEPOSIT else Icons.WITHDRAW, suggested,
             header = { r ->
                 val snap = ClaimsStore.snap
                 val treasury = snap?.info?.treasury ?: 0L
-                property(Rect(r.x, r.y, r.w, 11), tr("kami_claims.kpi.treasury"), Format.money(treasury), Palette.money)
+                property(Rect(r.x, r.y, r.w, 11), tr("kami_libs.flow.treasury"), Format.money(treasury), Palette.money)
                 property(Rect(r.x, r.y + 12, r.w, 11), tr("kami_claims.kpi.funds"), Format.money(snap?.funds ?: 0L), Palette.money)
                 28
             },

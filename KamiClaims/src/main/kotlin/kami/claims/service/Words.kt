@@ -30,6 +30,6 @@ object Words {
 
     fun tribute(mode: TaxMode, amount: Double) = (
         if (mode == TaxMode.PERCENT) Phrase.of("kami_claims.tribute.percent", Format.full((amount * 100).toLong()))
-        else Phrase.of("kami_claims.tribute.flat", Format.full(amount.toLong()))
+        else Phrase.of("kami_libs.unit.per_day", Phrase.of("kami_libs.unit.money", Format.full(amount.toLong())))
     ).asValue()
 }

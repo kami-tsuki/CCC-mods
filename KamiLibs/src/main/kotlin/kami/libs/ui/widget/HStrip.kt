@@ -29,7 +29,7 @@ fun Ui.hstrip(key: Any, r: Rect, contentWidth: Int, step: Int = 100, snap: Boole
     s.content = contentWidth
     s.view = r.w
     s.center?.let { s.target = (it - r.w / 2).toDouble().coerceIn(0.0, s.max.toDouble()); s.center = null }
-    val wheel = wheel(r)
+    val wheel = wheelIf(r) { s.max > 0 }
     if (wheel != 0.0) { s.target -= wheel * WHEEL_STEP; state.idleSince = time }
     if (hovering(r) && !typing) {
         if (input.takeKey(GLFW.GLFW_KEY_LEFT) { !it.ctrl } != null) { s.target -= step; state.idleSince = time }

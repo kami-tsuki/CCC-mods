@@ -51,7 +51,7 @@ object Work {
 
     fun jobAdd(c: Country, actor: Rank, actorId: String, id: String, job: String): Phrase {
         val m = c.members[id] ?: throw Fail("kami_claims.error.not_member")
-        if (actor != Rank.PRESIDENT && (id == actorId || m.rank >= actor)) throw Fail("kami_claims.error.lower_ranks")
+        if (actor != Rank.PRESIDENT && (id == actorId || m.rank >= actor)) throw Fail("kami_claims.error.rank_below")
         val cfg = Config.s.jobs[job] ?: throw Fail("kami_claims.error.unknown_job")
         if (job in m.jobs) throw Fail("kami_claims.error.job_has")
         Features.require(c, Features.claimType(cfg.type))
@@ -79,7 +79,7 @@ object Work {
 
     fun unassign(c: Country, actor: Rank, actorId: String, id: String, cl: Claim): Phrase {
         val rank = c.members[id]?.rank
-        if (id != actorId && rank != null && rank >= actor) throw Fail("kami_claims.error.lower_ranks")
+        if (id != actorId && rank != null && rank >= actor) throw Fail("kami_claims.error.rank_below")
         if (cl.workers.remove(id) && id != actorId) Mail.direct(id, Phrase.of("kami_claims.mail.unassigned", v("${cl.x}, ${cl.z}")))
         return Phrase.of("kami_claims.done.unassigned")
     }

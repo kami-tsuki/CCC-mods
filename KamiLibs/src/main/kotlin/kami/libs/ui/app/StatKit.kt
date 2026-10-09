@@ -12,6 +12,7 @@ import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr
 import kami.libs.ui.widget.CONTROL_H
 import kami.libs.ui.widget.KpiTile
+import kami.libs.ui.widget.fitText
 import kami.libs.ui.widget.Series
 import kami.libs.ui.widget.Slice
 import kami.libs.ui.widget.card
@@ -92,7 +93,7 @@ fun Ui.statTop(r: Rect, title: String, icon: Icon, rows: List<StatRow>, color: I
         Draw.fill(g, line.withWidth((line.w * row.v / top).toInt().coerceAtLeast(1)), Palette.alpha(color, 0x38))
         val value = format(row.v)
         Draw.textRight(g, value, line.right - 2, line.y + 1, Palette.text)
-        Draw.text(g, Draw.fit(statLabel(row), line.w - Draw.width(value) - 10), line.x + 2, line.y + 1, Palette.text)
+        fitText(line.x + 2, line.y + 1, line.w - Draw.width(value) - 10, statLabel(row), Palette.text, key = "stat:${line.x},${line.y}")
     }
 }
 

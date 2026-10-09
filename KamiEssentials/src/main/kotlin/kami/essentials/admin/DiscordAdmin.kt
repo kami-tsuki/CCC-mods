@@ -44,32 +44,27 @@ object DiscordAdmin {
     private val kinds = listOf("discord.link", "discord.unlink", "discord.code")
 
     fun register() {
-        Admin.view("players.discord") { ctx, a -> Db.json.encodeToJsonElement(DiscordDetail.serializer(), detail(target(ctx, a))) }
+        Admin.view("players.discord") { ctx, a -> Db.encode(DiscordDetail.serializer(), detail(AdminServer.target(ctx, a))) }
         Admin.act("players.discord.unlink") { ctx, a ->
-            val id = target(ctx, a)
+            val id = AdminServer.target(ctx, a)
             if (id != ctx.player.uuid && !AdminPerms.outranks(ctx.player, Players.profile(ctx.player.server, id))) ctx.fail("kami_essentials.admin.outranked")
             val link = Links.get(id) ?: ctx.fail("kami_essentials.admin.discord_not_linked", id)
             Gate.unlink(id)
             Admin.done(id, audit = mapOf("discord" to link.discordId.toString()))
         }
         Admin.act("players.discord.resync") { ctx, a ->
-            val id = target(ctx, a)
+            val id = AdminServer.target(ctx, a)
             val link = Links.get(id) ?: ctx.fail("kami_essentials.admin.discord_not_linked", id)
             if (!DiscordApi.ready) ctx.fail("kami_essentials.admin.discord_down")
             val server = ctx.player.server
             DiscordApi.info(link.discordId) { info ->
                 if (info != null && Links.get(id)?.discordId == link.discordId) {
-                    Links.rename(id, server.playerList.getPlayer(id)?.gameProfile?.name ?: server.profileCache?.get(id)?.orElse(null)?.name ?: link.name, info.userName)
+                    Links.rename(id, Players.name(server, id) ?: link.name, info.userName)
                     DiscordApi.grant(link.discordId)
                 }
             }
             Admin.done(id, audit = mapOf("discord" to link.discordId.toString()))
         }
-    }
-
-    private fun target(ctx: AdminCtx, a: List<String>): UUID {
-        val raw = a.text(0).orEmpty()
-        return Players.resolve(ctx.player.server, raw) ?: ctx.fail("kami_essentials.admin.unknown_player", raw)
     }
 
     private fun detail(id: UUID): DiscordDetail {

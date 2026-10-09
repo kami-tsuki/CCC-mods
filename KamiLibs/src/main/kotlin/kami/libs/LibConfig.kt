@@ -17,7 +17,7 @@ data class LibSettings(
     val unexplainedSingle: Long = 5_000,
     val stats: Map<String, Boolean> = linkedMapOf(
         "server" to true, "session" to true, "combat" to true, "mob" to true, "block" to true, "craft" to true,
-        "move" to true, "money" to true, "market" to true, "country" to true, "war" to true, "research" to true, "loan" to true, "discord" to true, "staff" to true
+        "move" to true, "money" to true, "market" to true, "country" to true, "war" to true, "research" to true, "xp" to true, "level" to true, "loan" to true, "discord" to true, "staff" to true
     ),
     val statsSampleSeconds: Int = 300,
     val staffCommandSeconds: Int = 15

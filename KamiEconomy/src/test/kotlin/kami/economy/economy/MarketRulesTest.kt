@@ -15,12 +15,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class MarketRulesTest {
-    private class Purse(var funds: Long) : Wallet {
-        override fun balance(id: UUID) = funds
-        override fun deduct(id: UUID, amount: Int): Int = minOf(amount.toLong(), funds).toInt().also { funds -= it }
-        override fun deposit(id: UUID, amount: Int): Boolean { funds += amount; return true }
-    }
-
     private val item = "test:oak_log"
     private val buyer = UUID.randomUUID().toString()
     private val seller = UUID.randomUUID().toString()
@@ -35,7 +29,7 @@ class MarketRulesTest {
         Stocks.index { emptyList() }
         TestDb.open()
         ServerBank.load()
-        Ledger.wallet = Purse(100_000)
+        Ledger.wallet = Till(100_000, true)
     }
 
     @Test

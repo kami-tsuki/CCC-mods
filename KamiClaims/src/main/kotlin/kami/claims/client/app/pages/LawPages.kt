@@ -46,7 +46,7 @@ private fun Ui.applyBar(r: Rect, changes: Int, summary: String, enabled: Boolean
     Draw.outline(g, r, Palette.alpha(Palette.brass, 0x90))
     Draw.fill(g, Rect(r.x + 6, r.centerY - 2, 4, 4), Palette.brass)
     Draw.text(g, trn("kami_claims.unit.unsaved", changes), r.x + 14, r.y + 5, TextStyle.HEADING, Palette.brass)
-    Draw.text(g, Draw.fit(summary, r.w - 220), r.x + 14, r.y + 15, Palette.textSecondary)
+    fitText(r.x + 14, r.y + 15, r.w - 220, summary, Palette.textSecondary)
     val row = Row(Rect(r.x, r.y + 4, r.w - 4, CONTROL_H))
     if (edgeButton(row, tr("kami_libs.common.apply"), Icons.SAVE, ButtonStyle.PRIMARY, enabled, reason, pending = pending, key = "$key:apply")) onApply()
     if (edgeButton(row, tr("kami_libs.common.discard"), Icons.UNDO, key = "$key:discard")) onDiscard()
@@ -87,8 +87,9 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
     override fun actions(ui: Ui, r: Rect) {
         if (ui.iconButton(Rect(r.x, r.y, r.h, r.h), Icons.HELP, tr("kami_claims.law.legend"), selected = legend, key = "legend")) legend = !legend
         val presets = listOf("private" to Icons.LOCK, "workers" to Icons.TOOL, "public" to Icons.SCALES, "default" to Icons.UNDO).map { (id, icon) -> Option(id, tr("kami_claims.law.preset.$id"), icon, tr("kami_claims.law.preset.$id.desc")) }
-        Draw.textRight(ui.g, tr("kami_claims.law.preset.label"), r.right - 134, r.y + 4, Palette.textMuted)
-        ui.select(Rect(r.right - 130, r.y, 130, r.h), presets, null, tr("kami_claims.law.preset.placeholder"), can("rules"), lock("rules"), key = "preset")?.let { preset -> applyPreset(preset) }
+        val box = r.right(130)
+        Draw.textRight(ui.g, tr("kami_claims.law.preset.label"), box.x - 4, r.y + 4, Palette.textMuted)
+        ui.select(box, presets, null, tr("kami_claims.law.preset.placeholder"), can("rules"), lock("rules"), key = "preset")?.let { preset -> applyPreset(preset) }
     }
 
     private fun applyPreset(preset: String) {
@@ -131,7 +132,7 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
         val groups = listOf(
             tr("kami_claims.law.legend.who") to Vocabulary.access.map { it.second },
             tr("kami_claims.law.legend.actions") to Vocabulary.actions + Vocabulary.flags.map { it.second },
-            tr("kami_claims.law.legend.types") to snap.types.map { Vocabulary.type(it.name) } + Look("kami_claims.law.legend.nomansland", Palette.textMuted, Icons.GLOBE)
+            tr("kami_claims.law.legend.types") to snap.types.map { Vocabulary.type(it.name) } + Look("kami_claims.help.term.nomansland", Palette.textMuted, Icons.GLOBE)
         )
         val labelW = groups.flatMap { it.second }.maxOf { Draw.width(it.label) } + 24
         ui.scroll("legend", r, groups.sumOf { LEGEND_HEAD + it.second.size * LEGEND_H }) { area ->
@@ -142,7 +143,7 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
                 looks.forEach { look ->
                     val x = area.x + 4 + Draw.leadIcon(ui.g, look.icon, area.x + 4, y + LEGEND_H / 2) + 2
                     Draw.text(ui.g, look.label, x, y + 2, if (look.color != 0) look.color else Palette.text)
-                    Draw.text(ui.g, Draw.fit(look.description, area.right - area.x - labelW - 4), area.x + labelW, y + 2, Palette.textSecondary)
+                    ui.fitText(area.x + labelW, y + 2, area.right - area.x - labelW - 4, look.description, Palette.textSecondary)
                     y += LEGEND_H
                 }
             }
@@ -159,7 +160,7 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
             val look = Vocabulary.actions[i]
             val c = Rect(header.x + labelW + i * actionW, header.y, actionW, HEAD_H)
             val x = c.x + 2 + Draw.leadIcon(ui.g, look.icon, c.x + 2, c.centerY) + 2
-            Draw.text(ui.g, Draw.fit(look.label.uppercase(Format.locale), c.right - x), x, c.y + 5, Palette.textMuted)
+            ui.fitText(x, c.y + 5, c.right - x, look.label.uppercase(Format.locale), Palette.textMuted)
             ui.tooltip("head:$a", c, Tip.text(look.description, look.label))
         }
         flags.forEachIndexed { i, f ->
@@ -177,7 +178,7 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
                 else if (row % 2 == 1) Draw.fill(ui.g, line, Palette.alpha(0x000000, 0x0C))
                 val look = Vocabulary.type(t.name)
                 val labelX = line.x + 2 + Draw.leadIcon(ui.g, look.icon, line.x + 2, line.centerY) + 2
-                Draw.text(ui.g, Draw.fit(look.label, line.x + labelW - labelX - 4), labelX, y + 5, look.color)
+                ui.fitText(labelX, y + 5, line.x + labelW - labelX - 4, look.label, look.color)
                 ui.tooltip("type:${t.name}", Rect(line.x, y, labelW, line.h), Tip(look.label, listOf(look.description to Palette.textSecondary, Vocabulary.rate(t.price, t.period) to Palette.textMuted)))
                 actions.forEachIndexed { i, a ->
                     val cell = Rect(line.x + labelW + i * actionW + 1, y + 2, actionW - 3, SMALL_H)
@@ -196,7 +197,7 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
                     val cell = Rect(line.x + labelW + actions.size * actionW + i * 34 + 5, y + 2, 26, SMALL_H)
                     val on = current(t, f) == "true"
                     val fixed = f == "machines"
-                    ui.toggle(cell, on, "", editable && !fixed, if (fixed) tr("kami_claims.law.machines_locked") else lock("rules"), tr("kami_libs.format.pair", Vocabulary.flags[i].second.label, tr(if (on) "kami_claims.law.on" else "kami_libs.common.off")), key = "flag:${t.name}:$f")?.let {
+                    ui.toggle(cell, on, "", editable && !fixed, if (fixed) tr("kami_claims.law.machines_locked") else lock("rules"), tr("kami_libs.format.pair", Vocabulary.flags[i].second.label, tr(if (on) "kami_libs.common.on" else "kami_libs.common.off")), key = "flag:${t.name}:$f")?.let {
                         stage(t, f, it.toString())
                         focusCell = t.name to f
                     }
@@ -377,7 +378,8 @@ class PlotLawPage(app: ClaimsApp) : ClaimsPage(app) {
         val x = r.x + 2 + Draw.leadIcon(ui.g, if (expanded) Icons.CHEVRON_DOWN else Icons.CHEVRON_RIGHT, r.x + 2, r.centerY) + 2
         Draw.text(ui.g, title, x, r.y + 6, TextStyle.HEADING)
         val titleW = Draw.width(title, TextStyle.HEADING)
-        Draw.textRight(ui.g, Draw.fit(summary, (r.right - x - titleW - 24).coerceAtLeast(20)), r.right - 6, r.y + 6, Palette.textMuted)
+        val summaryW = (r.right - x - titleW - 24).coerceAtLeast(20)
+        ui.fitText(r.right - 6 - summaryW, r.y + 6, summaryW, summary, Palette.textMuted, align = Align.RIGHT)
         if (changed) Draw.fill(ui.g, Rect(x + titleW + 4, r.centerY - 2, 4, 4), Palette.brass)
         Draw.hline(ui.g, r.x, r.bottom - 1, r.w, Palette.borderSubtle)
         ui.tooltip("$key:tip", r, tip)
@@ -388,7 +390,7 @@ class PlotLawPage(app: ClaimsApp) : ClaimsPage(app) {
         ui.locked(row, gate, "$key:lock") {
             val field = Row(row, 6).takeFromRight(104)
             val x = row.x + (icon?.let { Draw.leadIcon(ui.g, it, row.x, row.centerY) + 2 } ?: 0)
-            Draw.text(ui.g, Draw.fit(label, field.x - x - 4), x, row.y + 5, Palette.text)
+            ui.fitText(x, row.y + 5, field.x - x - 4, label, Palette.text)
             ui.numberField(field, state, 0, ceiling, enabled = edit && gate == null, key = key)
         }
         if (!edit) ui.tooltip("$key:tip", row, lock("tax"))
@@ -423,13 +425,17 @@ class IdentityPage(app: ClaimsApp) : ClaimsPage(app) {
         ui.anchor("identity:preview", left)
         nameCard(ui, lf.remaining())
         Flags.draw(ui.g, Rect(pb.x + (pb.w - 96) / 2, pb.y + 4, 96, 64), color, pattern, emblem, secondary)
-        val name = Draw.fit(info.name, pb.w - 8, TextStyle.TITLE)
-        Draw.text(ui.g, name, pb.x + (pb.w - Draw.width(name, TextStyle.TITLE)) / 2, pb.y + 76, TextStyle.TITLE)
+        ui.fitText(pb.x + 4, pb.y + 76, pb.w - 8, info.name, style = TextStyle.TITLE, align = Align.CENTER)
         val sizes = listOf(36 to 26, 18 to 13, 12 to 9)
         var sx = pb.x + (pb.w - sizes.sumOf { it.first + 8 }) / 2
         sizes.forEach { (w, h) -> Flags.draw(ui.g, Rect(sx, pb.y + 92, w, h), color, pattern, emblem, secondary); sx += w + 8 }
-        MiniMap.draw(ui, Rect(pb.x, pb.y + 126, pb.w, pb.bottom - pb.y - 126), snap.px, snap.pz, 6, "identity")
-        val f = Flow(right, 6)
+        if (pb.bottom - pb.y - 126 >= 20) MiniMap.draw(ui, Rect(pb.x, pb.y + 126, pb.w, pb.bottom - pb.y - 126), snap.px, snap.pz, 6, "identity")
+        val dirty = color != info.color || pattern != info.flag.pattern || emblem != info.flag.emblem || secondary != info.flag.secondary
+        ui.scroll("identity-right", right, 66 + 66 + 78 + 64 + 18 + (if (dirty) 6 + CONTROL_H else 0)) { area -> identityControls(ui, area, editable, dirty) }
+    }
+
+    private fun identityControls(ui: Ui, area: Rect, editable: Boolean, dirty: Boolean) {
+        val f = Flow(area, 6)
         val cb = ui.card(f.take(66), tr("kami_claims.identity.primary"), Icons.BRUSH)
         cb.grid(8, 18, swatches.size, 3).forEachIndexed { i, cell -> swatch(ui, cell, swatches[i], color == swatches[i], editable) { color = swatches[i] } }
         val sb = ui.card(f.take(66), tr("kami_claims.identity.secondary"), Icons.BRUSH)
@@ -447,7 +453,6 @@ class IdentityPage(app: ClaimsApp) : ClaimsPage(app) {
             Flags.emblems[i]?.let { Draw.icon(ui.g, it, box.x + 1, box.y + 1) } ?: Draw.text(ui.g, "-", box.x + 6, box.y + 5, Palette.textMuted)
             pick(ui, box, emblem == i, editable, if (i == 0) tr("kami_claims.identity.emblem.none") else tr("kami_claims.identity.emblem.number", i)) { emblem = i }
         }
-        val dirty = color != info.color || pattern != info.flag.pattern || emblem != info.flag.emblem || secondary != info.flag.secondary
         if (dirty) {
             val row = Row(f.take(CONTROL_H))
             if (ui.edgeButton(row, tr("kami_claims.identity.save"), Icons.SAVE, ButtonStyle.PRIMARY, editable, lock("rules"), pending = pending("flag"), key = "save-flag")) {
@@ -461,7 +466,7 @@ class IdentityPage(app: ClaimsApp) : ClaimsPage(app) {
         val f = Flow(ui.card(r, tr("kami_libs.common.name"), Icons.EDIT), 3)
         val offer = tokenOffer(Tokens.RENAME)
         val line = f.take(10)
-        Draw.text(ui.g, Draw.fit(offer.text, line.w), line.x, line.y + 1, offer.severity.color)
+        ui.fitText(line.x, line.y + 1, line.w, offer.text, offer.severity.color)
         val president = ClaimsStore.rank == Rank.PRESIDENT
         if (ui.button(f.take(CONTROL_H), tr("kami_claims.common.rename_country"), Icons.EDIT, enabled = president, disabledReason = tr("kami_claims.identity.rename.president"), key = "rename")) Dialogs.rename(app)
     }

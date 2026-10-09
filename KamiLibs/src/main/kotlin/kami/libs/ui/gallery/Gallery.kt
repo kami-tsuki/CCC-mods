@@ -121,7 +121,7 @@ private class InputsPage : Page() {
         ui.fieldLabel(f.take(9), "Search")
         ui.searchField(f.take(CONTROL_H), search)
         ui.fieldLabel(f.take(9), "Tribute")
-        ui.slider(f.take(CONTROL_H), tribute, 0.0, 50.0, 1.0, format = { "${it.toInt()}%" })?.let { tribute = it }
+        ui.slider(f.take(CONTROL_H), tribute, 0.0, 50.0, 1.0, format = { Format.percent(it / 100) })?.let { tribute = it }
         val g = Flow(right, 6)
         ui.checkbox(g.take(14), "Show me a guided tour", checked)?.let { checked = it }
         ui.checkbox(g.take(14), "Disabled checkbox", false, enabled = false, disabledReason = "Locked by the server")
@@ -156,9 +156,9 @@ private class DisplayPage : Page() {
         ui.property(f.take(11), "Coordinates", "12, -4", copy = true)
         ui.property(f.take(11), "Upkeep", "5 ◎ / day")
         f.skip(4)
-        ui.progress(f.take(6), 0.68, Palette.brass, "340 / 500")
+        ui.progress(f.take(6), 0.68, Palette.brass)
         f.skip(4)
-        ui.meter(f.take(6), 2, 3, { if (it >= 3) Severity.DANGER else Severity.WARNING }, "debt 2/3")
+        ui.meter(f.take(6), 2, 3, { if (it >= 3) Severity.DANGER else Severity.WARNING })
         f.skip(6)
         var cx = body.x
         cx += ui.chip(cx, f.take(13).y, "Mining", Palette.chart[0], Icons.PICKAXE) + 4

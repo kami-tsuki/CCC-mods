@@ -1,5 +1,6 @@
 package kami.libs.ui
 
+import kami.libs.ui.text.ItemSearch
 import kami.libs.ui.gallery.Gallery
 import kami.libs.ui.map.TerrainScanner
 import kami.libs.ui.pin.Pins
@@ -28,6 +29,8 @@ object UiClient {
                 UiPrefs.apply()
                 Format.locale = Format.localeOf(Minecraft.getInstance().languageManager.selected)
                 Draw.clearWidths()
+                ItemSearch.reset()
+                Format.reset()
             })
         }
         FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> { clearTagMembers(); AutoRefresh.reset() }

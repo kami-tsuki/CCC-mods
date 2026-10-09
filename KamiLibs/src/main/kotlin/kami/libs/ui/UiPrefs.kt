@@ -1,6 +1,5 @@
 package kami.libs.ui
 
-import kami.libs.KamiLibs
 import kami.libs.config.KamiConfig
 import kami.libs.config.Section
 import kami.libs.ui.core.Ui
@@ -16,7 +15,8 @@ class UiSettings(
     var reduceMotion: Boolean = false,
     var sounds: Float = 1f,
     var tooltipDelay: Int = 400,
-    var autoRefresh: Boolean = true
+    var autoRefresh: Boolean = true,
+    var windowLarge: Boolean = false
 )
 
 object UiPrefs {
@@ -27,17 +27,18 @@ object UiPrefs {
                 "client.json", "Look and feel of all Kami screens on this game client. The preferences screen changes them too.",
                 mapOf(
                     "uiScale" to "Size of the interface: 0.8, 0.9 or 1.0.",
-                    "vision" to "Colour set: NORMAL, DEUTERANOPIA, PROTANOPIA or TRITANOPIA.",
+                    "vision" to "Color set: NORMAL, DEUTERANOPIA, PROTANOPIA or TRITANOPIA.",
                     "reduceMotion" to "Turn off pulsing, sliding and flashing.",
                     "sounds" to "Volume of interface sounds, 0 to 1.",
                     "tooltipDelay" to "Milliseconds before a tooltip shows.",
-                    "autoRefresh" to "Reload open Kami screens every 10 seconds while the server runs smoothly."
+                    "autoRefresh" to "Reload open Kami screens every 10 seconds while the server runs smoothly.",
+                    "windowLarge" to "Allow the Kami window to grow beyond 900x560 on big screens."
                 )
             )
         ),
         reloadable = false
     )
-    val prefs: UiSettings by lazy { config.load(); config.value }
+    val prefs: UiSettings get() = config.loaded
 
     fun apply() {
         UiScale.factor = prefs.uiScale
@@ -52,6 +53,6 @@ object UiPrefs {
 
     fun save() {
         apply()
-        runCatching { config.save(prefs) }.onFailure { KamiLibs.LOG.warn("Could not save client.json: {}", it.message) }
+        config.saveQuietly(prefs)
     }
 }

@@ -2,6 +2,7 @@ package kami.claims.net
 
 import kami.libs.text.Phrase
 import kami.claims.*
+import kami.claims.economy.Bank
 import kami.claims.service.Fail
 import kami.claims.service.NeedsConfirm
 import kami.claims.service.Oversight
@@ -70,18 +71,19 @@ class ClaimsPacket(val data: View.Payload) : CustomPacketPayload {
                 b.writeVarInt(d.countries.size)
                 d.countries.forEach { b.writeUtf(it.name, 64); b.writeInt(it.color); b.writeByte(it.relation); b.writeVarInt(it.flag); b.writeInt(it.secondary); b.writeInt(it.reputation); b.writeDouble(it.fame ?: -1.0) }
                 b.writeVarInt(d.entries.size)
-                d.entries.forEach { b.writeByte(it.dim); b.writeInt(it.x); b.writeInt(it.z); b.writeVarInt(it.country); b.writeByte(it.type); b.writeShort(it.flags) }
+                d.entries.forEach { b.writeByte(it.dim); b.writeInt(it.x); b.writeInt(it.z); b.writeVarInt(it.country); b.writeByte(it.type); b.writeVarInt(it.flags) }
                 b.writeVarInt(d.reserved.size)
                 d.reserved.forEach { b.writeByte(it.dim); b.writeInt(it.x); b.writeInt(it.z) }
+                b.writeVarInt(d.war)
             },
             { b ->
                 val rev = b.readVarInt()
                 val dims = List(b.count(16)) { b.readUtf(64) }
                 val types = List(b.count(64)) { b.readUtf(32) }
                 val countries = List(b.count(8192)) { View.CountryView(b.readUtf(64), b.readInt(), b.readByte().toInt(), b.readVarInt(), b.readInt(), b.readInt(), b.readDouble().takeIf { it >= 0 }) }
-                val entries = List(b.count(400_000)) { View.Entry(b.readByte().toInt(), b.readInt(), b.readInt(), b.readVarInt(), b.readByte().toInt(), b.readShort().toInt() and 0xFFFF) }
+                val entries = List(b.count(400_000)) { View.Entry(b.readByte().toInt(), b.readInt(), b.readInt(), b.readVarInt(), b.readByte().toInt(), b.readVarInt()) }
                 val reserved = List(b.count(100_000)) { View.Reserved(b.readByte().toInt(), b.readInt(), b.readInt()) }
-                ClaimsPacket(View.Payload(rev, dims, types, countries, entries, reserved))
+                ClaimsPacket(View.Payload(rev, dims, types, countries, entries, reserved, b.readVarInt()))
             }
         )
     }
@@ -93,11 +95,16 @@ object Net {
     private var lastAct = TickCooldown(0)
     private var lastPreview = TickCooldown(2)
     private val sent = HashMap<UUID, Int>()
+    private val claimSig = HashMap<UUID, Int>()
+    private val pushQueue = LinkedHashSet<UUID>()
+    private val openSig = HashMap<UUID, Pair<Int, Int>>()
     private var lastPush = 0
     private val openPlayers = HashSet<UUID>()
     private val lastSnapshot = HashMap<UUID, Int>()
     private val deferred = HashMap<UUID, ArrayDeque<Deferred>>()
     private const val SNAPSHOT_GAP = 2
+    private const val PUSH_PER_TICK = 10
+    private const val OPEN_REFRESH = 100
     private val PERSONAL_ACTS = setOf("rent_pay", "rent_pay_all", "plot_release", "plot_trust", "plot_untrust")
 
     private class Deferred(val kind: String, val rids: MutableList<Int>, var open: Boolean)
@@ -106,6 +113,9 @@ object Net {
         lastAct = TickCooldown(0)
         lastPreview = TickCooldown(2)
         sent.clear()
+        claimSig.clear()
+        pushQueue.clear()
+        openSig.clear()
         lastPush = 0
         openPlayers.clear()
         lastSnapshot.clear()
@@ -114,11 +124,6 @@ object Net {
 
     private fun recentlySent(uuid: UUID, tick: Int) = lastSnapshot[uuid]?.let { tick - it in 0 until SNAPSHOT_GAP } == true
 
-    /**
-     * Answers a navigation request (open/chunk/view/watch/preview) without ever dropping a reply: the state change is already applied, and the reply is a fresh snapshot.
-     * At most one snapshot per player per [SNAPSHOT_GAP] ticks is built. Requests inside that window are queued, keeping only the latest per kind;
-     * the rids of superseded requests ride along on the newer reply ([Reply.extraRids]), so the queue holds at most one entry per kind and every rid is answered.
-     */
     private fun answer(p: ServerPlayer, kind: String, rid: Int, open: Boolean = false) {
         val queue = deferred[p.uuid]
         if (queue == null && !recentlySent(p.uuid, p.server.tickCount)) return send(p, Reply(rid = rid), open)
@@ -152,16 +157,27 @@ object Net {
         r.playToClient(ResearchDefsPacket.TYPE, ResearchDefsPacket.CODEC) { d, _ -> ClientHooks.researchDefs(d.defs) }
         r.playToClient(ResearchStatePacket.TYPE, ResearchStatePacket.CODEC) { s, _ -> ClientHooks.researchState(s.state) }
         r.playToClient(Denied.TYPE, Denied.CODEC) { d, _ -> ClientHooks.denied(d) }
+        r.playToClient(PositionsPacket.TYPE, PositionsPacket.CODEC) { p, _ -> ClientHooks.positions(p.data) }
     }
 
     fun canOpen(p: ServerPlayer) = p.connection.hasChannel(Snapshot.type)
 
     fun send(p: ServerPlayer, msg: String = "", ok: Boolean = true, open: Boolean = false) = send(p, Reply(msg, ok), open)
 
-    fun send(p: ServerPlayer, reply: Reply, open: Boolean = false) {
+    fun send(p: ServerPlayer, reply: Reply, open: Boolean = false, consume: Boolean = true) {
         if (!canOpen(p)) return
         lastSnapshot[p.uuid] = p.server.tickCount
-        Snapshot.send(p, Sync.encode(p, reply, open))
+        openSig[p.uuid] = openSignature(p) to p.server.tickCount
+        Snapshot.send(p, Sync.encode(p, reply, open, consume))
+    }
+
+    private fun openSignature(p: ServerPlayer) = 31 * (31 * Realm.rev + Bank.funds(p.uuid).hashCode()) + p.server.playerList.playerCount
+
+    private fun refreshOpen(p: ServerPlayer) {
+        val last = openSig[p.uuid]
+        val tick = p.server.tickCount
+        if (last != null && last.first == openSignature(p) && tick - last.second in 0 until OPEN_REFRESH) return
+        send(p, Reply(), false, consume = false)
     }
 
     fun deny(p: ServerPlayer, d: Denied) = PacketDistributor.sendToPlayer(p, d)
@@ -169,25 +185,34 @@ object Net {
     fun push(server: MinecraftServer) {
         ResearchSync.flush(server)
         drain(server)
-        // lastPush is reset with the server but tickCount can restart lower (integrated server), so a negative gap must not block pushes.
-        if (server.tickCount - lastPush in 0..19) return
-        lastPush = server.tickCount
-        pushTo(server.playerList.players)
-        broadcastOpen(server)
+        if (server.tickCount - lastPush !in 0..19) {
+            lastPush = server.tickCount
+            server.playerList.players.forEach { if (sent[it.uuid] != Realm.claimRev) pushQueue += it.uuid }
+            broadcastOpen(server)
+        }
+        var left = PUSH_PER_TICK
+        val queue = pushQueue.iterator()
+        while (left > 0 && queue.hasNext()) {
+            val uuid = queue.next()
+            queue.remove()
+            server.playerList.getPlayer(uuid)?.let { p -> if (pushTo(p)) left-- }
+        }
     }
 
     fun broadcastOpen(server: MinecraftServer, except: UUID? = null) {
         openPlayers.forEach { uuid ->
-            if (uuid != except) server.playerList.getPlayer(uuid)?.let { send(it) }
+            if (uuid != except) server.playerList.getPlayer(uuid)?.let { refreshOpen(it) }
         }
     }
 
-    private fun pushTo(players: Collection<ServerPlayer>) {
-        players.forEach { p ->
-            if (sent[p.uuid] == Realm.rev || !p.connection.hasChannel(ClaimsPacket.TYPE)) return@forEach
-            sent[p.uuid] = Realm.rev
-            PacketDistributor.sendToPlayer(p, ClaimsPacket(View.build(p.stringUUID)))
-        }
+    private fun pushTo(p: ServerPlayer): Boolean {
+        pushQueue.remove(p.uuid)
+        if (sent[p.uuid] == Realm.claimRev || !p.connection.hasChannel(ClaimsPacket.TYPE)) return false
+        sent[p.uuid] = Realm.claimRev
+        val data = View.build(p.stringUUID, p.hasPermissions(Config.s.visibility.opLevel))
+        val sig = View.signature(data)
+        if (claimSig.put(p.uuid, sig) != sig) PacketDistributor.sendToPlayer(p, ClaimsPacket(data))
+        return true
     }
 
     fun forget(p: ServerPlayer) {
@@ -197,6 +222,9 @@ object Net {
         lastSnapshot.remove(p.uuid)
         deferred.remove(p.uuid)
         sent.remove(p.uuid)
+        claimSig.remove(p.uuid)
+        pushQueue.remove(p.uuid)
+        openSig.remove(p.uuid)
         ResearchSync.forget(p)
         openPlayers.remove(p.uuid)
         Sync.forget(p)
@@ -217,6 +245,7 @@ object Net {
     }
 
     private fun preview(p: ServerPlayer, a: ActPayload) {
+        if (!Perms.has(p, Perms.USE)) return send(p, Reply(Phrase.of("kami_claims.error.permission").json(), false, a.rid, "DENIED"))
         val tick = p.server.tickCount
         if (!lastPreview.ready(p.uuid, tick)) return answer(p, "preview", a.rid)
         val own = Realm.of(p.stringUUID)
@@ -280,7 +309,7 @@ object Net {
     private fun perform(p: ServerPlayer, a: ActPayload) {
         if (!Perms.has(p, Perms.USE)) return send(p, Reply(Phrase.of("kami_claims.error.permission").json(), false, a.rid, "DENIED"))
         val tick = p.server.tickCount
-        if (!lastAct.ready(p.uuid, tick, Config.s.guiCooldown)) return send(p, Reply(Phrase.of("kami_claims.error.rate_limited").json(), false, a.rid, "COOLDOWN"))
+        if (!lastAct.ready(p.uuid, tick, Config.s.guiCooldown)) return send(p, Reply(Phrase.of("kami_libs.admin.rate_limited").json(), false, a.rid, "COOLDOWN"))
         val reply = try {
             if (a.name in PERSONAL_ACTS) Subject.requireSelf(p, Sync.subject(p)?.toString())
             Reply(Service.act(p, a.name, a.args, a.asCountry).json(), true, a.rid)
@@ -296,7 +325,7 @@ object Net {
         }
         if (reply.ok) {
             Effects.chime(p, true)
-            pushTo(p.server.playerList.players)
+            pushTo(p)
             broadcastOpen(p.server, except = p.uuid)
         }
         send(p, reply)

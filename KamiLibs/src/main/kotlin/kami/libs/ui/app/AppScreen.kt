@@ -1,5 +1,6 @@
 package kami.libs.ui.app
 
+import kami.libs.ui.map.TerrainCache
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
@@ -43,6 +44,11 @@ open class AppScreen(val app: KamiApp, title: Component) : Screen(title) {
         return true
     }
 
+    override fun keyReleased(key: Int, scan: Int, mods: Int): Boolean {
+        app.ui.input.keyUp(key)
+        return super.keyReleased(key, scan, mods)
+    }
+
     override fun charTyped(c: Char, mods: Int): Boolean {
         app.ui.input.char(c)
         return true
@@ -50,6 +56,7 @@ open class AppScreen(val app: KamiApp, title: Component) : Screen(title) {
 
     override fun removed() {
         app.closed()
+        TerrainCache.dropPending()
         super.removed()
     }
 }

@@ -20,6 +20,16 @@ fun Ui.skeleton(r: Rect) {
     shimmer(r, Palette.alpha(0xFFFFFF, 0x40))
 }
 
+fun Ui.skeletonForm(r: Rect, fields: Int = 4) {
+    var y = r.y
+    for (i in 0 until fields) {
+        if (y + 9 + CONTROL_H > r.bottom) break
+        skeleton(Rect(r.x, y, r.w / 3, SKELETON_BAR_H + 1))
+        skeleton(Rect(r.x, y + 9, r.w, CONTROL_H))
+        y += 9 + CONTROL_H + 6
+    }
+}
+
 fun Ui.skeletonLines(r: Rect, n: Int) {
     for (i in 0 until n) {
         val y = r.y + i * Draw.LINE + 1

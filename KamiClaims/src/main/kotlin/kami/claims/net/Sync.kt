@@ -1,5 +1,6 @@
 package kami.claims.net
 
+import kami.libs.util.toUuidOrNull
 import kami.claims.*
 import kami.claims.economy.Bank
 import kami.claims.economy.Treasury
@@ -14,6 +15,7 @@ import kami.claims.research.Levels
 import kami.claims.service.AlertLine
 import kami.claims.service.Diplomacy
 import kami.claims.service.Gifts
+import kami.claims.service.Scope
 import kami.claims.service.Housing
 import kami.claims.service.PlotBlock
 import kami.claims.service.Alerts
@@ -130,7 +132,7 @@ import kotlin.math.roundToInt
     val nameMin: Int, val nameMax: Int, val freeBonusMembers: Int, val freeBonusCap: Int, val inactiveDays: Int, val successionDays: Int,
     val independenceCooldownDays: Int, val dayMillis: Long, val maxProvinceDebt: Int
 )
-@Serializable class Snap(
+@Serializable data class Snap(
     val info: Info?, val countries: List<Line>, val invites: List<String>, val types: List<TypeLine>, val jobNames: List<String>,
     val caps: Map<String, String>, val detail: Detail?, val funds: Long, val freeChunks: Int, val jobShare: Int, val maxPlots: Int, val maxProvinceDebt: Int,
     val players: List<PlayerLine>, val msg: String, val ok: Boolean, val open: Boolean, val px: Int, val pz: Int,
@@ -165,23 +167,23 @@ object Sync {
     fun watch(p: ServerPlayer, sections: List<String>) { watching[p.uuid] = sections.toSet() }
     fun subject(p: ServerPlayer, raw: String) { if (raw.isBlank()) subjects.remove(p.uuid) else subjects[p.uuid] = raw.trim() }
     fun subject(p: ServerPlayer): UUID? = subjects[p.uuid]?.let { Subject.resolve(p, it) }
-    fun reset() { focus.clear(); viewing.clear(); watching.clear(); previews.clear(); suggestions.clear(); subjects.clear() }
-    fun forget(p: ServerPlayer) { focus.remove(p.uuid); viewing.remove(p.uuid); watching.remove(p.uuid); previews.remove(p.uuid); suggestions.remove(p.uuid); subjects.remove(p.uuid) }
+    fun reset() { cache.clear(); shared = null; focus.clear(); viewing.clear(); watching.clear(); previews.clear(); suggestions.clear(); subjects.clear() }
+    fun forget(p: ServerPlayer) { cache.remove(p.uuid); focus.remove(p.uuid); viewing.remove(p.uuid); watching.remove(p.uuid); previews.remove(p.uuid); suggestions.remove(p.uuid); subjects.remove(p.uuid) }
 
     fun preview(p: ServerPlayer, kind: String, type: String, plan: Plan, key: String) {
         previews[p.uuid] = PreviewLine(kind, type, plan.cells.map { PreviewCell(it.key.x, it.key.z, it.outcome.name, it.reason?.json() ?: "") }, plan.costNow, plan.upkeepPerDay, key)
     }
 
-    private fun online(p: ServerPlayer, id: String) = runCatching { p.server.playerList.getPlayer(UUID.fromString(id))?.let { it === p || !Staff.veiled(it) } }.getOrNull() == true
+    private fun online(p: ServerPlayer, id: String) = id.toUuidOrNull()?.let { p.server.playerList.getPlayer(it) }?.let { it === p || !Staff.veiled(it) } == true
 
     private fun flag(c: Country) = FlagLine(c.flag.pattern, c.flag.emblem, c.flag.secondary)
 
-    private fun citizenships(id: String): List<Citizen> {
+    internal fun citizenships(id: String, scope: (String) -> Boolean): List<Citizen> {
         val list = ArrayList<Citizen>()
         val own = Realm.of(id)
-        own?.members?.get(id)?.let { list += Citizen(own.name, it.rank.name.lowercase()) }
+        own?.takeIf { scope(it.id) }?.members?.get(id)?.let { list += Citizen(own.name, it.rank.name.lowercase()) }
         Realm.data.countries.values.forEach { c ->
-            if (id in c.autoAllies) c.outsiders[id]?.let { list += Citizen(c.name, it.name.lowercase(), own?.name ?: "") }
+            if (id in c.autoAllies && scope(c.id)) c.outsiders[id]?.let { list += Citizen(c.name, it.name.lowercase(), own?.name ?: "") }
         }
         return list
     }
@@ -245,16 +247,17 @@ object Sync {
         val c = cl?.let { Realm.data.countries[it.country] }
         val access = access(p, k)
         if (cl == null || c == null) {
-            val reserved = Realm.reservedFor(k.dim, k.x, k.z)?.let { Realm.data.countries[it]?.name }
+            val reservedBy = Realm.reservedFor(k.dim, k.x, k.z)?.let { Realm.data.countries[it] }
+            val reserved = reservedBy?.takeIf { Scope.of(me, p.hasPermissions(Config.s.visibility.opLevel))(it.id) }?.name
             val problem = mine?.let { Service.claimError(it, k, Config.s.defaultType) }
             val note = when {
-                reserved != null -> Phrase.of("kami_claims.detail.reserved", reserved)
+                reservedBy != null -> if (reserved != null) Phrase.of("kami_claims.detail.reserved", reserved) else Phrase.of("kami_claims.detail.reserved.hidden")
                 mine == null -> Phrase.of("kami_claims.detail.nomansland")
                 else -> problem ?: Phrase.of("kami_claims.detail.free")
             }
             return Detail(
                 x = k.x, z = k.z, country = "", relation = 0, type = "", owner = "", roles = emptyList(), debt = 0, price = 0, period = 0, free = false, capital = false,
-                note = note.json(), access = access, reserved = reserved ?: "", blocked = reserved != null || problem != null
+                note = note.json(), access = access, reserved = reserved ?: "", blocked = reservedBy != null || problem != null
             )
         }
         val rel = View.relation(c, me)
@@ -306,9 +309,14 @@ object Sync {
 
     fun names(p: ServerPlayer, text: String) { suggestions[p.uuid] = suggest(p, text.trim().take(16)) }
 
+    private var pooled: Pair<Int, List<String>>? = null
+
+    private fun pool(p: ServerPlayer): List<String> = pooled?.takeIf { it.first == Realm.rev }?.second
+        ?: (Realm.home.keys + Realm.data.claims.mapNotNull { it.owner }).toSet().map { Names.of(p.server, it) }.distinct().also { pooled = Realm.rev to it }
+
     private fun suggest(p: ServerPlayer, text: String): List<String> {
         if (text.isBlank()) return emptyList()
-        val pool = (Realm.home.keys + Realm.data.claims.mapNotNull { it.owner }).toSet().map { Names.of(p.server, it) }.distinct()
+        val pool = pool(p)
         val exact = pool.filter { it.equals(text, true) }
         val near = if (text.length > 3) pool.filter { n -> !n.equals(text, true) && n.contains(text, true) }.sortedBy { !it.startsWith(text, true) } else emptyList()
         return (exact + near).take(8)
@@ -343,11 +351,11 @@ object Sync {
             held[me]?.size ?: 0,
             c.parent?.let { Realm.country(it)?.name } ?: "", c.taxMode.name.lowercase(), c.taxAmount, c.provinceDebt, c.independenceRequested,
             if (provStaff) c.provinceInvites.filterValues { it.until > now() }.mapNotNull { (pid, o) ->
-                Realm.country(pid)?.let { par -> ProvinceOfferLine(par.name, o.mode.name.lowercase(), o.amount, o.until, o.answered, View.color(par), par.members.size, Realm.claims(par.id).size) }
+                Realm.country(pid)?.let { par -> ProvinceOfferLine(par.name, o.mode.name.lowercase(), o.amount, o.until, o.answered, View.color(par), par.members.size, Realm.claimCount(par.id)) }
             } else emptyList(),
             if (provStaff) c.provinceRequests.filterValues { it > now() }.keys.mapNotNull { Realm.country(it)?.name } else emptyList(),
             c.provinces.mapNotNull { pid ->
-                Realm.country(pid)?.let { pr -> ProvinceLine(pr.name, pr.taxMode.name.lowercase(), pr.taxAmount, pr.provinceDebt, pr.independenceRequested, View.color(pr), pr.members.size, Realm.claims(pr.id).size, Upkeep.summary(pr).income + pr.pending, flag(pr), Oversight.canManage(pr)) }
+                Realm.country(pid)?.let { pr -> ProvinceLine(pr.name, pr.taxMode.name.lowercase(), pr.taxAmount, pr.provinceDebt, pr.independenceRequested, View.color(pr), pr.members.size, Realm.claimCount(pr.id), Upkeep.summary(pr).income + pr.pending, flag(pr), Oversight.canManage(pr)) }
             },
             delegated, flag(c), Realm.country(c.parent)?.let { View.color(it) } ?: 0, Provinces.cooldown(c), Alerts.nextBill(c), Realm.freeAllowed(c),
             c.created, c.moved, if (staff) pendingMembers(p, c.invites) else emptyList(), c.pending,
@@ -389,7 +397,54 @@ object Sync {
         Wars.all(c).map { w -> WarHud(w.phase.name.lowercase(), w.phaseEnds, Wars.name(w.side(c.id)?.let(w::opponent)?.main ?: ""), sideOf(w, c.id)) }
     }.orEmpty()
 
-    fun encode(p: ServerPlayer, reply: Reply, open: Boolean): String {
+    private data class SnapKey(
+        val rev: Int, val bucket: Int, val focus: Key?, val viewing: String?, val watching: Set<String>?, val subject: String?,
+        val funds: Long, val here: Key, val y: Int, val online: Int
+    )
+
+    private val cache = HashMap<UUID, Pair<SnapKey, Snap>>()
+
+    private class Base(
+        val chunks: Int, val color: Int, val flag: FlagLine, val parent: String, val president: String, val capitalX: Int, val capitalZ: Int,
+        val level: Int, val researched: Int, val reputation: Int, val fame: Double?, val atWar: Boolean
+    ) {
+        var power: Double? = null
+        var powered = false
+    }
+
+    private class Shared(val rev: Int, val bucket: Int, val settings: Settings) {
+        val types = HashMap<String?, List<TypeLine>>()
+        val bases = HashMap<String, Base>()
+        val fame by lazy { Fame.scores() }
+        val limits = limits(settings)
+        val caps = settings.caps.mapKeys { it.key.name.lowercase() }.mapValues { it.value.name.lowercase() }
+        val jobs = settings.jobs.keys.toList()
+    }
+
+    private var shared: Shared? = null
+
+    private fun shared(p: ServerPlayer): Shared {
+        val rev = Realm.rev
+        val bucket = p.server.tickCount / 20
+        val s = Config.s
+        return shared?.takeIf { it.rev == rev && it.bucket == bucket && it.settings === s } ?: Shared(rev, bucket, s).also { shared = it }
+    }
+
+    fun encode(p: ServerPlayer, reply: Reply, open: Boolean, consume: Boolean = true): String {
+        val key = SnapKey(
+            Realm.rev, p.server.tickCount / 20, focus[p.uuid], viewing[p.uuid], watching[p.uuid], subjects[p.uuid],
+            Bank.funds(p.uuid), Service.here(p), p.blockY, p.server.playerList.playerCount
+        )
+        val base = cache[p.uuid]?.takeIf { it.first == key }?.second ?: build(p).also { cache[p.uuid] = key to it }
+        val preview = if (consume) previews.remove(p.uuid) else previews[p.uuid]
+        val names = (if (consume) suggestions.remove(p.uuid) else suggestions[p.uuid]).orEmpty()
+        return json.encodeToString(base.copy(
+            msg = reply.msg, ok = reply.ok, open = open, rid = reply.rid, reason = reply.reason, targetX = reply.target?.x ?: 0, targetZ = reply.target?.z ?: 0,
+            hasTarget = reply.target != null, extraRids = reply.extraRids, preview = preview, names = names
+        ))
+    }
+
+    private fun build(p: ServerPlayer): Snap {
         val s = Config.s
         val me = p.stringUUID
         val own = Realm.of(me)
@@ -399,33 +454,44 @@ object Sync {
         val here = Service.here(p)
         val sections = watching[p.uuid] ?: emptySet()
         val lead = c != null && (delegated || s.can(Service.rankOf(c, p), Cap.CLAIM))
-        val types = s.types.map { (n, d) ->
-            TypeLine(
-                n, d.price, d.period, Action.entries.map { a -> (c?.rules?.get(n)?.get(a)?.takeUnless { ruleLocked(n, a) } ?: d.rule.access[a] ?: Access.NONE).name.lowercase() },
-                d.rule.machines, c?.fire?.get(n) ?: d.rule.fire,
-                d.job ?: "", Action.entries.map { a -> (d.rule.access[a] ?: Access.NONE).name.lowercase() }
-            )
+        val sh = shared(p)
+        val types = sh.types.getOrPut(c?.id) {
+            s.types.map { (n, d) ->
+                TypeLine(
+                    n, d.price, d.period, Action.entries.map { a -> (c?.rules?.get(n)?.get(a)?.takeUnless { ruleLocked(n, a) } ?: d.rule.access[a] ?: Access.NONE).name.lowercase() },
+                    d.rule.machines, c?.fire?.get(n) ?: d.rule.fire,
+                    d.job ?: "", Action.entries.map { a -> (d.rule.access[a] ?: Access.NONE).name.lowercase() }
+                )
+            }
         }
         val world = "world" in sections || c == null
-        val fame = if (world) Fame.scores() else null
+        val fame = if (world) sh.fame else null
         val admin = Perms.has(p, Perms.ADMIN)
+        val scope = Scope.of(me, p.hasPermissions(Config.s.visibility.opLevel))
         val countries = if (world) Realm.data.countries.values.filter { it.active }.map { x ->
-            val capital = Realm.claims(x.id).firstOrNull { it.capital }
+            val b = sh.bases.getOrPut(x.id) {
+                val capital = Realm.claimsView(x.id).firstOrNull { it.capital }
+                Base(
+                    Realm.claimCount(x.id), View.color(x), flag(x), Realm.country(x.parent)?.name ?: "", x.president()?.let { Names.of(p.server, it) } ?: "",
+                    capital?.x ?: 0, capital?.z ?: 0, Research.level(x), x.research.done.size, x.reputation.roundToInt(), fame?.get(x.id), Wars.involved(x)
+                )
+            }
+            if (admin && !b.powered) { b.power = Power.score(x); b.powered = true }
             Line(
-                x.name, x.members.size, Realm.claims(x.id).size, View.color(x), flag(x), Realm.country(x.parent)?.name ?: "", x.provinces.size,
-                x.president()?.let { Names.of(p.server, it) } ?: "", x.created, relationLabel(x, me, own), capital?.x ?: 0, capital?.z ?: 0,
+                x.name, x.members.size, b.chunks, b.color, b.flag, b.parent, x.provinces.size,
+                b.president, x.created, relationLabel(x, me, own), if (scope(x.id)) b.capitalX else 0, if (scope(x.id)) b.capitalZ else 0,
                 trade = own?.let { Diplomacy.relation(it, x) } ?: "neutral",
                 alliance = own?.let { o -> when { Diplomacy.allied(o, x) -> "allied"; x.id in o.allianceOffers -> "offer_in"; o.id in x.allianceOffers -> "offer_out"; else -> "" } } ?: "",
                 tariff = own?.let { Diplomacy.policy(it, x).tariffPct } ?: 0, theirTariff = own?.let { Diplomacy.policy(x, it).tariffPct } ?: 0,
                 embargo = own?.let { Diplomacy.policy(it, x).embargo } ?: false,
-                level = Research.level(x), researched = x.research.done.size,
-                reputation = x.reputation.roundToInt(), fame = fame?.get(x.id), atWar = Wars.involved(x), myRating = x.ratings[me]?.stars ?: 0,
-                power = if (admin) Power.score(x) else null
+                level = b.level, researched = b.researched,
+                reputation = b.reputation, fame = b.fame, atWar = b.atWar, myRating = x.ratings[me]?.stars ?: 0,
+                power = if (admin) b.power else null
             )
         } else emptyList()
         val players = if (world) (Realm.home.keys + p.server.playerList.players.filter { it === p || !Staff.veiled(it) }.map { it.stringUUID }).distinct().mapNotNull { id ->
-            val other = runCatching { UUID.fromString(id) }.getOrNull() ?: return@mapNotNull null
-            PlayerLine(id, Names.of(p.server, id), citizenships(id), online(p, id), Gifts.pending(other, p.uuid), Gifts.pending(p.uuid, other))
+            val other = id.toUuidOrNull() ?: return@mapNotNull null
+            PlayerLine(id, Names.of(p.server, id), citizenships(id) { id == me || scope(it) }, online(p, id), Gifts.pending(other, p.uuid), Gifts.pending(p.uuid, other))
         }.sortedBy { it.name } else emptyList()
         val ledger = if (c != null && ("ledger" in sections || "dashboard" in sections) && (delegated || View.privileged(c, me)))
             c.ledger.let { if ("ledger" in sections) it else it.takeLast(20) }.asReversed().map { LedgerLine(it.at, it.kind.name.lowercase(), it.amount, it.balance, it.actor?.let { a -> Names.of(p.server, a) } ?: "", it.note) }
@@ -433,18 +499,17 @@ object Sync {
         val history = if (c != null && ("history" in sections || "dashboard" in sections)) c.history.map {
             DayLine(it.day, it.treasury, it.income, it.upkeep, it.jobs, it.tributeIn, it.tributeOut, it.deposits, it.withdrawals, it.chunks, it.debtChunks, it.members, it.plots)
         } else emptyList()
-        val snap = Snap(
+        return Snap(
             c?.let { info(p, it, own, delegated, if (fame != null) fame[it.id] else Fame.score(it)) }, countries,
             invitedCountries(me),
-            types, s.jobs.keys.toList(), s.caps.mapKeys { it.key.name.lowercase() }.mapValues { it.value.name.lowercase() },
+            types, sh.jobs, sh.caps,
             focus[p.uuid]?.let { detail(p, it) }, Bank.funds(p.uuid), s.freeChunks, (s.jobShare * 100).toInt(), c?.let { Levels.capacity(it, Capacity.PLOTS) } ?: 0, s.maxProvinceDebt,
-            players, reply.msg, reply.ok, open, here.x, here.z,
-            reply.rid, reply.reason, reply.target?.x ?: 0, reply.target?.z ?: 0, reply.target != null,
-            Alerts.of(p, c, delegated), if (c != null && lead) Goals.of(c).map { GoalLine(it.text.json(), it.value, it.max, it.page.orEmpty()) } else emptyList(), ledger, history, previews.remove(p.uuid), limits(s),
-            Provinces.delegatedRights, Provinces.keptRights, me, here.dim, own?.let { Service.rankOf(it, p).name.lowercase() } ?: "", homes(me), reply.extraRids,
-            admin, warHud(own), suggestions.remove(p.uuid).orEmpty(),
+            players, "", true, false, here.x, here.z,
+            0, "", 0, 0, false,
+            Alerts.of(p, c, delegated), if (c != null && lead) Goals.of(c).map { GoalLine(it.text.json(), it.value, it.max, it.page.orEmpty()) } else emptyList(), ledger, history, null, sh.limits,
+            Provinces.delegatedRights, Provinces.keptRights, me, here.dim, own?.let { Service.rankOf(it, p).name.lowercase() } ?: "", homes(me), emptyList(),
+            admin, warHud(own), emptyList(),
             subject(p)?.let { PersonalView(it.toString(), homes(it.toString()), Bank.funds(it)) }
         )
-        return json.encodeToString(snap)
     }
 }

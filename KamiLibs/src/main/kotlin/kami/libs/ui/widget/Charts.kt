@@ -49,21 +49,23 @@ internal fun niceStep(range: Double, ticks: Int): Double {
 }
 
 fun Ui.lineChart(r: Rect, series: List<Series>, labels: List<String>, format: (Long) -> String = { Format.number(it) }, zeroLine: Boolean = true, key: Any = "chart") {
-    val all = series.flatMap { it.values }
+    var minV = Long.MAX_VALUE
+    var maxV = Long.MIN_VALUE
+    series.forEach { s -> for (v in s.values) { if (v < minV) minV = v; if (v > maxV) maxV = v } }
     val count = series.maxOfOrNull { it.values.size } ?: 0
     Draw.fill(g, r, Palette.field)
-    if (count < 2 || all.isEmpty()) {
+    if (count < 2 || minV > maxV) {
         Draw.textCentered(g, tr("kami_libs.chart.no_history"), r, Palette.textMuted)
         return
     }
-    var lo = min(all.min(), if (zeroLine) 0 else all.min()).toDouble()
-    var hi = all.max().toDouble()
+    var lo = min(minV, if (zeroLine) 0 else minV).toDouble()
+    var hi = maxV.toDouble()
     if (hi <= lo) hi = lo + 1
     val step = niceStep(hi - lo, 4)
     lo = floor(lo / step) * step
     hi = ceil(hi / step) * step
     val axisW = max(Draw.width(format(hi.toLong())), Draw.width(format(lo.toLong()))) + 6
-    val plot = Rect(r.x + axisW, r.y + 6, r.w - axisW - 6, r.h - 18)
+    val plot = Rect(r.x + axisW, r.y + 6, (r.w - axisW - 6).coerceAtLeast(8), (r.h - 18).coerceAtLeast(8))
     fun py(v: Double) = plot.bottom - ((v - lo) / (hi - lo) * plot.h).toInt()
     fun px(i: Int) = plot.x + i * plot.w / (count - 1)
     var t = lo
@@ -159,19 +161,33 @@ fun Ui.donut(r: Rect, slices: List<Slice>, center: String? = null, key: Any = "d
         var acc = 0.0
         slices.indexOfFirst { acc += it.value / total * 2 * PI; hoverAngle < acc }
     } else -1
-    for (py in 0 until size) for (px in 0 until size) {
-        val dx = px + 0.5 - size / 2.0
-        val dy = py + 0.5 - size / 2.0
-        val d = sqrt(dx * dx + dy * dy)
-        if (d > outer || d < inner) continue
-        val color = if (total <= 0) Palette.border else {
-            val a = (atan2(dy, dx) + PI / 2 + 2 * PI) % (2 * PI)
-            var acc = 0.0
-            var idx = slices.lastIndex
-            for ((i, s) in slices.withIndex()) { acc += s.value / total * 2 * PI; if (a < acc) { idx = i; break } }
-            if (idx == hovered) Palette.lighten(slices[idx].color, 0.25f) else slices[idx].color
+    for (py in 0 until size) {
+        var runStart = -1
+        var runColor = 0
+        for (px in 0..size) {
+            var color = 0
+            var inside = false
+            if (px < size) {
+                val dx = px + 0.5 - size / 2.0
+                val dy = py + 0.5 - size / 2.0
+                val d = sqrt(dx * dx + dy * dy)
+                if (d <= outer && d >= inner) {
+                    inside = true
+                    color = if (total <= 0) Palette.border else {
+                        val a = (atan2(dy, dx) + PI / 2 + 2 * PI) % (2 * PI)
+                        var acc = 0.0
+                        var idx = slices.lastIndex
+                        for ((i, s) in slices.withIndex()) { acc += s.value / total * 2 * PI; if (a < acc) { idx = i; break } }
+                        if (idx == hovered) Palette.lighten(slices[idx].color, 0.25f) else slices[idx].color
+                    }
+                }
+            }
+            if (runStart >= 0 && (!inside || color != runColor)) {
+                g.fill(r.x + runStart, r.y + py, r.x + px, r.y + py + 1, runColor)
+                runStart = -1
+            }
+            if (inside && runStart < 0) { runStart = px; runColor = color }
         }
-        g.fill(r.x + px, r.y + py, r.x + px + 1, r.y + py + 1, color)
     }
     g.flush()
     center?.let { Draw.textCentered(g, it, Rect(r.x, r.y, size, size), Palette.text) }
@@ -194,7 +210,6 @@ fun Ui.legend(x: Int, y: Int, width: Int, entries: List<Pair<Int, String>>): Int
 }
 
 fun forecast(start: Long, perDay: Long, days: Int): List<Long> = List(days) { start + perDay * (it + 1) }
-
 
 fun Ui.gradientLegend(
     r: Rect, colors: List<Int>, min: Double, max: Double, format: (Double) -> String = { Format.number(it.toLong()) },

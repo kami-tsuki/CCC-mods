@@ -54,7 +54,7 @@ class KamiConfig<T : Any>(
         val merged = LinkedHashMap<String, JsonElement>()
         val origin = HashMap<String, String>()
         val errors = sections.filter { Files.exists(dir.resolve(it.file)) }.mapNotNull { s ->
-            runCatching { json.parseToJsonElement(Files.readString(dir.resolve(s.file))).jsonObject }
+            runCatching { json.parseToJsonElement(Jsonc.read(dir.resolve(s.file))).jsonObject }
                 .onSuccess { it.forEach { (k, v) -> merged[k] = v; origin[k] = s.file } }
                 .exceptionOrNull()?.let { "${s.file}: ${Jsonc.reason(it)}" }
         }
@@ -79,9 +79,22 @@ class KamiConfig<T : Any>(
         val fixed = sane(decoded)
         if (fixed != decoded) log.warn("Some values in {} were out of range and got corrected", Configs.path(mod))
         problem = null
+        if (!locked && drops(JsonObject(data.filterKeys { it in known }), json.encodeToJsonElement(serializer, fixed))) existing.forEach(::backupOnce)
         save(fixed)
         return true
     }
+
+    private fun drops(old: JsonElement, new: JsonElement): Boolean =
+        old is JsonObject && (new !is JsonObject || old.any { (k, v) -> k !in new || drops(v, new.getValue(k)) })
+
+    private fun backupOnce(path: Path) {
+        val bak = path.resolveSibling("${path.fileName}.bak")
+        if (!Files.exists(bak)) runCatching { Files.copy(path, bak) }.onSuccess { log.warn("Some settings in {} no longer exist, a copy is kept as {}", path, bak.fileName) }
+    }
+
+    val loaded: T by lazy { load(); value }
+
+    fun saveQuietly(v: T = value) { runCatching { save(v) }.onFailure { log.warn("Could not save {}: {}", Configs.path(mod), it.message) } }
 
     @Synchronized
     fun save(v: T = value) {
@@ -109,7 +122,7 @@ class KamiConfig<T : Any>(
     private fun migrate(dir: Path) {
         val old = legacy?.let { Configs.root.resolveSibling(it) }?.takeIf { Files.isRegularFile(it) } ?: return
         if (sections.none { Files.exists(dir.resolve(it.file)) }) runCatching {
-            Files.writeString(dir.resolve(sections.first().file), encode(json.parseToJsonElement(Files.readString(old)).jsonObject.filterKeys { it in known }))
+            Files.writeString(dir.resolve(sections.first().file), encode(json.parseToJsonElement(Jsonc.read(old)).jsonObject.filterKeys { it in known }))
         }.onFailure { log.warn("Could not read config/{}, starting from defaults: {}", legacy, Jsonc.reason(it)) }
         Files.move(old, dir.resolve("$legacy.old"), StandardCopyOption.REPLACE_EXISTING)
         log.info("Moved config/{} to {}, a copy is kept as {}.old", legacy, Configs.path(mod), legacy)

@@ -90,6 +90,7 @@ object Wars {
         if (pair > t) throw Fail("kami_claims.error.war.pair_cooldown", v(target.name), hours(pair - t))
         if (all(attacker).any { target.id in it.countries }) throw Fail("kami_claims.error.war.already", v(target.name))
         if (kind == WarKind.REGULAR) listOf(attacker, target).forEach { if (of(it) != null) throw Fail("kami_claims.error.war.busy", v(it.name)) }
+        if (stakes.money > 0) Loans.requireNoDebt(attacker, "kami_claims.loans.error.disband")
         if (stakes.vassal && target.parent != null) Loans.requireNoResearchLoans(target, "kami_claims.error.war.province_loans")
         return StakeRules.validate(attacker, target, kind, stakes)
     }
@@ -199,8 +200,12 @@ object Wars {
             if (w.phase == WarPhase.CEASEFIRE) w.ceasefireStart += gap
             if (w.phase == WarPhase.WAR) w.warSince += gap
             w.remindedAt += gap
+            w.offer?.let { o -> o.at += gap }
+            w.offeredAt.replaceAll { _, at -> at + gap }
         }
         Realm.data.countries.values.forEach { c ->
+            c.lastActive += gap
+            c.members.values.forEach { it.seen += gap }
             if (c.warCooldownUntil > since) c.warCooldownUntil += gap
             listOf(c.warPairs, c.warPairsBy).forEach { m -> m.replaceAll { _, until -> if (until > since) until + gap else until } }
         }

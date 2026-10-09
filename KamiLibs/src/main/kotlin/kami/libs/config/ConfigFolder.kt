@@ -48,7 +48,7 @@ class ConfigFolder(
 
     @Suppress("UNCHECKED_CAST")
     private fun <T : Any> read(path: Path, serializer: KSerializer<T>, docs: Map<String, String>, title: String, migrations: List<ConfigMigration>): T? = try {
-        val raw = json.parseToJsonElement(Files.readString(path)).jsonObject
+        val raw = json.parseToJsonElement(Jsonc.read(path)).jsonObject
         val versioned = migrations.isNotEmpty()
         val stored = if (versioned) raw.storedVersion() else 0
         val latest = migrations.latest()

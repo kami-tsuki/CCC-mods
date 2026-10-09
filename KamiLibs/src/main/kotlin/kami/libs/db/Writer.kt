@@ -4,9 +4,10 @@ import kami.libs.log.Log
 import java.sql.Connection
 import java.sql.SQLException
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.CompletionException
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReentrantLock
 
@@ -36,6 +37,11 @@ internal class Writer(private val connection: Connection) {
         val done = if (wait) CompletableFuture<Unit>() else null
         synchronized(queue) {
             check(!closed) { "database is closed" }
+            if (queued >= MAX_QUEUED && !durable && done == null) {
+                invalidate()
+                drop(IllegalStateException("database write queue is full"), blocks.size)
+                return
+            }
             queue.addLast(Group(blocks, durable, done))
             queued += blocks.size
             if (queued > HIGH_WATER && !crowded) {
@@ -45,9 +51,12 @@ internal class Writer(private val connection: Connection) {
             if (done != null || durable || queued >= BATCH) thread.execute(::commit)
         }
         try {
-            done?.join()
-        } catch (e: CompletionException) {
+            done?.get(WAIT_SECONDS, TimeUnit.SECONDS)
+        } catch (e: ExecutionException) {
             throw e.cause ?: e
+        } catch (e: TimeoutException) {
+            log.error("A database write did not finish within {} seconds", WAIT_SECONDS)
+            throw IllegalStateException("database write timed out", e)
         }
     }
 
@@ -188,6 +197,8 @@ internal class Writer(private val connection: Connection) {
     companion object {
         private const val BATCH = 500
         private const val HIGH_WATER = 10_000
+        private const val MAX_QUEUED = 200_000
+        private const val WAIT_SECONDS = 10L
         private const val BUSY_RETRIES = 3
         private const val BACKOFF_MS = 200L
         private const val GATE_TIMEOUT_SECONDS = 30L

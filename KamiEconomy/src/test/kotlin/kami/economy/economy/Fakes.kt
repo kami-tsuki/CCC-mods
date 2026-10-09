@@ -30,3 +30,32 @@ object Fakes {
         override fun creditTariff(country: String, amount: Long, payer: String, note: String): Long = minOf(amount, creditRoom).also { credits += country to it }
     }
 }
+
+class Purse(vararg start: Pair<UUID, Long>, private val initial: Long = 0) : Wallet {
+    val funds = mutableMapOf(*start)
+    val deposits = mutableListOf<Pair<UUID, Int>>()
+    var failBalance: UUID? = null
+    private fun held(id: UUID) = funds.getOrDefault(id, initial)
+    override fun balance(id: UUID): Long {
+        if (id == failBalance) { failBalance = null; error("injected") }
+        return held(id)
+    }
+    override fun deduct(id: UUID, amount: Int): Int = minOf(amount.toLong(), held(id)).toInt().also { funds[id] = held(id) - it }
+    override fun deposit(id: UUID, amount: Int): Boolean { deposits += id to amount; funds[id] = held(id) + amount; return true }
+}
+
+class Till(var funds: Long = 1_000_000, private val credit: Boolean = false) : Wallet {
+    val deposits = mutableListOf<Pair<UUID, Int>>()
+    var onDeduct: () -> Unit = {}
+    fun received(id: UUID) = deposits.filter { it.first == id }.sumOf { it.second.toLong() }
+    override fun balance(id: UUID) = funds
+    override fun deduct(id: UUID, amount: Int): Int {
+        onDeduct()
+        return minOf(amount.toLong(), funds).toInt().also { funds -= it }
+    }
+    override fun deposit(id: UUID, amount: Int): Boolean {
+        deposits += id to amount
+        if (credit) funds += amount
+        return true
+    }
+}

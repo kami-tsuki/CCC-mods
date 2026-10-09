@@ -18,5 +18,8 @@ object CleanStep {
 
     fun charge(total: Long, ratePct: Int): Long = bps(total, ratePct.coerceIn(0, 100) * 100)
 
-    fun bps(total: Long, bps: Int): Long = total * bps.coerceIn(0, 10_000) / 10_000
+    fun bps(total: Long, bps: Int): Long {
+        val b = bps.coerceIn(0, 10_000)
+        return total / 10_000 * b + total % 10_000 * b / 10_000
+    }
 }

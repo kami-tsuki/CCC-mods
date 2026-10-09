@@ -1,5 +1,6 @@
 package kami.claims.client.admin
 
+import kami.libs.ui.core.Memo
 import kami.claims.admin.CountryDetail
 import kami.claims.admin.CountryRequests
 import kami.claims.admin.CountryRow
@@ -21,12 +22,15 @@ import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
 import kami.libs.ui.text.tr
+import kami.libs.ui.widget.fitText
 import kami.libs.ui.widget.Column
 import kami.libs.ui.widget.textOrder
 import kami.libs.ui.widget.TableState
 import kami.libs.ui.widget.TextState
 import kami.libs.ui.widget.filterBar
 import kami.libs.ui.widget.searchField
+
+private val countryColumnsMemo = Memo()
 
 object CountryAdminSection {
     const val LIST_PAGE = "countries.list"
@@ -41,7 +45,7 @@ object CountryAdminSection {
         listOf(
             NavItem(LIST_PAGE, tr("kami_claims.admin.nav.list"), Icons.FLAG),
             NavItem(DETAIL_PAGE, tr("kami_claims.admin.nav.detail"), Icons.CROWN),
-            NavItem(STATS_PAGE, tr("kami_claims.admin.nav.stats"), Icons.STATS)
+            NavItem(STATS_PAGE, tr("kami_libs.common.statistics"), Icons.STATS)
         )
     }, { app, id ->
         when (id) {
@@ -54,19 +58,19 @@ object CountryAdminSection {
     fun openCountry(app: KamiApp, id: String) = app.navigate(Route(DETAIL_PAGE, mapOf("id" to id)))
 }
 
-internal fun countryColumns() = listOf(
+internal fun countryColumns() = countryColumnsMemo.of(Format.locale) { listOf(
     Column<CountryRow>(tr("kami_libs.common.name"), -1, sort = textOrder { it.name }) { _, r, row ->
         Draw.fill(g, Rect(r.x, r.y + (r.h - 6) / 2, 6, 6), row.color or 0xFF000000.toInt())
-        Draw.text(g, Draw.fit(row.name, r.w - 10), r.x + 10, r.y + (r.h - 8) / 2, if (row.active) Palette.text else Palette.textMuted)
+        fitText(r.x + 10, r.y + (r.h - 8) / 2, r.w - 10, row.name, if (row.active) Palette.text else Palette.textMuted, key = "cn:${row.name}")
     },
     Column.text<CountryRow>(tr("kami_claims.admin.col.leader"), 80) { it.leaderName },
-    Column.number<CountryRow>(tr("kami_claims.admin.col.members"), 56) { it.members.toLong() },
+    Column.number<CountryRow>(tr("kami_libs.common.members"), 56) { it.members.toLong() },
     Column.number<CountryRow>(tr("kami_claims.admin.col.claims"), 50) { it.claims.toLong() },
-    Column.number<CountryRow>(tr("kami_claims.admin.col.treasury"), 70, color = { Palette.money }, format = { Format.money(it) }) { it.treasury },
-    Column.number<CountryRow>(tr("kami_claims.admin.col.level"), 40) { it.level.toLong() },
+    Column.number<CountryRow>(tr("kami_libs.flow.treasury"), 70, color = { Palette.money }, format = { Format.money(it) }) { it.treasury },
+    Column.number<CountryRow>(tr("kami_libs.common.level"), 40) { it.level.toLong() },
     Column.number<CountryRow>(tr("kami_claims.kpi.power"), 44, format = { WarPage.power(it / 10.0) }) { (it.power * 10).toLong() },
     Column.number<CountryRow>(tr("kami_claims.admin.col.wars"), 40, color = { if (it.wars > 0) Palette.danger else Palette.text }) { it.wars.toLong() }
-)
+) }
 
 internal class CountryListPage(private val app: KamiApp) : Page() {
     override val title get() = tr("kami_claims.admin.nav.list")

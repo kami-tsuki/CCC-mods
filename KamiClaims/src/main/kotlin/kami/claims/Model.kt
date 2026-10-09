@@ -2,6 +2,7 @@ package kami.claims
 
 import kami.claims.economy.Treasury
 import kami.claims.research.BuffState
+import kami.claims.research.Boost
 import kami.claims.research.Buffs
 import kami.claims.research.Capacity
 import kami.claims.research.Levels
@@ -213,6 +214,7 @@ class Country(
     val xpToday: MutableMap<String, Long> = mutableMapOf(),
     var xpDay: Long = 0,
     val xpFrac: MutableMap<String, Double> = mutableMapOf(),
+    val boosts: MutableMap<String, MutableList<Boost>> = mutableMapOf(),
     var rewardedLevel: Int = 0,
     var level: Int = 1,
     var slug: String = "",
@@ -296,8 +298,10 @@ object Realm {
     private val byCountry = HashMap<String, MutableList<Claim>>()
     val home = HashMap<String, String>()
     var rev = 0
+    var claimRev = 0
 
-    fun changed() {
+    fun changed(territory: Boolean = true) {
+        if (territory) claimRev++
         rev++
     }
 
@@ -308,6 +312,7 @@ object Realm {
 
     fun reset(next: Data) {
         rev++
+        claimRev++
         Buffs.clearBorders()
         data = next
         val orphans = data.claims.filter { it.country !in data.countries }
@@ -368,17 +373,18 @@ object Realm {
         data.schema = Data.CURRENT
     }
 
-    fun country(name: String?) = name?.let { n -> data.countries[n.lowercase()] ?: data.countries.values.firstOrNull { it.name.equals(n, true) } }
+    fun country(name: String?) = name?.let { n -> data.countries[n] ?: data.countries[n.lowercase()] ?: data.countries.values.firstOrNull { it.name.equals(n, true) } }
     fun of(id: String) = live(home[id])
     fun live(name: String?) = country(name)?.takeIf { it.active }
     fun claims(name: String): List<Claim> = byCountry[name]?.toList() ?: emptyList()
+    fun claimCount(name: String) = byCountry[name]?.size ?: 0
+    fun claimsView(name: String): List<Claim> = byCountry[name].orEmpty()
     fun held(name: String): Map<String, List<Key>> = byCountry[name].orEmpty().asSequence().filter { it.owner != null }.groupBy({ it.owner!! }, { it.key })
     fun at(dim: String, x: Int, z: Int) = index[Key(dim, x, z)]
 
     fun reservedFor(dim: String, x: Int, z: Int): String? {
         val t = now()
-        data.reserves.removeAll { it.until < t }
-        return data.reserves.firstOrNull { it.dim == dim && it.x == x && it.z == z }?.country
+        return data.reserves.firstOrNull { it.until >= t && it.dim == dim && it.x == x && it.z == z }?.country
     }
 
     fun add(c: Claim) {
@@ -499,7 +505,7 @@ object Realm {
         (c.autoAllies - others).forEach { pid -> if (c.outsiders[pid] == Rank.ALLIED) c.outsiders.remove(pid); c.autoAllies.remove(pid) }
     }
 
-    fun neighbors(c: Claim) = listOf(Key(c.dim, c.x + 1, c.z), Key(c.dim, c.x - 1, c.z), Key(c.dim, c.x, c.z + 1), Key(c.dim, c.x, c.z - 1))
+    fun neighbors(c: Claim) = neighbors(c.key)
     fun neighbors(k: Key) = listOf(Key(k.dim, k.x + 1, k.z), Key(k.dim, k.x - 1, k.z), Key(k.dim, k.x, k.z + 1), Key(k.dim, k.x, k.z - 1))
 
     private fun flood(start: Key, within: Set<Key>): Set<Key> {

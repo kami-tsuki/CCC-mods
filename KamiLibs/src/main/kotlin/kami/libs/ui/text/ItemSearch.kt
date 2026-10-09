@@ -10,6 +10,7 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 import net.minecraft.world.item.TooltipFlag
 import net.neoforged.fml.ModList
+import java.util.Collections
 import java.util.WeakHashMap
 
 object ItemSearch {
@@ -59,11 +60,26 @@ object ItemSearch {
         return q.matches { facts.test(it, extra) { stack } }
     }
 
+    private var lastKey: String? = null
+    private var lastIds: Set<String> = emptySet()
+
+    fun reset() {
+        bySpec.clear()
+        byStack.clear()
+        lastKey = null
+        lastIds = emptySet()
+    }
+
     fun ids(q: SearchQuery, extra: Collection<String> = emptyList()): Set<String> {
+        val key = q.key + "#" + registryIds.size + "#" + extra.size + "#" + extra.hashCode()
+        if (key == lastKey) return lastIds
         val specs = (registryIds + extra).toSet()
-        return specs.filterTo(HashSet()) { spec ->
+        val result = specs.filterTo(HashSet()) { spec ->
             val facts = bySpec.getOrPut(spec) { Facts(ItemSpec.stack(spec), spec) }
             !facts.empty && q.matches { facts.test(it, emptyArray()) { ItemSpec.stack(spec) } }
         }
+        lastKey = key
+        lastIds = Collections.unmodifiableSet(result)
+        return lastIds
     }
 }

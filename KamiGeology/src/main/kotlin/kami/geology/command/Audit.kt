@@ -32,7 +32,7 @@ object Audit {
         ores.forEachIndexed { i, ore ->
             val values = supply.map { it[i] }.sorted()
             val share = values.count { it >= threshold } * 100 / samples
-            lines += Phrase.of("kami_geology.audit.ore", GeoText.orePhrase(ore.id).asValue(), percent(share), Phrase.value(short(values[samples / 2])), Phrase.value(short(values[(samples * 9 / 10).coerceAtMost(samples - 1)])))
+            lines += Phrase.of("kami_geology.audit.ore", GeoText.orePhrase(ore.id).asValue(), percent(share), Phrase.value(GeoText.compact(values[samples / 2].toDouble())), Phrase.value(GeoText.compact(values[(samples * 9 / 10).coerceAtMost(samples - 1)].toDouble())))
         }
         val counts = supply.map { row -> row.count { it >= threshold } }
         lines += Phrase.of("kami_geology.audit.per_area", Phrase.value(Format.decimal(counts.average(), locale = Locale.ROOT)), percent(counts.count { it == 0 } * 100 / samples))
@@ -47,10 +47,4 @@ object Audit {
     }
 
     private fun percent(n: Int) = Phrase.of("kami_libs.unit.percent", n).asValue()
-
-    private fun short(v: Float) = when {
-        v >= 1_000_000f -> "%.1fM".format(v / 1_000_000f)
-        v >= 1_000f -> "%.1fk".format(v / 1_000f)
-        else -> "%.0f".format(v)
-    }
 }

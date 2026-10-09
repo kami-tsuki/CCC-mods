@@ -26,7 +26,7 @@ object AdminNet {
     }
 
     internal fun reply(p: ServerPlayer, r: AdminReply) {
-        val json = Db.json.encodeToString(AdminReply.serializer(), r).takeIf { it.length <= MAX_REPLY }
+        val json = Db.json.encodeToString(AdminReply.serializer(), r).takeIf { it.length <= MAX_REPLY && it.toByteArray(Charsets.UTF_8).size <= MAX_REPLY }
             ?: Db.json.encodeToString(AdminReply.serializer(), AdminReply(false, error = "kami_libs.admin.too_large", rid = r.rid))
         PacketDistributor.sendToPlayer(p, replies(json))
     }

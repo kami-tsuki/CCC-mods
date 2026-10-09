@@ -2,9 +2,9 @@ package kami.geology.client
 
 import com.mojang.blaze3d.platform.NativeImage
 import kami.geology.KamiGeology
+import kami.geology.client.xaero.ScanStore
 import kami.geology.command.GeoText
 import kami.geology.client.HeatmapDraw.blend
-import kami.geology.client.HeatmapDraw.short
 import kami.geology.map.Heatmap
 import kami.geology.map.Sparse
 import kami.geology.net.MapDone
@@ -13,6 +13,7 @@ import kami.geology.net.MapRequest
 import kami.geology.net.OpenMap
 import kami.geology.net.ProbeRequest
 import kami.geology.net.ProbeResponse
+import kami.libs.text.SearchQuery
 import kami.libs.ui.KamiScreen
 import kami.libs.ui.core.Flow
 import kami.libs.ui.core.Rect
@@ -26,13 +27,17 @@ import kami.libs.ui.style.Palette
 import kami.libs.ui.style.TextStyle
 import kami.libs.ui.text.tr
 import kami.libs.ui.widget.Option
+import kami.libs.ui.widget.TextState
 import kami.libs.ui.widget.SMALL_H
 import kami.libs.ui.widget.card
+import kami.libs.ui.widget.fitText
 import kami.libs.ui.widget.checkbox
 import kami.libs.ui.widget.gradientLegend
 import kami.libs.ui.widget.iconButton
-import kami.libs.ui.widget.progress
+import kami.libs.ui.widget.PROGRESS_LABELLED_H
+import kami.libs.ui.widget.progressBar
 import kami.libs.ui.widget.scroll
+import kami.libs.ui.widget.searchField
 import kami.libs.ui.widget.segmented
 import kami.libs.ui.widget.slider
 import net.minecraft.client.Minecraft
@@ -52,6 +57,7 @@ private const val TOP = 22
 private const val ROW = 11
 private const val LAYER_H = 68
 private const val FILTER_H = 66
+private const val ORES_MIN_H = 130
 private const val LEGEND_H = 29
 private const val MAX_CELLS = 150_000
 private const val DEBOUNCE_MS = 120L
@@ -222,6 +228,8 @@ class HeatmapScreen(private val info: OpenMap) : KamiScreen(Component.translatab
         finished = p
         if (layersDone > 0) tile = incoming ?: tile
         rebuildDue = true
+        val t = incoming
+        if (locked && layersDone > 0 && t != null && t.cell == 1) ScanStore.record(info, t.x0, t.z0, t.w, t.h, t.deposits, yMin, yMax)
     }
 
     fun onProbe(p: ProbeResponse) {
@@ -320,8 +328,9 @@ class HeatmapScreen(private val info: OpenMap) : KamiScreen(Component.translatab
         Draw.fill(ui.g, r, Palette.canvas)
         val body = r.dropTop(TOP)
         topBar(ui, r.top(TOP))
-        mapArea(ui, body.dropRight(PANEL))
-        panel(ui, body.right(PANEL))
+        val panelW = min(PANEL, r.w / 3)
+        mapArea(ui, body.dropRight(panelW))
+        panel(ui, body.right(panelW))
         if (!ui.typing) {
             if (ui.input.takeKey(GLFW.GLFW_KEY_R) != null) changed()
             if (ui.input.takeKey(GLFW.GLFW_KEY_G) != null) grid = !grid
@@ -347,12 +356,12 @@ class HeatmapScreen(private val info: OpenMap) : KamiScreen(Component.translatab
         val area = row.remaining()
         val textY = area.y + (area.h - 8) / 2
         val titleW = Draw.text(g, title.string, area.x, textY, TextStyle.HEADING) - area.x
-        val dimEnd = Draw.text(g, Draw.fit(info.dimension, area.w / 3), area.x + titleW + 8, textY, Palette.textMuted)
+        val dimEnd = ui.fitText(area.x + titleW + 8, textY, area.w / 3, info.dimension, Palette.textMuted)
         val done = finished
         val t = tile
         if (computing || dirty) {
-            val bar = Rect(area.right - 110, area.bottom - 4, 110, 4)
-            ui.progress(bar, if (dirty) 0.0 else layersDone / layersExpected.toDouble(), label = tr("kami_geology.map.loading", if (dirty) 0 else layersDone, layersExpected))
+            val bar = Rect(area.right - 130, area.bottom - PROGRESS_LABELLED_H, 130, PROGRESS_LABELLED_H)
+            ui.progressBar(bar, if (dirty) 0L else layersDone.toLong(), layersExpected.toLong(), label = tr("kami_geology.map.loading", if (dirty) 0 else layersDone, layersExpected), remaining = "", key = "map-loading")
         } else if (done != null && t != null) {
             val status = Draw.fit(tr("kami_geology.map.stats", t.cell, t.w, t.h, done.wallMs), area.right - dimEnd - 8)
             val w = Draw.width(status)
@@ -412,17 +421,22 @@ class HeatmapScreen(private val info: OpenMap) : KamiScreen(Component.translatab
             .filter { it.second > 0f && enabled[it.first] }
             .sortedByDescending { it.second }
             .take(3)
-            .forEach { parts += tr("kami_geology.map.per_chunk", GeoText.oreLabel(info.ores[it.first].id), short(it.second * 256.0)) }
+            .forEach { parts += tr("kami_geology.map.per_chunk", GeoText.oreLabel(info.ores[it.first].id), GeoText.compact(it.second * 256.0)) }
         return parts
     }
 
     private fun panel(ui: Ui, r: Rect) {
         Draw.fill(ui.g, r, Palette.surface)
         Draw.vline(ui.g, r.x, r.y, r.h, Palette.border)
-        val flow = Flow(r.inset(5, 4, 4, 4), 4)
-        layerCard(ui, flow.take(LAYER_H))
-        filterCard(ui, flow.take(FILTER_H))
-        oresCard(ui, flow.remaining())
+        val inner = r.inset(5, 4, 4, 4)
+        val fixed = LAYER_H + FILTER_H + 8
+        val oresH = max(ORES_MIN_H, inner.h - fixed)
+        ui.scroll("panel", inner, fixed + oresH) { content ->
+            val flow = Flow(content, 4)
+            layerCard(ui, flow.take(LAYER_H))
+            filterCard(ui, flow.take(FILTER_H))
+            oresCard(ui, flow.take(oresH))
+        }
     }
 
     private fun layerCard(ui: Ui, r: Rect) {
@@ -451,7 +465,7 @@ class HeatmapScreen(private val info: OpenMap) : KamiScreen(Component.translatab
         val labelW = listOf("y_min", "y_max", "threshold").maxOf { Draw.width(tr("kami_geology.map.$it")) }.coerceIn(30, 56)
         fun line(i: Int, name: String, value: Int, lo: Int, hi: Int, format: (Int) -> String): Int? {
             val row = Row(rows[i], 4)
-            Draw.text(ui.g, Draw.fit(tr("kami_geology.map.$name"), labelW), row.take(labelW).x, rows[i].y + 2, Palette.textSecondary)
+            ui.fitText(row.take(labelW).x, rows[i].y + 2, labelW, tr("kami_geology.map.$name"), Palette.textSecondary, key = name)
             Draw.textRight(ui.g, format(value), row.takeFromRight(30).right, rows[i].y + 2, Palette.text)
             return ui.slider(row.remaining(), value.toDouble(), lo.toDouble(), hi.toDouble(), 1.0, format = { format(it.roundToInt()) }, tip = tr("kami_geology.map.$name.tooltip"), key = name)?.roundToInt()
         }
@@ -465,20 +479,27 @@ class HeatmapScreen(private val info: OpenMap) : KamiScreen(Component.translatab
             changed()
             recompose()
         }
-        line(2, "threshold", threshold, 0, 255) { if (it == 0) tr("kami_geology.map.off") else short(Heatmap.decode(it)) }?.let {
+        line(2, "threshold", threshold, 0, 255) { if (it == 0) tr("kami_libs.common.off") else GeoText.compact(Heatmap.decode(it)) }?.let {
             threshold = it
             recompose()
         }
     }
 
+    private val oreSearch = TextState()
+
     private fun oresCard(ui: Ui, r: Rect) {
         val c = ui.card(r, tr("kami_geology.map.mode.ores"), Icons.PICKAXE, trailing = "${enabled.count { it }}/${enabled.size}")
-        val list = if (mode == Mode.ORES) c.dropBottom(LEGEND_H, 4) else c
+        val below = if (mode == Mode.ORES) c.dropBottom(LEGEND_H, 4) else c
         if (mode == Mode.ORES) legend(ui, c.bottom(LEGEND_H))
+        ui.searchField(below.top(SMALL_H), oreSearch, key = "ores:search")
+        val list = below.dropTop(SMALL_H, 3)
+        val query = SearchQuery.parse(oreSearch.text)
+        val shown = info.ores.indices.filter { query.matches(GeoText.oreLabel(info.ores[it].id), info.ores[it].id) }
         var hovered = -1
-        ui.scroll("ores", list, info.ores.size * ROW) { content ->
-            info.ores.forEachIndexed { i, ore ->
-                val row = Rect(content.x, content.y + i * ROW, content.w, ROW)
+        ui.scroll("ores", list, shown.size * ROW) { content ->
+            shown.forEachIndexed { n, i ->
+                val ore = info.ores[i]
+                val row = Rect(content.x, content.y + n * ROW, content.w, ROW)
                 if (row.bottom < list.y || row.y > list.bottom) return@forEachIndexed
                 val over = list.contains(ui.mouseX, ui.mouseY) && ui.hovering(row)
                 if (over) {
@@ -488,10 +509,9 @@ class HeatmapScreen(private val info: OpenMap) : KamiScreen(Component.translatab
                     if (ui.pressed(row) != null) toggleOre(i, ui.input.shift || ui.input.ctrl)
                 }
                 Draw.box(ui.g, Rect(row.x + 2, row.y + 1, 8, 8), if (enabled[i]) Palette.opaque(oreColors[i]) else Palette.raised, 0xFF000000.toInt())
-                val total = if (enabled[i] && totals[i] > 0f) short(totals[i].toDouble()) else ""
+                val total = if (enabled[i] && totals[i] > 0f) GeoText.compact(totals[i].toDouble()) else ""
                 Draw.textRight(ui.g, total, row.right - 2, row.y + 1, Palette.textMuted)
-                val name = Draw.fit(GeoText.oreLabel(ore.id), row.w - 16 - Draw.width(total) - 4)
-                Draw.text(ui.g, name, row.x + 14, row.y + 1, if (enabled[i]) Palette.text else Palette.textMuted)
+                ui.fitText(row.x + 14, row.y + 1, row.w - 16 - Draw.width(total) - 4, GeoText.oreLabel(ore.id), if (enabled[i]) Palette.text else Palette.textMuted, key = "ore:$i")
             }
         }
         if (hovered != hoverOre) {
@@ -517,7 +537,7 @@ class HeatmapScreen(private val info: OpenMap) : KamiScreen(Component.translatab
         else listOf(0.55, 1.0).map { blend(HeatmapDraw.MAP_BG, HeatmapDraw.BRIGHT, it) }
         ui.gradientLegend(
             r, colors, floor.toDouble(), 255.0,
-            format = { short(Heatmap.decode(it.roundToInt())) },
+            format = { GeoText.compact(Heatmap.decode(it.roundToInt())) },
             ticks = MARKS.map { Heatmap.encode(it.toDouble()) }.filter { it >= floor }.map { it.toDouble() },
             title = tr(if (single) "kami_geology.map.legend" else "kami_geology.map.legend.brightness"),
             key = "legend"

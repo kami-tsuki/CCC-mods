@@ -1,7 +1,6 @@
 package kami.claims.client.app
 
 import kami.claims.client.app.pages.ResearchLook
-import kami.claims.client.rankOf
 import kami.claims.client.store.ClaimsStore
 import kami.claims.client.store.ClientResearch
 import kami.claims.net.LevelView
@@ -25,7 +24,7 @@ object ClientLocks {
 
     fun cap(cap: String): String? {
         val info = ClaimsStore.info ?: return tr("kami_claims.lock.no_country")
-        val snap = ClaimsStore.snap ?: return tr("kami_claims.lock.loading")
+        val snap = ClaimsStore.snap ?: return tr("kami_libs.common.loading")
         if (info.delegated) return if (cap == "details" || cap in info.granted) null else tr("kami_claims.lock.read_only")
         val min = snap.caps[cap]?.let(::rankOf) ?: Rank.PRESIDENT
         if (ClaimsStore.rank < min) return tr("kami_claims.lock.rank", Vocabulary.rank(min.name).label)

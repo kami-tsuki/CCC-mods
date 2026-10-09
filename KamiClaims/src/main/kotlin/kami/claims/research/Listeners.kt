@@ -30,7 +30,6 @@ object Listeners {
 
     private fun id(stack: ItemStack) = BuiltInRegistries.ITEM.getKey(stack.item).toString()
 
-    /** A vanilla sapling or a DynamicTrees growth step; counted for the country when it happens in a forestry chunk. */
     @JvmStatic
     fun treeGrew(level: Level, pos: BlockPos) {
         val claim = Realm.at(level.dimension().location().toString(), pos.x shr 4, pos.z shr 4) ?: return

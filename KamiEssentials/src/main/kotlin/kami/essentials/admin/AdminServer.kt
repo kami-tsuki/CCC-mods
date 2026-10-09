@@ -18,7 +18,7 @@ import kami.libs.admin.long
 import kami.libs.admin.page
 import kami.libs.admin.text
 import kami.libs.chat.tell
-import kami.libs.db.Db
+import kami.libs.db.Db.encode
 import kami.libs.economy.Flow
 import kami.libs.economy.Numismatics
 import kami.libs.economy.PlayerParty
@@ -26,7 +26,6 @@ import kami.libs.economy.ServerBank
 import kami.libs.economy.ServerParty
 import kami.libs.economy.Statement
 import kami.libs.text.Phrase
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -139,6 +138,7 @@ object AdminServer {
             val live = visible(ctx, id)
             if (live != null) ctx.player.teleportTo(live.serverLevel(), live.x, live.y, live.z, live.yRot, live.xRot)
             else {
+                if (server.playerList.getPlayer(id) != null) ctx.fail("kami_essentials.admin.no_position")
                 val spot = PlayerRecords[id]?.let { PlayerRecords.position(server, it) } ?: ctx.fail("kami_essentials.admin.no_position")
                 val level = ResourceLocation.tryParse(spot.dim)?.let { server.getLevel(ResourceKey.create(Registries.DIMENSION, it)) } ?: ctx.fail("kami_essentials.admin.no_position")
                 ctx.player.teleportTo(level, spot.x, spot.y, spot.z, spot.yaw, spot.pitch)
@@ -172,20 +172,23 @@ object AdminServer {
         val now = System.currentTimeMillis()
         val banned = Moderation.bans(ctx.player.server, now).mapNotNull { Moderation.profile(it)?.id }.toSet()
         val text = a.text(0)?.lowercase()
-        val rows = PlayerRecords.all().filter { text == null || text in it.name.lowercase() || it.id.toString().startsWith(text) }.map { row(ctx, it, it.id in banned, now) }
-        val filtered = when (a.text(1)) {
-            "online" -> rows.filter { it.online }
-            "banned" -> rows.filter { it.banned }
-            "muted" -> rows.filter { it.muted }
-            else -> rows
+        val status = a.text(1)
+        val rows = PlayerRecords.all().filter { text == null || text in it.name.lowercase() || it.id.toString().startsWith(text) }.filter {
+            when (status) {
+                "online" -> visible(ctx, it.id) != null
+                "banned" -> it.id in banned
+                "muted" -> Mutes[it.id, now] != null
+                else -> true
+            }
         }
         val sorted = when (a.text(2)) {
-            "seen" -> filtered.sortedByDescending { it.lastSeen }
-            "balance" -> filtered.sortedByDescending { it.balance }
-            "playtime" -> filtered.sortedByDescending { it.playtimeMs }
-            else -> filtered.sortedBy { it.name.lowercase() }
+            "seen" -> rows.map { it to (if (visible(ctx, it.id) != null) now else it.lastSeen) }.sortedByDescending { it.second }.map { it.first }
+            "balance" -> rows.map { it to Numismatics.balance(it.id) }.sortedByDescending { it.second }.map { it.first }
+            "playtime" -> rows.map { it to (visible(ctx, it.id)?.let(PlayerRecords::playtime) ?: it.playtimeMs) }.sortedByDescending { it.second }.map { it.first }
+            else -> rows.sortedBy { it.name.lowercase() }
         }
-        return Page.of(sorted, a.page(3))
+        val page = Page.of(sorted, a.page(3))
+        return Page(page.rows.map { row(ctx, it, it.id in banned, now) }, page.total, page.page, page.size)
     }
 
     private fun detail(ctx: AdminCtx, id: UUID): PlayerDetail {
@@ -241,7 +244,7 @@ object AdminServer {
         return Admin.done(id)
     }
 
-    private fun target(ctx: AdminCtx, a: List<String>): UUID {
+    internal fun target(ctx: AdminCtx, a: List<String>): UUID {
         val raw = a.text(0).orEmpty()
         return Players.resolve(ctx.player.server, raw) ?: ctx.fail("kami_essentials.admin.unknown_player", raw)
     }
@@ -270,5 +273,4 @@ object AdminServer {
 
     private fun ipAudit(ips: List<String>) = if (ips.isEmpty()) emptyMap() else mapOf("ips" to ips.joinToString(","))
 
-    private fun <T> encode(serializer: KSerializer<T>, value: T) = Db.json.encodeToJsonElement(serializer, value)
 }

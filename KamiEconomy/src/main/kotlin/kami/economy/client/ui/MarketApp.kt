@@ -17,7 +17,6 @@ import kami.libs.text.SearchQuery
 import kami.libs.text.Text
 import kami.libs.ui.app.AppScreen
 import kami.libs.ui.app.Callout
-import kami.libs.ui.app.Consequence
 import kami.libs.ui.app.Dialog
 import kami.libs.ui.app.DialogKind
 import kami.libs.ui.app.KamiApp
@@ -44,6 +43,8 @@ import kami.libs.ui.text.ItemSearch
 import kami.libs.ui.text.tr
 import kami.libs.ui.text.trJson
 import kami.libs.ui.widget.*
+import kami.libs.util.Time
+import kotlin.math.abs
 import net.minecraft.client.Minecraft
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
@@ -54,6 +55,8 @@ private const val VIEW_CACHE = 24
 private const val DETAIL_CACHE = 16
 private const val VIEW_WAIT_MS = 10_000L
 internal const val MAX_PRICE = 1_000_000L
+internal const val SOON_MS = Time.HOUR_MS
+internal const val AUCTION_SOON_MS = 300_000L
 
 internal fun searchIds(q: SearchQuery, extra: Collection<String>, max: Int = MAX_IDS): String =
     if (q.isEmpty) "" else ItemSearch.ids(q, extra).map(Variants::core).distinct().joinToString(",").takeIf { it.length <= max } ?: "*"
@@ -84,7 +87,12 @@ internal fun Ui.flag(r: Rect, color: Int, flag: FlagView?) =
 
 internal fun priceText(v: Long) = if (v > 0) Format.money(v) else "–"
 
-internal fun permille(v: Long) = if (v == 0L) "–" else (if (v > 0) "+" else "") + tr("kami_libs.unit.percent", Format.decimal(v / 10.0, 1))
+internal fun signedPercent(percent: Double, digits: Int = 0) =
+    (if (percent > 0) "+" else if (percent < 0) "-" else "±") + tr("kami_libs.unit.percent", Format.decimal(abs(percent), digits))
+
+internal fun countText(v: Int, zero: String = Format.number(0)) = if (v < 0) "∞" else if (v == 0) zero else Format.number(v)
+
+internal fun infiniteText(v: Long) = countText(if (v == Long.MAX_VALUE) -1 else v.toInt())
 
 internal fun stackHint(units: Int, stack: Int): String {
     if (stack <= 1 || units < stack) return ""
@@ -93,15 +101,14 @@ internal fun stackHint(units: Int, stack: Int): String {
 }
 
 internal fun unitsText(units: Int, stack: Int): String {
-    if (units < 0) return "∞"
+    if (units < 0) return countText(units)
     val hint = stackHint(units, stack)
     return Format.number(units) + if (hint.isEmpty()) "" else " ($hint)"
 }
 
 internal fun <T> unitsColumn(title: String, width: Int, stack: (T) -> Int, units: (T) -> Int) =
     Column<T>(title, width, Align.RIGHT, compareBy<T> { units(it) }) { _, r, row ->
-        val s = Draw.fit(unitsText(units(row), stack(row)), r.w)
-        Draw.text(g, s, r.right - Draw.width(s), r.y + (r.h - 8) / 2)
+        cellText(r, unitsText(units(row), stack(row)), align = Align.RIGHT, key = "uc:${r.x},${r.y}")
     }
 
 class MarketApp private constructor() : KamiApp() {
@@ -157,14 +164,9 @@ class MarketApp private constructor() : KamiApp() {
 
     private fun importWatch(next: Snap) {
         val legacy = MarketPrefs.prefs.watch ?: return
-        if (legacy.isEmpty() || next.watch.isNotEmpty()) {
-            MarketPrefs.prefs.watch = null
-            MarketPrefs.save()
-        } else {
-            request("watch_import", legacy.distinct().joinToString(","))
-            MarketPrefs.prefs.watch = null
-            MarketPrefs.save()
-        }
+        if (legacy.isNotEmpty() && next.watch.isEmpty()) request("watch_import", legacy.distinct().joinToString(","))
+        MarketPrefs.prefs.watch = null
+        MarketPrefs.save()
     }
 
     fun update(next: Snap, notify: Boolean) {
@@ -195,10 +197,11 @@ class MarketApp private constructor() : KamiApp() {
     private fun badge(bid: Boolean?): () -> NavBadge? = { snap.mine.count { bid == null || it.bid == bid }.takeIf { it > 0 }?.let { NavBadge(it, Severity.INFO) } }
 
     override fun buildNav() = listOf(
-        NavGroup(id = "overview", label = tr("kami_economy.nav.group.overview"), items = listOf(
-            NavItem("dashboard", tr("kami_economy.nav.dashboard"), Icons.DASHBOARD),
+        NavGroup(id = "overview", label = tr("kami_libs.common.overview"), items = listOf(
+            NavItem("dashboard", tr("kami_libs.common.dashboard"), Icons.DASHBOARD),
             NavItem("market", tr("kami_libs.common.market"), Icons.SEARCH),
-            NavItem("my_orders", tr("kami_economy.nav.my_orders"), Icons.SCROLL, badge(null))
+            NavItem("my_orders", tr("kami_economy.nav.my_orders"), Icons.SCROLL, badge(null)),
+            NavItem("quests", tr("kami_libs.flow.quest"), Icons.CROWN, { snap.questOpen.takeIf { it > 0 }?.let { NavBadge(it, Severity.WARNING) } })
         )),
         NavGroup(id = "sell", label = tr("kami_economy.nav.group.sell"), items = listOf(
             NavItem("instant", tr("kami_economy.nav.inventory"), Icons.CHEST),
@@ -210,16 +213,17 @@ class MarketApp private constructor() : KamiApp() {
             NavItem("buy_orders", tr("kami_economy.nav.orders"), Icons.LEDGER, badge(true)),
             NavItem("buy_vendors", tr("kami_economy.nav.vendors"), Icons.PEOPLE)
         )),
-        NavGroup(id = "auction", label = tr("kami_economy.nav.group.auction"), items = listOf(
+        NavGroup(id = "auction", label = tr("kami_libs.common.auctions"), items = listOf(
             NavItem("auctions", tr("kami_libs.common.auctions"), Icons.SCALES),
             NavItem("auction_create", tr("kami_economy.nav.create"), Icons.ADD)
         )),
-        NavGroup(id = "system", label = tr("kami_economy.nav.group.system"), items = listOf(NavItem("settings", tr("kami_economy.nav.settings"), Icons.SETTINGS)))
+        NavGroup(id = "system", label = tr("kami_libs.common.system"), items = listOf(NavItem("settings", tr("kami_libs.common.settings"), Icons.SETTINGS)))
     )
 
     override fun create(id: String): Page = when (id) {
         "market" -> MarketPage(this)
         "my_orders" -> OrdersPage(this, bid = null)
+        "quests" -> QuestsPage(this)
         "instant" -> InstantPage(this)
         "infinite" -> InfinitePage(this)
         "sell_orders" -> OrdersPage(this, bid = false)
@@ -253,8 +257,8 @@ class MarketApp private constructor() : KamiApp() {
     fun startTour() {
         val dashboard = Route("dashboard")
         tour = Tour(listOfNotNull(
-            Callout("modules", tr("kami_economy.tour.modules"), tr("kami_economy.tour.modules.desc"), dashboard).takeIf { Modules.visible.size > 1 },
-            Callout("nav:dashboard", tr("kami_economy.nav.dashboard"), tr("kami_economy.tour.dashboard.desc"), dashboard),
+            Callout("modules", tr("kami_libs.common.modules"), tr("kami_economy.tour.modules.desc"), dashboard).takeIf { Modules.visible.size > 1 },
+            Callout("nav:dashboard", tr("kami_libs.common.dashboard"), tr("kami_economy.tour.dashboard.desc"), dashboard),
             Callout("nav:market", tr("kami_libs.common.market"), tr("kami_economy.tour.market.desc")),
             Callout("nav:my_orders", tr("kami_economy.nav.my_orders"), tr("kami_economy.tour.my_orders.desc")),
             Callout("nav:instant", tr("kami_economy.nav.inventory"), tr("kami_economy.tour.instant.desc")),
@@ -262,7 +266,7 @@ class MarketApp private constructor() : KamiApp() {
             Callout("nav:sell_orders", tr("kami_economy.nav.orders"), tr("kami_economy.tour.sell_orders.desc")),
             Callout("nav:buy_orders", tr("kami_economy.nav.orders"), tr("kami_economy.tour.buy_orders.desc")),
             Callout("nav:auctions", tr("kami_libs.common.auctions"), tr("kami_economy.tour.auctions.desc")),
-            Callout("nav:settings", tr("kami_economy.nav.settings"), tr("kami_economy.tour.settings.desc")),
+            Callout("nav:settings", tr("kami_libs.common.settings"), tr("kami_economy.tour.settings.desc")),
             Callout("topbar", tr("kami_economy.tour.topbar"), tr("kami_economy.tour.topbar.desc")),
             Callout("page-help", tr("kami_economy.tour.help"), tr("kami_economy.tour.help.desc"))
         )) {}
@@ -307,13 +311,13 @@ class MarketApp private constructor() : KamiApp() {
     fun taxFor(relation: String) = if (relation == "allied" || relation == "family") snap.allyTaxPct else snap.taxPct
 
     fun countryTip(country: String, relation: String): String =
-        if (relation == "embargo") tr("kami_economy.market.embargo.tip", country)
+        if (relation == "embargo") tr("kami_libs.lock.embargo", country)
         else tr("kami_economy.market.country.tip", country, tr("kami_economy.market.rate.${relation.ifEmpty { "neutral" }}"), taxFor(relation))
 
     fun reprice(host: KamiApp, o: OrderRow) {
         val state = NumberState(o.price.toLong())
-        host.open(Dialog(tr("kami_economy.reprice.title"), MarketSection.stack(o.item).hoverName.string, Icons.EDIT, DialogKind.CONFIRM) { s ->
-            s.used = numberDialogBody(s, s.body.y, state, tr("kami_economy.market.price_lot", o.lot), 1, MAX_PRICE)
+        host.open(Dialog(tr("kami_economy.reprice.action"), MarketSection.stack(o.item).hoverName.string, Icons.EDIT, DialogKind.CONFIRM) { s ->
+            s.used = numberDialogBody(s, s.body.y, state, tr("kami_economy.market.price_lot", o.lot), 1, MAX_PRICE, help = tr("kami_economy.price.each", Format.unitMoney(state.value, o.lot)))
             dialogButtons(s, tr("kami_economy.reprice.confirm"), state.value != o.price.toLong()) {
                 request(if (o.bid) "reprice_bid" else "reprice", o.item, state.value.toString())
                 s.close()
@@ -322,8 +326,8 @@ class MarketApp private constructor() : KamiApp() {
     }
 
     fun cancel(host: KamiApp, o: OrderRow) = confirmDialog(
-        host::open, tr("kami_economy.cancel.title"), MarketSection.stack(o.item).hoverName.string, Icons.CROSS,
-        listOf(Consequence(tr(if (o.bid) "kami_economy.market.bid.cancel.tooltip" else "kami_economy.market.orders.cancel.tooltip"))),
+        host::open, tr("kami_economy.cancel.action"), MarketSection.stack(o.item).hoverName.string, Icons.CROSS,
+        emptyList(),
         tr("kami_economy.cancel.confirm"), danger = true
     ) { request(if (o.bid) "cancel_bid" else "cancel", o.item) }
 
@@ -336,7 +340,7 @@ class MarketApp private constructor() : KamiApp() {
 
     companion object {
         val instance by lazy { MarketApp() }
-        val opening = OpenWait({ tr("kami_economy.open.loading") }, { tr("kami_economy.open.timeout") }, { tr("kami_economy.open.timeout.desc") })
+        val opening = OpenWait({ tr("kami_libs.common.loading") }, { tr("kami_economy.open.timeout") }, { tr("kami_libs.common.no_answer") })
         private const val SKIP_MS = 10_000L
         private var skipUntil = 0L
 

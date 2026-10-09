@@ -53,6 +53,28 @@ private class Cells {
 
 private const val MAX_COUNT = 99
 
+private inline fun each(claims: Map<Long, View.Entry>?, xs: IntRange, zs: IntRange, f: (Int, Int, View.Entry) -> Unit) {
+    if (claims == null || claims.isEmpty()) return
+    if (claims.size < (xs.last - xs.first + 1).toLong() * (zs.last - zs.first + 1)) {
+        for ((k, e) in claims) {
+            val x = (k shr 32).toInt()
+            val z = k.toInt()
+            if (x in xs && z in zs) f(x, z, e)
+        }
+    } else for (x in xs) for (z in zs) f(x, z, claims[ClientClaims.key(x, z)] ?: continue)
+}
+
+private inline fun eachKey(keys: Set<Long>?, xs: IntRange, zs: IntRange, f: (Int, Int) -> Unit) {
+    if (keys == null || keys.isEmpty()) return
+    if (keys.size < (xs.last - xs.first + 1).toLong() * (zs.last - zs.first + 1)) {
+        for (k in keys) {
+            val x = (k shr 32).toInt()
+            val z = k.toInt()
+            if (x in xs && z in zs) f(x, z)
+        }
+    } else for (x in xs) for (z in zs) if (ClientClaims.key(x, z) in keys) f(x, z)
+}
+
 object ClaimsLayer {
     private var debtRevision = -1
     private val debt = Cells()
@@ -114,24 +136,22 @@ object ClaimsLayer {
         val claims = ClientClaims.view(dim)
         val reserved = ClientClaims.reservedView(dim)
         val phase = if (ui.reduceMotion) 0 else (ui.wallMillis / 120 % 64).toInt()
-        for (x in xs) for (z in zs) {
-            val e = claims?.get(ClientClaims.key(x, z))
-            val r = map.cell(x, z)
-            if (e == null) {
-                if (reserved?.contains(ClientClaims.key(x, z)) == true && (mode == MapMode.RISK || mode == MapMode.POLITICAL)) Draw.fill(g, r, Palette.alpha(Palette.geoReserved, 0x50))
-                continue
-            }
+        if (mode == MapMode.RISK || mode == MapMode.POLITICAL) {
+            val tint = Palette.alpha(Palette.geoReserved, 0x50)
+            eachKey(reserved, xs, zs) { x, z -> if (claims?.containsKey(ClientClaims.key(x, z)) != true) Draw.fill(g, map.cell(x, z), tint) }
+        }
+        each(claims, xs, zs) { x, z, e ->
             val color = fill(mode, e)
-            if (color != 0) Draw.fill(g, r, color)
+            if (color != 0) Draw.fill(g, map.cell(x, z), color)
         }
         g.flush()
-        if (mode == MapMode.RISK || mode == MapMode.POLITICAL) for (x in xs) for (z in zs) {
-            val e = claims?.get(ClientClaims.key(x, z)) ?: continue
-            if (e.flags and View.DEBT == 0 || zoom < 6) continue
-            val level = debt.get(ClientClaims.key(x, z)).coerceAtLeast(1)
-            Draw.hatch(g, map.cell(x, z), Palette.alpha(Palette.danger, 0x60 + level * 0x30), 5 - level.coerceAtMost(3), phase)
+        if ((mode == MapMode.RISK || mode == MapMode.POLITICAL) && zoom >= 6) each(claims, xs, zs) { x, z, e ->
+            if (e.flags and View.DEBT != 0) {
+                val level = debt.get(ClientClaims.key(x, z)).coerceAtLeast(1)
+                Draw.hatch(g, map.cell(x, z), Palette.alpha(Palette.danger, 0x60 + level * 0x30), 5 - level.coerceAtMost(3), phase)
+            }
         }
-        if (mode == MapMode.RISK) for (x in xs) for (z in zs) {
+        if (mode == MapMode.RISK) each(claims, xs, zs) { x, z, _ ->
             if (rentDebt.get(ClientClaims.key(x, z)) >= 0) Draw.outline(g, map.cell(x, z), Palette.alpha(Palette.warning, 0x90))
         }
         if ("work" in layers) work(ui, map, claims, xs, zs)
@@ -148,13 +168,12 @@ object ClaimsLayer {
     private fun work(ui: Ui, map: ChunkMap, claims: Map<Long, View.Entry>?, xs: IntRange, zs: IntRange) {
         val g = ui.g
         val zoom = map.zoom
-        for (x in xs) for (z in zs) {
-            val e = claims?.get(ClientClaims.key(x, z)) ?: continue
+        each(claims, xs, zs) { x, z, e ->
             val flags = e.flags
             val mine = flags and View.ASSIGNED != 0
             val offer = flags and View.OFFER != 0
             val staff = officer && ClientClaims.typeName(e) in jobTypes
-            if (!mine && !offer && !staff) continue
+            if (!mine && !offer && !staff) return@each
             val r = map.cell(x, z)
             if (mine) {
                 Draw.fill(g, r, Palette.alpha(Palette.focus, 0x30))
@@ -163,8 +182,8 @@ object ClaimsLayer {
                 Draw.outline(g, r, Palette.alpha(Palette.success, 0x60))
                 if (zoom >= 12) Draw.marker(g, Icons.ADD, r.centerX, r.centerY)
             }
-            if (!staff || zoom < 8) continue
-            val n = staffed.get(ClientClaims.key(x, z)).takeIf { it >= 0 } ?: continue
+            if (!staff || zoom < 8) return@each
+            val n = staffed.get(ClientClaims.key(x, z)).takeIf { it >= 0 } ?: return@each
             if (n == 0) Draw.hatch(g, r, Palette.alpha(Palette.warning, 0x50), 4)
             else {
                 val label = if (n <= MAX_COUNT) counts[n] else overflow
@@ -179,11 +198,10 @@ object ClaimsLayer {
     private fun borders(ui: Ui, map: ChunkMap, claims: Map<Long, View.Entry>?, xs: IntRange, zs: IntRange) {
         val g = ui.g
         val thick = if (map.zoom >= 12) 2 else 1
-        for (x in xs) for (z in zs) {
-            val e = claims?.get(ClientClaims.key(x, z)) ?: continue
+        val dark = Palette.alpha(0x0C0E12, 0xB0)
+        each(claims, xs, zs) { x, z, e ->
             val r = map.cell(x, z)
             val color = Palette.opaque(ClientClaims.country(e)?.color ?: 0x888888)
-            val dark = Palette.alpha(0x0C0E12, 0xB0)
             fun other(dx: Int, dz: Int) = claims?.get(ClientClaims.key(x + dx, z + dz))?.country != e.country
             if (other(0, -1)) { Draw.fill(g, Rect(r.x, r.y, r.w, thick), color); Draw.fill(g, Rect(r.x, r.y - 1, r.w, 1), dark) }
             if (other(0, 1)) { Draw.fill(g, Rect(r.x, r.bottom - thick, r.w, thick), color); Draw.fill(g, Rect(r.x, r.bottom, r.w, 1), dark) }
@@ -194,16 +212,14 @@ object ClaimsLayer {
     }
 
     private fun markers(ui: Ui, map: ChunkMap, claims: Map<Long, View.Entry>?, xs: IntRange, zs: IntRange) {
-        for (x in xs) for (z in zs) {
-            val e = claims?.get(ClientClaims.key(x, z)) ?: continue
-            val r = map.cell(x, z)
+        each(claims, xs, zs) { x, z, e ->
             val icon = when {
                 e.flags and View.CAPITAL != 0 -> Icons.CROWN
                 e.flags and View.MINE != 0 -> Icons.HOUSE
                 e.flags and View.CLAIMABLE != 0 && ClientClaims.prefs.claimable && map.zoom >= 16 -> Icons.ADD
                 else -> null
-            } ?: continue
-            Draw.marker(ui.g, icon, r.centerX, r.centerY)
+            }
+            if (icon != null) map.cell(x, z).let { Draw.marker(ui.g, icon, it.centerX, it.centerY) }
         }
     }
 
@@ -215,8 +231,7 @@ object ClaimsLayer {
     private fun labelSums(dim: String, claims: Map<Long, View.Entry>?, xs: IntRange, zs: IntRange): List<Map.Entry<Int, IntArray>> {
         if (labelRev != ClientClaims.rev || labelDim != dim || labelBounds.first != xs || labelBounds.second != zs) {
             val sums = HashMap<Int, IntArray>()
-            for (x in xs) for (z in zs) {
-                val e = claims?.get(ClientClaims.key(x, z)) ?: continue
+            each(claims, xs, zs) { x, z, e ->
                 val acc = sums.getOrPut(e.country) { IntArray(3) }
                 acc[0] += x; acc[1] += z; acc[2]++
             }
@@ -237,7 +252,7 @@ object ClaimsLayer {
             val pz = map.sz(acc[1].toDouble() / acc[2] + 0.5)
             val w = Draw.width(country.name) + 18
             val box = Rect(px - w / 2, pz - 6, w, 13)
-            if (placed.any { it.intersect(box).w > 0 && it.intersect(box).h > 0 } || !map.view.contains(box.centerX, box.centerY)) return@forEach
+            if (placed.any { p -> p.intersect(box).let { it.w > 0 && it.h > 0 } } || !map.view.contains(box.centerX, box.centerY)) return@forEach
             placed += box
             Draw.fill(ui.g, box, Palette.alpha(0x0C0E12, 0xB0))
             Flags.draw(ui.g, Rect(box.x + 2, box.y + 2, 12, 9), country.color, country.pattern, country.emblem, country.secondary)

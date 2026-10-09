@@ -52,7 +52,6 @@ object Upkeep {
         }
     }
 
-    /** Settles [day] for every country; a failing country is logged and skipped, the day is never retried (no double billing). */
     fun process(day: Long) {
         Realm.data.countries.values.toList().forEach {
             val pending = it.pending
@@ -85,7 +84,7 @@ object Upkeep {
         c.pending = 0
         Loans.collect(c, day)
         Realm.refreshFree(c)
-        Levels.add(c, "claims", Realm.claims(c.id).size.toDouble())
+        Levels.add(c, "claims", Realm.claimCount(c.id).toDouble())
         bill(c, day)
         provinceTax(c, income)
         Work.pay(c, day, income)
@@ -112,7 +111,7 @@ object Upkeep {
         if (now() - c.lastActive <= s.inactiveDays * s.dayMillis || Wars.involved(c)) return
         val claims = Realm.claims(c.id).sortedByDescending { it.at }
         claims.filter { it.free && !it.capital && it.owner == null }.forEach { if (Realm.removable(it)) Realm.unclaim(it, true) }
-        claims.firstOrNull { it.capital && it.owner == null }?.let { if (Realm.claims(c.id).size == 1) Realm.unclaim(it, true) }
+        claims.firstOrNull { it.capital && it.owner == null }?.let { if (Realm.claimCount(c.id) == 1) Realm.unclaim(it, true) }
         ResearchSync.refresh(c)
     }
 
@@ -145,7 +144,7 @@ object Upkeep {
             }
             ok
         }
-        val indebt = Realm.claims(c.id).count { it.debt > 0 }
+        val indebt = Realm.claimsView(c.id).count { it.debt > 0 }
         if (lost > 0) Mail.broadcast(c, Phrase.of("kami_claims.mail.debt_lost", chunks(lost)), Tone.BAD)
         if (lost > 0) ResearchSync.refresh(c)
         if (lost > 0) Reputation.upkeepLoss(c)

@@ -1,5 +1,6 @@
 package kami.claims.client.app
 
+import kami.claims.Rank
 import kami.claims.TaxMode
 import kami.claims.tributeOwed
 import kami.libs.ui.style.Format
@@ -133,16 +134,18 @@ object Vocabulary {
         2 -> Palette.geoAlly
         3 -> Palette.geoProvince
         4 -> Palette.geoHostile
+        5 -> Palette.danger
         else -> Palette.geoNeutral
     }
 
-    fun relationLabel(relation: Int) = tr("kami_claims.relation.${relation.coerceIn(0, 4)}")
+    fun relationLabel(relation: Int) = tr("kami_claims.relation.${relation.coerceIn(0, 5)}")
 
     fun relation(key: String) = when (key) {
         "own" -> Palette.success to tr("kami_claims.relation.1")
         "family" -> Palette.geoProvince to tr("kami_claims.relation.3")
         "ally" -> Palette.geoAlly to tr("kami_claims.relation.2")
         "banished" -> Palette.danger to tr("kami_claims.relation.4")
+        "enemy" -> Palette.danger to tr("kami_claims.relation.5")
         else -> Palette.textMuted to tr("kami_claims.relation.0")
     }
 
@@ -160,5 +163,9 @@ object Vocabulary {
     fun tributeEstimate(mode: String, amount: Double, base: Long) = tributeOwed(if (mode == "percent") TaxMode.PERCENT else TaxMode.FLAT, amount, base)
 
     fun tribute(mode: String, amount: Double) =
-        if (mode == "percent") tr("kami_claims.tribute.percent", Format.number((amount * 100).toLong())) else tr("kami_claims.tribute.flat", Format.number(amount.toLong()))
+        if (mode == "percent") tr("kami_claims.tribute.percent", Format.number((amount * 100).toLong())) else Format.perDay(Format.money(amount.toLong()))
+
+    fun ratio(a: Number, b: Number) = tr("kami_libs.format.ratio", Format.number(a.toLong()), Format.number(b.toLong()))
 }
+
+fun rankOf(name: String): Rank? = Rank.entries.firstOrNull { it.name.equals(name, true) }

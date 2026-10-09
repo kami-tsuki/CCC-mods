@@ -35,22 +35,22 @@ class AdminApp private constructor() : KamiApp() {
 
     override fun buildNav(): List<NavGroup> {
         val groups = linkedMapOf(
-            "kami_essentials.admin.nav.overview" to mutableListOf(
-                NavItem("dashboard", tr("kami_essentials.admin.nav.dashboard"), Icons.DASHBOARD),
-                NavItem("economy", tr("kami_essentials.admin.nav.economy"), Icons.COIN),
+            "kami_libs.common.overview" to mutableListOf(
+                NavItem("dashboard", tr("kami_libs.common.dashboard"), Icons.DASHBOARD),
+                NavItem("economy", tr("kami_libs.common.economy"), Icons.COIN),
                 NavItem("coins", tr("kami_essentials.admin.nav.coins"), Icons.DEPOSIT),
-                NavItem("bank", tr("kami_essentials.admin.nav.bank"), Icons.TREASURY),
+                NavItem("bank", tr("kami_essentials.bank.group"), Icons.TREASURY),
                 NavItem("journal", tr("kami_essentials.admin.nav.journal"), Icons.LEDGER)
             ),
-            "kami_essentials.admin.nav.activity" to mutableListOf(
-                NavItem("activity", tr("kami_essentials.admin.nav.activity"), Icons.STATS),
+            "kami_essentials.admin.activity" to mutableListOf(
+                NavItem("activity", tr("kami_essentials.admin.activity"), Icons.STATS),
                 NavItem("staff", tr("kami_essentials.admin.nav.staff"), Icons.SHIELD),
                 NavItem("audit", tr("kami_essentials.admin.nav.audit"), Icons.SCROLL)
             ),
             "kami_essentials.admin.nav.players" to mutableListOf(
                 NavItem("players", tr("kami_essentials.admin.nav.directory"), Icons.PEOPLE),
-                NavItem("statistics", tr("kami_essentials.admin.nav.statistics"), Icons.STATS),
-                NavItem("player", tr("kami_essentials.admin.nav.player"), Icons.PERSON)
+                NavItem("statistics", tr("kami_libs.common.statistics"), Icons.STATS),
+                NavItem("player", tr("kami_libs.common.details"), Icons.PERSON)
             ),
             "kami_essentials.admin.nav.moderation" to mutableListOf(
                 NavItem("bans", tr("kami_essentials.admin.nav.bans"), Icons.BAN),

@@ -49,12 +49,12 @@ fun Ui.scroll(key: Any, r: Rect, contentHeight: Int, draw: (Rect) -> Unit): Scro
     s.content = contentHeight
     s.view = r.h
     s.reveal?.let { y -> if (y < s.target || y > s.target + r.h - 20) s.target = (y - 20).toDouble(); s.reveal = null }
-    val w = wheel(r)
-    if (w != 0.0) s.target -= w * 24
     ease(s)
     val bar = s.max > 0
     val content = Rect(r.x, r.y - s.offset.toInt(), r.w - if (bar) 4 else 0, max(contentHeight, r.h))
     clip(r) { draw(content) }
+    val w = wheelIf(r) { if (it > 0) s.target > 0 else s.target < s.max }
+    if (w != 0.0) s.target = (s.target - w * 24).coerceIn(0.0, s.max.toDouble())
     if (bar) {
         val track = Rect(r.right - 3, r.y + 1, 2, r.h - 2)
         val thumbH = max(12, track.h * r.h / max(1, contentHeight))
@@ -99,7 +99,7 @@ fun Ui.card(r: Rect, title: String? = null, icon: Icon? = null, severity: Severi
     val shownTitle = Draw.fit(title, (r.w - (x - r.x) - trailingReserve - 6).coerceAtLeast(20), TextStyle.HEADING)
     Draw.text(g, shownTitle, x, textY, TextStyle.HEADING, titleColor)
     if (shownTitle != title) tooltip("title:$key", header) { Tip.text(title) }
-    trailing?.let { Draw.textRight(g, Draw.fit(it, (r.w / 2).coerceAtLeast(26)), r.right - (if (help != null) 17 else 5), textY, Palette.textMuted) }
+    trailing?.let { val tw = (r.w / 2).coerceAtLeast(26); fitText(r.right - (if (help != null) 17 else 5) - tw, textY, tw, it, Palette.textMuted, align = Align.RIGHT, key = "trailing:$key") }
     help?.let { h ->
         val hr = Rect(r.right - 15, header.y + (header.h - 12) / 2 + 1, 12, 12)
         Draw.tintedIcon(g, Icons.HELP, hr.x - 2, hr.y - 2, Draw.ICON, if (hovering(hr)) Palette.text else Palette.textMuted)

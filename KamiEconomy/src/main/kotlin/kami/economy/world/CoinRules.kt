@@ -53,6 +53,8 @@ internal fun acceptsCoins(playerInventory: Boolean, slot: String, menu: String?)
 internal fun coinUseAllowed(block: String, hasBlockEntity: Boolean, harmless: Boolean = false) =
     !hasBlockEntity || harmless || block.startsWith("numismatics:") || block == "create:stock_ticker"
 
+fun ItemStack.coinValue(): Long = (item as? CoinItem)?.let { it.coin.value.toLong() * count } ?: 0L
+
 object CoinRules {
     private val ROOTS = setOf("numismatics", "nm")
     private const val DELIVER_TICKS = 100
@@ -73,9 +75,10 @@ object CoinRules {
         FORGE_BUS.addListener<PlayerInteractEvent.EntityInteract> { if (holder(it, it.target)) { it.isCanceled = true; it.cancellationResult = InteractionResult.FAIL } }
         FORGE_BUS.addListener<PlayerInteractEvent.EntityInteractSpecific> { if (holder(it, it.target)) { it.isCanceled = true; it.cancellationResult = InteractionResult.FAIL } }
         FORGE_BUS.addListener<PlayerInteractEvent.RightClickBlock> { e ->
+            if (!isCoin(e.entity.mainHandItem) && !isCoin(e.entity.offhandItem)) return@addListener
             val state = e.level.getBlockState(e.pos)
             val harmless = e.level.getBlockEntity(e.pos) is BaseContainerBlockEntity || state.block is BedBlock || state.block is SignBlock || state.block is BellBlock
-            if ((isCoin(e.entity.mainHandItem) || isCoin(e.entity.offhandItem)) && !coinUseAllowed(BuiltInRegistries.BLOCK.getKey(state.block).toString(), state.hasBlockEntity(), harmless)) {
+            if (!coinUseAllowed(BuiltInRegistries.BLOCK.getKey(state.block).toString(), state.hasBlockEntity(), harmless)) {
                 e.isCanceled = true
                 e.cancellationResult = InteractionResult.FAIL
                 (e.entity as? ServerPlayer)?.let { notify(it, "store") }

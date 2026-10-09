@@ -22,6 +22,7 @@ import kami.libs.command.text
 import kami.libs.db.Db
 import kami.libs.discord.DiscordApi
 import kami.libs.discord.DiscordFeature
+import kami.libs.discord.DiscordFormat
 import kami.libs.discord.DiscordText
 import kami.libs.discord.Embed
 import kami.libs.discord.SlashCommand
@@ -63,7 +64,7 @@ object Maintenance : DiscordFeature {
 
     private fun short(s: Long) = if (s >= MIN && s % MIN == 0L) "${s / MIN}m" else "${s}s"
 
-    private fun span(s: Long) = if (s < MIN) Phrase.of("kami_essentials.maintenance.seconds", s) else duration(s)
+    private fun span(s: Long) = if (s < MIN) Phrase.of("kami_libs.unit.second.short", s) else duration(s)
 
     private fun admin(server: MinecraftServer, profile: GameProfile) =
         server.getProfilePermissions(profile) >= 2 || runCatching { PermissionAPI.getOfflinePermission(profile.id, Perms.MAINTENANCE_BYPASS) }.getOrDefault(false)
@@ -95,14 +96,15 @@ object Maintenance : DiscordFeature {
         s.invalidateStatus()
     }
 
-    fun schedule(kind: Kind, seconds: Long, why: String) {
-        val s = server ?: return
+    fun schedule(kind: Kind, seconds: Long, why: String): Boolean {
+        val s = server ?: return false
         val delay = max(MIN, seconds)
         val at = System.currentTimeMillis() + delay * 1000
-        if ((pending[kind]?.at ?: Long.MAX_VALUE) <= at) return
+        if ((pending[kind]?.at ?: Long.MAX_VALUE) <= at) return false
         pending[kind] = Pending(kind, at, why, delay)
         announce(s, kind, delay, why, true)
         discord(Theme.ACCENT, line(kind, delay, why))
+        return true
     }
 
     fun cancel(kind: Kind): Boolean {
@@ -148,23 +150,24 @@ object Maintenance : DiscordFeature {
         val ctx = e.parseResults.context
         val name = ctx.nodes.firstOrNull()?.node?.name ?: return
         val kind = when (name) { "stop" -> Kind.STOP; "reload" -> Kind.RELOAD; else -> return }
-        if (ctx.nodes.size > 1) return
+        if (ctx.nodes.size > 1 || ctx.source.entity == null) return
         e.isCanceled = true
-        schedule(kind, 0, "")
+        if (!schedule(kind, 0, "")) ctx.source.sendFailure(Phrase.of("kami_essentials.maintenance.already", kindName(kind)).component())
     }
 
     private fun kindName(kind: Kind) = Phrase.of("kami_essentials.maintenance.kind.${kind.name.lowercase()}")
 
     private fun line(kind: Kind, left: Long, why: String): String {
         val name = text("kind.${kind.name.lowercase()}")
-        return if (why.isBlank()) text("announce", name, short(left)) else text("announce_reason", name, short(left), why)
+        val time = if (left < MIN) "${left}s" else DiscordFormat.duration(left * 1000)
+        return if (why.isBlank()) text("discord_announce", name, time) else text("discord_announce_reason", name, time, DiscordFormat.literal(why, 300))
     }
 
     private fun announce(server: MinecraftServer, kind: Kind, left: Long, why: String, title: Boolean) {
         val time = span(left)
         val chat = if (why.isBlank()) Phrase.of("kami_essentials.maintenance.announce", kindName(kind), time) else Phrase.of("kami_essentials.maintenance.announce_reason", kindName(kind), time, why)
         val head = kindName(kind).component().withColor(Theme.ACCENT)
-        val sub = Phrase.of("kami_essentials.maintenance.subtitle", time).component().withColor(Theme.MUTED)
+        val sub = Phrase.of("kami_libs.time.in", time).component().withColor(Theme.MUTED)
         server.playerList.players.forEach { p ->
             p.tell(Talk.chat.warn(chat))
             if (title) {
@@ -193,8 +196,7 @@ object Maintenance : DiscordFeature {
     private fun Ctx.say(key: String, vararg args: Any) = ok(Phrase.of("kami_essentials.maintenance.$key", *args))
 
     private fun Ctx.timed(kind: Kind, delay: Long, why: String) {
-        schedule(kind, delay, why)
-        say("scheduled", kindName(kind))
+        if (schedule(kind, delay, why)) say("scheduled", kindName(kind)) else fail(Phrase.of("kami_essentials.maintenance.already", kindName(kind)))
     }
 
     private fun Ctx.cancelled(kind: Kind) {
@@ -252,8 +254,8 @@ object Maintenance : DiscordFeature {
                 delay != null || state == "on" -> {
                     val seconds = delay?.let { runCatching { Durations.parse(it)?.inWholeSeconds }.getOrNull() }
                     if (delay != null && seconds == null) return@execute ctx.reply(DiscordText.get("kami_libs", Config.s.discord.language, "kami_libs.admin.bad_duration", delay))
-                    schedule(Kind.MAINTENANCE, seconds ?: 0, ctx.opt("reason").orEmpty())
-                    ctx.reply(text("scheduled", name(Kind.MAINTENANCE)))
+                    val done = schedule(Kind.MAINTENANCE, seconds ?: 0, ctx.opt("reason").orEmpty())
+                    ctx.reply(text(if (done) "scheduled" else "already", name(Kind.MAINTENANCE)))
                 }
                 else -> ctx.reply(status(name).joinToString("\n") { (k, a) -> text(k, *a.toTypedArray()) })
             }

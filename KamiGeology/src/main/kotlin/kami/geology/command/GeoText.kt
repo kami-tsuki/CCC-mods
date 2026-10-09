@@ -7,9 +7,11 @@ import kami.geology.map.MapColors
 import kami.geology.world.Site
 import kami.libs.chat.Chat
 import kami.libs.chat.Msg
+import kami.libs.util.Compact
 import net.minecraft.core.BlockPos
 import kotlin.math.hypot
 import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 object GeoText {
     val chat = Chat.of("geology")
@@ -23,6 +25,8 @@ object GeoText {
     fun provinceLabel(id: String) = trOr("kami_geology.province.$id", name(id))
 
     fun Msg.ore(id: String): Msg = add(orePhrase(id), MapColors.ore(id))
+
+    fun compact(v: Double) = Compact.of(v.roundToLong())
 
     fun distance(origin: BlockPos, site: Site) = hypot(site.x - origin.x, site.z - origin.z)
 

@@ -67,6 +67,7 @@ object KamiLibs {
             ServerBank.load()
             Wealth.load()
             Coins.load()
+            runCatching { CoinWatch.ensureIndex() }.onFailure { LOG.warn("Could not index coin ledger: {}", it.message) }
             MoneyGuard.load()
             Stats.load()
             Staff.clear()

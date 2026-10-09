@@ -1,5 +1,6 @@
 package kami.libs.discord
 
+import kami.libs.util.toUuidOrNull
 import com.mojang.authlib.GameProfile
 import kami.libs.db.Db
 import net.neoforged.neoforge.server.ServerLifecycleHooks
@@ -13,7 +14,7 @@ object DiscordBans {
         val rows = Db.read { query("SELECT discord_id, uuid FROM libs_discord_ban") { it.long("discord_id") to it.string("uuid") } }
         synchronized(byDiscord) {
             byDiscord.clear()
-            rows.forEach { (id, uuid) -> runCatching { byDiscord[id] = UUID.fromString(uuid) } }
+            rows.forEach { (id, uuid) -> uuid.toUuidOrNull()?.let { byDiscord[id] = it } }
         }
     }
 

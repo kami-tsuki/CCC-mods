@@ -1,6 +1,6 @@
 package kami.claims.client.store
 
-import kami.claims.client.rankOf
+import kami.claims.client.app.rankOf
 import kami.claims.Rank
 import kami.claims.client.ClientClaims
 import kami.claims.net.Act
@@ -130,7 +130,7 @@ object ClaimsStore {
         val now = System.currentTimeMillis()
         val expired = pending.filterValues { now - it.since > 6000 }
         expired.keys.forEach { pending.remove(it) }
-        expired.values.forEach { p -> listeners.forEach { it(Outcome(p.name, p.key, false, tr("kami_claims.error.timeout"), "TIMEOUT", null, null)) } }
+        expired.values.forEach { p -> listeners.forEach { it(Outcome(p.name, p.key, false, tr("kami_libs.admin.timeout"), "TIMEOUT", null, null)) } }
     }
 
     fun clear() {

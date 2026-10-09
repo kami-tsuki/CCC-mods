@@ -10,11 +10,6 @@ import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import java.util.UUID
 
-/**
- * Counts felled trees for `fell` tasks. With Dynamic Trees every natural tree is made of branch blocks and one
- * broken branch fells the tree, so a player breaking a branch counts as one tree. Branch breaks of the same
- * player close together in a short time count once, so chopping one tree piece by piece is still one tree.
- */
 object TreeFelling {
     private const val SAME_TREE_TICKS = 100L
     private const val SAME_TREE_DIST = 8.0
@@ -26,7 +21,6 @@ object TreeFelling {
 
     private val recent = ArrayList<Fell>()
 
-    /** A Dynamic Trees branch, by tag or (for branches outside the tag) by class. */
     fun isTree(state: BlockState): Boolean = state.`is`(branches) || isBranchClass(state.block.javaClass)
 
     private fun isBranchClass(type: Class<*>): Boolean {
@@ -38,7 +32,6 @@ object TreeFelling {
         return false
     }
 
-    /** Called for a player breaking a tree block; reports one felled tree unless it is the same tree as a moment ago. */
     fun broke(player: ServerPlayer, pos: BlockPos, report: (ServerPlayer) -> Unit) {
         val level = player.serverLevel()
         val now = level.gameTime

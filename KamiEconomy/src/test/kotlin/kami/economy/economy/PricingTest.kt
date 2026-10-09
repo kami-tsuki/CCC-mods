@@ -52,7 +52,7 @@ class PricingTest {
     @Test
     fun noCandleRecordedWhenNothingTradedThisTick() {
         reset()
-        val idle = "test:idle-${System.nanoTime()}"
+        val idle = "test:idle"
         Market.book(idle).course = 50.0
         Pricing.tick()
         assertTrue(History.series(idle, Range.DAY, System.currentTimeMillis(), 0.0).buckets.isEmpty())
@@ -61,7 +61,7 @@ class PricingTest {
     @Test
     fun candleRecordedOnlyWhenTradesHappened() {
         reset()
-        val active = "test:active-${System.nanoTime()}"
+        val active = "test:active"
         val book = Market.book(active)
         book.course = 50.0
         book.recentFills += Fill(55, 3, 0)

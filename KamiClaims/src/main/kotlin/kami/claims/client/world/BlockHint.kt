@@ -4,6 +4,7 @@ import kami.libs.ui.text.trn
 import kami.libs.ui.text.trJson
 import com.mojang.blaze3d.platform.InputConstants
 import kami.claims.client.ClientClaims
+import kami.claims.client.ClientHooks
 import kami.claims.net.Denied
 import kami.libs.ui.style.Glyphs
 import kami.libs.ui.core.Dim
@@ -85,7 +86,7 @@ object BlockHint {
         if (prefs.denialTips < 3) {
             prefs.denialTips++
             ClientClaims.savePrefs()
-            mc.player?.displayClientMessage(Component.translatable("kami_claims.hud.denied_tip", "B", "K").withColor(0xAEB5C1), false)
+            mc.player?.displayClientMessage(Component.translatable("kami_claims.hud.denied_tip", ClientHooks.bordersKey(), ClientHooks.openKey()).withColor(0xAEB5C1), false)
         }
     }
 }

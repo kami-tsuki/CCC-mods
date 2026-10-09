@@ -131,7 +131,9 @@ object KamiEssentials {
         FORGE_BUS.addListener<ServerChatEvent>(Talk::onChat)
         FORGE_BUS.addListener<CommandEvent>(Talk::onCommand)
         FORGE_BUS.addListener<CommandEvent>(Console::onCommand)
-        FORGE_BUS.addListener<PlayerEvent.PlayerRespawnEvent> { (it.entity as? ServerPlayer)?.let(Deliveries::deliver) }
+        FORGE_BUS.addListener<PlayerEvent.PlayerRespawnEvent> { e ->
+            (e.entity as? ServerPlayer)?.let { Tab.forget(it.uuid); Deliveries.deliver(it) }
+        }
         FORGE_BUS.addListener<LivingDeathEvent> { e -> (e.entity as? ServerPlayer)?.let { Trades.drop(it, Phrase.of("kami_essentials.trade.reason.died", it.gameProfile.name)) } }
         FORGE_BUS.addListener<LivingChangeTargetEvent> { e -> if ((e.newAboutToBeSetTarget as? ServerPlayer)?.let(Vanish::active) == true) e.isCanceled = true }
         FORGE_BUS.addListener<ItemEntityPickupEvent.Pre> { e -> if (Trades.busy(e.player)) e.setCanPickup(TriState.FALSE) }

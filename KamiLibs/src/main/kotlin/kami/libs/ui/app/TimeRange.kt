@@ -19,7 +19,7 @@ class TimeRange(private val key: String) {
     private var span: Long? = null
     private var start: Long? = null
     private val options get() = listOf(
-        Option("all", tr("kami_libs.range.all")), Option("30d", tr("kami_libs.range.30d")),
+        Option("all", tr("kami_libs.common.all")), Option("30d", tr("kami_libs.range.30d")),
         Option("7d", tr("kami_libs.range.7d")), Option("24h", tr("kami_libs.range.24h"))
     )
 

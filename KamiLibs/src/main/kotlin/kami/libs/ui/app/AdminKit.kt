@@ -14,6 +14,7 @@ import kami.libs.ui.style.Format
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
 import kami.libs.ui.text.tr
+import kami.libs.ui.widget.fitText
 import kami.libs.ui.widget.CONTROL_H
 import kami.libs.ui.widget.Column
 import kami.libs.ui.widget.emptyState
@@ -175,7 +176,7 @@ fun <T> Ui.pagedTable(
     val events = table(area, cols, p.rows, state, keyOf, multi, rowHeight, severity, if (failed) "" else emptyText, key = key, loading = p.remote.loading)
     if (failed) remoteFailed(area.dropTop(TABLE_HEADER_H), p.remote, key)
     staleRows(area, p.stale && p.rows.isNotEmpty())
-    Draw.text(g, Draw.fit(tr("kami_libs.admin.total", Format.number(p.total)), foot.w - 116), foot.x, foot.centerY - 4, Palette.textMuted)
+    fitText(foot.x, foot.centerY - 4, foot.w - 116, tr("kami_libs.admin.total", Format.number(p.total)), Palette.textMuted)
     pager(foot.right(110), p.index, p.pages, key = "$key:pager")?.let { p.index = it }
     return events
 }

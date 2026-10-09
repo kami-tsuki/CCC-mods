@@ -7,6 +7,7 @@ import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr
+import kami.libs.ui.widget.fitText
 import kami.libs.ui.widget.Lock
 import kami.libs.ui.widget.locked
 import kami.libs.ui.widget.toggle
@@ -23,7 +24,7 @@ object OfferRows {
             val box = line.takeFromRight(fieldW)
             val toggle = line.takeFromRight(26)
             val x = row.x + Draw.leadIcon(ui.g, ICONS.getValue(cat), row.x, row.centerY) + 2
-            Draw.text(ui.g, Draw.fit(label, toggle.x - x - 4), x, row.y + 5, Palette.text)
+            ui.fitText(x, row.y + 5, toggle.x - x - 4, label, Palette.text)
             changed = ui.toggle(toggle, on || fixed, "", editable && !fixed && lock == null, if (fixed) tr("kami_claims.law.offer.citizen") else reason, key = "$key:on")
             field(box)
         }

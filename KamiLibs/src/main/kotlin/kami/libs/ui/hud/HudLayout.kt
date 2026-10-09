@@ -4,6 +4,7 @@ import kami.libs.config.Configs
 import kami.libs.config.writeAtomic
 import kami.libs.log.Log
 import kami.libs.ui.core.Rect
+import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Palette
 import kotlinx.serialization.Serializable
 import java.nio.file.Files
@@ -19,7 +20,10 @@ enum class Anchor(val ax: Float, val ay: Float) {
 @Serializable
 class HudPos(var anchor: Anchor = Anchor.TOP_LEFT, var dx: Int = 0, var dy: Int = 0)
 
-class HudElement(val id: String, val default: HudPos, val sample: () -> String, val color: () -> Int = { Palette.text })
+class HudElement(
+    val id: String, val default: HudPos, val sample: () -> String, val color: () -> Int = { Palette.text },
+    val lines: (() -> List<Pair<String, Int>>)? = null
+)
 
 class HudOption(val label: () -> String, val choices: List<Pair<String, () -> String>>, val get: () -> String, val set: (String) -> Unit)
 
@@ -36,6 +40,13 @@ object HudLayout {
     private val json = Configs.json()
     private val file by lazy { Configs.dir("libs").resolve("hud.json") }
     private val data: HudData by lazy { runCatching { json.decodeFromString(HudData.serializer(), Files.readString(file)) }.getOrNull() ?: HudData() }
+
+    const val LINE_H = 9
+
+    fun sampleSize(e: HudElement): Pair<Int, Int> {
+        val rows = e.lines?.invoke() ?: return Draw.width(e.sample()) + 10 to BOX_H
+        return (rows.maxOfOrNull { Draw.width(it.first) } ?: 0) + 10 to rows.size * LINE_H + 6
+    }
 
     fun element(e: HudElement) { elements[e.id] = e }
 

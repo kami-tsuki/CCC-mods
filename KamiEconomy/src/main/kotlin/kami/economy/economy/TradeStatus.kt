@@ -16,6 +16,9 @@ object TradeStatus {
     private var effective: Map<String, ItemStatus>? = null
     private var attached = false
 
+    var rev = 0L
+        private set
+
     fun load() {
         entries.clear()
         Db.read { query("SELECT * FROM eco_item_status ORDER BY rowid") { it.string("item") to ItemStatus(TradeFlag.parse(it.string("flags")), it.string("reason"), it.string("by"), it.long("at")) } }
@@ -33,6 +36,7 @@ object TradeStatus {
 
     fun reindex() {
         effective = null
+        rev++
     }
 
     fun all(): Map<String, ItemStatus> = entries
@@ -42,6 +46,7 @@ object TradeStatus {
     fun set(item: String, flags: Set<TradeFlag>, reason: String, by: String): ItemStatus? {
         val before = entries[item]
         if (flags.isEmpty()) entries.remove(item) else entries[item] = ItemStatus(flags, reason, by, now())
+        rev++
         effective = null
         Market.dirty = true
         return before

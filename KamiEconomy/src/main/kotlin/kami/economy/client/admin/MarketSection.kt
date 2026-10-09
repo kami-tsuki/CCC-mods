@@ -12,6 +12,7 @@ import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr
+import kami.libs.ui.widget.cellText
 import kami.libs.ui.widget.Align
 import kami.libs.ui.widget.Column
 import kami.libs.ui.widget.textOrder
@@ -26,14 +27,20 @@ object MarketSection {
     private val stacks = HashMap<String, ItemStack>()
 
     fun register() = AdminSections.register(AdminSection(
-        "market", 30, { "kami_economy.admin.nav.group" },
+        "market", 30, { "kami_libs.common.market" },
         {
             listOf(
                 NavItem("market.orders", tr("kami_economy.admin.nav.orders"), Icons.COIN),
                 NavItem("market.starter", tr("kami_economy.admin.nav.starter"), Icons.WHEAT),
                 NavItem("market.status", tr("kami_economy.admin.nav.status"), Icons.LOCK),
                 NavItem("market.frozen", tr("kami_economy.admin.nav.frozen"), Icons.WARNING),
-                NavItem("market.stats", tr("kami_economy.admin.nav.stats"), Icons.STATS)
+                NavItem("market.stats", tr("kami_libs.common.statistics"), Icons.STATS),
+                NavItem("market.quests", tr("kami_libs.flow.quest"), Icons.STAR),
+                NavItem("market.quest_spawn", q("nav.spawn"), Icons.ADD),
+                NavItem("market.quest_preview", q("nav.preview"), Icons.SEARCH),
+                NavItem("market.quest_settings", q("nav.settings"), Icons.SETTINGS),
+                NavItem("market.quest_dishes", q("nav.dishes"), Icons.LAYERS),
+                NavItem("market.quest_stats", q("nav.stats"), Icons.STATS)
             )
         },
         { app, id ->
@@ -42,6 +49,12 @@ object MarketSection {
                 "market.status" -> StatusPage(app)
                 "market.frozen" -> FrozenPage(app)
                 "market.stats" -> MarketStatsPage()
+                "market.quests" -> QuestAdminListPage(app)
+                "market.quest_spawn" -> QuestSpawnPage(app)
+                "market.quest_preview" -> QuestPreviewPage(app)
+                "market.quest_settings" -> QuestSettingsPage(app)
+                "market.quest_dishes" -> QuestDishesPage()
+                "market.quest_stats" -> QuestStatsPage()
                 else -> OrdersPage(app)
             }
         }
@@ -71,12 +84,11 @@ internal fun <T> itemColumn(title: String, id: (T) -> String, label: (T) -> Stri
     Column<T>(title, -1, sort = textOrder<T> { MarketSection.itemName(id(it)) }) { _, r, row ->
         val item = id(row)
         if (item.isEmpty()) return@Column
-        specCell(r, item, MarketSection.stack(item), label(row).ifEmpty { MarketSection.itemName(item) }, "admin-item:${r.y}:$item")
+        specCell(r, item, MarketSection.stack(item), label(row).ifEmpty { MarketSection.itemName(item) }, "admin-item:$item")
     }
 
 internal fun <T> tipColumn(title: String, width: Int, sort: Comparator<T>, hint: (T) -> Tip?, align: Align = Align.LEFT, color: (T) -> Int = { Palette.text }, text: (T) -> String) =
     Column<T>(title, width, align, sort) { _, r, row ->
-        val s = Draw.fit(text(row), r.w)
-        Draw.text(g, s, if (align == Align.RIGHT) r.right - Draw.width(s) else r.x, r.y + (r.h - 8) / 2, color(row))
+        cellText(r, text(row), color(row), align, "tc:${r.x},${r.y}")
         tooltip("tip-cell:${r.x},${r.y}", r) { hint(row) }
     }

@@ -71,7 +71,7 @@ internal fun KamiApp.statusDialog(item: String, csv: String, rev: String) {
             }
         }
         s.used = st.bottom - s.body.y
-        dialogButtons(s, tr("kami_libs.common.confirm"), flags != before, tr("kami_economy.admin.status.unchanged")) {
+        dialogButtons(s, tr("kami_libs.common.confirm"), flags != before, tr("kami_economy.admin.quest.ui.unchanged")) {
             s.close()
             reasonDialog({ this@statusDialog.open(it) }, tr("kami_economy.admin.status.title"), danger = flags.isNotEmpty()) { reason, _, _ ->
                 this@statusDialog.adminAct("market.status_set", listOf(item, TradeFlag.csv(flags), rev), reason)
@@ -131,8 +131,8 @@ internal class StatusPage(private val app: KamiApp) : Page() {
     private fun columns(lock: String?) = listOf(
         itemColumn<StatusRow>(tr("kami_libs.common.item"), { it.item }),
         Column.text<StatusRow>(tr("kami_economy.admin.col.flags"), 110, color = { Palette.warning }) { flagsText(it.flags) },
-        Column.text<StatusRow>(tr("kami_economy.admin.col.reason"), 120) { it.reason },
-        Column.text<StatusRow>(tr("kami_economy.admin.col.by"), 70) { it.byName },
+        Column.text<StatusRow>(tr("kami_libs.admin.reason"), 120) { it.reason },
+        Column.text<StatusRow>(tr("kami_libs.common.by"), 70) { it.byName },
         Column.number<StatusRow>(tr("kami_economy.admin.col.placed"), 56, format = { Format.ago(it) }) { it.at },
         Column<StatusRow>("", 18) { _, cell, row ->
             if (iconButton(Rect(cell.x, cell.y, cell.h, cell.h), Icons.EDIT, tr("kami_economy.admin.status.edit"), lock == null, key = "market-status:edit:${row.item}", disabledReason = lock))

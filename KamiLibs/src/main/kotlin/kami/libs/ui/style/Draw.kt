@@ -12,6 +12,7 @@ import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.Style
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.util.FormattedCharSequence
+import kami.libs.util.toUuidOrNull
 import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.max
@@ -230,6 +231,8 @@ object Draw {
 
     fun wrap(text: String, width: Int): List<FormattedCharSequence> = font.split(Component.literal(text), max(10, width))
 
+    fun lines(text: String, width: Int): List<String> = font.splitter.splitLines(text, max(10, width), Style.EMPTY).map { it.string }
+
     fun paragraph(g: GuiGraphics, text: String, x: Int, y: Int, width: Int, color: Int = Palette.textSecondary, maxLines: Int = Int.MAX_VALUE): Int {
         val lines = wrap(text, width).take(maxLines)
         lines.forEachIndexed { i, line -> g.drawString(font, line, x, y + i * LINE, color, false) }
@@ -290,7 +293,7 @@ object Draw {
     }
 
     fun head(g: GuiGraphics, id: String, x: Int, y: Int, size: Int) {
-        val uuid = runCatching { UUID.fromString(id) }.getOrNull()
+        val uuid = id.toUuidOrNull()
         val mc = Minecraft.getInstance()
         val skin = uuid?.let { mc.connection?.getPlayerInfo(it)?.skin } ?: DefaultPlayerSkin.get(uuid ?: UUID(0, 0))
         PlayerFaceRenderer.draw(g, skin, x, y, size)

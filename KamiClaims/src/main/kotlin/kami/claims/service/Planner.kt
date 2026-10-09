@@ -28,19 +28,17 @@ class Plan(val cells: List<PlannedCell>, val costNow: Long, val upkeepPerDay: Do
 object Planner {
     private val s get() = Config.s
 
-    private fun neighbours(k: Key) = listOf(Key(k.dim, k.x + 1, k.z), Key(k.dim, k.x - 1, k.z), Key(k.dim, k.x, k.z + 1), Key(k.dim, k.x, k.z - 1))
+    private fun surcharge(c: Country, k: Key, owned: Set<Key>) = if (Realm.neighbors(k).any { it !in owned }) Buffs.tax(c) else 0
 
-    private fun surcharge(c: Country, k: Key, owned: Set<Key>) = if (neighbours(k).any { it !in owned }) Buffs.tax(c) else 0
-
-    fun blockReason(c: Country, k: Key, type: String, owned: Set<Key>, treasury: Long, count: Int): Phrase? {
+    fun blockReason(c: Country, k: Key, type: String, owned: Set<Key>, treasury: Long, count: Int, freeAllowed: Int = Realm.freeAllowed(c)): Phrase? {
         if (k.dim !in s.dimensionSet) return Phrase.of("kami_claims.block.dimension")
         val def = s.types[type] ?: return Phrase.of("kami_claims.error.unknown_type")
         Realm.index[k]?.let { cl -> return if (cl.country == c.id) Phrase.of("kami_claims.block.yours") else Phrase.of("kami_claims.block.owned", Realm.data.countries[cl.country]?.name ?: cl.country) }
         Realm.reservedFor(k.dim, k.x, k.z)?.let { if (it != c.id) return Phrase.of("kami_claims.detail.reserved", Realm.data.countries[it]?.name ?: it) }
         Features.lockReason(c, Features.claimType(type))?.let { return it }
-        if (owned.isNotEmpty() && neighbours(k).none { it in owned }) return Phrase.of("kami_claims.block.not_connected")
+        if (owned.isNotEmpty() && Realm.neighbors(k).none { it in owned }) return Phrase.of("kami_claims.block.not_connected")
         Features.limit(c, Capacity.CHUNKS, count)?.let { return it }
-        if (count >= Realm.freeAllowed(c) && treasury < def.price) return Phrase.of("kami_claims.block.treasury", Phrase.of("kami_libs.unit.money", def.price.toString()))
+        if (count >= freeAllowed && treasury < def.price) return Phrase.of("kami_claims.block.treasury", Phrase.of("kami_libs.unit.money", def.price.toString()))
         return null
     }
 
@@ -49,6 +47,7 @@ object Planner {
         val owned = Realm.claims(c.id).map { it.key }.toHashSet()
         var treasury = c.treasury
         var count = owned.size
+        val allowed = Realm.freeAllowed(c)
         val decided = LinkedHashMap<Key, PlannedCell>()
         val pending = keys.distinct().toMutableList()
         for (pass in 0..min(pending.size, 64)) {
@@ -56,8 +55,8 @@ object Planner {
             val iterator = pending.iterator()
             while (iterator.hasNext()) {
                 val k = iterator.next()
-                if (blockReason(c, k, type, owned, treasury, count) != null) continue
-                val free = count < Realm.freeAllowed(c)
+                if (blockReason(c, k, type, owned, treasury, count, allowed) != null) continue
+                val free = count < allowed
                 val price = def?.price ?: 0
                 if (!free) treasury -= price
                 decided[k] = PlannedCell(k, if (free) Outcome.FREE else Outcome.CLAIM, null, if (free) 0 else price, max(1, def?.period ?: 1))
@@ -68,7 +67,7 @@ object Planner {
             }
             if (!progress) break
         }
-        pending.forEach { k -> decided[k] = PlannedCell(k, if (Realm.index[k]?.country == c.id) Outcome.SKIP else Outcome.BLOCKED, blockReason(c, k, type, owned, treasury, count)) }
+        pending.forEach { k -> decided[k] = PlannedCell(k, if (Realm.index[k]?.country == c.id) Outcome.SKIP else Outcome.BLOCKED, blockReason(c, k, type, owned, treasury, count, allowed)) }
         val ordered = keys.distinct().mapNotNull { decided[it] }
         return Plan(ordered, c.treasury - treasury, ordered.filter { it.outcome == Outcome.CLAIM || it.outcome == Outcome.FREE }.sumOf { if (it.outcome == Outcome.FREE) 0.0 else (it.price + surcharge(c, it.key, owned)).toDouble() / it.period })
     }
@@ -144,7 +143,7 @@ object Planner {
         val start = rest.keys.firstOrNull() ?: return true
         val seen = hashSetOf(start)
         val queue = ArrayDeque(listOf(start))
-        while (queue.isNotEmpty()) neighbours(queue.removeFirst()).forEach { k -> if (k in rest && seen.add(k)) queue.addLast(k) }
+        while (queue.isNotEmpty()) Realm.neighbors(queue.removeFirst()).forEach { k -> if (k in rest && seen.add(k)) queue.addLast(k) }
         return seen.size == rest.size
     }
 }

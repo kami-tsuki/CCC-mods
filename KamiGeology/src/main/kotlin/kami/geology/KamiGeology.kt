@@ -72,7 +72,7 @@ object KamiGeology {
                 Hardness.update(ConfigStore.load())
             }
         }
-        FORGE_BUS.addListener<ServerStoppedEvent> { Worlds.clear(); Workers.shutdown() }
+        FORGE_BUS.addListener<ServerStoppedEvent> { Worlds.clear(); Workers.shutdown(); GeologyCommand.resetAudit() }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { (it.entity as? ServerPlayer)?.let { p -> MapServer.forget(p) } }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { event ->
             val player = event.entity as? ServerPlayer ?: return@addListener

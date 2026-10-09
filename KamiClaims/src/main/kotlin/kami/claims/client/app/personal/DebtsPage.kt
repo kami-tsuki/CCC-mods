@@ -67,10 +67,10 @@ class DebtsPage(private val host: KamiApp) : Page() {
         val picked = homes.firstOrNull { homeKey(it) in table.selected }
         val blocked = ClaimsPersonal.readOnly() ?: if (funds <= 0) tr("kami_claims.money.disabled.no_coins") else null
         if (ui.edgeButton(bar, tr("kami_claims.personal.debts.pay_all"), Icons.COIN, ButtonStyle.PRIMARY, homes.any { it.debt > 0 } && blocked == null, blocked ?: tr("kami_claims.personal.debts.none"), pending = ClaimsStore.isPending("rent_pay_all"), key = "debts-pay-all")) ClaimsStore.send("rent_pay_all")
-        if (ui.edgeButton(bar, tr("kami_claims.personal.debts.pay_amount"), Icons.COIN, enabled = picked != null && blocked == null, disabledReason = blocked ?: tr("kami_claims.personal.debts.pick"), pending = picked?.let { ClaimsStore.isPending(Dialogs.rentPayKey(it)) } == true, key = "debts-pay")) picked?.let { Dialogs.rentPay(host, it) }
+        if (ui.edgeButton(bar, tr("kami_claims.personal.debts.pay_amount"), Icons.COIN, enabled = picked != null && blocked == null, disabledReason = blocked ?: tr("kami_claims.plots.select_first"), pending = picked?.let { ClaimsStore.isPending(Dialogs.rentPayKey(it)) } == true, key = "debts-pay")) picked?.let { Dialogs.rentPay(host, it) }
         val debt = homes.sumOf { it.debt }
         val credit = homes.sumOf { it.credit }
-        Draw.text(ui.g, Draw.fit(tr("kami_claims.personal.debts.summary", Format.money(debt), Format.money(credit)), bar.rest.w), bar.rest.x, bar.rest.y + 5, if (debt > 0) Palette.danger else Palette.textSecondary)
+        ui.fitText(bar.rest.x, bar.rest.y + 5, bar.rest.w, tr("kami_claims.personal.debts.summary", Format.money(debt), Format.money(credit)), if (debt > 0) Palette.danger else Palette.textSecondary)
         if (homes.isEmpty()) {
             Draw.text(ui.g, tr("kami_claims.home.empty"), stack.x, stack.take(Draw.LINE).y, Palette.textMuted)
             return
@@ -78,7 +78,7 @@ class DebtsPage(private val host: KamiApp) : Page() {
         ui.table(stack.take(TABLE_HEADER_H + minOf(homes.size, 8) * TABLE_ROW_H + 2), listOf(
             Column.text<HomeLine>(tr("kami_claims.help.term.plot"), -1, color = { color(it, funds) }) { tr("kami_claims.home.where", it.country, it.x, it.z) },
             Column.number<HomeLine>(tr("kami_claims.plots.col.rent"), 70, format = { Format.perDay(Format.money(it)) }) { it.rent.toLong() },
-            Column<HomeLine>(tr("kami_claims.personal.debts.balance"), 80, Align.RIGHT, compareBy { it.credit - it.debt }) { _, c, h ->
+            Column<HomeLine>(tr("kami_libs.common.balance"), 80, Align.RIGHT, compareBy { it.credit - it.debt }) { _, c, h ->
                 val text = if (h.debt > 0) "-" + Format.money(h.debt) else Format.money(h.credit)
                 Draw.textRight(g, text, c.right, c.y + (c.h - 8) / 2, color(h, funds))
             },
@@ -103,7 +103,7 @@ class DebtsPage(private val host: KamiApp) : Page() {
                 ), label, "loan_repay", arrayOf(loan.id), key = "loan_repay:${loan.id}")
             }
             val text = tr("kami_claims.personal.debts.loan", title, Format.money(remaining), trn("kami_claims.unit.day", loan.daysLeft.toLong()))
-            Draw.text(ui.g, Draw.fit(text, row.rest.w), row.rest.x, row.rest.y + 5, if (loan.overdue > 0) Palette.warning else Palette.text)
+            ui.fitText(row.rest.x, row.rest.y + 5, row.rest.w, text, if (loan.overdue > 0) Palette.warning else Palette.text)
         }
         ui.section(stack, tr("kami_claims.warpage.debts"), info.warDebts.size.toString())
         if (info.warDebts.isEmpty()) Draw.text(ui.g, tr("kami_claims.warpage.debts.none"), stack.x, stack.take(Draw.LINE).y, Palette.textMuted)
@@ -120,7 +120,7 @@ class DebtsPage(private val host: KamiApp) : Page() {
             if (ui.edgeButton(row, label, Icons.COIN, enabled = reason == null, disabledReason = reason, pending = ClaimsStore.isPending("war_repay:$to"), key = "debts-war:$to")) {
                 Dialogs.confirm(host, tr("kami_claims.warpage.repay.title", to), null, Icons.COIN, listOf(Consequence(tr("kami_claims.warpage.repay.amount", Format.money(pay), Format.money(amount)))), label, "war_repay", arrayOf(to, pay.toString()), key = "war_repay:$to")
             }
-            Draw.text(ui.g, Draw.fit("$to · ${Format.money(amount)}", row.rest.w), row.rest.x, row.rest.y + 5, Palette.text)
+            ui.fitText(row.rest.x, row.rest.y + 5, row.rest.w, "$to · ${Format.money(amount)}", Palette.text)
         }
     }
 

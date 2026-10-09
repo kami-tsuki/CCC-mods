@@ -100,10 +100,10 @@ class MyPlotsPage(private val host: KamiApp) : Page() {
                 Draw.sprite(ui.g, if (picked) Sprites.CARD_HOVER else Sprites.CARD, card)
                 if (picked) Draw.fill(ui.g, card.left(2), Palette.brass)
                 ui.attention(card, host.isFocus("${h.x}:${h.z}"))
-                Draw.text(ui.g, Draw.fit(l.title, card.w - 80), card.x + 6, card.y + 5, TextStyle.HEADING)
+                ui.fitText(card.x + 6, card.y + 5, card.w - 80, l.title, style = TextStyle.HEADING)
                 Draw.textRight(ui.g, l.rent, card.right - 6, card.y + 5, Palette.money)
                 val pill = ui.statusPill(card.x + 6, card.y + 19, l.state, l.severity, key = l.pillKey)
-                Draw.text(ui.g, Draw.fit(l.note, card.w - pill - 20), card.x + 12 + pill, card.y + 22, l.color)
+                ui.fitText(card.x + 12 + pill, card.y + 22, card.w - pill - 20, l.note, l.color)
                 if (ui.pressed(card) != null) focus = keyOf(h)
             }
         }
@@ -129,13 +129,13 @@ class MyPlotsPage(private val host: KamiApp) : Page() {
             val top = f.take(66)
             if (near) MiniMap.draw(ui, top.left(66), c.x, c.z, 2, "plot", listOf(c.x to c.z))
             val props = Flow(if (near) top.dropLeft(74) else top, 3)
-            ui.property(props.take(11), tr("kami_claims.common.rent"), Format.perDay(Format.money(c.rent.toLong())))
+            ui.property(props.take(11), tr("kami_libs.flow.rent"), Format.perDay(Format.money(c.rent.toLong())))
             ui.property(props.take(11), tr("kami_libs.common.state"), Tenure.label(c.state), Tenure.severity(c.state, c.debt).color)
             if (c.debt > 0) ui.property(props.take(11), tr("kami_claims.common.rent_debt"), Format.money(c.debt), Palette.danger)
             else if (c.credit > 0) ui.property(props.take(11), tr("kami_claims.personal.debts.credit"), Format.money(c.credit), Palette.paid)
             if (c.nextBill > 0) ui.property(props.take(11), tr("kami_claims.personal.debts.next_bill"), Format.until(ClaimsStore.receivedAt + c.nextBill))
             ui.section(f.take(14), tr("kami_claims.plots.access"))
-            if (near) access(ui, f, snap, c) else Draw.text(ui.g, Draw.fit(tr("kami_claims.personal.plots.other_dim"), f.rest.w), f.rest.x, f.take(12).y, Palette.textMuted)
+            if (near) access(ui, f, snap, c) else ui.fitText(f.rest.x, f.take(12).y, f.rest.w, tr("kami_claims.personal.plots.other_dim"), Palette.textMuted)
             detailH = f.rest.y - area.y
         }
     }
@@ -155,7 +155,7 @@ class MyPlotsPage(private val host: KamiApp) : Page() {
             val role = line.substringAfter(": ")
             val roleLabel = tr("kami_claims.role.$role")
             val nameW = minOf(96, row.w - Draw.width(roleLabel) - 34).coerceAtLeast(0)
-            Draw.text(ui.g, Draw.fit(name, nameW), row.x, row.y + 3, Palette.text)
+            ui.fitText(row.x, row.y + 3, nameW, name, Palette.text)
             ui.chip(row.x + nameW + 4, row.y, roleLabel, Vocabulary.rank(if (role == "household") "citizen" else role).color)
             val key = "plot_untrust:$name"
             if (!Personal.viewing && ui.iconButton(Rect(row.right - 16, row.y - 1, 16, 16), Icons.REMOVE, tr("kami_libs.common.remove_x", name), !ClaimsStore.isPending(key), key = "untrust:$name"))

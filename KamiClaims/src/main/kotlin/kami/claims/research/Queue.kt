@@ -1,5 +1,6 @@
 package kami.claims.research
 
+import kami.libs.util.toUuidOrNull
 import kami.claims.Country
 import kami.claims.LedgerKind
 import kami.claims.Realm
@@ -15,14 +16,14 @@ import kami.libs.stats.Stats
 import kami.libs.text.Phrase
 import kami.libs.util.Time.HOUR_MS
 import net.neoforged.neoforge.server.ServerLifecycleHooks
+import java.util.UUID
 import kotlin.math.min
 
 object Queue {
     var clock: () -> Long = ::now
     var onlineCount: (Country) -> Int = { country ->
         val players = ServerLifecycleHooks.getCurrentServer()?.playerList
-        val online = players?.players?.mapTo(HashSet()) { it.stringUUID }.orEmpty()
-        country.members.keys.count { it in online }
+        if (players == null) 0 else country.members.keys.count { id -> id.toUuidOrNull()?.let(players::getPlayer) != null }
     }
 
     internal const val MAX_STEP_MS = 60_000L
@@ -59,10 +60,10 @@ object Queue {
         Penalty.hard(node).firstOrNull { !it.met(country) }?.let { throw Fail("kami_claims.research.error.condition", it.describe()) }
         if (waiting(country) >= Levels.capacity(country, Capacity.QUEUE_SLOTS)) throw Fail("kami_claims.research.error.queue_full")
         val penalty = Penalty(country).ms(node)
-        val entry = QueueEntry(key, remainingMs = node.time.inWholeMilliseconds + penalty, penaltyMs = penalty, by = by, since = clock())
+        val entry = QueueEntry(key, remainingMs = node.time.inWholeMilliseconds + penalty, penaltyMs = penalty, by = by, since = clock(), queuedAt = clock())
         country.research.queue += entry
         settle(country, entry, node)
-        Realm.changed()
+        Realm.changed(false)
         ResearchSync.touch(country)
     }
 
@@ -96,7 +97,7 @@ object Queue {
         val entry = entry(country, key)
         if (entry.paid || entry.state == NodeState.RESEARCHING || entry.state == NodeState.PAUSED) throw Fail("kami_claims.research.error.started")
         country.research.queue.remove(entry)
-        Realm.changed()
+        Realm.changed(false)
         ResearchSync.touch(country)
     }
 
@@ -115,9 +116,11 @@ object Queue {
             if (node.cost > 0 && (country.treasury < node.cost || Treasury.bank(country, LedgerKind.RESEARCH, -node.cost, actor, entry.node) == 0L)) return false
             entry.paid = true
             Stats.event("research.start", "c:${country.id}", entry.node)
+            Stats.add("research.cost", "c:${country.id}", entry.node, node.cost)
         }
+        if (entry.startedAt == 0L) entry.startedAt = clock()
         entry.state = NodeState.RESEARCHING
-        Realm.changed()
+        Realm.changed(false)
         ResearchSync.touch(country)
         return true
     }
@@ -127,7 +130,7 @@ object Queue {
         if (entry.state != NodeState.RESEARCHING) throw Fail("kami_claims.research.error.not_running")
         if (waiting(country) >= Levels.capacity(country, Capacity.QUEUE_SLOTS)) throw Fail("kami_claims.research.error.queue_full")
         entry.state = NodeState.PAUSED
-        Realm.changed()
+        Realm.changed(false)
         ResearchSync.touch(country)
     }
 
@@ -136,7 +139,7 @@ object Queue {
         val queue = country.research.queue
         queue.remove(entry)
         queue.add(index.coerceIn(0, queue.size), entry)
-        Realm.changed()
+        Realm.changed(false)
         ResearchSync.touch(country)
     }
 
@@ -153,7 +156,11 @@ object Queue {
 
     internal fun tick(country: Country, elapsed: Long) {
         val online = onlineCount(country)
-        if (online > 0) countPlaytime(country, online * elapsed)
+        val boost = if (online > 0) Boosts.pct(country, "research") else 0
+        if (online > 0) {
+            countPlaytime(country, online * elapsed)
+            Boosts.tick(country, elapsed)
+        }
         Levels.advance(country)
         val queue = country.research.queue
         if (queue.isEmpty() || !settings.enabled) return
@@ -171,7 +178,7 @@ object Queue {
         if (online == 0 && settings.onlineRequired) return
         val running = queue.filter { it.state == NodeState.RESEARCHING }
         if (running.isEmpty()) return
-        val step = elapsed * 100 / (100 - Levels.researchSpeed(country, online))
+        val step = elapsed * (100 + boost) / (100 - Levels.researchSpeed(country, online).coerceAtMost(99))
         running.forEach { entry ->
             entry.remainingMs -= step
             if (entry.remainingMs <= 0) Research.defs.node(entry.node)?.let { complete(country, it) }
@@ -185,7 +192,7 @@ object Queue {
         country.research.queue.removeAll(orphans)
         log.warn("Dropped {} queued research entries of {} whose nodes no longer exist: {}", orphans.size, country.id, orphans.map { it.node })
         Mail.officers(country, Phrase.of("kami_claims.research.mail.dropped", Words.v(orphans.size)), Tone.BAD)
-        Realm.changed()
+        Realm.changed(false)
         ResearchSync.touch(country)
     }
 
@@ -196,17 +203,24 @@ object Queue {
         }
         if (orphans.isNotEmpty()) {
             country.research.queue.removeAll(orphans)
-            Realm.changed()
+            Realm.changed(false)
         }
         ResearchSync.touch(country)
     }
 
     fun complete(country: Country, node: Node) {
+        val entry = country.research.queue.firstOrNull { it.node == node.key }
         markDone(country, node.key)
-        Stats.event("research.done", "c:${country.id}", node.key)
+        val subject = "c:${country.id}"
+        Stats.event("research.done", subject, node.key)
+        Stats.add("research.node", subject, node.key)
+        if (entry != null && entry.startedAt > 0) {
+            Stats.event("research.time", subject, node.key, clock() - entry.startedAt)
+            if (entry.queuedAt > 0) Stats.event("research.wait", subject, node.key, entry.startedAt - entry.queuedAt)
+        }
         Levels.grant(country, "research", node.xp ?: (XP_PER_NODE_LEVEL * maxOf(1, node.level)))
         if (settings.announce) Mail.broadcast(country, Phrase.of("kami_claims.research.mail.done", node.label().asValue()), Tone.OK)
-        Realm.changed()
+        Realm.changed(false)
         ResearchSync.touch(country)
     }
 
@@ -214,13 +228,14 @@ object Queue {
         val node = Research.defs.node(key) ?: throw Fail("kami_claims.research.error.unknown", Words.v(key))
         if (key in country.research.done) throw Fail("kami_claims.research.error.done", node.label().asValue())
         markDone(country, key)
-        Realm.changed()
+        Stats.add("research.forced", "c:${country.id}", key)
+        Realm.changed(false)
         ResearchSync.touch(country)
     }
 
     fun revoke(country: Country, key: String) {
         if (country.research.done.remove(key) == null) throw Fail("kami_claims.research.error.not_done", Words.v(key))
-        Realm.changed()
+        Realm.changed(false)
         ResearchSync.touch(country)
     }
 
@@ -238,7 +253,7 @@ object Queue {
             country.research.done.remove(key)
             country.research.queue.removeAll { it.node == key }
         }
-        Realm.changed()
+        Realm.changed(false)
         ResearchSync.touch(country)
     }
 
@@ -254,7 +269,7 @@ object Queue {
         if (!tasksDone(entry, node)) return
         entry.state = NodeState.READY
         Mail.officers(country, Phrase.of("kami_claims.research.mail.ready", node.label().asValue()))
-        Realm.changed()
+        Realm.changed(false)
         ResearchSync.touch(country)
     }
 

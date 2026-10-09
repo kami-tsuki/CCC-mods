@@ -1,5 +1,7 @@
 package kami.claims.client.app
 
+import kami.libs.ui.widget.fitText
+import kami.libs.ui.widget.noticeBar
 import kami.libs.ui.widget.Flags
 import kami.libs.ui.text.trJson
 import kami.libs.ui.text.trn
@@ -131,21 +133,21 @@ class ClaimsApp : KamiApp() {
     override fun buildNav(): List<NavGroup> {
         val none = ClaimsStore.info == null
         val overview = if (none) listOf(NavItem("welcome", tr("kami_claims.nav.welcome"), Icons.FLAG, badge("welcome")))
-        else listOf(NavItem("dashboard", tr("kami_claims.nav.dashboard"), Icons.DASHBOARD, badge("dashboard")), NavItem("statistics", tr("kami_claims.nav.statistics"), Icons.STATS, lock = { lock("details") }))
+        else listOf(NavItem("dashboard", tr("kami_libs.common.overview"), Icons.DASHBOARD, badge("dashboard")), NavItem("statistics", tr("kami_libs.common.statistics"), Icons.STATS, lock = { lock("details") }))
         return listOf(
-            NavGroup(id = "overview", label = tr("kami_claims.nav.group.overview"), items = overview),
+            NavGroup(id = "overview", label = tr("kami_libs.common.overview"), items = overview),
             NavGroup(id = "territory", label = tr("kami_claims.nav.group.territory"), items = listOf(
                 NavItem("map", tr("kami_claims.nav.map"), Icons.MAP),
                 NavItem("chunks", tr("kami_claims.nav.chunks"), Icons.AREA, badge("chunks"), ::needsCountry),
                 NavItem("plots", tr("kami_claims.nav.plots"), Icons.HOUSE, badge("plots"), ::needsCountry)
             )),
-            NavGroup(id = "research", label = tr("kami_claims.nav.group.research"), items = listOf(
+            NavGroup(id = "research", label = tr("kami_libs.flow.research"), items = listOf(
                 NavItem("research", tr("kami_claims.nav.research"), Icons.TREE, badge("research"), ::needsCountry),
                 NavItem("levels", tr("kami_claims.nav.levels"), Icons.STAR, lock = ::needsCountry),
                 NavItem("queue", tr("kami_claims.nav.queue"), Icons.SCROLL, lock = ::needsCountry),
                 NavItem("research_buffs", tr("kami_claims.nav.buffs"), Icons.SHIELD, lock = ::needsCountry, teaser = ClientLocks::buffsTeaser)
             )),
-            NavGroup(id = "economy", label = tr("kami_claims.nav.group.economy"), items = listOf(
+            NavGroup(id = "economy", label = tr("kami_libs.common.economy"), items = listOf(
                 NavItem("budget", tr("kami_claims.nav.budget"), Icons.SCALES, badge("budget"), { needsCountry() ?: lock("details") }),
                 NavItem("ledger", tr("kami_claims.nav.ledger"), Icons.LEDGER, lock = { needsCountry() ?: lock("details") }),
                 NavItem("loans", tr("kami_claims.nav.loans"), Icons.COIN, badge("loans"), ::needsCountry, ClientLocks::loansTeaser)
@@ -166,7 +168,7 @@ class ClaimsApp : KamiApp() {
                 NavItem("provinces", tr("kami_claims.nav.provinces"), Icons.CHAIN, badge("provinces"), ::needsCountry, ClientLocks::provinces),
                 NavItem("world", tr("kami_claims.nav.world"), Icons.GLOBE)
             )),
-            NavGroup(id = "system", label = tr("kami_claims.nav.group.system"), items = listOf(NavItem("help", tr("kami_claims.nav.help"), Icons.HELP), NavItem("settings", tr("kami_claims.nav.settings"), Icons.SETTINGS)))
+            NavGroup(id = "system", label = tr("kami_libs.common.system"), items = listOf(NavItem("help", tr("kami_libs.common.help"), Icons.HELP), NavItem("settings", tr("kami_libs.common.settings"), Icons.SETTINGS)))
         )
     }
 
@@ -188,15 +190,11 @@ class ClaimsApp : KamiApp() {
 
     fun startTour() {
         tour = Tour(listOfNotNull(
-            Callout("modules", tr("kami_claims.tour.modules"), tr("kami_claims.tour.modules.desc")).takeIf { Modules.visible.size > 1 },
+            Callout("modules", tr("kami_libs.common.modules"), tr("kami_claims.tour.modules.desc")).takeIf { Modules.visible.size > 1 },
             Callout("topbar", tr("kami_claims.tour.topbar"), tr("kami_claims.tour.topbar.desc"), Route("dashboard")),
             Callout("bell", tr("kami_claims.common.alerts"), tr("kami_claims.tour.bell.desc")),
-            Callout("dashboard:attention", tr("kami_claims.tour.attention"), tr("kami_claims.tour.attention.desc")),
-            Callout("nav:map", tr("kami_claims.nav.map"), tr("kami_claims.tour.map.desc")),
-            Callout("nav:budget", tr("kami_claims.nav.budget"), tr("kami_claims.tour.budget.desc")),
             Callout("nav:protection", tr("kami_claims.nav.protection"), tr("kami_claims.tour.protection.desc")),
-            Callout("nav:provinces", tr("kami_claims.cap.province"), tr("kami_claims.tour.provinces.desc")),
-            Callout("page-help", tr("kami_claims.tour.help"), tr("kami_claims.tour.help.desc"))
+            Callout("nav:provinces", tr("kami_claims.cap.province"), tr("kami_claims.tour.provinces.desc"))
         )) {
             ClientClaims.finishTour()
         }
@@ -209,9 +207,9 @@ class ClaimsApp : KamiApp() {
         val identity = row.take(if (compact) 120 else 170)
         if (info != null) {
             Flags.draw(ui.g, Rect(identity.x, identity.y + 6, 16, 12), info.color, info.flag.pattern, info.flag.emblem, info.flag.secondary)
-            Draw.text(ui.g, Draw.fit(info.name, identity.w - 22), identity.x + 21, identity.y + 3, TextStyle.HEADING)
+            ui.fitText(identity.x + 21, identity.y + 3, identity.w - 22, info.name, style = TextStyle.HEADING)
             val look = Vocabulary.rank(info.rank)
-            Draw.text(ui.g, Draw.fit(look.label, identity.w - 22), identity.x + 21, identity.y + 13, look.color)
+            ui.fitText(identity.x + 21, identity.y + 13, identity.w - 22, look.label, look.color)
         } else {
             Draw.leadIcon(ui.g, Icons.FLAG, identity.x, identity.centerY, Palette.textMuted)
             Draw.text(ui.g, tr("kami_libs.common.no_country"), identity.x + 18, identity.y + 3, TextStyle.HEADING, Palette.textMuted)
@@ -232,8 +230,8 @@ class ClaimsApp : KamiApp() {
         val history = ClaimsStore.history.orEmpty()
         val weekAgo = history.getOrNull(history.size - 8)?.treasury
         val trend = weekAgo?.let { info.treasury - it }
-        kpi(ui, cells[0], Icons.TREASURY, tr("kami_claims.kpi.treasury"), Format.money(ui.countUp("treasury", info.treasury)), Palette.money,
-            { Tip(tr("kami_claims.kpi.treasury"), listOf(tr("kami_claims.kpi.treasury.balance", Format.money(info.treasury)) to Palette.money,
+        kpi(ui, cells[0], Icons.TREASURY, tr("kami_libs.flow.treasury"), Format.money(ui.countUp("treasury", info.treasury)), Palette.money,
+            { Tip(tr("kami_libs.flow.treasury"), listOf(tr("kami_claims.kpi.treasury.balance", Format.money(info.treasury)) to Palette.money,
                 (trend?.let { tr("kami_claims.kpi.treasury.week", Format.signedMoney(it)) } ?: tr("kami_claims.kpi.treasury.no_history")) to Palette.textSecondary,
                 tr("kami_claims.kpi.net.tax", Format.signedMoney(info.income)) to Palette.success,
                 tr("kami_claims.kpi.net.upkeep", Format.signedMoney(-info.upkeep)) to Palette.danger,
@@ -241,7 +239,7 @@ class ClaimsApp : KamiApp() {
                 (if (net >= 0) tr("kami_claims.kpi.runway.positive") else tr("kami_claims.kpi.runway.negative", Format.perDay(Format.money(-net)), Format.days(info.treasury / -net))) to Palette.textSecondary), keys = tr("kami_claims.kpi.open_budget")) }, "budget", info.treasury)
         if (!compact) {
             val online = info.members.count { it.online }
-            kpi(ui, cells[1], Icons.PEOPLE, tr("kami_claims.kpi.citizens"), "$online/${info.members.size}", Palette.text,
+            kpi(ui, cells[1], Icons.PEOPLE, tr("kami_claims.kpi.citizens"), Vocabulary.ratio(online, info.members.size), Palette.text,
                 { Tip.text(tr("kami_claims.kpi.citizens.tooltip", Format.number(online), Format.number(info.members.size)), tr("kami_claims.kpi.citizens")) }, "citizens")
         }
     }
@@ -274,8 +272,8 @@ class ClaimsApp : KamiApp() {
         if (page != null && ui.hovering(r)) Draw.fill(ui.g, r.inset(0, 2), Palette.hover)
         flashValue?.let { v -> ui.flash(key, v).takeIf { it != 0 }?.let { Draw.fill(ui.g, r.inset(0, 2), it) } }
         val textX = r.x + 6
-        Draw.text(ui.g, Draw.fit(label.uppercase(Format.locale), r.right - textX), textX, r.y + 3, Palette.textMuted)
-        Draw.text(ui.g, Draw.fit(value, r.right - textX), textX, r.y + 13, color)
+        ui.fitText(textX, r.y + 3, r.right - textX, label.uppercase(Format.locale), Palette.textMuted)
+        ui.fitText(textX, r.y + 13, r.right - textX, value, color)
         tip?.let { build -> ui.tooltip(key, r) { build() } }
         if (page != null && ui.clickable(key, r)) navigate(Route(page))
     }
@@ -291,7 +289,7 @@ class ClaimsApp : KamiApp() {
     private fun bell(ui: Ui, r: Rect) {
         val alerts = visibleAlerts()
         ui.anchor("bell", r)
-        if (ui.iconButton(r, Icons.BELL, if (alerts.isEmpty()) tr("kami_claims.alerts.none") else trn("kami_claims.unit.alert", alerts.size), key = "bell")) bellOpen = !bellOpen
+        if (ui.iconButton(r, Icons.BELL, if (alerts.isEmpty()) tr("kami_libs.table.empty") else trn("kami_claims.unit.alert", alerts.size), key = "bell")) bellOpen = !bellOpen
         if (alerts.isNotEmpty()) {
             val worst = alerts.map { Severity.of(it.severity) }.maxBy { it.ordinal }
             ui.badge(r.right - 8, r.y - 2, alerts.size.toString(), worst)
@@ -302,7 +300,7 @@ class ClaimsApp : KamiApp() {
         val itemsH = alerts.sumOf { alertHeight(it, w - 12) }
         ui.overlay(NOTICE_LAYER) { ui.popover(r, w, (itemsH + 28).coerceIn(50, 300), align = PopoverAlign.END, onOutside = { bellOpen = false }) { panel ->
             Draw.text(g, tr("kami_claims.common.alerts").uppercase(Format.locale), panel.x + 8, panel.y + 8, TextStyle.TITLE)
-            if (alerts.isEmpty()) Draw.text(g, tr("kami_claims.alerts.none"), panel.x + 8, panel.y + 26, Palette.textMuted)
+            if (alerts.isEmpty()) Draw.text(g, tr("kami_libs.table.empty"), panel.x + 8, panel.y + 26, Palette.textMuted)
             scroll("bell-list", panel.inset(4, 22, 4, 4), itemsH) { area ->
                 var y = area.y
                 alerts.forEach { a -> y += alertCard(ui, Rect(area.x, y, area.w, alertHeight(a, area.w)), a, compactCard = true) }
@@ -318,7 +316,7 @@ class ClaimsApp : KamiApp() {
         Draw.fill(ui.g, box, sev.tint)
         Draw.fill(ui.g, box.left(2), sev.color)
         Draw.leadIcon(ui.g, iconFor(sev), box.x + 6, box.y + 8)
-        Draw.text(ui.g, Draw.fit(trJson(a.title), box.w - 40), box.x + 24, box.y + 4, TextStyle.HEADING, sev.color)
+        ui.fitText(box.x + 24, box.y + 4, box.w - 40, trJson(a.title), sev.color, style = TextStyle.HEADING)
         val dismiss = Rect(box.right - 12, box.y + 3, 9, 9)
         if (ui.hovering(dismiss)) ui.cursor = Cursor.HAND
         Draw.text(ui.g, "×", dismiss.x + 1, dismiss.y, if (ui.hovering(dismiss)) Palette.text else Palette.textMuted)
@@ -348,12 +346,8 @@ class ClaimsApp : KamiApp() {
         val info = ClaimsStore.info ?: return 0
         if (!info.delegated) return 0
         val box = r.top(20)
-        Draw.box(ui.g, box, Palette.alpha(Palette.warning, 0x30), Palette.alpha(Palette.warning, 0x90))
-        Draw.leadIcon(ui.g, Icons.CHAIN, box.x + 6, box.centerY)
-        val exit = tr("kami_claims.delegated.exit")
-        val exitW = buttonWidth(exit, Icons.CLOSE)
-        Draw.text(ui.g, Draw.fit(tr(if (info.granted.isEmpty()) "kami_claims.delegated.banner.read_only" else "kami_claims.delegated.banner", info.name), box.w - exitW - 32), box.x + 22, box.y + 6, Palette.warning)
-        if (ui.edgeButton(Rect(box.x, box.y + 2, box.w - 2, SMALL_H), exit, Icons.CLOSE, key = "exit-province")) { ClientClaims.viewingAs = ""; ClaimsStore.send("view", "") }
+        val text = tr(if (info.granted.isEmpty()) "kami_claims.delegated.banner.read_only" else "kami_claims.delegated.banner", info.name)
+        if (ui.noticeBar(box, Icons.CHAIN, text, Severity.WARNING, tr("kami_claims.delegated.exit"), "exit-province", Icons.CLOSE)) { ClientClaims.viewingAs = ""; ClaimsStore.send("view", "") }
         return 20
     }
 

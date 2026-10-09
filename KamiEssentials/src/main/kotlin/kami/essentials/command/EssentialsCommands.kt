@@ -77,7 +77,6 @@ object EssentialsCommands {
             .then(lit("open").then(arg("id", StringArgumentType.word()).does { InlineFeatures.open(it.me(), it.text("id")) })))
     }
 
-
     private fun Ctx.target(name: String = "player"): ServerPlayer {
         val p = EntityArgument.getPlayer(this, name)
         val viewer = source.player

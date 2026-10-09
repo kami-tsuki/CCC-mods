@@ -15,21 +15,13 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class GuardsTest {
-    private class Purse : Wallet {
-        var funds = 10_000L
-        val deposits = mutableListOf<Int>()
-        override fun balance(id: UUID) = funds
-        override fun deduct(id: UUID, amount: Int): Int = amount.also { funds -= it }
-        override fun deposit(id: UUID, amount: Int): Boolean { deposits += amount; return true }
-    }
-
     private val buyer = UUID.randomUUID()
     private val taxed = UUID.randomUUID()
     private val ally = UUID.randomUUID()
     private val enemy = UUID.randomUUID()
     private val sameCountry = UUID.randomUUID()
     private val neutral = UUID.randomUUID()
-    private val purse = Purse()
+    private val purse = Till(10_000)
 
     private fun setup(): Fakes.Claims {
         Config.s = Settings()
@@ -57,7 +49,7 @@ class GuardsTest {
         Matching.insertSell("test:item", Order(1, taxed.toString(), 7, 100))
         assertTrue(Ledger.buy(buyer.toString(), "test:item", 20) is BuyResult.Ok)
         assertEquals(listOf("aurelia" to 5L), claims.credits)
-        assertEquals(listOf(16), purse.deposits.filter { it == 16 })
+        assertEquals(listOf(16), purse.deposits.map { it.second }.filter { it == 16 })
     }
 
     @Test

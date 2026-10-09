@@ -19,7 +19,7 @@ object AdminPrefs {
             Section(
                 "admin.json", "Settings of this game client for the admin screen.",
                 mapOf(
-                    "railCollapsed" to "The side bar is collapsed to icons.",
+                    "railCollapsed" to "The sidebar is collapsed to icons.",
                     "collapsedGroups" to "Navigation groups you collapsed."
                 )
             )

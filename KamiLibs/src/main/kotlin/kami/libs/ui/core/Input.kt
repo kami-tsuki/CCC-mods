@@ -3,7 +3,7 @@ package kami.libs.ui.core
 import org.lwjgl.glfw.GLFW
 
 class Click(val x: Int, val y: Int, val button: Int, var consumed: Boolean = false)
-class Key(val code: Int, val mods: Int, var consumed: Boolean = false) {
+class Key(val code: Int, val mods: Int, var consumed: Boolean = false, val repeat: Boolean = false) {
     val ctrl get() = mods and GLFW.GLFW_MOD_CONTROL != 0
     val shift get() = mods and GLFW.GLFW_MOD_SHIFT != 0
     val alt get() = mods and GLFW.GLFW_MOD_ALT != 0
@@ -32,12 +32,17 @@ class Input {
         if (button in down.indices) down[button] = false
     }
 
-    fun key(code: Int, mods: Int) { keys += Key(code, mods) }
+    private val held = HashSet<Int>()
+
+    fun key(code: Int, mods: Int) { keys += Key(code, mods, repeat = !held.add(code)) }
+    fun keyUp(code: Int) { held.remove(code) }
     fun char(c: Char) { chars.append(c) }
     fun scroll(amount: Double) { wheel += amount }
 
     fun takeKey(code: Int, filter: (Key) -> Boolean = { true }): Key? =
         keys.firstOrNull { !it.consumed && it.code == code && filter(it) }?.also { it.consumed = true }
+
+    fun peekWheel(): Double = if (wheelConsumed) 0.0 else wheel
 
     fun takeWheel(): Double {
         if (wheelConsumed) return 0.0
@@ -59,5 +64,6 @@ class Input {
     fun reset() {
         endFrame(false, false)
         down.fill(false)
+        held.clear()
     }
 }

@@ -16,13 +16,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class TradeStatusTest {
-    private class Purse(vararg start: Pair<UUID, Long>) : Wallet {
-        val funds = mutableMapOf(*start)
-        override fun balance(id: UUID) = funds.getOrDefault(id, 0L)
-        override fun deduct(id: UUID, amount: Int): Int = minOf(amount.toLong(), balance(id)).toInt().also { funds[id] = balance(id) - it }
-        override fun deposit(id: UUID, amount: Int): Boolean { funds[id] = balance(id) + amount; return true }
-    }
-
     private val item = "test:item"
     private val seller = UUID.randomUUID()
     private val buyer = UUID.randomUUID()

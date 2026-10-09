@@ -28,10 +28,10 @@ internal class StatMetrics(private val board: StatBoard, private val subject: St
         Metric(tr(title), icon, if (count) board.series(prefix + key, "count", subject, obj) else board.counted(prefix + key, subject, obj), format, color)
 
     private val metrics = listOf(
-        metric("kami_essentials.admin.col.playtime", Icons.CLOCK, "session.time", format = { Format.duration(it) }),
-        metric("kami_essentials.admin.stats.sessions", Icons.PERSON, "session.login", count = true, format = { Format.number(it) }),
+        metric("kami_libs.common.playtime", Icons.CLOCK, "session.time", format = { Format.duration(it) }),
+        metric("kami_essentials.admin.stats.sessions", Icons.PERSON, "session.login", count = true),
         metric("kami_essentials.admin.stats.kills", Icons.SHIELD, "combat.kill"),
-        metric("kami_essentials.admin.stats.deaths", Icons.DANGER, "combat.death"),
+        metric("kami_essentials.sidebar.deaths", Icons.DANGER, "combat.death"),
         metric("kami_essentials.admin.stats.mob_kills", Icons.FIRE, "mob.kill"),
         metric("kami_essentials.admin.stats.dealt", Icons.SHIELD, "combat.dealt", format = { Format.number(it / 10) }),
         metric("kami_essentials.admin.stats.taken", Icons.DANGER, "combat.taken", format = { Format.number(it / 10) }),

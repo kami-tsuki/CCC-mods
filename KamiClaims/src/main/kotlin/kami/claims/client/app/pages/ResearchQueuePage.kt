@@ -3,6 +3,7 @@ package kami.claims.client.app.pages
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ClaimsPage
 import kami.claims.client.app.ClientLocks
+import kami.claims.client.app.Vocabulary
 import kami.claims.client.stackOf
 import kami.claims.client.store.ClientResearch
 import kami.claims.net.NodeView
@@ -53,14 +54,20 @@ class ResearchQueuePage(app: ClaimsApp) : ClaimsPage(app) {
         ui.scroll("research-queue", r, height) { area ->
             val stack = Stack(area.x, area.y, area.w, 0)
             if (offline && running.isNotEmpty()) ui.callout(stack.take(NOTICE_H), Severity.WARNING, tr("kami_claims.research.queue.offline"))
-            ui.section(stack.take(SECTION_H), tr("kami_claims.research.status.researching"), state.speedPct.takeIf { it > 0 }?.let { tr("kami_claims.research.queue.speed", it, "${running.size}/$runningSlots") } ?: "${running.size}/$runningSlots")
+            ui.section(stack.take(SECTION_H), tr("kami_claims.research.status.researching"), state.speedPct.takeIf { it > 0 }?.let { tr("kami_claims.research.queue.speed", it, Vocabulary.ratio(running.size, runningSlots)) } ?: Vocabulary.ratio(running.size, runningSlots))
             repeat(runningRows) { i -> slot(ui, stack.take(ROW_H), area.y, running.getOrNull(i), "running:$i", offline) }
-            ui.section(stack.take(SECTION_H), tr("kami_claims.research.queue.waiting"), "${waiting.size}/$waitingSlots")
+            val eta = waitingEta(ui.wallMillis)
+            val waitingCount = Vocabulary.ratio(waiting.size, waitingSlots)
+            ui.section(stack.take(SECTION_H), tr("kami_claims.research.queue.waiting"), if (eta > 0) tr("kami_claims.research.queue.eta", Format.duration(eta)) + " · " + waitingCount else waitingCount)
             repeat(waitingRows) { i -> slot(ui, stack.take(ROW_H), area.y, waiting.getOrNull(i), "waiting:$i", offline) }
             if (state.queue.isEmpty() && ui.emptyState(stack.take(EMPTY_H), tr("kami_claims.research.queue.empty.title"), tr("kami_claims.research.queue.empty"), action = tr("kami_claims.research.queue.open_tree"), key = "queue-empty")) {
                 app.navigate(Route("research"))
             }
         }
+    }
+
+    private fun waitingEta(now: Long) = waiting.sumOf { e ->
+        ClientResearch.node(e.node)?.let { n -> ClientResearch.countdown(e, n, false).let { if (e.state == NodeState.PAUSED) it.remaining(now) else it.totalMs } } ?: 0L
     }
 
     private fun slot(ui: Ui, r: Rect, originY: Int, entry: QueueView?, key: String, offline: Boolean) {
@@ -90,7 +97,7 @@ class ResearchQueuePage(app: ClaimsApp) : ClaimsPage(app) {
         val hover = ui.hovering(row)
         if (hover) Draw.fill(ui.g, row, Palette.alpha(Palette.hover, 0x80))
         Draw.dashedRect(ui.g, row, if (hover) Palette.textSecondary else Palette.border)
-        Draw.textCentered(ui.g, Draw.fit(tr("kami_claims.research.queue.free"), row.w - 8), row, if (hover) Palette.text else Palette.textMuted)
+        ui.fitText(row.x + 4, row.centerY - 4, row.w - 8, tr("kami_claims.research.queue.free"), if (hover) Palette.text else Palette.textMuted, align = Align.CENTER)
         ui.focusRing("queue-free:$key", row)
         if (hit) app.navigate(Route("research"))
     }

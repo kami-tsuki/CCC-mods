@@ -47,7 +47,7 @@ class WelcomePage(app: ClaimsApp) : ClaimsPage(app) {
     override fun draw(ui: Ui, r: Rect) {
         val head = r.top(HEAD_H)
         Draw.sprite(ui.g, Illustrations.NOMANSLAND, Rect(head.x, head.y, 32, 32))
-        Draw.text(ui.g, tr("kami_claims.welcome.title"), head.x + 40, head.y + 4, TextStyle.TITLE)
+        Draw.text(ui.g, tr("kami_libs.common.no_country"), head.x + 40, head.y + 4, TextStyle.TITLE)
         val desc = tr("kami_claims.help.countries.p1")
         val shownDesc = Draw.fit(desc, head.w - 40)
         Draw.text(ui.g, shownDesc, head.x + 40, head.y + 18, Palette.textSecondary)
@@ -87,7 +87,7 @@ class WelcomePage(app: ClaimsApp) : ClaimsPage(app) {
                     Consequence(tr("kami_claims.join.confirm.leave"), Severity.SUCCESS)
                 ), tr("kami_libs.common.join"), "accept", arrayOf(name))
             }
-            if (ui.button(Rect(row.right - 124, row.y + 3, 56, 18), tr("kami_claims.welcome.view"), key = "view:$name")) app.navigate(Route("world", focus = "country:$name"))
+            if (ui.button(Rect((row.right - 124).coerceAtLeast(row.x), row.y + 3, 56, 18), tr("kami_libs.common.view"), key = "view:$name")) app.navigate(Route("world", focus = "country:$name"))
             y += 28
         }
     }
@@ -96,7 +96,7 @@ class WelcomePage(app: ClaimsApp) : ClaimsPage(app) {
         Draw.sprite(ui.g, Sprites.CARD, r)
         Draw.sprite(ui.g, art, Rect(r.x + 8, r.y + 8, 32, 32))
         val textX = r.x + 48
-        Draw.text(ui.g, Draw.fit(title, r.right - textX - 8, TextStyle.TITLE), textX, r.y + 8, TextStyle.TITLE, Palette.brass)
+        ui.fitText(textX, r.y + 8, (r.right - textX - 8).coerceAtLeast(0), title, Palette.brass, TextStyle.TITLE)
         facts.forEachIndexed { i, f ->
             val rowY = r.y + 20 + i * TABLE_ROW_H
             val x = textX + Draw.leadIcon(ui.g, Icons.CHECK, textX, rowY + TABLE_ROW_H / 2) + 2
@@ -122,8 +122,9 @@ class WelcomePage(app: ClaimsApp) : ClaimsPage(app) {
             val problem = here?.takeIf { it.blocked }?.let { trJson(it.note) }
             when (s.step) {
                 0 -> {
-                    MiniMap.draw(this, Rect(b.x, b.y, 150, 150), snap.px, snap.pz, 6, "found", (-1..1).flatMap { dx -> (-1..1).map { dz -> snap.px + dx to snap.pz + dz } }, you = snap.px to snap.pz)
-                    val f = Flow(Rect(b.x + 160, b.y, b.w - 160, 150), 4)
+                    val mini = if (app.compact) 0 else 160
+                    if (mini > 0) MiniMap.draw(this, Rect(b.x, b.y, 150, 150), snap.px, snap.pz, 6, "found", (-1..1).flatMap { dx -> (-1..1).map { dz -> snap.px + dx to snap.pz + dz } }, you = snap.px to snap.pz)
+                    val f = Flow(Rect(b.x + mini, b.y, (b.w - mini).coerceAtLeast(40), 150), 4)
                     f.take(12).let { Draw.text(g, tr("kami_claims.wizard.capital"), it.x, it.y, TextStyle.HEADING) }
                     property(f.take(11), tr("kami_claims.wizard.chunk"), "${snap.px}, ${snap.pz}", copy = true)
                     property(f.take(11), tr("kami_claims.wizard.free_land"), trn("kami_claims.unit.chunk", snap.freeChunks), Palette.success)
@@ -144,7 +145,7 @@ class WelcomePage(app: ClaimsApp) : ClaimsPage(app) {
                 2 -> {
                     val cards = listOf(
                         Triple(Icons.AREA, tr("kami_claims.kpi.land"), tr("kami_claims.wizard.rules.land", trn("kami_claims.unit.chunk", snap.freeChunks))),
-                        Triple(Icons.TREASURY, tr("kami_claims.kpi.treasury"), tr("kami_claims.wizard.rules.treasury")),
+                        Triple(Icons.TREASURY, tr("kami_libs.flow.treasury"), tr("kami_claims.wizard.rules.treasury")),
                         Triple(Icons.PEOPLE, tr("kami_claims.nav.citizens"), tr("kami_claims.wizard.rules.citizens")),
                         Triple(Icons.SHIELD, tr("kami_claims.nav.protection"), tr("kami_claims.wizard.rules.protection"))
                     )

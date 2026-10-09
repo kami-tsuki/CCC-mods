@@ -2,11 +2,17 @@ package kami.claims.research
 
 import kami.claims.service.Fail
 import kami.claims.service.Service
+import net.minecraft.core.component.DataComponents
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.item.ItemStack
 import kotlin.math.min
 
 object Deposit {
+    private fun hasContents(stack: ItemStack) =
+        stack.get(DataComponents.CONTAINER)?.nonEmptyItems()?.iterator()?.hasNext() == true ||
+            stack.get(DataComponents.BUNDLE_CONTENTS)?.isEmpty == false
+
     fun take(player: ServerPlayer, key: String, index: Int): Long {
         val country = Service.home(player)
         val entry = Queue.entry(country, key)
@@ -17,7 +23,7 @@ object Deposit {
         val wanted = left
         val inventory = player.inventory
         for (stack in inventory.items) {
-            if (stack.isEmpty || stack.isDamaged || !task.accepts(BuiltInRegistries.ITEM.getKey(stack.item).toString())) continue
+            if (stack.isEmpty || stack.isDamaged || hasContents(stack) || !task.accepts(BuiltInRegistries.ITEM.getKey(stack.item).toString())) continue
             val moved = min(left, stack.count.toLong())
             stack.shrink(moved.toInt())
             left -= moved

@@ -6,25 +6,16 @@ import kami.economy.Market
 import kami.economy.Order
 import kami.economy.Settings
 import kami.libs.claims.ClaimsApi
+import kami.libs.db.Db
 import kami.libs.economy.ServerBank
 import java.util.UUID
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class RecoveryTest {
-    private class Purse(vararg start: Pair<UUID, Long>) : Wallet {
-        val funds = mutableMapOf(*start)
-        var failBalance: UUID? = null
-        override fun balance(id: UUID): Long {
-            if (id == failBalance) { failBalance = null; error("injected") }
-            return funds.getOrDefault(id, 0L)
-        }
-        override fun deduct(id: UUID, amount: Int): Int = minOf(amount.toLong(), funds.getOrDefault(id, 0L)).toInt().also { funds[id] = funds.getOrDefault(id, 0L) - it }
-        override fun deposit(id: UUID, amount: Int): Boolean { funds[id] = funds.getOrDefault(id, 0L) + amount; return true }
-    }
-
     private class Failing : Fakes.Claims() {
         override fun creditTariff(country: String, amount: Long, payer: String, note: String): Long = error("injected")
     }
@@ -98,5 +89,75 @@ class RecoveryTest {
         assertEquals(9_950L, purse.funds[buyer])
         assertEquals(5L, ServerBank.balance)
         assertEquals(start, total())
+    }
+
+    private fun fill(orderId: Long) = LedgerFill(orderId, seller.toString(), 5, 10, 1, tax = 5, tariff = 0, gross = 50)
+
+    private fun buyIntent(fills: List<LedgerFill>, ver: Int, applied: Boolean) =
+        Intent(700, IntentType.BUY, LedgerState.DEBITED, actor = buyer.toString(), item = item, qty = fills.sumOf { it.qty }, netSpurs = fills.sumOf { it.gross }, fills = fills, ver = ver, applied = applied)
+
+    private fun replay(intent: Intent) {
+        purse.funds[buyer] = 10_000L - intent.netSpurs
+        TestDb.wal(intent)
+        Ledger.attach()
+        repeat(2) { Ledger.recover() }
+    }
+
+    @Test
+    fun replayAfterApplyFillsDoesNotDecrementTwice() {
+        setup()
+        val start = total()
+        Matching.insertSell(item, Order(1, seller.toString(), 10, 3))
+        replay(buyIntent(listOf(fill(1)), ver = 1, applied = true))
+        assertEquals(3, Market.book(item).sells.single().amount)
+        assertEquals(listOf(5), Market.data.pendingDelivery[buyer.toString()]!!.map { it.qty })
+        assertEquals(1_045L, purse.funds[seller])
+        assertEquals(5L, ServerBank.balance)
+        assertEquals(start, total())
+    }
+
+    @Test
+    fun unappliedReplayWithIntactOrderAppliesTheBookOnce() {
+        setup()
+        val start = total()
+        Matching.insertSell(item, Order(1, seller.toString(), 10, 8))
+        replay(buyIntent(listOf(fill(1)), ver = 1, applied = false))
+        assertEquals(3, Market.book(item).sells.single().amount)
+        assertEquals(listOf(5), Market.data.pendingDelivery[buyer.toString()]!!.map { it.qty })
+        assertEquals(1_045L, purse.funds[seller])
+        assertEquals(start, total())
+    }
+
+    @Test
+    fun unappliedReplayRefundsFillWhoseOrderWasCancelled() {
+        setup()
+        val start = total()
+        Matching.insertSell(item, Order(2, seller.toString(), 10, 5))
+        replay(buyIntent(listOf(fill(1), fill(2)), ver = 1, applied = false))
+        assertEquals(9_950L, purse.funds[buyer])
+        assertEquals(listOf(5), Market.data.pendingDelivery[buyer.toString()]!!.map { it.qty })
+        assertTrue(Market.book(item).sells.isEmpty())
+        assertEquals(1_045L, purse.funds[seller])
+        assertEquals(5L, ServerBank.balance)
+        assertEquals(start, total())
+    }
+
+    @Test
+    fun legacyIntentReplayKeepsSkippingTheBookCheck() {
+        setup()
+        val start = total()
+        replay(buyIntent(listOf(fill(1)), ver = 0, applied = false))
+        assertEquals(9_950L, purse.funds[buyer])
+        assertEquals(listOf(5), Market.data.pendingDelivery[buyer.toString()]!!.map { it.qty })
+        assertEquals(start, total())
+    }
+
+    @Test
+    fun intentJsonRoundTripAndLegacyDecode() {
+        val intent = buyIntent(listOf(fill(1)), ver = 1, applied = true)
+        assertEquals(intent, Db.json.decodeFromString(Intent.serializer(), Db.json.encodeToString(Intent.serializer(), intent)))
+        val old = Db.json.decodeFromString(Intent.serializer(), """{"id":1,"type":"BUY","state":"DEBITED"}""")
+        assertEquals(0, old.ver)
+        assertFalse(old.applied)
     }
 }

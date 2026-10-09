@@ -37,9 +37,13 @@ class WorldContext(val level: ServerLevel, val settings: Settings) {
     fun biome(x: Int, y: Int, z: Int): Holder<Biome> =
         generator.biomeSource.getNoiseBiome(x shr 2, y shr 2, z shr 2, randomState.sampler())
 
-    fun sitesIn(ore: Ore, x0: Int, z0: Int, x1: Int, z1: Int): List<Site> {
+    fun cellsFor(area: Long): Long = settings.ores.sumOf { ore -> ore.deposit?.spacing?.let { area / (it.toLong() * it) + 1 } ?: 0L }
+
+    fun withinBudget(area: Long) = cellsFor(area) <= limit
+
+    fun sitesIn(ore: Ore, x0: Int, z0: Int, x1: Int, z1: Int, cancelled: () -> Boolean = NEVER): List<Site> {
         val pad = ore.reach.toInt() + 1
-        return centers(ore, x0 - pad, z0 - pad, x1 + pad, z1 + pad).filter { it.overlaps(x0, z0, x1, z1) }
+        return centers(ore, x0 - pad, z0 - pad, x1 + pad, z1 + pad, cancelled).filter { it.overlaps(x0, z0, x1, z1) }
     }
 
     fun sitesNear(pos: BlockPos, radius: Int): List<Site> =
@@ -49,20 +53,21 @@ class WorldContext(val level: ServerLevel, val settings: Settings) {
         sitesIn(ore, pos.x, pos.z, pos.x, pos.z)
             .firstOrNull { pos.y in it.minY..it.maxY && it.radius(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, noise) <= 1.0 }?.grade
 
-    private fun centers(ore: Ore, x0: Int, z0: Int, x1: Int, z1: Int): List<Site> {
+    private fun centers(ore: Ore, x0: Int, z0: Int, x1: Int, z1: Int, cancelled: () -> Boolean): List<Site> {
         val deposit = ore.deposit ?: return emptyList()
         val anchor = deposit.anchor
         val parent = ore.anchor
         if (anchor != null && parent != null) {
             val padX = max(abs(anchor.offsetX[0]), abs(anchor.offsetX[1]))
             val padZ = max(abs(anchor.offsetZ[0]), abs(anchor.offsetZ[1]))
-            return centers(parent, x0 - padX, z0 - padZ, x1 + padX, z1 + padZ)
+            return centers(parent, x0 - padX, z0 - padZ, x1 + padX, z1 + padZ, cancelled)
                 .mapNotNull { derived(ore, it) }
                 .filter { it.x >= x0 && it.x <= x1 && it.z >= z0 && it.z <= z1 }
         }
         val spacing = deposit.spacing
         val found = ArrayList<Site>()
         for (cx in Math.floorDiv(x0, spacing)..Math.floorDiv(x1, spacing)) {
+            if (cancelled()) return found
             for (cz in Math.floorDiv(z0, spacing)..Math.floorDiv(z1, spacing)) {
                 val site = cell(ore, cx, cz)
                 if (site != null && site.x >= x0 && site.x <= x1 && site.z >= z0 && site.z <= z1) found += site
@@ -158,6 +163,7 @@ class WorldContext(val level: ServerLevel, val settings: Settings) {
     companion object {
         private const val NOISE_SALT = 0x5DEECE66DL
         private const val TWO_PI = 6.283185307179586
+        private val NEVER: () -> Boolean = { false }
         private val NONE = Any()
         private val NO_LUMPS = DoubleArray(0)
     }

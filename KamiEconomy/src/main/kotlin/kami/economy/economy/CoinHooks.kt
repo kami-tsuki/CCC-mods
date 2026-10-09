@@ -7,6 +7,7 @@ import dev.ithundxr.createnumismatics.content.bank.BankMenu
 import dev.ithundxr.createnumismatics.content.coins.CoinItem
 import kami.economy.LOG
 import kami.economy.mixin.numismatics.CoinBlockAccessor
+import kami.economy.world.coinValue
 import kami.libs.economy.CoinSource
 import kami.libs.economy.CoinWatch
 import kami.libs.economy.Coins
@@ -108,7 +109,7 @@ object CoinHooks {
     @JvmStatic
     fun withdrawn(stack: ItemStack) = guard {
         val account = menu.get()?.contentHolder ?: return@guard
-        Coins.minted(CoinSource.TERMINAL, party(account), value(stack))
+        Coins.minted(CoinSource.TERMINAL, party(account), stack.coinValue())
     }
 
     @JvmStatic
@@ -180,10 +181,8 @@ object CoinHooks {
 
     @JvmStatic
     fun dropped(level: Level, pos: BlockPos, stacks: List<ItemStack>) = guard {
-        if (!level.isClientSide) Coins.minted(CoinSource.BLAZE_BANKER, null, stacks.sumOf { value(it) }, at(pos))
+        if (!level.isClientSide) Coins.minted(CoinSource.BLAZE_BANKER, null, stacks.sumOf { it.coinValue() }, at(pos))
     }
-
-    private fun value(stack: ItemStack): Long = (stack.item as? CoinItem)?.let { it.coin.value.toLong() * stack.count } ?: 0L
 
     private fun party(account: BankAccount): Party? = if (account.type == BankAccount.Type.PLAYER) PlayerParty(account.id) else null
 

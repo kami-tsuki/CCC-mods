@@ -1,5 +1,6 @@
 package kami.claims.admin
 
+import kami.libs.util.toUuidOrNull
 import kami.claims.Country
 import kami.claims.Names
 import kami.claims.Realm
@@ -50,9 +51,9 @@ object AdminCountries {
             val rows = Realm.data.countries.values.filter { text.isEmpty() || text in it.name.lowercase() || text in it.id }.sortedBy { it.name.lowercase() }
             val p = Page.of(rows, a.page(1))
             val fame = Fame.scores()
-            Db.json.encodeToJsonElement(Page.serializer(CountryRow.serializer()), Page(p.rows.map { row(ctx.player.server, it, fame[it.id]) }, p.total, p.page, p.size))
+            Db.encode(Page.serializer(CountryRow.serializer()), Page(p.rows.map { row(ctx.player.server, it, fame[it.id]) }, p.total, p.page, p.size))
         }
-        Admin.view(CountryRequests.DETAIL) { ctx, a -> Db.json.encodeToJsonElement(CountryDetail.serializer(), detail(ctx.player.server, country(ctx, a))) }
+        Admin.view(CountryRequests.DETAIL) { ctx, a -> Db.encode(CountryDetail.serializer(), detail(ctx.player.server, country(ctx, a))) }
         Admin.view(CountryRequests.NAMES) { _, _ -> JsonObject(Realm.data.countries.values.associate { it.id to JsonPrimitive(it.name) }) }
         act(CountryRequests.DISBAND) { _, c, _ -> CountryAdmin.disband(c) }
         act(CountryRequests.RENAME) { ctx, c, a -> CountryAdmin.rename(c, a.text(0) ?: missing(ctx)) }
@@ -72,7 +73,7 @@ object AdminCountries {
     }
 
     fun revision(c: Country): String = listOf(
-        c.name, c.state, c.members.entries.sortedBy { it.key }.map { it.key to it.value.rank }, Realm.claims(c.id).size, c.parent, c.provinces.sorted(),
+        c.name, c.state, c.members.entries.sortedBy { it.key }.map { it.key to it.value.rank }, Realm.claimCount(c.id), c.parent, c.provinces.sorted(),
         Wars.all(c).map { it.id to it.phase }, c.research.done.keys.sorted(), c.research.queue.map { it.node }
     ).toString().hashCode().toUInt().toString(16)
 
@@ -94,7 +95,7 @@ object AdminCountries {
     }
 
     private fun guard(ctx: AdminCtx, c: Country) {
-        val id = c.president()?.takeIf { it != ctx.player.stringUUID }?.let { runCatching { UUID.fromString(it) }.getOrNull() } ?: return
+        val id = c.president()?.takeIf { it != ctx.player.stringUUID }?.toUuidOrNull() ?: return
         if (!AdminPerms.outranks(ctx.player, Players.profile(ctx.player.server, id))) ctx.fail("kami_claims.admin.outranked")
     }
 
@@ -103,7 +104,7 @@ object AdminCountries {
     private fun missing(ctx: AdminCtx): Nothing = ctx.fail("kami_claims.error.missing_argument")
 
     private fun row(server: MinecraftServer, c: Country, fame: Double?) = CountryRow(
-        c.id, c.name, c.president(), c.president()?.let { Names.of(server, it) }.orEmpty(), c.members.size, Realm.claims(c.id).size, c.treasury,
+        c.id, c.name, c.president(), c.president()?.let { Names.of(server, it) }.orEmpty(), c.members.size, Realm.claimCount(c.id), c.treasury,
         Research.level(c), Wars.all(c).size, Realm.country(c.parent)?.name, c.provinces.size, c.color, c.active,
         Power.score(c), c.reputation.roundToInt(), fame, Fame.count(c)
     )

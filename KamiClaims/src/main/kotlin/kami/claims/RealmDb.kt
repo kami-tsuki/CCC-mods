@@ -126,7 +126,7 @@ object RealmDb {
     }
 
     private fun <T> split(s: KSerializer<T>, v: T, drop: Set<String>) =
-        JsonObject(Db.json.encodeToJsonElement(s, v).jsonObject - drop).toString()
+        JsonObject(Db.encode(s, v).jsonObject - drop).toString()
 
     private fun <T> join(s: KSerializer<T>, data: String, vararg cols: Pair<String, JsonElement>): T =
         Db.json.decodeFromJsonElement(s, JsonObject(Db.json.parseToJsonElement(data).jsonObject + cols))

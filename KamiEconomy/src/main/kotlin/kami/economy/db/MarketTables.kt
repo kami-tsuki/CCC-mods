@@ -44,8 +44,8 @@ internal object MarketTables {
         Table<Data>("eco_sold", listOf("player"), listOf("data")) { d ->
             d.sold.map { (k, v) -> listOf(k, Db.json.encodeToString(v)) }
         },
-        Table<Data>("eco_traded", listOf("item"), listOf("sold", "bought")) { d ->
-            d.traded.map { (k, t) -> listOf(k, t.sold, t.bought) }
+        Table<Data>("eco_traded", listOf("item"), listOf("sold", "bought", "last")) { d ->
+            d.traded.map { (k, t) -> listOf(k, t.sold, t.bought, t.last) }
         },
         Table<Data>("eco_vendor", listOf("dim", "x", "y", "z"), listOf("country", "owner", "item", "price", "count", "sell", "stock", "seen")) { d ->
             d.vendors.map { listOf(it.dim, it.x, it.y, it.z, it.country, it.owner, it.item, it.price, it.count, it.sell, it.stock, it.seen) }
@@ -80,7 +80,7 @@ internal object MarketTables {
         val delivery = s.map("eco_delivery", "owner") { Db.json.decodeFromString<MutableList<Delivery>>(it.string("data")) }
         val stocks = s.map("eco_server", "item") { Stock(it.int("supply"), it.int("demand")) }
         val sold = s.map("eco_sold", "player") { Db.json.decodeFromString<MutableMap<String, MutableList<Sale>>>(it.string("data")) }
-        val traded = s.map("eco_traded", "item") { Traded(it.long("sold"), it.long("bought")) }
+        val traded = s.map("eco_traded", "item") { Traded(it.long("sold"), it.long("bought"), it.long("last")) }
         val muted = s.map("eco_muted", "player") { Db.json.decodeFromString<MutableSet<String>>(it.string("data")) }
         return checkNotNull(s.one("SELECT * FROM eco_market WHERE id = 1") { r ->
             Data(books, r.long("next_order_id"), delivery, auctions, Db.json.decodeFromString(r.string("frozen")), stocks, sold, traded, vendors, muted, r.int("version"))

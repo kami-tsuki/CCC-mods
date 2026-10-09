@@ -12,11 +12,10 @@ import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
+import kami.libs.ui.style.Severity
 import kami.libs.ui.style.TextStyle
 import kami.libs.ui.text.tr
-import kami.libs.ui.widget.SMALL_H
-import kami.libs.ui.widget.buttonWidth
-import kami.libs.ui.widget.edgeButton
+import kami.libs.ui.widget.noticeBar
 import kami.libs.ui.widget.spinner
 import net.minecraft.client.Minecraft
 
@@ -36,13 +35,13 @@ class PersonalApp private constructor() : KamiApp() {
 
     private fun offline(): String? = if (Personal.viewing) tr("kami_essentials.personal.read_only") else if (snap == null) tr("kami_essentials.prefs.offline") else null
 
-    override fun buildNav() = listOf(NavGroup(id = "overview", label = tr("kami_essentials.personal.nav.overview"), items = listOf(NavItem("dashboard", tr("kami_essentials.personal.nav.dashboard"), Icons.DASHBOARD)))) +
+    override fun buildNav() = listOf(NavGroup(id = "overview", label = tr("kami_libs.common.overview"), items = listOf(NavItem("dashboard", tr("kami_libs.common.dashboard"), Icons.DASHBOARD)))) +
         Personal.sections.mapNotNull { s -> s.items().takeIf { it.isNotEmpty() }?.let { NavGroup(id = s.id, label = tr(s.group()), items = it) } } +
         listOf(
-            NavGroup(id = "client", label = tr("kami_essentials.nav.group.client"), items = listOf(NavItem("interface", tr("kami_essentials.nav.interface"), Icons.BRUSH))),
-            NavGroup(id = "server", label = tr("kami_essentials.nav.group.server"), items = listOf(
+            NavGroup(id = "client", label = tr("kami_essentials.nav.group.client"), items = listOf(NavItem("interface", tr("kami_libs.common.interface"), Icons.BRUSH))),
+            NavGroup(id = "server", label = tr("kami_libs.party.server"), items = listOf(
                 NavItem("chat", tr("kami_essentials.nav.chat"), Icons.SCROLL, lock = ::offline),
-                NavItem("player", tr("kami_essentials.nav.player"), Icons.PERSON, lock = ::offline),
+                NavItem("player", tr("kami_libs.common.player"), Icons.PERSON, lock = ::offline),
                 NavItem("discord", tr("kami_essentials.nav.discord"), Icons.GLOBE, lock = { offline() ?: if (snap?.discordOn == true) null else tr("kami_essentials.prefs.unavailable") })
             ))
         )
@@ -78,11 +77,7 @@ class PersonalApp private constructor() : KamiApp() {
     override fun banner(ui: Ui, r: Rect): Int {
         val subject = Personal.subject ?: return 0
         val box = r.top(20)
-        Draw.box(ui.g, box, Palette.alpha(Palette.warning, 0x30), Palette.alpha(Palette.warning, 0x90))
-        Draw.leadIcon(ui.g, Icons.EYE, box.x + 6, box.centerY)
-        val exit = tr("kami_essentials.personal.viewing.exit")
-        Draw.text(ui.g, Draw.fit(tr("kami_essentials.personal.viewing", subject.name), box.w - buttonWidth(exit, Icons.CLOSE) - 32), box.x + 22, box.y + 6, Palette.warning)
-        if (ui.edgeButton(Rect(box.x, box.y + 2, box.w - 2, SMALL_H), exit, Icons.CLOSE, key = "exit-subject")) Personal.view(null)
+        if (ui.noticeBar(box, Icons.EYE, tr("kami_essentials.personal.viewing", subject.name), Severity.WARNING, tr("kami_essentials.personal.viewing.exit"), "exit-subject", Icons.CLOSE)) Personal.view(null)
         return 20
     }
 
@@ -93,7 +88,10 @@ class PersonalApp private constructor() : KamiApp() {
 
     fun shown(key: String, actual: String): String {
         val (value, at) = pending[key] ?: return actual
-        if (value != actual && System.currentTimeMillis() - at < PENDING_MS) return value
+        if (value != actual) {
+            if (System.currentTimeMillis() - at < PENDING_MS) return value
+            toast(Severity.WARNING, tr("kami_essentials.personal.save_failed"))
+        }
         pending -= key
         return actual
     }

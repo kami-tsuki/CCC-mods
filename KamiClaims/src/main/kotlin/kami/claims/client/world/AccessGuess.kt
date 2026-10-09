@@ -1,6 +1,6 @@
 package kami.claims.client.world
 
-import kami.claims.client.rankOf
+import kami.claims.client.app.rankOf
 import kami.claims.Rank
 import kami.claims.client.ClientClaims
 import kami.claims.client.store.ClaimsStore
@@ -11,7 +11,25 @@ object AccessGuess {
 
     fun owner(dim: String, x: Int, z: Int): Int = ClientClaims.at(dim, x, z)?.country ?: -1
 
+    private val memo = HashMap<Long, Boolean>()
+    private var memoCountries: Any? = null
+    private var memoSnap: Any? = null
+    private var memoDim = ""
+
     fun allowed(dim: String, blockX: Int, blockZ: Int, action: String): Boolean {
+        val index = actions.indexOf(action)
+        if (index < 0) return compute(dim, blockX, blockZ, action)
+        val snap = ClaimsStore.snap
+        if (ClientClaims.countries !== memoCountries || snap !== memoSnap || dim != memoDim) {
+            memo.clear()
+            memoCountries = ClientClaims.countries
+            memoSnap = snap
+            memoDim = dim
+        }
+        return memo.getOrPut((ClientClaims.key(blockX shr 4, blockZ shr 4) shl 2) or index.toLong()) { compute(dim, blockX, blockZ, action) }
+    }
+
+    private fun compute(dim: String, blockX: Int, blockZ: Int, action: String): Boolean {
         if (!ClientClaims.active(dim)) return true
         val e = ClientClaims.at(dim, blockX shr 4, blockZ shr 4) ?: return action == "interact" || action == "container"
         val relation = ClientClaims.country(e)?.relation ?: View.REL_NONE

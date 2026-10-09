@@ -23,6 +23,7 @@ import kami.libs.ui.style.Severity
 import kami.libs.ui.style.Sprites
 import kami.libs.ui.style.TextStyle
 import kami.libs.ui.style.UiSound
+import kami.libs.ui.widget.fitText
 import kami.libs.ui.widget.Lock
 import kami.libs.ui.widget.badge
 import kami.libs.ui.widget.clickable
@@ -31,7 +32,6 @@ import kami.libs.ui.widget.scroll
 import net.minecraft.client.gui.GuiGraphics
 import org.lwjgl.glfw.GLFW
 import kotlin.math.max
-import kotlin.math.min
 import kotlin.math.roundToInt
 
 data class Route(val page: String, val params: Map<String, String> = emptyMap(), val focus: String? = null) {
@@ -43,7 +43,7 @@ class NavBadge(val count: Int, val severity: Severity)
 class NavItem(val page: String, val label: String, val icon: Icon, val badge: () -> NavBadge? = { null }, val lock: () -> String? = { null }, val teaser: () -> Lock? = { null }) {
     val key = "nav:$page"
 }
-class NavGroup(val label: String, val items: List<NavItem>, val id: String = label, val collapsible: Boolean = true) {
+class NavGroup(val label: String, val items: List<NavItem>, val id: String = label) {
     val openKey = "nav-open:$id"
     val headerKey = "navgroup:$id"
 }
@@ -110,7 +110,6 @@ abstract class KamiApp {
     }
 
     open val module: String? get() = null
-    open val showPins = true
     private var revealPage: String? = null
     private val navY = HashMap<String, Int>()
 
@@ -173,8 +172,7 @@ abstract class KamiApp {
     }
 
     private fun frame(width: Int, height: Int) {
-        val w = min(width - 8, (width * 0.92).toInt().coerceIn(400, 900))
-        val h = min(height - 8, (height * 0.92).toInt().coerceIn(260, 560))
+        val (w, h) = WindowSize.of(width, height, UiPrefs.prefs.windowLarge)
         window = Rect((width - w) / 2, (height - h) / 2, w, h)
         Draw.shadow(ui.g, window, 2)
         Draw.sprite(ui.g, Sprites.WINDOW, window)
@@ -200,7 +198,7 @@ abstract class KamiApp {
             else ui.clip(content) { drawPage(current, content.slideIn(appear, PAGE_SHIFT * pageDirection, 0)) }
         }
         Draw.veilBox(ui.g, content, appear, strength = PAGE_VEIL)
-        if (showPins) ui.overlay(4) { Pins.renderEditable(ui) }
+        ui.overlay(4) { Pins.renderEditable(ui) }
         ui.overlay(NOTICE_LAYER) { toasts.draw(ui, Rect(window.x, window.y + TOPBAR_H + 4, window.w - 8, window.h)) }
         dialogs.removeAll { !it.open }
         dialogs.lastOrNull()?.let { d -> ui.overlay(10) { ui.scope("dialog:${d.title}") { d.draw(ui, ui.screen) } } }
@@ -230,7 +228,7 @@ abstract class KamiApp {
         Draw.textCentered(ui.g, tr("kami_libs.app.page_error"), r, Palette.danger)
     }
 
-    fun isCollapsed(group: NavGroup) = group.collapsible && !rail && group.id in collapsedGroups
+    fun isCollapsed(group: NavGroup) = !rail && group.id in collapsedGroups
 
     private fun toggle(group: NavGroup) {
         if (!collapsedGroups.add(group.id)) collapsedGroups.remove(group.id)
@@ -298,10 +296,6 @@ abstract class KamiApp {
     private fun rowHeight(item: NavItem, open: Float) = if (item.page == route.page) NAV_ROW_H else (NAV_ROW_H * open).roundToInt()
 
     private fun groupHeader(r: Rect, group: NavGroup) {
-        if (!group.collapsible) {
-            Draw.text(ui.g, group.label.uppercase(), r.x + 7, r.y + 3, Palette.textMuted)
-            return
-        }
         val key = group.headerKey
         val collapsed = isCollapsed(group)
         val hit = ui.clickable(key, r)
@@ -312,7 +306,7 @@ abstract class KamiApp {
         val label = badge?.let { badgeLabel(it.count) }
         if (badge != null && label != null) ui.badge(r.right - Draw.width(label) - 9, r.y + (r.h - 10) / 2, label, badge.severity)
         val room = r.w - 18 - (label?.let { Draw.width(it) + 14 } ?: 0)
-        Draw.text(ui.g, Draw.fit(group.label.uppercase(), room), r.x + 16, r.y + 3, Palette.textMuted)
+        ui.fitText(r.x + 16, r.y + 3, room, group.label.uppercase(), Palette.textMuted)
         ui.focusRing(key, r)
         if (hit) toggle(group)
     }
@@ -388,7 +382,7 @@ abstract class KamiApp {
         x = Draw.text(ui.g, current.title, x, textY, TextStyle.HEADING)
         val actionsRight = r.right - r.h - 4
         val actionsX = max(x + 8, actionsRight - current.actionsWidth())
-        current.subtitle?.takeIf { actionsX - x > 32 }?.let { Draw.text(ui.g, Draw.fit("  ·  $it", actionsX - 8 - x), x, textY, Palette.textMuted) }
+        current.subtitle?.takeIf { actionsX - x > 32 }?.let { ui.fitText(x, textY, actionsX - 8 - x, "  ·  $it", Palette.textMuted) }
         val helpR = Rect(r.right - r.h, r.y, r.h, r.h)
         if (current.help.isNotEmpty() && ui.iconButton(helpR, Icons.HELP, tr("kami_libs.app.help.tooltip"), key = "page-help")) help = HelpOverlay(current.help)
         if (actionsRight > actionsX) current.actions(ui, Rect(actionsX, r.y, actionsRight - actionsX, r.h))

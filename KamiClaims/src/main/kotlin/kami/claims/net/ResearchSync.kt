@@ -1,5 +1,6 @@
 package kami.claims.net
 
+import kami.libs.claims.Boost as BoostLimits
 import kami.claims.Cap
 import kami.claims.Config
 import kami.claims.Country
@@ -21,14 +22,18 @@ object ResearchSync {
     private val log = Log.of("research")
     private class Sent(val view: String, val own: String)
 
+    private class Failed(val defs: Int, val key: String, val at: Long)
+
     private const val REFRESH_TICKS = 10
+    private const val RETRY_MS = 60_000L
     private const val MAX_DEFS_BYTES = 900_000
 
     private val dirty = HashSet<String>()
     private val pending = HashSet<String>()
     private val sentCountry = HashMap<UUID, Sent>()
     private val sentDefs = HashMap<UUID, Int>()
-    private val failing = HashSet<UUID>()
+    private val failing = HashMap<UUID, Failed>()
+    private val ids = HashMap<UUID, String>()
     private val menus = HashSet<String?>()
     private var defsRev = 0
     private var oversizeLogged = -1
@@ -58,6 +63,7 @@ object ResearchSync {
     fun reset() { dirty.clear(); pending.clear(); sentCountry.clear(); sentDefs.clear(); failing.clear(); menus.clear() }
 
     fun forget(p: ServerPlayer) {
+        ids.remove(p.uuid)
         sentCountry.remove(p.uuid)
         sentDefs.remove(p.uuid)
         failing.remove(p.uuid)
@@ -71,12 +77,15 @@ object ResearchSync {
         val built = HashMap<String, StateView>()
         for (p in server.playerList.players) {
             if (!p.connection.hasChannel(ResearchStatePacket.TYPE)) continue
+            val own = Realm.of(ids.getOrPut(p.uuid) { p.stringUUID })
+            val viewed = Sync.viewed(p)
+            if (failing[p.uuid]?.let { it.defs == defsRev && it.key == viewKey(own, viewed) && System.currentTimeMillis() - it.at < RETRY_MS } == true && dirty.isEmpty()) continue
             try {
-                send(p, built)
+                send(p, own, viewed, built)
                 failing.remove(p.uuid)
             } catch (e: Exception) {
                 sentCountry.remove(p.uuid)
-                if (failing.add(p.uuid)) log.error("Research sync failed for {}", p.gameProfile.name, e)
+                if (failing.put(p.uuid, Failed(defsRev, viewKey(own, viewed), System.currentTimeMillis())) == null) log.error("Research sync failed for {}", p.gameProfile.name, e)
             }
         }
         dirty.clear()
@@ -85,9 +94,9 @@ object ResearchSync {
         menus.clear()
     }
 
-    private fun send(p: ServerPlayer, built: HashMap<String, StateView>) {
-        val own = Realm.of(p.stringUUID)
-        val viewed = Sync.viewed(p)
+    private fun viewKey(own: Country?, viewed: Country?) = "${viewed?.id}/${own?.id}"
+
+    private fun send(p: ServerPlayer, own: Country?, viewed: Country?, built: HashMap<String, StateView>) {
         val shown = viewed ?: own
         val sendDefs = sentDefs[p.uuid] != defsRev
         if (sendDefs) {
@@ -150,7 +159,9 @@ object ResearchSync {
             Loans.view(country),
             (1..levels.top).map { next -> levels.requirements(next).take(MAX_LINKS).map { Goals.progress(country, it) } },
             Penalty(country).let { penalty -> open.associate { it.key to penalty.ms(it) }.filterValues { it > 0 } },
-            Levels.researchSpeed(country, Queue.onlineCount(country))
+            Levels.researchSpeed(country, Queue.onlineCount(country)),
+            BoostLimits.KINDS.mapNotNull { kind -> country.boosts[kind]?.takeIf { it.isNotEmpty() }?.let { BoostView(kind, it.first().pct, it.first().leftMs, it.size - 1, it.drop(1).sumOf { b -> b.leftMs }) } },
+            Queue.onlineCount(country) > 0
         )
     }
 

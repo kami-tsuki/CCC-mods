@@ -77,7 +77,7 @@ object ResearchGraph {
                 lockText?.let { it to Palette.warning },
                 lock?.how?.let { it to Palette.textSecondary },
                 tr("kami_libs.common.cost") + ": " + Format.money(node.cost) to Palette.textSecondary,
-                tr("kami_claims.research.detail.time") + ": " + Format.duration(ClientResearch.total(node)) to Palette.textSecondary,
+                tr("kami_libs.common.time") + ": " + Format.duration(ClientResearch.total(node)) to Palette.textSecondary,
                 ClientResearch.penalty(node.key).takeIf { it > 0 && status != NodeStatus.DONE }?.let { tr("kami_claims.research.penalty", Format.duration(it)) to Palette.warning }
             ) + visible.map { externalLabel(it) to if (it in ClientResearch.state.done) Palette.success else Palette.textSecondary }) }
         )

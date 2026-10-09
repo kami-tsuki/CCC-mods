@@ -12,19 +12,27 @@ import kami.geology.world.Hardness
 import kami.geology.world.Prospector
 import kami.geology.world.WorldContext
 import kami.geology.world.Worlds
+import kami.libs.claims.ClaimsApi
+import kami.libs.claims.FeatureIds
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
 import net.neoforged.neoforge.network.PacketDistributor
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 object MapServer {
     private const val MAX_CELLS = 160_000
     private const val SCAN_LOCK_MS = 60_000L
+    private const val MIN_REQUEST_MS = 100L
     private val latestMap = ConcurrentHashMap<UUID, Int>()
     private val latestProbe = ConcurrentHashMap<UUID, Int>()
+    private val lastRequest = ConcurrentHashMap<UUID, Long>()
+    private val pending = ConcurrentHashMap<UUID, MapRequest>()
+    private val deferrer = Executors.newSingleThreadScheduledExecutor { task -> Thread(task, "kami-geology-map-defer").also { it.isDaemon = true } }
 
     private class ScanLock(val dimension: ResourceLocation, val x0: Int, val z0: Int, val w: Int, val h: Int, val expiresAt: Long)
     private val scans = ConcurrentHashMap<UUID, ScanLock>()
@@ -32,6 +40,8 @@ object MapServer {
     fun forget(player: ServerPlayer) {
         latestMap.remove(player.uuid)
         latestProbe.remove(player.uuid)
+        lastRequest.remove(player.uuid)
+        pending.remove(player.uuid)
         scans.remove(player.uuid)
         Discovery.forget(player)
     }
@@ -52,8 +62,17 @@ object MapServer {
                 region.x0, region.z0, region.w, region.h
             )
         )
-        val sites = world.settings.ores.flatMap { world.sitesIn(it, region.x0, region.z0, region.x0 + region.w - 1, region.z0 + region.h - 1) }
-        Discovery.report(player, tier, sites)
+        val server = player.server
+        val dimension = level.dimension().location()
+        Workers.pool.execute {
+            val sites = try {
+                world.settings.ores.flatMap { world.sitesIn(it, region.x0, region.z0, region.x0 + region.w - 1, region.z0 + region.h - 1) }
+            } catch (e: Exception) {
+                KamiGeology.LOG.error("Scan failed", e)
+                return@execute
+            }
+            server.execute { Discovery.report(player, tier, sites, dimension) }
+        }
     }
 
     private fun legend(world: WorldContext): Pair<List<OreInfo>, List<ProvinceInfo>> {
@@ -100,6 +119,24 @@ object MapServer {
     private fun map(player: ServerPlayer, r: MapRequest) {
         val world = Worlds.of(player.serverLevel()) ?: return
         val level = player.serverLevel()
+        val now = System.currentTimeMillis()
+        val last = lastRequest[player.uuid]
+        if (last != null && now - last < MIN_REQUEST_MS) {
+            val replaced = pending.put(player.uuid, r)
+            if (replaced != null) PacketDistributor.sendToPlayer(player, MapDone(replaced.seq, 0, 0, 0, 0))
+            else {
+                val server = player.server
+                deferrer.schedule({
+                    server.execute {
+                        val queued = pending.remove(player.uuid)
+                        if (queued != null && !player.hasDisconnected()) map(player, queued)
+                    }
+                }, MIN_REQUEST_MS - (now - last) + 1, TimeUnit.MILLISECONDS)
+            }
+            return
+        }
+        pending.remove(player.uuid)
+        lastRequest[player.uuid] = now
         val y0 = r.y0.coerceAtLeast(level.minBuildHeight)
         val y1 = r.y1.coerceAtMost(level.maxBuildHeight - 1)
         if (allowed(player)) {
@@ -110,13 +147,27 @@ object MapServer {
                 PacketDistributor.sendToPlayer(player, MapDone(r.seq, 0, 0, 0, 0))
                 return
             }
-            if (lock.dimension != level.dimension().location()) return
-            if (r.cell != 1 || r.w != lock.w || r.h != lock.h || r.x0 != lock.x0 || r.z0 != lock.z0 || y0 > y1) return
+            if (lock.dimension != level.dimension().location()) {
+                PacketDistributor.sendToPlayer(player, MapDone(r.seq, 0, 0, 0, 0))
+                return
+            }
+            if (r.cell != 1 || r.w != lock.w || r.h != lock.h || r.x0 != lock.x0 || r.z0 != lock.z0 || y0 > y1) {
+                PacketDistributor.sendToPlayer(player, MapDone(r.seq, 0, 0, 0, 0))
+                return
+            }
+            if (r.w < 1 || r.h < 1 || r.w.toLong() * r.h > MAX_CELLS) {
+                PacketDistributor.sendToPlayer(player, MapDone(r.seq, 0, 0, 0, 0))
+                return
+            }
+        }
+        if (!world.withinBudget(r.w.toLong() * r.h * r.cell * r.cell)) {
+            PacketDistributor.sendToPlayer(player, MapDone(r.seq, 0, 0, 0, 0))
+            return
         }
         val ores = world.settings.ores
         latestMap[player.uuid] = r.seq
         val server = player.server
-        val query = Heatmap.Query(r.x0, r.z0, r.cell, r.w, r.h, y0, y1)
+        val query = Heatmap.Query(r.x0, r.z0, r.cell, r.w, r.h, y0, y1, allowed(player) || ClaimsApi.lock(player.uuid, FeatureIds.GRADES) == null)
         val timing = Heatmap.Timing()
         val started = System.nanoTime()
         val remaining = AtomicInteger(ores.size + 1)

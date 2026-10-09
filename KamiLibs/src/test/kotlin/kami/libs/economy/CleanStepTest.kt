@@ -48,4 +48,15 @@ class CleanStepTest {
         assertFalse(CleanStep.isClean(30, rates))
         assertEquals(100, CleanStep.q(listOf(8, 10, 5)))
     }
+
+    @Test
+    fun bpsNeverOverflowsAndClamps() {
+        assertEquals(Long.MAX_VALUE, CleanStep.bps(Long.MAX_VALUE, 10_000))
+        assertEquals(Long.MAX_VALUE / 2, CleanStep.bps(Long.MAX_VALUE, 5_000))
+        assertEquals(0L, CleanStep.bps(9_999, 1))
+        assertEquals(2_500_000L, CleanStep.bps(10_000_001, 2_500))
+        assertEquals(0L, CleanStep.bps(1000, -5))
+        assertEquals(1000L, CleanStep.bps(1000, 20_000))
+        assertEquals(1000L, CleanStep.charge(1000, 150))
+    }
 }

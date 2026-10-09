@@ -20,7 +20,6 @@ import kami.libs.ui.style.Sprites
 import kami.libs.ui.style.TextStyle
 import net.minecraft.client.Minecraft
 import net.minecraft.world.item.ItemStack
-import kotlin.math.max
 
 fun Ui.filterBar(r: Rect, key: String, content: (Rect) -> Unit): Rect {
     val bar = r.top(CONTROL_H)
@@ -63,10 +62,10 @@ fun Ui.statTile(
     flashValue?.let { v -> flash(key, v).takeIf { it != 0 }?.let { Draw.fill(g, r.inset(1), it) } }
     var x = r.x + 5
     icon?.let { x += Draw.leadIcon(g, it, x, r.y + 9) }
-    Draw.text(g, Draw.fit(label.uppercase(), r.right - x - 4), x, r.y + 5, Palette.textMuted)
+    fitText(x, r.y + 5, r.right - x - 4, label.uppercase(), Palette.textMuted, key = "$key:label")
     val valueY = tileValueY(r)
     val sparkW = if ((spark?.size ?: 0) >= 2) 46 else 0
-    if (value == null) skeletonValue(r) else Draw.text(g, Draw.fit(value, r.w - 10 - sparkW, TextStyle.HEADING), r.x + 5, valueY, TextStyle.HEADING, color)
+    if (value == null) skeletonValue(r) else fitText(r.x + 5, valueY, r.w - 10 - sparkW, value, color, TextStyle.HEADING, key = "$key:value")
     var infoY = valueY + 12
     trend?.let { t ->
         val up = t.delta > 0
@@ -74,10 +73,10 @@ fun Ui.statTile(
         val c = when (good) { true -> Palette.success; false -> Palette.danger; null -> Palette.textMuted }
         val glyph = if (t.delta > 0) Glyphs.Glyph.UP else if (t.delta < 0) Glyphs.Glyph.DOWN else Glyphs.Glyph.FLAT
         val tx = Draw.component(g, Glyphs.component(glyph), r.x + 5, infoY, c)
-        Draw.text(g, Draw.fit(t.label, r.right - tx - 8), tx + 3, infoY, c)
+        fitText(tx + 3, infoY, r.right - tx - 8, t.label, c, key = "$key:trend")
         infoY += 10
     }
-    sub?.let { if (infoY + 8 <= r.bottom - 3) Draw.text(g, Draw.fit(it, r.w - 10), r.x + 5, infoY, Palette.textMuted) }
+    sub?.let { if (infoY + 8 <= r.bottom - 3) fitText(r.x + 5, infoY, r.w - 10, it, Palette.textMuted, key = "$key:sub") }
     spark?.takeIf { it.size >= 2 }?.let { sparkline(Rect(r.right - 45, valueY - 2, 40, 12), it, color) }
     tip?.let { t -> tooltip(key, r) { t } }
     if (hover && tip != null) cursor = Cursor.HAND
@@ -100,28 +99,27 @@ fun Ui.kpiRow(r: Rect, tiles: List<KpiTile>, gap: Int = 6, key: Any = "kpi") {
     tiles.forEachIndexed { i, t -> kpiTile(cells[i], t, key) }
 }
 
-fun Ui.progress(r: Rect, fraction: Double, color: Int = Palette.brass, label: String? = null) {
-    Draw.sprite(g, Sprites.TRACK, r)
-    val f = fraction.coerceIn(0.0, 1.0)
-    if (f > 0) Draw.tinted(g, Sprites.FILL, r.withWidth(max(2, (r.w * f).toInt())), color)
-    label?.let { Draw.textRight(g, it, r.right, r.y - 10, Palette.textMuted) }
+fun Ui.progress(r: Rect, fraction: Double, color: Int = Palette.brass) {
+    drawBar(r, fraction.toFloat(), color)
 }
 
-fun Ui.meter(r: Rect, value: Int, max: Int, severityAt: (Int) -> Severity, label: String? = null) {
+fun Ui.meter(r: Rect, value: Int, max: Int, severityAt: (Int) -> Severity) {
     val segments = max.coerceAtLeast(1)
     val cells = r.columns(segments, 2)
     cells.forEachIndexed { i, c ->
         val filled = i < value
         Draw.fill(g, c, if (filled) severityAt(i + 1).color else Palette.alpha(Palette.border, 0xC0))
     }
-    label?.let { Draw.textRight(g, it, r.right, r.y - 10, Palette.textMuted) }
 }
 
 fun Ui.chip(
-    x: Int, y: Int, label: String, color: Int = Palette.textSecondary, icon: Icon? = null, tip: String? = null, key: Any = "chip:$label",
-    selected: Boolean = false, interactive: Boolean = false
+    x: Int, y: Int, label: String, color: Int = Palette.textSecondary, icon: Icon? = null, tip: String? = null, key: Any? = null,
+    selected: Boolean = false, interactive: Boolean = false, maxWidth: Int? = null
 ): Int {
-    val w = Draw.width(label) + 10 + (if (icon != null) Draw.ICON - 1 else 0)
+    val k = key ?: autoKey("chip:$label")
+    val extra = 10 + (if (icon != null) Draw.ICON - 1 else 0)
+    val textW = Draw.width(label).let { if (maxWidth != null) minOf(it, (maxWidth - extra).coerceAtLeast(8)) else it }
+    val w = textW + extra
     val r = Rect(x, y, w, 13)
     val fill = when {
         selected -> 0x50
@@ -132,17 +130,18 @@ fun Ui.chip(
     if (selected) Draw.outline(g, r, Palette.alpha(color, 0xC0))
     var tx = x + 5
     icon?.let { tx += Draw.leadIcon(g, it, tx - 1, r.centerY) - 1 }
-    Draw.text(g, label, tx, y + 3, color)
-    tooltip(key, r, tip)
+    fitText(tx, y + 3, textW, label, color, key = "$k:text")
+    tooltip(k, r, tip)
     return w
 }
 
-fun Ui.statusPill(x: Int, y: Int, label: String, severity: Severity, tip: String? = null, key: Any = "pill:$label"): Int {
-    val w = Draw.width(label) + 16
+fun Ui.statusPill(x: Int, y: Int, label: String, severity: Severity, tip: String? = null, key: Any = "pill:$label", maxWidth: Int? = null): Int {
+    val textW = Draw.width(label).let { if (maxWidth != null) minOf(it, (maxWidth - 16).coerceAtLeast(8)) else it }
+    val w = textW + 16
     val r = Rect(x, y, w, 13)
     Draw.tinted(g, Sprites.CHIP, r, severity.tint)
     Draw.fill(g, Rect(x + 4, y + 4, 5, 5), severity.color)
-    Draw.text(g, label, x + 12, y + 3, severity.color)
+    fitText(x + 12, y + 3, textW, label, severity.color, key = "$key:text")
     tooltip(key, r, tip)
     return w
 }
@@ -171,12 +170,20 @@ fun Ui.banner(r: Rect, severity: Severity, title: String, body: String? = null, 
     Draw.icon(g, iconFor(severity), r.x + 5, r.y + (r.h - 16) / 2)
     val actionW = action?.let { buttonWidth(it) } ?: 0
     val textW = (r.w - 34 - actionW).coerceAtLeast(20)
-    if (body == null) Draw.text(g, Draw.fit(title, textW), r.x + 25, r.y + (r.h - 8) / 2, TextStyle.HEADING, severity.color)
+    if (body == null) fitText(r.x + 25, r.y + (r.h - 8) / 2, textW, title, severity.color, TextStyle.HEADING, key = "$key:title")
     else {
-        Draw.text(g, Draw.fit(title, textW), r.x + 25, r.y + (r.h - 18) / 2, TextStyle.HEADING, severity.color)
-        Draw.text(g, Draw.fit(body, textW), r.x + 25, r.y + (r.h - 18) / 2 + 10, Palette.textSecondary)
+        fitText(r.x + 25, r.y + (r.h - 18) / 2, textW, title, severity.color, TextStyle.HEADING, key = "$key:title")
+        fitText(r.x + 25, r.y + (r.h - 18) / 2 + 10, textW, body, Palette.textSecondary, key = "$key:body")
     }
     return action != null && button(Rect(r.right - actionW - 4, r.y + (r.h - SMALL_H) / 2, actionW, SMALL_H), action, key = "$key:action")
+}
+
+fun Ui.noticeBar(r: Rect, icon: Icon, text: String, severity: Severity = Severity.WARNING, actionLabel: String? = null, key: Any = "notice:$text", actionIcon: Icon? = null): Boolean {
+    Draw.box(g, r, severity.tint, severity.edge)
+    Draw.leadIcon(g, icon, r.x + 6, r.centerY)
+    val actionW = actionLabel?.let { buttonWidth(it, actionIcon) } ?: 0
+    fitText(r.x + 22, r.y + (r.h - 8) / 2, (r.w - actionW - 32).coerceAtLeast(0), text, severity.color, key = "$key:text")
+    return actionLabel != null && edgeButton(Rect(r.x, r.y + (r.h - SMALL_H) / 2, r.w - 2, SMALL_H), actionLabel, actionIcon, key = "$key:action")
 }
 
 fun Ui.callout(r: Rect, severity: Severity, text: String): Int {

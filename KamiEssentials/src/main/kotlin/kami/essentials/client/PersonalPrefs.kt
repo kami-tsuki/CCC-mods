@@ -20,7 +20,7 @@ object PersonalPrefs {
             Section(
                 "client.json", "Settings of this game client for the personal screen.",
                 mapOf(
-                    "railCollapsed" to "The side bar is collapsed to icons.",
+                    "railCollapsed" to "The sidebar is collapsed to icons.",
                     "bankRange" to "Income and expense breakdown range: week or month.",
                     "collapsedGroups" to "Navigation groups you collapsed."
                 )

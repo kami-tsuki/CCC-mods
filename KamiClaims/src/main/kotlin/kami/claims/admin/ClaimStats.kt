@@ -34,6 +34,8 @@ object ClaimStats {
         Stats.gauge("country.online") { onlineBy().let { by -> each { by[it.id]?.toLong() ?: 0 } } }
         Stats.gauge("country.provinces") { each { it.provinces.size.toLong() } }
         Stats.gauge("country.level") { each { it.level.toLong() } }
+        Stats.gauge("xp.total") { each { it.xp } }
+        Stats.gauge("research.queue") { each { it.research.queue.size.toLong() } }
         Stats.gauge("country.fame") { Fame.scores().filterValues { it != null }.entries.associate { (id, v) -> "c:$id" to (v!! * 100).toLong() } }
         Stats.gauge("country.power") { each { (Power.score(it) * 100).toLong() } }
         Stats.gauge("loan.debt") { each { c -> c.loans.sumOf(Loans::remaining) } }

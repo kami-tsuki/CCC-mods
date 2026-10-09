@@ -5,6 +5,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import net.neoforged.fml.ModList
 import java.nio.file.Files
+import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
 object DiscordText {
@@ -13,7 +14,7 @@ object DiscordText {
 
     fun get(modId: String, language: String, key: String, vararg args: Any): String {
         val template = table(modId, language)[key] ?: table(modId, FALLBACK)[key] ?: return key
-        return if (args.isEmpty()) template else runCatching { template.format(*args) }.getOrDefault(template)
+        return if (args.isEmpty()) template else runCatching { String.format(Locale.ROOT, template, *args) }.getOrDefault(template)
     }
 
     private fun table(modId: String, language: String): Map<String, String> = cache.getOrPut("$modId/$language") {

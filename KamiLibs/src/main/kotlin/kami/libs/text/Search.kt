@@ -6,6 +6,8 @@ class SearchQuery(val clauses: List<List<SearchTerm>>) {
     val isEmpty: Boolean get() = clauses.isEmpty()
     val hasWords: Boolean = clauses.any { c -> c.any { it.prefix == null && !it.negate } }
 
+    val key: String by lazy { clauses.joinToString("&") { c -> c.joinToString("|") { "${if (it.negate) "!" else ""}${it.prefix ?: ""}${it.text.length}:${it.text}" } } }
+
     fun matches(test: (SearchTerm) -> Boolean): Boolean = clauses.all { c -> c.any { test(it) != it.negate } }
 
     fun matches(vararg fields: String): Boolean = matches { t -> t.prefix == null && fields.any { it.contains(t.text, true) } }

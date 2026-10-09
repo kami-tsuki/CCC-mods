@@ -9,13 +9,14 @@ import thedarkcolour.kotlinforforge.neoforge.forge.FORGE_BUS
 
 object TerrainScanner {
     private val queue = LinkedHashSet<Long>()
+    private const val MAX_QUEUE = 1024
     private var ticks = 0
     private var ring = 0
 
     fun init() {
         FORGE_BUS.addListener<ChunkEvent.Load> { e ->
             val level = e.level
-            if (level.isClientSide && TerrainCache.enabled) queue += e.chunk.pos.toLong()
+            if (level.isClientSide && TerrainCache.enabled) enqueue(e.chunk.pos.toLong())
         }
         FORGE_BUS.addListener<LevelEvent.Unload> { if (it.level.isClientSide) { queue.clear(); TerrainCache.flush() } }
         FORGE_BUS.addListener<ClientTickEvent.Post> { tick() }
@@ -33,14 +34,22 @@ object TerrainScanner {
         val dim = level.dimension().location().toString()
         var budget = 6
         val iterator = queue.iterator()
+        val retry = ArrayList<Long>()
         while (budget > 0 && iterator.hasNext()) {
             val pos = ChunkPos(iterator.next())
             iterator.remove()
             val chunk = level.chunkSource.getChunk(pos.x, pos.z, false) ?: continue
             if (chunk.isEmpty) continue
+            if (!TerrainCache.ready(dim, pos.x, pos.z)) { retry += pos.toLong(); continue }
             TerrainCache.put(dim, pos.x, pos.z, TerrainSampler.sample(level, chunk))
             budget--
         }
+        retry.forEach(::enqueue)
+    }
+
+    private fun enqueue(pos: Long) {
+        queue += pos
+        if (queue.size > MAX_QUEUE) queue.iterator().let { it.next(); it.remove() }
     }
 
     private fun rescanAround(center: ChunkPos) {
@@ -48,7 +57,7 @@ object TerrainScanner {
         val side = radius * 2 + 1
         repeat(6) {
             val i = ring++ % (side * side)
-            queue += ChunkPos.asLong(center.x - radius + i % side, center.z - radius + i / side)
+            enqueue(ChunkPos.asLong(center.x - radius + i % side, center.z - radius + i / side))
         }
     }
 }

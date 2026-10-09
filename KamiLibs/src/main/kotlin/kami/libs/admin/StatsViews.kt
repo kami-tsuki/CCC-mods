@@ -4,6 +4,7 @@ import kami.libs.db.Db
 import kami.libs.stats.Stats
 import kotlinx.serialization.Serializable
 import net.minecraft.server.MinecraftServer
+import kami.libs.util.toUuidOrNull
 import java.util.UUID
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -32,7 +33,7 @@ object StatsViews {
             val results = a.take(MAX_REQUESTS).map { run(it.split('|'), bucket) }
             val keys = results.flatMap { r -> r.rows.map { it.key } }.toSet()
             val names = if (keys.isEmpty()) emptyMap() else ctx.onServer { keys.associateWith { name(ctx.player.server, it) } }
-            Db.json.encodeToJsonElement(StatsReply.serializer(), StatsReply(bucket, results.map { r -> StatResult(r.points, r.rows.map { StatRow(it.key, it.v, names[it.key].orEmpty()) }, r.total) }))
+            Db.encode(StatsReply.serializer(), StatsReply(bucket, results.map { r -> StatResult(r.points, r.rows.map { StatRow(it.key, it.v, names[it.key].orEmpty()) }, r.total) }))
         }
     }
 
@@ -56,7 +57,7 @@ object StatsViews {
 
     private fun name(server: MinecraftServer, key: String): String {
         if (!key.startsWith("p:")) return resolvers.firstNotNullOfOrNull { it(key) }.orEmpty()
-        val id = runCatching { UUID.fromString(key.substring(2)) }.getOrNull() ?: return ""
+        val id = key.substring(2).toUuidOrNull() ?: return ""
         return Players.profile(server, id).name.takeUnless { it == id.toString() }.orEmpty()
     }
 }

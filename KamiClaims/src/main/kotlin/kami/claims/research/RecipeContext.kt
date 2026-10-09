@@ -132,9 +132,6 @@ object RecipeContext {
     @JvmStatic
     fun allowed(recipe: ResourceLocation) = !active || !Gate.gated(recipe) || bypassed() || Gate.recipe(Realm.country(stack.country()), recipe)
 
-    @JvmStatic
-    fun allowedBlock(block: ResourceLocation) = !active || !Gate.gatedBlock(block) || bypassed() || Gate.block(Realm.country(stack.country()), block)
-
     private fun bypassed() = (stack.source() as? ServerPlayer)?.let(RecipeFilter::bypassed) == true
 
     private fun resolve(source: Any, pos: Long): String? = when (source) {

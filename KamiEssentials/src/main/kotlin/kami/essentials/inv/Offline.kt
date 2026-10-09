@@ -1,5 +1,7 @@
 package kami.essentials.inv
 
+import kami.essentials.chat.Talk
+import kami.libs.chat.tell
 import kami.libs.text.Phrase
 import kami.essentials.KamiEssentials
 import kami.libs.command.fail
@@ -19,6 +21,7 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.storage.LevelResource
 import java.nio.file.Files
 import java.nio.file.NoSuchFileException
+import java.nio.file.Path
 import java.util.UUID
 
 class Offline private constructor(val id: UUID, private val server: MinecraftServer) {
@@ -27,16 +30,19 @@ class Offline private constructor(val id: UUID, private val server: MinecraftSer
     private val tag: CompoundTag
     val inventory = SimpleContainer(41)
     val enderchest = PlayerEnderChestContainer()
-    val viewers = mutableSetOf<ServerPlayer>()
+    val viewers = mutableListOf<ServerPlayer>()
     var live = true
         private set
     private var dirty = false
+    private val kept = mutableListOf<Pair<Int?, CompoundTag>>()
 
     init {
         tag = read(server, id) ?: throw NoSuchFileException(file.toString())
         tag.getList("Inventory", Tag.TAG_COMPOUND.toInt()).forEach { t ->
             val item = t as CompoundTag
-            slot(item.getByte("Slot").toInt() and 255)?.let { inventory.setItem(it, ItemStack.parseOptional(server.registryAccess(), item)) }
+            val at = slot(item.getByte("Slot").toInt() and 255)
+            val stack = if (at == null) ItemStack.EMPTY else ItemStack.parseOptional(server.registryAccess(), item)
+            if (stack.isEmpty) kept += at to item else inventory.setItem(at!!, stack)
         }
         enderchest.fromTag(tag.getList("EnderItems", Tag.TAG_COMPOUND.toInt()), server.registryAccess())
         inventory.addListener { dirty = true }
@@ -46,25 +52,36 @@ class Offline private constructor(val id: UUID, private val server: MinecraftSer
     fun flush() {
         if (!live || !dirty) return
         dirty = false
+        var tmp: Path? = null
         runCatching {
             val items = ListTag()
             for (i in 0 until inventory.containerSize) {
                 val stack = inventory.getItem(i)
                 if (!stack.isEmpty) items.add(stack.save(server.registryAccess(), CompoundTag().apply { putByte("Slot", raw(i).toByte()) }))
             }
+            kept.forEach { (at, item) -> if (at == null || inventory.getItem(at).isEmpty) items.add(item.copy()) }
             tag.put("Inventory", items)
             tag.put("EnderItems", enderchest.createTag(server.registryAccess()))
             NbtUtils.addCurrentDataVersion(tag)
-            val tmp = Files.createTempFile(dir, "$id-", ".dat")
-            NbtIo.writeCompressed(tag, tmp)
-            Util.safeReplaceFile(file, tmp, dir.resolve("$id.dat_old"))
-        }.onFailure { KamiEssentials.LOG.error("Could not save offline edits of {}", id, it) }
+            val created = Files.createTempFile(dir, "$id-", ".dat")
+            tmp = created
+            NbtIo.writeCompressed(tag, created)
+            Util.safeReplaceFile(file, created, dir.resolve("$id.dat_old"))
+        }.onFailure {
+            dirty = true
+            tmp?.let { t -> runCatching { Files.deleteIfExists(t) } }
+            KamiEssentials.LOG.error("Could not save offline edits of {}", id, it)
+        }
     }
 
     private fun close() {
-        flush()
+        val lost = dirty
+        dirty = false
         live = false
-        viewers.toList().forEach { it.closeContainer() }
+        viewers.toList().distinct().forEach {
+            it.closeContainer()
+            if (lost) it.tell(Talk.chat.info(Phrase.of("kami_essentials.views.discarded")))
+        }
         open.remove(id)
     }
 

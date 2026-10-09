@@ -51,7 +51,7 @@ private class Texts {
     val lentTitle = tr("kami_claims.loans.lent.title")
     val lendTitle = tr("kami_claims.loans.lend.title")
     val formTitle = tr("kami_claims.loans.form.title")
-    val amount = tr("kami_claims.loans.form.amount")
+    val amount = tr("kami_libs.common.amount")
     val term = tr("kami_claims.loans.form.term")
     val days = tr("kami_claims.loans.form.days")
     val interest = tr("kami_claims.loans.form.interest")
@@ -60,7 +60,7 @@ private class Texts {
     val tariffTip = tr("kami_claims.loans.form.tariff.tip")
     val min = tr("kami_claims.loans.form.min")
     val max = tr("kami_claims.loans.form.max")
-    val none = tr("kami_claims.loans.form.none")
+    val none = tr("kami_libs.common.none").lowercase()
     val limit = tr("kami_claims.loans.form.limit")
     val reserve = tr("kami_claims.loans.form.reserve")
     val relist = tr("kami_claims.loans.form.relist")
@@ -150,6 +150,8 @@ class LoansPage(app: ClaimsApp) : ClaimsPage(app) {
     private var relist = false
     private var minOn = false
     private var maxOn = false
+    private var marketSort = "interest"
+    private var affordableOnly = false
 
     private fun texts() = textMemo.of(Format.locale) { Texts() }
 
@@ -170,8 +172,8 @@ class LoansPage(app: ClaimsApp) : ClaimsPage(app) {
             rebuild(loans, area.w)
             val stack = Stack(area.x, area.y, area.w, CARD_GAP)
             ui.capacityRow(stack, slotsLabel, loans.used, loans.slots, slotNext, "loans-slots")
-            if (loans.inDefault) notice(ui, stack, defaultText, defaultH, Palette.danger)
-            if (loans.blockDays > 0) notice(ui, stack, blockText, blockH, Palette.warning)
+            if (loans.inDefault) notice(ui, stack, defaultText, defaultH, Severity.DANGER)
+            if (loans.blockDays > 0) notice(ui, stack, blockText, blockH, Severity.WARNING)
             when (tab) {
                 0 -> borrow(ui, stack)
                 1 -> lend(ui, stack, loans)
@@ -181,38 +183,58 @@ class LoansPage(app: ClaimsApp) : ClaimsPage(app) {
         }
     }
 
-    private fun notice(ui: Ui, stack: Stack, text: String, h: Int, color: Int) {
+    private fun notice(ui: Ui, stack: Stack, text: String, h: Int, severity: Severity) {
+        if (Draw.width(text) <= stack.w - 32) {
+            ui.noticeBar(stack.take(CONTROL_H), Icons.WARNING, text, severity, key = "loans-notice:${severity.name}")
+            return
+        }
+        val color = severity.color
         val box = stack.take(h + 2 * PAD)
-        Draw.box(ui.g, box, Palette.alpha(color, 0x30), Palette.alpha(color, 0x90))
+        Draw.box(ui.g, box, severity.tint, severity.edge)
         val lead = Draw.leadIcon(ui.g, Icons.WARNING, box.x + PAD, box.y + PAD + 4, color)
         Draw.paragraph(ui.g, text, box.x + PAD + lead + 2, box.y + PAD, box.w - 2 * PAD - lead - 2, color)
     }
 
     private fun borrow(ui: Ui, stack: Stack) {
-        ui.section(stack, texts().marketTitle, market.size.toString())
-        if (market.isEmpty()) Draw.text(ui.g, marketEmpty, stack.x, stack.take(Draw.LINE).y, Palette.textMuted)
-        market.forEachIndexed { i, card -> drawMarket(ui, stack.take(card.h), card, i) }
+        val t = texts()
+        ui.section(stack, t.marketTitle, Format.number(market.size))
+        val bar = stack.take(CONTROL_H)
+        val row = Row(bar, 6)
+        val only = tr("kami_claims.loans.filter.affordable")
+        ui.toggle(row.takeFromRight(Draw.width(only) + 34), affordableOnly, only, key = "loans-affordable")?.let { affordableOnly = it }
+        val sorts = listOf("interest" to t.interest, "amount" to t.amount, "term" to t.term)
+        ui.select(row.take(130), sorts.map { Option(it.first, it.second) }, marketSort, key = "loans-sort")?.let { marketSort = it }
+        val shown = market.filter { !affordableOnly || it.reason == null }.sortedWith(when (marketSort) {
+            "amount" -> compareBy<MarketCard> { it.offer.amount }
+            "term" -> compareBy<MarketCard> { it.offer.termDays }
+            else -> compareBy<MarketCard> { it.offer.effectivePct }
+        })
+        if (shown.isEmpty()) Draw.text(ui.g, marketEmpty, stack.x, stack.take(Draw.LINE).y, Palette.textMuted)
+        shown.forEachIndexed { i, card -> drawMarket(ui, stack.take(card.h), card, i) }
         val head = stack.take(14)
-        ui.section(head, texts().offersTitle, offers.size.toString())
+        ui.section(head, texts().offersTitle, Format.number(offers.size))
         ui.tooltip("loans-explain", head, explainText)
         stack.cardGrid(offers.size, cols, { offers[it].h }) { rect, i -> drawOffer(ui, rect, offers[i], i) }
     }
 
     private fun activeTab(ui: Ui, stack: Stack) {
-        ui.section(stack, texts().activeTitle, active.size.toString())
+        ui.section(stack, texts().activeTitle, Format.number(active.size))
         if (active.isEmpty()) Draw.text(ui.g, emptyText, stack.x, stack.take(Draw.LINE).y, Palette.textMuted)
         active.forEachIndexed { i, card -> drawActive(ui, stack.take(card.h), card, i) }
-        ui.section(stack, texts().lentTitle, lent.size.toString())
+        ui.section(stack, texts().lentTitle, Format.number(lent.size))
         if (lent.isEmpty()) Draw.text(ui.g, lentEmpty, stack.x, stack.take(Draw.LINE).y, Palette.textMuted)
         lent.forEachIndexed { i, card -> drawActive(ui, stack.take(card.h), card, i) }
     }
 
     private fun lend(ui: Ui, stack: Stack, loans: LoansView) {
         form(ui, stack, loans)
-        ui.section(stack, texts().lendTitle, own.size.toString())
+        ui.section(stack, texts().lendTitle, Format.number(own.size))
         if (own.isEmpty()) Draw.text(ui.g, ownEmpty, stack.x, stack.take(Draw.LINE).y, Palette.textMuted)
         own.forEachIndexed { i, card -> drawOwn(ui, stack.take(card.h), card, i) }
     }
+
+    private fun pair(stack: Stack, h: Int): List<Rect> =
+        if (stack.w < 360) listOf(stack.take(h), stack.take(h)) else stack.take(h).columns(2, 8)
 
     private fun labelled(ui: Ui, cell: Rect, label: String, trailing: String? = null): Rect {
         ui.fieldLabel(cell.top(9), label, trailing)
@@ -224,14 +246,14 @@ class LoansPage(app: ClaimsApp) : ClaimsPage(app) {
         val state = ClientResearch.state
         val edit = state.canManage
         ui.section(stack, t.formTitle)
-        val first = stack.take(FIELD_H).columns(2, 8)
+        val first = pair(stack, FIELD_H)
         ui.numberField(labelled(ui, first[0], t.amount), amount, LoanTerms.MIN_AMOUNT, state.treasury.coerceAtLeast(LoanTerms.MIN_AMOUNT), 100, Format.COIN, edit, "loan-form:amount")
         ui.numberField(labelled(ui, first[1], t.term), term, 1, LoanTerms.MAX_TERM.toLong(), 1, t.days, edit, "loan-form:term")
-        val second = stack.take(FIELD_H).columns(2, 8)
+        val second = pair(stack, FIELD_H)
         ui.numberField(labelled(ui, second[0], t.interest), interest, 0, LoanTerms.MAX_INTEREST.toLong(), 1, "%", edit, "loan-form:interest")
         ui.fieldLabel(second[1].top(9), t.tariffHead)
         ui.toggle(Rect(second[1].x, second[1].y + 10, second[1].w, CONTROL_H), tariff, t.tariffToggle, edit, tip = t.tariffTip, key = "loan-form:tariff")?.let { tariff = it }
-        val third = stack.take(FIELD_H).columns(2, 8)
+        val third = pair(stack, FIELD_H)
         repField(ui, third[0], t.min, minRep, minOn, edit, "loan-form:min", loans.repMax)?.let { minOn = it }
         repField(ui, third[1], t.max, maxRep, maxOn, edit, "loan-form:max", loans.repMax)?.let { maxOn = it }
         val calc = calcMemo.of(amount.value, term.value, interest.value, tariff, Format.locale) {
@@ -244,10 +266,11 @@ class LoansPage(app: ClaimsApp) : ClaimsPage(app) {
             } else null
             main to worst
         }
-        Draw.text(ui.g, Draw.fit(calc.first, stack.w), stack.x, stack.take(ROW_H).y, Palette.textSecondary)
-        calc.second?.let { Draw.text(ui.g, Draw.fit(it, stack.w), stack.x, stack.take(ROW_H).y, Palette.warning) }
-        Draw.text(ui.g, Draw.fit(t.reserve, stack.w), stack.x, stack.take(ROW_H).y, Palette.textMuted)
-        val last = stack.take(CONTROL_H).columns(2, 8)
+        val calcRow = stack.take(ROW_H)
+        ui.fitText(stack.x, calcRow.y, stack.w, calc.first, Palette.textSecondary, key = "calc:1")
+        calc.second?.let { ui.fitText(stack.x, stack.take(ROW_H).y, stack.w, it, Palette.warning, key = "calc:2") }
+        ui.fitText(stack.x, stack.take(ROW_H).y, stack.w, t.reserve, Palette.textMuted, key = "calc:3")
+        val last = pair(stack, CONTROL_H)
         ui.toggle(last[0], relist, t.relist, edit, tip = t.relistTip, key = "loan-form:relist")?.let { relist = it }
         val reason = createReason(loans, state.treasury)
         val busy = pending("loan_offer_create")
@@ -401,7 +424,7 @@ class LoansPage(app: ClaimsApp) : ClaimsPage(app) {
         }
     }
 
-    private fun yesNo(on: Boolean) = tr(if (on) "kami_claims.loans.on" else "kami_claims.loans.off")
+    private fun yesNo(on: Boolean) = tr(if (on) "kami_libs.common.on" else "kami_libs.common.off")
 
     private fun activeCard(loan: ActiveLoanView, treasury: Long, rights: Lock?, readOnly: Boolean): ActiveCard {
         val remaining = loan.total - loan.paid
@@ -433,22 +456,22 @@ class LoansPage(app: ClaimsApp) : ClaimsPage(app) {
     private fun body(ui: Ui, box: Rect, card: OfferCard, dim: Boolean) {
         Draw.box(ui.g, box, Palette.raised, Palette.border)
         val button = Rect(box.right - PAD - BUTTON_W, box.y + PAD, BUTTON_W, SMALL_H)
-        Draw.text(ui.g, Draw.fit(card.title, box.w - 3 * PAD - if (dim) 0 else BUTTON_W), box.x + PAD, box.y + PAD + 3, if (dim) Palette.textSecondary else Palette.text)
+        ui.fitText(box.x + PAD, box.y + PAD + 3, box.w - 3 * PAD - if (dim) 0 else BUTTON_W, card.title, if (dim) Palette.textSecondary else Palette.text)
         if (!dim) {
             val busy = pending("loan_take")
             if (ui.lockedButton(button, texts().take, card.take, Icons.COIN, ButtonStyle.PRIMARY, !busy, pending = busy, key = card.buttonKey)) take(card)
         }
-        Draw.text(ui.g, Draw.fit(card.lines[1], box.w - 2 * PAD), box.x + PAD, box.y + PAD + TITLE_H, if (dim) Palette.textMuted else Palette.textSecondary)
+        ui.fitText(box.x + PAD, box.y + PAD + TITLE_H, box.w - 2 * PAD, card.lines[1], if (dim) Palette.textMuted else Palette.textSecondary)
         ui.tooltip(card.tipKey, Rect(box.x, box.y, box.w - if (dim) 0 else BUTTON_W + 2 * PAD, box.h), card.tip)
     }
 
     private fun lines(ui: Ui, box: Rect, lines: List<Pair<String, Int>>) = lines.forEachIndexed { i, (text, color) ->
-        Draw.text(ui.g, Draw.fit(text, box.w - 2 * PAD), box.x + PAD, box.y + PAD + TITLE_H + i * ROW_H, color)
+        ui.fitText(box.x + PAD, box.y + PAD + TITLE_H + i * ROW_H, box.w - 2 * PAD, text, color)
     }
 
     private fun drawMarket(ui: Ui, r: Rect, card: MarketCard, index: Int) = ui.staggered(r, card.revealKey, index) { box ->
         Draw.box(ui.g, box, Palette.raised, Palette.border)
-        Draw.text(ui.g, Draw.fit(card.title, box.w - 3 * PAD - BUTTON_W), box.x + PAD, box.y + PAD + 3, Palette.text)
+        ui.fitText(box.x + PAD, box.y + PAD + 3, box.w - 3 * PAD - BUTTON_W, card.title, Palette.text)
         val busy = pending("loan_borrow")
         val button = Rect(box.right - PAD - BUTTON_W, box.y + PAD, BUTTON_W, SMALL_H)
         if (ui.lockedButton(button, texts().take, card.rights, Icons.COIN, ButtonStyle.PRIMARY, card.reason == null && !busy, card.reason, pending = busy, key = card.buttonKey)) borrow(card)
@@ -469,14 +492,14 @@ class LoansPage(app: ClaimsApp) : ClaimsPage(app) {
         if (ui.lockedButton(del, card.deleteLabel, card.rights, Icons.REMOVE, ButtonStyle.DANGER, !busyDelete, pending = busyDelete, key = card.deleteKey)) delete(card)
         val stateW = Draw.width(card.stateLabel) + 6
         Draw.text(ui.g, card.stateLabel, row.rest.right - stateW + 6, box.y + PAD + 3, card.stateColor)
-        Draw.text(ui.g, Draw.fit(card.title, row.rest.w - stateW), row.rest.x, box.y + PAD + 3, Palette.text)
+        ui.fitText(row.rest.x, box.y + PAD + 3, row.rest.w - stateW, card.title, Palette.text)
         lines(ui, box, card.lines)
     }
 
     private fun drawActive(ui: Ui, r: Rect, card: ActiveCard, index: Int) = ui.staggered(r, card.revealKey, index) { box ->
         val late = card.notes.isNotEmpty()
         Draw.box(ui.g, box, if (late) Palette.alpha(Palette.warning, 0x20) else Palette.raised, if (late) Palette.warning else Palette.border)
-        Draw.text(ui.g, Draw.fit(card.title, box.w - 3 * PAD - if (card.readOnly) 0 else BUTTON_W), box.x + PAD, box.y + PAD + 3, Palette.text)
+        ui.fitText(box.x + PAD, box.y + PAD + 3, box.w - 3 * PAD - if (card.readOnly) 0 else BUTTON_W, card.title, Palette.text)
         if (!card.readOnly) {
             val button = Rect(box.right - PAD - BUTTON_W, box.y + PAD, BUTTON_W, SMALL_H)
             val busy = pending("loan_repay")
@@ -487,7 +510,7 @@ class LoansPage(app: ClaimsApp) : ClaimsPage(app) {
         card.notes.forEachIndexed { i, (text, color) ->
             val y = bar.bottom + 2 + i * (ROW_H + 2)
             val lead = Draw.leadIcon(ui.g, Icons.WARNING, bar.x, y + 4, color)
-            Draw.text(ui.g, Draw.fit(text, bar.w - lead - 2), bar.x + lead + 2, y, color)
+            ui.fitText(bar.x + lead + 2, y, bar.w - lead - 2, text, color, key = "$index:t")
         }
     }
 

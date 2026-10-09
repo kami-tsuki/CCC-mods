@@ -2,6 +2,8 @@ package kami.claims.client.hud
 
 import kami.libs.ui.text.trJson
 import kami.libs.ui.text.tr
+import kami.libs.ui.text.trn
+import kami.claims.client.Prefs
 import kami.claims.KamiClaims
 import kami.claims.client.ClientClaims
 import kami.claims.client.ClientHooks
@@ -38,12 +40,22 @@ import kotlin.math.roundToInt
 object Hud {
     private const val WAR = "kami_claims:war"
     private const val TERRITORY = "kami_claims:territory"
+    private const val TOASTS = "kami_claims:toasts"
+    private const val TAX = "kami_claims:tax"
+    private const val TAX_REFRESH_MS = 60_000L
     private const val MAX_FAILURES = 3
     private const val RETRY_MS = 5000L
 
     fun register() {
-        HudLayout.element(HudElement(WAR, HudPos(Anchor.TOP_LEFT), { tr("kami_claims.hud.sample_war") }, { Palette.danger }))
+        HudLayout.element(HudElement(WAR, HudPos(Anchor.TOP_LEFT), { tr("kami_claims.hud.sample_war", "${tr("kami_libs.unit.day.short", 2)} ${tr("kami_libs.unit.hour.short", 4)}") }, { Palette.danger }))
         HudLayout.element(HudElement(TERRITORY, HudPos(Anchor.TOP), { tr("kami_claims.hud.sample_territory") }))
+        HudLayout.element(HudElement(TOASTS, HudPos(Anchor.TOP_RIGHT, 0, 18), { tr("kami_claims.hud.sample_toast") }))
+        HudLayout.element(HudElement(TAX, HudPos(Anchor.BOTTOM_LEFT), { taxSample().first().first }, lines = ::taxSample))
+        HudLayout.option(HudOption({ tr("kami_claims.hud.tax") }, listOf(
+            TaxHudMode.OFF.name to { tr("kami_claims.hud.tax.off") },
+            TaxHudMode.ALWAYS.name to { tr("kami_claims.hud.tax.always") },
+            TaxHudMode.IMPORTANT.name to { tr("kami_claims.hud.tax.important") }
+        ), { ClientClaims.prefs.taxHud.name }, { ClientClaims.prefs.taxHud = TaxHudMode.valueOf(it); ClientClaims.savePrefs() }))
         HudLayout.option(HudOption({ tr("kami_claims.hud.war_display") }, listOf(
             WarDisplay.NONE.name to { tr("kami_claims.hud.display.none") },
             WarDisplay.BOSS.name to { tr("kami_claims.hud.display.boss") },
@@ -63,6 +75,11 @@ object Hud {
     private class Failure(var count: Int, var at: Long)
     private val failures = HashMap<String, Failure>()
     private val openHint = Memo()
+    private val warMemo = Memo()
+    private val taxMemo = Memo()
+    private var lastTaxRefresh = 0L
+    private val territoryMemo = Memo()
+    private class Territory(val country: View.CountryView?, val name: String, val extra: String, val typeColor: Int?, val distance: String?, val width: Int)
     private val arrows = listOf("→", "↘", "↓", "↙", "←", "↖", "↑", "↗")
 
     fun alertsChanged() {
@@ -79,6 +96,7 @@ object Hud {
         val dim = Dim.current()
         val now = System.currentTimeMillis()
         if (ClientClaims.active(dim) && ClientClaims.prefs.hud) guarded("territory") { territory(g, dim, player.blockX, player.blockZ, now) }
+        guarded("tax") { tax(g, dim, now) }
         guarded("crosshair") { crosshair(g, dim) }
         guarded("toasts") { toasts(g, now) }
         if (ClientClaims.prefs.warDisplay.let { it == WarDisplay.HUD || it == WarDisplay.BOTH }) guarded("war") { war(g, now) }
@@ -104,10 +122,64 @@ object Hud {
 
     fun reset() = failures.clear()
 
+    private class TaxView(val lines: List<Pair<String, Int>>, val important: Boolean, val width: Int)
+
+    private fun taxView(now: Long): TaxView? {
+        val p = ClientClaims.prefs
+        return taxMemo.of(ClaimsStore.revision, Format.locale, now / 60_000, p.taxCondDebt, p.taxCondPrepaid, p.taxPrepaidDays, p.taxCondDue, p.taxDueHours, p.taxCondLapse, p.taxLapseDays) {
+            val snap = ClaimsStore.snap
+            val info = ClaimsStore.info?.takeIf { it.details }
+            val rows = snap?.let { TaxTimer.rows(TaxInputs(it.homes, ClaimsStore.receivedAt, now, info?.treasury ?: 0, info?.let { i -> i.income - i.upkeep - i.jobs } ?: 0, info != null)) }
+            if (rows == null || rows.empty) null else {
+                val lines = taxLines(rows, p)
+                val cond = TaxConditions(p.taxCondDebt, p.taxCondPrepaid, p.taxPrepaidDays.toLong(), p.taxCondDue, p.taxDueHours.toLong(), p.taxCondLapse, p.taxLapseDays.toLong())
+                TaxView(lines, TaxTimer.important(rows, cond), lines.maxOf { Draw.width(it.first) } + 10)
+            }
+        }
+    }
+
+    private fun taxLines(rows: TaxRows, p: Prefs): List<Pair<String, Int>> = buildList {
+        if (rows.debt > 0) add(tr("kami_claims.hud.tax.debt", Format.money(rows.debt)) to Palette.danger)
+        if (rows.hasHomes) {
+            val days = rows.prepaidDays
+            add(tr("kami_claims.hud.tax.prepaid", Format.money(rows.prepaid), days?.let { trn("kami_claims.unit.day", it) } ?: "-") to if (days != null && days <= p.taxPrepaidDays) Palette.warning else Palette.textSecondary)
+        }
+        rows.rentDueIn?.let { add(tr("kami_claims.hud.tax.rent_due", Format.duration(it)) to if (it <= p.taxDueHours * 3_600_000L) Palette.warning else Palette.textSecondary) }
+        if (rows.hasLapse) {
+            val days = rows.claimsDays
+            add(tr("kami_claims.hud.tax.claims_last", days?.let { trn("kami_claims.unit.day", it) } ?: tr("kami_claims.hud.tax.stable")) to if (days != null && days <= p.taxLapseDays) Palette.warning else Palette.textSecondary)
+        }
+    }
+
+    private fun taxSample() = listOf(
+        tr("kami_claims.hud.tax.debt", Format.money(120)) to Palette.danger,
+        tr("kami_claims.hud.tax.prepaid", Format.money(300), trn("kami_claims.unit.day", 2)) to Palette.warning,
+        tr("kami_claims.hud.tax.rent_due", Format.duration(5 * 3_600_000L)) to Palette.textSecondary,
+        tr("kami_claims.hud.tax.claims_last", trn("kami_claims.unit.day", 9)) to Palette.textSecondary
+    )
+
+    fun idleWatch() = if (ClientClaims.prefs.taxHud == TaxHudMode.OFF) emptyList() else listOf("dashboard")
+
+    private fun tax(g: GuiGraphics, dim: String, now: Long) {
+        val mode = ClientClaims.prefs.taxHud
+        if (mode == TaxHudMode.OFF || !ClientClaims.active(dim)) return
+        if (now - lastTaxRefresh > TAX_REFRESH_MS && Minecraft.getInstance().screen == null) {
+            lastTaxRefresh = now
+            ClaimsStore.watch(idleWatch(), force = true)
+        }
+        val view = taxView(now) ?: return
+        if (mode == TaxHudMode.IMPORTANT && !view.important) return
+        val box = HudLayout.place(TAX, g.guiWidth(), g.guiHeight(), view.width, view.lines.size * HudLayout.LINE_H + 6)
+        Draw.sprite(g, Sprites.TOOLTIP, box)
+        view.lines.forEachIndexed { i, (text, color) -> Draw.text(g, text, box.x + 5, box.y + 4 + i * HudLayout.LINE_H, color) }
+    }
+
     private fun war(g: GuiGraphics, now: Long) {
         val w = ClaimsStore.warHud.firstOrNull() ?: return
-        val left = if (w.ends > 0) Format.until(w.ends, now) else tr("kami_claims.warpage.open_ended")
-        val text = tr("kami_claims.hud.war", tr("kami_claims.warpage.phase.${w.phase}"), w.enemy, left)
+        val text = warMemo.of(w.phase, w.enemy, w.ends, Format.locale, now / 1000) {
+            val left = if (w.ends > 0) Format.until(w.ends, now) else tr("kami_claims.warpage.open_ended")
+            tr("kami_claims.hud.war", tr("kami_claims.warpage.phase.${w.phase}"), w.enemy, left)
+        }
         val color = if (w.phase == "war") Palette.danger else Palette.warning
         val box = HudLayout.place(WAR, g.guiWidth(), g.guiHeight(), Draw.width(text) + 10)
         Draw.sprite(g, Sprites.TOOLTIP, box)
@@ -123,30 +195,32 @@ object Hud {
             lastOwner = owner
             lastDim = dim
         }
-        val country = e?.let { ClientClaims.country(it) }
-        val name = country?.name ?: tr("kami_claims.help.term.nomansland")
-        val type = e?.let { ClientClaims.typeName(it) }?.let { Vocabulary.type(it) }
-        val extra = when {
-            e == null -> tr("kami_claims.guard.no_building")
-            e.flags and View.MINE != 0 -> tr("kami_claims.map.chunk.mine")
-            else -> type?.label ?: ""
-        }
         val near = if (ClientClaims.prefs.hudBorderDistance) Borders.nearest(8) else null
-        val distance = near?.let { (edge, d) ->
+        val arrow = near?.let { (edge, _) ->
             val cx = (edge.x0 + edge.x1) / 2.0 - bx
             val cz = (edge.z0 + edge.z1) / 2.0 - bz
-            val index = ((atan2(cz, cx) / (Math.PI / 4)).roundToInt() + 8) % 8
-            "${arrows[index]} ${d}"
+            ((atan2(cz, cx) / (Math.PI / 4)).roundToInt() + 8) % 8
         }
-        val textW = Draw.width(name) + (if (extra.isNotEmpty()) Draw.width("  $extra") else 0) + (distance?.let { Draw.width("   $it") } ?: 0)
-        val w = textW + (if (country != null) 24 else 10)
-        val box = HudLayout.place(TERRITORY, g.guiWidth(), g.guiHeight(), w)
+        val line = territoryMemo.of(e, ClientClaims.countries, Format.locale, arrow, near?.second) {
+            val country = e?.let { ClientClaims.country(it) }
+            val name = country?.name ?: tr("kami_claims.help.term.nomansland")
+            val type = e?.let { ClientClaims.typeName(it) }?.let { Vocabulary.type(it) }
+            val extra = when {
+                e == null -> tr("kami_claims.guard.no_building")
+                e.flags and View.MINE != 0 -> tr("kami_claims.map.chunk.mine")
+                else -> type?.label ?: ""
+            }.let { if (it.isEmpty()) it else "  $it" }
+            val distance = near?.let { "   ${arrows[arrow!!]} ${it.second}" }
+            Territory(country, name, extra, type?.color, distance, Draw.width(name) + (if (extra.isNotEmpty()) Draw.width(extra) else 0) + (distance?.let { Draw.width(it) } ?: 0) + (if (country != null) 24 else 10))
+        }
+        val country = line.country
+        val box = HudLayout.place(TERRITORY, g.guiWidth(), g.guiHeight(), line.width)
         Draw.sprite(g, Sprites.TOOLTIP, box)
         var tx = box.x + 5
         if (country != null) { Flags.draw(g, Rect(tx, box.y + 3, 12, 9), country.color, country.pattern, country.emblem, country.secondary); tx += 16 }
-        tx = Draw.text(g, name, tx, box.y + 4, if (country == null) Palette.textMuted else Palette.text)
-        if (extra.isNotEmpty()) tx = Draw.text(g, "  $extra", tx, box.y + 4, type?.color ?: Palette.textMuted)
-        distance?.let { Draw.text(g, "   $it", tx, box.y + 4, if (near.second <= 2) Palette.warning else Palette.textMuted) }
+        tx = Draw.text(g, line.name, tx, box.y + 4, if (country == null) Palette.textMuted else Palette.text)
+        if (line.extra.isNotEmpty()) tx = Draw.text(g, line.extra, tx, box.y + 4, line.typeColor ?: Palette.textMuted)
+        line.distance?.let { Draw.text(g, it, tx, box.y + 4, if (near!!.second <= 2) Palette.warning else Palette.textMuted) }
         banner?.let { b ->
             val age = now - b.at
             if (age > 3500) { banner = null; return@let }
@@ -200,11 +274,12 @@ object Hud {
         toasts.removeAll { now - it.at > 7000 }
         if (toasts.isEmpty()) return
         val hint = openHint.of(Format.locale, ClientHooks.openKeyId()) { tr("kami_claims.hud.open_hint", ClientHooks.openKey()) }
-        var y = 22
+        val w = minOf(180, g.guiWidth() - 8)
+        val block = HudLayout.place(TOASTS, g.guiWidth(), g.guiHeight(), w, toasts.size * 30 - 4)
+        var y = block.y
         toasts.forEach { t ->
             val sev = Severity.of(t.alert.severity)
-            val w = 180
-            val r = Rect(g.guiWidth() - w - 4, y, w, 26)
+            val r = Rect(block.x, y, w, 26)
             Draw.sprite(g, Sprites.TOAST, r)
             Draw.fill(g, Rect(r.x + 1, r.y + 1, 2, r.h - 2), sev.color)
             Draw.leadIcon(g, iconFor(sev), r.x + 6, r.centerY)

@@ -15,12 +15,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class LimitsTest {
-    private class Purse : Wallet {
-        override fun balance(id: UUID) = 1_000_000L
-        override fun deduct(id: UUID, amount: Int) = amount
-        override fun deposit(id: UUID, amount: Int) = true
-    }
-
     private val player = UUID.randomUUID().toString()
     private var nextId = 1L
 
@@ -28,7 +22,7 @@ class LimitsTest {
         Config.s = Settings()
         Market.data = Data()
         TestDb.open()
-        Ledger.wallet = Purse()
+        Ledger.wallet = Till()
         ClaimsApi.register(limits?.let { l -> Fakes.claims().also { it.capacities += l } })
     }
 

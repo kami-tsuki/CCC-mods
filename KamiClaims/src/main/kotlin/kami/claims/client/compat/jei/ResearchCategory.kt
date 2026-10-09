@@ -71,7 +71,7 @@ class ResearchCategory(guiHelper: IGuiHelper) : IRecipeCategory<NodeView> {
     private val font get() = Minecraft.getInstance().font
 
     override fun getRecipeType() = TYPE
-    override fun getTitle(): Component = Component.translatable("kami_claims.jei.research")
+    override fun getTitle(): Component = Component.translatable("kami_libs.flow.research")
     override fun getWidth() = W
     override fun getHeight() = H
     override fun getIcon(): IDrawable = icon
@@ -136,8 +136,8 @@ class ResearchCategory(guiHelper: IGuiHelper) : IRecipeCategory<NodeView> {
         val penalty = penalty(node, status)
         val parts = listOfNotNull(
             Triple(tr("kami_libs.common.level") + " " + node.level, if (node.level > ClientResearch.state.level) WARN else TEXT, listOf(tip(tr("kami_claims.research.cond.level", node.level)))),
-            Triple(Format.money(node.cost), MONEY, listOf(tip(tr("kami_claims.jei.cost")))),
-            Triple(Format.duration(node.timeMs), TEXT, listOf(tip(tr("kami_claims.jei.time")))),
+            Triple(Format.money(node.cost), MONEY, emptyList()),
+            Triple(Format.duration(node.timeMs), TEXT, emptyList()),
             Triple("+" + Format.duration(penalty), WARN, breakdown(node, penalty)).takeIf { penalty > 0 }
         )
         var x = 0

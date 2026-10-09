@@ -11,6 +11,7 @@ import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
 import kami.libs.ui.style.TextStyle
 import kami.libs.ui.text.tr
+import kami.libs.ui.widget.fitText
 import kami.libs.ui.widget.card
 import kami.libs.ui.widget.iconButton
 import kami.libs.ui.widget.scroll
@@ -56,12 +57,12 @@ class HomesCard(private val app: ClaimsApp) {
         val danger = homes.any { it.state == Tenure.MOVING }
         val body = ui.card(r, tr("kami_claims.home.title"), Icons.HOUSE, if (danger) Severity.DANGER else null, trailing = if (homes.isEmpty()) null else v.count, key = v.cardKey)
         if (homes.isEmpty()) {
-            Draw.text(ui.g, Draw.fit(tr("kami_claims.home.empty"), body.w), body.x, body.y + 2, Palette.textMuted)
+            ui.fitText(body.x, body.y + 2, body.w, tr("kami_claims.home.empty"), Palette.textMuted)
             return
         }
         var list = body
         v.hint?.let {
-            Draw.text(ui.g, Draw.fit(it, body.w), body.x, body.y + 1, if (danger) Palette.danger else Palette.warning)
+            ui.fitText(body.x, body.y + 1, body.w, it, if (danger) Palette.danger else Palette.warning)
             list = body.dropTop(HINT_H)
         }
         ui.scroll(v.scrollKey, list, v.lines.size * ROW_H) { area ->
@@ -75,10 +76,10 @@ class HomesCard(private val app: ClaimsApp) {
         if (ui.iconButton(release, Icons.REMOVE, tr("kami_claims.home.release"), key = l.releaseKey)) release(l.home)
         if (ui.iconButton(map, Icons.MAP, tr("kami_claims.nav.map"), key = l.mapKey)) app.openMapAt(l.home.x, l.home.z)
         val textW = map.x - row.x - 8
-        Draw.text(ui.g, Draw.fit(l.title, textW), row.x + 4, row.y + 2, TextStyle.HEADING)
+        ui.fitText(row.x + 4, row.y + 2, textW, l.title, style = TextStyle.HEADING)
         var x = row.x + 4
         l.pill?.let { x += ui.statusPill(x, row.y + 12, it, l.severity, key = l.pillKey) + 4 }
-        Draw.text(ui.g, Draw.fit(l.detail, row.x + textW - x), x, row.y + 15, l.detailColor)
+        ui.fitText(x, row.y + 15, row.x + textW - x, l.detail, l.detailColor)
     }
 
     private fun release(h: HomeLine) = Dialogs.release(app, h.x, h.z, h.country, h.state == Tenure.MOVING)

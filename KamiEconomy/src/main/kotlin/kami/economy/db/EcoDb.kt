@@ -7,6 +7,8 @@ import kami.economy.economy.HistoryData
 import kami.economy.economy.Intent
 import kami.economy.economy.Ledger
 import kami.economy.economy.TradeStatus
+import kami.economy.economy.Watchlist
+import kami.economy.quest.Quests
 import kami.libs.db.Legacy
 import kami.libs.db.Migration
 import kami.libs.db.Migrations
@@ -78,8 +80,18 @@ object EcoDb {
         "ALTER TABLE eco_auction ADD COLUMN bids TEXT NOT NULL DEFAULT '[]'"
     ))
 
+    private val v6 = Migration("eco", 6, "quests", ddl = listOf(
+        "CREATE TABLE eco_quest (id INTEGER PRIMARY KEY, item TEXT NOT NULL, rarity INTEGER NOT NULL, lot_price INTEGER NOT NULL, lot INTEGER NOT NULL, amount INTEGER NOT NULL, " +
+            "filled INTEGER NOT NULL, course REAL NOT NULL, price_offset REAL NOT NULL, created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL, state TEXT NOT NULL, boosts TEXT NOT NULL, " +
+            "winner TEXT, ended_at INTEGER, pick TEXT NOT NULL)",
+        "CREATE TABLE eco_quest_delivery (ref TEXT PRIMARY KEY, quest INTEGER NOT NULL, player TEXT NOT NULL, country TEXT, qty INTEGER NOT NULL, paid INTEGER NOT NULL, at INTEGER NOT NULL)",
+        "CREATE TABLE eco_quest_state (id INTEGER PRIMARY KEY, next INTEGER NOT NULL, last_rare INTEGER NOT NULL, last_mythic INTEGER NOT NULL, last_legendary INTEGER NOT NULL)",
+        "INSERT INTO eco_quest_state (id, next, last_rare, last_mythic, last_legendary) VALUES (1, -1, 0, 0, 0)",
+        "ALTER TABLE eco_traded ADD COLUMN last INTEGER NOT NULL DEFAULT 0"
+    ))
+
     fun register() {
-        Migrations.register("eco", listOf(v1, v2, v3, v4, v5), after = listOf("libs"))
-        SavePoint.register("economy") { SavePoint.join(Market.changes() + History.changes() + listOf(Ledger.changes(), TradeStatus.changes())) }
+        Migrations.register("eco", listOf(v1, v2, v3, v4, v5, v6), after = listOf("libs"))
+        SavePoint.register("economy") { SavePoint.join(Market.changes() + History.changes() + Quests.changes() + listOf(Ledger.changes(), TradeStatus.changes(), Watchlist.changes())) }
     }
 }

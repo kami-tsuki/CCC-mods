@@ -3,10 +3,10 @@ package kami.claims.world
 import kami.libs.util.RecentSet
 import net.minecraft.core.BlockPos
 
-/** Positions recently filled by players, shared by job crediting (Guard) and research progress (Listeners) to stop place/break farming. */
 object Placed {
-    private val spots = RecentSet<Pair<String, Long>>(8192)
-    private val placers = RecentSet<Triple<String, Long, String>>(8192)
+    private const val CAPACITY = 65536
+    private val spots = RecentSet<Pair<String, Long>>(CAPACITY)
+    private val placers = RecentSet<Triple<String, Long, String>>(CAPACITY)
 
     fun mark(dim: String, pos: BlockPos) = spots.add(dim to pos.asLong())
 

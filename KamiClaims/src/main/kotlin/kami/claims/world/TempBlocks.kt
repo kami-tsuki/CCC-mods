@@ -14,6 +14,7 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.tags.TagKey
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 
@@ -21,6 +22,7 @@ object TempBlocks {
     private val tag: TagKey<Block> by lazy { TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("kami_claims", "temp_blocks")) }
     private val index = HashMap<Pair<String, Long>, TempBlock>()
     private var indexed: Data? = null
+    private val dims = HashMap<String, ResourceKey<Level>?>()
 
     private fun live(): HashMap<Pair<String, Long>, TempBlock> {
         if (indexed !== Realm.data) {
@@ -37,7 +39,14 @@ object TempBlocks {
     fun at(dim: String, pos: BlockPos) = (dim to pos.asLong()) in live()
 
     fun seconds(level: ServerLevel, pos: BlockPos, state: BlockState): Double =
-        maxOf(Config.s.tempBlockMinSeconds, state.getDestroySpeed(level, pos) * Config.s.tempBlockSecondsPerHardness)
+        TempTime.seconds(
+            BuiltInRegistries.BLOCK.getKey(state.block).toString(),
+            state.tags.map { it.location().toString() }.toList(),
+            Config.s.tempBlockFixedSeconds,
+            state.getDestroySpeed(level, pos).toDouble(),
+            Config.s.tempBlockSecondsPerHardness,
+            Config.s.tempBlockMinSeconds
+        )
 
     fun place(level: ServerLevel, pos: BlockPos, state: BlockState, replaced: BlockState): Boolean {
         val spot = level.dimension().location().toString() to pos.asLong()
@@ -66,8 +75,8 @@ object TempBlocks {
     }
 
     private fun step(server: MinecraftServer, t: TempBlock): Boolean {
-        val id = ResourceLocation.tryParse(t.dim) ?: return true
-        val level = server.getLevel(ResourceKey.create(Registries.DIMENSION, id)) ?: return true
+        val dimKey = dims.getOrPut(t.dim) { ResourceLocation.tryParse(t.dim)?.let { ResourceKey.create(Registries.DIMENSION, it) } } ?: return true
+        val level = server.getLevel(dimKey) ?: return true
         val pos = BlockPos.of(t.pos)
         if (!level.isLoaded(pos)) return false
         val present = fits(level.getBlockState(pos))

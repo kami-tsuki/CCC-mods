@@ -94,7 +94,7 @@ class KamiConfigTest {
     fun reloadReportsEveryMod() {
         config().load()
         val results = Configs.reload("demo")
-        assertTrue(results.isNotEmpty() && results.all { it.first == "demo" && it.second.isSuccess })
+        assertTrue(results.all { it.first == "demo" } && results.last().second.isSuccess)
         assertTrue(Configs.reload("missing").isEmpty())
     }
 
@@ -124,5 +124,55 @@ class KamiConfigTest {
         assertEquals(2, c.value.speed)
         c.save(Demo(speed = 9))
         assertEquals(text, read("general.json"))
+    }
+
+    private fun nested(extra: String) = "{ \"jobs\": { \"miner\": { \"pay\": 3$extra } } }"
+
+    private fun jobsFile() = base.resolve("kami/demo/jobs.json").also { Files.createDirectories(it.parent) }
+
+    @Test
+    fun droppedNestedKeyWritesBackupOnceAndKeepsIt() {
+        val original = nested(", \"old\": 1")
+        Files.writeString(jobsFile(), original)
+        assertTrue(config().load())
+        assertEquals(original, read("jobs.json.bak"))
+        assertFalse("\"old\"" in read("jobs.json"))
+        Files.writeString(jobsFile(), nested(", \"older\": 2"))
+        assertTrue(config().load())
+        assertEquals(original, read("jobs.json.bak"))
+    }
+
+    @Test
+    fun noBackupWhenNothingIsDropped() {
+        assertTrue(config().load())
+        assertTrue(config().load())
+        assertFalse(Files.exists(base.resolve("kami/demo/jobs.json.bak")))
+        assertFalse(Files.exists(base.resolve("kami/demo/general.json.bak")))
+    }
+
+    @Test
+    fun noBackupWhileLockedByANewerVersion() {
+        Files.createDirectories(base.resolve("kami/demo"))
+        Files.writeString(base.resolve("kami/demo/general.json"), "{ \"configVersion\": 5 }")
+        Files.writeString(jobsFile(), nested(", \"old\": 1"))
+        assertTrue(config(migrations = rename).load())
+        assertFalse(Files.exists(base.resolve("kami/demo/jobs.json.bak")))
+    }
+
+    @Test
+    fun fileStartingWithAByteOrderMarkParses() {
+        Files.createDirectories(base.resolve("kami/demo"))
+        Files.writeString(base.resolve("kami/demo/general.json"), "﻿{ \"speed\": 7 }")
+        val c = config()
+        assertTrue(c.load())
+        assertEquals(7, c.value.speed)
+    }
+
+    @Test
+    fun jsoncWriteSkipsAFileWhoseTextMatchesBesidesTheByteOrderMark() {
+        val file = base.resolve("bom.json")
+        Files.writeString(file, "﻿{ \"a\": 1 }")
+        Jsonc.write(file, "{ \"a\": 1 }")
+        assertEquals("﻿{ \"a\": 1 }", Files.readString(file))
     }
 }

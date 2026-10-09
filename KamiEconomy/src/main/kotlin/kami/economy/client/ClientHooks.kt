@@ -1,6 +1,7 @@
 package kami.economy.client
 
 import kami.economy.client.ui.MarketApp
+import kami.economy.client.xaero.VendorPoints
 import kami.economy.net.Net
 import kami.economy.net.PriceDelta
 import kami.economy.net.Snap
@@ -16,6 +17,7 @@ object ClientHooks {
 
     fun snapshot(s: SnapshotPayload) {
         val snap = s.decode<Snap>() ?: return
+        snap.vendors.ifEmpty { snap.detail?.vendors.orEmpty() }.takeIf { it.isNotEmpty() }?.let(VendorPoints::update)
         MarketApp.receive(snap)
     }
 

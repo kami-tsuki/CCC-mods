@@ -3,6 +3,7 @@ package kami.claims.client.app.pages
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ClaimsPage
 import kami.claims.client.app.Dialogs
+import kami.claims.client.app.Vocabulary
 import kami.claims.client.store.ClaimsStore
 import kami.claims.net.Info
 import kami.claims.net.OfferTerms
@@ -62,9 +63,9 @@ class WarPage(app: ClaimsApp) : ClaimsPage(app) {
         }
         val detailW = if (app.compact) 0 else (r.w * 0.5).toInt().coerceIn(180, 260)
         ui.table(r.dropRight(detailW, if (detailW > 0) 8 else 0), listOf(
-            Column.text<WarLine>(tr("kami_claims.warpage.col.war"), -1) { tr("kami_claims.warpage.versus", it.attacker, it.defender) },
+            Column.text<WarLine>(tr("kami_libs.flow.war"), -1) { tr("kami_claims.warpage.versus", it.attacker, it.defender) },
             Column.text<WarLine>(tr("kami_claims.warpage.col.phase"), 70, color = { phaseColor(it.phase) }) { phase(it.phase) },
-            Column.text<WarLine>(tr("kami_claims.warpage.col.left"), 64) { left(it.ends) }
+            Column.number<WarLine>(tr("kami_libs.common.time_left"), 64, format = { left(if (it == Long.MAX_VALUE) 0 else it) }) { if (it.ends > 0) it.ends else Long.MAX_VALUE }
         ), info.wars, table, { it.id }, severity = { if (it.offer != null && it.offerFrom != info.name) Severity.WARNING else null })
         if (detailW > 0) (info.wars.firstOrNull { it.id in table.selected } ?: info.wars.first()).let { detail(ui, r.right(detailW), it, info) }
     }
@@ -72,9 +73,9 @@ class WarPage(app: ClaimsApp) : ClaimsPage(app) {
     private fun detail(ui: Ui, r: Rect, w: WarLine, info: Info) {
         val f = ui.sidePanel(r, 3, 8)
         val head = f.take(22)
-        Draw.text(ui.g, Draw.fit(tr("kami_claims.warpage.versus", w.attacker, w.defender), head.w), head.x, head.y, TextStyle.HEADING)
-        Draw.text(ui.g, Draw.fit("${phase(w.phase)} · ${left(w.ends)}", head.w), head.x, head.y + 12, phaseColor(w.phase))
-        if (w.kind == "rebellion") ui.property(f.take(11), tr("kami_claims.warpage.kind"), tr("kami_claims.warpage.kind.rebellion"), Palette.warning)
+        ui.fitText(head.x, head.y, head.w, tr("kami_claims.warpage.versus", w.attacker, w.defender), style = TextStyle.HEADING)
+        ui.fitText(head.x, head.y + 12, head.w, "${phase(w.phase)} · ${left(w.ends)}", phaseColor(w.phase))
+        if (w.kind == "rebellion") ui.property(f.take(11), tr("kami_libs.common.type"), tr("kami_claims.warpage.kind.rebellion"), Palette.warning)
         if (w.side.isNotEmpty()) ui.property(f.take(11), tr("kami_claims.warpage.side"), tr("kami_claims.warpage.side.${w.side}"))
         if (w.joinedA.isNotEmpty()) ui.property(f.take(11), tr("kami_claims.warpage.joined", w.attacker), w.joinedA.joinToString(", "))
         if (w.joinedD.isNotEmpty()) ui.property(f.take(11), tr("kami_claims.warpage.joined", w.defender), w.joinedD.joinToString(", "))
@@ -94,7 +95,7 @@ class WarPage(app: ClaimsApp) : ClaimsPage(app) {
 
     private fun exhaustion(ui: Ui, f: Flow, name: String, value: Double) {
         val row = f.take(9)
-        Draw.text(ui.g, Draw.fit(tr("kami_claims.warpage.exhaustion", name), row.w - 30), row.x, row.y, Palette.textMuted)
+        ui.fitText(row.x, row.y, row.w - 30, tr("kami_claims.warpage.exhaustion", name), Palette.textMuted)
         Draw.textRight(ui.g, Format.percent(value / 100.0), row.right, row.y, Palette.textSecondary)
         ui.progress(f.take(5), value / 100.0, if (value >= 75) Palette.danger else Palette.warning)
     }
@@ -136,8 +137,8 @@ class WarPage(app: ClaimsApp) : ClaimsPage(app) {
                     confirm("war_agree", tr("kami_claims.warpage.agree"), Icons.FLAG, Consequence(tr("kami_claims.confirm.war_agree", enemy), Severity.DANGER), Consequence(tr("kami_claims.warpage.stakes.line", stakes(w.stakes)), Severity.WARNING))
                 }
                 button(tr("kami_claims.warpage.fight"), Icons.SHIELD, ButtonStyle.PRIMARY, "war_fight") { act("war_fight", enemy) }
-            } else button(tr("kami_claims.warpage.withdraw"), Icons.REMOVE, ButtonStyle.DANGER, "war_withdraw") {
-                confirm("war_withdraw", tr("kami_claims.warpage.withdraw"), Icons.REMOVE, Consequence(tr("kami_claims.confirm.war_withdraw", enemy), Severity.DANGER), Consequence(tr("kami_claims.warpage.withdraw.reputation"), Severity.WARNING))
+            } else button(tr("kami_libs.common.withdraw"), Icons.REMOVE, ButtonStyle.DANGER, "war_withdraw") {
+                confirm("war_withdraw", tr("kami_libs.common.withdraw"), Icons.REMOVE, Consequence(tr("kami_claims.confirm.war_withdraw", enemy), Severity.DANGER), Consequence(tr("kami_claims.warpage.withdraw.reputation"), Severity.WARNING))
             }
             "war", "ceasefire" -> button(tr("kami_claims.warpage.capitulate"), Icons.FLAG, ButtonStyle.DANGER, "war_capitulate") {
                 confirm("war_capitulate", tr("kami_claims.warpage.capitulate"), Icons.FLAG, Consequence(tr("kami_claims.confirm.war_capitulate", enemy), Severity.DANGER))
@@ -163,13 +164,13 @@ class WarPage(app: ClaimsApp) : ClaimsPage(app) {
             val pay = minOf(amount, info.treasury)
             val label = tr("kami_claims.warpage.repay")
             val bw = buttonWidth(label, Icons.COIN)
-            Draw.text(ui.g, Draw.fit("$to · ${Format.money(amount)}", row.w - bw - 4), row.x, row.y + 5, Palette.text)
+            ui.fitText(row.x, row.y + 5, row.w - bw - 4, "$to · ${Format.money(amount)}")
             val reason = chief ?: if (pay <= 0) tr("kami_claims.warpage.repay.empty") else null
             if (ui.button(row.right(bw), label, Icons.COIN, enabled = reason == null, disabledReason = reason, pending = pending("war_repay"), key = "war-repay-$to")) {
                 Dialogs.confirm(app, tr("kami_claims.warpage.repay.title", to), null, Icons.COIN, listOf(Consequence(tr("kami_claims.warpage.repay.amount", Format.money(pay), Format.money(amount)))), label, "war_repay", arrayOf(to, pay.toString()))
             }
         }
-        val right = Flow(ui.card(Rect(r.x + half + 8, r.y, r.w - half - 8, r.h), tr("kami_claims.warpage.safe"), Icons.SHIELD, trailing = "${info.safeChunks.size}/${info.safeLimit}", key = "war-safe"), 3)
+        val right = Flow(ui.card(Rect(r.x + half + 8, r.y, r.w - half - 8, r.h), tr("kami_claims.warpage.safe"), Icons.SHIELD, trailing = Vocabulary.ratio(info.safeChunks.size, info.safeLimit), key = "war-safe"), 3)
         right.take(Draw.paragraph(ui.g, tr("kami_claims.warpage.safe.desc"), right.rest.x, right.rest.y, right.rest.w, Palette.textMuted))
         val row = Row(right.take(CONTROL_H), 4)
         val add = tr("kami_claims.warpage.safe.add")
@@ -178,7 +179,7 @@ class WarPage(app: ClaimsApp) : ClaimsPage(app) {
         if (ui.button(row.rest, tr("kami_claims.warpage.safe.remove"), Icons.REMOVE, enabled = chief == null, disabledReason = chief, pending = pending("war_safe"), key = "war-safe-remove")) act("war_safe", "remove")
         info.safeChunks.forEach { s ->
             if (right.rest.h < 11) return
-            right.take(11).let { Draw.text(ui.g, Draw.fit("${s.x}, ${s.z} · ${s.dim.substringAfter(':')}", it.w), it.x, it.y, Palette.textSecondary) }
+            right.take(11).let { ui.fitText(it.x, it.y, it.w, "${s.x}, ${s.z} · ${s.dim.substringAfter(':')}", Palette.textSecondary) }
         }
     }
 
@@ -193,7 +194,7 @@ class WarPage(app: ClaimsApp) : ClaimsPage(app) {
             fieldLabel(Rect(s.body.x, y, s.body.w, 9), tr("kami_claims.warpage.declare.target")); y += 11
             select(Rect(s.body.x, y, s.body.w, CONTROL_H), countries.map { Option(it.name, it.name, null, tr("kami_claims.warpage.reputation.short", it.reputation), it.color) }, target, key = "war-target")?.let { target = it }
             y += CONTROL_H + 6
-            fieldLabel(Rect(s.body.x, y, s.body.w, 9), tr("kami_claims.warpage.stake.money")); y += 11
+            fieldLabel(Rect(s.body.x, y, s.body.w, 9), tr("kami_libs.common.money")); y += 11
             numberField(Rect(s.body.x, y, s.body.w, CONTROL_H), money, 0, info.treasury.coerceAtLeast(0), 100, Format.COIN, key = "war-money"); y += CONTROL_H + 4
             toggle(Rect(s.body.x, y, s.body.w, 14), vassal, tr("kami_claims.warpage.stake.vassal.toggle"), key = "war-vassal")?.let { vassal = it }; y += 18
             fieldLabel(Rect(s.body.x, y, s.body.w, 9), tr("kami_claims.warpage.stake.provinces.field")); y += 11
@@ -225,7 +226,7 @@ class WarPage(app: ClaimsApp) : ClaimsPage(app) {
             number(tr("kami_claims.warpage.offer.ceasefire"), ceasefire, 7, null, "offer-ceasefire")
             number(tr("kami_claims.warpage.offer.extend"), extend, 3, null, "offer-extend")
             number(tr("kami_claims.warpage.offer.bill"), bill, 100, "%", "offer-bill")
-            number(tr("kami_claims.warpage.stake.money"), money, Long.MAX_VALUE, Format.COIN, "offer-money")
+            number(tr("kami_libs.common.money"), money, Long.MAX_VALUE, Format.COIN, "offer-money")
             toggle(Rect(s.body.x, y, s.body.w, 14), peace, tr("kami_claims.warpage.offer.peace"), key = "offer-peace")?.let { peace = it }; y += 18
             if (money.value > 0) y += consequences(s.body.x, y, s.body.w, listOf(Consequence(tr("kami_claims.warpage.offer.replaces", Format.money(money.value)), Severity.WARNING))) + 4
             s.used = y - s.body.y
@@ -257,7 +258,7 @@ class WarPage(app: ClaimsApp) : ClaimsPage(app) {
         Format.money(s.money).takeIf { s.money > 0 },
         tr("kami_claims.warpage.stake.vassal").takeIf { s.vassal },
         tr("kami_claims.warpage.stake.provinces", s.provinces.joinToString(", ")).takeIf { s.provinces.isNotEmpty() }
-    ).joinToString(", ").ifEmpty { tr("kami_claims.warpage.stake.none") }
+    ).joinToString(", ").ifEmpty { tr("kami_libs.common.none").lowercase() }
 
     private fun terms(o: OfferTerms) = listOfNotNull(
         o.stakes?.let { tr("kami_claims.warpage.stakes.line", stakes(it)) },

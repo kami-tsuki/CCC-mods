@@ -13,7 +13,7 @@ object Power {
             "research" to c.research.done.size.toDouble(),
             "treasury" to c.treasury.toDouble(),
             "members" to c.members.size.toDouble(),
-            "chunks" to Realm.claims(c.id).size.toDouble(),
+            "chunks" to Realm.claimCount(c.id).toDouble(),
             "provinces" to c.provinces.size.toDouble(),
             "provinceMembers" to c.provinces.sumOf { Realm.country(it)?.members?.size ?: 0 }.toDouble(),
             "allies" to c.alliances.size.toDouble()

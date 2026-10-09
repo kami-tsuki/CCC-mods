@@ -25,8 +25,8 @@ fun Ui.hierarchy(r: Rect, root: GraphNode, children: List<GraphNode>, selected: 
         if (n.key == selected) Draw.outline(g, box, Palette.brass)
         n.severity?.let { Draw.fill(g, Rect(box.x + 1, box.y + 1, 2, box.h - 2), it.color) }
         n.badge(this, g, Rect(box.x + 5, box.y + 5, 12, 9))
-        Draw.text(g, Draw.fit(n.title, box.w - 26), box.x + 20, box.y + 6, TextStyle.HEADING)
-        Draw.text(g, Draw.fit(n.subtitle, box.w - 10), box.x + 5, box.y + 20, n.severity?.color ?: Palette.textMuted)
+        fitText(box.x + 20, box.y + 6, box.w - 26, n.title, Palette.text, TextStyle.HEADING, key = "node:${n.key}:title")
+        fitText(box.x + 5, box.y + 20, box.w - 10, n.subtitle, n.severity?.color ?: Palette.textMuted, key = "node:${n.key}:sub")
         if (pressed(box) != null) clicked = n.key
         attention(box, n.severity == Severity.WARNING)
     }

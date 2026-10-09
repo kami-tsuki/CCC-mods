@@ -14,6 +14,7 @@ import kami.libs.economy.Numismatics
 import kami.libs.menu.ItemPeek
 import net.minecraft.core.component.DataComponents
 import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.nbt.NbtOps
 import net.minecraft.network.chat.ClickEvent
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.HoverEvent
@@ -32,10 +33,14 @@ object InlineFeatures {
         val ownerName: String,
         val stack: ItemStack,
         val expiresAt: Long,
+        val created: Long,
     )
 
     private const val LIVE_VIEW_TTL_MS = 60_000L
+    private const val MAX_HOVER_BYTES = 8192
+    private const val MAX_ACTIONS_PER_OWNER = 32
     private val actions = ConcurrentHashMap<String, Action>()
+    private val owned = ConcurrentHashMap<UUID, ArrayDeque<String>>()
     private val keyChars = "abcdefghijklmnopqrstuvwxyz0123456789"
     private val rng = java.security.SecureRandom()
 
@@ -71,6 +76,7 @@ object InlineFeatures {
 
     fun prune(now: Long = System.currentTimeMillis()) {
         actions.entries.removeIf { it.value.expiresAt <= now }
+        owned.keys.forEach { owner -> owned.computeIfPresent(owner) { _, keys -> keys.removeAll { !actions.containsKey(it) }; keys.takeIf { it.isNotEmpty() } } }
     }
 
     private fun aliasIndex(): Map<String, (ServerPlayer) -> Component> {
@@ -107,7 +113,7 @@ object InlineFeatures {
         val hover = if (stack.isEmpty) {
             HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.msg("kami_essentials.inline.empty_hand").withColor(Config.s.inlineStyle.textColor))
         } else {
-            HoverEvent(HoverEvent.Action.SHOW_ITEM, HoverEvent.ItemStackInfo(stack))
+            HoverEvent(HoverEvent.Action.SHOW_ITEM, HoverEvent.ItemStackInfo(hoverStack(sender, stack)))
         }
         val click = if (!stack.isEmpty && Config.s.inlineGeneral.itemViewer) ClickEvent(ClickEvent.Action.RUN_COMMAND, "/essentials inline open ${register(Type.ITEM, sender, stack.copy())}") else null
         val note = Phrase.of(if (click == null) "kami_essentials.inline.hover_inspect" else "kami_essentials.inline.click_inspect")
@@ -186,7 +192,7 @@ object InlineFeatures {
         val text = Component.empty()
             .append(Component.literal(compact.amount).withColor(Config.s.inlineStyle.positiveColor))
             .append(Component.literal(compact.glyph.toString()).withColor(Theme.VALUE))
-        return InlineChat.pill(text, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.lineCard(Phrase.of("kami_essentials.inline.balance") to Theme.VALUE)))
+        return InlineChat.pill(text, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.lineCard(Phrase.of("kami_libs.common.balance") to Theme.VALUE)))
     }
 
     private fun countryToken(sender: ServerPlayer): Component {
@@ -207,19 +213,34 @@ object InlineFeatures {
         InlineChat.pill("${sender.connection.latency()} ms", Config.s.inlineStyle.valueColor, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.lineCard(Phrase.of("kami_essentials.sidebar.ping") to Theme.VALUE)))
 
     private fun tpsToken(sender: ServerPlayer): Component =
-        InlineChat.pill("${"%.1f".format(Tab.tps(sender.server))} TPS", Config.s.inlineStyle.valueColor, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.lineCard(Phrase.of("kami_essentials.inline.tps") to Theme.VALUE)))
+        InlineChat.pill("${Tab.tpsText(sender.server)} TPS", Config.s.inlineStyle.valueColor, Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.lineCard(Phrase.of("kami_essentials.inline.tps") to Theme.VALUE)))
 
     private fun openToken(label: Phrase, tip: Phrase, on: Boolean, key: () -> String): Component {
         val click = if (on) ClickEvent(ClickEvent.Action.RUN_COMMAND, "/essentials inline open ${key()}") else null
         return InlineChat.pill(label.component().withColor(Config.s.inlineStyle.linkColor), Config.s.inlineStyle.bracketColor, HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.lineCard(tip to Config.s.inlineStyle.textColor)), click)
     }
 
-    // Inventory and ender chest pills open a live view of the owner, so their lifetime is capped at LIVE_VIEW_TTL_MS
-    // instead of the full action TTL (a snapshot would need a copied container plus a separate view path).
+    private fun hoverStack(sender: ServerPlayer, stack: ItemStack): ItemStack {
+        val size = ItemStack.CODEC.encodeStart(sender.registryAccess().createSerializationContext(NbtOps.INSTANCE), stack).result().map { it.sizeInBytes() }.orElse(Int.MAX_VALUE)
+        if (size <= MAX_HOVER_BYTES) return stack
+        val out = ItemStack(stack.itemHolder, stack.count)
+        stack.get(DataComponents.CUSTOM_NAME)?.let { out.set(DataComponents.CUSTOM_NAME, it) }
+        stack.get(DataComponents.ITEM_NAME)?.let { out.set(DataComponents.ITEM_NAME, it) }
+        stack.get(DataComponents.ENCHANTMENTS)?.let { out.set(DataComponents.ENCHANTMENTS, it) }
+        return out
+    }
+
     private fun register(type: Type, sender: ServerPlayer, stack: ItemStack = ItemStack.EMPTY, live: Boolean = false): String {
         val key = randomKey(14)
+        val now = System.currentTimeMillis()
         val ttl = (Config.s.inlineGeneral.actionTtlSeconds.coerceAtLeast(10) * 1000L).let { if (live) minOf(it, LIVE_VIEW_TTL_MS) else it }
-        actions[key] = Action(type, sender.uuid, sender.gameProfile.name, stack, System.currentTimeMillis() + ttl)
+        owned.compute(sender.uuid) { _, old ->
+            val keys = old ?: ArrayDeque()
+            keys.addLast(key)
+            while (keys.size > MAX_ACTIONS_PER_OWNER) actions.remove(keys.removeFirst())
+            actions[key] = Action(type, sender.uuid, sender.gameProfile.name, stack, now + ttl, now)
+            keys
+        }
         return key
     }
 
@@ -227,7 +248,7 @@ object InlineFeatures {
         repeat(len) { append(keyChars[rng.nextInt(keyChars.length)]) }
     }
 
-    private fun num(v: Float): String = if (v % 1f == 0f) v.toInt().toString() else "%.1f".format(v)
+    private fun num(v: Float): String = if (v % 1f == 0f) v.toInt().toString() else String.format(Locale.ROOT, "%.1f", v)
 
     private fun itemName(stack: ItemStack): Component {
         stack.get(DataComponents.CUSTOM_NAME)?.let { return it.copy() }

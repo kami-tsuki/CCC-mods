@@ -8,7 +8,7 @@ import kami.libs.text.Phrase
 import java.util.UUID
 
 object Gate {
-    private val TRADING = setOf("sell", "sell_market", "bid", "reprice", "reprice_bid", "buy", "auction_list", "auction_bid", "auction_buy")
+    private val TRADING = setOf("sell", "sell_market", "quest_deliver", "bid", "reprice", "reprice_bid", "buy", "auction_list", "auction_bid", "auction_buy")
     private val AUCTION_ACTIONS = setOf("auction_list", "auction_bid", "auction_buy")
 
     internal fun blocked(action: String, citizen: Boolean) = !citizen && action in TRADING

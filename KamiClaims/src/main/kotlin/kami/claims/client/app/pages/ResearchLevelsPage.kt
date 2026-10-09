@@ -29,6 +29,7 @@ import kami.libs.ui.text.tr
 import kami.libs.ui.widget.*
 import kami.libs.ui.pin.pinButton
 import kami.claims.client.app.ResearchPins
+import org.lwjgl.glfw.GLFW
 import kotlin.math.PI
 import kotlin.math.sin
 
@@ -36,9 +37,10 @@ class ResearchLevelsPage(app: ClaimsApp) : ClaimsPage(app) {
     override val title get() = tr("kami_claims.nav.levels")
 
     override val subtitle: String?
-        get() = if (ClientResearch.state.country.isEmpty()) null else tr("kami_libs.lock.ui.level", ClientResearch.state.level) + " · " + xpText()
+        get() = if (ClientResearch.state.country.isEmpty()) null else tr("kami_libs.lock.ui.level", ClientResearch.state.level) + " · " + xpText() + (boostHint("xp")?.let { " · $it" } ?: "")
 
     private var selected: Int? = null
+    private var stripScroll: ScrollState? = null
     private var centered = false
     private var detailHeight = 0
     private var levelUp = false
@@ -71,8 +73,26 @@ class ResearchLevelsPage(app: ClaimsApp) : ClaimsPage(app) {
         val cardH = if (compact) CARD_H_COMPACT else CARD_H
         val strip = r.top(TRACK_H + cardH + STRIP_BAR_H)
         strip(ui, strip, levels, cardH, compact)
+        keys(ui, levels.size)
         val shown = selected ?: ClientResearch.state.level
         details(ui, r.dropTop(strip.h + 8), levels.firstOrNull { it.level == shown } ?: levels.first())
+    }
+
+    private fun keys(ui: Ui, count: Int) {
+        if (ui.typing || ui.focus != null || app.dialogOpen) return
+        val current = selected ?: ClientResearch.state.level
+        fun take(code: Int) = ui.input.takeKey(code) { !it.ctrl } != null
+        val next = when {
+            take(GLFW.GLFW_KEY_LEFT) -> current - 1
+            take(GLFW.GLFW_KEY_RIGHT) -> current + 1
+            take(GLFW.GLFW_KEY_PAGE_UP) -> current - 5
+            take(GLFW.GLFW_KEY_PAGE_DOWN) -> current + 5
+            take(GLFW.GLFW_KEY_HOME) -> ClientResearch.state.level
+            take(GLFW.GLFW_KEY_END) -> count
+            else -> return
+        }.coerceIn(1, count)
+        selected = next.takeIf { it != ClientResearch.state.level }
+        stripScroll?.centerOn(PAD + (next - 1) * (CARD_W + CARD_GAP) + CARD_W / 2)
     }
 
     private fun strip(ui: Ui, r: Rect, levels: List<LevelView>, cardH: Int, compact: Boolean) {
@@ -95,6 +115,7 @@ class ResearchLevelsPage(app: ClaimsApp) : ClaimsPage(app) {
                 drawCard(ui, card, level, content, state.level, compact)
             }
         }
+        stripScroll = scroll
         if (!centered) { scroll.centerOn(PAD + (state.level - 1) * (CARD_W + CARD_GAP) + CARD_W / 2); centered = true }
     }
 
@@ -132,18 +153,14 @@ class ResearchLevelsPage(app: ClaimsApp) : ClaimsPage(app) {
         val icon = when { isCurrent -> Icons.STAR; reached -> Icons.CHECK; else -> Icons.LOCK }
         Draw.leadIcon(ui.g, icon, card.right - STATE_ICON_X, card.y + STATE_ICON_Y, if (reached) accent else Palette.textMuted)
         Draw.text(ui.g, content.title, card.x + CARD_PAD, card.y + TITLE_Y, if (reached) Palette.text else Palette.textSecondary)
-        Draw.text(ui.g, Draw.fit(content.xp, CARD_W - 2 * CARD_PAD - Draw.ICON), card.x + CARD_PAD, card.y + XP_Y, Palette.textMuted)
-        rewards(ui, card, content, if (compact) 1 else LINES, if (compact) REQUIREMENT_LINES_COMPACT else REQUIREMENT_LINES)
+        ui.fitText(card.x + CARD_PAD, card.y + XP_Y, CARD_W - 2 * CARD_PAD - Draw.ICON, content.xp, Palette.textMuted)
+        rewards(ui, card, content, if (compact) 1 else LINES)
         if (isCurrent && (ClientResearch.xpTracked || ClientResearch.atMaxLevel)) progressStrip(ui, card)
         if (!reached) Draw.fill(ui.g, card.inset(1), Palette.alpha(Palette.surface, 0x70))
     }
 
-    private fun rewards(ui: Ui, card: Rect, content: CardContent, lines: Int, requirementLines: Int) {
-        val shownRequirements = content.requirements.take(requirementLines)
-        shownRequirements.forEachIndexed { i, (text, met) ->
-            ui.requirementRow(Rect(card.x + CARD_PAD, card.y + REQUIREMENT_Y + i * REQUIREMENT_STEP, CARD_W - 2 * CARD_PAD, REQUIREMENT_STEP), text, met)
-        }
-        val itemsTop = card.y + REQUIREMENT_Y + shownRequirements.size * REQUIREMENT_STEP + if (shownRequirements.isEmpty()) 0 else REQUIREMENT_GAP
+    private fun rewards(ui: Ui, card: Rect, content: CardContent, lines: Int) {
+        val itemsTop = card.y + ITEMS_Y
         content.items.forEachIndexed { i, unlock ->
             ui.itemSlot(Rect(card.x + CARD_PAD + i * ITEM_STEP, itemsTop, ITEM_SLOT, ITEM_SLOT), stackOf(unlock.id), key = content.itemKeys[i])
         }
@@ -154,19 +171,18 @@ class ResearchLevelsPage(app: ClaimsApp) : ClaimsPage(app) {
         shown.forEachIndexed { i, unlock ->
             val lineY = top + i * Draw.LINE
             val iconW = unlockIcon(unlock)?.let { Draw.leadIcon(ui.g, it, card.x + CARD_PAD, lineY + 4, unlockColor(unlock)) } ?: 0
-            Draw.text(ui.g, Draw.fit(unlockText(unlock), CARD_W - 2 * CARD_PAD - iconW), card.x + CARD_PAD + iconW, lineY, unlockColor(unlock))
+            ui.fitText(card.x + CARD_PAD + iconW, lineY, CARD_W - 2 * CARD_PAD - iconW, unlockText(unlock), unlockColor(unlock))
         }
-        if (hidden > 0) Draw.text(ui.g, tr("kami_claims.research.levels.more", hidden + 1), card.x + CARD_PAD, top + shown.size * Draw.LINE, Palette.textMuted)
+        if (hidden > 0) Draw.text(ui.g, tr("kami_libs.common.more", hidden + 1), card.x + CARD_PAD, top + shown.size * Draw.LINE, Palette.textMuted)
     }
 
     private fun content(level: LevelView): CardContent { freshLocale(); return cardRewards.getOrPut(level.level) { cardContent(level) } }
 
     private fun cardContent(level: LevelView): CardContent {
         val (items, others) = level.rewards.partition(::isItemUnlock)
-        val requirements = ClientResearch.levelRequirements(level.level).map { (phrase, met) -> phrase.resolve() to met }
         val shownItems = items.take(ITEMS_PER_CARD)
         val xp = if (level.xp == 0L) tr("kami_claims.research.levels.requirements_only") else tr("kami_claims.research.levels.xp_needed", Format.number(level.xp))
-        return CardContent(tr("kami_libs.lock.ui.level", level.level), xp, "level-card:${level.level}", "level:${level.level}", shownItems, shownItems.indices.map { "level-item:${level.level}:$it" }, others + items.drop(ITEMS_PER_CARD), requirements)
+        return CardContent(tr("kami_libs.lock.ui.level", level.level), xp, "level-card:${level.level}", "level:${level.level}", shownItems, shownItems.indices.map { "level-item:${level.level}:$it" }, others + items.drop(ITEMS_PER_CARD))
     }
 
     private fun nodeChips(level: LevelView): NodeChips { freshLocale(); return unlockedNodes.getOrPut(level.level) {
@@ -225,7 +241,7 @@ class ResearchLevelsPage(app: ClaimsApp) : ClaimsPage(app) {
     }
 
     private fun rewardsSection(ui: Ui, stack: Stack, level: LevelView) {
-        ui.section(stack, tr("kami_claims.research.levels.rewards"))
+        ui.section(stack, tr("kami_libs.flow.reward"))
         if (level.rewards.isEmpty()) emptyLine(ui, stack, tr("kami_claims.research.levels.no_rewards"))
         else ui.unlockList(stack, level.rewards, "level-rewards:${level.level}")
     }
@@ -247,7 +263,7 @@ class ResearchLevelsPage(app: ClaimsApp) : ClaimsPage(app) {
     }
 }
 
-private class CardContent(val title: String, val xp: String, val cardKey: String, val feelKey: String, val items: List<UnlockView>, val itemKeys: List<String>, val rest: List<UnlockView>, val requirements: List<Pair<String, Boolean>>)
+private class CardContent(val title: String, val xp: String, val cardKey: String, val feelKey: String, val items: List<UnlockView>, val itemKeys: List<String>, val rest: List<UnlockView>)
 
 private class NodeChips(val nodes: List<NodeView>, val chips: List<ChipSpec>)
 
@@ -265,11 +281,7 @@ private const val STATE_ICON_X = 13
 private const val STATE_ICON_Y = 9
 private const val ITEM_SLOT = 20
 private const val ITEM_STEP = 22
-private const val REQUIREMENT_Y = 28
-private const val REQUIREMENT_STEP = 10
-private const val REQUIREMENT_GAP = 3
-private const val REQUIREMENT_LINES = 0
-private const val REQUIREMENT_LINES_COMPACT = 0
+private const val ITEMS_Y = 28
 private const val ITEM_GAP = 4
 private const val STRIP_INSET = 4
 private const val STRIP_BOTTOM = 6

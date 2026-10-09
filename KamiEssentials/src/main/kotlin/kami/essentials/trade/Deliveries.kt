@@ -60,13 +60,15 @@ object Deliveries {
 
     internal fun put(owner: UUID, raw: List<String>) {
         if (raw.isEmpty()) return
-        raw.forEach { Parcel(next.incrementAndGet(), owner, it).let { p -> parcels[p.id] = p } }
+        val added = raw.map { Parcel(next.incrementAndGet(), owner, it).also { p -> parcels[p.id] = p } }
+        if (attached) Db.durableAsync { batch("INSERT OR REPLACE INTO ess_delivery (id, uuid, item) VALUES (?, ?, ?)", added.map { listOf(it.id, it.owner.toString(), it.item) }) }
     }
 
     internal fun take(owner: UUID): List<String> {
         val mine = parcels.values.filter { it.owner == owner }.sortedBy { it.id }
         if (mine.isEmpty()) return emptyList()
         mine.forEach { parcels.remove(it.id) }
+        if (attached) Db.durableAsync { batch("DELETE FROM ess_delivery WHERE id = ?", mine.map { listOf(it.id) }) }
         return mine.map { it.item }
     }
 }

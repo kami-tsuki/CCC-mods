@@ -1,6 +1,5 @@
 package kami.claims.client.app
 
-import kami.claims.client.rankOf
 import kami.claims.Rank
 import kami.claims.client.store.ClaimsStore
 import kami.claims.net.Info

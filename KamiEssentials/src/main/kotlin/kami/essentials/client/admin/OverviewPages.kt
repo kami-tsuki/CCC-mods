@@ -1,5 +1,6 @@
 package kami.essentials.client.admin
 
+import kami.libs.util.toUuidOrNull
 import kami.libs.ui.AutoRefresh
 import kami.libs.ui.app.Remote
 import kami.libs.ui.app.adminAct
@@ -14,9 +15,11 @@ import kami.libs.admin.Audit
 import kami.libs.economy.Journal
 import kami.libs.economy.ServerBank
 import kami.libs.ui.app.Page
+import kami.libs.ui.app.STAT_TILE_H
 import kami.libs.ui.app.Route
 import kami.libs.ui.app.StatBoard
 import kami.libs.ui.app.TimeRange
+import kami.libs.ui.core.Memo
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Row
 import kami.libs.ui.core.Stack
@@ -34,12 +37,10 @@ import kami.libs.util.Time
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
-import java.util.UUID
 import kotlin.math.roundToLong
 import kami.libs.economy.Flow as MoneyFlow
 import kami.libs.ui.text.noteLabel
 
-private const val TILE_H = 44
 private const val BANNER_H = 30
 private const val CHART_H = 96
 private const val CHART_DAYS = 30
@@ -52,11 +53,7 @@ private const val COIN_ALERT = "kami_libs.metric.coin_alert"
 
 private fun metricLabel(key: String) = trOr(key, key.substringAfterLast('.').replace('_', ' ').replaceFirstChar { it.uppercase() })
 
-internal fun amountColor(v: Long) = if (v > 0) Palette.success else if (v < 0) Palette.danger else Palette.textMuted
-
-private fun flowColor(f: MoneyFlow) = Palette.chart[f.ordinal % Palette.chart.size]
-
-private fun amountArg(s: TextState) = Format.parseAmount(s.text)?.toString().orEmpty()
+private fun amountArg(s: TextState) = Format.parseAmount(s.text, allowNegative = true)?.toString().orEmpty()
 
 internal class JournalFilter(private val key: String, private val withParty: Boolean) {
     private val party = TextState()
@@ -80,14 +77,13 @@ internal class JournalFilter(private val key: String, private val withParty: Boo
             val row = Row(bar, 6)
             if (ui.iconButton(row.takeFromRight(CONTROL_H), Icons.FILTER, tr("kami_essentials.admin.filter.flows"), selected = showFlows || flows.isNotEmpty(), key = "$key:flows")) showFlows = !showFlows
             range.draw(ui, row.takeFromRight(range.width(bar.w < NARROW_W)))
-            val amount = { c: Char -> c.isDigit() || c in "kmbKMB.," }
             val maxBox = row.takeFromRight(AMOUNT_W)
-            ui.textField(row.takeFromRight(AMOUNT_W), min, tr("kami_essentials.admin.filter.min"), allow = amount, key = "$key:min")
-            ui.textField(maxBox, max, tr("kami_essentials.admin.filter.max"), allow = amount, key = "$key:max")
+            ui.textField(row.takeFromRight(AMOUNT_W), min, tr("kami_libs.field.min"), allow = { isAmountChar(it) || it == '-' }, key = "$key:min")
+            ui.textField(maxBox, max, tr("kami_libs.field.max"), allow = { isAmountChar(it) || it == '-' }, key = "$key:max")
             if (withParty) {
                 countries.poll()
                 names.poll()
-                val players = names.data.orEmpty().onEach { AdminData.remember(it.uuid, it.name) }.mapNotNull { n -> runCatching { UUID.fromString(n.uuid) }.getOrNull()?.let { n.name to it } }.toMap()
+                val players = names.data.orEmpty().onEach { AdminData.remember(it.uuid, it.name) }.mapNotNull { n -> n.uuid.toUuidOrNull()?.let { n.name to it } }.toMap()
                 ui.partyField(row.take(minOf(110, (row.rest.w - 6) / 2)), party, { countries.data.orEmpty().entries.associate { (id, name) -> name to id } }, { players }, { prefix = it }, key = "$key:party") { partyKey = it }
             }
             ui.textField(row.remaining(), text, tr("kami_essentials.admin.filter.text"), Icons.SEARCH, key = "$key:text", clearable = true)
@@ -100,19 +96,23 @@ internal class JournalFilter(private val key: String, private val withParty: Boo
     }
 }
 
-internal fun journalColumns(withParty: Boolean) = listOfNotNull(
-    Column.number<Journal.Entry>(tr("kami_essentials.admin.col.when"), 56, format = { Format.ago(it) }) { it.at },
+private val journalMemo = arrayOf(Memo(), Memo())
+
+internal fun journalColumns(withParty: Boolean) = journalMemo[if (withParty) 1 else 0].of(Format.locale) { buildJournalColumns(withParty) }
+
+private fun buildJournalColumns(withParty: Boolean) = listOfNotNull(
+    Column.number<Journal.Entry>(tr("kami_libs.common.when"), 56, format = { Format.ago(it) }) { it.at },
     if (withParty) whoColumn<Journal.Entry>(tr("kami_essentials.admin.col.party"), 90) { it.party } else null,
-    Column.text<Journal.Entry>(tr("kami_essentials.admin.col.flow"), 76, color = { flowColor(it.flow) }) { it.flow.label },
+    Column.text<Journal.Entry>(tr("kami_libs.common.category"), 76, color = { flowColor(it.flow) }) { it.flow.label },
     whoColumn<Journal.Entry>(tr("kami_essentials.admin.col.counterparty"), 90) { it.counterparty },
     Column.text<Journal.Entry>(tr("kami_essentials.admin.col.note"), -1) { noteLabel(it.note) },
-    Column.number<Journal.Entry>(tr("kami_essentials.admin.col.amount"), 70, color = { amountColor(it.delta) }, format = { Format.signedMoney(it) }) { it.delta }
+    Column.number<Journal.Entry>(tr("kami_libs.common.amount"), 70, color = { amountColor(it.delta) }, format = { Format.signedMoney(it) }) { it.delta }
 )
 
-private fun journalSeverity(e: Journal.Entry) = if (e.delta >= 0) Severity.SUCCESS else Severity.DANGER
+private fun journalSeverity(e: Journal.Entry) = amountSeverity(e.delta)
 
 internal class DashboardPage(private val app: AdminApp) : Page() {
-    override val title get() = tr("kami_essentials.admin.nav.dashboard")
+    override val title get() = tr("kami_libs.common.dashboard")
     private val remote = Remote("server.dashboard", Dashboard.serializer(), REFRESH_MS)
     private val range = TimeRange("dashboard:range")
     private val board = StatBoard(range)
@@ -136,24 +136,24 @@ internal class DashboardPage(private val app: AdminApp) : Page() {
             return
         }
         val coinAlert = d.metrics[COIN_ALERT] ?: 0L
-        val metrics = d.metrics.entries.filter { it.key != COIN_ALERT }
+        val metrics = d.metrics.entries.filter { it.key != COIN_ALERT }.sortedBy { it.key }
         val main = if (coinAlert < 1) r else r.dropTop(BANNER_H + 6).also {
             val critical = coinAlert >= 2
             if (ui.banner(r.top(BANNER_H), if (critical) Severity.DANGER else Severity.WARNING, tr(if (critical) "kami_libs.coins.alert.critical" else "kami_libs.coins.alert.warning"),
                     tr("kami_essentials.admin.coins.banner"), tr("kami_essentials.admin.coins.open"), key = "coin-alert")) app.navigate(Route("coins"))
         }
         val tpsColor = if (d.tps >= 19.5) Palette.success else if (d.tps >= 15) Palette.warning else Palette.danger
-        ui.kpiRow(main.top(TILE_H), listOf(
+        ui.kpiRow(main.top(STAT_TILE_H), listOf(
             KpiTile(tr("kami_essentials.admin.tps"), Format.decimal(d.tps), Icons.CLOCK, tpsColor, sub = tr("kami_essentials.admin.mspt", Format.decimal(d.mspt))),
             KpiTile(tr("kami_libs.common.online"), tr("kami_libs.format.ratio", d.online, d.max), Icons.PEOPLE,
                 sub = tr("kami_essentials.admin.today", Format.number(d.uniqueToday), Format.number(d.newToday)), spark = d.onlineSeries.map { it.toLong() },
                 onClick = { app.navigate(Route("players")) }),
             KpiTile(tr("kami_essentials.admin.uptime"), Format.duration(d.uptimeMs), Icons.GEAR,
                 sub = tr("kami_essentials.admin.memory", Format.number(d.memUsed / MB), Format.number(d.memMax / MB))),
-            KpiTile(tr("kami_essentials.admin.nav.bank"), Format.money(d.bank), Icons.TREASURY, Palette.money,
+            KpiTile(tr("kami_essentials.bank.group"), Format.money(d.bank), Icons.TREASURY, Palette.money,
                 trend = Trend(d.bankNet24h, tr("kami_essentials.admin.net24h", Format.signed(d.bankNet24h))), onClick = { app.navigate(Route("bank")) })
         ), key = "admin-kpi")
-        val (left, right) = main.dropTop(TILE_H + 6).columns(listOf(1.4f, 1f), 6)
+        val (left, right) = main.dropTop(STAT_TILE_H + 6).columns(listOf(1.4f, 1f), 6)
         val cols = cardColumns(left.w - 10, METRIC_W, 4)
         val metricsH = if (metrics.isEmpty()) 0 else 24 + (metrics.size + cols - 1) / cols * (METRIC_H + 4)
         val chart = ui.card(left.dropBottom(metricsH, if (metricsH > 0) 6 else 0), tr("kami_essentials.admin.online_chart"), Icons.STATS)
@@ -163,7 +163,7 @@ internal class DashboardPage(private val app: AdminApp) : Page() {
         val points = board[online].points
         if (points.size < 2) Draw.textCentered(ui.g, tr("kami_libs.chart.no_data"), plot.top(20), Palette.textMuted)
         else ui.lineChart(plot, listOf(Series(tr("kami_libs.common.online"), points.map { it.v.roundToLong() }, Palette.chart[1], area = true)),
-            points.map { Format.ago(it.at) }, format = { Format.number(it) }, key = "admin-online")
+            points.map { Format.ago(it.at) }, key = "admin-online")
         if (board.stale) ui.staleVeil(plot)
         if (metricsH > 0) {
             val body = ui.card(left.bottom(metricsH), tr("kami_essentials.admin.metrics"), Icons.DASHBOARD)
@@ -177,20 +177,20 @@ internal class DashboardPage(private val app: AdminApp) : Page() {
     }
 
     private fun placeholder(ui: Ui, r: Rect) {
-        ui.kpiRow(r.top(TILE_H), listOf(
+        ui.kpiRow(r.top(STAT_TILE_H), listOf(
             KpiTile(tr("kami_essentials.admin.tps"), null, Icons.CLOCK),
             KpiTile(tr("kami_libs.common.online"), null, Icons.PEOPLE),
             KpiTile(tr("kami_essentials.admin.uptime"), null, Icons.GEAR),
-            KpiTile(tr("kami_essentials.admin.nav.bank"), null, Icons.TREASURY, Palette.money)
+            KpiTile(tr("kami_essentials.bank.group"), null, Icons.TREASURY, Palette.money)
         ), key = "admin-kpi")
-        val (left, right) = r.dropTop(TILE_H + 6).columns(listOf(1.4f, 1f), 6)
+        val (left, right) = r.dropTop(STAT_TILE_H + 6).columns(listOf(1.4f, 1f), 6)
         ui.skeleton(ui.card(left, tr("kami_essentials.admin.online_chart"), Icons.STATS))
         ui.table(ui.card(right, tr("kami_essentials.admin.latest_audit"), Icons.SCROLL), compactAuditColumns(), emptyList(), table, { it.id }, key = "admin-audit", loading = true)
     }
 }
 
 internal class BankPage : Page() {
-    override val title get() = tr("kami_essentials.admin.nav.bank")
+    override val title get() = tr("kami_essentials.bank.group")
     private val summary = Remote("bank.summary", ServerBank.Summary.serializer())
     private val filter = JournalFilter("bank", false)
     private val paged = Paged("bank.movements", Journal.Entry.serializer()) { filter.args() }
@@ -207,17 +207,17 @@ internal class BankPage : Page() {
         fun net(n: Int) = inflow.takeLast(n).sum() - outflow.takeLast(n).sum()
         fun netTile(label: String, n: Int) = KpiTile(label, s?.let { Format.signedMoney(net(n)) }, Icons.STATS, amountColor(net(n)),
             sub = s?.let { tr("kami_essentials.admin.in_out", Format.number(inflow.takeLast(n).sum()), Format.number(outflow.takeLast(n).sum())) })
-        ui.kpiRow(r.top(TILE_H), listOf(
-            KpiTile(tr("kami_essentials.admin.balance"), s?.let { Format.money(it.balance) }, Icons.TREASURY, Palette.money, flashValue = s?.balance),
-            netTile(tr("kami_libs.range.24h"), 1),
+        ui.kpiRow(r.top(STAT_TILE_H), listOf(
+            KpiTile(tr("kami_libs.common.balance"), s?.let { Format.money(it.balance) }, Icons.TREASURY, Palette.money, flashValue = s?.balance),
+            netTile(tr("kami_libs.common.today"), 1),
             netTile(tr("kami_libs.range.7d"), 7),
             netTile(tr("kami_libs.range.30d"), CHART_DAYS)
         ), key = "bank-kpi")
-        val chartBox = r.dropTop(TILE_H + 6).top(CHART_H)
+        val chartBox = r.dropTop(STAT_TILE_H + 6).top(CHART_H)
         val chart = ui.card(chartBox, tr("kami_essentials.admin.bank.daily"), Icons.STATS)
         if (s == null) ui.skeleton(chart)
         else ui.barChart(chart, inflow, outflow, List(days.size) { Format.dayLabel(today - CHART_DAYS + 1 + it) }, format = { Format.money(it) }, key = "bank-daily")
-        val body = filter.draw(ui, r.dropTop(TILE_H + CHART_H + 12))
+        val body = filter.draw(ui, r.dropTop(STAT_TILE_H + CHART_H + 12))
         ui.pagedTable(body, paged, journalColumns(false), table, { it.id }, tr("kami_essentials.admin.journal.empty"), "bank-moves", ::journalSeverity)
     }
 }

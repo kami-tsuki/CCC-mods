@@ -33,7 +33,7 @@ object Views {
         val valid: () -> Boolean = if (live != null) { { !live.hasDisconnected() && !live.isRemoved } } else { { data!!.live } }
         val notes = listOfNotNull("kami_essentials.views.offline".takeIf { data != null }, "kami_essentials.views.read_only".takeUnless { edit }).map { Phrase.of(it) }
         val base = if (live === viewer) Phrase.of("kami_essentials.views.$what.own") else Phrase.of("kami_essentials.views.$what.other", target.name)
-        val label = notes.fold(base) { out, note -> Phrase.of("kami_essentials.views.note", out, note) }
+        val label = notes.fold(base) { out, note -> Phrase.of("kami_libs.format.paren", out, note) }
         val title = label.component()
         data?.viewers?.add(viewer)
         val opened = viewer.openMenu(SimpleMenuProvider({ id, inv, _ -> ViewMenu(id, inv, source, layout, edit, valid) { data?.let { Offline.release(it, viewer) } } }, title))

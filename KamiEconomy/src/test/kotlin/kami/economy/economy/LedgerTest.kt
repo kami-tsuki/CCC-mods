@@ -15,22 +15,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class LedgerTest {
-    private class FakeWallet(var funds: Long = 0) : Wallet {
-        val deposits = mutableListOf<Pair<UUID, Int>>()
-        var onDeduct: () -> Unit = {}
-        override fun balance(id: UUID) = funds
-        override fun deduct(id: UUID, amount: Int): Int {
-            onDeduct()
-            val taken = minOf(amount.toLong(), funds).toInt()
-            funds -= taken
-            return taken
-        }
-        override fun deposit(id: UUID, amount: Int): Boolean {
-            deposits += id to amount
-            return true
-        }
-    }
-
     private val buyer = UUID.randomUUID()
     private val sellerA = UUID.randomUUID()
     private val sellerB = UUID.randomUUID()
@@ -38,7 +22,7 @@ class LedgerTest {
     @AfterTest
     fun tearDown() = TestDb.close()
 
-    private fun setup(wallet: FakeWallet): FakeWallet {
+    private fun setup(wallet: Till): Till {
         Config.s = Settings()
         Market.data = Data()
         TestDb.open()
@@ -48,7 +32,7 @@ class LedgerTest {
 
     @Test
     fun overflowingTotalIsRejected() {
-        val wallet = setup(FakeWallet(Long.MAX_VALUE))
+        val wallet = setup(Till(Long.MAX_VALUE))
         Matching.insertSell("test:item", Order(1, sellerA.toString(), 1_100_000_000, 1))
         Matching.insertSell("test:item", Order(2, sellerB.toString(), 1_100_000_000, 1))
         assertEquals(2_200_000_000L, Matching.plan("test:item", 2).totalSpurs)
@@ -59,7 +43,7 @@ class LedgerTest {
 
     @Test
     fun intentIsWrittenBeforeTheDebit() {
-        val wallet = setup(FakeWallet(100))
+        val wallet = setup(Till(100))
         wallet.onDeduct = { SavePoint.run(); assertTrue("PENDING" in TestDb.states()) }
         Matching.insertSell("test:item", Order(1, sellerA.toString(), 10, 5))
         val result = Ledger.buy(buyer.toString(), "test:item", 5)
@@ -70,7 +54,7 @@ class LedgerTest {
 
     @Test
     fun replayPaysOnlyUnpaidFillsOnce() {
-        val wallet = setup(FakeWallet())
+        val wallet = setup(Till(0))
         val fills = listOf(LedgerFill(1, sellerA.toString(), 2, 10), LedgerFill(2, sellerB.toString(), 3, 10))
         val intent = Intent(7, IntentType.BUY, LedgerState.BOOK_INSERTED, actor = buyer.toString(), item = "test:item", qty = 5, netSpurs = 50, fills = fills, paid = listOf(1))
         TestDb.wal(intent)
@@ -86,7 +70,7 @@ class LedgerTest {
 
     @Test
     fun uncleanSellIsRejectedAndCleanSellListsWholeLots() {
-        setup(FakeWallet())
+        setup(Till(0))
         Config.s = Settings(lots = mapOf("test:log" to 64))
         assertEquals(SellResult.NotClean(64), Ledger.sell(sellerA.toString(), "test:log", 32, 20))
         assertEquals(SellResult.NotClean(128), Ledger.sell(sellerA.toString(), "test:log", 64, 15))
@@ -96,7 +80,7 @@ class LedgerTest {
 
     @Test
     fun lotPricedBuyPaysPerLotAndTaxIsWhole() {
-        val wallet = setup(FakeWallet(1_000))
+        val wallet = setup(Till(1_000))
         Config.s = Settings(lots = mapOf("test:log" to 64))
         Matching.insertSell("test:log", Order(1, sellerA.toString(), 15, 256, lot = 64))
         assertEquals(BuyResult.NothingAvailable, Ledger.buy(buyer.toString(), "test:log", 100))
@@ -105,7 +89,7 @@ class LedgerTest {
     }
     @Test
     fun crashAfterPendingWriteBeforeDeductIsVoidedAndBalanceUntouched() {
-        val wallet = setup(FakeWallet(100))
+        val wallet = setup(Till(100))
         val fills = listOf(LedgerFill(1, sellerA.toString(), 5, 10))
         val intent = Intent(5, IntentType.BUY, LedgerState.PENDING, actor = buyer.toString(), item = "test:item", qty = 5, netSpurs = 50, fills = fills, preBalance = 100)
         TestDb.wal(intent)
@@ -122,7 +106,7 @@ class LedgerTest {
 
     @Test
     fun crashAfterDeductBeforeDebitedResumesAndDeliversOnce() {
-        val wallet = setup(FakeWallet(50))
+        val wallet = setup(Till(50))
         val fills = listOf(LedgerFill(2, sellerB.toString(), 5, 10))
         val intent = Intent(6, IntentType.BUY, LedgerState.PENDING, actor = buyer.toString(), item = "test:item", qty = 5, netSpurs = 50, fills = fills, preBalance = 100)
         TestDb.wal(intent)
@@ -140,7 +124,7 @@ class LedgerTest {
 
     @Test
     fun crashRecoveryReplayOfTheResumePathIsIdempotent() {
-        val resumed = setup(FakeWallet(50))
+        val resumed = setup(Till(50))
         val resumeIntent = Intent(6, IntentType.BUY, LedgerState.PENDING, actor = buyer.toString(), item = "test:item", qty = 5, netSpurs = 50, fills = listOf(LedgerFill(2, sellerB.toString(), 5, 10)), preBalance = 100)
         TestDb.wal(resumeIntent)
         repeat(2) { TestDb.restart(); Ledger.recover() }
@@ -149,27 +133,10 @@ class LedgerTest {
         assertEquals(5, Market.data.pendingDelivery[buyer.toString()]!!.sumOf { it.qty })
     }
 
-    private class KeyedWallet(private val initial: Long) : Wallet {
-        val balances = mutableMapOf<UUID, Long>()
-        val deposits = mutableListOf<Pair<UUID, Int>>()
-        override fun balance(id: UUID) = balances.getOrDefault(id, initial)
-        override fun deduct(id: UUID, amount: Int): Int {
-            val bal = balance(id)
-            val taken = minOf(amount.toLong(), bal).toInt()
-            balances[id] = bal - taken
-            return taken
-        }
-        override fun deposit(id: UUID, amount: Int): Boolean {
-            deposits += id to amount
-            balances[id] = balance(id) + amount
-            return true
-        }
-    }
-
     @Test
     fun recoverResolvesPendingDebitsBeforeOtherCreditsForSamePayer() {
-        val wallet = KeyedWallet(100)
-        wallet.balances[buyer] = 50
+        val wallet = Purse(initial = 100)
+        wallet.funds[buyer] = 50
         val bidIntent = Intent(6, IntentType.BID, LedgerState.PENDING, actor = buyer.toString(), item = "test:item", qty = 10, unitPrice = 5, netSpurs = 50, preBalance = 100, lot = 1)
         val cancelIntent = Intent(11, IntentType.BID_CANCEL, LedgerState.BOOK_INSERTED, actor = buyer.toString(), item = "test:item", orderId = 5, netSpurs = 20)
         Config.s = Settings()
@@ -186,12 +153,12 @@ class LedgerTest {
 
     @Test
     fun recoverSkipsAlreadyCreditedFillAndCreditsRemainingFillOnce() {
-        val wallet = KeyedWallet(0)
+        val wallet = Purse()
         val fills = listOf(
             LedgerFill(1, sellerA.toString(), 2, 10, lot = 1, tax = 0, pre = 0),
             LedgerFill(2, sellerB.toString(), 3, 10, lot = 1, tax = 0)
         )
-        wallet.balances[sellerA] = 20
+        wallet.funds[sellerA] = 20
         val intent = Intent(7, IntentType.BUY, LedgerState.BOOK_INSERTED, actor = buyer.toString(), item = "test:item", qty = 5, netSpurs = 50, fills = fills)
         Config.s = Settings()
         Market.data = Data()
@@ -210,7 +177,7 @@ class LedgerTest {
 
     @Test
     fun recoverCreditsSameSellerAppearingInTwoFillsExactlyOnceEach() {
-        val wallet = KeyedWallet(0)
+        val wallet = Purse()
         val fills = listOf(
             LedgerFill(1, sellerA.toString(), 2, 10, lot = 1, tax = 0),
             LedgerFill(3, sellerA.toString(), 1, 10, lot = 1, tax = 0)
@@ -236,7 +203,7 @@ class LedgerTest {
         val data = Json { ignoreUnknownKeys = true }.decodeFromString<Data>(old)
         val order = data.books.getValue("test:item").sells.single()
         assertEquals(1, order.lot)
-        setup(FakeWallet())
+        setup(Till(0))
         Market.data = data
         assertEquals(10, Matching.plan("test:item", 10).filled)
         assertEquals(0, Matching.plan("test:item", 5).filled)

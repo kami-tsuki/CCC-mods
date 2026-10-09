@@ -1,5 +1,7 @@
 package kami.essentials.admin
 
+import kami.libs.admin.Players
+import kami.libs.util.toUuidOrNull
 import kami.essentials.KamiEssentials
 import kami.essentials.inv.Offline
 import kami.essentials.net.played
@@ -7,6 +9,7 @@ import kami.libs.db.Db
 import kami.libs.db.SavePoint
 import kami.libs.db.Session
 import kami.libs.db.Table
+import net.minecraft.Util
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.Tag
 import net.minecraft.server.MinecraftServer
@@ -137,22 +140,34 @@ object PlayerRecords {
         }
     }
 
+    private class Found(val id: UUID, val created: Long, val modified: Long, val spot: Spot?, val playtimeMs: Long)
+
     private fun bootstrap(server: MinecraftServer) {
         val dir = server.getWorldPath(LevelResource.PLAYER_DATA_DIR)
-        if (!Files.isDirectory(dir)) return
-        val ids = Files.list(dir).use { files -> files.toList() }.mapNotNull { f ->
-            f.fileName.toString().takeIf { it.endsWith(".dat") }?.let { runCatching { UUID.fromString(it.removeSuffix(".dat")) }.getOrNull() }?.let { it to f }
-        }
-        ids.filter { !records.containsKey(it.first) }.forEach { (id, file) ->
-            runCatching {
-                val attrs = Files.readAttributes(file, BasicFileAttributes::class.java)
-                val name = server.profileCache?.get(id)?.orElse(null)?.name ?: id.toString()
-                val r = PlayerRecord(id, name, attrs.creationTime().toMillis(), attrs.lastModifiedTime().toMillis())
-                r.spot = Offline.read(server, id)?.let(::stored)
-                r.playtimeMs = played(server, id).playtime
-                r.names[name] = r.firstJoin
-                records[id] = r
-            }.onFailure { KamiEssentials.LOG.warn("Could not import the player record of {}: {}", id, it.toString()) }
+        val stats = server.getWorldPath(LevelResource.PLAYER_STATS_DIR)
+        val known = records.keys.toSet()
+        Util.backgroundExecutor().execute {
+            if (!Files.isDirectory(dir)) return@execute
+            val found = Files.list(dir).use { files -> files.toList() }.mapNotNull { f ->
+                f.fileName.toString().takeIf { it.endsWith(".dat") }?.let { it.removeSuffix(".dat").toUuidOrNull() }?.let { it to f }
+            }.filter { it.first !in known }.mapNotNull { (id, file) ->
+                runCatching {
+                    val attrs = Files.readAttributes(file, BasicFileAttributes::class.java)
+                    Found(id, attrs.creationTime().toMillis(), attrs.lastModifiedTime().toMillis(), Offline.read(server, id)?.let(::stored), played(stats.resolve("$id.json")).playtime)
+                }.onFailure { KamiEssentials.LOG.warn("Could not import the player record of {}: {}", id, it.toString()) }.getOrNull()
+            }
+            server.execute {
+                if (!attached) return@execute
+                found.forEach { f ->
+                    if (records.containsKey(f.id)) return@forEach
+                    val name = Players.name(server, f.id) ?: f.id.toString()
+                    records[f.id] = PlayerRecord(f.id, name, f.created, f.modified).also {
+                        it.spot = f.spot
+                        it.playtimeMs = f.playtimeMs
+                        it.names[name] = it.firstJoin
+                    }
+                }
+            }
         }
     }
 

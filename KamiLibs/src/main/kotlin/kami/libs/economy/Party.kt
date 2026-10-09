@@ -1,5 +1,6 @@
 package kami.libs.economy
 
+import kami.libs.util.toUuidOrNull
 import java.util.UUID
 
 sealed interface Party {
@@ -8,12 +9,10 @@ sealed interface Party {
     companion object {
         fun parse(raw: String): Party? = when {
             raw == ServerParty.key -> ServerParty
-            raw.startsWith("p:") -> uuid(raw.substring(2))?.let(::PlayerParty)
+            raw.startsWith("p:") -> raw.substring(2).toUuidOrNull()?.let(::PlayerParty)
             raw.startsWith("c:") && raw.length > 2 -> CountryParty(raw.substring(2))
-            else -> uuid(raw)?.let(::PlayerParty)
+            else -> raw.toUuidOrNull()?.let(::PlayerParty)
         }
-
-        private fun uuid(raw: String) = runCatching { UUID.fromString(raw) }.getOrNull()
     }
 }
 

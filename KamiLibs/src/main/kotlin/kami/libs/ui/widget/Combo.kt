@@ -53,7 +53,7 @@ fun Ui.comboField(
                     if (over) cursor = Cursor.HAND
                     if (over || i == combo.index) Draw.fill(g, row, Palette.hover)
                     if (i == combo.index) Draw.fill(g, row.left(2), Palette.brass)
-                    Draw.text(g, Draw.fit(name, row.w - 8), row.x + 5, row.y + 2, Palette.text)
+                    fitText(row.x + 5, row.y + 2, row.w - 8, name, Palette.text, key = "combo:${row.y}")
                     if (pressed(row) != null) { combo.picked = name; UiSound.click() }
                 }
             }

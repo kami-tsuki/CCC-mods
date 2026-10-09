@@ -9,6 +9,7 @@ import kami.libs.db.Session
 import kami.libs.db.Writer
 import kami.libs.log.Log
 import kami.libs.util.Time.DAY_MS
+import java.util.Locale
 import java.util.UUID
 import kotlin.math.abs
 
@@ -37,7 +38,7 @@ object Coins {
         val v = abs(spurs)
         val (value, glyph) = denominations.firstOrNull { v >= it.first } ?: (1L to SPUR)
         val amount = v.toDouble() / value
-        val text = if (value == 1L || amount >= 100.0) amount.toLong().toString() else "%.1f".format(amount)
+        val text = if (value == 1L || amount >= 100.0) amount.toLong().toString() else String.format(Locale.ROOT, "%.1f", amount)
         return Compact((if (neg) "-" else "") + text, glyph)
     }
 
@@ -65,10 +66,10 @@ object Coins {
     )
 
     val supply: Long
-        @Synchronized get() = mintedTotal - burnedTotal
+        @Synchronized get() = (mintedTotal - burnedTotal).coerceAtLeast(0)
 
     internal class Snapshot(val minted: Long, val burned: Long, val days: Map<Pair<Long, CoinSource>, LongArray>) {
-        val supply get() = minted - burned
+        val supply get() = (minted - burned).coerceAtLeast(0)
     }
 
     @Synchronized
@@ -147,7 +148,7 @@ object Coins {
         return SavePoint.join(listOf(supplyRow.diff(supplyRows()), dayRows.diff(dayRows())))
     }
 
-    private fun supplyRows() = mapOf(1 to listOf<Any?>(1, mintedTotal - burnedTotal, mintedTotal, burnedTotal))
+    private fun supplyRows() = mapOf(1 to listOf<Any?>(1, (mintedTotal - burnedTotal).coerceAtLeast(0), mintedTotal, burnedTotal))
 
     private fun dayRows() = days.mapValues { (k, v) -> listOf<Any?>(k.first, k.second.name, v[0], v[1]) }
 }

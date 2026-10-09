@@ -4,16 +4,20 @@ import com.mojang.authlib.GameProfile
 import kami.essentials.Config
 import kami.essentials.chat.Names
 import kami.essentials.chat.Talk
+import kami.libs.admin.Audit
 import kami.libs.chat.Theme
 import kami.libs.chat.tell
+import kami.libs.discord.Card
 import kami.libs.discord.Codes
 import kami.libs.discord.DiscordApi
 import kami.libs.discord.DiscordBans
 import kami.libs.discord.DiscordFeature
+import kami.libs.discord.DiscordFormat
 import kami.libs.discord.DiscordText
 import kami.libs.discord.Link
 import kami.libs.discord.Links
 import kami.libs.discord.id
+import kami.libs.economy.ServerParty
 import kami.libs.discord.SlashCommand
 import kami.libs.discord.SlashCtx
 import kami.libs.discord.SlashOption
@@ -26,6 +30,7 @@ import net.neoforged.neoforge.server.ServerLifecycleHooks
 import java.util.UUID
 
 object Gate : DiscordFeature {
+    private const val MAX_LISTED = 15
     private val log = Log.of("discord")
     private val userId = Regex("""<@(\d+)>|(\d+)""")
     private val warned = HashSet<UUID>()
@@ -93,7 +98,8 @@ object Gate : DiscordFeature {
     private fun players(ctx: SlashCtx) {
         val list = server?.let { Bot.visible(it) }.orEmpty()
         if (list.isEmpty()) return ctx.reply(text("players.none"))
-        ctx.reply(text("players.list", list.size, list.joinToString(", ") { p -> p.gameProfile.name + (Names.citizenship(p.uuid)?.let { " [${it.name}]" } ?: "") }))
+        val shown = list.take(MAX_LISTED).joinToString(", ") { p -> DiscordFormat.player(p.gameProfile.name) + (Names.citizenship(p.uuid)?.let { " ${DiscordFormat.country(it.name)}" } ?: "") }
+        ctx.reply(Card.compact(text("players.list", list.size), shown + if (list.size > MAX_LISTED) " +${list.size - MAX_LISTED}" else "", DiscordFormat.NEUTRAL))
     }
 
     private fun find(ctx: SlashCtx): List<Link> {
@@ -112,10 +118,11 @@ object Gate : DiscordFeature {
         }
     }
 
-    private fun lookup(ctx: SlashCtx) = target(ctx) { ctx.reply(text("link.found", it.name, it.discordName, it.discordId)) }
+    private fun lookup(ctx: SlashCtx) = target(ctx) { ctx.reply(Card.compact(text("link.title"), text("link.card", DiscordFormat.player(it.name), DiscordFormat.player(it.discordName), it.discordId), DiscordFormat.NEUTRAL)) }
 
     private fun remove(ctx: SlashCtx) = target(ctx) {
         unlink(it.id)
+        Audit.record(ServerParty, "discord:${ctx.userName}", "players.discord.unlink", it.id.toString(), "", mapOf("discord" to it.discordId.toString(), "via" to "discord"))
         ctx.reply(text("unverify.ok", it.name))
     }
 

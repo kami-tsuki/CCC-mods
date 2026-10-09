@@ -1,5 +1,6 @@
 package kami.essentials.net
 
+import kami.libs.util.toUuidOrNull
 import kami.essentials.chat.Names
 import kami.libs.economy.Account
 import kami.libs.economy.Movement
@@ -24,14 +25,25 @@ class Played(val playtime: Long = 0, val kills: Int = 0, val deaths: Int = 0)
 
 fun account(server: MinecraftServer, id: UUID): Account {
     val cache = server.profileCache
-    return account(id, Numismatics.balance(id), played(server, id)) { cache?.get(it)?.orElse(null)?.name }
+    return account(id, Numismatics.balance(id), played(server, id), book(id)) { cache?.get(it)?.orElse(null)?.name }
 }
 
-internal fun account(id: UUID, balance: Long, played: Played, name: (UUID) -> String?): Account {
+private const val BOOK_TTL_MS = 2000L
+
+private val books = java.util.concurrent.ConcurrentHashMap<UUID, Pair<Long, Statement.Book>>()
+
+
+private fun book(id: UUID): Statement.Book {
+    val now = System.currentTimeMillis()
+    books[id]?.takeIf { now - it.first < BOOK_TTL_MS }?.let { return it.second }
+    if (books.size > 256) books.entries.removeIf { now - it.value.first >= BOOK_TTL_MS }
+    return Statement.book(id).also { books[id] = now to it }
+}
+
+internal fun account(id: UUID, balance: Long, played: Played, book: Statement.Book = Statement.book(id), name: (UUID) -> String?): Account {
     val citizenship = Names.citizenship(id)
-    val book = Statement.book(id)
     val movements = book.movements.take(MOVEMENTS).map { m ->
-        val who = runCatching { UUID.fromString(m.counterparty) }.getOrNull()?.let(name)
+        val who = m.counterparty.toUuidOrNull()?.let(name)
         if (who == null) m else Movement(m.at, m.amount, m.flow, who, m.item, m.qty)
     }
     return Account(

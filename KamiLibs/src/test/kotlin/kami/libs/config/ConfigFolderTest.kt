@@ -51,6 +51,13 @@ class ConfigFolderTest {
     }
 
     @Test
+    fun `file starting with a byte order mark is read`() {
+        Files.createDirectories(dir.resolve("research"))
+        Files.writeString(dir.resolve("research/main.json"), "﻿{ \"count\": 9 }")
+        assertEquals(9, single().count)
+    }
+
+    @Test
     fun `broken file keeps the last good value and reports a problem`() {
         Files.createDirectories(dir.resolve("research"))
         Files.writeString(dir.resolve("research/main.json"), "{ \"count\": 7 }")

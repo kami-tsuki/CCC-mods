@@ -13,7 +13,7 @@ import kami.libs.ui.widget.*
 private const val NOTIFY_H = 80
 
 internal class SettingsPage(private val app: MarketApp) : Page() {
-    override val title get() = tr("kami_economy.nav.settings")
+    override val title get() = tr("kami_libs.common.settings")
     override val help get() = listOf(Callout("settings:notify", tr("kami_economy.settings.notify"), tr("kami_economy.help.notify.desc")))
 
     override fun draw(ui: Ui, r: Rect) {
@@ -21,7 +21,7 @@ internal class SettingsPage(private val app: MarketApp) : Page() {
         ui.anchor("settings:notify", box)
         val f = Flow(ui.card(box, tr("kami_economy.settings.notify"), Icons.BELL), 4)
         Notify.TOPICS.forEach { t ->
-            ui.toggle(f.take(14), t !in app.snap.muted, tr("kami_economy.settings.notify.$t"), tip = tr("kami_economy.settings.notify.$t.tip"), key = "notify:$t")
+            ui.toggle(f.take(14), t !in app.snap.muted, tr("kami_economy.settings.notify.$t"), key = "notify:$t")
                 ?.let { app.request("notify", t, if (it) "on" else "off") }
         }
     }

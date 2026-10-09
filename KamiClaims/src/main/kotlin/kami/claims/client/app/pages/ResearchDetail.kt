@@ -107,7 +107,7 @@ class ResearchDetail(private val page: ClaimsPage) {
         if (!icon.isEmpty) ui.itemSlot(Rect(row.x, row.y + 2, 22, 22), icon, key = "research-icon")
         val right = row.right - (if (closable) CLOSE_SIZE + 2 else 0) - PIN_SIZE - 2
         ui.pinButton(Rect(right + 2, row.y, PIN_SIZE, PIN_SIZE), ResearchPins.RESEARCH, node.key, key = "research-pin")
-        Draw.text(ui.g, Draw.fit(node.label().resolve(), right - x, TextStyle.HEADING), x, row.y + 1, TextStyle.HEADING)
+        ui.fitText(x, row.y + 1, right - x, node.label().resolve(), style = TextStyle.HEADING)
         ui.statusPill(x, row.y + 12, ResearchLook.label(status), ResearchLook.severity(status), key = "research-status")
     }
 
@@ -149,7 +149,7 @@ class ResearchDetail(private val page: ClaimsPage) {
                         ui.cursor = Cursor.HAND
                     }
                     val t = Format.duration(dep.timeMs)
-                    Draw.text(ui.g, Draw.fit(dep.label().resolve(), line.w - Draw.width(t) - 10), line.x + 3, line.y + 2, Palette.text)
+                    ui.fitText(line.x + 3, line.y + 2, line.w - Draw.width(t) - 10, dep.label().resolve(), Palette.text)
                     Draw.textRight(ui.g, t, line.right - 3, line.y + 2, Palette.warning)
                     if (ui.pressed(line) != null) {
                         penaltyOpen = false
@@ -172,7 +172,7 @@ class ResearchDetail(private val page: ClaimsPage) {
         deps.forEach { dep ->
             ui.requirementRow(stack.take(REQUIREMENT_ROW_H), dep.label().resolve(), dep.key in state.done) { select(dep.key) }
         }
-        if (deps.any { it.key !in state.done } && status != NodeStatus.DONE) stack.take(REQUIREMENT_ROW_H).let { Draw.text(ui.g, Draw.fit(tr("kami_claims.research.optional"), it.w), it.x, it.y + 2, Palette.textMuted) }
+        if (deps.any { it.key !in state.done } && status != NodeStatus.DONE) stack.take(REQUIREMENT_ROW_H).let { ui.fitText(it.x, it.y + 2, it.w, tr("kami_claims.research.optional"), Palette.textMuted) }
         node.external.forEach { key -> ui.requirementRow(stack.take(REQUIREMENT_ROW_H), ResearchGraph.externalLabel(key), key in state.done) { select(key) } }
         facts.conditions.forEach { (index, text) -> ui.requirementRow(stack.take(REQUIREMENT_ROW_H), text, flags?.getOrNull(index + 1) ?: unknown) }
     }
@@ -186,7 +186,7 @@ class ResearchDetail(private val page: ClaimsPage) {
             icons.forEachIndexed { k, item -> ui.itemIcon(slot.x + k * TASK_ICON_STEP, slot.y + (slot.h - ITEM_ICON) / 2, item, "task-icon:${node.key}:$i:$k") }
             val row = slot.dropLeft(icons.size * TASK_ICON_STEP)
             val progress = if (status == NodeStatus.DONE) task.target else (queue?.tasks?.getOrNull(i) ?: 0L).coerceAtMost(task.target)
-            Draw.text(ui.g, Draw.fit(texts[i], row.w), row.x, row.y - 1, Palette.textSecondary)
+            ui.fitText(row.x, row.y - 1, row.w, texts[i], Palette.textSecondary)
             val line = Rect(row.x, row.bottom - SMALL_H, row.w, SMALL_H)
             val showDeposit = task.kind == "deposit" && status != NodeStatus.DONE
             val label = tr("kami_claims.research.action.deposit")

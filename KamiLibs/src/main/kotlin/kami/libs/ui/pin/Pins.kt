@@ -13,6 +13,7 @@ import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr
+import kami.libs.ui.widget.fitText
 import kami.libs.ui.widget.iconButton
 import kotlinx.serialization.Serializable
 import net.minecraft.client.Minecraft
@@ -44,7 +45,14 @@ object Pins {
     private val windows = LinkedHashMap<String, PinWindow>()
     private val json = Configs.json()
     private val file by lazy { Configs.dir("libs").resolve("pins.json") }
-    private val data: PinData by lazy { runCatching { json.decodeFromString(PinData.serializer(), Files.readString(file)) }.getOrNull() ?: PinData() }
+    private val data: PinData by lazy {
+        if (!Files.exists(file)) return@lazy PinData()
+        runCatching { json.decodeFromString(PinData.serializer(), Files.readString(file)) }.getOrElse {
+            Log.of("libs").warn("Unreadable pins.json, kept as pins.json.bad: {}", it.message)
+            runCatching { Files.move(file, file.resolveSibling("pins.json.bad"), java.nio.file.StandardCopyOption.REPLACE_EXISTING) }
+            PinData()
+        }
+    }
     private val hud = Ui()
     private val snapshots = HashMap<String, List<String>>()
     private var drag: Drag? = null
@@ -106,7 +114,7 @@ object Pins {
         Draw.fill(g, r, Palette.alpha(Palette.surface, if (editing) 0xF0 else 0xB0))
         Draw.outline(g, r, if (editing && drag?.id == w.id) Palette.brass else Palette.alpha(Palette.border, 0xC0))
         val bar = r.top(TITLE_H)
-        Draw.text(g, Draw.fit(w.title(items), bar.w - 6 - if (editing) TITLE_H else 0), r.x + 3, r.y + 2, Palette.textMuted)
+        ui.fitText(r.x + 3, r.y + 2, bar.w - 6 - if (editing) TITLE_H else 0, w.title(items), Palette.textMuted)
         val body = r.dropTop(TITLE_H).inset(3, 0, 3, 3)
         ui.scope("pin:${w.id}") {
             ui.clip(body) { w.draw(ui, body, items, editing) }

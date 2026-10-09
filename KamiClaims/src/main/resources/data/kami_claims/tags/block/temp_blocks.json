@@ -12,6 +12,13 @@
     "minecraft:tuff",
     "minecraft:calcite",
     "minecraft:deepslate",
-    "minecraft:cobbled_deepslate"
+    "minecraft:cobbled_deepslate",
+    "minecraft:torch",
+    "minecraft:wall_torch",
+    "minecraft:soul_torch",
+    "minecraft:soul_wall_torch",
+    "minecraft:stone_button",
+    "minecraft:lever",
+    "#minecraft:wooden_buttons"
   ]
 }

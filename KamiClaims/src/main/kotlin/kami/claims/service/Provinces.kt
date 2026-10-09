@@ -160,7 +160,7 @@ object Provinces {
     }
 
     fun askIndependence(child: Country) {
-        val parent = child.parent?.let { Realm.country(it) } ?: throw Fail("kami_claims.error.not_a_province")
+        val parent = child.parent?.let { Realm.country(it) } ?: throw Fail("kami_claims.error.not_province")
         WarLocks.independence(child, parent)
         if (child.independenceRequested) throw Fail("kami_claims.error.already_asked", v(parent.name))
         val wait = cooldown(child)
@@ -183,14 +183,14 @@ object Provinces {
     }
 
     fun setManage(child: Country, on: Boolean) {
-        val parent = child.parent?.let { Realm.country(it) } ?: throw Fail("kami_claims.error.not_a_province")
+        val parent = child.parent?.let { Realm.country(it) } ?: throw Fail("kami_claims.error.not_province")
         child.overlordManage = on
         ResearchSync.refresh(child)
         Mail.officers(parent, Phrase.of(if (on) "kami_claims.mail.overlord_manage.on" else "kami_claims.mail.overlord_manage.off", v(child.name)))
     }
 
     fun setAccess(child: Country, cap: Cap, rank: Rank?) {
-        if (child.parent == null) throw Fail("kami_claims.error.not_a_province")
+        if (child.parent == null) throw Fail("kami_claims.error.not_province")
         if (cap !in Oversight.grantable || (rank != null && rank !in overlordRanks)) throw Fail("kami_claims.error.unknown_province_action")
         if (rank == null) child.overlordCaps.remove(cap) else child.overlordCaps[cap] = rank
         ResearchSync.refresh(child)

@@ -39,7 +39,7 @@ class ProspectorItem(val tier: Int, props: Properties) : Item(props) {
 
             val world = Worlds.of(player.serverLevel())
             when {
-                world == null -> player.bar(Chat.bar(Tone.WARN, Phrase.of("kami_geology.prospector.no_deposits").component()))
+                world == null -> player.bar(Chat.bar(Tone.WARN, Phrase.of("kami_geology.error.dimension").component()))
                 tier == 1 -> {
                     val found = Heatmap.probeColumn(world, player.blockX, player.blockZ, level.minBuildHeight, level.maxBuildHeight - 1)
                     Discovery.report(player, tier, found)

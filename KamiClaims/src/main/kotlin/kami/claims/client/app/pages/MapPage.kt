@@ -1,5 +1,6 @@
 package kami.claims.client.app.pages
 
+import kami.claims.client.store.ClientResearch
 import kami.claims.client.app.Tenure
 import kami.claims.client.ClientClaims
 import kami.claims.client.app.ClaimsApp
@@ -16,6 +17,7 @@ import kami.claims.client.map.ClaimsLayer
 import kami.claims.client.map.MapMode
 import kami.claims.client.map.MiniMap
 import kami.claims.client.store.ClaimsStore
+import kami.libs.xaero.XaeroMaps
 import kami.claims.net.Detail
 import kami.claims.net.MineLine
 import kami.claims.net.OfferLine
@@ -105,7 +107,16 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
     private fun key(x: Int, z: Int) = ClientClaims.key(x, z)
     private fun unkey(k: Long) = (k shr 32).toInt() to k.toInt()
 
+    private var selectionRev = 0
+    private val argsMemo = Memo()
+    private val keyMemo = Memo()
+    private val boundsMemo = Memo()
+    private val countMemo = Memo()
+    private val planModes = Memo()
+    private val planTypes = Memo()
+
     private fun touchSelection() {
+        selectionRev++
         selectionTouchedAt = System.currentTimeMillis()
         previewWaitSince = 0L
     }
@@ -117,6 +128,7 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
             map.center(x, z)
             centered = true
             if (route.param("select") != "false") select(x, z, false)
+            if (route.param("plan") == "claim") { plan = Plan.CLAIM; planning = true; ClaimsStore.clearPreview() }
         }
     }
 
@@ -216,7 +228,7 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
                 ClientClaims.prefs.terrain = it; TerrainCache.enabled = it; ClientClaims.savePrefs()
             }
             y += 16
-            toggle(Rect(box.x + 6, y, box.w - 12, 14), ClientClaims.prefs.overlay, tr("kami_claims.map.layer.xaero"), key = "layer:xaero")?.let { ClientClaims.prefs.overlay = it; ClientClaims.savePrefs() }
+            toggle(Rect(box.x + 6, y, box.w - 12, 14), ClientClaims.prefs.overlay, tr("kami_claims.map.layer.xaero"), key = "layer:xaero")?.let { ClientClaims.prefs.overlay = it; ClientClaims.savePrefs(); XaeroMaps.refresh() }
         }
     }
 
@@ -235,7 +247,7 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
         Tool.entries.forEach { t -> if (ui.input.takeKey(t.key) { !it.ctrl } != null) switchTool(t) }
         MapMode.entries.forEachIndexed { i, m -> if (ui.input.takeKey(GLFW.GLFW_KEY_1 + i) { !it.ctrl } != null) setMode(m) }
         if (ui.input.takeKey(GLFW.GLFW_KEY_C) { !it.ctrl } != null) map.center(snap.px, snap.pz)
-        if (selection.isNotEmpty()) ui.onEscape(10) { selection.clear(); measureA = null; measureB = null }
+        if (selection.isNotEmpty()) ui.onEscape(10) { selection.clear(); touchSelection(); measureA = null; measureB = null }
     }
 
     private fun previewKey(kind: String, args: Array<String>) = "$kind|${args.joinToString("|")}"
@@ -243,14 +255,13 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
     private fun previewFor(): PreviewLine? {
         if (selection.isEmpty()) return null
         val kind = previewKind()
-        val args = planArgs()
-        val key = previewKey(kind, args)
+        val key = keyMemo.of(selectionRev, plan, planType) { previewKey(kind, planArgs()) }
         return ClaimsStore.previewLine()?.takeIf { it.kind == kind && it.key == key }
     }
 
-    private fun planArgs(): Array<String> {
+    private fun planArgs(): Array<String> = argsMemo.of(selectionRev, plan, planType) {
         val cells = selection.joinToString(",") { k -> unkey(k).let { "${it.first}:${it.second}" } }
-        return if (plan == Plan.UNCLAIM) arrayOf("cells", cells) else arrayOf(planType, "cells", cells)
+        if (plan == Plan.UNCLAIM) arrayOf("cells", cells) else arrayOf(planType, "cells", cells)
     }
 
     private fun requestPreview() {
@@ -336,9 +347,12 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
             val (x, z) = unkey(selection.first())
             Draw.marching(g, map.cell(x, z).grow(1), Palette.brass, phase)
         } else if (selection.isNotEmpty()) {
-            val xs = selection.map { unkey(it).first }
-            val zs = selection.map { unkey(it).second }
-            Draw.marching(g, map.area(xs.min(), zs.min(), xs.max(), zs.max()).grow(1), Palette.alpha(Palette.brass, 0xA0), phase)
+            val b = boundsMemo.of(selectionRev) {
+                val xs = selection.map { unkey(it).first }
+                val zs = selection.map { unkey(it).second }
+                intArrayOf(xs.min(), zs.min(), xs.max(), zs.max())
+            }
+            Draw.marching(g, map.area(b[0], b[1], b[2], b[3]).grow(1), Palette.alpha(Palette.brass, 0xA0), phase)
         }
         if (dragStart != null && dragging != null) {
             val a = map.area(dragStart.x, dragStart.z, dragging.x, dragging.z)
@@ -393,7 +407,12 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
         if (ui.hovering(box.top(12))) ui.cursor = Cursor.HAND
         if (ui.pressed(box.top(12)) != null) legendOpen = !legendOpen
         if (!legendOpen) return
-        entries.forEachIndexed { i, (color, label) -> ui.legendItem(box.x + 4, box.y + 15 + i * 11, color, Draw.fit(label, w - 20), color == Palette.danger && mode == MapMode.RISK) }
+        entries.forEachIndexed { i, (color, label) ->
+            val y = box.y + 15 + i * 11
+            val shown = Draw.fit(label, w - 20)
+            ui.legendItem(box.x + 4, y, color, shown, color == Palette.danger && mode == MapMode.RISK)
+            if (shown != label) ui.tooltip("legend:$i", Rect(box.x + 4, y, w - 8, 11), label)
+        }
     }
 
     private fun hoverTip(ui: Ui, r: Rect, x: Int, z: Int) {
@@ -431,10 +450,10 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
 
     private fun statusLine(ui: Ui, r: Rect, hover: Pair<Int, Int>?) {
         val hints = when (tool) {
-            Tool.SELECT -> listOf(tr("kami_claims.map.key.lmb") to tr("kami_claims.map.hint.select"), tr("kami_claims.map.key.ctrl_lmb") to tr("kami_claims.map.hint.add"), tr("kami_claims.map.key.rmb") to tr("kami_claims.map.hint.pan"))
-            Tool.AREA -> listOf(tr("kami_claims.map.key.drag") to tr("kami_claims.map.hint.area"), tr("kami_claims.map.key.ctrl") to tr("kami_claims.map.hint.add"), tr("kami_claims.map.key.rmb") to tr("kami_claims.map.hint.pan"))
-            Tool.BRUSH -> listOf(tr("kami_claims.map.key.lmb") to tr("kami_claims.map.hint.paint"), tr("kami_claims.map.key.shift") to tr("kami_claims.map.hint.erase"), tr("kami_claims.map.key.rmb") to tr("kami_claims.map.hint.pan"))
-            Tool.MEASURE -> listOf(tr("kami_claims.map.key.lmb") to tr("kami_claims.map.hint.points"), "Esc" to tr("kami_claims.map.hint.clear"))
+            Tool.SELECT -> listOf(tr("kami_libs.key.lmb") to tr("kami_claims.map.hint.select"), tr("kami_libs.key.ctrl_lmb") to tr("kami_claims.map.hint.add"), tr("kami_libs.key.rmb") to tr("kami_claims.map.hint.pan"))
+            Tool.AREA -> listOf(tr("kami_libs.key.drag") to tr("kami_claims.map.hint.area"), tr("kami_libs.key.ctrl") to tr("kami_claims.map.hint.add"), tr("kami_libs.key.rmb") to tr("kami_claims.map.hint.pan"))
+            Tool.BRUSH -> listOf(tr("kami_libs.key.lmb") to tr("kami_claims.map.hint.paint"), tr("kami_libs.key.shift") to tr("kami_claims.map.hint.erase"), tr("kami_libs.key.rmb") to tr("kami_claims.map.hint.pan"))
+            Tool.MEASURE -> listOf(tr("kami_libs.key.lmb") to tr("kami_claims.map.hint.points"), "Esc" to tr("kami_claims.map.hint.clear"))
         }
         val text = hover?.let { (x, z) -> "$x, $z" } ?: ""
         Draw.text(ui.g, text, r.x, r.y + 1, Palette.textMuted)
@@ -451,7 +470,15 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
     }
 
     private fun overview(ui: Ui, r: Rect) {
-        val f = Flow(r, 4)
+        val size = ui.remember("overview-h") { IntArray(1) }
+        ui.scroll("map:overview", r, size[0]) { c ->
+            val f = Flow(c.withHeight(4000), 4)
+            overviewBody(ui, f, c)
+            size[0] = f.rest.y - c.y
+        }
+    }
+
+    private fun overviewBody(ui: Ui, f: Flow, r: Rect) {
         f.take(Draw.paragraph(ui.g, tr("kami_claims.map.howto.inspect"), r.x, r.y, r.w, Palette.textMuted))
         f.skip(6)
         ui.section(f.take(14), tr("kami_claims.map.prices"), tr("kami_claims.map.prices.unit"))
@@ -500,13 +527,13 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
         val country = e?.let { ClientClaims.country(it) }
         if (country != null) Flags.draw(ui.g, Rect(head.x, head.y + 4, 16, 12), country.color, country.pattern, country.emblem, country.secondary)
         val textX = head.x + (if (country != null) 21 else 0)
-        Draw.text(ui.g, Draw.fit(d.country.ifEmpty { tr("kami_claims.help.term.nomansland") }, head.right - textX), textX, head.y + 1, TextStyle.HEADING)
+        ui.fitText(textX, head.y + 1, head.right - textX, d.country.ifEmpty { tr("kami_claims.help.term.nomansland") }, style = TextStyle.HEADING)
         Draw.text(ui.g, tr("kami_claims.map.chunk", x, z), textX, head.y + 11, Palette.textMuted)
         MiniMap.draw(ui, f.take(if (app.compact) 52 else 64), x, z, 3, "side", listOf(x to z))
         if (d.type.isNotEmpty()) {
             val look = Vocabulary.type(d.type)
-            ui.property(f.take(11), tr("kami_claims.chunks.col.type"), if (d.capital) tr("kami_claims.map.chunk.capital", look.label) else look.label, look.color, tip = look.description)
-            ui.property(f.take(11), tr("kami_claims.ledger.upkeep"), if (d.free) tr("kami_claims.chunks.status.free") else Vocabulary.rate(d.price, d.period))
+            ui.property(f.take(11), tr("kami_libs.common.type"), if (d.capital) tr("kami_claims.map.chunk.capital", look.label) else look.label, look.color, tip = look.description)
+            ui.property(f.take(11), tr("kami_claims.ledger.upkeep"), if (d.free) tr("kami_libs.common.free") else Vocabulary.rate(d.price, d.period))
             if (d.owner.isNotEmpty()) ui.property(f.take(11), tr("kami_claims.role.owner"), d.owner)
             if (d.debt > 0) {
                 val max = limits?.maxDebt ?: 3
@@ -558,7 +585,10 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
             val row = f.take(12)
             val price = rentText.of(o.price, Format.locale) { Format.perDay(Format.money(o.price.toLong())) }
             Draw.text(ui.g, price, row.x, row.y + 2, Palette.money)
-            if (o.category.isNotEmpty()) Draw.textRight(ui.g, Draw.fit(Tenure.category(o.category), row.w - Draw.width(price) - 8), row.right, row.y + 2, Palette.textMuted)
+            if (o.category.isNotEmpty()) {
+                val catW = row.w - Draw.width(price) - 8
+                ui.fitText(row.right - catW, row.y + 2, catW, Tenure.category(o.category), Palette.textMuted, align = Align.RIGHT)
+            }
             ui.tooltip("plot-group", row, tr("kami_claims.map.plot.group"))
         }
         val lock = if (o.lock.isEmpty()) null else cardLock.of(o.lock, o.level, o.category, Format.locale) { plotLock(o) }
@@ -570,10 +600,10 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
         val row = f.take(13)
         val moving = d.state == Tenure.MOVING
         val w = ui.badge(row.x, row.y + 1, Tenure.label(d.state), Tenure.severity(d.state, m.debt))
-        if (moving && d.until > 0) Draw.text(ui.g, Draw.fit(Tenure.note(d, d.state, d.until, m.debt), row.right - row.x - w - 4), row.x + w + 4, row.y + 2, Palette.danger)
+        if (moving && d.until > 0) ui.fitText(row.x + w + 4, row.y + 2, row.right - row.x - w - 4, Tenure.note(d, d.state, d.until, m.debt), Palette.danger)
         if (d.state == "removed") f.take(ui.callout(f.rest, Severity.WARNING, tr("kami_claims.map.plot.removed.desc")))
         f.skip(2)
-        ui.property(f.take(11), tr("kami_claims.common.rent"), tenantRent.of(m.price, m.category, Format.locale) { "${Format.perDay(Format.money(m.price.toLong()))} · ${Tenure.category(m.category)}" })
+        ui.property(f.take(11), tr("kami_libs.flow.rent"), tenantRent.of(m.price, m.category, Format.locale) { "${Format.perDay(Format.money(m.price.toLong()))} · ${Tenure.category(m.category)}" })
         if (m.debt > 0) {
             ui.property(f.take(11), tr("kami_claims.common.rent_debt"), debtText.of(m.debt, m.limit, Format.locale) { tr("kami_libs.format.of", Format.money(m.debt), Format.money(m.limit)) }, Palette.warning)
             if (m.limit > 0) {
@@ -609,28 +639,59 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
         }
     }
 
+    private class Commit(val ready: Int, val preview: PreviewLine, val after: Long)
+
     private fun planner(ui: Ui, r: Rect) {
-        val f = Flow(r, 4)
+        val size = ui.remember("plan-h") { IntArray(1) }
+        val pinned = previewFor() != null
+        val out = arrayOfNulls<Commit>(1)
+        ui.scroll("map:plan", if (pinned) r.dropBottom(CONTROL_H + 4) else r, size[0]) { c ->
+            val f = Flow(c.withHeight(4000), 4)
+            out[0] = planBody(ui, f)
+            size[0] = f.rest.y - c.y
+        }
+        val commit = out[0] ?: return
+        val ready = commit.ready
+        val button = r.bottom(CONTROL_H)
+        val label = when (plan) {
+            Plan.CLAIM -> tr("kami_claims.map.commit.claim", trn("kami_claims.unit.chunk", ready))
+            Plan.RETYPE -> tr("kami_claims.map.commit.retype", trn("kami_claims.unit.chunk", ready))
+            Plan.UNCLAIM -> tr("kami_claims.map.commit.unclaim", trn("kami_claims.unit.chunk", ready))
+        }
+        val keyName = when (plan) { Plan.CLAIM -> "claimcells"; Plan.RETYPE -> "typecells"; Plan.UNCLAIM -> "unclaimcells" }
+        if (ui.button(button, label, if (plan == Plan.UNCLAIM) Icons.REMOVE else Icons.CHECK, if (plan == Plan.UNCLAIM) ButtonStyle.DANGER else ButtonStyle.PRIMARY,
+                ready > 0 && lock("claim") == null, lock("claim") ?: tr("kami_claims.map.commit.disabled"), pending = pending(keyName), key = "plan-go")) commit(ready, commit.preview, commit.after)
+    }
+
+    private fun planBody(ui: Ui, f: Flow): Commit? {
         val count = selection.size
         val head = f.take(12)
         Draw.text(ui.g, tr("kami_claims.chunks.selected", trn("kami_claims.unit.chunk", count)), head.x, head.y, TextStyle.HEADING)
         val clear = tr("kami_claims.map.clear")
-        if (ui.link(head.right - Draw.width(clear), head.y, clear, key = "clear-selection")) { selection.clear(); return }
-        val entries = selection.map { unkey(it) }.map { (x, z) -> ClientClaims.at(dim, x, z) }
-        val free = entries.count { it == null }
-        val own = entries.count { it != null && it.flags and View.OWN != 0 }
-        val modes = listOf(
-            Option(Plan.CLAIM, tr("kami_claims.map.plan.claim"), Icons.ADD, tr("kami_claims.map.plan.claim.tooltip"), disabledReason = if (free == 0) tr("kami_claims.map.plan.claim.disabled") else lock("claim")),
-            Option(Plan.RETYPE, tr("kami_claims.chunks.col.type"), Icons.EDIT, tr("kami_claims.map.plan.retype.tooltip"), disabledReason = if (own == 0) tr("kami_claims.map.plan.own.disabled") else lock("claim")),
-            Option(Plan.UNCLAIM, tr("kami_claims.chunks.release.action"), Icons.REMOVE, tr("kami_claims.map.plan.unclaim.tooltip"), disabledReason = if (own == 0) tr("kami_claims.map.plan.own.disabled") else lock("claim"))
-        )
+        if (ui.link(head.right - Draw.width(clear), head.y, clear, key = "clear-selection")) { selection.clear(); touchSelection(); return null }
+        val (free, own) = countMemo.of(selectionRev, ClientClaims.countries, dim) {
+            val entries = selection.map { unkey(it) }.map { (x, z) -> ClientClaims.at(dim, x, z) }
+            entries.count { it == null } to entries.count { it != null && it.flags and View.OWN != 0 }
+        }
+        val iconOnly = f.rest.w < 170
+        val modes = planModes.of(free, own, lock("claim"), iconOnly, Format.locale) {
+            fun label(text: String) = if (iconOnly) "" else text
+            listOf(
+                Option(Plan.CLAIM, label(tr("kami_claims.map.plan.claim")), Icons.ADD, tr("kami_claims.map.plan.claim.tooltip"), disabledReason = if (free == 0) tr("kami_claims.map.plan.claim.disabled") else lock("claim")),
+                Option(Plan.RETYPE, label(tr("kami_libs.common.type")), Icons.EDIT, tr("kami_claims.map.plan.retype.tooltip"), disabledReason = if (own == 0) tr("kami_claims.map.plan.own.disabled") else lock("claim")),
+                Option(Plan.UNCLAIM, label(tr("kami_claims.chunks.release.action")), Icons.REMOVE, tr("kami_claims.map.plan.unclaim.tooltip"), disabledReason = if (own == 0) tr("kami_claims.map.plan.own.disabled") else lock("claim"))
+            )
+        }
         ui.segmented(f.take(CONTROL_H), modes, plan, key = "plan")?.let { plan = it; ClaimsStore.clearPreview(); touchSelection() }
         if (plan != Plan.UNCLAIM) {
             ui.fieldLabel(f.take(9), tr(if (plan == Plan.CLAIM) "kami_claims.map.plan.claim_as" else "kami_claims.map.plan.new_type"))
-            ui.select(f.take(CONTROL_H), snap.types.map { t ->
-                val look = Vocabulary.type(t.name)
-                Option(t.name, look.label, look.icon, "${Vocabulary.rate(t.price, t.period)} · ${look.description}", look.color, lock = ClientLocks.claimType(t.name))
-            }, planType, key = "plan-type")?.let { planType = it; ClaimsStore.clearPreview(); touchSelection() }
+            val typeOptions = planTypes.of(snap.types, Format.locale, ClientResearch.state, ClientResearch.defs) {
+                snap.types.map { t ->
+                    val look = Vocabulary.type(t.name)
+                    Option(t.name, look.label, look.icon, "${Vocabulary.rate(t.price, t.period)} · ${look.description}", look.color, lock = ClientLocks.claimType(t.name))
+                }
+            }
+            ui.select(f.take(CONTROL_H), typeOptions, planType, key = "plan-type")?.let { planType = it; ClaimsStore.clearPreview(); touchSelection() }
         }
         val preview = previewFor()
         f.skip(2)
@@ -653,7 +714,7 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
                     Draw.text(ui.g, tr("kami_claims.map.check.running"), row.x + 12, row.y + 1, Palette.textMuted)
                 }
             }
-            return
+            return null
         }
         previewWaitSince = 0L
         val byOutcome = outcomeGroups.of(preview) { preview.cells.groupBy { it.outcome } }
@@ -670,7 +731,7 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
             ui.tooltip("blocked:$reason", row, reason)
         }
         byOutcome["RETYPE"]?.mapNotNull { it.reason.ifEmpty { null } }?.distinct()?.forEach { f.take(ui.callout(f.rest, Severity.WARNING, trJson(it))) }
-        val info = info ?: return
+        val info = info ?: return null
         val net = info.income - info.upkeep - info.jobs
         val after = net - preview.upkeepPerDay.toLong()
         f.skip(4)
@@ -678,23 +739,14 @@ class MapPage(app: ClaimsApp) : ClaimsPage(app) {
         if (plan == Plan.CLAIM) ui.property(f.take(11), tr("kami_claims.map.cost.now"), Format.money(preview.cost), if (preview.cost > info.treasury) Palette.danger else Palette.money)
         ui.property(f.take(11), tr("kami_claims.map.cost.upkeep"), perDayDelta(preview.upkeepPerDay), if (preview.upkeepPerDay > 0) Palette.danger else Palette.success)
         ui.property(f.take(11), tr("kami_claims.help.term.runway"), "${app.runwayText(info.treasury, net)} → ${app.runwayText(info.treasury - preview.cost, after)}", app.runwayColor(info.treasury - preview.cost, after))
-        val rest = f.rest
-        val button = Rect(rest.x, rest.bottom - CONTROL_H, rest.w, CONTROL_H)
-        val label = when (plan) {
-            Plan.CLAIM -> tr("kami_claims.map.commit.claim", trn("kami_claims.unit.chunk", ready))
-            Plan.RETYPE -> tr("kami_claims.map.commit.retype", trn("kami_claims.unit.chunk", ready))
-            Plan.UNCLAIM -> tr("kami_claims.map.commit.unclaim", trn("kami_claims.unit.chunk", ready))
-        }
-        val keyName = when (plan) { Plan.CLAIM -> "claimcells"; Plan.RETYPE -> "typecells"; Plan.UNCLAIM -> "unclaimcells" }
-        if (ui.button(button, label, if (plan == Plan.UNCLAIM) Icons.REMOVE else Icons.CHECK, if (plan == Plan.UNCLAIM) ButtonStyle.DANGER else ButtonStyle.PRIMARY,
-                ready > 0 && lock("claim") == null, lock("claim") ?: tr("kami_claims.map.commit.disabled"), pending = pending(keyName), key = "plan-go")) commit(ready, preview, after)
+        return Commit(ready, preview, after)
     }
 
     private fun perDayDelta(v: Double) = Format.perDay(tr("kami_libs.unit.money", (if (v > 0) "+" else "") + Format.decimal(v)))
 
     private fun outcomeRow(ui: Ui, r: Rect, color: Int, text: String, icon: Icon) {
         val x = r.x + Draw.leadIcon(ui.g, icon, r.x, r.centerY) + 2
-        Draw.text(ui.g, Draw.fit(text, r.right - x), x, r.y + 3, color)
+        ui.fitText(x, r.y + 3, r.right - x, text, color)
     }
 
     private fun commit(ready: Int, preview: PreviewLine, after: Long) {

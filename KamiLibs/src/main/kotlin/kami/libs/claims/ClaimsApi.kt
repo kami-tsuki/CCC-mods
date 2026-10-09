@@ -39,6 +39,7 @@ interface ClaimsProvider {
     fun goals(player: UUID): List<Goal> = emptyList()
     fun traded(a: String, b: String, value: Long) {}
     fun tradeFactor(country: String): Double = 1.0
+    fun boost(country: String, kind: String, pct: Int, ms: Long): Boolean = false
 }
 
 object ClaimsApi {
@@ -78,8 +79,17 @@ object ClaimsApi {
     fun limit(player: UUID, key: String, used: Int): Phrase? = provider?.limit(player, key, used)
     fun goals(player: UUID): List<Goal> = provider?.goals(player).orEmpty()
     fun traded(a: String, b: String, value: Long) { provider?.traded(a, b, value) }
+    fun boost(country: String, kind: String, pct: Int, ms: Long): Boolean = provider?.boost(country, kind, pct, ms) ?: false
     fun tradeFactor(country: String): Double = provider?.tradeFactor(country) ?: 1.0
 
     fun countryAt(level: Level, pos: BlockPos): String? =
         at(level.dimension().location().toString(), pos.x shr 4, pos.z shr 4)?.country
+}
+
+object Boost {
+    const val RESEARCH = "research"
+    const val XP = "xp"
+    val KINDS = listOf(RESEARCH, XP)
+    const val MAX_PCT = 1000
+    const val MAX_HOURS = 240
 }

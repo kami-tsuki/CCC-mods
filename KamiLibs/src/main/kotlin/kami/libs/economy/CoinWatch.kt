@@ -19,6 +19,7 @@ import kami.libs.util.Time
 import kami.libs.util.Time.DAY_MS
 import kotlinx.serialization.Serializable
 import net.minecraft.server.MinecraftServer
+import kami.libs.util.toUuidOrNull
 import java.util.UUID
 
 enum class CoinAlert { OK, WARNING, CRITICAL }
@@ -48,6 +49,7 @@ object CoinWatch {
     private const val CACHE_MS = 30_000L
     private const val MAX_CACHED = 64
     private const val TERMINAL_LEGS = "flow IN ('COIN_DEPOSIT', 'COIN_WITHDRAW') AND party LIKE 'p:%' AND note LIKE 'terminal%'"
+    private const val TERMINAL_INDEX = "CREATE INDEX IF NOT EXISTS libs_journal_terminal ON libs_journal (party, at, flow, delta) WHERE $TERMINAL_LEGS"
     private val sorts = mapOf("net" to "net DESC", "deposited" to "dep DESC", "withdrawn" to "wd DESC", "last" to "last DESC")
     private var checked = 0L
     private var last = CoinAlert.OK
@@ -63,16 +65,20 @@ object CoinWatch {
 
     private fun failing(now: Long) = now - failedAt < Time.HOUR_MS
 
+    internal fun ensureIndex() = Db.write {
+        exec(TERMINAL_INDEX)
+    }
+
     fun register() {
-        Admin.view("coins.summary") { _, a -> Db.json.encodeToJsonElement(CoinSummary.serializer(), summary(a.int(0) ?: WEEK)) }
+        Admin.view("coins.summary") { _, a -> Db.encode(CoinSummary.serializer(), summary(a.int(0) ?: WEEK)) }
         Admin.view("coins.players", async = true) { ctx, a ->
             val page = players(a.text(0), a.page(1))
-            val names = ctx.onServer { page.rows.mapNotNull { r -> runCatching { UUID.fromString(r.uuid) }.getOrNull()?.let { r.uuid to Players.profile(ctx.player.server, it).name } }.toMap() }
+            val names = ctx.onServer { page.rows.mapNotNull { r -> r.uuid.toUuidOrNull()?.let { r.uuid to Players.profile(ctx.player.server, it).name } }.toMap() }
             val named = Page(page.rows.map { CoinPlayer(it.uuid, names[it.uuid] ?: it.name, it.deposited, it.withdrawn, it.last, it.flagged) }, page.total, page.page, page.size)
-            Db.json.encodeToJsonElement(Page.serializer(CoinPlayer.serializer()), named)
+            Db.encode(Page.serializer(CoinPlayer.serializer()), named)
         }
         Admin.view("money.unexplained") { ctx, a ->
-            Db.json.encodeToJsonElement(Page.serializer(UnexplainedAccount.serializer()), MoneyGuard.accounts(a.page(0)) { Players.profile(ctx.player.server, it).name })
+            Db.encode(Page.serializer(UnexplainedAccount.serializer()), MoneyGuard.accounts(a.page(0)) { Players.profile(ctx.player.server, it).name })
         }
         AdminMetrics.register("kami_libs.metric.coin_alert") { status().first.ordinal.toLong() }
     }
@@ -80,7 +86,7 @@ object CoinWatch {
     fun status(now: Long = System.currentTimeMillis()) = assess(Coins.snapshot(), now / DAY_MS, LibConfig.s, MoneyGuard.recent(now), failing(now))
 
     internal fun assess(snap: Coins.Snapshot, today: Long, s: LibSettings, unexplained: Boolean = false, failing: Boolean = false): Pair<CoinAlert, String> {
-        if (snap.supply < 0) return CoinAlert.CRITICAL to reason("negative_supply")
+        if (snap.minted - snap.burned < 0) return CoinAlert.CRITICAL to reason("negative_supply")
         if (unexplained) return CoinAlert.CRITICAL to reason("unexplained")
         if (failing) return CoinAlert.WARNING to reason("detector_failing")
         val week = snap.days.filterKeys { it.second == CoinSource.TERMINAL && it.first > today - WEEK }.values
@@ -124,7 +130,7 @@ object CoinWatch {
             total to query(select, Page.SIZE, p.toLong() * Page.SIZE) { Totals(it.string("party").removePrefix("p:"), it.long("dep"), it.long("wd"), it.long("last")) }
         }.also { (n, list) -> synchronized(cache) { if (cache.size >= MAX_CACHED) cache.clear(); cache[order to p] = Cached(now, n, list) } }
         return Page(rows.map { t ->
-            CoinPlayer(t.id, runCatching { UUID.fromString(t.id) }.getOrNull()?.let(name) ?: t.id, t.dep, t.wd, t.last, t.dep - t.wd > flag)
+            CoinPlayer(t.id, t.id.toUuidOrNull()?.let(name) ?: t.id, t.dep, t.wd, t.last, t.dep - t.wd > flag)
         }, total, p, Page.SIZE)
     }
 

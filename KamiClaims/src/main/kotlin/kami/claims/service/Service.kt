@@ -1,5 +1,6 @@
 package kami.claims.service
 
+import kami.libs.util.toUuidOrNull
 import kami.claims.net.ResearchSync
 import kami.claims.*
 import kami.claims.economy.Bank
@@ -24,6 +25,7 @@ import kami.claims.war.Fame
 import kami.claims.war.Reputation
 import kami.claims.war.WarActions
 import kami.claims.war.WarLocks
+import kami.claims.war.Wars
 import kami.claims.social.Perms
 import kami.claims.world.Effects
 import kami.libs.chat.Tone
@@ -98,9 +100,15 @@ object Service {
 
     private fun who(p: ServerPlayer, a: List<String>, i: Int): String {
         val text = arg(a, i)
-        return runCatching { UUID.fromString(text).toString() }.getOrNull()
+        return text.toUuidOrNull()?.toString()
             ?: Names.id(p.server, text)
             ?: throw Fail("kami_claims.error.unknown_player")
+    }
+
+    private fun known(p: ServerPlayer, id: String): String {
+        val uuid = uuid(id)
+        if (id !in Realm.home && p.server.profileCache?.get(uuid)?.isPresent != true && p.server.playerList.getPlayer(uuid) == null && Realm.data.countries.values.none { id in it.outsiders }) throw Fail("kami_claims.error.unknown_player")
+        return id
     }
 
     private fun confirmed(a: List<String>) = a.lastOrNull() == "confirm"
@@ -119,7 +127,7 @@ object Service {
     }
 
     fun addClaim(c: Country, k: Key, type: String, capital: Boolean = false) {
-        val free = Realm.claims(c.id).size < Realm.freeAllowed(c)
+        val free = Realm.claimCount(c.id) < Realm.freeAllowed(c)
         if (!free) Treasury.bank(c, LedgerKind.CLAIM, -s.types.getValue(type).price.toLong(), note = "${k.x}, ${k.z}")
         Realm.add(Claim(c.id, k.dim, k.x, k.z, type, capital = capital, free = free))
         ResearchSync.refresh(c)
@@ -129,7 +137,7 @@ object Service {
         val text = if (name.startsWith("war_")) WarActions.act(p, name, a) else when (name) {
             "create" -> create(p, arg(a, 0))
             "disband" -> disband(p, confirmed(a))
-            "leave" -> leave(p)
+            "leave" -> leave(p, confirmed(a))
             "invite" -> invite(p, who(p, a, 0))
             "accept" -> accept(p, arg(a, 0))
             "join" -> join(p, arg(a, 0))
@@ -137,7 +145,7 @@ object Service {
             "deny" -> need(p, Cap.INVITE).let { it.requests.remove(who(p, a, 0)); Phrase.of("kami_claims.done.request_denied") }
             "kick" -> kick(p, who(p, a, 0), false)
             "banish" -> kick(p, who(p, a, 0), true)
-            "ally" -> ally(p, who(p, a, 0))
+            "ally" -> ally(p, known(p, who(p, a, 0)))
             "clear" -> need(p, Cap.MEMBERS).let { c -> who(p, a, 0).let { id -> pardon(c, p, id); c.outsiders.remove(id) }; Phrase.of("kami_claims.done.relation_cleared") }
             "rank" -> rank(p, who(p, a, 0), parse(Rank.values(), arg(a, 1)))
             "president" -> president(p, who(p, a, 0), confirmed(a))
@@ -178,7 +186,7 @@ object Service {
             "rent_pay" -> rentPay(p, Key(arg(a, 0), num(a, 1), num(a, 2)), arg(a, 3))
             "rent_pay_all" -> rentPayAll(p)
             "plot_trust" -> plotOwner(p, spot(p, a, 2)).let { cl ->
-                who(p, a, 0).let { id -> if (id == cl.owner) throw Fail("kami_claims.error.plot_owner_self"); cl.roles[id] = parse(Role.values(), arg(a, 1)) }
+                known(p, who(p, a, 0)).let { id -> if (id == cl.owner) throw Fail("kami_claims.error.plot_owner_self"); if (id !in cl.roles && cl.roles.size >= MAX_ROLES) throw Fail("kami_claims.error.list_full", MAX_ROLES); cl.roles[id] = parse(Role.values(), arg(a, 1)) }
                 Phrase.of("kami_claims.done.role_set")
             }
             "plot_untrust" -> plotOwner(p, spot(p, a, 1)).let { it.roles.remove(who(p, a, 0)); Phrase.of("kami_claims.done.role_removed") }
@@ -209,7 +217,7 @@ object Service {
         return text
     }
 
-    private fun uuid(raw: String): UUID = runCatching { UUID.fromString(raw) }.getOrNull() ?: throw Fail("kami_claims.error.unknown_player")
+    private fun uuid(raw: String): UUID = raw.toUuidOrNull() ?: throw Fail("kami_claims.error.unknown_player")
 
     private fun create(p: ServerPlayer, n: String): Phrase {
         if (Realm.of(p.stringUUID) != null) throw Fail("kami_claims.error.leave_first")
@@ -226,27 +234,35 @@ object Service {
         return Phrase.of("kami_libs.format.join", Phrase.of("kami_claims.done.founded", v(n), chunks(Realm.freeAllowed(c))), Phrase.of("kami_claims.notice.release_lock"))
     }
 
+    private const val MAX_ROLES = 64
+    private const val MAX_OUTSIDERS = 128
+
+    private fun disbandConfirm(c: Country) = NeedsConfirm(listOf(
+        Phrase.of("kami_claims.common.disband_x", v(c.name)),
+        Phrase.of("kami_claims.confirm.disband.land", chunks(Realm.claimCount(c.id))),
+        Phrase.of("kami_claims.confirm.disband.members", count("kami_claims.unit.member", c.members.size)),
+        Phrase.of("kami_claims.confirm.disband.treasury", money(c.treasury))
+    ) + Realm.claimsView(c.id).count { it.owner != null }.takeIf { it > 0 }?.let { listOf(Phrase.of("kami_claims.confirm.disband.tenants", count("kami_claims.unit.plot", it))) }.orEmpty())
+
     private fun disband(p: ServerPlayer, confirmed: Boolean): Phrase {
         val c = need(p, Rank.PRESIDENT)
         WarLocks.disband(c)
         Loans.requireNoLoans(c, "kami_claims.loans.error.disband")
-        if (!confirmed) throw NeedsConfirm(listOf(
-            Phrase.of("kami_claims.common.disband_x", v(c.name)),
-            Phrase.of("kami_claims.confirm.disband.land", chunks(Realm.claims(c.id).size)),
-            Phrase.of("kami_claims.confirm.disband.members", count("kami_claims.unit.member", c.members.size)),
-            Phrase.of("kami_claims.confirm.disband.treasury", money(c.treasury))
-        ) + Realm.claims(c.id).count { it.owner != null }.takeIf { it > 0 }?.let { listOf(Phrase.of("kami_claims.confirm.disband.tenants", count("kami_claims.unit.plot", it))) }.orEmpty())
+        if (!confirmed) throw disbandConfirm(c)
         Realm.disband(c)
         Effects.chime(p, false)
         return Phrase.of("kami_claims.done.disbanded")
     }
 
-    private fun leave(p: ServerPlayer): Phrase {
+    private fun leave(p: ServerPlayer, confirmed: Boolean): Phrase {
         val c = home(p)
         if (rankOf(c, p) == Rank.PRESIDENT && c.members.size > 1) throw Fail("kami_claims.error.transfer_first")
         WarLocks.roster(c, p.stringUUID)
         if (c.members.size == 1) WarLocks.disband(c)
-        if (c.members.size == 1) Loans.requireNoLoans(c, "kami_claims.loans.error.disband")
+        if (c.members.size == 1) {
+            Loans.requireNoLoans(c, "kami_claims.loans.error.disband")
+            if (!confirmed) throw disbandConfirm(c)
+        }
         Realm.leave(c, p.stringUUID, Leave.LEAVE)
         ResearchSync.refresh(c)
         if (c.members.isEmpty()) Realm.disband(c)
@@ -255,8 +271,9 @@ object Service {
 
     private fun invite(p: ServerPlayer, id: String): Phrase {
         val c = need(p, Cap.INVITE)
-        if (Realm.of(id) != null) throw Fail("kami_claims.error.already_member")
+        if (Realm.of(id) != null) throw Fail("kami_claims.error.target_in_country")
         if (c.outsiders[id] == Rank.BANISHED) throw Fail("kami_claims.error.target_banished")
+        if ((c.invites[id] ?: 0) > now()) return Phrase.of("kami_claims.done.invited")
         citizenRoom(c)
         c.invites[id] = now() + s.inviteDays * s.dayMillis
         Effects.invite(p.server, id, c)
@@ -279,6 +296,7 @@ object Service {
         val c = Realm.live(country) ?: throw Fail("kami_claims.error.unknown_country")
         if (Realm.of(p.stringUUID) != null) throw Fail("kami_claims.error.leave_first")
         if (c.outsiders[p.stringUUID] == Rank.BANISHED) throw Fail("kami_claims.error.you_banished", v(c.name))
+        if ((c.requests[p.stringUUID] ?: 0) > now()) return Phrase.of("kami_claims.done.request_sent")
         c.requests[p.stringUUID] = now() + s.inviteDays * s.dayMillis
         Mail.officers(c, Phrase.of("kami_claims.mail.join_request", v(p.name.string)))
         return Phrase.of("kami_claims.done.request_sent")
@@ -287,7 +305,7 @@ object Service {
     private fun approve(p: ServerPlayer, id: String): Phrase {
         val c = need(p, Cap.INVITE)
         if (c.requests[id] == null) throw Fail("kami_claims.error.no_request")
-        if (Realm.of(id) != null) throw Fail("kami_claims.error.already_member")
+        if (Realm.of(id) != null) throw Fail("kami_claims.error.target_in_country")
         if (c.outsiders[id] == Rank.BANISHED) throw Fail("kami_claims.error.target_banished")
         citizenRoom(c)
         c.requests.remove(id)
@@ -302,7 +320,7 @@ object Service {
         if (banish) Features.require(c, Features.BANISH)
         val member = c.members[id]
         member?.let {
-            if (it.rank >= rankOf(c, p)) throw Fail("kami_claims.error.lower_ranks")
+            if (it.rank >= rankOf(c, p)) throw Fail("kami_claims.error.rank_below")
             WarLocks.roster(c, id)
             Realm.leave(c, id, if (banish) Leave.BAN else Leave.KICK)
             ResearchSync.refresh(c)
@@ -319,6 +337,7 @@ object Service {
         val c = need(p, Cap.MEMBERS)
         if (c.members.containsKey(id)) throw Fail("kami_claims.error.member_ally")
         pardon(c, p, id)
+        if (id !in c.outsiders && c.outsiders.values.count { it != Rank.BANISHED } >= MAX_OUTSIDERS) throw Fail("kami_claims.error.list_full", MAX_OUTSIDERS)
         c.outsiders[id] = Rank.ALLIED
         return Phrase.of("kami_claims.done.allied")
     }
@@ -395,7 +414,7 @@ object Service {
             .sortedBy { max(abs(it.x - origin.x), abs(it.z - origin.z)) }
         if (radius == 0) claimError(c, origin, type)?.let { throw Fail(it) }
         val before = c.treasury
-        val beforeClaims = Realm.claims(c.id).size
+        val beforeClaims = Realm.claimCount(c.id)
         val count = claimCells(c, type, cells)
         if (count > 0) Effects.chime(p, true)
         return claimReport(c, type, count, before, beforeClaims == 0)
@@ -429,7 +448,7 @@ object Service {
         val c = need(p, Cap.CLAIM)
         s.types[type] ?: throw Fail("kami_claims.error.unknown_type")
         val before = c.treasury
-        val beforeClaims = Realm.claims(c.id).size
+        val beforeClaims = Realm.claimCount(c.id)
         val count = claimCells(c, type, r.cells)
         if (count > 0) Effects.chime(p, true)
         return claimReport(c, type, count, before, beforeClaims == 0)
@@ -520,6 +539,8 @@ object Service {
 
     private fun withdraw(p: ServerPlayer, n: Int): Phrase {
         val c = need(p, Cap.WITHDRAW)
+        Loans.requireNoDebt(c, "kami_claims.loans.error.disband")
+        if (Wars.involved(c) || c.warDebts.isNotEmpty()) throw Fail("kami_claims.error.withdraw_war")
         if (n < 1) throw Fail(Phrase.of("kami_claims.error.amount"), "AMOUNT")
         if (c.treasury < n) throw Fail(Phrase.of("kami_claims.error.treasury_short", money(c.treasury)), "FUNDS")
         if (!Bank.give(p.uuid, n, Flow.TREASURY, CountryParty(c.id).key, "kami_libs.note.withdraw")) throw Fail("kami_claims.error.payout")
@@ -612,7 +633,7 @@ object Service {
         val actor = delegatedRank(c, p)
         val tenant = Housing.checkRemove(c, cl, actor)
         if (!confirmed) throw NeedsConfirm(listOf(
-            Phrase.of("kami_claims.confirm.plot_remove.title", v(Names.of(p.server, tenant))),
+            Phrase.of("kami_claims.plots.untrust.title", v(Names.of(p.server, tenant))),
             Phrase.of("kami_claims.confirm.plot_remove.body", days(c.moveOutDays))
         ))
         Housing.moveOut(c, cl, "removed")

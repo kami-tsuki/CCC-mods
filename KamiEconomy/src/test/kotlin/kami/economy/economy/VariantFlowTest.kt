@@ -26,13 +26,6 @@ private const val CORE = "test:ingot"
 private const val BLOCK = "test:block"
 private const val NUGGET = "test:nugget"
 
-private class Till(var funds: Long = 1_000_000) : Wallet {
-    val deposits = mutableListOf<Pair<UUID, Int>>()
-    override fun balance(id: UUID) = funds
-    override fun deduct(id: UUID, amount: Int): Int = minOf(amount.toLong(), funds).toInt().also { funds -= it }
-    override fun deposit(id: UUID, amount: Int): Boolean { deposits += id to amount; return true }
-}
-
 private fun ironVariants() = mapOf(BLOCK to Variant(CORE, 9, 1), NUGGET to Variant(CORE, 1, 9))
 
 private fun prepare(till: Till, lot: Int? = 16, goods: List<StarterGood> = emptyList()) {

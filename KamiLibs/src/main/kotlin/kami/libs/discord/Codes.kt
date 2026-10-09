@@ -1,5 +1,6 @@
 package kami.libs.discord
 
+import kami.libs.util.toUuidOrNull
 import kami.libs.db.Db
 import kami.libs.log.Log
 import kami.libs.stats.Stats
@@ -22,7 +23,7 @@ object Codes {
     private const val UPSERT = "INSERT OR REPLACE INTO libs_discord_code (code, uuid, name, expires_at) VALUES (?, ?, ?, ?)"
     private val random = SecureRandom()
     private val byCode = HashMap<String, Pending>()
-    private val spent = HashSet<String>()
+    private val spent = HashMap<String, Long>()
     private val failures =HashMap<Long, ArrayDeque<Long>>()
 
     @Synchronized
@@ -30,7 +31,7 @@ object Codes {
         byCode.clear()
         val now = System.currentTimeMillis()
         Db.read { query("SELECT code, uuid, name, expires_at FROM libs_discord_code WHERE expires_at > ? LIMIT ?", now, MAX) { StoredCode(it.string("code"), it.string("uuid"), it.string("name"), it.long("expires_at")) } }
-            .forEach { s -> runCatching { byCode[s.code] = Pending(UUID.fromString(s.uuid), s.name, s.expiresAt) } }
+            .forEach { s -> s.uuid.toUuidOrNull()?.let { byCode[s.code] = Pending(it, s.name, s.expiresAt) } }
         Db.write { exec("DELETE FROM libs_discord_code WHERE expires_at <= ?", now) }
     }
 
@@ -58,10 +59,12 @@ object Codes {
     @Synchronized
     fun consume(code: String): Pending? {
         val key = normal(code)
+        val now = System.currentTimeMillis()
+        spent.values.removeAll { it <= now }
         if (key in spent) return null
         val pending = byCode.remove(key) ?: return null
         runCatching { Db.durableAsync { exec("DELETE FROM libs_discord_code WHERE code = ?", key) } }.onFailure {
-            spent += key
+            spent[key] = pending.expiresAt
             log.error("Cannot delete the used link code: {}", it.message)
         }
         return pending.takeIf { it.expiresAt > System.currentTimeMillis() }

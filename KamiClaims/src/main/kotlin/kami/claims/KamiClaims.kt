@@ -1,5 +1,6 @@
 package kami.claims
 
+import kami.libs.util.toUuidOrNull
 import kami.claims.admin.AdminCountries
 import kami.claims.admin.ClaimStats
 import kami.claims.client.ClientHooks
@@ -9,10 +10,13 @@ import kami.claims.net.Net
 import kami.claims.net.ResearchSync
 import kami.claims.net.Sync
 import kami.claims.service.Work
+import kami.claims.war.NameTagTeams
 import kami.claims.war.Online
+import kami.claims.war.PositionSync
 import kami.claims.war.Reputation
 import kami.claims.war.WarBar
 import kami.claims.war.Wars
+import kami.claims.research.Boosts
 import kami.claims.research.Features
 import kami.claims.research.Gate
 import kami.claims.research.Goals
@@ -53,6 +57,7 @@ import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
 import net.neoforged.fml.loading.FMLEnvironment
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent
 import net.neoforged.neoforge.event.entity.EntityMobGriefingEvent
+import net.neoforged.neoforge.event.entity.ProjectileImpactEvent
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent
@@ -88,13 +93,15 @@ object KamiClaims {
             ClaimsApi.register(object : ClaimsProvider {
                 override fun at(dim: String, x: Int, z: Int): ClaimInfo? {
                     val cl = Realm.index[Key(dim, x, z)] ?: return null
-                    return ClaimInfo(cl.country, cl.type, cl.owner?.let { runCatching { UUID.fromString(it) }.getOrNull() })
+                    return ClaimInfo(cl.country, cl.type, cl.owner?.toUuidOrNull())
                 }
 
                 override fun isBanished(player: UUID, country: String): Boolean =
                     Realm.data.countries[country]?.outsiders?.get(player.toString()) == Rank.BANISHED
 
                 override fun countryOf(player: UUID): String? = Realm.of(player.toString())?.id
+
+                override fun hostile(a: String, b: String): Boolean = Wars.enemies(a, b)
 
                 override fun citizenship(player: UUID): Citizenship? = Realm.of(player.toString())?.let { c ->
                     Citizenship(c.id, c.name, c.color, Realm.country(c.parent)?.name, c.rank(player.toString())?.name ?: Rank.CITIZEN.name)
@@ -140,6 +147,8 @@ object KamiClaims {
                     Reputation.trade(Realm.live(a) ?: return, Realm.live(b) ?: return, value)
                 }
 
+                override fun boost(country: String, kind: String, pct: Int, ms: Long): Boolean = Realm.live(country)?.let { Boosts.add(it, kind, pct, ms) } ?: false
+
                 override fun tradeFactor(country: String): Double = Realm.live(country)?.let(Reputation::tradeFactor) ?: 1.0
             })
         }
@@ -152,10 +161,11 @@ object KamiClaims {
         AdminCountries.register()
         FORGE_BUS.addListener<BlockEvent.BreakEvent>(EventPriority.LOWEST) { Guard.onBreakCredit(it) }
         Listeners.register()
+        Guard.registerTacz()
         Sky.register()
         WealthSources.register()
         FORGE_BUS.addListener<ServerStartingEvent> { RecipeContext.bind(Thread.currentThread()) }
-        FORGE_BUS.addListener<ServerStartedEvent> { Realm.load(it.server); Research.reload(); Wars.resume() }
+        FORGE_BUS.addListener<ServerStartedEvent> { Realm.load(it.server); Research.reload(); Wars.resume(); NameTagTeams.sweep(it.server) }
         FORGE_BUS.addListener<OnDatapackSyncEvent> { if (it.player == null) Research.resolve(it.playerList.server) }
         FORGE_BUS.addListener<ServerStoppingEvent> {
             RecipeContext.bind(null)
@@ -171,6 +181,8 @@ object KamiClaims {
             Upkeep.reset()
             Online.reset()
             WarBar.reset()
+            NameTagTeams.reset()
+            PositionSync.reset()
         }
         FORGE_BUS.addListener<ServerStoppedEvent>(EventPriority.LOWEST) { RealmDb.unload() }
         FORGE_BUS.addListener<ServerTickEvent.Post> {
@@ -186,13 +198,15 @@ object KamiClaims {
             task("Research", 20) { Queue.tick() }
             task("Online", 20) { Online.sample(players) }
             task("War bar", 20) { WarBar.tick(players) }
+            task("Nametags", 20) { NameTagTeams.syncAll(it.server) }
+            task("Positions", 1) { PositionSync.tick(it.server) }
             task("Temp blocks", 4) { TempBlocks.tick(it.server) }
             task("Levels", 100) { Levels.advanceAll() }
             task("Upkeep", 1200) { Upkeep.tick(it.server) }
             task("War", 1200) { Wars.tick() }
         }
-        FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { (it.entity as? ServerPlayer)?.let { p -> touch(p); Mail.deliver(p); Online.login(p); runCatching { WarBar.tick(listOf(p)) }.onFailure { e -> LOG.error("War bar failed", e) } } }
-        FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { (it.entity as? ServerPlayer)?.let { p -> touch(p); Guard.forget(p); Net.forget(p); Structures.forget(p); Online.logout(p); WarBar.forget(p) } }
+        FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { (it.entity as? ServerPlayer)?.let { p -> touch(p); Mail.deliver(p); Online.login(p); runCatching { NameTagTeams.sync(p) }.onFailure { e -> LOG.error("Nametags failed", e) }; runCatching { WarBar.tick(listOf(p)) }.onFailure { e -> LOG.error("War bar failed", e) } } }
+        FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { (it.entity as? ServerPlayer)?.let { p -> touch(p); Guard.forget(p); Net.forget(p); Structures.forget(p); Online.logout(p); WarBar.forget(p); PositionSync.forget(p) } }
         FORGE_BUS.addListener<BlockEvent.BreakEvent> { Guard.onBreak(it) }
         FORGE_BUS.addListener<BlockEvent.EntityPlaceEvent> { Guard.onPlace(it) }
         FORGE_BUS.addListener<PlayerInteractEvent.RightClickBlock> { Guard.onUse(it) }
@@ -200,6 +214,7 @@ object KamiClaims {
         FORGE_BUS.addListener<PlayerInteractEvent.EntityInteract> { Guard.onEntityUse(it) }
         FORGE_BUS.addListener<PlayerInteractEvent.EntityInteractSpecific> { Guard.onEntityUse(it) }
         FORGE_BUS.addListener<AttackEntityEvent> { Guard.onAttack(it) }
+        FORGE_BUS.addListener<ProjectileImpactEvent> { Guard.onProjectile(it) }
         FORGE_BUS.addListener<BlockEvent.FarmlandTrampleEvent> { Guard.onTrample(it) }
         FORGE_BUS.addListener<EntityMobGriefingEvent> { Guard.onGrief(it) }
         FORGE_BUS.addListener<ExplosionEvent.Detonate> { Guard.onExplosion(it) }

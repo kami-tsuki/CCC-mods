@@ -13,6 +13,7 @@ import kami.libs.ui.app.adminPending
 import kami.libs.ui.app.lockUnless
 import kami.libs.ui.app.adminManager
 import kami.libs.ui.app.pagedTable
+import kami.libs.ui.app.SELECT_W
 import kami.libs.ui.app.reasonDialog
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Row
@@ -24,6 +25,9 @@ import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr
 import kami.libs.ui.widget.ButtonStyle
 import kami.libs.ui.widget.ChipSpec
+import kami.libs.ui.widget.Option
+import kami.libs.ui.widget.buttonWidth
+import kami.libs.ui.widget.select
 import kami.libs.ui.widget.Column
 import kami.libs.ui.widget.TableState
 import kami.libs.ui.widget.TextState
@@ -35,6 +39,9 @@ import kami.libs.ui.widget.textField
 
 private val SIDES = listOf("all", "sell", "buy", "auction")
 private const val MAX_CANCEL = 50
+private const val CHIPS_W = 190
+private const val OWNER_W = 90
+private const val SEARCH_MIN = 80
 
 internal class OrdersPage(private val app: KamiApp) : Page() {
     override val title get() = tr("kami_economy.admin.nav.orders")
@@ -45,10 +52,10 @@ internal class OrdersPage(private val app: KamiApp) : Page() {
     private val table = TableState<OrderRow>()
 
     private fun columns() = listOf(
-        Column.text<OrderRow>(tr("kami_economy.admin.col.side"), 48) { tr("kami_economy.admin.side.${it.side}") },
+        Column.text<OrderRow>(tr("kami_libs.common.side"), 48) { tr("kami_economy.admin.side.${it.side}") },
         itemColumn<OrderRow>(tr("kami_libs.common.item"), { it.item }, { it.label }),
-        Column.text<OrderRow>(tr("kami_economy.admin.col.owner"), 80) { it.ownerName },
-        Column.number<OrderRow>(tr("kami_economy.admin.col.price"), 60, color = { Palette.money }, format = { Format.money(it) }) { it.price.toLong() },
+        Column.text<OrderRow>(tr("kami_libs.common.owner"), 80) { it.ownerName },
+        Column.number<OrderRow>(tr("kami_libs.common.price"), 60, color = { Palette.money }, format = { Format.money(it) }) { it.price.toLong() },
         Column.number<OrderRow>(tr("kami_libs.common.amount"), 50) { it.amount.toLong() },
         Column.number<OrderRow>(tr("kami_economy.admin.col.lot"), 32) { it.lot.toLong() },
         Column.number<OrderRow>(tr("kami_economy.admin.col.placed"), 56, format = { Format.ago(it) }) { it.placedAt }
@@ -69,13 +76,17 @@ internal class OrdersPage(private val app: KamiApp) : Page() {
             val row = Row(bar, 6)
             if (ui.edgeButton(row, tr("kami_economy.admin.cancel", picked.size), Icons.CROSS, ButtonStyle.DANGER, lock == null, lock, pending = pending, key = "market-orders:cancel")) cancel(picked)
             if (ui.edgeButton(row, tr("kami_economy.admin.cancel_shown", shown.size), Icons.CROSS, ButtonStyle.DANGER, shownLock == null, shownLock, pending = shownPending, key = "market-orders:cancel-shown")) cancel(shown)
-            val chips = row.takeFromRight(190)
-            ui.chipFlow(Stack(chips.x, chips.y + 2, chips.w), SIDES.map { ChipSpec(tr("kami_economy.admin.side.$it"), selected = it == side) }, "market-orders:side")
-                ?.let { side = SIDES[it] }
-            ui.textField(row.takeFromRight(90), owner, tr("kami_economy.admin.col.owner"), Icons.PERSON, clearable = true, key = "market-orders:owner")
+            val cancelW = buttonWidth(tr("kami_economy.admin.cancel", picked.size)) + buttonWidth(tr("kami_economy.admin.cancel_shown", shown.size)) + 12
+            val wide = bar.w - cancelW - CHIPS_W - OWNER_W - SEARCH_MIN - 12 >= 0
+            if (wide) {
+                val chips = row.takeFromRight(CHIPS_W)
+                ui.chipFlow(Stack(chips.x, chips.y + 2, chips.w), SIDES.map { ChipSpec(tr("kami_economy.admin.side.$it"), selected = it == side) }, "market-orders:side")
+                    ?.let { side = SIDES[it] }
+            } else ui.select(row.takeFromRight(SELECT_W), SIDES.map { Option(it, tr("kami_economy.admin.side.$it")) }, side, key = "market-orders:side")?.let { side = it }
+            ui.textField(row.takeFromRight(if (wide) OWNER_W else OWNER_W - 20), owner, tr("kami_libs.common.owner"), Icons.PERSON, clearable = true, key = "market-orders:owner")
             ui.searchField(row.remaining(), box.text, key = "market-orders:search")
         }
-        ui.pagedTable(body, paged, columns(), table, { it.entry }, tr("kami_economy.admin.orders.empty"), "market-orders", rowHeight = ROW_H, multi = true)
+        ui.pagedTable(body, paged, columns(), table, { it.entry }, tr("kami_libs.table.empty"), "market-orders", rowHeight = ROW_H, multi = true)
     }
 
     private fun cancel(picked: List<String>) = reasonDialog({ app.open(it) }, tr("kami_economy.admin.cancel.title", picked.size), danger = true) { reason, _, _ ->

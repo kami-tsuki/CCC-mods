@@ -32,7 +32,7 @@ class WarOffer(
     val ceasefireDays: Int = 0,
     val peace: Boolean = false,
     val extendDays: Int = 0,
-    val at: Long = 0,
+    var at: Long = 0,
     val billPct: Int? = null
 )
 

@@ -13,8 +13,10 @@ import kotlin.io.path.nameWithoutExtension
 @OptIn(ExperimentalSerializationApi::class)
 object ConfigStore {
     private val json = Configs.json { explicitNulls = false }
-    private const val ORE = "One ore. Set enabled to false to turn it off, deleted built-in ores come back with defaults."
-    private const val HINT = "Save, then run /geology reload. New chunks use the change."
+    private val log = org.slf4j.LoggerFactory.getLogger("kami_geology")
+    private const val ORE = "One ore. Deleted built-in ores return with defaults."
+    private const val HINT = "Run /geology reload after saving. Affects new chunks."
+    private const val MAX_PER_CHUNK = 256.0
     private val dir: Path get() = Configs.dir("geology")
     val problems = ArrayList<String>()
 
@@ -39,7 +41,7 @@ object ConfigStore {
         tagged = Compat.ready()
         build().also { settings = it }
     } catch (e: Exception) {
-        KamiGeology.LOG.error("Could not load configuration", e)
+        log.error("Could not load configuration", e)
         null
     }
 
@@ -48,7 +50,7 @@ object ConfigStore {
         Configs.moveLegacy(KamiGeology.ID, "geology")
         val oreDir = dir.resolve("ores")
         Files.createDirectories(oreDir)
-        val general = sync(dir.resolve("general.json"), GeneralConfig(), Docs.general, "General world generation settings.") ?: GeneralConfig()
+        val general = sync(dir.resolve("general.json"), GeneralConfig(), Docs.general, "World generation settings.") ?: GeneralConfig()
         val provinceMap = sync(dir.resolve("provinces.json"), Defaults.provinces, emptyMap(), "Provinces: which biomes belong together. Ore files refer to these names.") ?: Defaults.provinces
         Defaults.ores.forEach { (id, config) ->
             val file = oreDir.resolve("$id.json")
@@ -59,7 +61,8 @@ object ConfigStore {
         val files = Files.list(oreDir).use { stream -> stream.filter { it.extension == "json" }.toList() }
             .sortedWith(compareBy({ order.indexOf(it.nameWithoutExtension).let { i -> if (i < 0) Int.MAX_VALUE else i } }, { it.fileName.toString() }))
 
-        val fixed = if (general.richness.grades.any { it.weight > 0.0 }) general else general.copy(richness = Richness())
+        val valid = general.copy(scanBlocks = general.scanBlocks.mapValues { it.value.coerceAtLeast(1) }, scanChunks = general.scanChunks.mapValues { it.value.coerceAtLeast(1) })
+        val fixed = if (valid.richness.grades.any { it.weight > 0.0 }) valid else valid.copy(richness = Richness())
         val replaceable = BlockRule(fixed.replaceable, "general.replaceable")
         val deepslate = BlockRule(fixed.deepslateHosts, "general.deepslateHosts")
 
@@ -89,7 +92,7 @@ object ConfigStore {
             return false
         }
         return ores.filter { ore ->
-            anchored(ore).also { if (!it) KamiGeology.LOG.info("Ore '{}' unavailable: its anchor ore is missing or circular", ore.id) }
+            anchored(ore).also { if (!it) log.info("Ore '{}' unavailable: its anchor ore is missing or circular", ore.id) }
         }.onEach { ore -> ore.anchor = ore.deposit?.anchor?.let { byId[it.ore] } }
     }
 
@@ -119,19 +122,19 @@ object ConfigStore {
                 config.ring ?: ring
             )
         } catch (e: MissingMod) {
-            KamiGeology.LOG.info("Ore '{}' skipped: {}", id, e.message)
+            log.info("Ore '{}' skipped: {}", id, e.message)
             null
         } catch (e: IllegalArgumentException) {
-            KamiGeology.LOG.error("Ore '{}' disabled: {}", id, e.message)
+            log.error("Ore '{}' disabled: {}", id, e.message)
             problems += "ore '$id' disabled: ${e.message}"
             null
         }
     }
 
-    private fun validate(config: OreConfig, provinces: Set<String>) {
+    internal fun validate(config: OreConfig, provinces: Set<String>) {
         config.provinces.forEach { (name, weight) ->
             require(weight >= 0.0) { "province weight '$name' must not be negative" }
-            if (name !in provinces) KamiGeology.LOG.warn("Province '{}' is not defined in provinces.json", name)
+            if (name !in provinces) log.warn("Province '{}' is not defined in provinces.json", name)
         }
         config.deposit?.let { deposit ->
             require(deposit.tiers.isNotEmpty()) { "deposit.tiers must not be empty" }
@@ -151,23 +154,28 @@ object ConfigStore {
                 ints(tier.thickness, "tier '${tier.name}' thickness", 2)
             }
             deposit.anchor?.let { anchor ->
+                require(anchor.chance in 0.0..1.0) { "deposit.anchor.chance must be between 0 and 1" }
                 ints(anchor.offsetX, "deposit.anchor.offsetX")
                 ints(anchor.offsetY, "deposit.anchor.offsetY")
                 ints(anchor.offsetZ, "deposit.anchor.offsetZ")
             }
         }
         config.scatter?.let { scatter ->
-            require(scatter.perChunk >= 0.0) { "scatter.perChunk must not be negative" }
+            require(scatter.perChunk in 0.0..MAX_PER_CHUNK) { "scatter.perChunk must be between 0 and ${MAX_PER_CHUNK.toInt()}" }
             ints(scatter.size, "scatter.size", 1)
             ints(scatter.height, "scatter.height")
         }
-        config.core?.let { require(it.chance in 0.0..1.0) { "core.chance must be between 0 and 1" } }
+        config.core?.let {
+            require(it.chance in 0.0..1.0) { "core.chance must be between 0 and 1" }
+            require(it.radius in 0.0..1.0) { "core.radius must be between 0 and 1" }
+        }
+        config.halo?.let { require(it.density in 0.0..1.0) { "halo.density must be between 0 and 1" } }
     }
 
-    private fun ints(range: List<Int>, name: String, min: Int = Int.MIN_VALUE) =
+    internal fun ints(range: List<Int>, name: String, min: Int = Int.MIN_VALUE) =
         require(range.size == 2 && range[0] <= range[1] && range[0] >= min) { "$name must be [min, max]" }
 
-    private fun doubles(range: List<Double>, name: String) =
+    internal fun doubles(range: List<Double>, name: String) =
         require(range.size == 2 && range[0] <= range[1]) { "$name must be [min, max]" }
 
     private inline fun <reified T> sync(path: Path, default: T?, docs: Map<String, String>, title: String): T? {
@@ -179,7 +187,7 @@ object ConfigStore {
     private inline fun <reified T> parse(path: Path): T? = try {
         json.decodeFromString<T>(Files.readString(path))
     } catch (e: Exception) {
-        KamiGeology.LOG.error("Ignoring {}: {}", path.fileName, e.message)
+        log.error("Ignoring {}: {}", path.fileName, e.message)
         problems += "${dir.relativize(path).joinToString("/")}: ${Jsonc.reason(e)}"
         null
     }

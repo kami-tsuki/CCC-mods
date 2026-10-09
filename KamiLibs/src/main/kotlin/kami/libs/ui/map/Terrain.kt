@@ -15,7 +15,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
@@ -120,7 +119,6 @@ object TerrainCache {
     var enabled = true
     private var folder: Path? = null
     private var session = ""
-    private val writing = ConcurrentHashMap<Path, CompletableFuture<Void>>()
 
     private fun key(dim: String, rx: Int, rz: Int) = "$dim|$rx|$rz"
 
@@ -136,15 +134,23 @@ object TerrainCache {
         return folder
     }
 
+    private const val MAX_LOADING = 48
+    private val loading = HashMap<String, CompletableFuture<NativeImage?>>()
+
+    private fun readTile(path: Path): NativeImage? =
+        runCatching { if (Files.exists(path)) Files.newInputStream(path).use { NativeImage.read(it) }.takeIf { it.width == SIZE && it.height == SIZE } else null }.getOrNull()
+
     fun tile(dim: String, rx: Int, rz: Int, create: Boolean): TerrainTile? {
         val k = key(dim, rx, rz)
         tiles[k]?.let { it.used = System.currentTimeMillis(); return it }
         if (!create && k in missing) return null
         val dir = serverFolder()
         val path = dir?.resolve("${dim.replace(':', '_')}/r.$rx.$rz.png")
-        if (path != null) writing[path]?.join()
-        val image = path?.takeIf { Files.exists(it) }?.let { p -> runCatching { Files.newInputStream(p).use { NativeImage.read(it) } }.getOrNull()?.takeIf { it.width == SIZE && it.height == SIZE } }
-            ?: if (create) NativeImage(SIZE, SIZE, true).also { it.fillRect(0, 0, SIZE, SIZE, 0) } else null
+        if (loading.size >= MAX_LOADING && k !in loading) dropPending()
+        val job = loading[k] ?: CompletableFuture.supplyAsync({ path?.let(::readTile) }, io).also { loading[k] = it }
+        if (!job.isDone) return null
+        loading.remove(k)
+        val image = job.getNow(null) ?: if (create) NativeImage(SIZE, SIZE, true).also { it.fillRect(0, 0, SIZE, SIZE, 0) } else null
         if (image == null) { missing += k; return null }
         missing -= k
         val tile = TerrainTile(dim, rx, rz, image, dir)
@@ -153,6 +159,9 @@ object TerrainCache {
         evict()
         return tile
     }
+
+    fun ready(dim: String, cx: Int, cz: Int): Boolean =
+        !enabled || tile(dim, Math.floorDiv(cx, TILE_CHUNKS), Math.floorDiv(cz, TILE_CHUNKS), true) != null
 
     fun put(dim: String, cx: Int, cz: Int, pixels: IntArray) {
         if (!enabled) return
@@ -183,7 +192,7 @@ object TerrainCache {
         tile.dirtyDisk = false
         val path = tile.path() ?: return
         val snapshot = NativeImage(tile.image.format(), tile.image.width, tile.image.height, false).also { it.copyFrom(tile.image) }
-        val job = CompletableFuture.runAsync({
+        CompletableFuture.runAsync({
             runCatching {
                 Files.createDirectories(path.parent)
                 val temp = path.resolveSibling(path.fileName.toString() + ".tmp")
@@ -192,8 +201,6 @@ object TerrainCache {
             }.onFailure { KamiLibs.LOG.warn("Could not save map tile {}: {}", path, it.message) }
             snapshot.close()
         }, io)
-        writing[path] = job
-        job.whenComplete { _, _ -> writing.remove(path, job) }
     }
 
     fun flush(limit: Int = Int.MAX_VALUE) {
@@ -219,9 +226,15 @@ object TerrainCache {
         }
     }
 
+    fun dropPending() {
+        loading.values.forEach { j -> j.whenComplete { img, _ -> img?.close() } }
+        loading.clear()
+    }
+
     fun clear() {
         flush()
         tiles.values.forEach { it.release(); it.image.close() }
+        dropPending()
         tiles.clear()
         missing.clear()
     }
@@ -229,6 +242,7 @@ object TerrainCache {
     fun wipe() {
         val root = serverFolder()
         tiles.values.forEach { it.release(); it.image.close() }
+        dropPending()
         tiles.clear()
         missing.clear()
         io.execute { root?.takeIf { Files.exists(it) }?.let { r -> Files.walk(r).use { s -> s.sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) } } } }

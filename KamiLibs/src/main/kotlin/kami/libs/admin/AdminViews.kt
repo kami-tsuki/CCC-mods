@@ -14,15 +14,15 @@ internal object AdminViews {
         Admin.register("admin.level", AdminPerms.Level.NONE, false) { ctx, _ -> JsonPrimitive(ctx.level.name) }
         Admin.view("audit.query", async = true) { ctx, a ->
             val filter = Audit.Filter(a.text(0), a.text(1), a.text(2), a.long(3), a.long(4), a.text(5)?.toBooleanStrictOrNull())
-            Db.json.encodeToJsonElement(Page.serializer(Audit.Entry.serializer()), Audit.query(filter, a.page(6), level = ctx.level))
+            Db.encode(Page.serializer(Audit.Entry.serializer()), Audit.query(filter, a.page(6), level = ctx.level))
         }
         StatsViews.register()
-        Admin.view("bank.summary") { _, _ -> Db.json.encodeToJsonElement(ServerBank.Summary.serializer(), ServerBank.summary()) }
+        Admin.view("bank.summary") { _, _ -> Db.encode(ServerBank.Summary.serializer(), ServerBank.summary()) }
         Admin.view("bank.movements", async = true) { _, a -> journal(ServerParty, a) }
         Admin.view("journal.query", async = true) { ctx, a -> journal(a.text(0)?.let { raw -> ctx.onServer { party(ctx, raw) } }, a.drop(1)) }
     }
 
-    private fun journal(party: Party?, a: List<String>) = Db.json.encodeToJsonElement(
+    private fun journal(party: Party?, a: List<String>) = Db.encode(
         Page.serializer(Journal.Entry.serializer()),
         Journal.query(Journal.Filter(party, flows(a.text(0)), a.long(1), a.long(2), a.long(3), a.long(4), a.text(5)), a.page(6))
     )

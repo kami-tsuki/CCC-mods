@@ -3,10 +3,12 @@ package kami.economy.economy
 import kami.economy.Book
 import kami.economy.Config
 import kami.economy.Fill
+import kami.economy.LOG
 import kami.economy.Market
 import kami.economy.Order
 import kami.economy.Traded
 import kami.economy.now
+import kami.economy.quest.Quests
 import kami.libs.economy.CleanStep
 
 class FillLinePlan(
@@ -57,14 +59,15 @@ object Matching {
         return if (cap == orderLots) orderLots else cap - cap % CleanStep.step(e.order.price.toLong(), e.terms.rates)
     }
 
-    private fun walk(item: String, qty: Int, who: String, buy: Boolean, limit: Int?): List<FillLinePlan> {
+    private fun walk(item: String, qty: Int, who: String, buy: Boolean, limit: Int?, only: Long? = null): List<FillLinePlan> {
         val good = Stocks.good(item)
         val lot = Config.s.lotOf(item)
-        val queue = (if (buy) liveSells(item).sortedWith(compareBy<Order> { it.price }.thenBy { it.placedAt }) else liveBids(item))
-            .filter { it.owner != who }
+        val queue = (if (buy) liveSells(item) else liveBids(item, who))
+            .filter { it.owner != who && (only == null || it.id == only) && (limit == null || (if (buy) it.price <= limit else it.price >= limit)) }
             .map { Entry(it, if (buy) Trade.terms(who, it.owner) else Trade.terms(it.owner, who)) }
             .filter { !it.terms.blocked }
-        val serverOn = good != null && (buy || TradeStatus.instantSell(item))
+            .sortedWith(compareBy<Entry> { if (buy) it.order.price * (1 + it.terms.tariffPct / 100.0) else -it.order.price * (1 - (it.terms.taxPct + it.terms.tariffPct) / 100.0) }.thenBy { it.order.placedAt })
+        val serverOn = good != null && only == null && (buy || TradeStatus.instantSell(item))
         val taxFactor = Config.s.taxPct / 100.0
         var c = Stocks.course(item)
         var left = if (!serverOn) 0 else if (buy) Stocks.supplyLeft(item) else Stocks.demandLeft(item, who)
@@ -96,18 +99,23 @@ object Matching {
             } ?: Double.NEGATIVE_INFINITY
             val pick = player?.takeIf { playerScore >= serverScore }
             val gross = pick?.order?.price ?: serverGross
-            if (limit != null && !(if (buy) gross <= limit else gross >= limit)) {
-                if (pick != null) i = queue.size else left = 0
+            if (pick == null && limit != null && !(if (buy) gross <= limit else gross >= limit)) {
+                left = 0
                 continue
             }
             if (pick != null) {
-                close()
                 val o = pick.order
                 val total = lots.toLong() * o.price
-                out += FillLinePlan(o.id, o.owner, lots * o.lot, o.price, o.lot, total, CleanStep.charge(total, pick.terms.taxPct), CleanStep.charge(total, pick.terms.tariffPct))
+                val fill = FillLinePlan(o.id, o.owner, lots * o.lot, o.price, o.lot, total, CleanStep.charge(total, pick.terms.taxPct), CleanStep.charge(total, pick.terms.tariffPct))
+                if (!buy && fill.gross - fill.tax - fill.tariff <= 0) {
+                    i++
+                    continue
+                }
+                close()
+                out += fill
                 remaining -= lots * o.lot
                 i++
-                if (good != null && !Trade.sameCountry(who, o.owner) && moves(item, who, o.owner, moved, t)) {
+                if (good != null && !Quests.owns(o.owner) && !Trade.sameCountry(who, o.owner) && moves(item, who, o.owner, moved, t)) {
                     moved += washKeys(item, who, o.owner)
                     if (o.peg == null) c = Stocks.afterPlayer(item, c, o.price.toDouble(), lots)
                 }
@@ -131,14 +139,14 @@ object Matching {
         return BuyPlan(fills, fills.sumOf { it.qty }, fills.sumOf { it.paid })
     }
 
-    fun bids(item: String): List<Order> =
-        bookFor(item).buys.filter { it.amount > 0 }.sortedWith(compareByDescending<Order> { it.price }.thenBy { it.placedAt })
+    fun bids(item: String, viewer: String = ""): List<Order> =
+        (bookFor(item).buys.filter { it.amount > 0 } + Quests.bids(item, viewer)).sortedWith(compareByDescending<Order> { it.price }.thenBy { it.placedAt })
 
     fun stockAsk(item: String): Int? = if (TradeStatus.instantBuy(item)) Stocks.ask(item) else null
 
     fun stockBid(seller: String, item: String): Int? = if (TradeStatus.instantSell(item)) Stocks.bid(item, seller) else null
 
-    private fun liveBids(item: String): List<Order> = if (TradeStatus.bids(item)) bids(item) else emptyList()
+    private fun liveBids(item: String, viewer: String = ""): List<Order> = if (TradeStatus.bids(item)) bids(item, viewer) else emptyList()
 
     private fun liveSells(item: String): List<Order> = if (TradeStatus.asks(item)) bookFor(item).sells.filter { it.amount > 0 } else emptyList()
 
@@ -160,21 +168,33 @@ object Matching {
         return SellPlan(fills, fills.sumOf { it.qty })
     }
 
+    fun questPlan(seller: String, questId: Long, qty: Int): Pair<String, SellPlan>? {
+        val orderId = Quests.orderId(questId)
+        val item = Quests.itemOf(orderId, seller) ?: return null
+        val lot = Quests.get(questId)?.lot ?: return null
+        val fills = walk(item, qty - qty % lot, seller, false, null, orderId)
+        return item to SellPlan(fills, fills.sumOf { it.qty })
+    }
+
     private fun traded(item: String): Traded = Market.data.traded.getOrPut(item) { Traded() }
 
     private fun perLot(f: FillLinePlan): Double = f.gross.toDouble() * f.lot.coerceAtLeast(1) / f.qty.coerceAtLeast(1)
 
     fun applySale(item: String, seller: String, f: FillLinePlan, key: String, t: Long = now()): Boolean {
+        if (Quests.isOrder(f.orderId)) {
+            if (!Quests.delivered(key)) Quests.fill(item, seller, f, key, t).takeIf { it > 0 }?.let { n -> traded(item).apply { sold += n; last = t } }
+            return true
+        }
         val book = Market.book(item)
         val lots = f.qty / f.lot.coerceAtLeast(1)
         var moved = true
         if (f.market) {
-            traded(item).sold += f.qty
+            traded(item).apply { sold += f.qty; last = t }
             Stocks.sold(seller, item, lots)
             Pricing.observe(item, perLot(f), lots, server = true, buy = false)
         } else {
-            val bid = book.buys.firstOrNull { it.id == f.orderId } ?: return true
-            traded(item).sold += f.qty
+            val bid = book.buys.firstOrNull { it.id == f.orderId } ?: run { LOG.warn("Sale of {} x{} by {} paid but bid {} is gone", item, f.qty, seller, f.orderId); return true }
+            traded(item).apply { sold += f.qty; last = t }
             bid.amount -= minOf(f.qty, bid.amount)
             Market.queueDelivery(bid.owner, item, f.qty, key)
             if (!Trade.sameCountry(seller, bid.owner)) {
@@ -208,7 +228,7 @@ object Matching {
 
     fun escrow(order: Order): Long = order.amount.toLong() / order.lot.coerceAtLeast(1) * order.price
 
-    fun bestBid(item: String): Int? = bookFor(item).buys.filter { it.amount > 0 }.maxOfOrNull { it.price }
+    fun bestBid(item: String): Int? = bids(item).maxOfOrNull { it.price }
 
     fun step(lotPrice: Int): Int = CleanStep.step(lotPrice.toLong(), listOf(Config.s.taxPct))
 
@@ -236,7 +256,7 @@ object Matching {
                     } else washedOut += idx
                 }
             }
-            traded(item).bought += f.qty
+            traded(item).apply { bought += f.qty; last = t }
             book.lastFill = perLot(f).toInt()
             book.recentFills += Fill(book.lastFill, f.qty, now())
         }
@@ -272,11 +292,13 @@ object Matching {
         if (bid) bookFor(item).sells.any { it.owner == owner && it.amount > 0 && it.price <= price }
         else bookFor(item).buys.any { it.owner == owner && it.amount > 0 && it.price >= price }
 
+    fun anyAsk(item: String): Int? = listOfNotNull(liveSells(item).minOfOrNull { it.price }, stockAsk(item)).minOrNull()
+
     fun bestAsk(item: String, viewer: String): Int? =
         listOfNotNull(liveSells(item).filter { it.owner != viewer && !Trade.terms(viewer, it.owner).blocked }.minOfOrNull { it.price }, stockAsk(item)).minOrNull()
 
     fun openBids(item: String, viewer: String): List<Order> =
-        liveBids(item).filter { it.owner != viewer && !Trade.terms(it.owner, viewer).blocked }
+        liveBids(item, viewer).filter { it.owner != viewer && !Trade.terms(it.owner, viewer).blocked }
 
     fun bestBidFor(item: String, viewer: String): Int? =
         listOfNotNull(openBids(item, viewer).firstOrNull()?.price, stockBid(viewer, item)).maxOrNull()

@@ -3,6 +3,7 @@ package kami.libs.text
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 class SearchTest {
@@ -36,5 +37,21 @@ class SearchTest {
         assertFalse(t[1][0].negate)
         assertTrue(t[1][1].let { !it.negate })
         assertTrue(m("-5", "at -5 here"))
+    }
+
+    private fun key(q: String) = SearchQuery.parse(q).key
+
+    @Test
+    fun keysSeparateAlternativesFromClausesAndKeepEncodingsApart() {
+        assertNotEquals(key("a|b"), key("a b"))
+        assertNotEquals(key("a&b"), key("a b"))
+        assertNotEquals(key("a&b"), key("a|b"))
+        assertNotEquals(key("-a"), key("a"))
+        assertNotEquals(key("@a"), key("a"))
+        assertNotEquals(key("-@a"), key("@a"))
+        assertNotEquals(key("#a"), key("\$a"))
+        assertNotEquals(key("ab|c"), key("a|bc"))
+        assertNotEquals(key("1:a&1:b"), key("a b"))
+        assertEquals(key("Iron  ORE"), key("iron ore"))
     }
 }

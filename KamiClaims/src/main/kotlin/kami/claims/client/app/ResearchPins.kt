@@ -15,6 +15,7 @@ import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr
+import kami.libs.ui.widget.fitText
 import kami.libs.ui.widget.PROGRESS_LABELLED_H
 import kami.libs.ui.widget.iconButton
 import kami.libs.ui.widget.progressBar
@@ -52,7 +53,7 @@ object ResearchPins {
             if (need > 0) {
                 val line = stack.take(Draw.LINE)
                 Draw.text(ui.g, "XP", line.x, line.y, Palette.textMuted)
-                Draw.textRight(ui.g, "${Format.number(xp.coerceAtMost(need))}/${Format.number(need)}", line.right, line.y, Palette.textMuted)
+                Draw.textRight(ui.g, Vocabulary.ratio(xp.coerceAtMost(need), need), line.right, line.y, Palette.textMuted)
                 Draw.thinBar(ui.g, stack.take(2), xp.toFloat() / need, Palette.brass)
             }
             ui.levelRequirements(stack, level)
@@ -62,7 +63,7 @@ object ResearchPins {
     private object Research : PinWindow(RESEARCH, maxItems = 5, width = 150, height = 96) {
         override fun shown(items: List<String>) = items.isNotEmpty() && inCountry
 
-        override fun title(items: List<String>) = tr("kami_claims.pin.research")
+        override fun title(items: List<String>) = tr("kami_libs.flow.research")
 
         override fun draw(ui: Ui, r: Rect, items: List<String>, editing: Boolean) {
             val stack = Stack(r.x, r.y + 1, r.w, 2)
@@ -82,7 +83,7 @@ object ResearchPins {
                 }
                 val label = ResearchLook.label(status)
                 Draw.textRight(ui.g, label, row.right, row.y, ResearchLook.color(status))
-                Draw.text(ui.g, Draw.fit(node.label().resolve(), row.w - Draw.width(label) - 4), row.x, row.y, if (status == NodeStatus.DONE) Palette.textMuted else Palette.text)
+                ui.fitText(row.x, row.y, row.w - Draw.width(label) - 4, node.label().resolve(), if (status == NodeStatus.DONE) Palette.textMuted else Palette.text)
             }
         }
     }

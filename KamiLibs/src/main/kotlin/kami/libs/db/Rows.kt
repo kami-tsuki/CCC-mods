@@ -22,7 +22,7 @@ class Rows<K>(table: String, private val keys: List<String>, columns: List<Strin
         val all = rows.values.toList()
         val changed = if (full) all else rows.filter { (k, v) -> !same(last[k], v) }.values.toList()
         val gone = last.filterKeys { it !in rows }.values.map { it.take(keys.size) }
-        last = rows.toMap()
+        last = rows
         if (full) return {
             batch(delete, stale(all))
             batch(upsert, changed)

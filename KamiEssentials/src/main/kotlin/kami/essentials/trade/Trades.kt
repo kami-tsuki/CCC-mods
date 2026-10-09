@@ -21,8 +21,9 @@ object Trades {
     private val active = HashMap<UUID, Trade>()
     private const val XP_PAIR_COOLDOWN_MS = 10 * 60_000L
     private val xpPairs = HashMap<Pair<UUID, UUID>, Long>()
+    private const val REQUEST_COOLDOWN_MS = 3_000L
+    private val lastRequest = HashMap<UUID, Long>()
 
-    /** Trade XP is granted once per player pair per 10 minutes, so two alts cannot farm it by swapping items. */
     fun claimXp(a: UUID, b: UUID): Boolean {
         val key = if (a < b) a to b else b to a
         val t = now()
@@ -48,6 +49,9 @@ object Trades {
             requests.remove(to.uuid)
             return start(to, from)
         }
+        val t = now()
+        if (lastRequest[from.uuid]?.let { t - it < REQUEST_COOLDOWN_MS } == true) return from.tell(Talk.chat.warn(Phrase.of("kami_essentials.trade.request.cooldown")))
+        lastRequest[from.uuid] = t
         val seconds = Config.s.tradeRequestSeconds
         requests[from.uuid] = Request(to.uuid, now() + seconds * 1000L)
         from.tell(Talk.chat.ok(Phrase.of("kami_essentials.trade.request.sent", Phrase.value(to.gameProfile.name), Phrase.value(seconds))))
@@ -89,13 +93,17 @@ object Trades {
     fun remove(trade: Trade) = trade.players.forEach { active.remove(it.uuid, trade) }
 
     fun tick() {
+        if (active.isEmpty() && requests.isEmpty()) return
         active.values.toSet().forEach(Trade::tick)
-        requests.values.removeIf { it.until < now() }
+        val t = now()
+        requests.values.removeIf { it.until < t }
+        lastRequest.values.removeIf { t - it >= REQUEST_COOLDOWN_MS }
     }
 
     fun stop() {
         active.values.toSet().forEach { it.cancel(null, Phrase.of("kami_essentials.trade.reason.stopping")) }
         xpPairs.clear()
+        lastRequest.clear()
     }
 
     private fun check(me: ServerPlayer, other: ServerPlayer) {

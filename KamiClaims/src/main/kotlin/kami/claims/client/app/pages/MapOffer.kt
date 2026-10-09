@@ -4,7 +4,7 @@ import kami.claims.client.app.ClaimsPage
 import kami.claims.client.app.Dialogs
 import kami.claims.client.app.OfferRows
 import kami.claims.client.app.Tenure
-import kami.claims.client.rankOf
+import kami.claims.client.app.rankOf
 import kami.claims.client.store.ClaimsStore
 import kami.claims.net.Detail
 import kami.claims.net.Info
@@ -77,7 +77,7 @@ class OfferEditor(private val page: ClaimsPage) {
 
     private fun removeTenant(ui: Ui, f: Flow, d: Detail, info: Info, x: Int, z: Int) {
         val tenantRank = info.members.firstOrNull { it.id == d.ownerId }?.rank?.let(::rankOf)
-        val lock = if (tenantRank != null && tenantRank >= ClaimsStore.rank) removeLock.of(ClaimsStore.rank, Format.locale) { Lock(tr("kami_claims.map.plot.remove.lock"), tr("kami_claims.error.lower_ranks")) } else null
+        val lock = if (tenantRank != null && tenantRank >= ClaimsStore.rank) removeLock.of(ClaimsStore.rank, Format.locale) { Lock(tr("kami_claims.map.plot.remove.lock"), tr("kami_claims.error.rank_below")) } else null
         val moving = d.state == Tenure.MOVING
         if (ui.lockedButton(f.take(CONTROL_H), tr("kami_claims.map.plot.remove"), lock, Icons.REMOVE, ButtonStyle.DANGER, !moving, tr("kami_claims.error.plot_moving"), pending = page.pending("plot_remove"), key = "plot-remove")) Dialogs.removeTenant(page.app, x, z, d.owner)
     }

@@ -10,6 +10,7 @@ import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
 import kami.libs.ui.style.TextStyle
 import kami.libs.ui.text.tr
+import kami.libs.ui.widget.fitText
 import kami.libs.ui.widget.ButtonStyle
 import kami.libs.ui.widget.CONTROL_H
 import kami.libs.ui.widget.NumberState
@@ -106,7 +107,7 @@ fun receiptDialog(
             }
             val rowH = if (total) 12 else 11
             val value = Draw.width(l.value, style)
-            Draw.text(g, Draw.fit(l.label, b.w - value - 8, style), b.x, y, style, color)
+            fitText(b.x, y, b.w - value - 8, l.label, color, style, key = "receipt-label$i")
             Draw.textRight(g, l.value, b.right, y, l.color ?: Palette.text, style)
             tooltip("receipt:$i", Rect(b.x, y, b.w, rowH), l.tip)
             y += rowH

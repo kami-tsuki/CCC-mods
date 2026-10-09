@@ -45,9 +45,10 @@ object Moderation {
         server.playerList.bans.add(UserBanListEntry(profile, now, by, expires, reason))
         val added = ips.filter { ip -> server.playerList.ipBans.get(ip)?.let { e -> e.getExpires()?.let { old -> expires == null || old.before(expires) } == true } ?: true }
         added.forEach { server.playerList.ipBans.add(IpBanListEntry(it, now, by, expires, reason)) }
-        if (added.isNotEmpty()) {
-            links.getOrPut(profile.id) { ConcurrentHashMap.newKeySet() }.addAll(added)
-            Db.durableAsync { batch("INSERT OR IGNORE INTO ess_ban_ip (uuid, ip) VALUES (?, ?)", added.map { listOf(profile.id.toString(), it) }) }
+        val linked = IpLinks.linked(ips, added, links, profile.id) { banned(server, it) != null }
+        if (linked.isNotEmpty()) {
+            links.getOrPut(profile.id) { ConcurrentHashMap.newKeySet() }.addAll(linked)
+            Db.durableAsync { batch("INSERT OR IGNORE INTO ess_ban_ip (uuid, ip) VALUES (?, ?)", linked.map { listOf(profile.id.toString(), it) }) }
         }
         val screen = screen(reason, until, now.time).component()
         (listOfNotNull(server.playerList.getPlayer(profile.id)) + ips.flatMap { server.playerList.getPlayersWithAddress(it) }).distinct().forEach { it.connection.disconnect(screen) }

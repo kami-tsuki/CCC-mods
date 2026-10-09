@@ -19,7 +19,7 @@ import kami.libs.ui.widget.KpiTile
 internal fun average(total: Double, count: Double) = if (count > 0) total / count else 0.0
 
 internal class StatisticsPage : Page() {
-    override val title get() = tr("kami_essentials.admin.nav.statistics")
+    override val title get() = tr("kami_libs.common.statistics")
     private val range = TimeRange("statistics:range")
     private val board = StatBoard(range)
     private val metrics = StatMetrics(board, "", "statistics")
@@ -54,7 +54,7 @@ internal class StatisticsPage : Page() {
             top(tr("kami_essentials.admin.stats.top_mob_killers"), Icons.FIRE, topMobs),
             top(tr("kami_essentials.admin.stats.top_miners"), Icons.PICKAXE, topMiners),
             top(tr("kami_essentials.admin.stats.walkers"), Icons.RULER, walkers) { Format.number(it) },
-            top(tr("kami_essentials.admin.stats.top_traders"), Icons.HANDSHAKE, topTraders)
+            top(tr("kami_libs.common.top_traders"), Icons.HANDSHAKE, topTraders)
         )
         ui.statPage("statistics", r, range, board, head + metrics.tiles(), metrics.charts() + tops + metrics.objects())
     }

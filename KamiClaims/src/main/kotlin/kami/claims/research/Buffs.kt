@@ -68,7 +68,6 @@ object Buffs {
 
     fun used(country: Country): Int = enabled(country).sumOf { it.cost }
 
-    // drops the newest enabled buffs first (insertion order) when points no longer cover them
     fun prune(country: Country) {
         val active = enabled(country)
         country.buffs.enabled.retainAll(active.mapTo(HashSet()) { it.key })
@@ -96,14 +95,14 @@ object Buffs {
             country.buffs.enabled += key
             country.buffs.billed += key
         } else country.buffs.enabled.remove(key)
-        Realm.changed()
+        Realm.changed(false)
         ResearchSync.refresh(country)
         return Phrase.of(if (on) "kami_claims.buffs.done.on" else "kami_claims.buffs.done.off", node.label().asValue())
     }
 
     fun borderChunks(country: Country): Set<Key> {
         borders[country.id]?.let { return it }
-        return Realm.claims(country.id).filter { claim -> Realm.neighbors(claim).any { Realm.index[it]?.country != country.id } }.map { it.key }.toSet().also { borders[country.id] = it }
+        return Realm.claimsView(country.id).filter { claim -> Realm.neighbors(claim).any { Realm.index[it]?.country != country.id } }.map { it.key }.toSet().also { borders[country.id] = it }
     }
 
     fun tax(country: Country): Int = enabled(country).sumOf { it.tax }

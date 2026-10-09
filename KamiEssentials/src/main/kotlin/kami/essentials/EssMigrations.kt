@@ -1,5 +1,6 @@
 package kami.essentials
 
+import kami.libs.util.toUuidOrNull
 import kami.libs.db.Legacy
 import kami.libs.db.Migration
 import kami.libs.db.Migrations
@@ -62,6 +63,6 @@ internal object EssMigrations {
     fun register() = Migrations.register("ess", listOf(schema, players, banIps, warns, delivery), after = listOf("libs"))
 
     private fun normalize(flags: Map<Flag, Collection<String>>) = LegacyData(Flag.entries.associateWith { flag ->
-        flags[flag].orEmpty().mapNotNull { runCatching { UUID.fromString(it).toString() }.getOrNull() }.distinct().sorted()
+        flags[flag].orEmpty().mapNotNull { it.toUuidOrNull()?.toString() }.distinct().sorted()
     })
 }

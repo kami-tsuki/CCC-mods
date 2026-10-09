@@ -190,7 +190,7 @@ object Housing {
     fun checkRemove(c: Country, cl: Claim, actor: Rank): String {
         val owner = cl.owner ?: throw Fail("kami_claims.error.plot_free")
         if (cl.state == Tenancy.MOVING_OUT) throw Fail("kami_claims.error.plot_moving")
-        if ((c.rank(owner) ?: Rank.BANISHED) >= actor) throw Fail("kami_claims.error.lower_ranks")
+        if ((c.rank(owner) ?: Rank.BANISHED) >= actor) throw Fail("kami_claims.error.rank_below")
         return owner
     }
 
@@ -303,7 +303,7 @@ object Housing {
     }
 
     private fun finish(c: Country) {
-        if (Realm.claims(c.id).none { it.owner != null }) Realm.erase(c)
+        if (Realm.claimsView(c.id).none { it.owner != null }) Realm.erase(c)
     }
 
     private fun coords(cl: Claim) = v("${cl.x}, ${cl.z}")

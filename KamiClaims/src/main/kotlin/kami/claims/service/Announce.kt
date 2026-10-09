@@ -32,6 +32,6 @@ object Announce {
             val text = Phrase.of("kami_claims.announce.$key", *values.map { (k, v) -> phrases[k]?.asValue() ?: Phrase.value(v) }.toTypedArray())
             server?.playerList?.broadcastSystemMessage(Mail.chat.info(text.component()), false)
         }
-        if (cfg.discord && cfg.template.isNotBlank()) DiscordApi.event(Embed(Templates.fill(cfg.template, values.mapValues { (k, v) -> if (k == "level") v else Templates.code(v) }), country.color.takeIf { it != 0 } ?: colours.getValue(key)))
+        if (cfg.discord && cfg.template.isNotBlank()) DiscordApi.event(Embed(Templates.fillCoded(cfg.template, values), country.color.takeIf { it != 0 } ?: colours.getValue(key)))
     }
 }

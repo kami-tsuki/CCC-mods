@@ -128,6 +128,9 @@ object Stats {
 
     private const val ORIGIN = "stats.origin"
     private const val PENDING_MAX = 5000
+    private const val MAX_KEY = 128
+    private const val MAX_KEYS = 200_000
+    private const val OVERFLOW = "~overflow"
     private val COUNTED = variants("SELECT (h / ?) * ? b, TOTAL(n) v FROM libs_count WHERE k = ? AND h >= ?", " GROUP BY b ORDER BY b")
     private val TOTAL = variants("SELECT TOTAL(n) v FROM libs_count WHERE k = ? AND h >= ?", "")
     private val TOTALS = variants("SELECT k, TOTAL(n) v FROM libs_count WHERE k IN (SELECT value FROM json_each(?)) AND h >= ?", " GROUP BY k")
@@ -216,10 +219,14 @@ object Stats {
         }.toMap()
     }
 
-    fun id(key: String): Int = ids.computeIfAbsent(key) {
-        nextId.incrementAndGet().also { i ->
-            Db.write { exec("INSERT INTO libs_key (id, key) VALUES (?, ?)", i, key) }
-            names[i] = key
+    fun id(key: String): Int {
+        val clamped = if (key.length > MAX_KEY) key.take(MAX_KEY) else key
+        val k = if (ids.size >= MAX_KEYS && !ids.containsKey(clamped)) OVERFLOW else clamped
+        return ids.computeIfAbsent(k) {
+            nextId.incrementAndGet().also { i ->
+                Db.write { exec("INSERT INTO libs_key (id, key) VALUES (?, ?)", i, k) }
+                names[i] = k
+            }
         }
     }
 

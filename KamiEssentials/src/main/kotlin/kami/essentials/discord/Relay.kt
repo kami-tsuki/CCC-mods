@@ -38,13 +38,17 @@ object Relay : DiscordFeature {
     private const val PING_GAP_MS = 3_000L
     private val recent = RateLimit<UUID>(5, 10_000L)
     private val incoming = RateLimit<UUID>(5, 10_000L)
+    private const val MENTION_GAP_MS = 60_000L
     private val pinged = HashMap<UUID, Long>()
+    private val mentioned = ConcurrentHashMap<UUID, Long>()
+    private const val MAX_SPOKE = 2000
     private val spoke = ConcurrentHashMap<UUID, Long>()
 
     fun lastMessage(id: UUID) = spoke[id] ?: 0L
 
     private fun traffic(key: String, id: UUID) {
         spoke[id] = System.currentTimeMillis()
+        if (spoke.size > MAX_SPOKE) spoke.entries.minByOrNull { it.value }?.let { spoke.remove(it.key) }
         Stats.add(key, "p:$id")
     }
 
@@ -55,7 +59,7 @@ object Relay : DiscordFeature {
         if (!d.enabled || !d.chat.toDiscord || !recent.allow(p.uuid)) return
         traffic("discord.out", p.uuid)
         val ids = LinkedHashSet<Long>()
-        val out = Templates.outsideCode(text) { part, _ -> resolve(part, ids) }
+        val out = Templates.outsideCode(text) { part, _ -> resolve(part.replace("](", "]\\("), ids) }
         DiscordApi.chat(Post(Templates.fill(d.templates.username, values(p)), Avatars.of(p.uuid), out, ids)) { sent[it] = p.uuid }
     }
 
@@ -65,6 +69,7 @@ object Relay : DiscordFeature {
         recent.forget(p.uuid)
         incoming.forget(p.uuid)
         pinged.remove(p.uuid)
+        mentioned.remove(p.uuid)
         feed(Config.s.discord.events.leave, Config.s.discord.templates.leave, Theme.MUTED, p)
     }
 
@@ -108,8 +113,9 @@ object Relay : DiscordFeature {
     private fun resolve(part: String, ids: MutableSet<Long>) = mention.replace(part) { m ->
         val found = Links.byName(m.groupValues[1])
         val link = found.singleOrNull() ?: found.firstOrNull { online(it) }
-        if (link != null && (link.discordId in ids || ids.size < MAX_MENTIONS)) {
-            ids += link.discordId
+        val now = System.currentTimeMillis()
+        if (link != null && !Store[Flag.QUIET_DISCORD, link.id] && (link.discordId in ids || ids.size < MAX_MENTIONS && now - (mentioned[link.id] ?: 0L) >= MENTION_GAP_MS)) {
+            if (ids.add(link.discordId)) mentioned[link.id] = now
             "<@${link.discordId}>"
         } else m.value
     }
@@ -119,8 +125,8 @@ object Relay : DiscordFeature {
     private fun feed(on: Boolean, template: String, color: Int, p: ServerPlayer, vararg extra: Pair<String, String>) {
         if (!Config.s.discord.enabled || !on) return
         val name = p.gameProfile.name
-        val coded = values(p).mapValues { (k, v) -> if (k == "uuid") v else Templates.code(v) } + extra.map { (k, v) -> k to if (k == "message") v.replace(name, Templates.code(name)) else v }
-        DiscordApi.event(Embed(Templates.fill(template, coded), color, Avatars.of(p.uuid), name))
+        val shown = values(p) + extra.map { (k, v) -> k to if (k == "message") v.replace(name, Templates.player(name)) else v }
+        DiscordApi.event(Embed(Templates.fillCoded(template, shown, extra.mapTo(mutableSetOf("uuid")) { it.first }), color, Avatars.of(p.uuid), name))
     }
 
     private fun values(p: ServerPlayer) = mapOf(

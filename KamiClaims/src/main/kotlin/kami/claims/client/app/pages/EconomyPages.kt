@@ -1,11 +1,13 @@
 package kami.claims.client.app.pages
 
+import kami.libs.ui.core.Memo
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ClaimsPage
 import kami.claims.client.app.Dialogs
 import kami.claims.client.app.Illustrations
 import kami.claims.client.app.Vocabulary
 import kami.claims.client.store.ClaimsStore
+import kami.libs.text.SearchQuery
 import kami.claims.net.LedgerLine
 import kami.libs.ui.app.Callout
 import kami.libs.ui.app.Route
@@ -31,18 +33,18 @@ class BudgetPage(app: ClaimsApp) : ClaimsPage(app) {
     override val title get() = tr("kami_claims.nav.budget")
     override val sections = listOf("history")
     override val help get() = listOf(
-        Callout("budget:income", tr("kami_claims.budget.income"), tr("kami_claims.budget.help.income")),
+        Callout("budget:income", tr("kami_libs.common.income"), tr("kami_claims.budget.help.income")),
         Callout("budget:spending", tr("kami_claims.budget.spending"), tr("kami_claims.budget.help.spending")),
         Callout("budget:forecast", tr("kami_claims.budget.forecast"), tr("kami_claims.budget.help.forecast")),
         Callout("budget:whatif", tr("kami_claims.budget.whatif"), tr("kami_claims.budget.help.whatif"))
     )
     private var whatIfTax = -1
 
-    override fun actionsWidth() = buttonWidth(tr("kami_claims.money.deposit"), Icons.DEPOSIT) + buttonWidth(tr("kami_libs.common.withdraw"), Icons.WITHDRAW) + 4
+    override fun actionsWidth() = buttonWidth(tr("kami_libs.common.deposit"), Icons.DEPOSIT) + buttonWidth(tr("kami_libs.common.withdraw"), Icons.WITHDRAW) + 4
 
     override fun actions(ui: Ui, r: Rect) {
         val row = Row(r)
-        if (ui.edgeButton(row, tr("kami_claims.money.deposit"), Icons.DEPOSIT, ButtonStyle.PRIMARY, key = "b-dep")) Dialogs.money(app, true)
+        if (ui.edgeButton(row, tr("kami_libs.common.deposit"), Icons.DEPOSIT, ButtonStyle.PRIMARY, key = "b-dep")) Dialogs.money(app, true)
         if (ui.edgeButton(row, tr("kami_libs.common.withdraw"), Icons.WITHDRAW, enabled = can("withdraw"), disabledReason = lock("withdraw"), key = "b-wd")) Dialogs.money(app, false)
     }
 
@@ -64,9 +66,9 @@ class BudgetPage(app: ClaimsApp) : ClaimsPage(app) {
         val lf = Flow(left, 6)
         val inc = lf.take(24 + 2 * (TABLE_ROW_H + 1) + info.provinces.size * 11)
         ui.anchor("budget:income", inc)
-        val ib = ui.card(inc, tr("kami_claims.budget.income"), Icons.INCOME)
+        val ib = ui.card(inc, tr("kami_libs.common.income"), Icons.INCOME)
         val fi = Flow(ib, 1)
-        line(ui, fi.take(TABLE_ROW_H), Icons.HOUSE, tr("kami_claims.ledger.plot_tax"), tr("kami_claims.budget.plot_tax.detail", trn("kami_claims.unit.plot", info.claimList.count { it.owner.isNotEmpty() }), Format.money(info.citizenRent.toLong())), info.income, Palette.success)
+        line(ui, fi.take(TABLE_ROW_H), Icons.HOUSE, tr("kami_claims.ledger.plot_tax"), tr("kami_libs.format.times", trn("kami_claims.unit.plot", info.claimList.count { it.owner.isNotEmpty() }), Format.money(info.citizenRent.toLong())), info.income, Palette.success)
         line(ui, fi.take(TABLE_ROW_H), Icons.CHAIN, tr("kami_claims.ledger.tribute_in"), trn("kami_claims.unit.province", info.provinces.size), tributeIn, Palette.success)
         info.provinces.forEach { p -> sub(ui, fi.take(10), p.name, Vocabulary.tribute(p.mode, p.amount), Vocabulary.tributeEstimate(p.mode, p.amount, p.income)) }
         val spend = lf.take(24 + 3 * (TABLE_ROW_H + 1) + info.breakdown.size * 11)
@@ -97,10 +99,10 @@ class BudgetPage(app: ClaimsApp) : ClaimsPage(app) {
         val recent = loaded.orEmpty().takeLast(30)
         val history = recent.map { it.treasury }
         if (loaded == null) ui.skeleton(fb.dropBottom(12))
-        else ui.lineChart(fb.dropBottom(12), listOf(Series(tr("kami_claims.kpi.treasury"), history + info.treasury + forecast(info.treasury, net, 30), Palette.money, true, history.size)),
-            recent.map { tr("kami_claims.chart.day", Format.number(it.day)) } + tr("kami_claims.chart.today") + List(30) { tr("kami_libs.time.in", Format.days(it + 1L)) }, key = "forecast")
+        else ui.lineChart(fb.dropBottom(12), listOf(Series(tr("kami_libs.flow.treasury"), history + info.treasury + forecast(info.treasury, net, 30), Palette.money, true, history.size)),
+            recent.map { tr("kami_claims.chart.day", Format.number(it.day)) } + tr("kami_libs.common.today") + List(30) { tr("kami_libs.time.in", Format.days(it + 1L)) }, key = "forecast")
         val summary = if (net >= 0) tr("kami_claims.budget.forecast.grows", Format.money(net * 30)) else tr("kami_claims.budget.forecast.empty", Format.days(info.treasury / -net))
-        Draw.text(ui.g, Draw.fit(summary, fb.w), fb.x, fb.bottom - 9, if (net >= 0) Palette.success else Palette.warning)
+        ui.fitText(fb.x, fb.bottom - 9, fb.w, summary, if (net >= 0) Palette.success else Palette.warning)
         val flows = rf.remaining()
         val flowBody = ui.card(flows, tr("kami_claims.budget.flows"), Icons.SCALES, help = tr("kami_claims.budget.flows.help"))
         val days = loaded.orEmpty().takeLast(20)
@@ -112,41 +114,58 @@ class BudgetPage(app: ClaimsApp) : ClaimsPage(app) {
         val y = r.y + 3
         val labelW = Draw.width(label, TextStyle.HEADING)
         Draw.text(ui.g, label, x, y, TextStyle.HEADING)
-        Draw.text(ui.g, Draw.fit(detail, r.right - x - labelW - 74), x + labelW + 4, y, Palette.textMuted)
+        ui.fitText(x + labelW + 4, y, r.right - x - labelW - 74, detail, Palette.textMuted)
         Draw.textRight(ui.g, Format.money(amount), r.right, y, color = color)
     }
 
     private fun sub(ui: Ui, r: Rect, label: String, detail: String, amount: Long, color: Int = Palette.textSecondary) {
         Draw.fill(ui.g, Rect(r.x + 5, r.y + 3, 3, 3), color)
-        Draw.text(ui.g, Draw.fit("$label  ·  $detail", r.w - 86), r.x + 16, r.y, Palette.textSecondary)
+        ui.fitText(r.x + 16, r.y, r.w - 86, "$label  ·  $detail", Palette.textSecondary)
         Draw.textRight(ui.g, Format.number(amount), r.right, r.y, Palette.textMuted)
     }
 
 }
 
 class LedgerPage(app: ClaimsApp) : ClaimsPage(app) {
+    private val ledgerColumns = Memo()
+    private val ledgerFlows = Memo()
+    private val ledgerKinds = Memo()
     override val title get() = tr("kami_claims.nav.ledger")
     override val sections = listOf(ClaimsStore.LEDGER)
     override val help get() = listOf(
-        Callout("ledger:filters", tr("kami_claims.ledger.help.filter"), tr("kami_claims.ledger.help.filter.desc")),
+        Callout("ledger:filters", tr("kami_libs.common.filter"), tr("kami_claims.ledger.help.filter.desc")),
         Callout("ledger:table", tr("kami_claims.ledger.help.table"), tr("kami_claims.ledger.help.table.desc"))
     )
     private val table = TableState<LedgerLine>()
     private var kind = "all"
+    private var flow = "all"
+    private val search = TextState()
 
     override fun draw(ui: Ui, r: Rect) {
         val ledger = ClaimsStore.ledger
         var rows: List<LedgerLine> = emptyList()
         val tableRect = ui.filterBar(r, "ledger:filters") { bar ->
-            rows = ui.filtered("ledger-filtered", listOf(kind, ledger)) { ledger.orEmpty().filter { kind == "all" || it.kind == kind } }
-            val options = listOf(Option("all", tr("kami_claims.ledger.all"), Icons.LEDGER)) + Vocabulary.ledger.map { (k, look) -> Option(k, look.label, look.icon, look.description) }
-            ui.select(bar.left(160), options, kind, key = "ledger-kind")?.let { kind = it }
+            rows = ui.filtered("ledger-filtered", listOf(kind, flow, search.text, ledger)) {
+                val q = SearchQuery.parse(search.text)
+                ledger.orEmpty().filter { (kind == "all" || it.kind == kind) && (flow == "all" || (flow == "in") == (it.amount > 0)) && q.matches(it.actor, noteLabel(it.note)) }
+            }
+            val row = Row(bar, 6)
+            val copy = row.takeFromRight(CONTROL_H)
             val totalIn = rows.filter { it.amount > 0 }.sumOf { it.amount }
             val totalOut = rows.filter { it.amount < 0 }.sumOf { it.amount }
-            Draw.text(ui.g, trn("kami_claims.unit.entry", rows.size), bar.x + 168, bar.y + 5, Palette.textMuted)
-            ui.moneyRight(bar.right - 130, bar.y + 5, totalIn, signed = true)
-            ui.moneyRight(bar.right - 40, bar.y + 5, totalOut, signed = true)
-            if (ui.iconButton(Rect(bar.right - CONTROL_H, bar.y, CONTROL_H, CONTROL_H), Icons.COPY, tr("kami_claims.ledger.copy.tooltip"), key = "ledger-copy")) {
+            val inW = moneyWidth(totalIn, true)
+            val outW = moneyWidth(totalOut, true)
+            val count = trn("kami_claims.unit.entry", rows.size)
+            if (row.rest.w >= 460 + inW + outW) {
+                ui.moneyRight(row.takeFromRight(outW).right, bar.y + 5, totalOut, signed = true)
+                ui.moneyRight(row.takeFromRight(inW).right, bar.y + 5, totalIn, signed = true)
+            }
+            if (row.rest.w >= 420 + Draw.width(count)) Draw.text(ui.g, count, row.takeFromRight(Draw.width(count)).x, bar.y + 5, Palette.textMuted)
+            val options = ledgerKinds.of(Format.locale) { listOf(Option("all", tr("kami_claims.ledger.all"), Icons.LEDGER)) + Vocabulary.ledger.map { (k, look) -> Option(k, look.label, look.icon, look.description) } }
+            ui.select(row.take(150), options, kind, key = "ledger-kind")?.let { kind = it }
+            if (row.rest.w >= 230) ui.select(row.take(100), ledgerFlows.of(Format.locale) { listOf(Option("all", tr("kami_libs.common.all")), Option("in", tr("kami_libs.common.income"), Icons.INCOME), Option("out", tr("kami_claims.budget.spending"), Icons.EXPENSE)) }, flow, key = "ledger-flow")?.let { flow = it }
+            ui.searchField(row.rest, search, key = "ledger-search")
+            if (ui.iconButton(copy, Icons.COPY, tr("kami_claims.ledger.copy.tooltip"), key = "ledger-copy")) {
                 Minecraft.getInstance().keyboardHandler.clipboard = rows.joinToString("\n") { "${Format.exact(it.at)}\t${Vocabulary.ledger(it.kind).label}\t${it.amount}\t${it.balance}\t${it.actor}\t${it.note}" }
                 app.toast(Severity.SUCCESS, tr("kami_claims.ledger.copied"), trn("kami_claims.unit.line", rows.size))
             }
@@ -154,22 +173,24 @@ class LedgerPage(app: ClaimsApp) : ClaimsPage(app) {
         ui.anchor("ledger:table", tableRect)
         if (ledger == null) return ui.skeletonTable(tableRect, 5, skeletonRowCount(tableRect.h - TABLE_HEADER_H))
         if (ledger.isEmpty() && !stale(ClaimsStore.LEDGER)) {
-            ui.emptyState(tableRect, tr("kami_claims.ledger.empty.title"), tr("kami_claims.ledger.empty.desc"), Illustrations.TREASURY)
+            ui.emptyState(tableRect, tr("kami_libs.table.empty"), tr("kami_claims.ledger.empty.desc"), Illustrations.TREASURY)
             return
         }
-        ui.table(tableRect, listOf(
-            Column<LedgerLine>(tr("kami_claims.ledger.col.when"), 70, sort = compareBy { it.at }) { _, c, e -> Draw.text(g, Format.ago(e.at), c.x, c.y + 3, Palette.textMuted); tooltip("at:${e.at}", c, Format.exact(e.at)) },
-            Column<LedgerLine>(tr("kami_claims.ledger.col.kind"), 110, sort = compareBy { it.kind }) { _, c, e -> val look = Vocabulary.ledger(e.kind); val x = c.x + Draw.leadIcon(g, look.icon, c.x, c.centerY) + 2; Draw.text(g, Draw.fit(look.label, c.right - x), x, c.y + 3, Palette.text) },
-            Column.text<LedgerLine>(tr("kami_claims.ledger.col.details"), -1, sortable = false) { e -> listOf(e.actor, noteLabel(e.note)).filter { it.isNotEmpty() }.joinToString(" · ") },
-            Column<LedgerLine>(tr("kami_claims.ledger.col.amount"), 70, Align.RIGHT, compareBy { it.amount }) { _, c, e -> moneyRight(c.right, c.y + 3, e.amount, signed = true) },
-            Column<LedgerLine>(tr("kami_claims.ledger.col.balance"), 80, Align.RIGHT, compareBy { it.balance }) { _, c, e -> moneyRight(c.right, c.y + 3, e.balance) }
-        ), rows, table, { "${it.at}${it.kind}${it.amount}" }, emptyText = tr("kami_claims.ledger.empty.filtered"), loading = stale(ClaimsStore.LEDGER))
+        ui.table(tableRect, ledgerColumns.of(Format.locale) { listOf(
+            Column<LedgerLine>(tr("kami_libs.common.when"), 70, sort = compareBy { it.at }) { _, c, e -> Draw.text(g, Format.ago(e.at), c.x, c.y + 3, Palette.textMuted); tooltip("at:${e.at}", c, Format.exact(e.at)) },
+            Column<LedgerLine>(tr("kami_libs.common.type"), 110, sort = compareBy { it.kind }) { _, c, e -> val look = Vocabulary.ledger(e.kind); val x = c.x + Draw.leadIcon(g, look.icon, c.x, c.centerY) + 2; fitText(x, c.y + 3, c.right - x, look.label, Palette.text, key = "lg:${e.kind}:${c.y}") },
+            Column<LedgerLine>(tr("kami_libs.common.details"), -1) { _, c, e -> fitText(c.x, c.y + 3, c.w, listOf(e.actor, noteLabel(e.note)).filter { it.isNotEmpty() }.joinToString(" · ")) },
+            Column<LedgerLine>(tr("kami_libs.common.amount"), 70, Align.RIGHT, compareBy { it.amount }) { _, c, e -> moneyRight(c.right, c.y + 3, e.amount, signed = true) },
+            Column<LedgerLine>(tr("kami_libs.common.balance"), 80, Align.RIGHT, compareBy { it.balance }) { _, c, e -> moneyRight(c.right, c.y + 3, e.balance) }
+        ) }, rows, table, { "${it.at}|${it.kind}|${it.amount}|${it.balance}|${it.actor}" }, emptyText = tr("kami_libs.table.empty"), loading = stale(ClaimsStore.LEDGER))
         ui.staleRows(tableRect, stale(ClaimsStore.LEDGER))
     }
 }
 
 class StatisticsPage(app: ClaimsApp) : ClaimsPage(app) {
-    override val title get() = tr("kami_claims.nav.statistics")
+    private val rangeOptions = Memo()
+    private val statTabs = Memo()
+    override val title get() = tr("kami_libs.common.statistics")
     override val sections = listOf("history")
     override val help get() = listOf(
         Callout("stats:range", tr("kami_claims.stats.help.range"), tr("kami_claims.stats.help.range.desc")),
@@ -180,10 +201,10 @@ class StatisticsPage(app: ClaimsApp) : ClaimsPage(app) {
 
     override fun draw(ui: Ui, r: Rect) {
         val tabs = r.top(CONTROL_H)
-        ui.subTabs(tabs.dropRight(170), listOf(TabItem(tr("kami_claims.kpi.treasury"), Icons.TREASURY), TabItem(tr("kami_claims.stats.tab.flows"), Icons.SCALES), TabItem(tr("kami_claims.nav.group.territory"), Icons.AREA), TabItem(tr("kami_claims.stats.tab.population"), Icons.PEOPLE)), tab, "stat-tabs")?.let { tab = it }
+        ui.subTabs(tabs.dropRight(170), statTabs.of(Format.locale) { listOf(TabItem(tr("kami_libs.flow.treasury"), Icons.TREASURY), TabItem(tr("kami_claims.stats.tab.flows"), Icons.SCALES), TabItem(tr("kami_claims.nav.group.territory"), Icons.AREA), TabItem(tr("kami_claims.stats.tab.population"), Icons.PEOPLE)) }, tab, "stat-tabs")?.let { tab = it }
         val rangeRect = tabs.right(160)
         ui.anchor("stats:range", rangeRect)
-        ui.segmented(rangeRect, listOf(7, 30, 90).map { Option(it, Format.days(it.toLong())) }, range, key = "range")?.let { range = it }
+        ui.segmented(rangeRect, rangeOptions.of(Format.locale) { listOf(7, 30, 90).map { Option(it, Format.days(it.toLong())) } }, range, key = "range")?.let { range = it }
         val loaded = ClaimsStore.history
         val days = loaded.orEmpty().takeLast(range)
         val area = r.dropTop(CONTROL_H + 6)
@@ -201,7 +222,7 @@ class StatisticsPage(app: ClaimsApp) : ClaimsPage(app) {
         val chart = area.dropBottom(58, 6)
         val insight = area.bottom(58)
         when (tab) {
-            0 -> ui.lineChart(chart, listOf(Series(tr("kami_claims.kpi.treasury"), days.map { it.treasury }, Palette.money, true)), labels, key = "s-treasury")
+            0 -> ui.lineChart(chart, listOf(Series(tr("kami_libs.flow.treasury"), days.map { it.treasury }, Palette.money, true)), labels, key = "s-treasury")
             1 -> ui.lineChart(chart, listOf(
                 Series(tr("kami_claims.ledger.plot_tax"), days.map { it.income }, Palette.success), Series(tr("kami_claims.ledger.tribute_in"), days.map { it.tributeIn }, Palette.geoProvince),
                 Series(tr("kami_claims.ledger.upkeep"), days.map { it.upkeep }, Palette.danger), Series(tr("kami_claims.ledger.job_pay"), days.map { it.jobs }, Palette.warning)
@@ -217,7 +238,7 @@ class StatisticsPage(app: ClaimsApp) : ClaimsPage(app) {
             tr("kami_claims.stats.insight.flows", change(first.upkeep, last.upkeep), change(first.income, last.income)),
             tr("kami_claims.stats.insight.people", change(first.chunks.toLong(), last.chunks.toLong()), change(first.members.toLong(), last.members.toLong()))
         )
-        lines.forEachIndexed { i, s -> Draw.text(ui.g, Draw.fit(s, card.w), card.x, card.y + i * 11, Palette.textSecondary) }
+        lines.forEachIndexed { i, s -> ui.fitText(card.x, card.y + i * 11, card.w, s, Palette.textSecondary, key = "econ-line$i") }
     }
 
     private fun change(a: Long, b: Long): String {

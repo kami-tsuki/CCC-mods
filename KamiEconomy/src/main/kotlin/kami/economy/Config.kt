@@ -1,5 +1,6 @@
 package kami.economy
 
+import kami.libs.claims.Boost
 import kami.libs.config.ConfigModule
 import kami.libs.config.Section
 import kami.libs.util.Time.DAY_MS
@@ -21,6 +22,64 @@ data class StarterGood(
         }
     }
 }
+
+@Serializable
+data class BoostRange(val minPct: Int, val maxPct: Int, val minHours: Int, val maxHours: Int)
+
+@Serializable
+data class QuestSettings(
+    val enabled: Boolean = true,
+    val namespaces: List<String> = listOf("minecraft", "farmersdelight", "croptopia", "createfood", "*delight*"),
+    val seed: Int = 0,
+    val minGapMinutes: Int = 60,
+    val maxGapMinutes: Int = 120,
+    val maxActive: Int = 5,
+    val hours: List<Int> = listOf(6, 12, 24, 48, 96),
+    val pityHours: List<List<Int>> = listOf(listOf(14, 44), listOf(150, 250), listOf(690, 990)),
+    val uncommonShare: Double = 0.3,
+    val minTier: List<Int> = listOf(1, 1, 2, 3, 4),
+    val amounts: List<List<Int>> = listOf(listOf(128, 512), listOf(512, 2048), listOf(2048, 8192), listOf(8192, 32768), listOf(32768, 131072)),
+    val minusShare: Double = 0.25,
+    val minusMax: Double = 0.45,
+    val offsetMean: Double = 0.25,
+    val offsetSpread: Double = 0.08,
+    val offsetMin: Double = 0.05,
+    val offsetMax: Double = 0.5,
+    val cooldownDays: Double = 3.0,
+    val bankFloor: Long = -1_000_000,
+    val research: List<BoostRange> = listOf(BoostRange(5, 10, 1, 3), BoostRange(5, 15, 1, 5), BoostRange(10, 20, 2, 10), BoostRange(20, 30, 5, 10), BoostRange(25, 50, 6, 12)),
+    val xp: List<BoostRange> = listOf(BoostRange(10, 20, 1, 3), BoostRange(10, 30, 2, 5), BoostRange(20, 50, 4, 8), BoostRange(40, 80, 6, 12), BoostRange(50, 100, 10, 20))
+) {
+    fun sane(): QuestSettings {
+        fun five(l: List<Int>, d: List<Int>) = if (l.size == 5 && l.all { it >= 0 }) l else d
+        val d = QuestSettings()
+        return copy(
+            minGapMinutes = minGapMinutes.coerceIn(1, 1440),
+            maxGapMinutes = maxGapMinutes.coerceIn(minGapMinutes.coerceIn(1, 1440), 2880),
+            maxActive = maxActive.coerceIn(0, 20),
+            hours = five(hours, d.hours).map { it.coerceIn(1, MAX_HOURS) },
+            pityHours = pityHours.takeIf { p -> p.size == 3 && p.all { it.size == 2 && it[0] in 1..it[1] } } ?: d.pityHours,
+            uncommonShare = uncommonShare.coerceIn(0.0, 1.0),
+            minTier = five(minTier, d.minTier).map { it.coerceIn(1, 5) },
+            amounts = amounts.takeIf { a -> a.size == 5 && a.all { it.size == 2 && it[0] in 1..it[1] } } ?: d.amounts,
+            minusShare = minusShare.coerceIn(0.0, 1.0),
+            minusMax = minusMax.coerceIn(0.0, 1.0),
+            offsetMin = offsetMin.coerceIn(0.0, 0.9),
+            offsetMax = offsetMax.coerceIn(offsetMin.coerceIn(0.0, 0.9), 0.9),
+            offsetMean = offsetMean.coerceIn(0.0, 0.9),
+            offsetSpread = offsetSpread.coerceIn(0.0, 0.5),
+            cooldownDays = cooldownDays.coerceIn(0.0, 90.0),
+            research = research.takeIf { it.size == 5 && it.all(BoostRange::valid) } ?: d.research,
+            xp = xp.takeIf { it.size == 5 && it.all(BoostRange::valid) } ?: d.xp
+        )
+    }
+
+    companion object {
+        const val MAX_HOURS = 720
+    }
+}
+
+private fun BoostRange.valid() = minPct in 1..maxPct && maxPct <= Boost.MAX_PCT && minHours in 1..maxHours && maxHours <= Boost.MAX_HOURS
 
 @Serializable
 data class Settings(
@@ -65,7 +124,9 @@ data class Settings(
     val discordItemCooldownMinutes: Int = 60,
     val discordDigestHours: Int = 6,
     val discordAlertCooldownMinutes: Int = 60,
-    val discordItemIconUrl: String = ""
+    val discordItemIconUrl: String = "",
+
+    val quests: QuestSettings = QuestSettings()
 ) {
     val storageItemSet: Set<String> by lazy { storageItemIds.toHashSet() }
     val creativeItemSet: Set<String> by lazy { creativeItemIds.toHashSet() }
@@ -100,64 +161,91 @@ internal fun Settings.sane(): Settings = copy(
     courseClip = courseClip.coerceIn(0.01, 1.0),
     priceDeltaThresholdPct = priceDeltaThresholdPct.coerceIn(0.0, 1.0),
     auctionCheckIntervalTicks = auctionCheckIntervalTicks.coerceAtLeast(20),
+    quests = quests.sane(),
     starterGoods = starterGoods.map { it.normalized() }.filter { g -> g.valid().also { ok -> if (!ok) LOG.warn("Dropped invalid starter good {}", g.item) } }
 )
 
 private val sections = listOf(
     Section(
-        "market.json", "Market prices and the sales tax. Prices are in spurs.",
+        "market.json", "Market prices and sales tax (spurs).",
         mapOf(
-            "marketTickInterval" to "Ticks between two price updates. 1200 is one minute.",
-            "priceDeltaThresholdPct" to "Smallest price change, 0 to 1, that gets sent to players right away.",
-            "sellTaxPct" to "Tax taken from every market sale, 0 to 0.9.",
-            "allyTaxRate" to "Tax on player trades between allied countries or one country family, 0 to 0.9.",
-            "maxPrice" to "Highest price per lot a player may ask or bid.",
-            "maxAmount" to "Most items one player may buy or sell in one trade.",
-            "marketSlots" to "Active sell and buy orders one player may hold when no country raises the limit.",
-            "lots" to "Items per lot by item id, default 1. Prices are per lot and trades move whole lots."
+            "marketTickInterval" to "Ticks between price updates (1200 = 1 min).",
+            "priceDeltaThresholdPct" to "Smallest price change (0-1) pushed to players at once.",
+            "sellTaxPct" to "Sales tax, 0-0.9.",
+            "allyTaxRate" to "Tax between allied countries or one family, 0-0.9.",
+            "maxPrice" to "Max price per lot.",
+            "maxAmount" to "Max items per trade.",
+            "marketSlots" to "Order slots per player (without country bonus).",
+            "lots" to "Items per lot by item id (default 1). Prices are per lot."
         )
     ),
     Section(
         "auctions.json", "The auction house for unique items.",
         mapOf(
-            "auctionSlots" to "Active auctions one player may hold when no country raises the limit.",
-            "auctionFeePct" to "Fee taken from a finished auction, 0 to 0.9.",
-            "auctionDurationMillis" to "How long an auction runs in milliseconds. 259200000 is three days.",
-            "auctionCheckIntervalTicks" to "Ticks between two checks for finished auctions."
+            "auctionSlots" to "Auction slots per player (without country bonus).",
+            "auctionFeePct" to "Auction fee, 0-0.9.",
+            "auctionDurationMillis" to "Auction length in ms (259200000 = 3 days).",
+            "auctionCheckIntervalTicks" to "Ticks between auction-end checks."
         )
     ),
     Section(
-        "starter-items.json", "Basic goods the market buys and sells from its own stock, so new players can earn their first coins.",
+        "starter-items.json", "Goods the market buys and sells from its own stock, so new players can earn first coins.",
         mapOf(
-            "starterGoods" to "Item id or #tag with base price per lot, lot size, depth in lots (how strongly a trade moves the course), supply and demand in lots (-1 = infinite; supply 0 = nothing to buy, demand 0 = nothing bought; demand also grows when players buy from the server), optional floor and ceiling price, optional spread, sellCap (lots per player in 24 hours the market buys, 0 = unlimited) and resell (false = lots the market buys are not added to its supply).",
-            "catalog" to "Last bundled starter catalog merged into starterGoods. Goods you remove stay removed.",
-            "serverSpread" to "Share the market adds to the course when it sells and takes off when it buys, 0 to 0.5.",
-            "courseDepth" to "Depth in lots for the course of items that are not starter goods.",
-            "courseClip" to "Most a single player trade may pull the course from its current value, 0.01 to 1."
+            "starterGoods" to "Item id or #tag with base (price per lot), lot, depth, supply, demand (lots, -1 = infinite), optional floor, ceiling, spread, sellCap (lots per player per 24h, 0 = unlimited), resell (false = bought lots are not restocked).",
+            "catalog" to "Starter catalog version already merged. Removed goods stay removed.",
+            "serverSpread" to "Spread the market adds when selling and subtracts when buying, 0-0.5.",
+            "courseDepth" to "Depth in lots for non-starter items.",
+            "courseClip" to "Max course pull of one trade, 0.01-1."
         )
     ),
     Section(
-        "blocked-items.json", "Items kept out of the market. Coins from library/coins.json are always blocked.",
+        "quests.json", "Timed server buy orders for food, paid tax-free from the server bank, plus a country boost.",
+        mapOf(
+            "quests.enabled" to "Spawn new quests.",
+            "quests.namespaces" to "Namespaces whose food can become quests and gets a seeded course. * = wildcard.",
+            "quests.seed" to "Last recipe seeding. Set 0 to seed new dishes on next start.",
+            "quests.minGapMinutes" to "Min minutes between quest spawns.",
+            "quests.maxGapMinutes" to "Max minutes between quest spawns.",
+            "quests.maxActive" to "Max open quests.",
+            "quests.hours" to "Hours per rarity (common to legendary).",
+            "quests.pityHours" to "[min, max] hours since last rare/mythic/legendary. Impossible before min, certain at max.",
+            "quests.uncommonShare" to "Uncommon share of common+uncommon spawns, 0-1.",
+            "quests.minTier" to "Lowest tier (1-5) per rarity.",
+            "quests.amounts" to "[min, max] items per rarity for tier 1; each tier halves it.",
+            "quests.minusShare" to "Base share priced below course, 0-1. Overdemand raises it to minusMax.",
+            "quests.minusMax" to "Max share priced below course.",
+            "quests.offsetMean" to "Typical offset from course (0.25 = 25%).",
+            "quests.offsetSpread" to "Random spread around offsetMean.",
+            "quests.offsetMin" to "Min offset.",
+            "quests.offsetMax" to "Max offset.",
+            "quests.cooldownDays" to "Days until a used item is fully likely again.",
+            "quests.bankFloor" to "Minimum server bank balance after a quest payout; the amount shrinks or the spawn is skipped.",
+            "quests.research" to "Research boost per rarity: minPct, maxPct (5% steps), minHours, maxHours.",
+            "quests.xp" to "Country XP boost per rarity: minPct, maxPct (10% steps), minHours, maxHours."
+        )
+    ),
+    Section(
+        "blocked-items.json", "Items kept out of the market. library/coins.json coins are always blocked.",
         mapOf(
             "creativeItemIds" to "Items that can never be traded.",
-            "storageItemIds" to "Containers that may only be sold at the auction house."
+            "storageItemIds" to "Containers sold only at auction."
         )
     ),
     Section(
         "general.json", "Price history, GUI and vendor settings.",
         mapOf(
-            "historyFiveMinRetention" to "Five-minute price points kept per item. 288 is 1 day.",
-            "historyHourlyRetention" to "Hourly price points kept per item. 720 is 30 days.",
-            "historyDailyRetention" to "Daily price points kept per item.",
-            "listLimit" to "Most rows of one list sent to a player, 20 to 2000.",
-            "guiCooldown" to "Ticks between two GUI actions of one player.",
-            "allowCreativeVendors" to "Allow the creative vendor block from Numismatics.",
-            "levelLocks" to "Enforce the country level feature locks economy:auctions and economy:vendors. A feature no level reward mentions stays unlocked.",
-            "discordMoveThresholdPct" to "Price move in percent, since the last Discord post, that posts an item to the market channel and alerts watchers.",
-            "discordItemCooldownMinutes" to "Minutes before the same item may be posted to Discord again.",
-            "discordDigestHours" to "Hours between two market digests in the Discord market channel. 0 turns the digest off.",
-            "discordAlertCooldownMinutes" to "Minutes between two price alert direct messages to one player.",
-            "discordItemIconUrl" to "Optional https URL pattern for item icons in Discord embeds. {namespace} and {path} are replaced with the item id parts, e.g. https://example.com/icons/{namespace}/{path}.png. Empty shows no icons."
+            "historyFiveMinRetention" to "5-minute points kept per item (288 = 1 day).",
+            "historyHourlyRetention" to "Hourly points kept per item (720 = 30 days).",
+            "historyDailyRetention" to "Daily points kept per item.",
+            "listLimit" to "Max rows per list, 20-2000.",
+            "guiCooldown" to "Ticks between GUI actions per player.",
+            "allowCreativeVendors" to "Allow the Numismatics creative vendor.",
+            "levelLocks" to "Enforce country-level locks economy:auctions and economy:vendors. Unmentioned features stay unlocked.",
+            "discordMoveThresholdPct" to "Price move (%) since the last Discord post that posts the item and alerts watchers.",
+            "discordItemCooldownMinutes" to "Minutes before an item may be posted to Discord again.",
+            "discordDigestHours" to "Hours between market digests. 0 = off.",
+            "discordAlertCooldownMinutes" to "Minutes between price-alert DMs per player.",
+            "discordItemIconUrl" to "Optional https icon URL with {namespace} and {path}, e.g. https://example.com/icons/{namespace}/{path}.png. Empty = no icons."
         )
     )
 )

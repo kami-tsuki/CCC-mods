@@ -50,6 +50,11 @@ abstract class KamiScreen(title: Component) : Screen(title) {
         return true
     }
 
+    override fun keyReleased(key: Int, scan: Int, mods: Int): Boolean {
+        ui.input.keyUp(key)
+        return super.keyReleased(key, scan, mods)
+    }
+
     override fun charTyped(c: Char, mods: Int): Boolean {
         ui.input.char(c)
         return true

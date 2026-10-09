@@ -14,7 +14,7 @@ object Tenure {
         "active" -> tr("kami_claims.home.state.active")
         "removed" -> tr("kami_claims.home.state.removed")
         MOVING -> tr("kami_claims.home.state.moving_out")
-        else -> tr("kami_claims.home.state.free")
+        else -> tr("kami_libs.common.free")
     }
 
     fun severity(state: String, debt: Long) = when {

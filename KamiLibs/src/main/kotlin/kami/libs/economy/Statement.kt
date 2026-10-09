@@ -9,7 +9,7 @@ import java.util.UUID
 enum class Flow {
     MARKET_BUY, MARKET_SELL, AUCTION_BUY, AUCTION_SELL, REFUND, FEE, RENT, WAGES, TREASURY, OTHER,
     SERVER_SALE, SERVER_PURCHASE, TAX, UPKEEP, CLAIM, RESEARCH, LOAN, REWARD, WAR, DISBAND, ADMIN, ROUNDING, RECOVERY,
-    COIN_DEPOSIT, COIN_WITHDRAW, VENDOR, UNEXPLAINED, TRANSFER;
+    COIN_DEPOSIT, COIN_WITHDRAW, VENDOR, UNEXPLAINED, TRANSFER, QUEST;
 
     companion object {
         fun named(name: String) = entries.firstOrNull { it.name == name } ?: OTHER
@@ -52,6 +52,7 @@ object Statement {
     private const val TRIM_EVERY = 25
     private val recorded = java.util.concurrent.ConcurrentHashMap<String, Int>()
 
+
     const val NOTE = "note:"
 
     fun note(key: String, vararg args: Any) = if (key.isEmpty()) "" else NOTE + (listOf(key) + args.map { it.toString().replace("|", "/") }).joinToString("|")
@@ -90,23 +91,22 @@ object Statement {
         days.map { d -> one("SELECT TOTAL(income - expense) v FROM libs_statement_day WHERE player = ? AND day > ?", id, today - d) { it.long("v") } ?: 0L }
     }
 
-    fun totals(player: UUID, days: Int): List<FlowTotal> = totals(movements(player), System.currentTimeMillis(), days)
+    fun totals(player: UUID, days: Int): List<FlowTotal> = Db.read { totals(PlayerParty(player).key, System.currentTimeMillis(), days) }
 
     class Book(val movements: List<Movement>, val days: List<DayTotal>, val week: List<FlowTotal>, val month: List<FlowTotal>)
 
     fun book(player: UUID): Book = Db.read {
         val id = player.toString()
-        val list = movements(id)
+        val key = PlayerParty(player).key
         val now = System.currentTimeMillis()
-        Book(list, days(id), totals(list, now, 7), totals(list, now, 30))
+        Book(movements(id), days(id), totals(key, now, 7), totals(key, now, 30))
     }
 
-    private fun totals(list: List<Movement>, now: Long, days: Int): List<FlowTotal> {
-        val since = now - days * DAY_MS
-        return list.filter { it.at >= since }.groupBy { it.flow }.map { (flow, l) ->
-            FlowTotal(flow, l.filter { it.amount > 0 }.sumOf { it.amount }, -l.filter { it.amount < 0 }.sumOf { it.amount })
-        }
-    }
+    private fun Session.totals(party: String, now: Long, days: Int): List<FlowTotal> =
+        query(
+            "SELECT flow, TOTAL(CASE WHEN delta > 0 THEN delta ELSE 0 END) AS i, TOTAL(CASE WHEN delta < 0 THEN -delta ELSE 0 END) AS e FROM libs_journal WHERE party = ? AND at >= ? AND flow NOT IN ('UNEXPLAINED', 'ROUNDING', 'RECOVERY') GROUP BY flow ORDER BY MAX(id) DESC",
+            party, now - days * DAY_MS
+        ) { FlowTotal(Flow.named(it.string("flow")), it.long("i"), it.long("e")) }
 
     internal fun Session.movements(player: String): List<Movement> =
         query("SELECT at, amount, flow, counterparty, item, qty FROM libs_statement WHERE player = ? ORDER BY id DESC LIMIT ?", player, MAX_MOVEMENTS) {

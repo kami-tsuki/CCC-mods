@@ -25,7 +25,6 @@ import kami.libs.admin.text
 import kami.libs.config.Configs
 import kami.libs.db.Db
 import kami.libs.mc.ItemSpec
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -43,11 +42,12 @@ object MarketAdmin {
 
     fun register() {
         AdminMetrics.register("kami_economy.metric.volume24h") { History.dayVolume() }
-        Admin.view("market.orders") { ctx, a -> encode(Page.serializer(OrderRow.serializer()), orders(ctx.player.server, a)) }
-        Admin.view("market.starter") { _, _ -> encode(StarterList.serializer(), starters()) }
-        Admin.view("market.watch") { _, _ -> encode(WatchStats.serializer(), watchStats()) }
-        Admin.view("market.frozen") { _, _ -> encode(ListSerializer(FrozenRow.serializer()), frozen()) }
-        Admin.view("market.status") { _, a -> encode(Page.serializer(StatusRow.serializer()), statuses(a)) }
+        QuestAdmin.register()
+        Admin.view("market.orders") { ctx, a -> Db.encode(Page.serializer(OrderRow.serializer()), orders(ctx.player.server, a)) }
+        Admin.view("market.starter") { _, _ -> Db.encode(StarterList.serializer(), starters()) }
+        Admin.view("market.watch") { _, _ -> Db.encode(WatchStats.serializer(), watchStats()) }
+        Admin.view("market.frozen") { _, _ -> Db.encode(ListSerializer(FrozenRow.serializer()), frozen()) }
+        Admin.view("market.status") { _, a -> Db.encode(Page.serializer(StatusRow.serializer()), statuses(a)) }
         Admin.act("market.cancel") { ctx, a -> cancel(ctx, a) }
         Admin.act("market.server_set") { ctx, a -> serverSet(ctx, a) }
         Admin.act("market.status_set") { ctx, a -> setStatus(ctx, a) }
@@ -157,10 +157,10 @@ object MarketAdmin {
     private fun serverSet(ctx: AdminCtx, a: List<String>): JsonObject {
         val key = a.text(0) ?: ctx.fail("kami_economy.admin.unknown_good", "")
         val items = Starters.items(key).ifEmpty { ctx.fail("kami_economy.admin.unknown_good", key) }
-        fun count(i: Int): Int? = a.text(i)?.let { if (it == "inf") -1 else it.toIntOrNull()?.takeIf { v -> v >= 0 } ?: ctx.fail("kami_economy.admin.invalid_good") }
+        fun count(i: Int): Int? = a.text(i)?.let { if (it == "inf") -1 else it.toIntOrNull()?.takeIf { v -> v in 0..1_000_000 } ?: ctx.fail("kami_economy.admin.invalid_good") }
         val supply = count(1)
         val demand = count(2)
-        val course = a.text(3)?.let { it.toDoubleOrNull()?.takeIf { v -> v > 0 } ?: ctx.fail("kami_economy.admin.invalid_good") }
+        val course = a.text(3)?.let { it.toDoubleOrNull()?.takeIf { v -> v.isFinite() && v > 0 && v <= Config.s.maxPrice.toDouble() * items.minOf { i -> Config.s.lotOf(i) } } ?: ctx.fail("kami_economy.admin.invalid_good") }
         fun state(item: String) = Stocks.stock(item)?.let { "supply=${it.supply},demand=${it.demand},course=${Stocks.course(item)}" }.orEmpty()
         val before = state(items.first())
         items.forEach { Stocks.set(it, supply, demand, course) }
@@ -169,7 +169,7 @@ object MarketAdmin {
     }
 
     private fun diff(key: String, before: StarterGood?, after: StarterGood?): JsonObject {
-        fun fields(g: StarterGood?) = g?.let { Db.json.encodeToJsonElement(StarterGood.serializer(), it).jsonObject }.orEmpty()
+        fun fields(g: StarterGood?) = g?.let { Db.encode(StarterGood.serializer(), it).jsonObject }.orEmpty()
         val old = fields(before)
         val new = fields(after)
         val changed = (old.keys + new.keys).filter { old[it] != new[it] }
@@ -178,6 +178,4 @@ object MarketAdmin {
     }
 
     private fun frozenId(ctx: AdminCtx, a: List<String>): Long = a.long(0) ?: ctx.fail("kami_economy.command.frozen.unknown", a.text(0).orEmpty())
-
-    private fun <T> encode(serializer: KSerializer<T>, value: T) = Db.json.encodeToJsonElement(serializer, value)
 }

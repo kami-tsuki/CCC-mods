@@ -1,12 +1,12 @@
 package kami.libs.discord
 
+import kami.libs.util.toUuidOrNull
 import kami.libs.db.Legacy
 import kami.libs.db.Migration
 import kami.libs.db.Row
 import kami.libs.db.Verify
 import kotlinx.serialization.builtins.ListSerializer
 import net.neoforged.fml.loading.FMLPaths
-import java.util.UUID
 
 internal object DiscordDb {
     private fun config(name: String) = runCatching { FMLPaths.CONFIGDIR.get().resolve(name).toAbsolutePath().toString() }.getOrNull()
@@ -25,7 +25,7 @@ internal object DiscordDb {
             .associateBy { it.uuid }.values.associateBy { it.discordId }.values.sortedBy { it.uuid }
         val now = System.currentTimeMillis()
         val codes = codeFile?.let { runCatching { Legacy.read(world, it, ListSerializer(StoredCode.serializer())) }.getOrNull() }.orEmpty()
-            .filter { it.expiresAt > now && runCatching { UUID.fromString(it.uuid) }.isSuccess }
+            .filter { it.expiresAt > now && it.uuid.toUuidOrNull() != null }
             .associateBy { it.code }.values.sortedBy { it.code }.take(500)
         batch("INSERT INTO libs_discord_link (uuid, name, discord_id, discord_name, linked_at) VALUES (?, ?, ?, ?, ?)", links.map { listOf(it.uuid, it.name, it.discordId, it.discordName, it.linkedAt) })
         batch("INSERT INTO libs_discord_code (code, uuid, name, expires_at) VALUES (?, ?, ?, ?)", codes.map { listOf(it.code, it.uuid, it.name, it.expiresAt) })

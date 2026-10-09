@@ -14,13 +14,17 @@ import net.minecraft.core.BlockPos
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.tags.BlockTags
 import net.minecraft.world.entity.player.Player
+import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.levelgen.Heightmap
 import java.util.UUID
 
 object Unstuck {
     private const val COOLDOWN_MS = 15 * 60_000L
+    private const val RETRY_MS = 30_000L
     private const val IDLE_MS = 60_000L
+    private const val DAMAGE_TICKS = 200
     private const val RADIUS = 4
     private const val SEARCH_CHUNKS = 32
     private const val LAST_USE = "kami_essentials_unstuck"
@@ -32,11 +36,16 @@ object Unstuck {
     fun use(p: ServerPlayer) {
         val left = left(p)
         if (left > 0) fail(Phrase.of("kami_essentials.unstuck.cooldown", duration((left + 59_999) / 60_000 * 60)))
+        val hurt = p.lastHurtByMobTimestamp
+        if (hurt != 0 && p.tickCount - hurt < DAMAGE_TICKS) fail(Phrase.of("kami_essentials.unstuck.cooldown", duration((DAMAGE_TICKS - (p.tickCount - hurt) + 19L) / 20)))
         val level = p.serverLevel()
         val here = ClaimsApi.countryAt(level, p.blockPosition())
         val own = ClaimsApi.countryOf(p.uuid)
         if (here != null && here == own) fail(Phrase.of("kami_essentials.unstuck.own"))
-        val target = (if (here != null) outside(level, p, here, own) else up(level, p.blockPosition())) ?: fail(Phrase.of("kami_essentials.unstuck.nowhere"))
+        val target = (if (here != null) outside(level, p, here, own) else up(level, p.blockPosition())) ?: run {
+            saved(p).putLong(LAST_USE, System.currentTimeMillis() - COOLDOWN_MS + RETRY_MS)
+            fail(Phrase.of("kami_essentials.unstuck.nowhere"))
+        }
         p.stopRiding()
         p.teleportTo(level, target.x + 0.5, target.y.toDouble(), target.z + 0.5, p.yRot, p.xRot)
         p.resetFallDistance()
@@ -104,5 +113,9 @@ object Unstuck {
         return null
     }
 
-    private fun free(level: ServerLevel, pos: BlockPos) = level.getBlockState(pos).let { !it.blocksMotion() && it.fluidState.isEmpty }
+    private val HARMFUL = setOf(Blocks.COBWEB, Blocks.POWDER_SNOW, Blocks.SWEET_BERRY_BUSH, Blocks.WITHER_ROSE, Blocks.CACTUS, Blocks.MAGMA_BLOCK)
+
+    private fun free(level: ServerLevel, pos: BlockPos) = level.getBlockState(pos).let {
+        !it.blocksMotion() && it.getCollisionShape(level, pos).isEmpty && it.fluidState.isEmpty && !it.`is`(BlockTags.FIRE) && it.block !in HARMFUL
+    }
 }

@@ -28,9 +28,7 @@ class HudEditor(private val parent: Screen?) : Screen(Component.literal(tr("kami
     private val scale get() = UiScale.factor
     private val uiScreen get() = Rect(0, 0, UiScale.layout(width), UiScale.layout(height))
 
-    private fun sampleWidth(e: HudElement) = Draw.width(e.sample()) + 10
-
-    private fun items(): List<Item> = HudLayout.elements.values.map { Item(it.id, null, HudLayout.place(it.id, width, height, sampleWidth(it))) } +
+    private fun items(): List<Item> = HudLayout.elements.values.map { Item(it.id, null, HudLayout.sampleSize(it).let { (w, h) -> HudLayout.place(it.id, width, height, w, h) }) } +
         Pins.all().filter { Pins.visible(it) }.map { w ->
             val r = Pins.rect(w, uiScreen)
             Item(w.id, w, Rect((r.x * scale).toInt(), (r.y * scale).toInt(), (r.w * scale).toInt(), (r.h * scale).toInt()))
@@ -55,7 +53,9 @@ class HudEditor(private val parent: Screen?) : Screen(Component.literal(tr("kami
         HudLayout.elements.values.forEach { e ->
             val b = all.first { it.id == e.id }.rect
             Draw.sprite(g, Sprites.TOOLTIP, b)
-            Draw.text(g, e.sample(), b.x + 5, b.y + 4, e.color())
+            val rows = e.lines?.invoke()
+            if (rows == null) Draw.text(g, e.sample(), b.x + 5, b.y + 4, e.color())
+            else rows.forEachIndexed { i, (text, color) -> Draw.text(g, text, b.x + 5, b.y + 4 + i * HudLayout.LINE_H, color) }
         }
         val focus = drag?.id ?: all.lastOrNull { it.rect.contains(mx, my) }?.id
         all.forEach { Draw.outline(g, it.rect, if (it.id == focus) Palette.brass else Palette.borderSubtle) }

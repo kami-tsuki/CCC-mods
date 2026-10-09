@@ -1,9 +1,10 @@
 package kami.economy.economy
 
 import kami.economy.Config
+import kami.economy.quest.Quests
 import kami.libs.claims.ClaimsApi
 import kami.libs.claims.Relation
-import java.util.UUID
+import kami.libs.util.toUuidOrNull
 import kotlin.math.roundToInt
 
 class Terms(val taxPct: Int, val tariffPct: Int, val relation: Relation) {
@@ -12,9 +13,7 @@ class Terms(val taxPct: Int, val tariffPct: Int, val relation: Relation) {
 }
 
 object Trade {
-    fun uuid(player: String): UUID? = runCatching { UUID.fromString(player) }.getOrNull()
-
-    fun country(player: String): String? = uuid(player)?.let { ClaimsApi.countryOf(it) }
+    fun country(player: String): String? = player.toUuidOrNull()?.let { ClaimsApi.countryOf(it) }
 
     fun sameCountry(a: String, b: String): Boolean {
         val x = country(a) ?: return false
@@ -22,6 +21,7 @@ object Trade {
     }
 
     fun terms(buyer: String, seller: String): Terms {
+        if (Quests.owns(buyer) || Quests.owns(seller)) return Terms(0, 0, Relation.NEUTRAL)
         val a = country(buyer)
         val b = country(seller)
         if (a == null || b == null) return Terms(Config.s.taxPct, 0, Relation.NEUTRAL)

@@ -47,7 +47,7 @@ object Spoils {
             if (!defeat) safe(war, "money") { charge(war, loser, winner, war.stakes.money, gain) }
         }
         safe(war, "escrow") {
-            val escrowTo = if (defeat) d ?: a else a ?: d
+            val escrowTo = if (defeat) d ?: a else a
             if (escrowTo != null) WarDebt.escrow(escrowTo, LedgerKind.WAR_STAKE, war.escrow, Wars.name(if (escrowTo === a) war.defender.main else war.attacker.main))
             else ServerBank.collect(CountryParty(war.attacker.main), war.escrow, Flow.WAR, "war ${war.id}")
             if (defeat && pair != null) gain.money += war.escrow

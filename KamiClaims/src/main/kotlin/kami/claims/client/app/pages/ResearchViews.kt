@@ -26,6 +26,7 @@ import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
 import kami.libs.ui.text.tr
 import kami.libs.ui.text.trJson
+import kami.libs.ui.widget.fitText
 import kami.libs.ui.widget.ChipSpec
 import kami.libs.ui.widget.CAPACITY_BAR_H
 import kami.libs.ui.widget.CARD_HEADER_H
@@ -182,7 +183,7 @@ fun Ui.requirementRow(r: Rect, text: String, met: Boolean?, onClick: (() -> Unit
     val icon = when (met) { true -> Icons.CHECK; false -> Icons.CROSS; null -> Icons.PENDING }
     val color = when (met) { true -> Palette.success; false -> Palette.danger; null -> Palette.textMuted }
     val x = r.x + Draw.leadIcon(g, icon, r.x, r.centerY, color) + 2
-    Draw.text(g, Draw.fit(text, r.right - x), x, r.y + 1, if (over) Palette.text else Palette.textSecondary)
+    fitText(x, r.y + 1, r.right - x, text, if (over) Palette.text else Palette.textSecondary)
     if (onClick != null && pressed(r) != null) onClick()
 }
 
@@ -245,3 +246,25 @@ fun Ui.unlockList(stack: Stack, unlocks: List<UnlockView>, key: String) {
     if (others.isNotEmpty()) chipFlow(stack, others.map { ChipSpec(unlockText(it), unlockColor(it), unlockIcon(it)) }, "$key:chip")
 }
 
+fun boostHint(kind: String): String? =
+    ClientResearch.state.boosts.firstOrNull { it.kind == kind }?.let { if (kind == "xp") tr("kami_claims.boost.hint.xp", it.pct) else tr("kami_claims.boost.hint.research", it.pct) }
+
+private const val BOOST_ROW_H = 12
+
+fun boostCardHeight(): Int {
+    val s = ClientResearch.state
+    return if (s.boosts.isEmpty()) 0 else CARD_HEADER_H + CARD_BODY_MARGIN + BOOST_ROW_H * (s.boosts.size + if (s.online) 0 else 1) + STACK_GAP
+}
+
+fun Ui.boostCard(r: Rect) {
+    val s = ClientResearch.state
+    val body = card(r, tr("kami_claims.boost.title"), Icons.STAR)
+    var y = body.y
+    s.boosts.forEach { b ->
+        val queued = if (b.queued > 0) " · " + tr("kami_claims.boost.queued", b.queued, Format.duration(b.queuedMs)) else ""
+        val text = (if (b.kind == "xp") tr("kami_claims.boost.row.xp", b.pct, Format.duration(b.leftMs)) else tr("kami_claims.boost.row.research", b.pct, Format.duration(b.leftMs))) + queued
+        fitText(body.x, y, body.w, text, Palette.text)
+        y += BOOST_ROW_H
+    }
+    if (!s.online) Draw.text(g, tr("kami_claims.boost.paused"), body.x, y, Palette.textMuted)
+}

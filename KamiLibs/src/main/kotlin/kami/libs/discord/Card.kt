@@ -28,14 +28,21 @@ class Card(
         return b.build()
     }
 
-    private companion object {
-        const val TOTAL = 6000
-        const val TITLE = 256
-        const val DESCRIPTION = 4096
-        const val FOOTER = 2048
-        const val FIELDS = 25
-        const val NAME = 256
-        const val VALUE = 1024
-        const val URL = 2000
+    companion object {
+        const val COMPACT_FIELDS = 4
+
+        fun compact(
+            title: String, description: String = "", color: Int = DiscordFormat.NEUTRAL, fields: List<EmbedField> = emptyList(),
+            footer: String? = null, timestamp: Long? = null, thumbnail: String? = null
+        ) = Card(title, description, color, fields.take(COMPACT_FIELDS), footer, timestamp, thumbnail)
+
+        private const val TOTAL = 6000
+        private const val TITLE = 256
+        private const val DESCRIPTION = 4096
+        private const val FOOTER = 2048
+        private const val FIELDS = 25
+        private const val NAME = 256
+        private const val VALUE = 1024
+        private const val URL = 2000
     }
 }

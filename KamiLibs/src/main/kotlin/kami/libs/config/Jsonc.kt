@@ -24,8 +24,10 @@ object Jsonc {
         }.trimEnd() + "\n"
     }
 
+    fun read(path: Path): String = Files.readString(path).removePrefix("﻿")
+
     fun write(path: Path, text: String, prepare: (Path) -> Unit = {}) {
-        if (Files.exists(path) && Files.readString(path) == text) return
+        if (runCatching { Files.exists(path) && read(path) == text }.getOrDefault(false)) return
         Files.createDirectories(path.parent)
         runCatching { writeAtomic(path, text, prepare) }.onFailure { log.error("Could not write {}: {}", path, it.toString()) }
     }

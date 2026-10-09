@@ -1,6 +1,8 @@
 package kami.claims.net
 
+import kami.libs.claims.Boost as BoostLimits
 import kami.claims.KamiClaims
+import kami.claims.research.Boosts
 import kami.claims.research.Capacity
 import kami.claims.research.Limits.MAX_CATEGORIES
 import kami.claims.research.Limits.MAX_COUNTERS
@@ -103,6 +105,8 @@ class LoansView(
     }
 }
 
+data class BoostView(val kind: String, val pct: Int, val leftMs: Long, val queued: Int, val queuedMs: Long)
+
 data class StateView(
     val country: String, val level: Int, val xp: Long, val xpFloor: Long, val xpCeiling: Long, val treasury: Long, val canManage: Boolean,
     val done: List<String>, val queue: List<QueueView>, val available: List<String>, val used: List<Int>, val max: List<Int>,
@@ -113,6 +117,8 @@ data class StateView(
     val levelProgress: List<List<Pair<Long, Long>>> = emptyList(),
     val penalty: Map<String, Long> = emptyMap(),
     val speedPct: Int = 0,
+    val boosts: List<BoostView> = emptyList(),
+    val online: Boolean = false,
     val ownCountry: String = "", val ownLevel: Int = 0, val ownDone: List<String> = emptyList()
 ) {
     fun used(key: Capacity) = used.getOrElse(key.ordinal) { 0 }
@@ -229,6 +235,8 @@ object ResearchWire {
         list(s.levelProgress) { row -> list(row) { varLong(it.first); varLong(it.second) } }
         list(s.penalty.entries.toList()) { utf(it.key, MAX_ID); varLong(it.value) }
         varInt(s.speedPct)
+        list(s.boosts) { utf(it.kind, MAX_ID).varInt(it.pct).varLong(it.leftMs).varInt(it.queued).varLong(it.queuedMs) }
+        bool(s.online)
         utf(s.ownCountry, MAX_COUNTRY).varInt(s.ownLevel)
         list(s.ownDone) { utf(it, MAX_ID) }
     }.toBytes().let { Blob.pack(it, DEFLATE_ABOVE) }
@@ -252,6 +260,8 @@ object ResearchWire {
             r.list(MAX_LEVELS) { r.list(MAX_LINKS) { r.varLong() to r.varLong() } },
             r.list(MAX_STATE_NODES) { r.utf(MAX_ID) to r.varLong() }.toMap(),
             r.varInt(),
+            r.list(BoostLimits.KINDS.size) { BoostView(r.utf(MAX_ID), r.varInt(), r.varLong(), r.varInt(), r.varLong()) },
+            r.bool(),
             r.utf(MAX_COUNTRY), r.varInt(),
             r.list(MAX_STATE_NODES) { r.utf(MAX_ID) }
         )

@@ -42,8 +42,14 @@ class UiLogicTest {
         assertEquals(40, f.rest.y)
     }
 
+    private fun <T> us(block: () -> T): T {
+        val saved = Format.locale
+        Format.locale = java.util.Locale.US
+        try { return block() } finally { Format.locale = saved }
+    }
+
     @Test
-    fun amountsParseShortForms() {
+    fun amountsParseShortForms() = us {
         assertEquals(1500L, Format.parseAmount("1.5k"))
         assertEquals(2_000_000L, Format.parseAmount("2m"))
         assertEquals(1234L, Format.parseAmount("1,234"))
@@ -51,17 +57,55 @@ class UiLogicTest {
     }
 
     @Test
-    fun compactNumbersKeepSmallValuesExact() {
-        assertEquals("99,999", Format.number(99_999))
-        assertEquals("1.2M", Format.number(1_234_567))
-        assertEquals("-150.0k", Format.number(-150_000))
+    fun amountsRejectNegativeAndNonFiniteUnlessAllowed() = us {
+        assertEquals(null, Format.parseAmount("-5"))
+        assertEquals(-5L, Format.parseAmount("-5", allowNegative = true))
+        assertEquals(null, Format.parseAmount("infinity"))
+        assertEquals(null, Format.parseAmount("NaN"))
+        assertEquals(null, Format.parseAmount("1e30"))
     }
 
     @Test
-    fun durationsReadNaturally() {
+    fun compactNumbersKeepSmallValuesExact() = us {
+        assertEquals("99,999", Format.number(99_999))
+        assertEquals("1.2M", Format.number(1_234_567))
+        assertEquals("-150k", Format.number(-150_000))
+    }
+
+    @Test
+    fun durationsReadNaturally() = us {
         assertEquals("3d 4h", Format.duration((3 * 24 + 4) * 3_600_000L))
         assertEquals("2h 5m", Format.duration(125 * 60_000L))
-        assertEquals("0m", Format.duration(-5))
+        assertEquals("0s", Format.duration(-5))
+        assertEquals("0s", Format.duration(0))
+        assertEquals("±0", Format.signed(0))
+    }
+
+    @Test
+    fun compactNumbersPromoteAtTheRoundingEdge() = us {
+        assertEquals("999.9k", Format.number(999_949))
+        assertEquals("1M", Format.number(999_950))
+        assertEquals("1T", Format.number(1_000_000_000_000))
+    }
+
+    @Test
+    fun amountsAcceptSuffixesAndRejectEmpty() = us {
+        assertEquals(1000L, Format.parseAmount("1k"))
+        assertEquals(1500L, Format.parseAmount(" 1_500 "))
+        assertEquals(null, Format.parseAmount(""))
+        assertEquals(null, Format.parseAmount("k"))
+    }
+
+    @Test
+    fun germanAmountsTreatCommaAsDecimalAndDotAsGrouping() {
+        val saved = Format.locale
+        Format.locale = java.util.Locale.GERMANY
+        try {
+            assertEquals(1500L, Format.parseAmount("1,5k"))
+            assertEquals(1500L, Format.parseAmount("1.5k"))
+            assertEquals(1234L, Format.parseAmount("1.234"))
+            assertEquals(2_500_000L, Format.parseAmount("2,5m"))
+        } finally { Format.locale = saved }
     }
 
     @Test
@@ -113,5 +157,26 @@ class UiLogicTest {
         assertEquals(0xFF000000.toInt(), gradientAt(listOf(0xFF000000.toInt(), 0xFFFFFFFF.toInt()), -1.0))
         assertEquals(0xFFFFFFFF.toInt(), gradientAt(listOf(0xFF000000.toInt(), 0xFF808080.toInt(), 0xFFFFFFFF.toInt()), 1.0))
         assertEquals(0xFF808080.toInt(), gradientAt(listOf(0xFF000000.toInt(), 0xFF808080.toInt(), 0xFFFFFFFF.toInt()), 0.5))
+    }
+
+    @Test
+    fun resetAfterLocaleSwitchRecomputesNumbersAndDropsCompacts() {
+        val saved = Format.locale
+        try {
+            Format.locale = java.util.Locale.US
+            Format.reset()
+            assertEquals("1,234", Format.number(1234))
+            assertEquals("1.2M", Format.number(1_234_567))
+            Format.locale = java.util.Locale.GERMANY
+            Format.reset()
+            assertEquals("1.234", Format.number(1234))
+            assertEquals("1,2M", Format.number(1_234_567))
+            Format.reset()
+            assertEquals(false, Format.hasCompacts)
+            assertEquals(null, Format.expand("1,2M"))
+        } finally {
+            Format.locale = saved
+            Format.reset()
+        }
     }
 }

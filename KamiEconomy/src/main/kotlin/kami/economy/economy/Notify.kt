@@ -1,7 +1,9 @@
 package kami.economy.economy
 
+import kami.libs.util.toUuidOrNull
 import kami.economy.Delivery
 import kami.economy.Market
+import kami.libs.admin.Players
 import kami.libs.chat.Chat
 import kami.libs.chat.Tone
 import kami.libs.chat.tell
@@ -23,15 +25,15 @@ object Notify {
 
     var server: MinecraftServer? = null
 
-    private fun online(who: String) = Trade.uuid(who)?.let { server?.playerList?.getPlayer(it) }
+    private fun online(who: String) = who.toUuidOrNull()?.let { server?.playerList?.getPlayer(it) }
 
-    fun playerName(who: String): String? = online(who)?.name?.string ?: Trade.uuid(who)?.let { server?.profileCache?.get(it)?.orElse(null)?.name }
+    fun playerName(who: String): String? = server?.let { s -> who.toUuidOrNull()?.let { Players.name(s, it) } }
 
     fun name(who: String): Phrase = Phrase.value(playerName(who) ?: "?")
 
     private fun itemKey(item: String) = ResourceLocation.tryParse(item)?.let { BuiltInRegistries.ITEM.get(it).descriptionId } ?: item
 
-    fun stack(item: String, qty: Int): Phrase = Phrase.of("kami_economy.notify.stack", qty, Phrase.of(itemKey(item))).asValue()
+    fun stack(item: String, qty: Int): Phrase = Phrase.of("kami_libs.format.times", qty, Phrase.of(itemKey(item))).asValue()
 
     fun label(text: String): Phrase = Phrase.value(text)
 

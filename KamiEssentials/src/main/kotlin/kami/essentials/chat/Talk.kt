@@ -43,7 +43,10 @@ object Talk {
         val admin = Store[Flag.ADMIN_CHAT, p.uuid] && Perms.has(p, Perms.ADMINCHAT)
         val relay = !e.isCanceled && !country && !admin && !Vanish.active(p)
         if (!Config.s.chat && !country && !admin) {
-            if (Mutes.silenced(p)) e.isCanceled = true
+            if (Vanish.active(p)) {
+                e.isCanceled = true
+                invisible(p)
+            } else if (Mutes.silenced(p)) e.isCanceled = true
             else if (relay) Relay.chat(p, body(e.rawText, p).string)
             return
         }
@@ -51,7 +54,7 @@ object Talk {
         when {
             admin -> admin(p, e.rawText)
             country -> country(p, e.rawText)
-            Vanish.active(p) -> p.tell(chat.warn(Phrase.of("kami_essentials.talk.invisible", Phrase.value("/invis"), Phrase.value("/msg"))))
+            Vanish.active(p) -> invisible(p)
             Mutes.silenced(p) -> Unit
             else -> {
                 val body = body(e.rawText, p)
@@ -61,6 +64,8 @@ object Talk {
         }
     }
 
+    private fun invisible(p: ServerPlayer) = p.tell(chat.warn(Phrase.of("kami_essentials.talk.invisible", Phrase.value("/invis"), Phrase.value("/msg"))))
+
     fun onCommand(e: CommandEvent) {
         val p = e.parseResults.context.source.player ?: return
         val tokens = e.parseResults.reader.string.trim().removePrefix("/").split(' ')
@@ -69,7 +74,8 @@ object Talk {
 
     fun direct(from: ServerPlayer?, to: ServerPlayer, text: String) {
         if (from === to) fail(Phrase.of("kami_essentials.talk.self"))
-        val sender = from?.let { Names.player(it) } ?: Text.msg("kami_essentials.talk.server").withColor(Theme.ACCENT)
+        if (from != null && Mutes.silenced(from)) return
+        val sender = from?.let { Names.player(it) } ?: Text.msg("kami_libs.party.server").withColor(Theme.ACCENT)
         val you = Text.msg("kami_essentials.talk.you").withColor(Theme.MUTED)
         to.tell(dm(sender, you, text, from).withStyle { it.withClickEvent(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/r ")).withHoverEvent(hover(Phrase.of("kami_essentials.talk.reply"))) })
         if (!Store[Flag.QUIET_DM, to.uuid]) to.playNotifySound(SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.4f, 1.6f)

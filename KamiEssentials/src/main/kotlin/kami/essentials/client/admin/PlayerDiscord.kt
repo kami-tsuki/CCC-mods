@@ -23,14 +23,11 @@ import kami.libs.ui.widget.TableState
 import kami.libs.ui.widget.card
 import kami.libs.ui.widget.cardColumns
 import kami.libs.ui.widget.edgeButton
-import kami.libs.ui.widget.property
 import kami.libs.ui.widget.secretProperty
 import kami.libs.ui.widget.skeleton
 import kami.libs.ui.widget.table
 
 private const val REFRESH_MS = 10_000L
-private const val PROP_H = 11
-private const val INFO_H = 96
 private const val CARD_W = 190
 private const val GAP = 6
 
@@ -61,7 +58,7 @@ internal class PlayerDiscord(private val app: AdminApp, private val uuid: String
         }
         if (d.canManage) {
             val unlinked = tr("kami_essentials.admin.discord_not_linked").takeUnless { x.linked }
-            action(tr("kami_essentials.admin.discord.unlink"), Icons.BROKEN_CHAIN, lock ?: unlinked, true, "players.discord.unlink", tr("kami_essentials.admin.discord.unlink.title", d.row.name))
+            action(tr("kami_essentials.prefs.discord.unlink"), Icons.BROKEN_CHAIN, lock ?: unlinked, true, "players.discord.unlink", tr("kami_essentials.admin.discord.unlink.title", d.row.name))
             action(
                 tr("kami_essentials.admin.discord.resync"), Icons.CHAIN, lock ?: unlinked ?: tr("kami_essentials.admin.discord_down").takeUnless { x.botReady }, false,
                 "players.discord.resync", tr("kami_essentials.admin.discord.resync.title", d.row.name)
@@ -81,7 +78,7 @@ internal class PlayerDiscord(private val app: AdminApp, private val uuid: String
         ui.table(
             body.dropTop(rows.size * (INFO_H + GAP)),
             listOf(
-                Column.number<DiscordEvent>(tr("kami_essentials.admin.col.when"), 56, format = { Format.ago(it) }) { it.at },
+                Column.number<DiscordEvent>(tr("kami_libs.common.when"), 56, format = { Format.ago(it) }) { it.at },
                 Column.text<DiscordEvent>(tr("kami_essentials.admin.discord.event"), 70) { kind(it) },
                 Column.text<DiscordEvent>(tr("kami_essentials.admin.discord.id"), -1) { it.detail }
             ),
@@ -89,11 +86,9 @@ internal class PlayerDiscord(private val app: AdminApp, private val uuid: String
         )
     }
 
-    private fun Ui.prop(f: Flow, label: String, value: String, color: Int = Palette.text) = property(f.take(PROP_H), label, value, color, key = "discord-prop:$label:$value")
-
     private fun link(ui: Ui, r: Rect, x: DiscordDetail) {
         val f = Flow(ui.card(r, tr("kami_essentials.admin.discord.link"), Icons.CHAIN), 2)
-        ui.prop(f, tr("kami_libs.common.status"), tr(if (x.linked) "kami_essentials.admin.discord.linked" else "kami_essentials.admin.discord.not_linked"), if (x.linked) Palette.success else Palette.textMuted)
+        ui.prop(f, tr("kami_libs.common.status"), tr(if (x.linked) "kami_essentials.admin.discord.linked" else "kami_essentials.prefs.discord.unlinked"), if (x.linked) Palette.success else Palette.textMuted)
         if (!x.linked) return
         ui.prop(f, tr("kami_essentials.admin.discord.account"), x.discordName)
         ui.secretProperty(f.take(PROP_H), tr("kami_essentials.admin.discord.id"), x.discordId)
@@ -114,8 +109,8 @@ internal class PlayerDiscord(private val app: AdminApp, private val uuid: String
         val f = Flow(ui.card(r, tr("kami_essentials.admin.activity"), Icons.CLOCK), 2)
         ui.prop(f, tr("kami_essentials.admin.discord.to_mc"), Format.number(x.sentToMc))
         ui.prop(f, tr("kami_essentials.admin.discord.to_discord"), Format.number(x.sentToDiscord))
-        ui.prop(f, tr("kami_essentials.admin.discord.pings"), Format.number(x.pings))
-        ui.prop(f, tr("kami_essentials.admin.discord.market_alerts"), yes(x.marketAlerts), if (x.marketAlerts) Palette.success else Palette.textMuted)
+        ui.prop(f, tr("kami_essentials.prefs.discord.pings"), Format.number(x.pings))
+        ui.prop(f, tr("kami_essentials.prefs.discord.alerts"), yes(x.marketAlerts), if (x.marketAlerts) Palette.success else Palette.textMuted)
         ui.prop(f, tr("kami_essentials.admin.discord.last_message"), if (x.lastMessage > 0) Format.ago(x.lastMessage) else tr("kami_libs.common.none"))
     }
 }

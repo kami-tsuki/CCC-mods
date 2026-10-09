@@ -1,5 +1,6 @@
 package kami.libs.ui.app
 
+import kami.libs.ui.anim.anim
 import kami.libs.ui.anim.reveal
 import kami.libs.ui.text.tr
 import kami.libs.ui.core.Rect
@@ -17,6 +18,7 @@ import kami.libs.ui.widget.banner
 import kami.libs.ui.widget.button
 import kami.libs.ui.widget.buttonWidth
 import kami.libs.ui.widget.closeButton
+import kami.libs.ui.widget.fitText
 import kami.libs.ui.widget.holdButton
 import kami.libs.ui.widget.scroll
 import net.minecraft.resources.ResourceLocation
@@ -55,11 +57,18 @@ class Dialog(
     var staleReason: String? = null
         private set
     private var bodyHeight = 60
+    private var focusCleared = false
 
     fun close() { open = false }
 
     fun draw(ui: Ui, screen: Rect) {
         staleReason = stale()
+        if (!focusCleared) {
+            focusCleared = true
+            val before = ui.focus
+            val mark = ui.focusMark()
+            if (before != null) ui.overlay(2) { if (ui.focus == before && !ui.focusedSince(mark, before)) ui.focus = null }
+        }
         val headerH = if (subtitle != null) 30 else 20
         val stepsH = if (steps.size > 1) 16 else 0
         val hazardH = if (kind == DialogKind.DESTRUCTIVE) 3 else 0
@@ -67,7 +76,8 @@ class Dialog(
         val staleH = if (staleReason != null) 26 else 0
         val maxBody = (screen.h - 40 - headerH - stepsH - hazardH - footerH - staleH).coerceAtLeast(48)
         val w = min(width, screen.w - 16)
-        val h = hazardH + headerH + stepsH + staleH + min(bodyHeight, maxBody) + footerH + 12
+        val shownBody = ui.anim("dialog-body:${hashCode()}", min(bodyHeight, maxBody).toFloat()).toInt()
+        val h = hazardH + headerH + stepsH + staleH + shownBody + footerH + 12
         val appear = ui.reveal("open", hashCode().toLong(), ms = OPEN_MS)
         val box = screen.centered(w, h).slideIn(appear, 0, OPEN_SLIDE)
         ui.block(screen)
@@ -78,8 +88,8 @@ class Dialog(
         if (hazardH > 0) { Draw.sprite(ui.g, Sprites.HAZARD, Rect(box.x + 1, y, box.w - 2, hazardH)); y += hazardH }
         var tx = box.x + 8
         icon?.let { tx += Draw.leadIcon(ui.g, it, tx, y + 10) }
-        Draw.text(ui.g, Draw.fit(title, box.right - tx - 24), tx, y + 7, TextStyle.HEADING, if (kind == DialogKind.DESTRUCTIVE) Palette.danger else Palette.text)
-        subtitle?.let { Draw.text(ui.g, Draw.fit(it, box.right - tx - 10), tx, y + 18, Palette.textSecondary) }
+        ui.fitText(tx, y + 7, box.right - tx - 24, title, if (kind == DialogKind.DESTRUCTIVE) Palette.danger else Palette.text, TextStyle.HEADING, key = "dialog:title")
+        subtitle?.let { ui.fitText(tx, y + 18, box.right - tx - 10, it, Palette.textSecondary, key = "dialog:subtitle") }
         if (ui.closeButton(Rect(box.right - 19, y + 2, 16, 16), "dialog-close")) close()
         y += headerH
         Draw.hline(ui.g, box.x + 1, y - 1, box.w - 2, Palette.borderSubtle)
@@ -93,7 +103,7 @@ class Dialog(
                     else -> Palette.textMuted
                 }
                 Draw.fill(ui.g, Rect(c.x, c.bottom - 1, c.w, 2), if (i <= step) Palette.brass else Palette.border)
-                Draw.text(ui.g, Draw.fit("${i + 1} $label", c.w), c.x, c.y - 1, color)
+                ui.fitText(c.x, c.y - 1, c.w, "${i + 1} $label", color, key = "step$i")
             }
             y += stepsH
         }
@@ -101,7 +111,7 @@ class Dialog(
             ui.banner(Rect(box.x + 8, y + 2, box.w - 16, 22), Severity.WARNING, tr("kami_libs.dialog.stale"), it, key = "stale")
             y += staleH
         }
-        val bodyArea = Rect(box.x + 8, y + 6, box.w - 16, min(bodyHeight, maxBody))
+        val bodyArea = Rect(box.x + 8, y + 6, box.w - 16, shownBody)
         val footer = Rect(box.x + 8, box.bottom - footerH, box.w - 16, CONTROL_H)
         val scope = DialogScope(this, bodyArea, footer)
         ui.scroll("dialog-body", bodyArea, bodyHeight) { area ->

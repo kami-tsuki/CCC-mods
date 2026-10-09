@@ -8,6 +8,7 @@ import kami.claims.client.store.ClientResearch
 import kami.claims.net.BuffView
 import kami.claims.net.BuffsView
 import kami.libs.text.Phrase
+import kami.libs.text.SearchQuery
 import kami.libs.ui.app.Consequence
 import kami.libs.ui.app.Route
 import kami.libs.ui.core.Rect
@@ -45,6 +46,7 @@ class ResearchBuffsPage(app: ClaimsApp) : ClaimsPage(app) {
     override val title get() = tr("kami_claims.nav.buffs")
 
     private var scrollHeight = 0
+    private val search = TextState()
     private val built = Memo()
     private var groups = emptyList<Group>()
     private var examples = emptyList<BuffCard>()
@@ -61,7 +63,9 @@ class ResearchBuffsPage(app: ClaimsApp) : ClaimsPage(app) {
             rebuild(buffs, r.w)
             return teaser(ui, r, lock)
         }
-        ui.scroll("buffs-page", r, scrollHeight) { area ->
+        val body = ui.filterBar(r, "buffs:filter") { bar -> ui.searchField(bar, search, key = "buffs-search") }
+        val q = SearchQuery.parse(search.text)
+        ui.scroll("buffs-page", body, scrollHeight) { area ->
             rebuild(buffs, area.w)
             val stack = Stack(area.x, area.y, area.w, CARD_GAP)
             val pointsBar = stack.take(PROGRESS_LABELLED_H)
@@ -70,11 +74,15 @@ class ResearchBuffsPage(app: ClaimsApp) : ClaimsPage(app) {
             Draw.paragraph(ui.g, surchargeText, stack.x, stack.take(surchargeH).y, stack.w, if (buffs.surchargePerBorderChunk > 0) Palette.warning else Palette.textSecondary)
             val cols = cardColumns(stack.w, MIN_CARD_W, MAX_COLUMNS)
             var index = 0
+            var shown = 0
             groups.forEach { group ->
-                ui.section(stack, group.title, group.cards.size.toString())
-                stack.cardGrid(group.cards.size, cols, { CARD_H }) { rect, i -> drawCard(ui, rect, group.cards[i], index++, false) }
+                val cards = group.cards.filter { q.matches(it.title) }
+                if (cards.isEmpty()) return@forEach
+                shown += cards.size
+                ui.section(stack, group.title, Format.number(cards.size))
+                stack.cardGrid(cards.size, cols, { CARD_H }) { rect, i -> drawCard(ui, rect, cards[i], index++, false) }
             }
-            if (groups.isEmpty()) Draw.text(ui.g, emptyText, stack.x, stack.take(Draw.LINE).y, Palette.textMuted)
+            if (shown == 0) Draw.text(ui.g, emptyText, stack.x, stack.take(Draw.LINE).y, Palette.textMuted)
             scrollHeight = stack.bottom - area.y
         }
     }
@@ -102,7 +110,7 @@ class ResearchBuffsPage(app: ClaimsApp) : ClaimsPage(app) {
             val toggleLock = manage ?: if (!buff.enabled && buff.cost > free) Lock(tr("kami_claims.buffs.lock.points"), tr("kami_claims.buffs.lock.points.how", buff.cost, free)) else null
             cards += ClientResearch.node(buff.key)?.category.orEmpty() to BuffCard(
                 buff.key, buff.effect, name(buff.effect, buff.amplifier), modeText(buff.mode == "pulse", buff.cooldownSeconds.toLong()),
-                tr("kami_claims.buffs.stats", buff.cost, buff.tax), buff.enabled, buff, null, toggleLock
+                tr("kami_claims.buffs.stats", buff.cost, Format.money(buff.tax.toLong())), buff.enabled, buff, null, toggleLock
             )
         }
         val unowned = tree?.nodes.orEmpty().filter { node -> node.key !in owned && node.unlocks.any { it.kind == "buff" } }.sortedBy { it.level }
@@ -129,8 +137,8 @@ class ResearchBuffsPage(app: ClaimsApp) : ClaimsPage(app) {
         if (rest.isNotEmpty()) grouped += Group(tr("kami_claims.buffs.category.other"), rest)
         groups = grouped
         val per = buffs.surchargePerBorderChunk
-        surchargeText = tr("kami_claims.buffs.surcharge", Format.number(per), Format.number(per.toLong() * buffs.borderChunks), Format.number(buffs.borderChunks))
-        explainText = tr("kami_claims.buffs.explain")
+        surchargeText = tr("kami_claims.buffs.surcharge", Format.money(per.toLong()), Format.money(per.toLong() * buffs.borderChunks), Format.number(buffs.borderChunks))
+        explainText = tr("kami_claims.buffs.teaser")
         emptyText = tr("kami_claims.buffs.empty")
         surchargeH = Draw.paragraphHeight(surchargeText, width)
         explainH = Draw.paragraphHeight(explainText, width)
@@ -149,10 +157,10 @@ class ResearchBuffsPage(app: ClaimsApp) : ClaimsPage(app) {
         ui.effectIcon(slot, card.effect, if (muted) DIM else 0f)
         val x = slot.right + PAD
         val reserve = if (card.enabled) Draw.ICON else if (muted) CHIP_RESERVE else 0
-        Draw.text(ui.g, Draw.fit(card.title, box.right - x - PAD - reserve - if (card.buff != null && !dim) BUTTON_W else 0), x, box.y + PAD, if (muted) Palette.textSecondary else Palette.text)
+        ui.fitText(x, box.y + PAD, box.right - x - PAD - reserve - if (card.buff != null && !dim) BUTTON_W else 0, card.title, if (muted) Palette.textSecondary else Palette.text)
         if (card.enabled) Draw.leadIcon(ui.g, Icons.CHECK, box.right - PAD - Draw.ICON + 2, box.y + PAD + 4, Palette.success)
         val textW = box.right - x - PAD
-        Draw.text(ui.g, Draw.fit(if (card.buff != null) card.mode else card.stats, textW - if (card.buff != null && !dim) BUTTON_W else 0), x, box.y + PAD + Draw.LINE + 1, Palette.textMuted)
+        ui.fitText(x, box.y + PAD + Draw.LINE + 1, textW - if (card.buff != null && !dim) BUTTON_W else 0, if (card.buff != null) card.mode else card.stats, Palette.textMuted)
         ui.tooltip(card.detailKey, box, card.detail)
         val buff = card.buff
         if (buff != null && !dim) {
@@ -173,7 +181,7 @@ class ResearchBuffsPage(app: ClaimsApp) : ClaimsPage(app) {
             app, tr("kami_claims.buffs.confirm.title", title), tr("kami_claims.buffs.confirm.subtitle"), Icons.SHIELD,
             listOf(
                 Consequence(tr("kami_claims.buffs.confirm.points", buff.cost, buffs.points - buffs.used)),
-                Consequence(tr("kami_claims.buffs.confirm.tax", Format.number(buff.tax), Format.number(buff.tax.toLong() * buffs.borderChunks)), Severity.WARNING)
+                Consequence(tr("kami_claims.buffs.confirm.tax", Format.money(buff.tax.toLong()), Format.money(buff.tax.toLong() * buffs.borderChunks)), Severity.WARNING)
             ),
             tr("kami_claims.buffs.enable"), "buff_toggle", arrayOf(buff.key)
         )

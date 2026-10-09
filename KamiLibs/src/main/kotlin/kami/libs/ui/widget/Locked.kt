@@ -71,10 +71,11 @@ fun Ui.lockVeil(r: Rect, lock: Lock, key: Any = "locked"): Boolean {
 
 fun Ui.lockedButton(
     r: Rect, label: String, lock: Lock?, icon: Icon? = null, style: ButtonStyle = ButtonStyle.SECONDARY, enabled: Boolean = true,
-    disabledReason: String? = null, tip: String? = null, pending: Boolean = false, key: Any = label
+    disabledReason: String? = null, tip: String? = null, pending: Boolean = false, key: Any? = null
 ): Boolean {
-    if (lock == null) return button(r, label, icon, style, enabled, disabledReason, tip, pending, key)
-    button(r, label, Icons.LOCK, style, false, lock.reason, key = key)
+    val k = key ?: autoKey(label)
+    if (lock == null) return button(r, label, icon, style, enabled, disabledReason, tip, pending, k)
+    button(r, label, Icons.LOCK, style, false, lock.reason, key = k)
     lockClick(r, lock)
     return false
 }
@@ -103,7 +104,7 @@ fun Ui.lockedPanel(r: Rect, title: String, teaser: String, lock: Lock, icon: Ico
 private fun Ui.capacityNext(x: Int, r: Rect, next: Lock, full: Boolean, reserve: Int) {
     val color = if (full) Palette.warning else Palette.textMuted
     val textX = x + Draw.leadIcon(g, Icons.LOCK, x, r.centerY, color) + 1
-    Draw.text(g, Draw.fit(next.label, r.right - textX - reserve), textX, r.y + 1, color)
+    fitText(textX, r.y + 1, r.right - textX - reserve, next.label, color, key = "capnext:${r.x},${r.y}")
 }
 
 fun Ui.capacityRow(stack: Stack, label: String, used: Int, max: Int, next: Lock?, key: Any = "capacity:$label") {

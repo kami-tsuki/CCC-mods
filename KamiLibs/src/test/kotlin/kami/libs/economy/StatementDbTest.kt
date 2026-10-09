@@ -70,6 +70,59 @@ class StatementDbTest {
     }
 
     @Test
+    fun totalsHonourWindowOrderingSignAndPlayer() {
+        val world = Files.createTempDirectory("kami-libs-totals")
+        try {
+            Db.open(world.resolve("kami").resolve("kami.db"))
+            val id = UUID.randomUUID()
+            val other = UUID.randomUUID()
+            val now = System.currentTimeMillis()
+            val day = 24L * 3600_000
+            Db.write {
+                journalLeg(now - 8 * day, PlayerParty(id), 500, Flow.WAGES, null, "", "")
+                journalLeg(now - 31 * day, PlayerParty(id), 900, Flow.REWARD, null, "", "")
+                journalLeg(now - 2 * day, PlayerParty(id), 40, Flow.RENT, null, "", "")
+                journalLeg(now - 1 * day, PlayerParty(id), -10, Flow.RENT, null, "", "")
+                journalLeg(now - 1 * day, PlayerParty(id), 0, Flow.FEE, null, "", "")
+                journalLeg(now - 1 * day, PlayerParty(id), 7, Flow.TAX, null, "", "")
+                journalLeg(now - 1 * day, PlayerParty(other), 1000, Flow.TAX, null, "", "")
+            }
+            Db.flush()
+            fun flat(t: List<FlowTotal>) = t.map { Triple(it.flow, it.income, it.expense) }
+            assertEquals(listOf(Triple(Flow.TAX, 7L, 0L), Triple(Flow.FEE, 0L, 0L), Triple(Flow.RENT, 40L, 10L)), flat(Statement.totals(id, 7)))
+            assertEquals(listOf(Flow.TAX, Flow.FEE, Flow.RENT, Flow.WAGES), Statement.totals(id, 30).map { it.flow })
+            assertEquals(500L, Statement.totals(id, 30).single { it.flow == Flow.WAGES }.income)
+            assertTrue(Statement.totals(id, 30).none { it.flow == Flow.REWARD })
+            assertTrue(Statement.totals(UUID.randomUUID(), 30).isEmpty())
+        } finally {
+            Db.close()
+            world.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
+    fun hiddenFlowsAreExcludedFromTotals() {
+        val world = Files.createTempDirectory("kami-libs-hidden")
+        try {
+            Db.open(world.resolve("kami").resolve("kami.db"))
+            val id = UUID.randomUUID()
+            val now = System.currentTimeMillis()
+            Db.write {
+                journalLeg(now, PlayerParty(id), 5, Flow.TAX, null, "", "")
+                journalLeg(now, PlayerParty(id), 100, Flow.UNEXPLAINED, null, "", "")
+                journalLeg(now, PlayerParty(id), -3, Flow.ROUNDING, null, "", "")
+                journalLeg(now, PlayerParty(id), 9, Flow.RECOVERY, null, "", "")
+            }
+            Db.flush()
+            assertEquals(listOf(Flow.TAX), Statement.totals(id, 7).map { it.flow })
+            assertEquals(listOf(Flow.TAX), Statement.book(id).week.map { it.flow })
+        } finally {
+            Db.close()
+            world.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
     fun migrationLock() {
         assertEquals(Files.readAllLines(Path.of("src/test/resources/migrations.lock")).filter { it.isNotBlank() }, Migrations.signature("libs"))
     }

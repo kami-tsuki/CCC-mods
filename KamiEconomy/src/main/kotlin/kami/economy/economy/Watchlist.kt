@@ -2,24 +2,37 @@ package kami.economy.economy
 
 import kami.economy.now
 import kami.libs.db.Db
+import kami.libs.db.Session
+import kami.libs.db.Table
 import kami.libs.stats.Stats
 
 object Watchlist {
     const val CAP = 100
+    private val table = Table<Map<String, LinkedHashMap<String, Long>>>("eco_watch", listOf("player", "item"), listOf("at")) { m ->
+        m.flatMap { (player, list) -> list.map { (item, at) -> listOf(player, item, at) } }
+    }
     private val lists = HashMap<String, LinkedHashMap<String, Long>>()
+    private var attached = false
 
     fun load() {
         lists.clear()
         Db.read { query("SELECT player, item, at FROM eco_watch ORDER BY at, rowid") { Triple(it.string("player"), it.string("item"), it.long("at")) } }
             .forEach { (player, item, at) -> lists.getOrPut(player) { LinkedHashMap() }[item] = at }
+        table.prime(lists)
+        attached = true
     }
+
+    fun unload() {
+        attached = false
+    }
+
+    internal fun changes(): (Session.() -> Unit)? = if (attached) table.sync(lists) else null
 
     fun canonicalize() = lists.toList().forEach { (player, list) ->
         list.entries.filter { Variants.of(it.key) != null }.map { it.key to it.value }.forEach { (variant, at) ->
             val core = Variants.core(variant)
             if (core !in list) {
                 list[core] = at
-                Db.write { exec("INSERT OR REPLACE INTO eco_watch (player, item, at) VALUES (?, ?, ?)", player, core, at) }
                 Stats.add("market.watch", "p:$player", core, 1)
             }
             remove(player, variant)
@@ -39,7 +52,6 @@ object Watchlist {
         if (item in list || list.size >= CAP) return false
         val at = now()
         list[item] = at
-        Db.write { exec("INSERT OR REPLACE INTO eco_watch (player, item, at) VALUES (?, ?, ?)", player, item, at) }
         Stats.add("market.watch", "p:$player", item, 1)
         return true
     }
@@ -48,7 +60,6 @@ object Watchlist {
         val list = lists[player] ?: return false
         if (list.remove(item) == null) return false
         if (list.isEmpty()) lists.remove(player)
-        Db.write { exec("DELETE FROM eco_watch WHERE player = ? AND item = ?", player, item) }
         Stats.add("market.watch", "p:$player", item, -1)
         return true
     }

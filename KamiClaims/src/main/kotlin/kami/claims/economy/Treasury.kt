@@ -80,7 +80,7 @@ object Treasury {
         val since = c.history.lastOrNull()?.at ?: 0L
         val window = c.ledger.filter { it.at > since }
         fun sum(kind: LedgerKind) = window.filter { it.kind == kind }.sumOf { it.amount }
-        val claims = Realm.claims(c.id)
+        val claims = Realm.claimsView(c.id)
         c.history += DayStat(
             day, now(), c.treasury, sum(LedgerKind.PLOT_TAX), -sum(LedgerKind.UPKEEP), -sum(LedgerKind.JOB_PAY),
             sum(LedgerKind.TRIBUTE_IN), -sum(LedgerKind.TRIBUTE_OUT), sum(LedgerKind.DEPOSIT), -sum(LedgerKind.WITHDRAW),

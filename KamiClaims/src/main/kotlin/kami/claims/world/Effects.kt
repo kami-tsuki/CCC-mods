@@ -16,6 +16,8 @@ import net.minecraft.sounds.SoundSource
 import java.util.UUID
 
 object Effects {
+    private val EDGES = listOf(1 to 0, -1 to 0, 0 to 1, 0 to -1)
+
     private val watching = HashSet<UUID>()
 
     fun chime(p: ServerPlayer, good: Boolean) =
@@ -50,7 +52,7 @@ object Effects {
         fun owner(x: Int, z: Int) = Realm.index[Key(dim, x, z)]?.country
         for (x in cx - 1..cx + 1) for (z in cz - 1..cz + 1) {
             val o = owner(x, z)
-            listOf(1 to 0, -1 to 0, 0 to 1, 0 to -1).forEach { (dx, dz) ->
+            EDGES.forEach { (dx, dz) ->
                 if (owner(x + dx, z + dz) == o) return@forEach
                 val fixed = if (dx != 0) x * 16.0 + (if (dx > 0) 16 else 0) else z * 16.0 + (if (dz > 0) 16 else 0)
                 for (i in 0..15) {

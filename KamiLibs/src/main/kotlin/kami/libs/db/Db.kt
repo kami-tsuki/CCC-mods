@@ -2,6 +2,7 @@ package kami.libs.db
 
 import kami.libs.log.Log
 import kami.libs.util.Time.HOUR_MS
+import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.json.Json
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.storage.LevelResource
@@ -38,6 +39,8 @@ object Db {
 
     @Volatile
     private var retryAt = 0L
+
+    fun <T> encode(serializer: SerializationStrategy<T>, value: T) = json.encodeToJsonElement(serializer, value)
 
     val json = Json { encodeDefaults = true; ignoreUnknownKeys = true }
 

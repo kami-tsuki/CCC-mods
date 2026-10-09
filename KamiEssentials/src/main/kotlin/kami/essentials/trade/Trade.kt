@@ -89,8 +89,8 @@ class Trade(val players: List<ServerPlayer>) {
         val items = offers.map { it.removeAllItems() }
         players.forEachIndexed { side, p -> give(p, items[1 - side]) }
         end()
-        if (items.none { it.isEmpty() } && ClaimsApi.neutralForeign(players[0].uuid, players[1].uuid) && Trades.claimXp(players[0].uuid, players[1].uuid)) {
-            val value = items.flatten().sumOf { MarketApi.value(it) }
+        if (items.none { it.isEmpty() } && differ(items) && ClaimsApi.neutralForeign(players[0].uuid, players[1].uuid) && Trades.claimXp(players[0].uuid, players[1].uuid)) {
+            val value = items.minOf { side -> side.sumOf { MarketApi.value(it) } }
             val count = items.sumOf { list -> list.sumOf { it.count } }.toLong()
             players.forEach {
                 KamiProgress.post(it, "trade", "", count)
@@ -101,6 +101,8 @@ class Trade(val players: List<ServerPlayer>) {
             p.tell(Talk.chat.ok(Phrase.of("kami_essentials.trade.done", Phrase.value(name(1 - side)), Phrase.value(items[1 - side].sumOf { it.count }), Phrase.value(items[side].sumOf { it.count }))))
         }
     }
+
+    private fun differ(items: List<List<ItemStack>>) = items[0].map { it.item }.toSet() != items[1].map { it.item }.toSet()
 
     private fun end() {
         Trades.remove(this)

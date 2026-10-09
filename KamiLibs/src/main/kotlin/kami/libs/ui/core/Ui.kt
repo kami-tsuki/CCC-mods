@@ -143,6 +143,7 @@ class Ui {
         cursor = Cursor.ARROW
         tip = null
         focusOrder.clear()
+        autoKeys.clear()
         nextEscapes.clear()
         anchorsNext.clear()
         nextBlockers = ArrayList()
@@ -231,13 +232,27 @@ class Ui {
 
     fun wheel(r: Rect): Double = if (hovering(r)) input.takeWheel() else 0.0
 
+    fun wheelIf(r: Rect, take: (Double) -> Boolean): Double = if (hovering(r) && input.peekWheel().let { it != 0.0 && take(it) }) input.takeWheel() else 0.0
+
+    private val autoKeys = HashMap<String, Int>()
+
+    fun autoKey(base: String): String {
+        val n = autoKeys.merge(id(base), 1, Int::plus) ?: 1
+        return if (n == 1) base else "$base#$n"
+    }
+
+    fun focusMark() = focusOrder.size
+
+    fun focusedSince(mark: Int, id: String) = (mark until focusOrder.size).any { focusOrder[it] == id }
+
     fun focusable(key: Any): String = id(key).also { focusOrder += it }
     fun focused(key: Any) = focus == id(key)
     fun focusRing(key: Any, r: Rect) { if (keyboardMode && focused(key)) Draw.outline(g, r.grow(1), Palette.focus) }
 
-    fun activatedByKey(key: Any): Boolean {
+    fun activatedByKey(key: Any, repeats: Boolean = true): Boolean {
         if (!focused(key)) return false
-        return (input.takeKey(GLFW.GLFW_KEY_ENTER) ?: input.takeKey(GLFW.GLFW_KEY_SPACE) ?: input.takeKey(GLFW.GLFW_KEY_KP_ENTER)) != null
+        val ok = { k: Key -> repeats || !k.repeat }
+        return (input.takeKey(GLFW.GLFW_KEY_ENTER, ok) ?: input.takeKey(GLFW.GLFW_KEY_SPACE, ok) ?: input.takeKey(GLFW.GLFW_KEY_KP_ENTER, ok)) != null
     }
 
     private fun handleTabbing() {

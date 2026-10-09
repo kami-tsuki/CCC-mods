@@ -1,7 +1,13 @@
 package kami.economy.economy
 
+import kami.economy.Config
+import kami.economy.Data
 import kami.economy.Market
 import kami.economy.Order
+import kami.economy.Settings
+import kami.libs.claims.ClaimsApi
+import java.util.UUID
+import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -66,4 +72,71 @@ class MatchingTest {
         assertEquals(0, Matching.maxAffordable("test:item", 0))
     }
 
+}
+
+class MatchingAllInTest {
+    private val buyer = UUID.randomUUID()
+    private val neutral = UUID.randomUUID()
+    private val taxed = UUID.randomUUID()
+    private val item = "test:item"
+
+    private fun setup(configure: Fakes.Claims.() -> Unit = {}) {
+        Config.s = Settings()
+        Market.data = Data()
+        TestDb.open()
+        ClaimsApi.register(Fakes.claims().apply {
+            home += mapOf(buyer to "aurelia", neutral to "nordmark", taxed to "ostland")
+            configure()
+        })
+    }
+
+    @AfterTest
+    fun clear() {
+        ClaimsApi.register(null)
+        TestDb.close()
+    }
+
+    @Test
+    fun sellNowRanksBidsByNetPerUnitAfterTaxAndTariff() {
+        setup { tariffs["aurelia" to "ostland"] = 15 }
+        Matching.insertBid(item, Order(1, buyer.toString(), 100, 20))
+        Matching.insertBid(item, Order(2, neutral.toString(), 90, 20))
+        val plan = Matching.sellPlan(item, 40, taxed.toString())
+        assertEquals(listOf(2L, 1L), plan.fills.map { it.orderId })
+        assertEquals(40, plan.filled)
+    }
+
+    @Test
+    fun sellNowSkipsABidWithNoSellerNetAndStillFillsTheNext() {
+        setup {
+            tariffs["aurelia" to "ostland"] = 90
+            tariffs["nordmark" to "ostland"] = 95
+        }
+        Matching.insertBid(item, Order(1, buyer.toString(), 1, 20))
+        Matching.insertBid(item, Order(2, neutral.toString(), 1, 1))
+        val plan = Matching.sellPlan(item, 21, taxed.toString())
+        assertEquals(listOf(2L), plan.fills.map { it.orderId })
+        assertEquals(1, plan.filled)
+        assertTrue(plan.net > 0)
+    }
+
+    @Test
+    fun buyRanksAsksByPriceWithTariffAndBreaksTiesByPlacementTime() {
+        setup { tariffs["aurelia" to "ostland"] = 15 }
+        Matching.insertSell(item, Order(1, taxed.toString(), 90, 20, placedAt = 1))
+        Matching.insertSell(item, Order(2, neutral.toString(), 100, 20, placedAt = 5))
+        Matching.insertSell(item, Order(3, neutral.toString(), 100, 20, placedAt = 2))
+        val plan = Matching.plan(item, 60, buyer.toString())
+        assertEquals(listOf(3L, 2L, 1L), plan.fills.map { it.orderId })
+    }
+
+    @Test
+    fun buyLimitExcludesAsksBeforeSortingAndLeavesNothingElseFilled() {
+        setup()
+        Matching.insertSell(item, Order(1, neutral.toString(), 100, 20))
+        Matching.insertSell(item, Order(2, taxed.toString(), 90, 20))
+        val plan = Matching.plan(item, 40, buyer.toString(), limit = 95)
+        assertEquals(listOf(2L), plan.fills.map { it.orderId })
+        assertEquals(20, plan.filled)
+    }
 }
