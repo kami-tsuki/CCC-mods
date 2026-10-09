@@ -127,5 +127,15 @@
   "kami_geology.tier.motherlode": "Motherlode",
   "kami_geology.tier.small": "Small",
   "kami_geology.unit.deposit.one": "%s deposit",
-  "kami_geology.unit.deposit.other": "%s deposits"
+  "kami_geology.unit.deposit.other": "%s deposits",
+  "kami_geology.maps.group": "Geology",
+  "kami_geology.maps.scans": "Prospector scans",
+  "kami_geology.maps.scans.tip": "Shows the ore density of your saved prospector scans on the maps.",
+  "kami_geology.maps.points": "Ore deposits",
+  "kami_geology.maps.points.tip": "Shows deposits found by prospecting as waypoints and markers.",
+  "kami_geology.maps.global": "Global ore heatmap (admin)",
+  "kami_geology.maps.global.tip": "Loads the ore density around you from the server for admins.",
+  "kami_geology.maps.tip": "%1$s · %2$s%% density",
+  "kami_geology.maps.last": "Last prospector find",
+  "kami_geology.maps.deposit": "Deposit at %1$s, %2$s"
 }

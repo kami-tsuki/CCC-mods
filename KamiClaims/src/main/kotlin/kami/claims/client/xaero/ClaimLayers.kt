@@ -7,7 +7,7 @@ import net.minecraft.network.chat.Component
 
 class ClaimsChunkLayer(private val data: ClaimData, private val style: ClaimStyle) : ChunkLayer {
     override val id = "claims"
-    override val toggle = "claims"
+    override val toggle = ""
     override val order = 10
 
     private fun fill(e: View.Entry, base: Int): Int = when {
@@ -62,7 +62,7 @@ class ClaimsChunkLayer(private val data: ClaimData, private val style: ClaimStyl
 
 class WarChunkLayer(private val data: ClaimData) : ChunkLayer {
     override val id = "war"
-    override val toggle = "war"
+    override val toggle = "claims.war"
     override val order = 15
 
     private fun kind(e: View.Entry) = when {

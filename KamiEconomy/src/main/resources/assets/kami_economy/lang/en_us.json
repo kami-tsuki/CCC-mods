@@ -662,5 +662,10 @@
   "kami_economy.discord.quest_time": "Time",
   "kami_economy.discord.quest_boosts": "Boosts",
   "kami_economy.discord.quest_done_title": "✅ Quest filled",
-  "kami_economy.discord.quest_expired_title": "⌛ Quest expired"
+  "kami_economy.discord.quest_expired_title": "⌛ Quest expired",
+  "kami_economy.maps.group": "Market",
+  "kami_economy.maps.vendors": "Vendors",
+  "kami_economy.maps.vendors.tip": "Shows the last vendor list you opened as waypoints and markers.",
+  "kami_economy.maps.vendor.price": "%1$s per lot · %2$s",
+  "kami_economy.maps.vendor.open": "Open item page"
 }

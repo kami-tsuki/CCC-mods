@@ -30,6 +30,7 @@ interface ClaimsProvider {
     fun country(id: String): CountryInfo? = null
     fun countries(): List<CountryInfo> = emptyList()
     fun relation(a: String, b: String): Relation = Relation.NEUTRAL
+    fun hostile(a: String, b: String): Boolean = false
     fun tariff(buyerCountry: String, sellerCountry: String): Int = 0
     fun capacity(player: UUID, key: String): Int? = null
     fun creditTariff(country: String, amount: Long, payer: String = "", note: String = ""): Long = 0
@@ -61,6 +62,7 @@ object ClaimsApi {
     fun relation(a: String, b: String): Relation = provider?.relation(a, b) ?: Relation.NEUTRAL
     fun tariff(buyerCountry: String, sellerCountry: String): Int = provider?.tariff(buyerCountry, sellerCountry) ?: 0
     fun capacity(player: UUID, key: String, fallback: Int): Int = provider?.capacity(player, key) ?: fallback
+    fun hostile(a: String, b: String): Boolean = provider?.hostile(a, b) ?: false
     fun canTrade(a: String, b: String): Boolean = relation(a, b) != Relation.EMBARGO
     fun neutralForeign(a: String, b: String): Boolean = a != b && relation(a, b) == Relation.NEUTRAL
     fun neutralForeign(a: UUID, b: UUID): Boolean {

@@ -8,11 +8,8 @@ import kami.claims.Realm
 import kami.claims.Tenancy
 import kami.claims.now
 import kami.claims.research.Loans
-import kami.claims.service.Announce
 import kami.claims.net.Sync
 import kami.claims.service.View
-import kami.claims.war.Fame
-import kami.claims.war.Power
 import kami.claims.war.Wars
 import kami.libs.discord.Card
 import kami.libs.discord.DiscordFormat
@@ -22,9 +19,7 @@ import kami.libs.discord.Mc
 import kami.libs.discord.SlashCommand
 import kami.libs.discord.SlashCtx
 import kami.libs.discord.SlashOption
-import java.util.Locale
 import java.util.UUID
-import kotlin.math.roundToInt
 
 object DiscordClaims {
     private const val CHOICES = 25
@@ -61,19 +56,14 @@ object DiscordClaims {
     }
 
     private fun card(c: Country, locale: String): Card {
-        val online = Announce.server?.playerList?.players?.count { it.stringUUID in c.members } ?: 0
-        val head = listOf("${text(locale, "field.level")} ${c.level}", text(locale, "members", c.members.size, online), war(c, locale)).joinToString(" · ")
+        val head = listOf("${text(locale, "field.level")} ${c.level}", text(locale, "members.public", c.members.size), war(c, locale)).joinToString(" · ")
         val fields = DiscordFormat.fields(
             text(locale, "field.claims") to Realm.claimCount(c.id).toString(),
-            text(locale, "field.provinces") to c.provinces.size.toString(),
-            text(locale, "field.power") to DiscordFormat.num(Power.score(c).let { if (it.isFinite()) it.roundToInt().toLong() else 0L }),
-            Fame.score(c)?.let { text(locale, "field.fame") to String.format(Locale.ROOT, "%.1f / 5", it) }
+            text(locale, "field.provinces") to c.provinces.size.toString()
         )
-        val footer = "${text(locale, "field.reputation")} ${whole(c.reputation)} · ${text(locale, "field.founded")}"
+        val footer = text(locale, "field.founded")
         return Card.compact(c.name, head, View.color(c), fields, footer, c.created)
     }
-
-    private fun whole(n: Double) = if (n.isFinite()) n.roundToInt().toString() else "0"
 
     private fun war(c: Country, locale: String): String {
         val wars = Wars.all(c)

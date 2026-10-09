@@ -51,7 +51,7 @@ object BorderRuns {
 
 class ClaimBorders(private val data: ClaimData, private val style: ClaimStyle) : LineSource {
     override val id = "claims.borders"
-    override val toggle = "plus"
+    override val toggle = "claims.plus"
 
     private class Built(val rev: Int, val mode: String, val dim: String, val lines: List<MapLine>, val labels: List<MapLabel>)
 

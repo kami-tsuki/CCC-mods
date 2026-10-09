@@ -1,12 +1,13 @@
 package kami.geology.client.xaero
 
-import com.google.gson.Gson
-import com.google.gson.JsonArray
-import com.google.gson.JsonObject
 import kami.geology.KamiGeology
 import kami.geology.map.Sparse
 import kami.geology.net.OpenMap
 import kami.libs.xaero.XaeroMaps
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import net.minecraft.client.Minecraft
 import net.neoforged.fml.loading.FMLPaths
 import java.nio.file.Files
@@ -57,16 +58,23 @@ class Scan(val dim: String, val x0: Int, val z0: Int, val w: Int, val h: Int, va
 }
 
 class Scans(private val cap: Int = MAX_SCANS) {
-    private val list = ArrayList<Scan>()
-    private val grid = HashMap<String, HashMap<Long, ChunkCell>>()
-    val legend = LinkedHashMap<String, Int>()
+    @Volatile
+    var scans: List<Scan> = emptyList()
+        private set
+
+    @Volatile
+    private var grid = emptyMap<String, Map<Long, ChunkCell>>()
+
+    @Volatile
+    var legend: Map<String, Int> = emptyMap()
+        private set
+
+    @Volatile
     var rev = 0
         private set
 
-    val scans: List<Scan> get() = list
-
     fun lastFind(): Pair<Scan, Find>? {
-        val scan = list.lastOrNull() ?: return null
+        val scan = scans.lastOrNull() ?: return null
         val find = scan.finds.maxByOrNull { it.value } ?: return null
         return scan to find
     }
@@ -74,27 +82,29 @@ class Scans(private val cap: Int = MAX_SCANS) {
     fun cell(dim: String, cx: Int, cz: Int): ChunkCell? = grid[dim]?.get(ScanChunks.key(cx, cz))
 
     fun add(scan: Scan) {
-        val replaced = list.removeAll { it.same(scan) }
-        list.add(scan)
-        val dropped = list.size > cap
-        while (list.size > cap) list.removeAt(0)
-        if (replaced || dropped) rebuild() else apply(scan)
+        val kept = scans.filterNot { it.same(scan) }
+        val next = (kept + scan).takeLast(cap)
+        val rebuild = kept.size != scans.size || next.size != kept.size + 1
+        scans = next
+        grid = if (rebuild) build(emptyMap(), next) else build(grid, listOf(scan))
         rev++
     }
 
     fun clear() {
-        list.clear()
-        grid.clear()
-        legend.clear()
+        scans = emptyList()
+        grid = emptyMap()
+        legend = emptyMap()
         rev++
     }
 
-    private fun rebuild() {
-        grid.clear()
-        list.forEach(::apply)
+    private fun build(base: Map<String, Map<Long, ChunkCell>>, add: List<Scan>): Map<String, Map<Long, ChunkCell>> {
+        val out = HashMap<String, HashMap<Long, ChunkCell>>()
+        base.forEach { (dim, cells) -> out[dim] = HashMap(cells) }
+        add.forEach { apply(out, it) }
+        return out
     }
 
-    private fun apply(scan: Scan) {
+    private fun apply(grid: HashMap<String, HashMap<Long, ChunkCell>>, scan: Scan) {
         val target = grid.getOrPut(scan.dim) { HashMap() }
         val fresh = scan.chunks()
         val x1 = Math.floorDiv(scan.x0 + scan.w - 1, 16)
@@ -108,85 +118,67 @@ class Scans(private val cap: Int = MAX_SCANS) {
 
     fun record(dim: String, colors: Map<String, Int>, x0: Int, z0: Int, w: Int, h: Int, y0: Int, y1: Int, at: Long, layers: Map<String, FloatArray>) {
         val packed = layers.mapValues { Sparse.pack(it.value) }.filter { it.value.size > 1 }
-        legend.putAll(colors)
+        legend = legend + colors
         add(Scan(dim, x0, z0, w, h, y0, y1, at, packed))
     }
 
-    fun toJson(): String {
-        val root = JsonObject()
-        root.addProperty("v", 1)
-        val legendArray = JsonArray()
-        legend.forEach { (id, color) -> legendArray.add(JsonObject().also { it.addProperty("id", id); it.addProperty("color", color) }) }
-        root.add("legend", legendArray)
-        val scanArray = JsonArray()
-        list.forEach { s ->
-            val o = JsonObject()
-            o.addProperty("dim", s.dim)
-            o.addProperty("x0", s.x0)
-            o.addProperty("z0", s.z0)
-            o.addProperty("w", s.w)
-            o.addProperty("h", s.h)
-            o.addProperty("y0", s.y0)
-            o.addProperty("y1", s.y1)
-            o.addProperty("at", s.at)
-            val ores = JsonObject()
-            s.ores.forEach { (id, data) -> ores.addProperty(id, Base64.getEncoder().encodeToString(data)) }
-            o.add("ores", ores)
-            scanArray.add(o)
-        }
-        root.add("scans", scanArray)
-        return Gson().toJson(root)
-    }
+    fun toJson(): String = json.encodeToString(
+        StoreDto(
+            1,
+            legend.map { (id, color) -> LegendDto(id, color) },
+            scans.map { s -> ScanDto(s.dim, s.x0, s.z0, s.w, s.h, s.y0, s.y1, s.at, s.ores.mapValues { Base64.getEncoder().encodeToString(it.value) }) }
+        )
+    )
 
     fun fromJson(text: String) {
         clear()
-        val root = Gson().fromJson(text, JsonObject::class.java) ?: return
-        if (root.get("v")?.asInt != 1) return
-        root.getAsJsonArray("legend")?.forEach { e ->
-            val o = e.asJsonObject
-            legend[o.get("id").asString] = o.get("color").asInt
-        }
-        root.getAsJsonArray("scans")?.forEach { e ->
-            val o = e.asJsonObject
-            val ores = o.getAsJsonObject("ores").entrySet().associate { it.key to Base64.getDecoder().decode(it.value.asString) }
-            list.add(
-                Scan(
-                    o.get("dim").asString, o.get("x0").asInt, o.get("z0").asInt, o.get("w").asInt, o.get("h").asInt,
-                    o.get("y0").asInt, o.get("y1").asInt, o.get("at").asLong, ores
-                )
-            )
-        }
-        while (list.size > cap) list.removeAt(0)
-        rebuild()
+        val root = json.decodeFromString<StoreDto>(text)
+        if (root.v != 1) return
+        legend = root.legend.associate { it.id to it.color }
+        scans = root.scans.map { o ->
+            Scan(o.dim, o.x0, o.z0, o.w, o.h, o.y0, o.y1, o.at, o.ores.mapValues { Base64.getDecoder().decode(it.value) })
+        }.takeLast(cap)
+        grid = build(emptyMap(), scans)
     }
 }
+
+private val json = Json { ignoreUnknownKeys = true }
+
+@Serializable
+private class LegendDto(val id: String, val color: Int)
+
+@Serializable
+private class ScanDto(val dim: String, val x0: Int, val z0: Int, val w: Int, val h: Int, val y0: Int, val y1: Int, val at: Long, val ores: Map<String, String>)
+
+@Serializable
+private class StoreDto(val v: Int = 0, val legend: List<LegendDto> = emptyList(), val scans: List<ScanDto> = emptyList())
 
 object ScanStore {
     val data = Scans()
     private var key: String? = null
+    private val unsafe = Regex("[^a-z0-9._-]")
 
     private fun serverKey(): String {
         val ip = Minecraft.getInstance().currentServer?.ip ?: return "local"
-        return ip.lowercase().replace(Regex("[^a-z0-9._-]"), "_")
+        return ip.lowercase().replace(unsafe, "_")
     }
 
     private fun path(k: String): Path = FMLPaths.GAMEDIR.get().resolve("kami").resolve("geology").resolve("scans").resolve("$k.json")
 
-    fun view(): Scans {
+    fun sync() {
         val k = serverKey()
-        if (k != key) {
-            key = k
-            data.clear()
-            runCatching {
-                val p = path(k)
-                if (Files.exists(p)) data.fromJson(Files.readString(p))
-            }.onFailure { KamiGeology.LOG.warn("Could not read prospector scans: {}", it.message) }
-        }
-        return data
+        if (k == key) return
+        key = k
+        data.clear()
+        runCatching {
+            val p = path(k)
+            if (Files.exists(p)) data.fromJson(Files.readString(p))
+        }.onFailure { KamiGeology.LOG.warn("Could not read prospector scans: {}", it.message) }
+        XaeroMaps.refresh()
     }
 
     fun record(info: OpenMap, x0: Int, z0: Int, w: Int, h: Int, deposits: Array<FloatArray?>, yMin: Int, yMax: Int) {
-        val scans = view()
+        sync()
         val layers = HashMap<String, FloatArray>()
         val colors = HashMap<String, Int>()
         info.ores.forEachIndexed { i, ore ->
@@ -196,12 +188,12 @@ object ScanStore {
             colors[ore.id] = ore.color and 0xFFFFFF
         }
         if (layers.isEmpty()) return
-        scans.record(info.dimension, colors, x0, z0, w, h, yMin, yMax, System.currentTimeMillis(), layers)
+        data.record(info.dimension, colors, x0, z0, w, h, yMin, yMax, System.currentTimeMillis(), layers)
         val k = key ?: return
         runCatching {
             val p = path(k)
             Files.createDirectories(p.parent)
-            Files.writeString(p, scans.toJson())
+            Files.writeString(p, data.toJson())
         }.onFailure { KamiGeology.LOG.warn("Could not save prospector scans: {}", it.message) }
         XaeroMaps.refresh()
     }
@@ -209,5 +201,6 @@ object ScanStore {
     fun reset() {
         key = null
         data.clear()
+        XaeroMaps.refresh()
     }
 }

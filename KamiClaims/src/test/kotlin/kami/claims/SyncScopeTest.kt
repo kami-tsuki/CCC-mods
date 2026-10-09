@@ -18,5 +18,7 @@ class SyncScopeTest {
         val scope = Scope.of("me", false)
         assertEquals(listOf("Alpha"), Sync.citizenships("bob", scope).map { it.country })
         assertEquals(listOf("Alpha", "Beta").sorted(), Sync.citizenships("bob") { true }.map { it.country }.sorted())
+        assertEquals("", Sync.citizenships("bob") { it == a.id }.single().via)
+        assertEquals("Beta", Sync.citizenships("bob") { true }.first { it.country == "Alpha" }.via)
     }
 }

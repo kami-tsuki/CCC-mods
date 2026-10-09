@@ -5,6 +5,7 @@ import kami.geology.net.MapDone
 import kami.geology.net.MapLayer
 import kami.geology.net.MapRequest
 import kami.geology.net.OreInfo
+import kami.libs.xaero.XaeroMaps
 import net.minecraft.client.Minecraft
 import net.neoforged.neoforge.network.PacketDistributor
 
@@ -28,11 +29,11 @@ object GlobalHeat {
     }
 
     @Volatile
-    var enabled = true
-
     var legend: List<OreInfo> = emptyList()
     var radius = START_RADIUS
         private set
+
+    @Volatile
     var rev = 0
         private set
 
@@ -42,7 +43,9 @@ object GlobalHeat {
     private var lastDim: String? = null
     private var lastCx = 0
     private var lastCz = 0
-    private val grid = HashMap<String, HashMap<Long, ChunkCell>>()
+
+    @Volatile
+    private var grid = emptyMap<String, Map<Long, ChunkCell>>()
 
     fun cell(dim: String, cx: Int, cz: Int): ChunkCell? = grid[dim]?.get(ScanChunks.key(cx, cz))
 
@@ -50,10 +53,11 @@ object GlobalHeat {
 
     fun reset() {
         pending = null
-        grid.clear()
+        grid = emptyMap()
         lastDim = null
         radius = START_RADIUS
         rev++
+        XaeroMaps.refresh()
     }
 
     fun cancel() {
@@ -65,7 +69,7 @@ object GlobalHeat {
         val player = mc.player ?: return
         val now = System.currentTimeMillis()
         if (pending != null && now - sentAt > TIMEOUT_MS) pending = null
-        if (!enabled || !allowed || screenOpen || pending != null || mc.connection == null) return
+        if (!allowed || screenOpen || pending != null || mc.connection == null) return
         val dim = player.level().dimension().location().toString()
         val cx = Math.floorDiv(player.blockX, 16)
         val cz = Math.floorDiv(player.blockZ, 16)
@@ -112,7 +116,8 @@ object GlobalHeat {
             val id = legend.getOrNull(ore)?.id ?: continue
             cells[ScanChunks.key(r.x0 / 16 + k % r.w, r.z0 / 16 + k / r.w)] = ChunkCell(id, (best * INTENSITY_PER_BLOCK).coerceIn(0f, 1f))
         }
-        grid[r.dim] = cells
+        grid = grid + (r.dim to cells)
         rev++
+        XaeroMaps.refresh()
     }
 }

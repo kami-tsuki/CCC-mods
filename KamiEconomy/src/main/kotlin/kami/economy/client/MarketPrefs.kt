@@ -12,8 +12,7 @@ class Prefs(
     var chartRange: String = "week",
     override var railCollapsed: Boolean = false,
     override var collapsedGroups: MutableSet<String> = mutableSetOf(),
-    var watch: MutableList<String>? = null,
-    var xaeroVendors: Boolean = true
+    var watch: MutableList<String>? = null
 ) : NavPrefs
 
 object MarketPrefs {
@@ -27,8 +26,7 @@ object MarketPrefs {
                     "chartRange" to "Price chart range on the item page: day, week, month or all.",
                     "railCollapsed" to "The sidebar is collapsed to icons.",
                     "collapsedGroups" to "Navigation groups you collapsed.",
-                    "watch" to "Legacy local watchlist, uploaded to the server once and then removed.",
-                    "xaeroVendors" to "Show the last vendor list as waypoints and markers on Xaero's maps."
+                    "watch" to "Legacy local watchlist, uploaded to the server once and then removed."
                 )
             )
         ),

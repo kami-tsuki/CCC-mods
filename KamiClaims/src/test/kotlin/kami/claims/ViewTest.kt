@@ -30,7 +30,7 @@ class ViewTest {
         cl.debt = 3
         assertTrue(has(View.flags(cl, c, "stranger"), View.OFFER))
         val d = Sync.stranger(c, cl, "stranger")
-        assertEquals("residential", d.type)
+        assertEquals("", d.type)
         assertEquals("", d.owner)
         assertTrue(d.roles.isEmpty())
         assertEquals(0, d.debt)
@@ -47,9 +47,21 @@ class ViewTest {
         cl.owner = "cit"
         cl.category = Claimant.CITIZEN
         assertNull(Sync.stranger(c, cl, "stranger").offer)
-        assertTrue(Sync.stranger(c, cl, "stranger").taken)
+        assertFalse(Sync.stranger(c, cl, "stranger").taken)
         assertEquals(0, View.flags(cl, c, "stranger"))
-        assertEquals(View.TAKEN, View.flags(cl, c, "boss"))
+        assertTrue(has(View.flags(cl, c, "boss"), View.TAKEN))
+    }
+
+    @Test
+    fun enemyGetsOnlyCountryName() {
+        val (c, cl) = land()
+        c.offer.open += Claimant.RANDOM
+        val d = Sync.enemy(c, cl)
+        assertEquals(c.name, d.country)
+        assertEquals("", d.type)
+        assertFalse(d.taken)
+        assertNull(d.offer)
+        assertTrue(d.access.isEmpty())
     }
 
     @Test

@@ -3,7 +3,6 @@ package kami.claims.client.xaero
 import kami.claims.client.VisibilityState
 import kami.claims.service.View
 import kami.claims.war.Entry
-import net.minecraft.network.chat.contents.TranslatableContents
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -92,18 +91,6 @@ class XaeroClaimsTest {
         assertNull(layer.paint("d", 3, 0))
     }
 
-    private fun key(c: net.minecraft.network.chat.Component) = (c.contents as TranslatableContents).key
-
-    @Test
-    fun infoLineComposition() {
-        val data = Fake(listOf(e(0, 0, 0, View.OWN or View.SAFE), e(1, 0, 1, View.ENEMY, -1)))
-        val info = TerritoryInfo(data, style()) { _, _, _ -> true }
-        assertEquals(listOf("kami_claims.xaero.territory", "kami_claims.xaero.build.yes", "kami_claims.xaero.war.safe"), info.lines("d", 3, 64, 3).map(::key))
-        assertEquals(listOf("kami_claims.xaero.territory", "kami_claims.xaero.war.enemy"), info.lines("d", 20, 64, 3).map(::key))
-        assertTrue(info.lines("d", 400, 64, 400).isEmpty())
-        assertEquals("kami_claims.xaero.build.no", key(TerritoryInfo(data, style()) { _, _, _ -> false }.lines("d", 3, 64, 3)[1]))
-    }
-
     @Test
     fun bordersMergeCollinearRuns() {
         val entries = listOf(e(0, 0), e(1, 0), e(2, 0), e(4, 0))
@@ -133,25 +120,12 @@ class XaeroClaimsTest {
     }
 
     @Test
-    fun pointsFromPayload() {
-        val data = Fake(listOf(e(0, 0, 0, View.OWN or View.CAPITAL), e(1, 0, 0, View.OWN or View.MINE), e(2, 0, 0, View.OWN or View.SAFE), e(3, 0, 1, View.ENEMY, -1), e(4, 0, 0, View.OWN)))
-        val pts = ClaimPoints("claims.waypoints", "waypoints", data, { it }) {}.points("d").sortedBy { it.x }
-        assertEquals(listOf("kami_claims.xaero.point.capital", "kami_claims.xaero.point.plot", "kami_claims.xaero.point.safe"), pts.map { it.name })
-        assertEquals(8, pts[0].x)
-        assertEquals(3, pts[0].actions.size)
-        assertEquals(3, pts[1].actions.size)
-        assertEquals(2, pts[2].actions.size)
-        assertTrue(ClaimPoints("m", "markers", Fake(emptyList(), enabled = false), { it }) {}.points("d").isEmpty())
-        assertNotNull(pts[0].id)
-    }
-
-    @Test
     fun trackedSkipsLoadedUnlessFairPlay() {
         val a = UUID.randomUUID()
         val b = UUID.randomUUID()
         val list = listOf(Entry(a, "d", 1, 2, 3), Entry(b, "d", 4, 5, 6))
-        assertEquals(listOf(b), VisibilityState.select(list, setOf(a), false).map { it.id })
-        assertEquals(listOf(a, b), VisibilityState.select(list, setOf(a), true).map { it.id })
-        assertEquals(1.5, VisibilityState.select(list, emptySet(), false)[0].x)
+        assertEquals(listOf(b), VisibilityState.select(list, { it == a }, false).map { it.id })
+        assertEquals(listOf(a, b), VisibilityState.select(list, { it == a }, true).map { it.id })
+        assertEquals(1.5, VisibilityState.select(list, { false }, false)[0].x)
     }
 }

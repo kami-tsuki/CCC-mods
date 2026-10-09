@@ -301,7 +301,7 @@ object Realm {
     var claimRev = 0
 
     fun changed(territory: Boolean = true) {
-        if (territory) claimRev++
+        claimRev++
         rev++
     }
 

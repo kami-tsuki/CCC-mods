@@ -5,7 +5,6 @@ import kami.libs.ui.app.Route
 import kami.libs.xaero.MapAction
 import kami.libs.xaero.MapPoint
 import kami.libs.xaero.PointSource
-import kami.libs.xaero.XaeroMaps
 import net.minecraft.network.chat.Component
 
 class ClaimPoints(
@@ -15,7 +14,7 @@ class ClaimPoints(
     private val tr: (String) -> String,
     private val open: (Route) -> Unit
 ) : PointSource {
-    override fun rev() = data.rev
+    override fun rev() = data.rev * 31 + tr("kami_claims.xaero.point.capital").hashCode()
 
     override fun points(dim: String): List<MapPoint> {
         if (!data.enabled) return emptyList()
@@ -42,12 +41,10 @@ class ClaimPoints(
             "plot" -> "P" to 0x55FFFF
             else -> "S" to SAFE_GREEN
         }
-        val plain = MapPoint("$id:$dim:$kind:${e.x}:${e.z}", dim, x, null, z, name, initials, color)
         val actions = ArrayList<MapAction>()
         if (kind == "capital") actions += MapAction(Component.translatable("kami_claims.xaero.action.dashboard")) { open(Route("dashboard")) }
         if (kind == "plot") actions += MapAction(Component.translatable("kami_claims.xaero.action.plots")) { open(Route("plots", mapOf("dim" to dim), "${e.x}:${e.z}")) }
         actions += MapAction(Component.translatable("kami_claims.xaero.action.map")) { open(Route("map", mapOf("x" to e.x.toString(), "z" to e.z.toString(), "dim" to dim))) }
-        actions += MapAction(Component.translatable("kami_claims.xaero.action.waypoint")) { XaeroMaps.tempWaypoint(plain) }
-        return MapPoint(plain.id, dim, x, null, z, name, initials, color, listOf(Component.literal(name)), actions)
+        return MapPoint("$id:$dim:$kind:${e.x}:${e.z}", dim, x, null, z, name, initials, color, listOf(Component.literal(name)), actions)
     }
 }

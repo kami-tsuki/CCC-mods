@@ -9,6 +9,7 @@ import kami.libs.config.Section
 import kami.libs.log.Log
 import kami.libs.ui.app.NavPrefs
 import kami.libs.xaero.XaeroMaps
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -33,13 +34,6 @@ class Prefs(
     var terrain: Boolean = true,
     var terrainCacheMb: Int = 256,
     var holdSeconds: Float = 1.5f,
-    var xaeroMode: String = "political",
-    var xaeroWar: Boolean = true,
-    var xaeroWarTint: Boolean = true,
-    var xaeroWaypoints: Boolean = true,
-    var xaeroMarkers: Boolean = true,
-    var xaeroTracked: Boolean = true,
-    var xaeroPlus: Boolean = true,
     var tourDone: Boolean = false,
     var skipClaimConfirm: Boolean = false,
     var dismissed: MutableSet<String> = mutableSetOf(),
@@ -79,13 +73,6 @@ object ClientClaims : ClaimData {
                     "terrain" to "Draw terrain from explored chunks on the claims map.",
                     "terrainCacheMb" to "Most disk space for the map terrain cache, in megabytes.",
                     "holdSeconds" to "Seconds to hold a button for dangerous actions.",
-                    "xaeroMode" to "Xaero map colors: political (country colors) or relations (your relation to each country).",
-                    "xaeroWar" to "Show war chunks (safe, staked, enemy) on Xaero's maps.",
-                    "xaeroWarTint" to "Tint enemy chunks red on Xaero's maps.",
-                    "xaeroWaypoints" to "Show your capital, plots and safe chunks as Xaero minimap waypoints.",
-                    "xaeroMarkers" to "Show your capital, plots and safe chunks as Xaero world map markers.",
-                    "xaeroTracked" to "Show country members out of render range on Xaero's maps.",
-                    "xaeroPlus" to "Draw country borders and names on XaeroPlus maps.",
                     "tourDone" to "The guided tour was finished or skipped.",
                     "skipClaimConfirm" to "Skip claim confirmation when the treasury lasts 7+ days.",
                     "dismissed" to "Alerts you dismissed.",
@@ -109,19 +96,29 @@ object ClientClaims : ClaimData {
     )
     val prefs: Prefs by lazy { config.load(); config.value }
 
+    @Volatile
     var dims: List<String> = emptyList()
         private set
+    @Volatile
     var types: List<String> = emptyList()
         private set
+    @Volatile
     var countries: List<View.CountryView> = emptyList()
         private set
+    @Volatile
     override var rev = -1
         private set
     var war = 0
     var viewingAs = ""
-    private var maps: List<HashMap<Long, View.Entry>> = emptyList()
-    private var reserves: List<HashSet<Long>> = emptyList()
-    private val regions = HashMap<Long, Int>()
+
+    @Volatile
+    private var maps: List<Map<Long, View.Entry>> = emptyList()
+
+    @Volatile
+    private var reserves: List<Set<Long>> = emptyList()
+
+    @Volatile
+    private var regions = ConcurrentHashMap<Long, Int>()
 
     private val log = Log.of("claims")
 
@@ -133,16 +130,18 @@ object ClientClaims : ClaimData {
     }
 
     fun update(p: View.Payload) {
+        val built = p.dims.map { HashMap<Long, View.Entry>() }
+        p.entries.forEach { built[it.dim.coerceIn(0, built.size - 1)][key(it.x, it.z)] = it }
+        val held = p.dims.map { HashSet<Long>() }
+        p.reserved.forEach { held.getOrNull(it.dim)?.add(key(it.x, it.z)) }
+        regions = ConcurrentHashMap()
+        maps = built
+        reserves = held
         dims = p.dims
         types = p.types
         countries = p.countries
         rev = p.rev
-        maps = p.dims.map { HashMap<Long, View.Entry>() }
-        p.entries.forEach { maps[it.dim.coerceIn(0, maps.size - 1)][key(it.x, it.z)] = it }
-        reserves = p.dims.map { HashSet<Long>() }
-        p.reserved.forEach { reserves.getOrNull(it.dim)?.add(key(it.x, it.z)) }
         war = p.war
-        regions.clear()
         XaeroMaps.refresh()
     }
 
@@ -166,19 +165,23 @@ object ClientClaims : ClaimData {
 
     private fun regionKey(dim: String, rx: Int, rz: Int) = key(rx, rz) * 31 + dim.hashCode()
 
-    override fun regionHash(dim: String, rx: Int, rz: Int): Int = regions.getOrPut(regionKey(dim, rx, rz)) {
-        var h = 1
-        var found = false
-        val map = maps.getOrNull(dims.indexOf(dim)) ?: return@getOrPut 0
-        for (x in rx * 32 until rx * 32 + 32) for (z in rz * 32 until rz * 32 + 32) {
-            val e = map[key(x, z)]
-            if (e == null) {
-                if (reserves.getOrNull(dims.indexOf(dim))?.contains(key(x, z)) == true) { found = true; h = 31 * h + (x * 5 + z * 11) }
-                continue
+    override fun regionHash(dim: String, rx: Int, rz: Int): Int {
+        val index = dims.indexOf(dim)
+        val map = maps.getOrNull(index) ?: return 0
+        val reserved = reserves.getOrNull(index)
+        return regions.computeIfAbsent(regionKey(dim, rx, rz)) {
+            var h = 1
+            var found = false
+            for (x in rx * 32 until rx * 32 + 32) for (z in rz * 32 until rz * 32 + 32) {
+                val e = map[key(x, z)]
+                if (e == null) {
+                    if (reserved?.contains(key(x, z)) == true) { found = true; h = 31 * h + (x * 5 + z * 11) }
+                    continue
+                }
+                found = true
+                h = 31 * h + (e.country * 131 + e.flags * 17 + e.type + x * 7 + z * 3)
             }
-            found = true
-            h = 31 * h + (e.country * 131 + e.flags * 17 + e.type + x * 7 + z * 3)
+            if (!found) 0 else if (h == 0) 1 else h
         }
-        if (!found) 0 else if (h == 0) 1 else h
     }
 }

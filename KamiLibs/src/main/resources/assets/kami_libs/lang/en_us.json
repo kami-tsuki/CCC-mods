@@ -320,5 +320,10 @@
   "kami_libs.key.lmb": "LMB",
   "kami_libs.key.rmb": "RMB",
   "kami_libs.key.drag": "Drag",
-  "kami_libs.key.ctrl_lmb": "Ctrl+LMB"
+  "kami_libs.key.ctrl_lmb": "Ctrl+LMB",
+  "kami_libs.maps.group": "Maps",
+  "kami_libs.maps.xaero": "Maps (Xaero)",
+  "kami_libs.maps.detected": "Detected: %s",
+  "kami_libs.maps.none": "No Xaero map mod detected",
+  "kami_libs.maps.waypoint": "Set waypoint"
 }

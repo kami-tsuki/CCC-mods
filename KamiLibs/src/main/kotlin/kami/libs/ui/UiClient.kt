@@ -1,5 +1,6 @@
 package kami.libs.ui
 
+import kami.libs.xaero.impl.Bridge
 import kami.libs.ui.text.ItemSearch
 import kami.libs.ui.gallery.Gallery
 import kami.libs.ui.map.TerrainScanner
@@ -23,6 +24,7 @@ import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 object UiClient {
     fun init() {
         TerrainScanner.init()
+        Bridge.init()
         MOD_BUS.addListener<RegisterClientReloadListenersEvent> { e ->
             e.registerReloadListener(ResourceManagerReloadListener {
                 Palette.load(it)

@@ -20,14 +20,15 @@ class PositionsPacket(val data: Selection) : CustomPacketPayload {
         fun write(b: FriendlyByteBuf, v: PositionsPacket) {
             b.writeVarInt(v.data.entries.size)
             v.data.entries.forEach { b.writeUUID(it.id); b.writeUtf(it.dim, 256); b.writeInt(it.x); b.writeShort(it.y); b.writeInt(it.z) }
-            b.writeVarInt(v.data.hidden.size)
-            v.data.hidden.forEach(b::writeUUID)
+            b.writeVarInt(v.data.friendly.size)
+            v.data.friendly.forEach(b::writeUUID)
+            b.writeBoolean(v.data.war)
         }
 
         fun read(b: FriendlyByteBuf): PositionsPacket {
             val entries = List(b.count()) { Entry(b.readUUID(), b.readUtf(256), b.readInt(), b.readShort().toInt(), b.readInt()) }
-            val hidden = List(b.count()) { b.readUUID() }.toSet()
-            return PositionsPacket(Selection(entries, hidden))
+            val friendly = List(b.count()) { b.readUUID() }.toSet()
+            return PositionsPacket(Selection(entries, friendly, b.readBoolean()))
         }
 
         private fun FriendlyByteBuf.count() = readVarInt().also { require(it in 0..PositionFilter.CAP) { "list too long" } }

@@ -183,7 +183,7 @@ object Sync {
         val own = Realm.of(id)
         own?.takeIf { scope(it.id) }?.members?.get(id)?.let { list += Citizen(own.name, it.rank.name.lowercase()) }
         Realm.data.countries.values.forEach { c ->
-            if (id in c.autoAllies && scope(c.id)) c.outsiders[id]?.let { list += Citizen(c.name, it.name.lowercase(), own?.name ?: "") }
+            if (id in c.autoAllies && scope(c.id)) c.outsiders[id]?.let { list += Citizen(c.name, it.name.lowercase(), own?.takeIf { o -> scope(o.id) }?.name ?: "") }
         }
         return list
     }
@@ -231,12 +231,17 @@ object Sync {
 
     private fun tenancy(c: Country, cl: Claim) = MineLine(Housing.effective(cl).name.lowercase(), Housing.rate(c, cl), cl.rentDebt, c.rentDebtLimit)
 
-    internal fun stranger(c: Country, cl: Claim, me: String, access: Map<String, Boolean> = emptyMap()): Detail {
+    internal fun enemy(c: Country, cl: Claim) = Detail(
+        x = cl.x, z = cl.z, country = c.name, relation = 0, type = "", owner = "", roles = emptyList(), debt = 0, price = 0, period = 0,
+        free = false, capital = false, note = Phrase.of("kami_claims.detail.claimed_by", c.name).json()
+    )
+
+    internal fun stranger(c: Country, cl: Claim, me: String, relation: Int = 0): Detail {
         val note = Phrase.of("kami_claims.detail.claimed_by", c.name).json()
         val free = cl.plot && !Housing.tenanted(cl)
         return Detail(
-            x = cl.x, z = cl.z, country = c.name, relation = 0, type = if (cl.plot) cl.type else "", owner = "", roles = emptyList(), debt = 0, price = 0, period = 0,
-            free = false, capital = false, note = note, access = access, taken = cl.plot && !free, offer = if (free) renting(c, cl, me) else null
+            x = cl.x, z = cl.z, country = c.name, relation = relation, type = "", owner = "", roles = emptyList(), debt = 0, price = 0, period = 0,
+            free = false, capital = false, note = note, offer = if (free) renting(c, cl, me) else null
         )
     }
 
@@ -245,36 +250,40 @@ object Sync {
         val mine = Realm.of(me)
         val cl = Realm.index[k]
         val c = cl?.let { Realm.data.countries[it.country] }
-        val access = access(p, k)
+        val op = p.hasPermissions(Config.s.visibility.opLevel)
+        val scope = Scope.of(me, op)
         if (cl == null || c == null) {
             val reservedBy = Realm.reservedFor(k.dim, k.x, k.z)?.let { Realm.data.countries[it] }
-            val reserved = reservedBy?.takeIf { Scope.of(me, p.hasPermissions(Config.s.visibility.opLevel))(it.id) }?.name
-            val problem = mine?.let { Service.claimError(it, k, Config.s.defaultType) }
+            val reserved = reservedBy?.takeIf { scope(it.id) }?.name
+            val shown = reservedBy == null || reserved != null
+            val problem = if (shown) mine?.let { Service.claimError(it, k, Config.s.defaultType) } else null
             val note = when {
-                reservedBy != null -> if (reserved != null) Phrase.of("kami_claims.detail.reserved", reserved) else Phrase.of("kami_claims.detail.reserved.hidden")
+                reserved != null -> Phrase.of("kami_claims.detail.reserved", reserved)
                 mine == null -> Phrase.of("kami_claims.detail.nomansland")
                 else -> problem ?: Phrase.of("kami_claims.detail.free")
             }
             return Detail(
                 x = k.x, z = k.z, country = "", relation = 0, type = "", owner = "", roles = emptyList(), debt = 0, price = 0, period = 0, free = false, capital = false,
-                note = note.json(), access = access, reserved = reserved ?: "", blocked = reservedBy != null || problem != null
+                note = note.json(), access = if (shown) access(p, k) else emptyMap(), reserved = reserved ?: "", blocked = reserved != null || problem != null
             )
         }
+        if (!op && mine != null && Wars.enemies(mine.id, c.id)) return enemy(c, cl)
         val rel = View.relation(c, me)
         val tenant = cl.tenant == me
-        if (rel == 0 && !tenant) return stranger(c, cl, me, access)
+        val known = scope(c.id)
+        if (!known && !tenant) return stranger(c, cl, me, rel)
         val taken = cl.plot && Housing.tenanted(cl)
         val priv = View.privileged(c, me)
         val own = priv || cl.owner == me
         val rank = c.members[me]?.rank
         val jobs = Config.s.can(rank, Cap.JOBS)
-        val known = rel != 0
-        val owned = cl.plot && cl.owner != null
+        val owned = known && cl.plot && cl.owner != null
         return Detail(
-            x = k.x, z = k.z, country = c.name, relation = rel, type = cl.type, owner = cl.owner?.let { Names.of(p.server, it) } ?: "",
+            x = k.x, z = k.z, country = c.name, relation = rel, type = if (known) cl.type else "",
+            owner = if (known) cl.owner?.let { Names.of(p.server, it) } ?: "" else "",
             roles = if (own) cl.roles.map { (id, r) -> "${Names.of(p.server, id)}: ${r.name.lowercase()}" } else emptyList(),
             debt = if (priv) cl.debt else 0, price = if (known) Buffs.price(c, cl) else 0, period = if (known) Realm.period(cl) else 0,
-            free = priv && cl.free, capital = known && cl.capital, note = "", access = access, at = if (known) cl.at else 0, ownerId = cl.owner ?: "",
+            free = priv && cl.free, capital = known && cl.capital, note = "", access = access(p, k), at = if (known) cl.at else 0, ownerId = if (known) cl.owner ?: "" else "",
             locked = if (priv) Planner.unclaimLock(cl)?.json() ?: "" else "",
             state = if (owned) cl.state.name.lowercase() else "", until = if (owned) cl.until else 0, taken = taken,
             offer = if (cl.plot && (!taken || Config.s.can(rank, Cap.HOUSING))) renting(c, cl, me) else null,

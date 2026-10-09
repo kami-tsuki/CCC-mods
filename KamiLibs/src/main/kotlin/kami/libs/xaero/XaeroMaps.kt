@@ -1,6 +1,5 @@
 package kami.libs.xaero
 
-import kami.libs.xaero.impl.Detect
 import kami.libs.xaero.impl.Registry
 import java.util.UUID
 
@@ -19,9 +18,8 @@ object XaeroMaps {
     fun tempWaypoint(p: MapPoint) = Registry.temp(p)
     fun refresh() = Registry.refresh()
 
-    val minimap: Boolean get() = Detect.minimap
-    val worldMap: Boolean get() = Detect.worldMap
-    val plus: Boolean get() = Detect.plus
+    fun on(id: String): Boolean = Registry.on(id)
+    fun choice(id: String): String = Registry.choice(id)
 
     @JvmStatic
     fun fairPlayActive(): Boolean = Registry.fairPlayActive()

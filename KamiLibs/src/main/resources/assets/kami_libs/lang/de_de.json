@@ -320,5 +320,10 @@
   "kami_libs.key.lmb": "LMT",
   "kami_libs.key.rmb": "RMT",
   "kami_libs.key.drag": "Ziehen",
-  "kami_libs.key.ctrl_lmb": "Strg+LMT"
+  "kami_libs.key.ctrl_lmb": "Strg+LMT",
+  "kami_libs.maps.group": "Karten",
+  "kami_libs.maps.xaero": "Karten (Xaero)",
+  "kami_libs.maps.detected": "Erkannt: %s",
+  "kami_libs.maps.none": "Keine Xaero-Kartenmod erkannt",
+  "kami_libs.maps.waypoint": "Wegpunkt setzen"
 }

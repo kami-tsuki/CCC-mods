@@ -94,7 +94,7 @@ object Net {
     private val reads = RateLimit<UUID>(20, 1000L)
     private var lastAct = TickCooldown(0)
     private var lastPreview = TickCooldown(2)
-    private val sent = HashMap<UUID, Int>()
+    private val sent = HashMap<UUID, Triple<Int, Boolean, Int>>()
     private val claimSig = HashMap<UUID, Int>()
     private val pushQueue = LinkedHashSet<UUID>()
     private val openSig = HashMap<UUID, Pair<Int, Int>>()
@@ -187,7 +187,7 @@ object Net {
         drain(server)
         if (server.tickCount - lastPush !in 0..19) {
             lastPush = server.tickCount
-            server.playerList.players.forEach { if (sent[it.uuid] != Realm.claimRev) pushQueue += it.uuid }
+            server.playerList.players.forEach { if (sent[it.uuid] != stamp(it)) pushQueue += it.uuid }
             broadcastOpen(server)
         }
         var left = PUSH_PER_TICK
@@ -205,10 +205,13 @@ object Net {
         }
     }
 
+    private fun stamp(p: ServerPlayer) = Triple(Realm.claimRev, p.hasPermissions(Config.s.visibility.opLevel), System.identityHashCode(Config.s))
+
     private fun pushTo(p: ServerPlayer): Boolean {
         pushQueue.remove(p.uuid)
-        if (sent[p.uuid] == Realm.claimRev || !p.connection.hasChannel(ClaimsPacket.TYPE)) return false
-        sent[p.uuid] = Realm.claimRev
+        val stamp = stamp(p)
+        if (sent[p.uuid] == stamp || !p.connection.hasChannel(ClaimsPacket.TYPE)) return false
+        sent[p.uuid] = stamp
         val data = View.build(p.stringUUID, p.hasPermissions(Config.s.visibility.opLevel))
         val sig = View.signature(data)
         if (claimSig.put(p.uuid, sig) != sig) PacketDistributor.sendToPlayer(p, ClaimsPacket(data))

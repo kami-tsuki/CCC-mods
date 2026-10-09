@@ -15,7 +15,8 @@ class MapPoint(
     val initials: String,
     val color: Int,
     val tooltip: List<Component> = emptyList(),
-    val actions: List<MapAction> = emptyList()
+    val actions: List<MapAction> = emptyList(),
+    val waypoint: Boolean = true
 )
 
 class ChunkPaint(val fill: Int, val north: Int, val east: Int, val south: Int, val west: Int)
@@ -66,8 +67,7 @@ class MapToggle(
     val group: String,
     val label: String,
     val tip: String,
-    val get: () -> Boolean,
-    val set: (Boolean) -> Unit,
+    val default: Boolean,
     val visible: () -> Boolean = { true }
 )
 
@@ -76,6 +76,5 @@ class MapChoice(
     val group: String,
     val label: String,
     val options: List<Pair<String, String>>,
-    val get: () -> String,
-    val set: (String) -> Unit
+    val default: String
 )

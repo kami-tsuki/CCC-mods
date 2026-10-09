@@ -662,5 +662,10 @@
   "kami_economy.discord.quest_time": "Dauer",
   "kami_economy.discord.quest_boosts": "Boni",
   "kami_economy.discord.quest_done_title": "✅ Quest erfüllt",
-  "kami_economy.discord.quest_expired_title": "⌛ Quest abgelaufen"
+  "kami_economy.discord.quest_expired_title": "⌛ Quest abgelaufen",
+  "kami_economy.maps.group": "Markt",
+  "kami_economy.maps.vendors": "Händler",
+  "kami_economy.maps.vendors.tip": "Zeigt die zuletzt geöffnete Händlerliste als Wegpunkte und Markierungen.",
+  "kami_economy.maps.vendor.price": "%1$s pro Los · %2$s",
+  "kami_economy.maps.vendor.open": "Artikelseite öffnen"
 }

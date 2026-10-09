@@ -127,5 +127,15 @@
   "kami_geology.tier.motherlode": "Hauptader",
   "kami_geology.tier.small": "Klein",
   "kami_geology.unit.deposit.one": "%s Vorkommen",
-  "kami_geology.unit.deposit.other": "%s Vorkommen"
+  "kami_geology.unit.deposit.other": "%s Vorkommen",
+  "kami_geology.maps.group": "Geologie",
+  "kami_geology.maps.scans": "Prospektor-Scans",
+  "kami_geology.maps.scans.tip": "Zeigt die Erzdichte deiner gespeicherten Prospektor-Scans auf den Karten.",
+  "kami_geology.maps.points": "Erzvorkommen",
+  "kami_geology.maps.points.tip": "Zeigt per Prospektion gefundene Vorkommen als Wegpunkte und Markierungen.",
+  "kami_geology.maps.global": "Globale Erz-Heatmap (Admin)",
+  "kami_geology.maps.global.tip": "Lädt für Admins die Erzdichte rund um dich vom Server.",
+  "kami_geology.maps.tip": "%1$s · %2$s%% Dichte",
+  "kami_geology.maps.last": "Letzter Prospektor-Fund",
+  "kami_geology.maps.deposit": "Vorkommen bei %1$s, %2$s"
 }

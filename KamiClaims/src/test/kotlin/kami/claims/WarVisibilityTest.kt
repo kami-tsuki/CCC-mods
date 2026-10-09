@@ -70,7 +70,8 @@ class WarVisibilityTest : WithDb() {
         val targets = listOf(viewer, pos(1, "a", 500.0), pos(2, "b", 500.0), pos(3, "c", 500.0), pos(4, "a", 10.0))
         val r = select(viewer, targets)
         assertEquals(listOf(ids[4], ids[1]), r.entries.map { it.id })
-        assertEquals(setOf(ids[2]), r.hidden)
+        assertEquals(setOf(ids[1], ids[4]), r.friendly)
+        assertTrue(r.war)
         assertEquals(emptyList(), select(pos(2, "b"), targets.filter { it.country == "a" }).entries)
     }
 
@@ -88,7 +89,7 @@ class WarVisibilityTest : WithDb() {
         val rebel = pos(1, "p", 300.0)
         val r = select(overlord, listOf(rebel), enemies = { x, y -> setOf(x, y) == setOf("a", "p") })
         assertTrue(r.entries.isEmpty())
-        assertEquals(setOf(ids[1]), r.hidden)
+        assertTrue(r.war && r.friendly.isEmpty())
     }
 
     @Test
@@ -103,7 +104,7 @@ class WarVisibilityTest : WithDb() {
         val targets = (1..5).map { pos(it, if (it % 2 == 0) "b" else null, 300.0 + it) }
         val r = select(viewer, targets, opAll = true)
         assertEquals(5, r.entries.size)
-        assertTrue(r.hidden.isEmpty())
+        assertTrue(r.friendly.isEmpty() && !r.war)
     }
 
     @Test
@@ -111,9 +112,9 @@ class WarVisibilityTest : WithDb() {
         val viewer = pos(0, "a")
         val targets = listOf(pos(1, "a", 500.0), pos(2, "b", 500.0))
         assertTrue(select(viewer, targets, share = false).entries.isEmpty())
-        assertTrue(select(viewer, targets, hide = false).hidden.isEmpty())
+        assertTrue(!select(viewer, targets, hide = false).war)
         val r = select(pos(0, null), targets)
-        assertTrue(r.entries.isEmpty() && r.hidden.isEmpty())
+        assertTrue(r.empty)
     }
 
     @Test
@@ -126,7 +127,7 @@ class WarVisibilityTest : WithDb() {
 
     @Test
     fun deltaSuppression() {
-        fun sel(x: Int, hidden: Set<UUID> = emptySet()) = Selection(listOf(Entry(ids[1], "d", x, 64, 0)), hidden)
+        fun sel(x: Int, friendly: Set<UUID> = emptySet()) = Selection(listOf(Entry(ids[1], "d", x, 64, 0)), friendly)
         assertFalse(PositionFilter.changed(null, Selection(emptyList(), emptySet())))
         assertTrue(PositionFilter.changed(null, sel(0)))
         assertFalse(PositionFilter.changed(sel(0), sel(1)))
