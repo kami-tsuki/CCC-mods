@@ -1,8 +1,8 @@
 package kami.claims.client
 
 import kami.claims.client.hud.TaxHudMode
-import kami.claims.client.xaero.ClaimData
-import kami.claims.client.xaero.chunkKey
+import kami.claims.client.compat.xaero.ClaimData
+import kami.claims.client.compat.xaero.chunkKey
 import kami.claims.service.View
 import kami.libs.config.KamiConfig
 import kami.libs.config.Section
@@ -96,29 +96,22 @@ object ClientClaims : ClaimData {
     )
     val prefs: Prefs by lazy { config.load(); config.value }
 
+    private class Snapshot(
+        val dims: List<String>, val types: List<String>, val countries: List<View.CountryView>, val rev: Int,
+        val maps: List<Map<Long, View.Entry>>, val reserves: List<Set<Long>>
+    ) {
+        val regions = ConcurrentHashMap<Long, Int>()
+    }
+
     @Volatile
-    var dims: List<String> = emptyList()
-        private set
-    @Volatile
-    var types: List<String> = emptyList()
-        private set
-    @Volatile
-    var countries: List<View.CountryView> = emptyList()
-        private set
-    @Volatile
-    override var rev = -1
-        private set
+    private var snap = Snapshot(emptyList(), emptyList(), emptyList(), -1, emptyList(), emptyList())
+
+    val dims get() = snap.dims
+    val types get() = snap.types
+    val countries get() = snap.countries
+    override val rev get() = snap.rev
     var war = 0
     var viewingAs = ""
-
-    @Volatile
-    private var maps: List<Map<Long, View.Entry>> = emptyList()
-
-    @Volatile
-    private var reserves: List<Set<Long>> = emptyList()
-
-    @Volatile
-    private var regions = ConcurrentHashMap<Long, Int>()
 
     private val log = Log.of("claims")
 
@@ -131,16 +124,10 @@ object ClientClaims : ClaimData {
 
     fun update(p: View.Payload) {
         val built = p.dims.map { HashMap<Long, View.Entry>() }
-        p.entries.forEach { built[it.dim.coerceIn(0, built.size - 1)][key(it.x, it.z)] = it }
+        p.entries.forEach { built.getOrNull(it.dim)?.set(key(it.x, it.z), it) }
         val held = p.dims.map { HashSet<Long>() }
         p.reserved.forEach { held.getOrNull(it.dim)?.add(key(it.x, it.z)) }
-        regions = ConcurrentHashMap()
-        maps = built
-        reserves = held
-        dims = p.dims
-        types = p.types
-        countries = p.countries
-        rev = p.rev
+        snap = Snapshot(p.dims, p.types, p.countries, p.rev, built, held)
         war = p.war
         XaeroMaps.refresh()
     }
@@ -149,13 +136,13 @@ object ClientClaims : ClaimData {
 
     override val enabled get() = prefs.overlay
 
-    override fun at(dim: String, x: Int, z: Int): View.Entry? = maps.getOrNull(dims.indexOf(dim))?.get(key(x, z))
+    override fun at(dim: String, x: Int, z: Int): View.Entry? = snap.let { it.maps.getOrNull(it.dims.indexOf(dim))?.get(key(x, z)) }
 
-    override fun view(dim: String): Map<Long, View.Entry>? = maps.getOrNull(dims.indexOf(dim))
+    override fun view(dim: String): Map<Long, View.Entry>? = snap.let { it.maps.getOrNull(it.dims.indexOf(dim)) }
 
-    fun reservedView(dim: String): Set<Long>? = reserves.getOrNull(dims.indexOf(dim))
+    fun reservedView(dim: String): Set<Long>? = snap.let { it.reserves.getOrNull(it.dims.indexOf(dim)) }
 
-    override fun reserved(dim: String, x: Int, z: Int) = reserves.getOrNull(dims.indexOf(dim))?.contains(key(x, z)) == true
+    override fun reserved(dim: String, x: Int, z: Int) = reservedView(dim)?.contains(key(x, z)) == true
 
     override fun country(e: View.Entry) = countries.getOrNull(e.country)
 
@@ -166,10 +153,11 @@ object ClientClaims : ClaimData {
     private fun regionKey(dim: String, rx: Int, rz: Int) = key(rx, rz) * 31 + dim.hashCode()
 
     override fun regionHash(dim: String, rx: Int, rz: Int): Int {
-        val index = dims.indexOf(dim)
-        val map = maps.getOrNull(index) ?: return 0
-        val reserved = reserves.getOrNull(index)
-        return regions.computeIfAbsent(regionKey(dim, rx, rz)) {
+        val s = snap
+        val index = s.dims.indexOf(dim)
+        val map = s.maps.getOrNull(index) ?: return 0
+        val reserved = s.reserves.getOrNull(index)
+        return s.regions.computeIfAbsent(regionKey(dim, rx, rz)) {
             var h = 1
             var found = false
             for (x in rx * 32 until rx * 32 + 32) for (z in rz * 32 until rz * 32 + 32) {

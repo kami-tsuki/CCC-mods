@@ -41,6 +41,7 @@ interface ClaimsProvider {
     fun traded(a: String, b: String, value: Long) {}
     fun tradeFactor(country: String): Double = 1.0
     fun boost(country: String, kind: String, pct: Int, ms: Long): Boolean = false
+    fun canBuild(player: UUID, dim: String, x: Int, y: Int, z: Int): Boolean = true
 }
 
 object ClaimsApi {
@@ -83,6 +84,7 @@ object ClaimsApi {
     fun traded(a: String, b: String, value: Long) { provider?.traded(a, b, value) }
     fun boost(country: String, kind: String, pct: Int, ms: Long): Boolean = provider?.boost(country, kind, pct, ms) ?: false
     fun tradeFactor(country: String): Double = provider?.tradeFactor(country) ?: 1.0
+    fun canBuild(player: UUID, dim: String, x: Int, y: Int, z: Int): Boolean = provider?.canBuild(player, dim, x, y, z) ?: true
 
     fun countryAt(level: Level, pos: BlockPos): String? =
         at(level.dimension().location().toString(), pos.x shr 4, pos.z shr 4)?.country

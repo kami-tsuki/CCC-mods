@@ -46,12 +46,6 @@ import net.minecraft.world.entity.animal.Animal
 import net.minecraft.world.entity.npc.AbstractVillager
 import net.minecraft.tags.DamageTypeTags
 import net.minecraft.world.phys.EntityHitResult
-import net.neoforged.bus.api.Event
-import net.neoforged.bus.api.EventPriority
-import net.neoforged.bus.api.ICancellableEvent
-import net.neoforged.fml.ModList
-import thedarkcolour.kotlinforforge.neoforge.forge.FORGE_BUS
-import java.util.function.Consumer
 import net.neoforged.neoforge.event.entity.ProjectileImpactEvent
 import net.minecraft.world.entity.monster.Enemy
 import net.minecraft.world.entity.item.PrimedTnt
@@ -341,7 +335,7 @@ object Guard {
     private fun researchLocked(who: Entity?, level: LevelAccessor, pos: BlockPos, block: Block): Boolean {
         if (who != null && who !is ServerPlayer) return false
         val player = (who as ServerPlayer?)?.takeUnless { it is FakePlayer }
-        if (player != null && RecipeFilter.bypassed(player)) return false
+        if (player != null && (RecipeFilter.bypassed(player) || player.isCreative && player.hasPermissions(2))) return false
         val country = if (player != null) Realm.of(player.stringUUID)
         else dim(level)?.let { Realm.index[key(it, pos)] }?.let { Realm.data.countries[it.country] }
         if (Gate.block(country, BuiltInRegistries.BLOCK.getKey(block))) return false
@@ -435,7 +429,7 @@ object Guard {
 
     private fun trainingTarget(target: Entity) = PvpRules.trainingTarget(typeNames.get(target.javaClass), target.type.`is`(trainingTargets))
 
-    private fun wildFrame(target: Entity) = target is ItemFrame && Config.s.nomanslandFrameTakeOnly &&
+    fun wildFrame(target: Entity) = target is ItemFrame && Config.s.nomanslandFrameTakeOnly &&
         dim(target.level())?.let { it in Config.s.dimensionSet } == true && unclaimed(target.level(), target.blockPosition())
 
     private fun lootr(e: Entity) = BuiltInRegistries.ENTITY_TYPE.getKey(e.type).namespace == "lootr" || e.javaClass.name.contains("LootrItemFrame")
@@ -464,7 +458,8 @@ object Guard {
         p.javaClass.simpleName.contains("WindCharge")
 
     fun onTrample(e: BlockEvent.FarmlandTrampleEvent) {
-        e.isCanceled = true
+        val p = e.entity as? ServerPlayer
+        e.isCanceled = p == null || p is FakePlayer || !allowed(e.level, e.pos, p, Action.BREAK, e.state.block, false)
     }
 
     fun onGrief(e: EntityMobGriefingEvent) {
@@ -534,36 +529,17 @@ object Guard {
 
     private fun livestock(v: Entity) = v is AbstractVillager || v is Animal && v !is Enemy && v !is NeutralMob || (v as? OwnableEntity)?.ownerUUID != null
 
-    private fun pvpAllowed(attacker: Player, victim: Player): Boolean {
+    internal fun pvpAllowed(attacker: Player, victim: Player): Boolean {
         val dim = dim(victim.level())?.takeIf { it in Config.s.dimensionSet } ?: return true
         val cl = Realm.index[key(dim, victim.blockPosition())]
         return PvpRules.allowed(WarGuard.pvp(attacker, victim, cl), cl != null, cl?.def?.rule?.pvp == true, Config.s.nomanslandPvp)
     }
 
-    fun registerTacz() {
-        if (!ModList.get().isLoaded("tacz")) return
-        try {
-            val type = Class.forName("com.tacz.guns.api.event.common.EntityHurtByGunEvent\$Pre")
-            val hurt = type.getMethod("getHurtEntity")
-            val attacker = type.getMethod("getAttacker")
-            var failed = false
-            @Suppress("UNCHECKED_CAST")
-            FORGE_BUS.addListener(EventPriority.HIGH, false, type as Class<Event>, Consumer<Event> { ev ->
-                if (failed) return@Consumer
-                try {
-                    val victim = hurt.invoke(ev) as? Player ?: return@Consumer
-                    if (victim.level().isClientSide) return@Consumer
-                    val shooter = culprit(attacker.invoke(ev) as? Entity)?.takeUnless { it is FakePlayer || it === victim } ?: return@Consumer
-                    if (pvpAllowed(shooter, victim)) return@Consumer
-                    (ev as ICancellableEvent).isCanceled = true
-                } catch (t: Throwable) {
-                    failed = true
-                    KamiClaims.LOG.warn("TACZ PvP guard disabled: {}", t.toString())
-                }
-            })
-        } catch (t: Throwable) {
-            KamiClaims.LOG.warn("TACZ PvP guard unavailable: {}", t.toString())
-        }
+    internal fun claimedNoPvp(victim: Player, attacker: Player? = null): Boolean {
+        val dim = dim(victim.level())?.takeIf { it in Config.s.dimensionSet } ?: return false
+        val cl = Realm.index[key(dim, victim.blockPosition())] ?: return false
+        if (attacker != null && WarGuard.pvp(attacker, victim, cl) == true) return false
+        return cl.def?.rule?.pvp != true
     }
 
     fun onDamage(e: LivingIncomingDamageEvent) {
@@ -601,7 +577,7 @@ object Guard {
         }
     }
 
-    private fun culprit(e: Entity?): Player? = when (e) {
+    internal fun culprit(e: Entity?): Player? = when (e) {
         is Player -> e
         is Projectile -> culprit(e.owner)
         is OwnableEntity -> culprit(e.owner) ?: e.ownerUUID?.let { (e as Entity).level().server?.playerList?.getPlayer(it) }?.takeIf { it.level() == (e as Entity).level() }

@@ -325,5 +325,14 @@
   "kami_libs.maps.xaero": "Karten (Xaero)",
   "kami_libs.maps.detected": "Erkannt: %s",
   "kami_libs.maps.none": "Keine Xaero-Kartenmod erkannt",
-  "kami_libs.maps.waypoint": "Wegpunkt setzen"
+  "kami_libs.maps.waypoint": "Wegpunkt setzen",
+  "kami_libs.jei.profit": "Eingabe %s → Ergebnis %s",
+  "kami_libs.skill.class.researcher": "Forscher",
+  "kami_libs.skill.class.trader": "Händler",
+  "kami_libs.skill.class.farmer": "Bauer",
+  "kami_libs.skill.class.fisher": "Fischer",
+  "kami_libs.skill.class.lumber": "Holzfäller",
+  "kami_libs.skill.class.miner": "Bergarbeiter",
+  "kami_libs.skill.class.soldier": "Soldat",
+  "kami_libs.skill.class.worker": "Arbeiter"
 }

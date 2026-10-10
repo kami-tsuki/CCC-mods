@@ -35,15 +35,15 @@ private const val MAX_STATE_NODES = MAX_TREES * MAX_NODES
 
 class CategoryView(val id: String, val title: String, val icon: String, val order: Int)
 
-class TaskView(val kind: String, val subject: String, val target: Long)
+data class TaskView(val kind: String, val subject: String, val target: Long)
 
-class UnlockView(
+data class UnlockView(
     val kind: String, val id: String, val count: Int = 0, val amplifier: Int = 0, val cooldownSeconds: Int = 0, val interestPct: Int = 0, val amount: Long = 0
 )
 
 class LevelView(val level: Int, val xp: Long, val rewards: List<UnlockView>, val requires: List<String> = emptyList())
 
-class NodeView(
+data class NodeView(
     val tree: String, val id: String, val category: String, val title: String, val description: String, val icon: String,
     val level: Int, val cost: Long, val timeMs: Long, val xp: Long, val conditions: List<String>, val requires: List<Int>,
     val tasks: List<TaskView>, val unlocks: List<UnlockView>, val x: Int?, val y: Int?, val anyRequires: List<Int> = emptyList(),

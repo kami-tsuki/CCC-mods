@@ -1,5 +1,7 @@
 package kami.libs.xaero
 
+import kami.libs.xaero.impl.Bridge
+import kami.libs.xaero.impl.Detect
 import kami.libs.xaero.impl.Registry
 import java.util.UUID
 
@@ -18,12 +20,12 @@ object XaeroMaps {
     fun tempWaypoint(p: MapPoint) = Registry.temp(p)
     fun refresh() = Registry.refresh()
 
+    val available: Boolean get() = Detect.any
+    val plus: Boolean get() = Detect.plus
+    val revision: Int get() = Registry.rev
+
+    internal fun init() = Bridge.init()
+
     fun on(id: String): Boolean = Registry.on(id)
     fun choice(id: String): String = Registry.choice(id)
-
-    @JvmStatic
-    fun fairPlayActive(): Boolean = Registry.fairPlayActive()
-
-    @JvmStatic
-    fun radarHidden(id: UUID): Boolean = Registry.radarHidden(id)
 }

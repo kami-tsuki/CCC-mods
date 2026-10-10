@@ -6,6 +6,7 @@ import kami.economy.Config
 import kami.economy.Market
 import kami.economy.Order
 import kami.economy.Vendor
+import kami.economy.compat.create.Figures
 import kami.economy.economy.Auction
 import kami.economy.economy.Auctions
 import kami.economy.economy.Blacklist
@@ -141,6 +142,8 @@ object Sync {
     private const val DASH_TICKS = 200
     private const val AUCTION_ROWS = 60
     private const val QUEST_HISTORY = 20
+    private const val JEI_VENDORS = 100
+    private const val JEI_QUESTS = 50
     private const val QUEST_INGREDIENTS = 16
     private val json = Json { encodeDefaults = true }
     private val states = HashMap<UUID, State>()
@@ -247,6 +250,54 @@ object Sync {
             c.infinite, unlimited(Stocks.capLeft(me, item)), c.status, c.statusReason, variantRows(item, c.lot, buy, sell), questRarity[item], c.course
         )
     }
+
+    fun figures(id: String): Figures? = memo(Pair("figures", id)) {
+        if (Variants.of(id) == null && Stocks.good(id) == null && !Blacklist.sellable(id)) null
+        else {
+            val r = row(Variants.core(id), "")
+            val v = Variants.of(id)
+            val l = r.variants.firstOrNull { it.item == id }
+            fun units(n: Int) = if (v == null || n <= 0) n else (n.toLong() * v.div / v.mul).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+            Figures(l?.lot ?: r.lot, l?.buy ?: r.buy, l?.sell ?: r.sell, scaled(id, r.last, r.lot), r.change, units(r.available), units(r.demand), units(r.volume))
+        }
+    }
+
+    fun trend(id: String, range: Range): Int? = memo(Triple("trend", Variants.core(id), range)) {
+        val core = Variants.core(id)
+        val s = History.series(core, range, System.currentTimeMillis(), Matching.bookFor(core).course)
+        val last = s.buckets.lastOrNull()?.close
+        if (last == null || s.open <= 0) null else ((last - s.open) * 1000 / s.open).roundToInt()
+    }
+
+    fun priceInfo(p: ServerPlayer, id: String): PriceInfoPayload {
+        val me = p.stringUUID
+        val core = Variants.core(id)
+        val r = row(core, me)
+        val v = r.variants.firstOrNull { it.item == id }
+        val book = Matching.bookFor(core)
+        val asks = book.sells.filter { it.amount > 0 && it.owner != me }.map { it.price to Trade.terms(me, it.owner) }
+        val tariff = asks.filter { !it.second.blocked }.minByOrNull { it.first }?.second?.tariffPct ?: 0
+        val embargo = r.buy == 0 && asks.any { it.second.blocked }
+        val closes = History.series(core, Range.WEEK, System.currentTimeMillis(), book.course).buckets.chunked(24).map { scaled(id, it.last().close.roundToInt(), r.lot) }.takeLast(7)
+        val vendors = Market.data.vendors.filter { it.item == id && it.price > 0 && it.stock != 0 && visible(it, me) }.sortedBy(::unitPrice).take(3).map(::infoVendor)
+        return PriceInfoPayload(id, v?.lot ?: r.lot, v?.sell ?: r.sell, v?.buy ?: r.buy, r.change, tariff, embargo, closes, vendors, wanted(me, core))
+    }
+
+    fun jei(p: ServerPlayer): JeiPayload {
+        val me = p.stringUUID
+        val offers = Market.data.vendors.filter { it.price > 0 && it.stock != 0 && visible(it, me) }.groupBy { it.item to it.sell }.values
+            .map { g -> if (g[0].sell) g.minBy(::unitPrice) else g.maxBy(::unitPrice) }.sortedBy { distance(p, it) }.take(JEI_VENDORS)
+        return JeiPayload(wanted(me).take(JEI_QUESTS), offers.map(::infoVendor))
+    }
+
+    private fun unitPrice(v: Vendor) = v.price.toDouble() / v.count.coerceAtLeast(1)
+
+    private fun wanted(me: String, item: String? = null): List<InfoQuest> = if (Staff.active("p:$me")) emptyList() else Quests.open().filter { it.expiresAt > System.currentTimeMillis() && (item == null || it.item == item) }
+        .map { InfoQuest(it.item, it.lotPrice, it.lot, it.left, it.expiresAt, it.boosts) }
+
+    private fun distance(p: ServerPlayer, v: Vendor): Double = if (v.dim != p.level().dimension().location().toString()) Double.MAX_VALUE else p.distanceToSqr(v.x + 0.5, v.y + 0.5, v.z + 0.5)
+
+    private fun infoVendor(v: Vendor) = InfoVendor(v.item, v.dim, v.x, v.y, v.z, v.price, v.count.coerceAtLeast(1), v.sell)
 
     private fun variantRows(core: String, lot: Int, buy: Int, sell: Int): List<VariantRow> = Variants.family(core).map { (id, v) ->
         VariantRow(id, v.mul, v.div, Variants.lot(id, lot), scaled(id, buy, lot), scaled(id, sell, lot))

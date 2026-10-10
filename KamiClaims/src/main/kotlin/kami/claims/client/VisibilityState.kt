@@ -19,6 +19,11 @@ object VisibilityState : TrackedSource {
     @Volatile
     private var entries: List<Entry> = emptyList()
 
+    private class Cached(val list: List<Entry>, val tick: Long, val fair: Boolean, val tracked: List<Tracked>)
+
+    @Volatile
+    private var cache: Cached? = null
+
     fun isHidden(id: UUID) = war && id !in friendly && id != Minecraft.getInstance().player?.uuid
 
     fun receive(s: Selection) {
@@ -40,6 +45,11 @@ object VisibilityState : TrackedSource {
         val list = entries
         if (list.isEmpty() || !XaeroMaps.on("claims.tracked")) return emptyList()
         val level = Minecraft.getInstance().level
-        return select(list, { level?.getPlayerByUUID(it) != null }, ClientClaims.war and View.WAR_FAIRPLAY != 0)
+        val tick = level?.gameTime ?: -1L
+        val fair = ClientClaims.war and View.WAR_FAIRPLAY != 0
+        cache?.takeIf { it.list === list && it.tick == tick && it.fair == fair }?.let { return it.tracked }
+        val tracked = select(list, { level?.getPlayerByUUID(it) != null }, fair)
+        cache = Cached(list, tick, fair, tracked)
+        return tracked
     }
 }

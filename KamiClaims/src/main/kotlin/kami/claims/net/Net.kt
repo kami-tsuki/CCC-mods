@@ -158,6 +158,8 @@ object Net {
         r.playToClient(ResearchStatePacket.TYPE, ResearchStatePacket.CODEC) { s, _ -> ClientHooks.researchState(s.state) }
         r.playToClient(Denied.TYPE, Denied.CODEC) { d, _ -> ClientHooks.denied(d) }
         r.playToClient(PositionsPacket.TYPE, PositionsPacket.CODEC) { p, _ -> ClientHooks.positions(p.data) }
+        r.playToClient(NameTagsPacket.TYPE, NameTagsPacket.CODEC) { p, _ -> ClientHooks.nameTags(p.tags) }
+        r.playToClient(FreecamPacket.TYPE, FreecamPacket.CODEC) { p, _ -> ClientHooks.freecam(p.state) }
     }
 
     fun canOpen(p: ServerPlayer) = p.connection.hasChannel(Snapshot.type)

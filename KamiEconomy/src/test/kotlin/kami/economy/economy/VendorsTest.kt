@@ -31,7 +31,7 @@ class VendorsTest {
         Market.data.vendors += vendor(1, 30, 64)
         val loaded = json.decodeFromString<Data>(json.encodeToString(Market.data))
         val v = loaded.vendors.single()
-        assertTrue(v.at("minecraft:overworld", 1, 64, 0))
+        assertEquals(Triple(1, 64, 0), Triple(v.x, v.y, v.z))
         assertEquals(30, v.price)
         assertEquals("aurora", v.country)
     }

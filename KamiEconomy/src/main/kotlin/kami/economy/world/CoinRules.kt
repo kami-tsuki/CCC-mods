@@ -4,12 +4,12 @@ import net.minecraft.world.level.block.entity.BaseContainerBlockEntity
 import net.minecraft.world.level.block.BedBlock
 import net.minecraft.world.level.block.SignBlock
 import net.minecraft.world.level.block.BellBlock
-import com.mojang.brigadier.tree.CommandNode
 import dev.ithundxr.createnumismatics.content.coins.CoinItem
 import kami.economy.LOG
 import kami.economy.mixin.coins.GridGateAccessor
 import kami.libs.chat.Chat
 import kami.libs.chat.Tone
+import kami.libs.compat.Brigadier
 import kami.libs.chat.bar
 import kami.libs.db.Db
 import kami.libs.db.Rows
@@ -61,7 +61,6 @@ object CoinRules {
     private const val NOTICE_MS = 1500L
     private val denied = ThreadLocal.withInitial { false }
     private val notices = HashMap<Pair<UUID, String>, Long>()
-    private val requirement by lazy { runCatching { CommandNode::class.java.getDeclaredField("requirement").apply { isAccessible = true } }.getOrNull() }
 
     fun register() {
         CoinLoss.register()
@@ -150,8 +149,7 @@ object CoinRules {
     private fun restrict(e: RegisterCommandsEvent) = ROOTS.forEach { root ->
         val node = e.dispatcher.root.getChild(root) ?: return@forEach
         val old = node.requirement
-        runCatching { checkNotNull(requirement).set(node, Predicate<CommandSourceStack> { it.hasPermission(2) && old.test(it) }) }
-            .onFailure { LOG.warn("Could not hide /{} from non-operators", root, it) }
+        if (!Brigadier.require(node, Predicate<CommandSourceStack> { it.hasPermission(2) && old.test(it) }) && !Brigadier.remove(e.dispatcher.root, root)) LOG.error("Could not restrict /{} to operators, the command guard stays the only protection", root)
     }
 
     private fun command(e: CommandEvent) {

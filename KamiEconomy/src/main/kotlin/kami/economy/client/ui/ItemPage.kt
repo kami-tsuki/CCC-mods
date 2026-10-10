@@ -2,9 +2,11 @@ package kami.economy.client.ui
 
 import kami.economy.LOG
 import kami.economy.client.admin.MarketSection
+import kami.economy.client.MarketLink
 import kami.economy.client.MarketPrefs
 import kami.economy.net.Detail
 import kami.economy.net.Level
+import kami.libs.jei.DropTarget
 import kami.libs.ui.app.Callout
 import kami.libs.ui.app.Page
 import kami.libs.ui.app.Route
@@ -56,6 +58,12 @@ internal class ItemPage(val app: MarketApp) : Page() {
     private val ticket = Ticket(app)
     private val spans = HashMap<String, Span>()
     private var waitFor: Detail? = null
+    private var head = Rect(0, 0, 0, 0)
+    private var drawnAt = 0L
+
+    fun drops(): List<DropTarget> =
+        if (System.currentTimeMillis() - drawnAt > 250) emptyList()
+        else listOf(DropTarget(head.x, head.y, head.w, head.h) { stack -> MarketLink.market(stack)?.let { app.openItem(it, ticket.side, ticket.kind) } })
 
     override val title get() = MarketSection.stack(ticket.shown.ifEmpty { item }).hoverName.string
     override val subtitle get() = detail()?.let { tr("kami_economy.item.lot", ticket.lotOf(it)) }
@@ -101,7 +109,8 @@ internal class ItemPage(val app: MarketApp) : Page() {
         val d = detail()
         if (d != null && d !== waitFor) spans[item] = span
         val stack = MarketSection.stack(ticket.shown.ifEmpty { item })
-        val head = r.top(22)
+        head = r.top(22)
+        drawnAt = System.currentTimeMillis()
         ui.itemSlot(head.left(22), stack, key = "detail:item")
         if (d == null) ui.skeleton(Rect(head.x + 30, head.y + 7, (head.w - 30) / 3, 8))
         else ui.fitText(head.x + 30, head.y + 7, head.w - 30, tr("kami_economy.item.held", unitsText(ticket.heldOf(d), stack.maxStackSize)), Palette.textSecondary)

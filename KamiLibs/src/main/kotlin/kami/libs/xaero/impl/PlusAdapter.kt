@@ -6,9 +6,10 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.objects.Object2IntMap
 import it.unimi.dsi.fastutil.objects.Object2IntMaps
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
-import net.minecraft.resources.ResourceKey
 import java.lang.reflect.Constructor
 import java.util.Objects
+import kami.libs.compat.Refl
+import net.minecraft.resources.ResourceKey
 
 object PlusAdapter {
     val guard = Guard("plus")
@@ -29,16 +30,17 @@ object PlusAdapter {
 
     @Volatile
     private var snapshot: Snapshot? = null
-    private var registered = false
+    private var linesDone = false
+    private var textsDone = false
     private var lastKey = 0
 
     private val emptyLines: Object2IntMap<Any> = Object2IntMaps.emptyMap()
 
     fun tick(force: Boolean) {
         guard.run {
-            if (!registered) register()
+            if (!linesDone || !textsDone) register()
             val dim = Registry.dimension() ?: return@run
-            val key = Objects.hash(dim, Registry.rev, Registry.lines.map { Registry.on(it.toggle) })
+            val key = Objects.hash(dim, Registry.lines.map { listOf(Registry.on(it.toggle), it.rev()) })
             if (force || key != lastKey || snapshot?.dim != dim) {
                 lastKey = key
                 snapshot = build(dim)
@@ -66,15 +68,18 @@ object PlusAdapter {
     private fun register() {
         val manager = Refl.staticField("xaeroplus.Globals", "drawManager") ?: return
         val registry = Refl.call(manager, "registry") ?: return
-        val supplier = Refl.proxy(api.lineSupplier) { _, args -> guard.call(emptyLines) { linesFor(dimArg(args)) } }
-        val color = Refl.proxy(api.lineColor) { _, args -> args.firstOrNull { it is Int } ?: 0 }
-        val width = Refl.proxy(api.floatSupplier) { _, _ -> 2f }
-        val texts = Refl.proxy(api.textSupplier) { _, args -> guard.call(Long2ObjectMaps.emptyMap()) { labelsFor(dimArg(args)) } }
-        val lineFeature = Refl.staticCallOn(api.factory, "multiColorLines", "kami_libs_lines", supplier, color, width, 250)
-        val textFeature = Refl.staticCallOn(api.factory, "text", "kami_libs_labels", texts)
-        Refl.call(registry, "register", lineFeature)
-        Refl.call(registry, "register", textFeature)
-        registered = true
+        if (!linesDone) {
+            val supplier = Refl.proxy(api.lineSupplier) { _, args -> guard.call(emptyLines) { linesFor(dimArg(args)) } }
+            val color = Refl.proxy(api.lineColor) { _, args -> args.firstOrNull { it is Int } ?: 0 }
+            val width = Refl.proxy(api.floatSupplier) { _, _ -> 0.3f }
+            Refl.call(registry, "register", Refl.staticCallOn(api.factory, "multiColorLines", "kami_libs_lines", supplier, color, width, 250))
+            linesDone = true
+        }
+        if (!textsDone) {
+            val texts = Refl.proxy(api.textSupplier) { _, args -> guard.call(Long2ObjectMaps.emptyMap()) { labelsFor(dimArg(args)) } }
+            Refl.call(registry, "register", Refl.staticCallOn(api.factory, "text", "kami_libs_labels", texts))
+            textsDone = true
+        }
     }
 
     private fun dimArg(args: Array<Any?>) = args.firstOrNull { it is ResourceKey<*> }

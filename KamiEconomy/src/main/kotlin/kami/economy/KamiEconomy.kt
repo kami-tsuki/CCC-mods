@@ -1,6 +1,9 @@
 package kami.economy
 
 import kami.economy.admin.MarketAdmin
+import kami.economy.compat.CoinProtection
+import kami.economy.compat.JadeEconomy
+import kami.economy.net.WatchSync
 import kami.economy.client.ClientEconomy
 import kami.economy.command.EconomyCommands
 import kami.economy.economy.Auctions
@@ -24,6 +27,8 @@ import kami.economy.world.VendorRegistry
 import net.minecraft.world.item.ItemStack
 import net.neoforged.neoforge.event.level.BlockEvent
 import kami.libs.config.Configs
+import kami.libs.compat.Mods
+import kami.libs.compat.Soft
 import kami.libs.economy.MarketApi
 import kami.libs.economy.ServerBank
 import kami.libs.log.Log
@@ -33,6 +38,7 @@ import net.neoforged.api.distmarker.Dist
 import net.neoforged.bus.api.EventPriority
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
+import kami.economy.compat.create.MarketDisplay
 import net.neoforged.fml.loading.FMLEnvironment
 import net.neoforged.neoforge.event.OnDatapackSyncEvent
 import net.neoforged.neoforge.event.entity.player.PlayerEvent
@@ -56,9 +62,14 @@ object KamiEconomy {
     init {
         MOD_BUS.addListener<FMLCommonSetupEvent> {
             Config.load()
+            CoinProtection.expect()
+            Soft.expect(Mods.SOPHISTICATED_CORE, "net.p3pp3rf1y.sophisticatedcore.inventory.InventoryHandler", "isItemValid", "insertItem", "insertItemOnlyToSlot")
+            Soft.expect(Mods.SOPHISTICATED_CORE, "net.p3pp3rf1y.sophisticatedcore.common.gui.StorageContainerMenuBase", "clicked", "handleOverflow", "doClick", "mergeItemStack")
             Configs.onReload("economy") { if (Notify.server != null) { Market.reindex(); Starters.push() }; null }
             MarketApi.register(EconomyProvider)
+            it.enqueueWork { MarketDisplay.bind() }
         }
+        MarketDisplay.register(MOD_BUS)
         MOD_BUS.addListener<RegisterPayloadHandlersEvent> { Net.register(it) }
         if (FMLEnvironment.dist == Dist.CLIENT) ClientEconomy.init()
         EconomyCommands.register()
@@ -67,6 +78,7 @@ object KamiEconomy {
         WealthSources.register()
         MarketAdmin.register()
         DiscordMarket.register()
+        JadeEconomy.register()
         CoinRules.register()
         FORGE_BUS.addListener<ServerStartedEvent> { Notify.server = it.server; History.load(); VariantScan.read(it.server); Market.load(); runCatching { Dishes.scan(it.server) }.onFailure { e -> LOG.error("Dish scan failed", e) }; DiscordMarket.reset() }
         FORGE_BUS.addListener<OnDatapackSyncEvent> { if (it.player == null) runCatching { VariantScan.read(it.playerList.server); Market.variantsChanged() }.onFailure { e -> LOG.error("Variant rescan failed", e) } }
@@ -87,7 +99,7 @@ object KamiEconomy {
             task("Auctions", Config.s.auctionCheckIntervalTicks) { Auctions.sweep() }
             task("Vendors", HOUSEKEEPING_TICKS) { VendorRegistry.recheck(server) }
         }
-        FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { (it.entity as? ServerPlayer)?.let { p -> deliver(p, login = true); Net.sendFullPrices(p); Net.sendVariants(p) } }
+        FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { (it.entity as? ServerPlayer)?.let { p -> deliver(p, login = true); Net.sendFullPrices(p); Net.sendVariants(p); WatchSync.send(p) } }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { (it.entity as? ServerPlayer)?.let { p -> Net.forget(p) } }
         FORGE_BUS.addListener<PlayerInteractEvent.RightClickBlock> { Vendors.onUse(it); if (!it.isCanceled) VendorRegistry.touch(it.level, it.pos) }
         FORGE_BUS.addListener<BlockEvent.EntityPlaceEvent> { VendorRegistry.touch(it.level, it.pos) }

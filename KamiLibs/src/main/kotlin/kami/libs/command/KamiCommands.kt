@@ -6,6 +6,7 @@ import com.mojang.brigadier.tree.LiteralCommandNode
 import kami.libs.KamiLibs
 import kami.libs.chat.Chat
 import kami.libs.chat.Theme
+import kami.libs.compat.Brigadier
 import kami.libs.text.Phrase
 import kami.libs.text.Text
 import net.minecraft.network.chat.Component
@@ -60,11 +61,8 @@ object KamiCommands {
         if (c.redirect == null) c.children.forEach(b::then)
     }
 
-    private fun drop(node: CommandNode<CommandSourceStack>, name: String) = runCatching {
-        listOf("children", "literals").forEach { f ->
-            (CommandNode::class.java.getDeclaredField(f).apply { isAccessible = true }.get(node) as MutableMap<*, *>).remove(name)
-        }
-    }.onFailure { KamiLibs.LOG.warn("Could not replace /{}, the vanilla command stays", name, it) }.isSuccess
+    private fun drop(node: CommandNode<CommandSourceStack>, name: String) = Brigadier.remove(node, name)
+        .also { if (!it) KamiLibs.LOG.warn("Could not replace /{}, the vanilla command stays", name) }
 
     private fun overview(ctx: Ctx) {
         ctx.msg { add(Text.msg("kami_libs.command.overview.title"), Theme.VALUE); muted("  "); add(Text.msg("kami_libs.command.overview.usage"), Theme.MUTED) }

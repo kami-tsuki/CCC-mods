@@ -1,5 +1,6 @@
 package kami.economy.client.ui
 
+import kami.economy.client.MarketPrefs
 import kami.economy.economy.Notify
 import kami.libs.ui.app.Callout
 import kami.libs.ui.app.Page
@@ -17,7 +18,10 @@ internal class SettingsPage(private val app: MarketApp) : Page() {
     override val help get() = listOf(Callout("settings:notify", tr("kami_economy.settings.notify"), tr("kami_economy.help.notify.desc")))
 
     override fun draw(ui: Ui, r: Rect) {
-        val box = Flow(r.columns(2, 10)[0], 6).take(NOTIFY_H)
+        val cols = r.columns(2, 10)
+        val view = Flow(ui.card(Flow(cols[1], 6).take(NOTIFY_H), tr("kami_economy.settings.display"), Icons.SETTINGS), 4)
+        ui.toggle(view.take(14), MarketPrefs.prefs.showWorth, tr("kami_economy.settings.worth"), key = "worth")?.let { MarketPrefs.prefs.showWorth = it; MarketPrefs.save() }
+        val box = Flow(cols[0], 6).take(NOTIFY_H)
         ui.anchor("settings:notify", box)
         val f = Flow(ui.card(box, tr("kami_economy.settings.notify"), Icons.BELL), 4)
         Notify.TOPICS.forEach { t ->

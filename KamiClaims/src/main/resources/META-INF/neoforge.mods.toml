@@ -59,13 +59,6 @@ ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.${mod_id}]]
-modId = "luckperms"
-type = "optional"
-versionRange = "[5,)"
-ordering = "NONE"
-side = "SERVER"
-
-[[dependencies.${mod_id}]]
 modId = "jei"
 type = "optional"
 versionRange = "[19,)"

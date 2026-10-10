@@ -38,6 +38,8 @@ object TempBlocks {
 
     fun at(dim: String, pos: BlockPos) = (dim to pos.asLong()) in live()
 
+    fun due(level: Level, pos: BlockPos): Long? = live()[level.dimension().location().toString() to pos.asLong()]?.due
+
     fun seconds(level: ServerLevel, pos: BlockPos, state: BlockState): Double =
         TempTime.seconds(
             BuiltInRegistries.BLOCK.getKey(state.block).toString(),

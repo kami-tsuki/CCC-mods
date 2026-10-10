@@ -1,7 +1,7 @@
 package kami.geology.client
 
-import kami.geology.client.xaero.GlobalHeat
-import kami.geology.client.xaero.Scans
+import kami.geology.client.compat.xaero.GlobalHeat
+import kami.geology.client.compat.xaero.Scans
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

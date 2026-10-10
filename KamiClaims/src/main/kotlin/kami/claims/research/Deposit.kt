@@ -2,10 +2,13 @@ package kami.claims.research
 
 import kami.claims.service.Fail
 import kami.claims.service.Service
+import kami.libs.skills.SkillClass
+import kami.libs.skills.Skills
 import net.minecraft.core.component.DataComponents
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.item.ItemStack
+import kotlin.math.ln
 import kotlin.math.min
 
 object Deposit {
@@ -31,6 +34,8 @@ object Deposit {
         }
         if (left == wanted) throw Fail("kami_claims.research.error.no_items")
         inventory.setChanged()
-        return Queue.credit(country, key, index, wanted - left)
+        val moved = wanted - left
+        Skills.grant(player.uuid, SkillClass.RESEARCHER, "deposit", ln(1.0 + moved), "deposit:$key")
+        return Queue.credit(country, key, index, moved + (moved * Skills.value(player.uuid, Skills.RESEARCH_INSIGHT)).toLong())
     }
 }

@@ -19,32 +19,39 @@ import kami.libs.xaero.MapToggle
 private const val PAGE = "maps.xaero"
 private const val ROW = 16
 
+private val DETECTED by lazy {
+    listOfNotNull(
+        "Xaero's Minimap".takeIf { Detect.minimap },
+        "Xaero's World Map".takeIf { Detect.worldMap },
+        "XaeroPlus".takeIf { Detect.plus }
+    ).joinToString(", ")
+}
+
+private fun rows(group: String, toggles: List<MapToggle>, choices: List<MapChoice>) =
+    toggles.count { it.group == group && it.visible() } + choices.count { it.group == group }
+
 private class MapsPage : Page() {
     override val title get() = tr("kami_libs.maps.xaero")
 
     override fun draw(ui: Ui, r: Rect) {
-        val toggles = Registry.toggles().filter { it.visible() }
-        val choices = Registry.choices()
-        val groups = (toggles.map { it.group } + choices.map { it.group }).distinct()
-        val detected = listOfNotNull(
-            "Xaero's Minimap".takeIf { Detect.minimap },
-            "Xaero's World Map".takeIf { Detect.worldMap },
-            "XaeroPlus".takeIf { Detect.plus }
-        )
-        val height = ROW + groups.sumOf { g -> ROW + (toggles.count { it.group == g } + choices.count { it.group == g }) * (ROW + 2) + 6 }
+        val toggles = Registry.toggleList
+        val choices = Registry.choiceList
+        val groups = Registry.groups
+        val height = ROW + groups.sumOf { g -> rows(g, toggles, choices).let { if (it == 0) 0 else ROW + it * (ROW + 2) + 6 } }
         ui.scroll("maps-xaero", r, height) { a ->
             var y = a.y
-            val line = if (detected.isEmpty()) tr("kami_libs.maps.none") else tr("kami_libs.maps.detected", detected.joinToString(", "))
+            val line = if (DETECTED.isEmpty()) tr("kami_libs.maps.none") else tr("kami_libs.maps.detected", DETECTED)
             Draw.text(ui.g, line, a.x, y + 4, Palette.textMuted)
             y += ROW
             groups.forEach { g ->
+                if (rows(g, toggles, choices) == 0) return@forEach
                 Draw.text(ui.g, tr(g), a.x, y + 4, Palette.text)
                 y += ROW
-                toggles.filter { it.group == g }.forEach { t ->
+                for (t in toggles) if (t.group == g && t.visible()) {
                     toggleRow(ui, Rect(a.x, y, a.w, ROW), t)
                     y += ROW + 2
                 }
-                choices.filter { it.group == g }.forEach { c ->
+                for (c in choices) if (c.group == g) {
                     choiceRow(ui, Rect(a.x, y, a.w, ROW), c)
                     y += ROW + 2
                 }
@@ -68,7 +75,7 @@ private class MapsPage : Page() {
 object MapsSection {
     val section = PersonalSection(
         "maps", 90, { "kami_libs.maps.group" },
-        { if (!Detect.any || Registry.toggles().none { it.visible() } && Registry.choices().isEmpty()) emptyList() else listOf(NavItem(PAGE, tr("kami_libs.maps.xaero"), Icons.MAP)) },
+        { if (!Detect.any || Registry.toggleList.none { it.visible() } && Registry.choiceList.isEmpty()) emptyList() else listOf(NavItem(PAGE, tr("kami_libs.maps.xaero"), Icons.MAP)) },
         { _, id -> if (id == PAGE) MapsPage() else null }
     )
 }

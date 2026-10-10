@@ -137,5 +137,10 @@
   "kami_geology.maps.global.tip": "Lädt für Admins die Erzdichte rund um dich vom Server.",
   "kami_geology.maps.tip": "%1$s · %2$s%% Dichte",
   "kami_geology.maps.last": "Letzter Prospektor-Fund",
-  "kami_geology.maps.deposit": "Vorkommen bei %1$s, %2$s"
+  "kami_geology.maps.deposit": "Vorkommen bei %1$s, %2$s",
+  "kami_geology.jade.signal": "%s · %s Signal",
+  "kami_geology.jade.signal.weak": "schwaches",
+  "kami_geology.jade.signal.medium": "mittleres",
+  "kami_geology.jade.signal.strong": "starkes",
+  "config.jade.plugin_kami_geology.signal": "Erzsignal"
 }

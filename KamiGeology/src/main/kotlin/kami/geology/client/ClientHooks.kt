@@ -1,12 +1,15 @@
 package kami.geology.client
 
-import kami.geology.client.xaero.GeologyMaps
-import kami.geology.client.xaero.GlobalHeat
+import kami.geology.client.compat.jade.SignalJade
+import kami.geology.client.compat.jei.GuideJei
+import kami.geology.client.compat.xaero.GeologyMaps
+import kami.geology.client.compat.xaero.GlobalHeat
 import kami.geology.net.MapDone
 import kami.geology.net.MapLayer
 import kami.geology.net.OpenMap
 import kami.geology.net.ProbeResponse
 import kami.geology.world.Hardness
+import kami.libs.jei.KamiJei
 import net.minecraft.client.Minecraft
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent
 import thedarkcolour.kotlinforforge.neoforge.forge.FORGE_BUS
@@ -18,6 +21,8 @@ object ClientHooks {
             GeologyMaps.logout()
         }
         GeologyMaps.init()
+        if (KamiJei.present) KamiJei.module(GuideJei())
+        SignalJade.init()
     }
 
     fun open(payload: OpenMap) {

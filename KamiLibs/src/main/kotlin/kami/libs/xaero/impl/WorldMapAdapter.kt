@@ -1,5 +1,6 @@
 package kami.libs.xaero.impl
 
+import kami.libs.compat.Refl
 import kami.libs.xaero.ChunkLayer
 import kami.libs.xaero.MapAction
 import kami.libs.xaero.MapPoint
@@ -44,18 +45,20 @@ private class RegionKey(val dim: String, val rx: Int, val rz: Int) {
 
 private class Active(val rev: Int, val size: Int, val layers: List<ChunkLayer>)
 
-private class HashMemo(val rev: Int) {
+private class LayerMemo(val rev: Int) {
     val map = ConcurrentHashMap<RegionKey, Int>()
+
+    @Volatile
+    var failed = false
 }
 
 private class KamiHighlighter : ChunkHighlighter(true) {
     @Volatile
     private var activeCache = Active(-1, -1, emptyList())
 
-    @Volatile
-    private var memo = HashMemo(-1)
+    private val memos = ConcurrentHashMap<ChunkLayer, LayerMemo>()
 
-    private val guard get() = WorldMapAdapter.guard
+    private val guard get() = WorldMapAdapter.highlights
 
     private fun active(): List<ChunkLayer> {
         val c = activeCache
@@ -67,19 +70,29 @@ private class KamiHighlighter : ChunkHighlighter(true) {
         return list
     }
 
-    private fun regionHash(dim: ResourceKey<Level>, rx: Int, rz: Int): Int {
-        var m = memo
-        val rev = Registry.rev
-        if (m.rev != rev) {
-            m = HashMemo(rev)
-            memo = m
+    private fun layerHash(l: ChunkLayer, key: RegionKey): Int {
+        val rev = l.rev()
+        var m = memos[l]
+        if (m == null || m.rev != rev) {
+            m = LayerMemo(rev)
+            memos[l] = m
         }
-        val key = RegionKey(dimName(dim), rx, rz)
+        if (m.failed) return 0
         m.map[key]?.let { return it }
-        val h = Colors.combine(active().map { it.regionHash(key.dim, rx, rz) }.toIntArray())
+        val h = try {
+            l.regionHash(key.dim, key.rx, key.rz)
+        } catch (e: Throwable) {
+            m.failed = true
+            throw e
+        }
         if (m.map.size > 8192) m.map.clear()
         m.map[key] = h
         return h
+    }
+
+    private fun regionHash(dim: ResourceKey<Level>, rx: Int, rz: Int): Int {
+        val key = RegionKey(dimName(dim), rx, rz)
+        return Colors.combine(active().map { l -> guard.soft(0) { layerHash(l, key) } }.toIntArray())
     }
 
     private fun paint(dim: ResourceKey<Level>, cx: Int, cz: Int): IntArray? {
@@ -88,7 +101,7 @@ private class KamiHighlighter : ChunkHighlighter(true) {
         val edges = IntArray(4)
         var any = false
         for (l in active()) {
-            val p = l.paint(name, cx, cz) ?: continue
+            val p = guard.soft(null) { l.paint(name, cx, cz) } ?: continue
             any = true
             fill = Colors.over(fill, p.fill)
             edges[0] = Colors.over(edges[0], p.north)
@@ -102,29 +115,33 @@ private class KamiHighlighter : ChunkHighlighter(true) {
 
     private fun tooltip(dim: ResourceKey<Level>, cx: Int, cz: Int, blunt: Boolean): Component? {
         val name = dimName(dim)
-        val parts = active().asReversed().mapNotNull { it.tooltip(name, cx, cz, blunt) }
+        val parts = active().asReversed().mapNotNull { l -> guard.soft(null) { l.tooltip(name, cx, cz, blunt) }?.let { l.id.substringBefore('.') to it } }
         if (parts.isEmpty()) return null
-        val out = Component.empty().append(parts[0])
-        for (i in 1 until parts.size) out.append(Component.literal(" | ")).append(parts[i])
+        val out = Component.empty().append(parts[0].second)
+        for (i in 1 until parts.size) {
+            if (parts[i].first != parts[i - 1].first) out.append(Component.literal("\n" + "─".repeat(12)).withColor(0x555555))
+            out.append("\n").append(parts[i].second)
+        }
         return out
     }
 
-    override fun calculateRegionHash(dim: ResourceKey<Level>, regionX: Int, regionZ: Int): Int = guard.call(0) { regionHash(dim, regionX, regionZ) }
+    override fun calculateRegionHash(dim: ResourceKey<Level>?, regionX: Int, regionZ: Int): Int = if (dim == null) 0 else guard.call(0) { regionHash(dim, regionX, regionZ) }
 
-    override fun regionHasHighlights(dim: ResourceKey<Level>, regionX: Int, regionZ: Int) = guard.call(false) { regionHash(dim, regionX, regionZ) != 0 }
+    override fun regionHasHighlights(dim: ResourceKey<Level>?, regionX: Int, regionZ: Int) = dim != null && guard.call(false) { regionHash(dim, regionX, regionZ) != 0 }
 
-    override fun chunkIsHighlit(dim: ResourceKey<Level>, chunkX: Int, chunkZ: Int) = guard.call(false) { paint(dim, chunkX, chunkZ) != null }
+    override fun chunkIsHighlit(dim: ResourceKey<Level>?, chunkX: Int, chunkZ: Int) = dim != null && guard.call(false) { paint(dim, chunkX, chunkZ) != null }
 
-    override fun getColors(dim: ResourceKey<Level>, chunkX: Int, chunkZ: Int): IntArray? = guard.call(null) { paint(dim, chunkX, chunkZ) }
+    override fun getColors(dim: ResourceKey<Level>?, chunkX: Int, chunkZ: Int): IntArray? = if (dim == null) null else guard.call(null) { paint(dim, chunkX, chunkZ) }
 
-    override fun getChunkHighlightSubtleTooltip(dim: ResourceKey<Level>, chunkX: Int, chunkZ: Int) = guard.call(null) { tooltip(dim, chunkX, chunkZ, false) }
+    override fun getChunkHighlightSubtleTooltip(dim: ResourceKey<Level>?, chunkX: Int, chunkZ: Int) = if (dim == null) null else guard.call(null) { tooltip(dim, chunkX, chunkZ, false) }
 
-    override fun getChunkHighlightBluntTooltip(dim: ResourceKey<Level>, chunkX: Int, chunkZ: Int) = guard.call(null) { tooltip(dim, chunkX, chunkZ, true) }
+    override fun getChunkHighlightBluntTooltip(dim: ResourceKey<Level>?, chunkX: Int, chunkZ: Int) = if (dim == null) null else guard.call(null) { tooltip(dim, chunkX, chunkZ, true) }
 
-    override fun addMinimapBlockHighlightTooltips(list: MutableList<Component>, dim: ResourceKey<Level>, blockX: Int, blockZ: Int, width: Int) {
+    override fun addMinimapBlockHighlightTooltips(list: MutableList<Component>, dim: ResourceKey<Level>?, blockX: Int, blockZ: Int, width: Int) {
+        if (dim == null) return
         guard.run {
             val name = dimName(dim)
-            active().asReversed().forEach { l -> l.tooltip(name, blockX shr 4, blockZ shr 4, true)?.let(list::add) }
+            active().asReversed().forEach { l -> guard.soft(null) { l.tooltip(name, blockX shr 4, blockZ shr 4, true) }?.let(list::add) }
         }
     }
 }
@@ -138,8 +155,8 @@ private object Ctx
 private class KamiOption(private val action: MapAction, index: Int, target: IRightClickableElement) : RightClickOption(action.label.string, index, target) {
     init { active = action.enabled }
 
-    override fun onAction(screen: Screen) {
-        WorldMapAdapter.guard.run { action.run() }
+    override fun onAction(screen: Screen?) {
+        WorldMapAdapter.actions.run { action.run() }
     }
 
     override fun getDisplayName(): Component = action.label
@@ -191,13 +208,14 @@ private class KamiReader : MapElementReader<KamiPoint, Ctx, KamiRenderer>() {
 
 private class KamiRenderer(reader: KamiReader, provider: KamiProvider) :
     MapElementRenderer<KamiPoint, Ctx, KamiRenderer>(Ctx, provider, reader) {
-    override fun beforeRender(location: Int, mc: Minecraft, g: GuiGraphics, cx: Double, cz: Double, mx: Double, mz: Double, brightness: Float, scale: Double, screenScale: Double, tm: TextureManager, font: Font, buffers: MultiBufferSource.BufferSource, rp: MultiTextureRenderTypeRendererProvider, shadow: Boolean) {}
+    override fun beforeRender(location: Int, mc: Minecraft?, g: GuiGraphics?, cx: Double, cz: Double, mx: Double, mz: Double, brightness: Float, scale: Double, screenScale: Double, tm: TextureManager?, font: Font?, buffers: MultiBufferSource.BufferSource?, rp: MultiTextureRenderTypeRendererProvider?, shadow: Boolean) {}
 
-    override fun afterRender(location: Int, mc: Minecraft, g: GuiGraphics, cx: Double, cz: Double, mx: Double, mz: Double, brightness: Float, scale: Double, screenScale: Double, tm: TextureManager, font: Font, buffers: MultiBufferSource.BufferSource, rp: MultiTextureRenderTypeRendererProvider, shadow: Boolean) {}
+    override fun afterRender(location: Int, mc: Minecraft?, g: GuiGraphics?, cx: Double, cz: Double, mx: Double, mz: Double, brightness: Float, scale: Double, screenScale: Double, tm: TextureManager?, font: Font?, buffers: MultiBufferSource.BufferSource?, rp: MultiTextureRenderTypeRendererProvider?, shadow: Boolean) {}
 
-    override fun renderElementPre(location: Int, e: KamiPoint, hovered: Boolean, mc: Minecraft, g: GuiGraphics, cx: Double, cz: Double, mx: Double, mz: Double, brightness: Float, scale: Double, screenScale: Double, tm: TextureManager, font: Font, buffers: MultiBufferSource.BufferSource, rp: MultiTextureRenderTypeRendererProvider, partial: Float, depth: Double, extra: Double, cave: Boolean, tick: Float) {}
+    override fun renderElementPre(location: Int, e: KamiPoint, hovered: Boolean, mc: Minecraft?, g: GuiGraphics?, cx: Double, cz: Double, mx: Double, mz: Double, brightness: Float, scale: Double, screenScale: Double, tm: TextureManager?, font: Font?, buffers: MultiBufferSource.BufferSource?, rp: MultiTextureRenderTypeRendererProvider?, partial: Float, depth: Double, extra: Double, cave: Boolean, tick: Float) {}
 
-    override fun renderElement(location: Int, e: KamiPoint, hovered: Boolean, mc: Minecraft, g: GuiGraphics, cx: Double, cz: Double, mx: Double, mz: Double, brightness: Float, scale: Double, screenScale: Double, tm: TextureManager, font: Font, buffers: MultiBufferSource.BufferSource, rp: MultiTextureRenderTypeRendererProvider, order: Int, depth: Double, optionalScale: Float, partialX: Double, partialZ: Double, cave: Boolean, tick: Float): Boolean {
+    override fun renderElement(location: Int, e: KamiPoint, hovered: Boolean, mc: Minecraft?, g: GuiGraphics?, cx: Double, cz: Double, mx: Double, mz: Double, brightness: Float, scale: Double, screenScale: Double, tm: TextureManager?, font: Font?, buffers: MultiBufferSource.BufferSource?, rp: MultiTextureRenderTypeRendererProvider?, order: Int, depth: Double, optionalScale: Float, partialX: Double, partialZ: Double, cave: Boolean, tick: Float): Boolean {
+        if (g == null || font == null) return false
         val p = e.point
         val half = if (hovered) HALF + 1 else HALF
         g.fill(-half - 1, -half - 1, half + 1, half + 1, 0xFF101010.toInt())
@@ -230,19 +248,23 @@ private object KamiTracker : IPlayerTrackerSystem<Tracked> {
         override fun getX(p: Tracked) = p.x
         override fun getY(p: Tracked) = p.y
         override fun getZ(p: Tracked) = p.z
-        override fun getDimension(p: Tracked): ResourceKey<Level> = WorldMapAdapter.guard.call(Level.OVERWORLD) { dimKey(p.dim) }
+        override fun getDimension(p: Tracked): ResourceKey<Level> = WorldMapAdapter.tracker.call(Level.OVERWORLD) { dimKey(p.dim) }
     }
 
     override fun getReader() = reader
 
     override fun getTrackedPlayerIterator(): MutableIterator<Tracked> =
-        WorldMapAdapter.guard.call(mutableListOf<Tracked>().iterator()) { Registry.tracked.flatMap { it.players() }.toMutableList().iterator() }
+        WorldMapAdapter.tracker.call(mutableListOf<Tracked>().iterator()) { Registry.tracked.flatMap { it.players() }.toMutableList().iterator() }
 }
 
 object WorldMapAdapter {
-    val guard = Guard("world map")
-    private var attached = false
-    private val pending = mutableListOf<ChunkHighlighter>()
+    internal val highlights = Guard("world map highlights")
+    internal val markers = Guard("world map markers")
+    internal val tracker = Guard("world map tracker")
+    internal val actions = Guard("world map actions")
+    private var markersDone = false
+    private var trackerDone = false
+    private var pending = false
     private var registry: HighlighterRegistry? = null
 
     private class Points(val dim: ResourceKey<Level>, val rev: Int, val key: Int, val items: List<KamiPoint>)
@@ -251,18 +273,13 @@ object WorldMapAdapter {
     private var snapshot: Points? = null
 
     @Synchronized
-    private fun register(h: ChunkHighlighter) {
-        pending += h
-        registry?.register(h)
-    }
-
-    @JvmStatic
-    @Synchronized
     fun attach(target: Any) {
-        val r = target as? HighlighterRegistry ?: return
-        if (registry === r) return
-        registry = r
-        pending.forEach(r::register)
+        highlights.run {
+            val r = target as? HighlighterRegistry ?: return@run
+            if (registry === r) return@run
+            registry = r
+            r.register(KamiHighlighter())
+        }
     }
 
     fun clear() {
@@ -270,22 +287,23 @@ object WorldMapAdapter {
     }
 
     fun tick(dirty: Boolean) {
-        guard.run {
-            if (!attached) {
-                attached = true
-                register(KamiHighlighter())
-                WorldMap.mapElementRenderHandler.add(KamiRenderer(KamiReader(), KamiProvider()))
-                WorldMap.playerTrackerSystemManager.register("kami", KamiTracker)
-            }
-            if (dirty) refresh()
-            currentDim()?.let(::build)
+        if (!markersDone) markers.run {
+            markersDone = true
+            WorldMap.mapElementRenderHandler.add(KamiRenderer(KamiReader(), KamiProvider()))
         }
+        if (!trackerDone) tracker.run {
+            trackerDone = true
+            WorldMap.playerTrackerSystemManager.register("kami", KamiTracker)
+        }
+        if (dirty) pending = true
+        if (pending) pending = !refresh()
+        markers.run { currentDim()?.let(::build) }
     }
 
-    fun refresh() {
-        guard.run {
-            WorldMapSession.getCurrentSession()?.mapProcessor?.mapWorld?.dimensionsList?.forEach { it.highlightHandler.clearCachedHashes() }
-        }
+    private fun refresh(): Boolean = highlights.call(true) {
+        val world = WorldMapSession.getCurrentSession()?.mapProcessor?.mapWorld ?: return@call false
+        world.dimensionsList?.forEach { it.highlightHandler.clearCachedHashes() }
+        true
     }
 
     private fun currentDim(): ResourceKey<Level>? = WorldMapSession.getCurrentSession()?.mapProcessor?.mapWorld?.currentDimensionId
@@ -300,14 +318,18 @@ object WorldMapAdapter {
         return Points(dim, rev, key, sources.flatMap { s -> s.points(name).map(::KamiPoint) }).also { snapshot = it }
     }
 
-    internal fun points(): List<KamiPoint> = guard.call(emptyList()) {
+    internal fun points(): List<KamiPoint> = markers.call(emptyList()) {
         val dim = currentDim() ?: return@call emptyList()
         val c = snapshot
         (if (c != null && c.dim === dim && c.rev == Registry.rev) c else build(dim)).items
     }
 
-    @JvmStatic
-    fun rightClick(dim: ResourceKey<Level>, x: Int, z: Int, target: IRightClickableElement, start: Int): List<RightClickOption> = guard.call(emptyList()) {
+    @Suppress("UNCHECKED_CAST")
+    fun rightClick(gui: Any, start: Int): List<RightClickOption> = actions.call(emptyList()) {
+        val dim = Refl.field(gui, "rightClickDim") as? ResourceKey<Level> ?: return@call emptyList()
+        val x = Refl.field(gui, "rightClickX") as Int
+        val z = Refl.field(gui, "rightClickZ") as Int
+        val target = gui as IRightClickableElement
         val name = dimName(dim)
         val out = ArrayList<RightClickOption>()
         Registry.actions.forEach { p -> p.actions(name, x, z).forEach { out += KamiOption(it, start + out.size, target) } }

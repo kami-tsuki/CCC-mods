@@ -4,7 +4,7 @@ import kami.economy.economy.ClientVariants as Variants
 
 enum class Direction { UP, DOWN, FLAT }
 
-class PriceInfo(val price: Int, val direction: Direction)
+data class PriceInfo(val price: Int, val direction: Direction)
 
 object PriceCache {
     private val prices = HashMap<String, PriceInfo>()

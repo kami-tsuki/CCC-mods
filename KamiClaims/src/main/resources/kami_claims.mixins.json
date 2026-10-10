@@ -28,5 +28,11 @@
     "DynamicTreesGrowMixin",
     "CroptopiaLeafCropMixin"
   ],
+  "client": [
+    "client.EntityRendererAccess",
+    "freecam.FreecamMixin",
+    "freecam.FreecamCollisionMixin",
+    "freecam.FreecamBuildMixin"
+  ],
   "injectors": { "defaultRequire": 0 }
 }

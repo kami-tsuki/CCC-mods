@@ -60,9 +60,7 @@ class Vendor(
     val dim: String, val x: Int, val y: Int, val z: Int,
     var country: String = "", var owner: String = "", var item: String = "",
     var price: Int = 0, var count: Int = 1, var sell: Boolean = true, var stock: Int = -1, var seen: Long = now()
-) {
-    fun at(dim: String, x: Int, y: Int, z: Int) = this.dim == dim && this.x == x && this.y == y && this.z == z
-}
+)
 
 @Serializable
 class Delivery(val item: String = "", val qty: Int = 0, val stackData: String = "", val id: String = "", val parked: Boolean = false)

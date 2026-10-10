@@ -12,6 +12,7 @@ import kami.claims.service.Words
 import kami.claims.social.Mail
 import kami.libs.chat.Tone
 import kami.libs.log.Log
+import kami.libs.skills.Skills
 import kami.libs.stats.Stats
 import kami.libs.text.Phrase
 import kami.libs.util.Time.HOUR_MS
@@ -25,6 +26,8 @@ object Queue {
         val players = ServerLifecycleHooks.getCurrentServer()?.playerList
         if (players == null) 0 else country.members.keys.count { id -> id.toUuidOrNull()?.let(players::getPlayer) != null }
     }
+
+    private fun skill(country: Country, key: String) = Skills.bestOnline(country.members.keys.mapNotNull { it.toUuidOrNull() }, key)
 
     internal const val MAX_STEP_MS = 60_000L
     private const val XP_PER_NODE_LEVEL = 100L
@@ -113,10 +116,12 @@ object Queue {
 
     private fun begin(country: Country, entry: QueueEntry, node: Node, actor: String?): Boolean {
         if (!entry.paid) {
-            if (node.cost > 0 && (country.treasury < node.cost || Treasury.bank(country, LedgerKind.RESEARCH, -node.cost, actor, entry.node) == 0L)) return false
+            val cost = (node.cost * (1.0 - skill(country, Skills.RESEARCH_COST))).toLong()
+            if (cost > 0 && (country.treasury < cost || Treasury.bank(country, LedgerKind.RESEARCH, -cost, actor, entry.node) == 0L)) return false
             entry.paid = true
+            entry.paidCost = cost
             Stats.event("research.start", "c:${country.id}", entry.node)
-            Stats.add("research.cost", "c:${country.id}", entry.node, node.cost)
+            Stats.add("research.cost", "c:${country.id}", entry.node, cost)
         }
         if (entry.startedAt == 0L) entry.startedAt = clock()
         entry.state = NodeState.RESEARCHING
@@ -178,7 +183,7 @@ object Queue {
         if (online == 0 && settings.onlineRequired) return
         val running = queue.filter { it.state == NodeState.RESEARCHING }
         if (running.isEmpty()) return
-        val step = elapsed * (100 + boost) / (100 - Levels.researchSpeed(country, online).coerceAtMost(99))
+        val step = (elapsed * (100 + boost) / (100 - Levels.researchSpeed(country, online).coerceAtMost(99)) / (1.0 - skill(country, Skills.RESEARCH_TIME))).toLong()
         running.forEach { entry ->
             entry.remainingMs -= step
             if (entry.remainingMs <= 0) Research.defs.node(entry.node)?.let { complete(country, it) }
@@ -199,7 +204,7 @@ object Queue {
     fun rescope(vararg countries: Country?) = countries.filterNotNull().forEach { country ->
         val orphans = if (settings.enabled) country.research.queue.filter { Research.defs.nodeFor(country, it.node) == null } else emptyList()
         orphans.forEach { entry ->
-            Research.defs.node(entry.node)?.takeIf { entry.paid && it.cost > 0 }?.let { Treasury.bank(country, LedgerKind.RESEARCH, it.cost, null, entry.node) }
+            Research.defs.node(entry.node)?.takeIf { entry.paid && it.cost > 0 }?.let { (if (entry.paidCost >= 0) entry.paidCost else it.cost).takeIf { c -> c > 0 }?.let { c -> Treasury.bank(country, LedgerKind.RESEARCH, c, null, entry.node) } }
         }
         if (orphans.isNotEmpty()) {
             country.research.queue.removeAll(orphans)

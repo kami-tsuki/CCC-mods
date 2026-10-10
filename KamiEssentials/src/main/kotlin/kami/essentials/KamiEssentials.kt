@@ -1,6 +1,8 @@
 package kami.essentials
 
 import kami.libs.player.Presence
+import kami.libs.skills.SkillProfile
+import kami.libs.skills.Skills
 import kami.libs.text.Phrase
 import kami.essentials.admin.Activity
 import kami.essentials.admin.AdminServer
@@ -25,6 +27,10 @@ import kami.essentials.display.Tab
 import kami.essentials.inv.Offline
 import kami.essentials.net.Net
 import kami.essentials.op.FakeDeop
+import kami.essentials.skills.LavaWalk
+import kami.essentials.skills.Ravagers
+import kami.essentials.skills.SkillEvents
+import kami.essentials.skills.SkillServer
 import kami.essentials.trade.Deliveries
 import kami.essentials.trade.Trades
 import kami.essentials.vanish.Vanish
@@ -64,7 +70,7 @@ object KamiEssentials {
 
     init {
         EssMigrations.register()
-        MOD_BUS.addListener<FMLCommonSetupEvent> { Config.load(); Presence.hidden = { Store[Flag.INVISIBLE, it] } }
+        MOD_BUS.addListener<FMLCommonSetupEvent> { Config.load(); Presence.hidden = { Store[Flag.INVISIBLE, it] }; Skills.profiles = { id -> if (SkillServer.enabled) SkillServer.peek(id)?.let { SkillProfile(it.cls, it.level) } else null } }
         FORGE_BUS.addListener<PermissionGatherEvent.Nodes> { Perms.register(it) }
         MOD_BUS.addListener<RegisterPayloadHandlersEvent> { Net.register(it) }
         if (FMLEnvironment.dist == Dist.CLIENT) ClientEssentials.init()
@@ -73,6 +79,9 @@ object KamiEssentials {
         DiscordAdmin.register()
         Activity.register()
         Maintenance.register()
+        SkillEvents.register()
+        Ravagers.register()
+        LavaWalk.register()
         FORGE_BUS.addListener<CommandEvent> { e -> if (!e.isCanceled) Maintenance.intercept(e) }
         FORGE_BUS.addListener<ServerStartedEvent> {
             loading("player flags") { Store.load() }
@@ -83,16 +92,18 @@ object KamiEssentials {
             loading("ban links") { Moderation.load() }
             loading("deliveries") { Deliveries.load() }
             loading("maintenance") { Maintenance.load() }
+            loading("skills") { SkillServer.load() }
             ServerStats.start()
             Bot.start(it.server)
         }
-        FORGE_BUS.addListener<ServerStoppingEvent> { Bot.stop(); Trades.stop(); FakeDeop.reset() }
+        FORGE_BUS.addListener<ServerStoppingEvent> { Bot.stop(); Trades.stop(); FakeDeop.reset(); SkillServer.unload() }
         FORGE_BUS.addListener<ServerStoppedEvent>(EventPriority.LOWEST) { Players.known = null; PlayerRecords.unload(); Mutes.unload(); Warns.unload(); Moderation.unload(); Deliveries.unload() }
         FORGE_BUS.addListener<ServerTickEvent.Post> {
             Trades.tick()
             Offline.tick()
             Bot.tick(it.server)
             ServerStats.tick(it.server)
+            SkillServer.tick(it.server)
             if (it.server.tickCount % 20 == 0) {
                 Tab.tick(it.server)
                 Motd.tick(it.server)
@@ -113,6 +124,7 @@ object KamiEssentials {
             Deliveries.deliver(p)
             Bot.presenceDirty()
             Feed.join(p)
+            SkillServer.joined(p)
             if (Vanish.active(p)) p.tell(Talk.chat.info(Phrase.of("kami_essentials.vanish.joined", Phrase.value("/invis"))))
         }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { e ->
@@ -124,6 +136,7 @@ object KamiEssentials {
             Feed.leave(p)
             Bot.presenceDirty()
             Net.forget(p)
+            SkillServer.forget(p)
             FakeDeop.forget(p)
         }
         FORGE_BUS.addListener<LevelEvent.Save>(EventPriority.HIGH) { e -> (e.level as? ServerLevel)?.takeIf { it.dimension() == Level.OVERWORLD }?.let { PlayerRecords.autosave(it.server) } }
@@ -131,8 +144,9 @@ object KamiEssentials {
         FORGE_BUS.addListener<ServerChatEvent>(Talk::onChat)
         FORGE_BUS.addListener<CommandEvent>(Talk::onCommand)
         FORGE_BUS.addListener<CommandEvent>(Console::onCommand)
+        FORGE_BUS.addListener<PlayerEvent.Clone> { e -> if (!e.isWasDeath) (e.entity as? ServerPlayer)?.let { SkillServer.carry(it, e.original.health) } }
         FORGE_BUS.addListener<PlayerEvent.PlayerRespawnEvent> { e ->
-            (e.entity as? ServerPlayer)?.let { Tab.forget(it.uuid); Deliveries.deliver(it) }
+            (e.entity as? ServerPlayer)?.let { Tab.forget(it.uuid); Deliveries.deliver(it); SkillServer.respawned(it, !e.isEndConquered) }
         }
         FORGE_BUS.addListener<LivingDeathEvent> { e -> (e.entity as? ServerPlayer)?.let { Trades.drop(it, Phrase.of("kami_essentials.trade.reason.died", it.gameProfile.name)) } }
         FORGE_BUS.addListener<LivingChangeTargetEvent> { e -> if ((e.newAboutToBeSetTarget as? ServerPlayer)?.let(Vanish::active) == true) e.isCanceled = true }

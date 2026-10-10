@@ -21,7 +21,8 @@ class QueueEntry(
     val since: Long = now(),
     var penaltyMs: Long = 0,
     var queuedAt: Long = 0,
-    var startedAt: Long = 0
+    var startedAt: Long = 0,
+    var paidCost: Long = -1
 )
 
 @Serializable

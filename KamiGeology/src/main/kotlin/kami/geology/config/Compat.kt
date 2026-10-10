@@ -17,7 +17,6 @@ import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
-import net.neoforged.fml.ModList
 import net.neoforged.neoforge.common.world.BiomeModifiers
 import net.neoforged.neoforge.registries.NeoForgeRegistries
 import net.minecraft.world.level.block.Blocks as Vanilla
@@ -37,8 +36,6 @@ object Compat {
     private fun present(id: String) = Blocks.find(id) != null
 
     fun ready() = Vanilla.STONE.defaultBlockState().`is`(BlockTags.BASE_STONE_OVERWORLD)
-
-    fun loaded(id: String) = ResourceLocation.tryParse(id)?.let { ModList.get().isLoaded(it.namespace) } ?: false
 
     private fun members(tag: TagKey<Block>): List<Block> =
         BuiltInRegistries.BLOCK.getTag(tag).map { set -> set.map { it.value() } }.orElse(emptyList())

@@ -1,7 +1,6 @@
 package kami.libs.mixin;
 
-import kami.libs.KamiLibs;
-import kami.libs.xaero.impl.WorldMapAdapter;
+import kami.libs.xaero.impl.MixinHooks;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
@@ -14,9 +13,9 @@ public class XaeroHighlighterRegistryMixin {
     @Inject(method = "end", at = @At("HEAD"), remap = false, require = 0)
     private void kami$attach(CallbackInfo ci) {
         try {
-            WorldMapAdapter.attach(this);
+            MixinHooks.attach(this);
         } catch (Throwable t) {
-            KamiLibs.LOG.warn("Could not attach an overlay to Xaero's World Map", t);
+            MixinHooks.fail(t);
         }
     }
 }

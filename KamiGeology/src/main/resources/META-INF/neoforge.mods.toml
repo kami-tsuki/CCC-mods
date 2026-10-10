@@ -37,5 +37,12 @@ versionRange = "[${kami_libs_version},)"
 ordering = "AFTER"
 side = "BOTH"
 
+[[dependencies.${mod_id}]]
+modId = "jei"
+type = "optional"
+versionRange = "[19,)"
+ordering = "NONE"
+side = "CLIENT"
+
 [[mixins]]
 config = "${mod_id}.mixins.json"

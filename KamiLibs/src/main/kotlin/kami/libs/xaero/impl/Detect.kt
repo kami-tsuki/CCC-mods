@@ -1,12 +1,10 @@
 package kami.libs.xaero.impl
 
-import net.neoforged.fml.ModList
+import kami.libs.compat.Mods
 
 object Detect {
-    private fun loaded(vararg ids: String) = runCatching { ModList.get()?.let { m -> ids.any(m::isLoaded) } == true }.getOrDefault(false)
-
-    val minimap: Boolean by lazy { loaded("xaerominimap", "xaerominimapfair") }
-    val worldMap: Boolean by lazy { loaded("xaeroworldmap") }
-    val plus: Boolean by lazy { loaded("xaeroplus") }
+    val minimap: Boolean get() = Mods.loaded(Mods.XAERO_MINIMAP) || Mods.loaded(Mods.XAERO_MINIMAP_FAIR)
+    val worldMap: Boolean get() = Mods.loaded(Mods.XAERO_WORLD_MAP)
+    val plus: Boolean get() = Mods.loaded(Mods.XAERO_PLUS)
     val any: Boolean get() = minimap || worldMap || plus
 }

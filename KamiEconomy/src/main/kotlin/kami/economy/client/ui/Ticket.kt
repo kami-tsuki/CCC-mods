@@ -114,6 +114,9 @@ internal class Ticket(private val app: MarketApp) {
         else -> "sell_market"
     }
 
+    val side get() = if (buy) "buy" else "sell"
+    val kind get() = if (order) "order" else "instant"
+
     var variant = ""
     private val v get() = if (order) null else Variants.of(variant)?.takeIf { it.core == item }
     val shown get() = if (v != null) variant else item

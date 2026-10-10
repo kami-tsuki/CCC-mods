@@ -7,6 +7,7 @@ import kami.economy.StarterGood
 import kami.economy.Stock
 import kami.economy.Vendor
 import kami.economy.now
+import kami.libs.skills.Skills
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.pow
@@ -103,7 +104,8 @@ object Stocks {
         val g = goods[item] ?: return Int.MAX_VALUE
         if (g.sellCap <= 0) return Int.MAX_VALUE
         val from = now() - WINDOW
-        return (g.sellCap - Market.data.sold[player]?.get(g.item).orEmpty().sumOf { if (it.at > from) it.lots else 0 }).coerceAtLeast(0)
+        val cap = g.sellCap + if (infiniteDemand(item)) Limits.bonus(player, Skills.INFINITE_LOTS) else 0
+        return (cap - Market.data.sold[player]?.get(g.item).orEmpty().sumOf { if (it.at > from) it.lots else 0 }).coerceAtLeast(0)
     }
 
     private fun grow(x: Int, lots: Int): Int = (x.toLong() + lots).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()

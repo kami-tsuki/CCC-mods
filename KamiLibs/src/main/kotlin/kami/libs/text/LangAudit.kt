@@ -55,7 +55,7 @@ object LangAudit {
         pluralCall.findAll(sources).map { it.groupValues[1] }.filter { "$it.one" !in known || "$it.other" !in known }.forEach { problems += "plural forms missing: $it" }
         val used = referenced.flatMap { listOf(it, "$it.one", "$it.other", "$it.desc", "$it.tooltip") }.toSet() + extraUsedKeys
         val prefixes = templatePrefix.findAll(sources).map { it.groupValues[1] }.toSet() + extraUsedKeys.filter { it.endsWith(".") }
-        val unused = en.keys.filter { key -> !key.startsWith("key.") && key !in used && prefixes.none { key.startsWith(it) } }
+        val unused = en.keys.filter { key -> !key.startsWith("key.") && !key.startsWith("config.jade.") && key !in used && prefixes.none { key.startsWith(it) } }
         return Report(problems, unused)
     }
 

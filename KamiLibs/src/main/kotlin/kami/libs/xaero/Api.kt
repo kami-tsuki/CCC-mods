@@ -38,6 +38,7 @@ interface ChunkLayer {
     val id: String
     val toggle: String
     val order: Int
+    fun rev(): Int = XaeroMaps.revision
     fun regionHash(dim: String, rx: Int, rz: Int): Int
     fun paint(dim: String, cx: Int, cz: Int): ChunkPaint?
     fun tooltip(dim: String, cx: Int, cz: Int, blunt: Boolean): Component?
@@ -54,6 +55,7 @@ fun interface TrackedSource {
 interface LineSource {
     val id: String
     val toggle: String
+    fun rev(): Int = XaeroMaps.revision
     fun lines(dim: String): List<MapLine>
     fun labels(dim: String): List<MapLabel>
 }
@@ -68,6 +70,8 @@ class MapToggle(
     val label: String,
     val tip: String,
     val default: Boolean,
+    val icon: String = "",
+    val world: Boolean = true,
     val visible: () -> Boolean = { true }
 )
 
@@ -76,5 +80,6 @@ class MapChoice(
     val group: String,
     val label: String,
     val options: List<Pair<String, String>>,
-    val default: String
+    val default: String,
+    val icon: String = ""
 )

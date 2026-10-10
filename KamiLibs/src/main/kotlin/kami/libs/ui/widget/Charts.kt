@@ -21,7 +21,7 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sqrt
 
-class Series(val label: String, val values: List<Long>, val color: Int, val area: Boolean = false, val dashedFrom: Int = Int.MAX_VALUE)
+class Series(val label: String, val values: List<Long>, val color: Int, val area: Boolean = false, val dashedFrom: Int = Int.MAX_VALUE, val start: Int = 0)
 class Slice(val label: String, val value: Long, val color: Int)
 
 fun Ui.sparkline(r: Rect, values: List<Long>, color: Int) {
@@ -52,7 +52,7 @@ fun Ui.lineChart(r: Rect, series: List<Series>, labels: List<String>, format: (L
     var minV = Long.MAX_VALUE
     var maxV = Long.MIN_VALUE
     series.forEach { s -> for (v in s.values) { if (v < minV) minV = v; if (v > maxV) maxV = v } }
-    val count = series.maxOfOrNull { it.values.size } ?: 0
+    val count = series.maxOfOrNull { it.start + it.values.size } ?: 0
     Draw.fill(g, r, Palette.field)
     if (count < 2 || minV > maxV) {
         Draw.textCentered(g, tr("kami_libs.chart.no_history"), r, Palette.textMuted)
@@ -82,8 +82,8 @@ fun Ui.lineChart(r: Rect, series: List<Series>, labels: List<String>, format: (L
     series.forEach { s ->
         if (s.area) {
             for (i in 1 until s.values.size) {
-                val x0 = px(i - 1)
-                val x1 = px(i)
+                val x0 = px(s.start + i - 1)
+                val x1 = px(s.start + i)
                 for (x in x0 until x1) {
                     val f = (x - x0).toDouble() / max(1, x1 - x0)
                     val v = s.values[i - 1] + (s.values[i] - s.values[i - 1]) * f
@@ -95,8 +95,8 @@ fun Ui.lineChart(r: Rect, series: List<Series>, labels: List<String>, format: (L
             g.flush()
         }
         for (i in 1 until s.values.size) {
-            val x0 = px(i - 1); val y0 = py(s.values[i - 1].toDouble())
-            val x1 = px(i); val y1 = py(s.values[i].toDouble())
+            val x0 = px(s.start + i - 1); val y0 = py(s.values[i - 1].toDouble())
+            val x1 = px(s.start + i); val y1 = py(s.values[i].toDouble())
             if (i > s.dashedFrom) Draw.dashed(g, x0, y0, x1, y1, s.color) else Draw.line(g, x0, y0, x1, y1, s.color)
         }
     }
@@ -105,9 +105,9 @@ fun Ui.lineChart(r: Rect, series: List<Series>, labels: List<String>, format: (L
         if (i in 0 until count) {
             val x = px(i)
             Draw.vline(g, x, plot.y, plot.h, Palette.alpha(Palette.text, 0x60))
-            series.forEach { s -> s.values.getOrNull(i)?.let { v -> Draw.fill(g, Rect(x - 1, py(v.toDouble()) - 1, 3, 3), s.color) } }
+            series.forEach { s -> s.values.getOrNull(i - s.start)?.let { v -> Draw.fill(g, Rect(x - 1, py(v.toDouble()) - 1, 3, 3), s.color) } }
             tooltip(key, plot) {
-                Tip(labels.getOrNull(i), series.mapNotNull { s -> s.values.getOrNull(i)?.let { tr(if (i > s.dashedFrom) "kami_libs.chart.point.forecast" else "kami_libs.format.pair", s.label, format(it)) to s.color } })
+                Tip(labels.getOrNull(i), series.mapNotNull { s -> s.values.getOrNull(i - s.start)?.let { tr(if (i > s.dashedFrom) "kami_libs.chart.point.forecast" else "kami_libs.format.pair", s.label, format(it)) to s.color } })
             }
         }
     }

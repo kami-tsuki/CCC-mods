@@ -58,12 +58,5 @@ versionRange = "[${kami_claims_version},)"
 ordering = "AFTER"
 side = "BOTH"
 
-[[dependencies.${mod_id}]]
-modId = "luckperms"
-type = "optional"
-versionRange = "[5,)"
-ordering = "NONE"
-side = "SERVER"
-
 [[mixins]]
 config = "${mod_id}.mixins.json"

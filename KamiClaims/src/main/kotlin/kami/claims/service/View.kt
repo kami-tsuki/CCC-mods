@@ -21,6 +21,8 @@ object View {
     const val SAFE = 2048
     const val STAKED = 4096
     const val ENEMY = 8192
+    const val SCOPE = 16384
+    const val ALLIANCE = 32768
     const val WAR_ACTIVE = 1
     const val WAR_FAIRPLAY = 2
 
@@ -153,6 +155,7 @@ object View {
         val held = b.held[viewer].orEmpty()
         val home = Realm.of(viewer)
         val scope = Scope.of(viewer, op)
+        val alliances = home?.alliances.orEmpty()
         val foes = if (op || home == null) emptySet() else b.countries.filter { Wars.enemies(home.id, it.id) }.map { it.id }.toSet()
         val staked = home?.let { h -> b.stakes.filter { h.id in it.first }.flatMap { it.second }.toSet() }.orEmpty()
         val countries = b.countries.mapIndexed { i, c -> b.views[i].let { CountryView(it.name, it.color, if (c.id in foes) REL_ENEMY else mapRelation(c, viewer), it.flag, it.secondary, it.reputation, it.fame) } }
@@ -162,6 +165,8 @@ object View {
             val enemy = c.id in foes
             val inScope = scope(c.id)
             var flags = flags(cl, c, viewer, held[c.id].orEmpty(), scope, enemy)
+            if (inScope && !enemy) flags = flags or SCOPE
+            if (!enemy && c.id in alliances) flags = flags or ALLIANCE
             if (inScope && cl.key in b.safe[b.countryOf[i]]) flags = flags or SAFE
             if ((inScope || enemy) && cl.key in staked) flags = flags or STAKED
             val type = if (!enemy && (inScope || flags and MINE != 0)) b.typeIndex[cl.type] ?: -1 else -1

@@ -60,7 +60,15 @@ internal object EssMigrations {
         ddl = listOf("CREATE TABLE ess_delivery (id INTEGER PRIMARY KEY, uuid TEXT NOT NULL, item TEXT NOT NULL)")
     )
 
-    fun register() = Migrations.register("ess", listOf(schema, players, banIps, warns, delivery), after = listOf("libs"))
+    private val skills = Migration(
+        "ess", 6, "skills",
+        ddl = listOf(
+            "CREATE TABLE ess_skill (uuid TEXT PRIMARY KEY, class TEXT, xp REAL NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 0, nodes TEXT NOT NULL DEFAULT '', refunds INTEGER NOT NULL DEFAULT 0)",
+            "CREATE TABLE ess_skill_craft (uuid TEXT NOT NULL, item TEXT NOT NULL, PRIMARY KEY (uuid, item))"
+        )
+    )
+
+    fun register() = Migrations.register("ess", listOf(schema, players, banIps, warns, delivery, skills), after = listOf("libs"))
 
     private fun normalize(flags: Map<Flag, Collection<String>>) = LegacyData(Flag.entries.associateWith { flag ->
         flags[flag].orEmpty().mapNotNull { it.toUuidOrNull()?.toString() }.distinct().sorted()

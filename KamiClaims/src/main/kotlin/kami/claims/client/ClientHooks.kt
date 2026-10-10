@@ -6,7 +6,11 @@ import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.personal.ClaimsPersonal
 import kami.claims.client.app.ResearchPins
 import kami.claims.client.hud.Hud
-import kami.claims.client.xaero.XaeroClaims
+import kami.claims.client.compat.JadeClient
+import kami.claims.client.compat.freecam.FreecamGuard
+import kami.claims.client.compat.jei.ResearchJei
+import kami.claims.client.compat.xaero.XaeroClaims
+import kami.libs.jei.KamiJei
 import kami.claims.client.map.MiniMap
 import kami.claims.client.store.ClaimsStore
 import kami.claims.client.store.ClientResearch
@@ -14,6 +18,9 @@ import kami.claims.net.DefsView
 import kami.claims.net.StateView
 import kami.claims.client.world.BlockHint
 import kami.claims.client.world.Borders
+import kami.claims.client.world.NameTags
+import kami.claims.net.TagView
+import java.util.UUID
 import kami.claims.net.Denied
 import kami.claims.net.Snap
 import kami.claims.war.Selection
@@ -60,6 +67,9 @@ object ClientHooks {
         ClaimsPersonal.register()
         CountryAdminSection.register()
         XaeroClaims.register()
+        JadeClient.register()
+        FreecamGuard.register()
+        if (KamiJei.present) KamiJei.module(ResearchJei)
         ResearchTooltip.init()
         ResearchPins.register()
         Hud.register()
@@ -72,13 +82,14 @@ object ClientHooks {
         FORGE_BUS.addListener<RenderHighlightEvent.Block> { BlockHint.highlight(it) }
         FORGE_BUS.addListener<CustomizeGuiOverlayEvent.BossEventProgress> { hideWarBar(it) }
         FORGE_BUS.addListener<RenderLevelStageEvent> { Borders.renderWalls(it) }
-        FORGE_BUS.addListener<RenderNameTagEvent> { if (VisibilityState.isHidden(it.entity.uuid)) it.setCanRender(TriState.FALSE) }
+        FORGE_BUS.addListener<RenderNameTagEvent> { if (VisibilityState.isHidden(it.entity.uuid)) it.setCanRender(TriState.FALSE) else NameTags.render(it) }
         FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingIn> {
             applyPrefs()
             VisibilityState.clear()
+            NameTags.clear()
             ClaimsStore.watch(emptyList(), force = true)
         }
-        FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> { TerrainCache.clear(); ClientResearch.clear(); ClaimsStore.clear(); opening.done(); MiniMap.clear(); Hud.reset(); VisibilityState.clear(); ClientClaims.war = 0 }
+        FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> { TerrainCache.clear(); ClientResearch.clear(); ClaimsStore.clear(); opening.done(); MiniMap.clear(); Hud.reset(); VisibilityState.clear(); NameTags.clear(); ClientClaims.war = 0; FreecamGuard.clear() }
     }
 
     private fun hideWarBar(e: CustomizeGuiOverlayEvent.BossEventProgress) = runCatching {
@@ -137,6 +148,10 @@ object ClientHooks {
     fun denied(d: Denied) = BlockHint.denied(d)
 
     fun positions(s: Selection) = VisibilityState.receive(s)
+
+    fun nameTags(t: Map<UUID, TagView>) = NameTags.receive(t)
+
+    fun freecam(state: Int) = FreecamGuard.receive(state)
 
     fun researchDefs(defs: DefsView) = ClientResearch.receive(defs)
 

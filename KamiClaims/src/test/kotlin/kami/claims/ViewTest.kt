@@ -154,6 +154,15 @@ class ViewTest {
     }
 
     @Test
+    fun onlyRealAlliancesGetAllianceFlag() {
+        val (a, b, _) = two()
+        a.outsiders["bob"] = Rank.ALLIED
+        assertFalse(has(entry(View.build("bob"), a.name, 0, 0).flags, View.ALLIANCE))
+        b.alliances += a.id
+        assertTrue(has(entry(View.build("bob"), a.name, 0, 0).flags, View.ALLIANCE))
+    }
+
+    @Test
     fun overlordSeesProvinceCapitalAndType() {
         val (a, b, far) = two()
         far.capital = true

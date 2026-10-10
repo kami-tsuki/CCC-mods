@@ -15,6 +15,7 @@ import kami.economy.net.Snap
 import kami.libs.mc.ItemSpec
 import kami.libs.text.SearchQuery
 import kami.libs.text.Text
+import kami.libs.jei.DropTarget
 import kami.libs.ui.app.AppScreen
 import kami.libs.ui.app.Callout
 import kami.libs.ui.app.Dialog
@@ -297,6 +298,8 @@ class MarketApp private constructor() : KamiApp() {
         if (lock != null) ui.chip(x, r.centerY - 6, text, Palette.warning, Icons.LOCK, lock.how, "slot:$name") else Draw.text(ui.g, text, x + 5, r.centerY - 4, Palette.textMuted)
         return x + w + 6
     }
+
+    fun drops(): List<DropTarget> = if (route.page == "item") (page("item") as? ItemPage)?.drops().orEmpty() else emptyList()
 
     fun openItem(item: String, side: String = "buy", kind: String = "instant") {
         val core = Variants.core(item)

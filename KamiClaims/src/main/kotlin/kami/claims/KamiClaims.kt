@@ -4,14 +4,19 @@ import kami.libs.util.toUuidOrNull
 import kami.claims.admin.AdminCountries
 import kami.claims.admin.ClaimStats
 import kami.claims.client.ClientHooks
+import kami.claims.compat.DynamicTrees
+import kami.claims.compat.JadeServer
+import kami.claims.compat.Tacz
 import kami.claims.discord.DiscordClaims
 import kami.claims.command.ClaimsCommands
 import kami.claims.net.Net
 import kami.claims.net.ResearchSync
 import kami.claims.net.Sync
 import kami.claims.service.Work
+import kami.claims.war.NameTagSync
 import kami.claims.war.NameTagTeams
 import kami.claims.war.Online
+import kami.claims.war.FreecamSync
 import kami.claims.war.PositionSync
 import kami.claims.war.Reputation
 import kami.claims.war.WarBar
@@ -49,7 +54,12 @@ import kami.claims.service.View
 import kami.libs.config.Configs
 import kami.libs.log.Log
 import kami.libs.text.Phrase
+import net.minecraft.core.BlockPos
+import net.minecraft.core.registries.Registries
+import net.minecraft.resources.ResourceKey
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.Blocks
 import net.neoforged.api.distmarker.Dist
 import net.neoforged.bus.api.EventPriority
 import net.neoforged.fml.common.Mod
@@ -73,17 +83,20 @@ import net.neoforged.neoforge.event.server.ServerStartingEvent
 import net.neoforged.neoforge.event.server.ServerStoppedEvent
 import net.neoforged.neoforge.event.server.ServerStoppingEvent
 import net.neoforged.neoforge.event.tick.ServerTickEvent
+import net.neoforged.neoforge.server.ServerLifecycleHooks
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
 import net.neoforged.neoforge.server.permission.events.PermissionGatherEvent
 import thedarkcolour.kotlinforforge.neoforge.forge.FORGE_BUS
 import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 import net.minecraft.resources.ResourceLocation
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 @Mod(KamiClaims.ID)
 object KamiClaims {
     const val ID = "kami_claims"
     val LOG = Log.of("claims")
+    private val dimensions = ConcurrentHashMap<String, ResourceKey<Level>>()
 
     init {
         RealmDb.register()
@@ -150,10 +163,19 @@ object KamiClaims {
                 override fun boost(country: String, kind: String, pct: Int, ms: Long): Boolean = Realm.live(country)?.let { Boosts.add(it, kind, pct, ms) } ?: false
 
                 override fun tradeFactor(country: String): Double = Realm.live(country)?.let(Reputation::tradeFactor) ?: 1.0
+
+                override fun canBuild(player: UUID, dim: String, x: Int, y: Int, z: Int): Boolean {
+                    if (Realm.index[Key(dim, x shr 4, z shr 4)] == null) return true
+                    val server = ServerLifecycleHooks.getCurrentServer() ?: return true
+                    val p = server.playerList.getPlayer(player) ?: return false
+                    val level = server.getLevel(dimensions.getOrPut(dim) { ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(dim)) }) ?: return false
+                    return Guard.allowed(level, BlockPos(x, y, z), p, Action.PLACE, Blocks.OBSIDIAN, false) || Perms.has(p, Perms.BYPASS)
+                }
             })
         }
         MOD_BUS.addListener<RegisterPayloadHandlersEvent> { Net.register(it) }
         if (FMLEnvironment.dist == Dist.CLIENT) ClientHooks.init()
+        JadeServer.register()
         ClaimStats.register()
         DiscordClaims.register()
         FORGE_BUS.addListener<PermissionGatherEvent.Nodes> { Perms.register(it) }
@@ -161,8 +183,9 @@ object KamiClaims {
         AdminCountries.register()
         FORGE_BUS.addListener<BlockEvent.BreakEvent>(EventPriority.LOWEST) { Guard.onBreakCredit(it) }
         Listeners.register()
-        Guard.registerTacz()
+        Tacz.register()
         Sky.register()
+        DynamicTrees.register()
         WealthSources.register()
         FORGE_BUS.addListener<ServerStartingEvent> { RecipeContext.bind(Thread.currentThread()) }
         FORGE_BUS.addListener<ServerStartedEvent> { Realm.load(it.server); Research.reload(); Wars.resume(); NameTagTeams.sweep(it.server) }
@@ -182,7 +205,9 @@ object KamiClaims {
             Online.reset()
             WarBar.reset()
             NameTagTeams.reset()
+            NameTagSync.reset()
             PositionSync.reset()
+            FreecamSync.reset()
         }
         FORGE_BUS.addListener<ServerStoppedEvent>(EventPriority.LOWEST) { RealmDb.unload() }
         FORGE_BUS.addListener<ServerTickEvent.Post> {
@@ -199,14 +224,16 @@ object KamiClaims {
             task("Online", 20) { Online.sample(players) }
             task("War bar", 20) { WarBar.tick(players) }
             task("Nametags", 20) { NameTagTeams.syncAll(it.server) }
+            task("Nametag lines", 1) { NameTagSync.tick(it.server) }
             task("Positions", 1) { PositionSync.tick(it.server) }
+            task("Freecam", 5) { FreecamSync.tick(it.server) }
             task("Temp blocks", 4) { TempBlocks.tick(it.server) }
             task("Levels", 100) { Levels.advanceAll() }
             task("Upkeep", 1200) { Upkeep.tick(it.server) }
             task("War", 1200) { Wars.tick() }
         }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { (it.entity as? ServerPlayer)?.let { p -> touch(p); Mail.deliver(p); Online.login(p); runCatching { NameTagTeams.sync(p) }.onFailure { e -> LOG.error("Nametags failed", e) }; runCatching { WarBar.tick(listOf(p)) }.onFailure { e -> LOG.error("War bar failed", e) } } }
-        FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { (it.entity as? ServerPlayer)?.let { p -> touch(p); Guard.forget(p); Net.forget(p); Structures.forget(p); Online.logout(p); WarBar.forget(p); PositionSync.forget(p) } }
+        FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { (it.entity as? ServerPlayer)?.let { p -> touch(p); Guard.forget(p); Net.forget(p); Structures.forget(p); Online.logout(p); WarBar.forget(p); PositionSync.forget(p); FreecamSync.forget(p); NameTagSync.forget(p) } }
         FORGE_BUS.addListener<BlockEvent.BreakEvent> { Guard.onBreak(it) }
         FORGE_BUS.addListener<BlockEvent.EntityPlaceEvent> { Guard.onPlace(it) }
         FORGE_BUS.addListener<PlayerInteractEvent.RightClickBlock> { Guard.onUse(it) }

@@ -7,6 +7,7 @@ class Guard(private val name: String) {
     @Volatile
     var disabled = false
         private set
+    @Volatile
     private var warned = false
 
     fun run(block: () -> Unit) {
@@ -18,22 +19,35 @@ class Guard(private val name: String) {
         return try {
             block()
         } catch (e: Exception) {
-            fail(e)
+            report(e)
             fallback
         } catch (e: LinkageError) {
-            fail(e)
+            report(e)
             fallback
         }
     }
-
-    private fun fail(raw: Throwable) {
+    fun report(raw: Throwable) {
+        if (disabled) return
         val e = (raw as? InvocationTargetException)?.targetException ?: raw
         if (e is LinkageError || raw !is InvocationTargetException && e is ReflectiveOperationException) {
             disabled = true
             KamiLibs.LOG.warn("Xaero {} bridge disabled: {}", name, e.toString())
-        } else if (!warned) {
-            warned = true
-            KamiLibs.LOG.warn("Xaero {} bridge error: {}", name, e.toString(), e)
-        }
+        } else warn(e)
+    }
+
+    fun <T> soft(fallback: T, block: () -> T): T = try {
+        block()
+    } catch (e: Exception) {
+        warn(e)
+        fallback
+    } catch (e: LinkageError) {
+        warn(e)
+        fallback
+    }
+
+    private fun warn(e: Throwable) {
+        if (warned) return
+        warned = true
+        KamiLibs.LOG.warn("Xaero {} bridge error: {}", name, e.toString(), e)
     }
 }

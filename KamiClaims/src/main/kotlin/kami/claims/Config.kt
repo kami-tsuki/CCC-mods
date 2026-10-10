@@ -169,6 +169,7 @@ data class WarSettings(
 @Serializable
 data class VisibilitySettings(
     val hideNametags: Boolean = true,
+    val nametagLines: Boolean = true,
     val hideEnemiesOnMinimap: Boolean = true,
     val shareMemberPositions: Boolean = true,
     val adminSeeAll: Boolean = true,
@@ -487,6 +488,7 @@ private val sections = listOf(
             "war.power" to "Power factors as weight and scale (factor reaches ~75% at scale). Keys: research, treasury, members, chunks, provinces, provinceMembers, allies.",
             "visibility" to "Nametags and minimap during wars. Applies from a declaration until the war ends, to members of every country in an active war.",
             "visibility.hideNametags" to "Hide the nametags of warring-country members from players outside their country (uses scoreboard teams named kc_<country>; players already in another team are skipped).",
+            "visibility.nametagLines" to "Show the country (or the rank to members of the same country) and the skill class and level under player nametags. Hidden nametags stay hidden.",
             "visibility.hideEnemiesOnMinimap" to "Hide enemy players on the Xaero minimap (clients with Xaero's Minimap only).",
             "visibility.shareMemberPositions" to "Show country members to each other on the Xaero minimap even out of render range.",
             "visibility.adminSeeAll" to "Operators see every player on the Xaero minimap, even out of render range.",

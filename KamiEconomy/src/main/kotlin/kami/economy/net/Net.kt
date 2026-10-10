@@ -30,6 +30,7 @@ import kami.economy.economy.SellResult
 import kami.economy.economy.BuyResult
 import kami.economy.economy.OrderResult
 import kami.economy.client.ClientHooks
+import kami.economy.quest.QuestBoost
 import kami.economy.quest.Quests
 import kami.libs.stats.Staff
 import kami.libs.net.ActPayload
@@ -37,6 +38,7 @@ import kami.libs.net.Packets
 import kami.libs.net.SnapshotPayload
 import kami.libs.net.TickCooldown
 import kami.libs.util.RateLimit
+import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
@@ -75,9 +77,65 @@ class VariantsPayload(val map: Map<String, Variant>) : CustomPacketPayload {
     }
 }
 
+data class InfoVendor(val item: String, val dim: String, val x: Int, val y: Int, val z: Int, val price: Int, val count: Int, val sell: Boolean)
+
+data class InfoQuest(val item: String, val lotPrice: Int, val lot: Int, val left: Int, val expiresAt: Long, val boosts: List<QuestBoost>)
+
+private fun FriendlyByteBuf.writeVendor(v: InfoVendor) {
+    writeUtf(v.item, 128); writeUtf(v.dim, 64); writeVarInt(v.x); writeVarInt(v.y); writeVarInt(v.z); writeVarInt(v.price); writeVarInt(v.count); writeBoolean(v.sell)
+}
+
+private fun FriendlyByteBuf.readVendor() = InfoVendor(readUtf(128), readUtf(64), readVarInt(), readVarInt(), readVarInt(), readVarInt(), readVarInt(), readBoolean())
+
+private fun FriendlyByteBuf.writeQuest(q: InfoQuest) {
+    writeUtf(q.item, 128); writeVarInt(q.lotPrice); writeVarInt(q.lot); writeVarInt(q.left); writeVarLong(q.expiresAt)
+    writeCollection(q.boosts) { bb, e -> bb.writeUtf(e.kind, 32); bb.writeVarInt(e.pct); bb.writeVarInt(e.hours) }
+}
+
+private fun FriendlyByteBuf.readQuest() = InfoQuest(readUtf(128), readVarInt(), readVarInt(), readVarInt(), readVarLong(), readList { bb -> QuestBoost(bb.readUtf(32), bb.readVarInt(), bb.readVarInt()) })
+
+class PriceInfoPayload(
+    val item: String, val lot: Int, val bid: Int, val ask: Int, val change: Int, val tariff: Int, val embargo: Boolean,
+    val closes: List<Int> = emptyList(), val vendors: List<InfoVendor> = emptyList(), val quests: List<InfoQuest> = emptyList()
+) : CustomPacketPayload {
+    override fun type() = TYPE
+
+    companion object {
+        val TYPE = CustomPacketPayload.Type<PriceInfoPayload>(netPackets.id("price_info"))
+        val CODEC = netPackets.codec<PriceInfoPayload>(
+            { b, v ->
+                b.writeUtf(v.item, 128); b.writeVarInt(v.lot); b.writeVarInt(v.bid); b.writeVarInt(v.ask); b.writeVarInt(v.change); b.writeVarInt(v.tariff); b.writeBoolean(v.embargo)
+                b.writeCollection(v.closes) { bb, e -> bb.writeVarInt(e) }
+                b.writeCollection(v.vendors) { bb, e -> bb.writeVendor(e) }
+                b.writeCollection(v.quests) { bb, e -> bb.writeQuest(e) }
+            },
+            { b ->
+                PriceInfoPayload(
+                    b.readUtf(128), b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readBoolean(),
+                    b.readList { bb -> bb.readVarInt() }, b.readList { bb -> bb.readVendor() }, b.readList { bb -> bb.readQuest() }
+                )
+            }
+        )
+    }
+}
+
+class JeiPayload(val quests: List<InfoQuest>, val vendors: List<InfoVendor>) : CustomPacketPayload {
+    override fun type() = TYPE
+
+    companion object {
+        val TYPE = CustomPacketPayload.Type<JeiPayload>(netPackets.id("jei_data"))
+        val CODEC = netPackets.codec<JeiPayload>(
+            { b, v -> b.writeCollection(v.quests) { bb, e -> bb.writeQuest(e) }; b.writeCollection(v.vendors) { bb, e -> bb.writeVendor(e) } },
+            { b -> JeiPayload(b.readList { bb -> bb.readQuest() }, b.readList { bb -> bb.readVendor() }) }
+        )
+    }
+}
+
 object Net {
-    private val READS = setOf("open", "view", "detail", "notify", "watch", "watch_import", "quote")
+    private val READS = setOf("open", "view", "detail", "notify", "watch", "watch_import", "quote", "price_info", "jei")
     private val reads = RateLimit<UUID>(20, 1000L)
+    private val priceInfo = RateLimit<UUID>(4, 1000L)
+    private val jeiLimit = RateLimit<UUID>(1, 5000L)
     private val ORDER_ACTS = setOf("cancel", "cancel_bid", "reprice", "reprice_bid")
     private val lastAct = TickCooldown(0)
     private val lastPrice = HashMap<String, Int>()
@@ -92,12 +150,15 @@ object Net {
         r.playToClient(snapshotChannel.type, snapshotChannel.codec) { s, _ -> ClientHooks.snapshot(s) }
         r.playToClient(PriceDelta.TYPE, PriceDelta.CODEC) { d, _ -> ClientHooks.priceDelta(d) }
         r.playToClient(VariantsPayload.TYPE, VariantsPayload.CODEC) { v, _ -> ClientHooks.variants(v.map) }
+        r.playToClient(PriceInfoPayload.TYPE, PriceInfoPayload.CODEC) { v, _ -> ClientHooks.priceInfo(v) }
+        r.playToClient(JeiPayload.TYPE, JeiPayload.CODEC) { v, _ -> ClientHooks.jei(v) }
+        WatchSync.register(r)
     }
 
     private fun allPrices(): List<PriceEntry> {
         val items = (Market.data.books.keys + Stocks.items()).distinct().filter { Variants.of(it) == null }
         return items.mapNotNull { item ->
-            val price = Matching.anyAsk(item) ?: return@mapNotNull null
+            val price = Matching.anyAsk(item) ?: Stocks.course(item).takeIf { it >= 1.0 }?.let { Math.round(it).coerceAtMost(Int.MAX_VALUE.toLong()).toInt() } ?: return@mapNotNull null
             PriceEntry(item, price, Config.s.lotOf(item))
         }
     }
@@ -132,6 +193,8 @@ object Net {
     fun forget(p: ServerPlayer) {
         lastAct.forget(p.uuid)
         reads.forget(p.uuid)
+        priceInfo.forget(p.uuid)
+        jeiLimit.forget(p.uuid)
         openPlayers.remove(p.uuid)
         Sync.forget(p)
     }
@@ -164,12 +227,16 @@ object Net {
             "watch" -> {
                 val item = Variants.core(a.args.getOrNull(0).orEmpty())
                 if (a.args.getOrNull(1) == "off") Watchlist.remove(p.stringUUID, item) else if (known(item)) Watchlist.add(p.stringUUID, item)
+                WatchSync.send(p)
                 send(p)
             }
             "watch_import" -> {
                 Watchlist.import(p.stringUUID, a.args.getOrNull(0).orEmpty().split(',').map(Variants::core).distinct().filter(::known).take(Watchlist.CAP))
+                WatchSync.send(p)
                 send(p)
             }
+            "price_info" -> a.args.getOrNull(0)?.takeIf { it.length <= 128 && (Variants.of(it) != null || known(it)) && priceInfo.allow(p.uuid) }?.let { PacketDistributor.sendToPlayer(p, Sync.priceInfo(p, it)) }
+            "jei" -> if (jeiLimit.allow(p.uuid)) PacketDistributor.sendToPlayer(p, Sync.jei(p))
             "quote" -> {
                 Sync.quote(p, a.args.getOrNull(0) ?: "", a.args.getOrNull(1) ?: "", a.args.getOrNull(2)?.toIntOrNull() ?: 0, a.args.getOrNull(3)?.toIntOrNull() ?: 0)
                 send(p)

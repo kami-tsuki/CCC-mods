@@ -12,8 +12,9 @@ class Prefs(
     var chartRange: String = "week",
     override var railCollapsed: Boolean = false,
     override var collapsedGroups: MutableSet<String> = mutableSetOf(),
-    var watch: MutableList<String>? = null
-) : NavPrefs
+    var watch: MutableList<String>? = null,
+    var showWorth: Boolean = true
+): NavPrefs
 
 object MarketPrefs {
     private val config = KamiConfig(
@@ -26,7 +27,8 @@ object MarketPrefs {
                     "chartRange" to "Price chart range on the item page: day, week, month or all.",
                     "railCollapsed" to "The sidebar is collapsed to icons.",
                     "collapsedGroups" to "Navigation groups you collapsed.",
-                    "watch" to "Legacy local watchlist, uploaded to the server once and then removed."
+                    "watch" to "Legacy local watchlist, uploaded to the server once and then removed.",
+                    "showWorth" to "Show the market value of your inventory under inventory screens."
                 )
             )
         ),

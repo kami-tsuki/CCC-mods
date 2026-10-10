@@ -9,6 +9,8 @@ import kami.essentials.chat.Talk
 import kami.essentials.client.ClientEssentials
 import kami.essentials.discord.Gate
 import kami.essentials.display.Sidebar
+import kami.essentials.skills.SkillServer
+import kami.essentials.skills.SkillView
 import kami.essentials.vanish.Vanish
 import kami.libs.admin.Subject
 import kami.libs.discord.DiscordPrefs
@@ -34,7 +36,7 @@ private val actChannel = ActPayload.channel(packets, maxArgs = 3, maxArg = 36, w
 private val snapshotChannel = SnapshotPayload.channel(packets, maxBytes = 131072)
 
 @Serializable
-class Snap(val channel: String, val channels: List<String>, val sidebar: Boolean?, val trades: Boolean?, val dmSound: Boolean, val invisible: Boolean?, val discordOn: Boolean = false, val discord: String? = null, val discordPing: Boolean = true, val discordAlerts: Boolean = false, val account: Account? = null, val viewing: String? = null)
+class Snap(val channel: String, val channels: List<String>, val sidebar: Boolean?, val trades: Boolean?, val dmSound: Boolean, val invisible: Boolean?, val discordOn: Boolean = false, val discord: String? = null, val discordPing: Boolean = true, val discordAlerts: Boolean = false, val account: Account? = null, val viewing: String? = null, val skills: SkillView? = null)
 
 object Net {
     private class Pending(var subject: String?, val sets: LinkedHashMap<String, String> = LinkedHashMap())
@@ -43,6 +45,7 @@ object Net {
     private val log = Log.of("essentials")
     private val cooldown = TickCooldown(4)
     private val pending = HashMap<UUID, Pending>()
+    private val subjects = HashMap<UUID, String?>()
 
     val actType get() = actChannel.type
 
@@ -55,16 +58,27 @@ object Net {
         FORGE_BUS.addListener<ServerTickEvent.Post> { tick(it.server) }
     }
 
+    fun push(p: ServerPlayer) {
+        pending.getOrPut(p.uuid) { Pending(subjects[p.uuid]) }
+    }
+
     fun forget(p: ServerPlayer) {
         cooldown.forget(p.uuid)
         pending.remove(p.uuid)
+        subjects.remove(p.uuid)
     }
 
     private fun handle(p: ServerPlayer, a: ActPayload) {
+        if (a.name.startsWith("skill_")) {
+            SkillServer.act(p, a.name, a.args.getOrNull(0).orEmpty())
+            pending.getOrPut(p.uuid) { Pending(subjects[p.uuid]) }
+            return flush(p)
+        }
         val set = a.name == "set"
         val subject = a.args.getOrNull(if (set) 2 else 0)
         val q = pending.getOrPut(p.uuid) { Pending(subject) }
         q.subject = subject
+        subjects[p.uuid] = subject
         val key = a.args.getOrNull(0).orEmpty()
         if (set && (key in q.sets || q.sets.size < MAX_SETS) && runCatching { Subject.requireSelf(p, subject) }.isSuccess) q.sets[key] = a.args.getOrNull(1).orEmpty()
         flush(p)
@@ -107,6 +121,6 @@ object Net {
         !Store[Flag.QUIET_DM, p.uuid],
         Vanish.active(p).takeIf { Perms.has(p, Perms.INVIS) },
         Config.s.discord.enabled, Links.get(p.uuid)?.discordName, !Store[Flag.QUIET_DISCORD, p.uuid], DiscordPrefs.on(p.uuid, DiscordPrefs.MARKET_ALERTS), account(p.server, id),
-        id.toString().takeIf { viewing }
+        id.toString().takeIf { viewing }, SkillServer.view(id)
     )
 }

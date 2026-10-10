@@ -1,10 +1,10 @@
 package kami.claims.research
 
+import kami.libs.compat.Mods
 import kami.libs.mc.ItemSpec
 import kami.libs.mc.RegistryTags
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.server.MinecraftServer
-import net.neoforged.fml.ModList
 
 object ServerFacts {
     fun read(server: MinecraftServer): WorldFacts {
@@ -21,7 +21,7 @@ object ServerFacts {
             BuiltInRegistries.BLOCK.keySet().map { it.toString() },
             { tag, id -> RegistryTags.contains(BuiltInRegistries.ITEM, tag, id) },
             { tag, id -> RegistryTags.contains(BuiltInRegistries.BLOCK, tag, id) },
-            { ModList.get().isLoaded(it) }
+            Mods::loaded
         )
     }
 }

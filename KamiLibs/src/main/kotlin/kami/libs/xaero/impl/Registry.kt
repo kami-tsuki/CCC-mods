@@ -15,8 +15,9 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import org.slf4j.LoggerFactory
 
-private val LOG = org.slf4j.LoggerFactory.getLogger("KamiLibs")
+private val LOG = LoggerFactory.getLogger("kami_libs/xaero")
 
 object Registry {
     val waypoints = CopyOnWriteArrayList<PointSource>()
@@ -39,7 +40,22 @@ object Registry {
     private val revision = AtomicInteger()
 
     @Volatile
+    var toggleList: List<MapToggle> = emptyList()
+        private set
+
+    @Volatile
+    var choiceList: List<MapChoice> = emptyList()
+        private set
+
+    @Volatile
+    var groups: List<String> = emptyList()
+        private set
+
+    @Volatile
     var caveHooked = false
+
+    @Volatile
+    var radarHooked = false
 
     @Volatile
     var temp: MapPoint? = null
@@ -63,18 +79,22 @@ object Registry {
     @Synchronized
     fun putToggle(t: MapToggle) {
         toggleMap = LinkedHashMap(toggleMap).also { it[t.id] = t }
+        toggleList = toggleMap.values.toList()
+        regroup()
         refresh()
     }
 
     @Synchronized
     fun putChoice(c: MapChoice) {
         choiceMap = LinkedHashMap(choiceMap).also { it[c.id] = c }
+        choiceList = choiceMap.values.toList()
+        regroup()
         refresh()
     }
 
-    fun toggles(): List<MapToggle> = toggleMap.values.toList()
-
-    fun choices(): List<MapChoice> = choiceMap.values.toList()
+    private fun regroup() {
+        groups = (toggleList.map { it.group } + choiceList.map { it.group }).distinct()
+    }
 
     private fun warnUnknown(kind: String, id: String) {
         if (unknown.add("$kind:$id")) LOG.warn("Unknown map $kind id '{}'", id)
@@ -123,19 +143,13 @@ object Registry {
     fun take() = dirty.getAndSet(false)
 
     fun fairPlayActive(): Boolean {
-        for (f in fairPlay) if (runCatching(f).getOrDefault(false)) return true
+        for (f in fairPlay) if (runCatching(f).getOrDefault(true)) return true
         return false
     }
 
     fun radarHidden(id: UUID): Boolean {
-        for (f in radar) if (runCatching { f(id) }.getOrDefault(false)) return true
+        for (f in radar) if (runCatching { f(id) }.getOrDefault(true)) return true
         return false
-    }
-
-    @JvmStatic
-    fun caveBlocked(): Boolean {
-        caveHooked = true
-        return fairPlayActive()
     }
 
     fun dimension(): String? = Minecraft.getInstance().level?.dimension()?.location()?.toString()

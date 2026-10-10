@@ -6,6 +6,7 @@ import kami.essentials.chat.Names
 import kami.essentials.chat.Talk
 import kami.essentials.inv.Offline
 import kami.essentials.inv.Views
+import kami.essentials.skills.SkillStats
 import kami.essentials.vanish.Vanish
 import kami.libs.admin.Admin
 import kami.libs.admin.AdminCtx
@@ -42,6 +43,7 @@ object AdminServer {
     private val CONSOLE = setOf("Server", "Rcon")
 
     fun register() {
+        SkillStats.register()
         Admin.view("players.list") { ctx, a -> encode(Page.serializer(PlayerRow.serializer()), list(ctx, a)) }
         Admin.view("players.detail") { ctx, a -> encode(PlayerDetail.serializer(), detail(ctx, target(ctx, a))) }
         Admin.view("players.history") { ctx, a ->

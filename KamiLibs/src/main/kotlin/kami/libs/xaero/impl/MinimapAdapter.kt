@@ -1,5 +1,6 @@
 package kami.libs.xaero.impl
 
+import kami.libs.compat.Refl
 import kami.libs.xaero.PointSource
 import kami.libs.xaero.Tracked
 import net.minecraft.client.Minecraft
@@ -8,13 +9,17 @@ import net.minecraft.core.registries.Registries
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.world.level.Level
 import java.lang.ref.WeakReference
 import java.lang.reflect.Method
 import java.util.Objects
 import java.util.function.Supplier
 
 object MinimapAdapter {
-    val guard = Guard("minimap")
+    private val trackerGuard = Guard("minimap tracker")
+    private val waypointGuard = Guard("minimap waypoints")
+    private val fairGuard = Guard("minimap fair play")
+    private val infoGuard = Guard("minimap info display")
 
     private class Synced(var tp: Any?, var dim: String?, var rev: Int, var sigs: Map<String, Int>)
 
@@ -46,14 +51,12 @@ object MinimapAdapter {
     }
 
     fun tick(force: Boolean) {
-        guard.run {
-            registerTracker()
-            syncWaypoints(force)
-        }
+        trackerGuard.run { registerTracker() }
+        waypointGuard.run { syncWaypoints(force) }
     }
 
     fun forceFairPlay(on: Boolean) {
-        guard.run {
+        fairGuard.run {
             val module = Refl.staticField("xaero.hud.minimap.BuiltInHudModules", "MINIMAP")
             val processor = Refl.call(Refl.call(module, "getCurrentSession"), "getProcessor")
             Refl.call(processor, "setFairPlayOnlyMessageReceived", on)
@@ -76,14 +79,14 @@ object MinimapAdapter {
                 "getX" -> p.x
                 "getY" -> p.y
                 "getZ" -> p.z
-                "getDimension" -> guard.call(null) { key(p.dim) }
+                "getDimension" -> trackerGuard.call(Level.OVERWORLD) { key(p.dim) }
                 else -> null
             }
         }
         val system = Refl.proxy(api.trackerSystem) { name, _ ->
             when (name) {
                 "getReader" -> reader
-                "getTrackedPlayerIterator" -> guard.call(mutableListOf<Tracked>().iterator()) { Registry.tracked.flatMap { it.players() }.toMutableList().iterator() }
+                "getTrackedPlayerIterator" -> trackerGuard.call(mutableListOf<Tracked>().iterator()) { Registry.tracked.flatMap { it.players() }.toMutableList().iterator() }
                 else -> null
             }
         }
@@ -145,7 +148,7 @@ object MinimapAdapter {
         }
     }
 
-    fun display(): Any? = if (displayFailed) null else guard.call(null) {
+    fun display(): Any? = if (displayFailed) null else infoGuard.call(null) {
         shown ?: try {
             build().also { shown = it }
         } catch (e: Throwable) {
@@ -155,7 +158,7 @@ object MinimapAdapter {
     }
 
     private fun build(): Any {
-        val builder = Refl.staticCall("xaero.hud.minimap.info.InfoDisplay", "begin")
+        val builder = Refl.staticCallOn(Refl.cls("xaero.hud.minimap.info.InfoDisplay\$Builder"), "begin")
         fun set(name: String, arg: Any?, param: Class<*>? = null) {
             val m = builder!!.javaClass.methods.firstOrNull { it.name == name && it.parameterCount == 1 && (param?.let { p -> it.parameterTypes[0] == p } ?: (arg == null || it.parameterTypes[0].isInstance(arg))) }
                 ?: throw NoSuchMethodException("InfoDisplay.Builder.$name")
@@ -175,7 +178,7 @@ object MinimapAdapter {
     }
 
     private fun compile(display: Any?, compiler: Any?) {
-        guard.run {
+        infoGuard.run {
             val on = (effective ?: display!!.javaClass.getMethod("getEffectiveState").also { effective = it }).invoke(display)
             if (on != true) return@run
             val mc = Minecraft.getInstance()

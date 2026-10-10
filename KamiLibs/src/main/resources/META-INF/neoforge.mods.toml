@@ -32,3 +32,17 @@ side = "BOTH"
 
 [[mixins]]
 config = "${mod_id}.mixins.json"
+
+[[dependencies.${mod_id}]]
+modId = "jei"
+type = "optional"
+versionRange = "[19,)"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.${mod_id}]]
+modId = "jade"
+type = "optional"
+versionRange = "[15,)"
+ordering = "NONE"
+side = "BOTH"

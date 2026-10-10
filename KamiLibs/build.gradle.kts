@@ -15,6 +15,9 @@ dependencies {
     compileOnly("maven.modrinth:create:${property("create_version")}")
     compileOnly("maven.modrinth:numismatics:${property("numismatics_version")}")
     compileOnly("maven.modrinth:xaeros-world-map:${property("xaero_worldmap_version")}")
+    compileOnly("mezz.jei:jei-1.21.1-common-api:${property("jei_version")}")
+    compileOnly("mezz.jei:jei-1.21.1-neoforge-api:${property("jei_version")}")
+    compileOnly("maven.modrinth:jade:${property("jade_version")}")
     shade("net.dv8tion:JDA:${property("jda_version")}") {
         exclude(group = "club.minnced", module = "opus-java")
         exclude(group = "com.google.crypto.tink")

@@ -3,7 +3,7 @@
   "minVersion": "0.8",
   "package": "kami.essentials.mixin",
   "compatibilityLevel": "JAVA_21",
-  "mixins": ["ChunkMapAccess", "CommandSourceMixin", "ContainerOpenersMixin", "LivingEntityMixin", "ListCommandMixin", "MinecraftServerMixin", "PacketListenerMixin", "PlayerListMixin", "PlayerMixin", "ServerLevelMixin", "ServerPlayerMixin", "StoredUserEntryAccess", "StoredUserListMixin", "TrackedEntityAccess"],
+  "mixins": ["ArmorSlotMixin", "ChunkMapAccess", "CommandSourceMixin", "ContainerOpenersMixin", "ItemStackMixin", "LivingEntityMixin", "ListCommandMixin", "MinecraftServerMixin", "PacketListenerMixin", "PlayerListMixin", "PlayerMixin", "RavagerMixin", "ServerLevelMixin", "ServerPlayerMixin", "StoredUserEntryAccess", "StoredUserListMixin", "TrackedEntityAccess"],
   "client": [],
   "injectors": { "defaultRequire": 0 }
 }

@@ -137,5 +137,10 @@
   "kami_geology.maps.global.tip": "Loads the ore density around you from the server for admins.",
   "kami_geology.maps.tip": "%1$s · %2$s%% density",
   "kami_geology.maps.last": "Last prospector find",
-  "kami_geology.maps.deposit": "Deposit at %1$s, %2$s"
+  "kami_geology.maps.deposit": "Deposit at %1$s, %2$s",
+  "kami_geology.jade.signal": "%s · %s signal",
+  "kami_geology.jade.signal.weak": "weak",
+  "kami_geology.jade.signal.medium": "medium",
+  "kami_geology.jade.signal.strong": "strong",
+  "config.jade.plugin_kami_geology.signal": "Ore signal"
 }

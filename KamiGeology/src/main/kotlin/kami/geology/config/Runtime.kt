@@ -2,6 +2,7 @@ package kami.geology.config
 
 import kami.geology.KamiGeology
 import kami.geology.util.Hash
+import kami.libs.compat.Mods
 import kami.libs.mc.Registry
 import net.minecraft.core.Holder
 import net.minecraft.core.registries.Registries
@@ -14,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.max
 
 object Blocks {
-    private val registry = Registry(KamiGeology.LOG, Compat::loaded)
+    private val registry = Registry(KamiGeology.LOG) { id -> ResourceLocation.tryParse(id)?.let { Mods.loaded(it.namespace) } == true }
 
     fun find(id: String): Block? = registry.findBlock(id)
     fun require(id: String, context: String): Block = registry.requireBlock(id, context)

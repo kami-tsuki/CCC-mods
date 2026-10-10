@@ -1,8 +1,10 @@
 package kami.essentials
 
 import kami.essentials.display.Sidebar
+import kami.essentials.skills.SkillServer
 import kami.libs.chat.Theme
 import kami.libs.config.ConfigModule
+import kami.libs.config.Configs
 import kami.libs.config.Section
 import kotlinx.serialization.Serializable
 
@@ -127,6 +129,26 @@ data class DiscordSettings(
     val verify: DiscordVerify = DiscordVerify(),
 )
 
+private val DEFAULT_SKILL_XP = mapOf(
+    "ore" to 6.0, "stone" to 0.2, "log" to 1.2, "crop" to 1.0, "breed" to 2.0, "fish" to 4.0, "kill" to 0.4, "craft" to 8.0,
+    "deposit" to 6.0, "trade" to 9.0, "deal" to 3.0, "smelt" to 3.0
+)
+
+@Serializable
+data class SkillSettings(
+    val enabled: Boolean = true,
+    val maxLevel: Int = 150,
+    val classBonus: Double = 0.10,
+    val gateScale: Double = 0.395,
+    val gatePower: Double = 1.5,
+    val playtimeXpPerHour: Double = 300.0,
+    val xpBase: Double = 40.0,
+    val xpScale: Double = 530.0,
+    val xpPower: Double = 0.5,
+    val hourlyFull: Int = 120,
+    val xp: Map<String, Double> = DEFAULT_SKILL_XP,
+)
+
 @Serializable
 data class Settings(
     val tradeDistance: Int = 16,
@@ -147,6 +169,7 @@ data class Settings(
     val channels: ChatChannelStyle = ChatChannelStyle(),
     val discord: DiscordSettings = DiscordSettings(),
     val motd: MotdSettings = MotdSettings(),
+    val skills: SkillSettings = SkillSettings(),
 )
 
 private val tokenAlias = Regex("""[a-z0-9_:-]{1,24}""")
@@ -191,6 +214,18 @@ private fun Settings.sane() = copy(
     ),
     inlineTokens = inlineTokens.sane(),
     channels = channels.sane(),
+    skills = skills.copy(
+        maxLevel = skills.maxLevel.coerceIn(10, 1000),
+        classBonus = skills.classBonus.coerceIn(0.0, 1.0),
+        gateScale = skills.gateScale.coerceIn(0.0, 10.0),
+        gatePower = skills.gatePower.coerceIn(1.0, 3.0),
+        playtimeXpPerHour = skills.playtimeXpPerHour.coerceIn(0.0, 10_000.0),
+        xpBase = skills.xpBase.coerceAtLeast(1.0),
+        xpScale = skills.xpScale.coerceAtLeast(0.0),
+        xpPower = skills.xpPower.coerceIn(0.5, 3.0),
+        hourlyFull = skills.hourlyFull.coerceAtLeast(1),
+        xp = (DEFAULT_SKILL_XP + skills.xp).mapValues { it.value.coerceIn(0.0, 1000.0) }
+    ),
     discord = discord.copy(
         chat = discord.chat.copy(maxLength = discord.chat.maxLength.coerceIn(32, 1024)),
         console = discord.console.copy(flushSeconds = discord.console.flushSeconds.coerceIn(1, 30)),
@@ -298,6 +333,23 @@ private val sections = listOf(
         )
     ),
     Section(
+        "skills.json", "Personal skill tree.",
+        mapOf(
+            "skills" to "Personal levels, XP and the skill tree.",
+            "skills.enabled" to "Gain skill XP and use skill effects.",
+            "skills.maxLevel" to "Highest personal level (10-1000). Points are level + level / 10.",
+            "skills.classBonus" to "Extra XP from sources of the chosen class (0.1 = 10%).",
+            "skills.gateScale" to "Active play hours needed for level L: gateScale * L ^ gatePower (0.395 and 1.5 give about 100 h for level 40 and 726 h for level 150).",
+            "skills.gatePower" to "Exponent of the playtime gate (1-3).",
+            "skills.playtimeXpPerHour" to "XP per active hour, added directly to every player (no class needed, no fades, no class bonus). Active means an action or a look change within the last minute; walking alone does not count.",
+            "skills.xpBase" to "XP from level L to L+1: xpBase + xpScale * L ^ xpPower.",
+            "skills.xpScale" to "Scale of the XP curve (530 with power 0.5 keeps a player at 900 XP per hour on the playtime gate).",
+            "skills.xpPower" to "Exponent of the XP curve (0.5-3).",
+            "skills.hourlyFull" to "Full XP actions per source and chunk per hour; then 50%, 10% and none. A total of four times this per source applies as well.",
+            "skills.xp" to "XP per source: ore, stone, log, crop, breed, fish, kill (per max health), craft (first craft of an item), deposit (research items, log scale), smelt (per ingot taken from a furnace), trade (per log10 of the value, other countries at peace), deal (per log10 of the value, any other player order or auction). Missing sources fall back to the defaults."
+        )
+    ),
+    Section(
         "inline-chat/general.json", "Inline chat tokens.",
         mapOf(
             "inlineGeneral" to "Global inline chat behavior.",
@@ -349,4 +401,8 @@ private val sections = listOf(
     )
 )
 
-object Config : ConfigModule<Settings>("essentials", Settings.serializer(), Settings(), sections, sane = { it.sane() })
+object Config : ConfigModule<Settings>("essentials", Settings.serializer(), Settings(), sections, sane = { it.sane() }) {
+    init {
+        Configs.onReload("essentials") { SkillServer.reapply(); null }
+    }
+}

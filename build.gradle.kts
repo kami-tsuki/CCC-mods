@@ -72,6 +72,12 @@ subprojects {
         maven("https://api.modrinth.com/maven") {
             content { includeGroup("maven.modrinth") }
         }
+        maven("https://maven.blamejared.com") {
+            content { includeGroup("mezz.jei") }
+        }
+        maven("https://maven.createmod.net") {
+            content { includeGroup("net.createmod.ponder") }
+        }
     }
 
     dependencies {

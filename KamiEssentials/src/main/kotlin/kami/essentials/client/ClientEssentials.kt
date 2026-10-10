@@ -18,6 +18,7 @@ import kami.libs.ui.app.Personal
 import kami.libs.ui.app.Route
 import kami.libs.ui.style.Icons
 import kami.libs.ui.text.tr
+import kami.essentials.skills.SkillClient
 import net.minecraft.client.Minecraft
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent
 import net.neoforged.neoforge.client.event.ClientTickEvent
@@ -32,6 +33,7 @@ object ClientEssentials {
     fun init() {
         Modules.register(AppModule(Personal.MODULE, "kami_essentials.module", Icons.PERSON, 0) { open() })
         Personal.register(bankSection)
+        Personal.register(skillsSection)
         Personal.opener = { open(it) }
         Modules.register(AppModule(AdminSections.MODULE, "kami_essentials.admin.module", Icons.SHIELD, 30, visible = { Admin.level >= AdminPerms.Level.VIEW }) { AdminApp.open() })
         AdminSections.opener = { AdminApp.open(it) }
@@ -41,8 +43,10 @@ object ClientEssentials {
             prime()
             MotdRefresh.tick(Minecraft.getInstance())
         }
+        BonusClient.register()
         FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> {
             primed = false
+            SkillClient.update(null)
             PersonalApp.instance.snap = null
             wait.done()
             Personal.account = null
@@ -74,6 +78,7 @@ object ClientEssentials {
 
     fun receive(s: SnapshotPayload) {
         val snap = s.decode<Snap>() ?: return
+        if (snap.viewing == null || snap.viewing == Minecraft.getInstance().player?.stringUUID) SkillClient.update(snap.skills)
         if (snap.viewing.orEmpty() != Personal.subjectArg) {
             if (Personal.viewing && snap.viewing == Minecraft.getInstance().player?.stringUUID) {
                 Personal.subject = null

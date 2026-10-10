@@ -18,7 +18,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar
 import net.neoforged.neoforge.server.ServerLifecycleHooks
 
 @Serializable
-class GuideOre(
+data class GuideOre(
     val id: String,
     val blocks: List<String>,
     val shape: String? = null,

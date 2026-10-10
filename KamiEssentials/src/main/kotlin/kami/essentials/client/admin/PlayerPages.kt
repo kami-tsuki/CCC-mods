@@ -120,6 +120,7 @@ internal class PlayerPage(private val app: AdminApp) : Page() {
     private var money = JournalFilter("player-money", false)
     private var stats: PlayerStats? = null
     private var staff: PlayerStats? = null
+    private var skills: PlayerSkills? = null
     private var discord: PlayerDiscord? = null
     private val journal = Paged("journal.query", Journal.Entry.serializer()) { listOf("p:$uuid") + money.args() }
     private val history = Paged("players.history", Audit.Entry.serializer()) { listOfNotNull(uuid) }
@@ -140,6 +141,7 @@ internal class PlayerPage(private val app: AdminApp) : Page() {
             money = JournalFilter("player-money", false)
             stats = null
             staff = null
+            skills = null
             discord = null
         }
     }
@@ -147,6 +149,8 @@ internal class PlayerPage(private val app: AdminApp) : Page() {
     private fun statsTab(ui: Ui, r: Rect, d: PlayerDetail) = (stats ?: PlayerStats(d.row.uuid).also { stats = it }).draw(ui, r)
 
     private fun staffTab(ui: Ui, r: Rect, d: PlayerDetail) = (staff ?: PlayerStats(d.row.uuid, Staff.PREFIX).also { staff = it }).draw(ui, r)
+
+    private fun skillsTab(ui: Ui, r: Rect, d: PlayerDetail) = (skills ?: PlayerSkills(d.row.uuid).also { skills = it }).draw(ui, r)
 
     private fun discordTab(ui: Ui, r: Rect, d: PlayerDetail) = (discord ?: PlayerDiscord(app, d.row.uuid).also { discord = it }).draw(ui, r, d, lock(d))
 
@@ -165,6 +169,7 @@ internal class PlayerPage(private val app: AdminApp) : Page() {
         Tab("moderation", TabItem(tr("kami_essentials.admin.nav.moderation"), Icons.BAN), ::moderation),
         Tab("stats", TabItem(tr("kami_libs.common.statistics"), Icons.STATS), ::statsTab),
         Tab("staff", TabItem(tr("kami_essentials.admin.tab.staff"), Icons.SHIELD), ::staffTab),
+        Tab("skills", TabItem(tr("kami_essentials.admin.skills"), Icons.TREE), ::skillsTab),
         Tab("discord", TabItem(tr("kami_essentials.nav.discord"), Icons.CHAIN), ::discordTab),
         Tab("position", TabItem(tr("kami_essentials.admin.tab.position"), Icons.LOCATE), ::position),
         Tab("inventory", TabItem(tr("kami_essentials.inline.inventory"), Icons.CHEST), ::inventory),

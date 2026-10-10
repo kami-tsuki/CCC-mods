@@ -2,7 +2,7 @@ package kami.geology.client
 
 import com.mojang.blaze3d.platform.NativeImage
 import kami.geology.KamiGeology
-import kami.geology.client.xaero.ScanStore
+import kami.geology.client.compat.xaero.ScanStore
 import kami.geology.command.GeoText
 import kami.geology.client.HeatmapDraw.blend
 import kami.geology.map.Heatmap

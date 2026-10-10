@@ -1,6 +1,6 @@
 package kami.libs.mixin;
 
-import kami.libs.xaero.impl.MinimapAdapter;
+import kami.libs.xaero.impl.MixinHooks;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
@@ -15,7 +15,11 @@ public abstract class XaeroInfoDisplaysMixin {
     @SuppressWarnings("unchecked")
     @Inject(method = "forEach", at = @At("TAIL"), require = 0, remap = false)
     private static void kami$addDisplay(Consumer<?> consumer, CallbackInfo ci) {
-        Object display = MinimapAdapter.INSTANCE.display();
-        if (display != null) ((Consumer<Object>) consumer).accept(display);
+        try {
+            Object display = MixinHooks.display();
+            if (display != null) ((Consumer<Object>) consumer).accept(display);
+        } catch (Throwable t) {
+            MixinHooks.fail(t);
+        }
     }
 }

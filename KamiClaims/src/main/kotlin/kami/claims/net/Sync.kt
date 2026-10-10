@@ -245,7 +245,17 @@ object Sync {
         )
     }
 
-    private fun detail(p: ServerPlayer, k: Key): Detail {
+    internal fun offerPrice(p: ServerPlayer, k: Key): Long? {
+        val cl = Realm.index[k]?.takeIf { it.plot && !Housing.tenanted(it) } ?: return null
+        val c = Realm.data.countries[cl.country] ?: return null
+        val me = p.stringUUID
+        val mine = Realm.of(me)
+        if (!p.hasPermissions(Config.s.visibility.opLevel) && mine != null && Wars.enemies(mine.id, c.id)) return null
+        if (Housing.blocker(c, cl, me) != null) return null
+        return Housing.category(c, me)?.let { Housing.rent(c, cl, it) }?.toLong()?.takeIf { it > 0 }
+    }
+
+    internal fun detail(p: ServerPlayer, k: Key): Detail {
         val me = p.stringUUID
         val mine = Realm.of(me)
         val cl = Realm.index[k]

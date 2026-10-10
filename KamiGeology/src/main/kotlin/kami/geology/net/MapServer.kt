@@ -14,6 +14,7 @@ import kami.geology.world.WorldContext
 import kami.geology.world.Worlds
 import kami.libs.claims.ClaimsApi
 import kami.libs.claims.FeatureIds
+import kami.libs.skills.Skills
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
 import net.neoforged.neoforge.network.PacketDistributor
@@ -51,7 +52,10 @@ object MapServer {
         val world = Worlds.of(level) ?: return
         val chunkX = Math.floorDiv(player.blockX, 16)
         val chunkZ = Math.floorDiv(player.blockZ, 16)
-        val region = Prospector.region(world.settings.general, tier, player.blockX, player.blockZ, chunkX, chunkZ)
+        val region = Prospector.region(world.settings.general, tier, player.blockX, player.blockZ, chunkX, chunkZ).let { r ->
+            val grow = (Skills.value(player.uuid, Skills.SCAN_RANGE) * r.w / 2).toInt()
+            if (grow <= 0) r else Prospector.Region(r.x0 - grow, r.z0 - grow, r.w + grow * 2, r.h + grow * 2)
+        }
         scans[player.uuid] = ScanLock(level.dimension().location(), region.x0, region.z0, region.w, region.h, System.currentTimeMillis() + SCAN_LOCK_MS)
         val (ores, provinces) = legend(world)
         PacketDistributor.sendToPlayer(

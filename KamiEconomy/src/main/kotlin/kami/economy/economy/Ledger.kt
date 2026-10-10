@@ -14,6 +14,8 @@ import kami.libs.db.Db
 import kami.libs.db.Session
 import kami.libs.stats.Stats
 import kami.libs.claims.ClaimsApi
+import kami.libs.skills.SkillClass
+import kami.libs.skills.Skills
 import kami.libs.economy.CleanStep
 import kami.libs.economy.Flow
 import kami.libs.economy.Statement
@@ -28,6 +30,7 @@ import kotlinx.serialization.Serializable
 import net.minecraft.core.HolderLookup
 import net.minecraft.world.item.ItemStack
 import java.util.UUID
+import kotlin.math.log10
 
 enum class IntentType { SELL, BUY, CANCEL, REPRICE, AUCTION_LIST, AUCTION_BID, AUCTION_SETTLE, AUCTION_CANCEL, BID, BID_CANCEL, SELL_NOW, REPRICE_BID }
 enum class LedgerState { PENDING, DEBITED, BOOK_INSERTED, PAID, VOID }
@@ -377,12 +380,24 @@ object Ledger {
         if (spurs > 0 && payer.toUuidOrNull() != null) Stats.add("market.tariff", "p:$payer", country, spurs)
     }
 
-    private fun traded(player: String, counterparty: String, spurs: Long, item: String, qty: Int, sell: Boolean, xp: Boolean = true) {
+    private fun traded(player: String, counterparty: String, spurs: Long, item: String, qty: Int, sell: Boolean, xp: Boolean = true, orders: Boolean = true) {
         stat(player, item, qty, spurs, sell)
-        if (!xp || spurs <= 0 || qty <= 0 || !earnsXp(player, counterparty)) return
+        if (!xp || spurs <= 0 || qty <= 0) return
+        skillXp(player, counterparty, spurs, orders)
+        if (!earnsXp(player, counterparty)) return
         val country = Trade.country(player) ?: return
         KamiProgress.post(country, "trade", item, qty.toLong())
         KamiProgress.post(country, "trade_value", item, spurs)
+    }
+
+    private fun skillXp(player: String, counterparty: String, spurs: Long, orders: Boolean) {
+        val id = player.toUuidOrNull() ?: return
+        if (counterparty == player || counterparty.toUuidOrNull() == null) return
+        val mine = Trade.country(player)
+        val theirs = Trade.country(counterparty)
+        val foreign = mine != null && theirs != null && ClaimsApi.neutralForeign(mine, theirs)
+        if (!foreign && !orders) return
+        Skills.grant(id, SkillClass.TRADER, if (foreign) "trade" else "deal", log10(spurs.toDouble()), if (foreign) "trade:$counterparty" else "deal")
     }
 
     private fun tradedFills(actor: String, item: String, fills: List<LedgerFill>, actorSells: Boolean, washedOut: Set<Int> = emptySet(), actorSpurs: (LedgerFill) -> Long) {
@@ -828,7 +843,8 @@ object Ledger {
 
     private fun settleIntent(a: Auction, buyer: String, price: Int): Intent {
         val tariff = CleanStep.charge(price.toLong(), Trade.terms(buyer, a.seller).tariffPct)
-        val net = (price - CleanStep.bps(price.toLong(), Config.s.auctionFeeBps) - tariff).coerceAtLeast(0)
+        val fee = (Config.s.auctionFeeBps * (1.0 - (a.seller.toUuidOrNull()?.let { Skills.value(it, Skills.AUCTION_FEE) } ?: 0.0))).toInt()
+        val net = (price - CleanStep.bps(price.toLong(), fee) - tariff).coerceAtLeast(0)
         return Intent(Market.nextId(), IntentType.AUCTION_SETTLE, LedgerState.PENDING, actor = buyer, seller = a.seller, auctionId = a.id, unitPrice = price, netSpurs = net, tariff = tariff, stackData = a.stackData)
     }
 
@@ -848,8 +864,8 @@ object Ledger {
         }
         val item = StackCodec.itemId(current.stackData)
         val count = StackCodec.count(current.stackData)
-        traded(current.actor, current.seller, current.unitPrice.toLong(), item, count, false)
-        traded(current.seller, current.actor, current.netSpurs, item, count, true)
+        traded(current.actor, current.seller, current.unitPrice.toLong(), item, count, false, orders = false)
+        traded(current.seller, current.actor, current.netSpurs, item, count, true, orders = false)
         crossTrade(Trade.country(current.seller), Trade.country(current.actor), current.unitPrice.toLong())
         if (earnsXp(current.seller, current.actor)) Trade.country(current.seller)?.let { KamiProgress.post(it, "auction_sold", item, count.toLong()) }
     }

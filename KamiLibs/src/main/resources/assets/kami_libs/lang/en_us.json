@@ -325,5 +325,14 @@
   "kami_libs.maps.xaero": "Maps (Xaero)",
   "kami_libs.maps.detected": "Detected: %s",
   "kami_libs.maps.none": "No Xaero map mod detected",
-  "kami_libs.maps.waypoint": "Set waypoint"
+  "kami_libs.maps.waypoint": "Set waypoint",
+  "kami_libs.jei.profit": "Inputs %s → Output %s",
+  "kami_libs.skill.class.researcher": "Researcher",
+  "kami_libs.skill.class.trader": "Trader",
+  "kami_libs.skill.class.farmer": "Farmer",
+  "kami_libs.skill.class.fisher": "Fisher",
+  "kami_libs.skill.class.lumber": "Lumberjack",
+  "kami_libs.skill.class.miner": "Miner",
+  "kami_libs.skill.class.soldier": "Soldier",
+  "kami_libs.skill.class.worker": "Worker"
 }

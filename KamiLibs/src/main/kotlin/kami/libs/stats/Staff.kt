@@ -14,7 +14,7 @@ object Staff {
     val hidden = CopyOnWriteArrayList<(ServerPlayer) -> Boolean>()
     private val modes = ConcurrentHashMap.newKeySet<String>()
     private val until = ConcurrentHashMap<String, Long>()
-    private val own = setOf("staff", "server", "discord", "money")
+    private val own = setOf("staff", "server", "discord", "money", "skill")
     private val kept = setOf("session.login", "session.logout", "market.watch")
 
     fun active(subject: String) = subject in modes || (until[subject] ?: 0L) > System.currentTimeMillis()
