@@ -313,22 +313,6 @@
         },
         {
           "type": "output",
-          "id": "croptopia:cooking_pot"
-        },
-        {
-          "type": "output",
-          "id": "croptopia:food_press"
-        },
-        {
-          "type": "output",
-          "id": "croptopia:frying_pan"
-        },
-        {
-          "type": "output",
-          "id": "croptopia:mortar_and_pestle"
-        },
-        {
-          "type": "output",
           "id": "vanilladelight:modular_stove"
         },
         {
@@ -374,10 +358,6 @@
         {
           "type": "output",
           "id": "farmersdelight:iron_knife"
-        },
-        {
-          "type": "output",
-          "id": "croptopia:knife"
         },
         {
           "type": "output",
@@ -5646,7 +5626,7 @@
       "unlocks": [
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/brass_fluid_valve"
+          "id": "tfmg:brass_fluid_valve"
         },
         {
           "type": "recipe",
@@ -5654,15 +5634,15 @@
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/brass_mechanical_pump"
+          "id": "tfmg:brass_mechanical_pump"
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/brass_pipe"
+          "id": "tfmg:brass_pipe"
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/brass_pipe_vertical"
+          "id": "tfmg:brass_pipe_vertical"
         },
         {
           "type": "recipe",
@@ -5712,11 +5692,11 @@
       "unlocks": [
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/cast_iron_pipe*"
+          "id": "tfmg:cast_iron_pipe*"
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/cast_iron_mechanical_pump"
+          "id": "tfmg:cast_iron_mechanical_pump"
         },
         {
           "type": "recipe",
@@ -5724,7 +5704,7 @@
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/cast_iron_fluid_valve"
+          "id": "tfmg:cast_iron_fluid_valve"
         }
       ]
     },
@@ -5842,7 +5822,7 @@
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/steel_pipe*"
+          "id": "tfmg:steel_pipe*"
         },
         {
           "type": "recipe",
@@ -5850,11 +5830,11 @@
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/steel_mechanical_pump"
+          "id": "tfmg:steel_mechanical_pump"
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/steel_fluid_valve"
+          "id": "tfmg:steel_fluid_valve"
         },
         {
           "type": "output",
@@ -6327,6 +6307,18 @@
           "id": "smog:coal_from_soot"
         },
         {
+          "type": "recipe",
+          "id": "smog:exhaust_duct"
+        },
+        {
+          "type": "block",
+          "id": "smog:exhaust_duct"
+        },
+        {
+          "type": "output",
+          "id": "smog:exhaust_duct"
+        },
+        {
           "type": "block",
           "id": "smog:flue"
         },
@@ -6341,6 +6333,120 @@
         {
           "type": "output",
           "id": "smog:air_scrubber"
+        }
+      ]
+    },
+    {
+      "id": "smog_oil_burner",
+      "category": "processing",
+      "icon": "smog:oil_burner",
+      "level": 14,
+      "cost": 1800,
+      "time": "1h10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "smog_control"
+        },
+        {
+          "type": "node",
+          "id": "blaze_burner"
+        },
+        {
+          "type": "node",
+          "id": "copper_casing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:fluid_pipe",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "smog:oil_burner"
+        },
+        {
+          "type": "recipe",
+          "id": "smog:charcoal_by_coking"
+        },
+        {
+          "type": "recipe",
+          "id": "smog:refining_waste_oil"
+        },
+        {
+          "type": "block",
+          "id": "smog:oil_burner"
+        },
+        {
+          "type": "output",
+          "id": "smog:oil_burner"
+        }
+      ]
+    },
+    {
+      "id": "smog_wastewater",
+      "category": "processing",
+      "icon": "smog:sludge_cake",
+      "level": 18,
+      "cost": 2800,
+      "time": "1h45m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "smog_control"
+        },
+        {
+          "type": "node",
+          "id": "mixer"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "minecraft:charcoal",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "kami_js:smog/*"
+        },
+        {
+          "type": "recipe",
+          "id": "smog:settling_wastewater"
+        },
+        {
+          "type": "recipe",
+          "id": "smog:filtering_clarified_water"
+        },
+        {
+          "type": "recipe",
+          "id": "smog:neutralizing_acidic_runoff"
+        },
+        {
+          "type": "recipe",
+          "id": "smog:dewatering_sludge"
+        },
+        {
+          "type": "recipe",
+          "id": "smog:crushing_sludge_cake"
+        },
+        {
+          "type": "recipe",
+          "id": "smog:filter_cartridge_basin_washing"
+        },
+        {
+          "type": "recipe",
+          "id": "smog:brick_from_sludge_cake"
+        },
+        {
+          "type": "recipe",
+          "id": "smog:gray_concrete_powder_from_industrial_dust"
         }
       ]
     },
@@ -6464,6 +6570,34 @@
         {
           "type": "recipe",
           "id": "smog:aerometer"
+        },
+        {
+          "type": "recipe",
+          "id": "smog:brass_filter_cartridge_basin_washing"
+        },
+        {
+          "type": "recipe",
+          "id": "smog:electrostatic_precipitator"
+        },
+        {
+          "type": "recipe",
+          "id": "smog:smog_sensor"
+        },
+        {
+          "type": "block",
+          "id": "smog:electrostatic_precipitator"
+        },
+        {
+          "type": "output",
+          "id": "smog:electrostatic_precipitator"
+        },
+        {
+          "type": "block",
+          "id": "smog:smog_sensor"
+        },
+        {
+          "type": "output",
+          "id": "smog:smog_sensor"
         }
       ]
     },
@@ -7493,15 +7627,15 @@
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/steel_flywheel"
+          "id": "tfmg:steel_flywheel"
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/lead_flywheel"
+          "id": "tfmg:lead_flywheel"
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/nickel_flywheel"
+          "id": "tfmg:nickel_flywheel"
         }
       ]
     },
@@ -7969,6 +8103,10 @@
         {
           "type": "recipe",
           "id": "smog:precision_filter_cartridge_washing"
+        },
+        {
+          "type": "recipe",
+          "id": "smog:precision_filter_cartridge_basin_washing"
         }
       ]
     },
@@ -8913,15 +9051,15 @@
       "unlocks": [
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/aluminum_cogwheel"
+          "id": "tfmg:aluminum_cogwheel"
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/large_aluminum_cogwheel"
+          "id": "tfmg:large_aluminum_cogwheel"
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/aluminum_flywheel"
+          "id": "tfmg:aluminum_flywheel"
         },
         {
           "type": "recipe",
@@ -8976,7 +9114,7 @@
       "unlocks": [
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/aluminum_pipe*"
+          "id": "tfmg:aluminum_pipe*"
         },
         {
           "type": "recipe",
@@ -8984,11 +9122,11 @@
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/aluminum_fluid_valve"
+          "id": "tfmg:aluminum_fluid_valve"
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/aluminum_mechanical_pump"
+          "id": "tfmg:aluminum_mechanical_pump"
         },
         {
           "type": "recipe",
@@ -9159,15 +9297,15 @@
       "unlocks": [
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/plastic_pipe*"
+          "id": "tfmg:plastic_pipe*"
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/plastic_fluid_valve"
+          "id": "tfmg:plastic_fluid_valve"
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/plastic_mechanical_pump"
+          "id": "tfmg:plastic_mechanical_pump"
         },
         {
           "type": "recipe",
@@ -9532,7 +9670,7 @@
     {
       "id": "tfmg_components",
       "category": "electronics",
-      "icon": "tfmg:transistor_item",
+      "icon": "tfmg:transistor",
       "level": 52,
       "cost": 23100,
       "time": "9h14m",
@@ -10022,7 +10160,7 @@
         },
         {
           "type": "recipe",
-          "id": "chemica:compacting/seed_oil"
+          "id": "chemica:compacting/seeds"
         },
         {
           "type": "recipe",
@@ -10153,7 +10291,7 @@
       "tasks": [
         {
           "type": "deposit",
-          "item": "tfmg:transistor_item",
+          "item": "tfmg:transistor",
           "count": 8
         },
         {
@@ -10489,10 +10627,10 @@
     {
       "id": "create_radar",
       "category": "logistics",
-      "icon": "create_radar:radar_bearing",
-      "level": 65,
-      "cost": 27000,
-      "time": "9h40m",
+      "icon": "create_radar:monitor",
+      "level": 62,
+      "cost": 26100,
+      "time": "9h34m",
       "requires": [
         {
           "type": "node",
@@ -10533,11 +10671,291 @@
       "unlocks": [
         {
           "type": "recipe",
-          "id": "create_radar:crafting/*"
+          "id": "create_radar:crafting/binoculars"
         },
         {
           "type": "recipe",
-          "id": "create_radar:cutting/*"
+          "id": "create_radar:crafting/radar_filter_item"
+        },
+        {
+          "type": "recipe",
+          "id": "create_radar:crafting/ident_filter_item"
+        },
+        {
+          "type": "recipe",
+          "id": "create_radar:crafting/target_filter_item"
+        },
+        {
+          "type": "recipe",
+          "id": "create_radar:crafting/radar_safe_zone_designator"
+        },
+        {
+          "type": "recipe",
+          "id": "create_radar:crafting/radar_warning_reciever"
+        },
+        {
+          "type": "recipe",
+          "id": "create_radar:crafting/monitor"
+        },
+        {
+          "type": "recipe",
+          "id": "create_radar:crafting/radar_receiver"
+        },
+        {
+          "type": "recipe",
+          "id": "create_radar:cutting/radar_dish"
+        },
+        {
+          "type": "recipe",
+          "id": "create_radar:cutting/radar_plate"
+        },
+        {
+          "type": "block",
+          "id": "create_radar:monitor"
+        },
+        {
+          "type": "output",
+          "id": "create_radar:monitor"
+        }
+      ]
+    },
+    {
+      "id": "radar_scanning",
+      "category": "logistics",
+      "icon": "create_radar:radar_bearing",
+      "level": 68,
+      "cost": 27900,
+      "time": "9h46m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "create_radar"
+        },
+        {
+          "type": "node",
+          "id": "tfmg_electronics"
+        },
+        {
+          "type": "node",
+          "id": "steel_mechanism"
+        },
+        {
+          "type": "node",
+          "id": "aluminum_kinetics"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:transistor",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_plate",
+          "count": 12
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "create_radar:crafting/radar_bearing"
+        },
+        {
+          "type": "recipe",
+          "id": "create_radar:crafting/plane_radar"
+        },
+        {
+          "type": "recipe",
+          "id": "create_radar:crafting/sky_radar_mount"
+        },
+        {
+          "type": "recipe",
+          "id": "create_radar:crafting/sonar_bearing"
+        },
+        {
+          "type": "recipe",
+          "id": "create_radar:crafting/sonar_sensor"
+        },
+        {
+          "type": "block",
+          "id": "create_radar:radar_bearing"
+        },
+        {
+          "type": "output",
+          "id": "create_radar:radar_bearing"
+        },
+        {
+          "type": "block",
+          "id": "create_radar:plane_radar"
+        },
+        {
+          "type": "output",
+          "id": "create_radar:plane_radar"
+        },
+        {
+          "type": "block",
+          "id": "create_radar:sky_radar"
+        },
+        {
+          "type": "output",
+          "id": "create_radar:sky_radar"
+        },
+        {
+          "type": "block",
+          "id": "create_radar:sonar_bearing"
+        },
+        {
+          "type": "output",
+          "id": "create_radar:sonar_bearing"
+        },
+        {
+          "type": "block",
+          "id": "create_radar:sonar_sensor"
+        },
+        {
+          "type": "output",
+          "id": "create_radar:sonar_sensor"
+        }
+      ]
+    },
+    {
+      "id": "radar_networking",
+      "category": "logistics",
+      "icon": "create_radar:data_link",
+      "level": 72,
+      "cost": 29100,
+      "time": "9h54m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "radar_scanning"
+        },
+        {
+          "type": "node",
+          "id": "transformers"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:capacitor",
+          "count": 12
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:circuit_board",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "create_radar:crafting/radar_jammer"
+        },
+        {
+          "type": "recipe",
+          "id": "create_radar:crafting/identification_transponder"
+        },
+        {
+          "type": "recipe",
+          "id": "create_radar:crafting/network_filterer"
+        },
+        {
+          "type": "recipe",
+          "id": "create_radar:crafting/data_link"
+        },
+        {
+          "type": "block",
+          "id": "create_radar:directional_jammer"
+        },
+        {
+          "type": "output",
+          "id": "create_radar:directional_jammer"
+        },
+        {
+          "type": "block",
+          "id": "create_radar:identification_transponder"
+        },
+        {
+          "type": "output",
+          "id": "create_radar:identification_transponder"
+        },
+        {
+          "type": "block",
+          "id": "create_radar:network_filterer"
+        },
+        {
+          "type": "output",
+          "id": "create_radar:network_filterer"
+        },
+        {
+          "type": "block",
+          "id": "create_radar:data_link"
+        },
+        {
+          "type": "output",
+          "id": "create_radar:data_link"
+        }
+      ]
+    },
+    {
+      "id": "radar_fire_control",
+      "category": "logistics",
+      "icon": "create_radar:fire_controller",
+      "level": 110,
+      "cost": 40500,
+      "time": "11h10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "radar_networking"
+        },
+        {
+          "type": "node",
+          "id": "electronic_circuit"
+        },
+        {
+          "type": "node",
+          "id": "steel_kinetics"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "chemica:electronic_circuit",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:steel_gearbox",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "create_radar:crafting/fire_controller"
+        },
+        {
+          "type": "recipe",
+          "id": "create_radar:crafting/auto_pitch_controller"
+        },
+        {
+          "type": "recipe",
+          "id": "create_radar:crafting/auto_yaw_controller"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:radar/auto_pitch_gearbox"
+        },
+        {
+          "type": "block",
+          "id": "create_radar:fire_controller"
+        },
+        {
+          "type": "output",
+          "id": "create_radar:fire_controller"
         },
         {
           "type": "block",
@@ -10557,59 +10975,59 @@
         },
         {
           "type": "block",
-          "id": "create_radar:data_link"
+          "id": "create_radar:t_pitch"
         },
         {
           "type": "output",
-          "id": "create_radar:data_link"
+          "id": "create_radar:t_pitch"
+        }
+      ]
+    },
+    {
+      "id": "radar_guided_ammo",
+      "category": "logistics",
+      "icon": "create_radar:advanced_proxy_fuze",
+      "level": 125,
+      "cost": 45000,
+      "time": "11h40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "radar_fire_control"
         },
         {
-          "type": "block",
-          "id": "create_radar:fire_controller"
+          "type": "node",
+          "id": "advanced_circuit_board"
+        },
+        {
+          "type": "node",
+          "id": "tantalum_capacitor"
+        },
+        {
+          "type": "node",
+          "id": "nitroglycerin"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "chemica:advanced_circuit_board",
+          "count": 2
+        },
+        {
+          "type": "deposit",
+          "item": "chemica:tantalum_capacitor_item",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "kami_js:radar/advanced_proxy_fuze"
         },
         {
           "type": "output",
-          "id": "create_radar:fire_controller"
-        },
-        {
-          "type": "block",
-          "id": "create_radar:identification_transponder"
-        },
-        {
-          "type": "output",
-          "id": "create_radar:identification_transponder"
-        },
-        {
-          "type": "block",
-          "id": "create_radar:monitor"
-        },
-        {
-          "type": "output",
-          "id": "create_radar:monitor"
-        },
-        {
-          "type": "block",
-          "id": "create_radar:network_filterer"
-        },
-        {
-          "type": "output",
-          "id": "create_radar:network_filterer"
-        },
-        {
-          "type": "block",
-          "id": "create_radar:plane_radar"
-        },
-        {
-          "type": "output",
-          "id": "create_radar:plane_radar"
-        },
-        {
-          "type": "block",
-          "id": "create_radar:radar_bearing"
-        },
-        {
-          "type": "output",
-          "id": "create_radar:radar_bearing"
+          "id": "create_radar:advanced_proxy_fuze"
         }
       ]
     },
@@ -11330,7 +11748,7 @@
         },
         {
           "type": "recipe",
-          "id": "chemica:distillation/ethylenzene"
+          "id": "chemica:distillation/ethylbenzene"
         },
         {
           "type": "recipe",
@@ -13106,7 +13524,7 @@
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/electric_pump"
+          "id": "tfmg:electric_pump"
         },
         {
           "type": "recipe",

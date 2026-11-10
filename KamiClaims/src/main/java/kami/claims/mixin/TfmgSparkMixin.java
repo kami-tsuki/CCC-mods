@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.At;
 @Pseudo
 @Mixin(targets = "com.drmangotea.tfmg.base.spark.Spark")
 public abstract class TfmgSparkMixin {
-    @WrapOperation(method = "onHitBlock", at = @At(value = "INVOKE",
+    @WrapOperation(method = "lambda$onHitBlock$0", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/world/level/Level;setBlockAndUpdate(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)Z"), require = 0)
     private boolean kami$sparkFire(Level level, BlockPos pos, BlockState state, Operation<Boolean> original) {
         return Guard.INSTANCE.igniteAllowed(level, pos, ((Projectile) (Object) this).getOwner()) && original.call(level, pos, state);

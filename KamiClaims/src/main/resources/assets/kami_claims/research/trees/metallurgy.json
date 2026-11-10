@@ -13004,7 +13004,7 @@
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/cast_iron_flywheel"
+          "id": "tfmg:cast_iron_flywheel"
         },
         {
           "type": "recipe",
@@ -13236,11 +13236,11 @@
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/steel_cogwheel"
+          "id": "tfmg:steel_cogwheel"
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/large_steel_cogwheel"
+          "id": "tfmg:large_steel_cogwheel"
         },
         {
           "type": "recipe",
@@ -13708,7 +13708,7 @@
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/laminated_magnetic_alloy_block"
+          "id": "tfmg:laminated_magnetic_alloy_block"
         }
       ]
     },
@@ -14016,6 +14016,14 @@
         {
           "type": "recipe",
           "id": "kami_js:molten_metals/vat_alloy_brass"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:leaching/any_*"
+        },
+        {
+          "type": "recipe",
+          "id": "sulfuricresonance:rotary_leaching/*"
         }
       ]
     },
@@ -14251,7 +14259,7 @@
         },
         {
           "type": "recipe",
-          "id": "chemica:compacting/chromium_ingot"
+          "id": "chemica:compacting/chromium_dust"
         },
         {
           "type": "recipe",
@@ -14470,6 +14478,10 @@
         {
           "type": "recipe",
           "id": "kami_js:createsifter/compact_raw_platinum_piece"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:leaching/fireproof_*"
         }
       ]
     },
@@ -14510,6 +14522,10 @@
         {
           "type": "recipe",
           "id": "kami_js:chemica_ores/cobalt_electrowinning"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:leaching/steel_*"
         }
       ]
     },
@@ -14695,7 +14711,7 @@
         },
         {
           "type": "recipe",
-          "id": "chemica:crushing/fervorite"
+          "id": "chemica:crushing/ferosite"
         },
         {
           "type": "recipe",

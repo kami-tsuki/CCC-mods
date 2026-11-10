@@ -17,7 +17,7 @@
     },
     {
       "type": "create:deploying",
-      "ingredients": [{ "item": "kami_geology:prospector_t6" }, { "item": "tfmg:capacitor_item" }],
+      "ingredients": [{ "item": "kami_geology:prospector_t6" }, { "item": "tfmg:capacitor" }],
       "results": [{ "id": "kami_geology:prospector_t6" }]
     },
     {

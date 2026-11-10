@@ -29,7 +29,7 @@ data class BoostRange(val minPct: Int, val maxPct: Int, val minHours: Int, val m
 @Serializable
 data class QuestSettings(
     val enabled: Boolean = true,
-    val namespaces: List<String> = listOf("minecraft", "farmersdelight", "croptopia", "createfood", "*delight*"),
+    val namespaces: List<String> = listOf("minecraft", "farmersdelight", "createfood", "*delight*"),
     val seed: Int = 0,
     val minGapMinutes: Int = 60,
     val maxGapMinutes: Int = 120,
