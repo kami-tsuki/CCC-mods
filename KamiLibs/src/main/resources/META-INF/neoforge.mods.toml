@@ -36,13 +36,13 @@ config = "${mod_id}.mixins.json"
 [[dependencies.${mod_id}]]
 modId = "jei"
 type = "optional"
-versionRange = "[19,)"
+versionRange = "${jei_version_range}"
 ordering = "NONE"
 side = "CLIENT"
 
 [[dependencies.${mod_id}]]
 modId = "jade"
 type = "optional"
-versionRange = "[15,)"
+versionRange = "${jade_version_range}"
 ordering = "NONE"
 side = "BOTH"
