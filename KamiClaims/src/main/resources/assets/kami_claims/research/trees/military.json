@@ -52,7 +52,7 @@
     {
       "id": "knives_primitive",
       "category": "melee",
-      "icon": "farmersdelight:flint_knife",
+      "icon": "minecraft:stone_sword",
       "level": 5,
       "cost": 0,
       "time": "20m",
@@ -65,22 +65,6 @@
         }
       ],
       "unlocks": [
-        {
-          "type": "output",
-          "id": "farmersdelight:flint_knife"
-        },
-        {
-          "type": "output",
-          "id": "moredelight:wooden_knife"
-        },
-        {
-          "type": "output",
-          "id": "moredelight:stone_knife"
-        },
-        {
-          "type": "output",
-          "id": "minecraft:wooden_sword"
-        },
         {
           "type": "output",
           "id": "minecraft:stone_sword"
@@ -124,14 +108,6 @@
         {
           "type": "output",
           "id": "create_ironworks:copper_sword"
-        },
-        {
-          "type": "output",
-          "id": "create_things_and_misc:copper_knife"
-        },
-        {
-          "type": "output",
-          "id": "create_things_and_misc:zinc_knife"
         }
       ]
     },
@@ -179,15 +155,35 @@
         },
         {
           "type": "output",
-          "id": "farmersdelight:iron_knife"
-        },
-        {
-          "type": "output",
           "id": "farmersdelight:golden_knife"
         },
         {
           "type": "output",
-          "id": "croptopia:knife"
+          "id": "endermanoverhaul:corrupted_blade"
+        },
+        {
+          "type": "output",
+          "id": "bhc:blade_of_vitality"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:knights_sword"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:dinosaur_bone_club"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:resurrected_javelin"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:shattered_greatsword"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:axe_of_lightning"
         }
       ]
     },
@@ -312,6 +308,46 @@
         {
           "type": "output",
           "id": "farmersdelight:diamond_knife"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:chorus_blade"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:the_great_frost"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:void_sword"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:withered_scythe"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:mossy_hammer"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:fiery_jaw"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:wand_of_clouds"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:sand_cannon"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:chorus_cannon"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:golden_halbert"
         }
       ]
     },
@@ -377,11 +413,11 @@
         },
         {
           "type": "output",
-          "id": "tfmg:steel_sword"
+          "id": "minecraft:mace"
         },
         {
           "type": "output",
-          "id": "minecraft:mace"
+          "id": "pineapple_delight:pineapple_mace"
         }
       ]
     },
@@ -453,7 +489,7 @@
         }
       ],
       "cost": 39000,
-      "time": "11h"
+      "time": "8h45m"
     },
     {
       "id": "adv_gold_sword",
@@ -576,6 +612,10 @@
         {
           "type": "output",
           "id": "minecraft:arrow"
+        },
+        {
+          "type": "output",
+          "id": "bhc:vigor_bow"
         }
       ]
     },
@@ -831,6 +871,11 @@
           "type": "node",
           "id": "technology:vt_rails",
           "hidden": true
+        },
+        {
+          "type": "node",
+          "id": "technology:crushing_wheels",
+          "hidden": true
         }
       ],
       "tasks": [
@@ -925,10 +970,6 @@
         {
           "type": "recipe",
           "id": "kami_js:sulfuric/thermite_charge"
-        },
-        {
-          "type": "recipe",
-          "id": "sulfuricresonance:mixing/thermite_charge"
         }
       ]
     },
@@ -4100,7 +4141,7 @@
         }
       ],
       "cost": 25500,
-      "time": "9h30m"
+      "time": "6h30m"
     },
     {
       "id": "sights_rifle",
@@ -4168,7 +4209,7 @@
         }
       ],
       "cost": 27000,
-      "time": "9h40m"
+      "time": "6h45m"
     },
     {
       "id": "bayonets",
@@ -6518,7 +6559,7 @@
       "icon": "tfmg:advanced_potato_cannon",
       "level": 60,
       "cost": 25500,
-      "time": "9h30m",
+      "time": "6h30m",
       "requires": [
         {
           "type": "node",
@@ -6585,7 +6626,7 @@
       "icon": "cbc_at:steel_twin_autocannon_barrel",
       "level": 120,
       "cost": 43500,
-      "time": "11h30m",
+      "time": "9h30m",
       "requires": [
         {
           "type": "node",

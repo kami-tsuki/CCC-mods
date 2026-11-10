@@ -52,7 +52,7 @@ object Stats {
         ids.clear(); names.clear(); synchronized(pending) { pending.clear() }
         Db.read { query("SELECT id, key FROM libs_key") { it.int("id") to it.string("key") } }.forEach { (i, k) -> ids[k] = i; names[i] = k }
         nextId.set(names.keys.maxOrNull() ?: 0)
-        sampled = System.currentTimeMillis()
+        sampled = 0L
     }
 
     fun on(key: String) = LibConfig.s.stats[key.substringBefore('.')] != false

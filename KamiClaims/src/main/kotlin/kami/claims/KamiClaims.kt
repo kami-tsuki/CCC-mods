@@ -7,6 +7,7 @@ import kami.claims.client.ClientHooks
 import kami.claims.compat.DynamicTrees
 import kami.claims.compat.JadeServer
 import kami.claims.compat.Tacz
+import kami.claims.discord.CountryChannels
 import kami.claims.discord.DiscordClaims
 import kami.claims.command.ClaimsCommands
 import kami.claims.net.Net
@@ -231,6 +232,7 @@ object KamiClaims {
             task("Levels", 100) { Levels.advanceAll() }
             task("Upkeep", 1200) { Upkeep.tick(it.server) }
             task("War", 1200) { Wars.tick() }
+            task("Discord rooms", 200) { CountryChannels.tick() }
         }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { (it.entity as? ServerPlayer)?.let { p -> touch(p); Mail.deliver(p); Online.login(p); runCatching { NameTagTeams.sync(p) }.onFailure { e -> LOG.error("Nametags failed", e) }; runCatching { WarBar.tick(listOf(p)) }.onFailure { e -> LOG.error("War bar failed", e) } } }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { (it.entity as? ServerPlayer)?.let { p -> touch(p); Guard.forget(p); Net.forget(p); Structures.forget(p); Online.logout(p); WarBar.forget(p); PositionSync.forget(p); FreecamSync.forget(p); NameTagSync.forget(p) } }

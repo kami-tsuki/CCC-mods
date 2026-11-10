@@ -17,6 +17,18 @@ object DiscordText {
         return if (args.isEmpty()) template else runCatching { String.format(Locale.ROOT, template, *args) }.getOrDefault(template)
     }
 
+    fun phrase(p: kami.libs.text.Phrase, language: String = FALLBACK): String {
+        val out = when {
+            p.key.isEmpty() -> p.text
+            p.fallback != null && lookup(p.key, language) == null -> phrase(p.fallback, language)
+            p.text.isNotEmpty() -> lookup(p.key, language) ?: p.text
+            else -> get(p.key.substringBefore('.'), language, p.key, *p.args.map { phrase(it, language) }.toTypedArray())
+        }
+        return if (p.value) Templates.code(out) else out
+    }
+
+    private fun lookup(key: String, language: String) = key.substringBefore('.').let { mod -> table(mod, language)[key] ?: table(mod, FALLBACK)[key] }
+
     private fun table(modId: String, language: String): Map<String, String> = cache.getOrPut("$modId/$language") {
         runCatching {
             ModList.get().getModFileById(modId)?.file?.findResource("assets", modId, "lang", "$language.json")?.takeIf(Files::exists)?.let { path ->

@@ -60,7 +60,7 @@ object Effects {
     const val SAPLING_AURA = "sapling_aura"
     const val MACHINE_SPEED = "machine_speed"
     const val DURABILITY_SAVE = "durability_save"
-    const val SILVER_TONGUE = "silver_tongue"
+    const val TRADE_XP = "trade_xp"
     const val KILL_XP = "kill_xp"
     const val ORE_XP = "ore_xp"
     const val PAPER_PRESS = "paper_press"
@@ -142,7 +142,7 @@ object Effects {
         SAPLING_AURA to Effect(Shown.FLAT),
         MACHINE_SPEED to Effect(Shown.PCT, cap = 1.0),
         DURABILITY_SAVE to Effect(Shown.PCT, cap = 0.5),
-        SILVER_TONGUE to Effect(Shown.FLAT, cap = 5.0),
+        TRADE_XP to Effect(Shown.PCT, cap = 1.0),
         KILL_XP to Effect(Shown.PCT),
         ORE_XP to Effect(Shown.PCT, cap = 1.0),
         PAPER_PRESS to Effect(Shown.PCT, cap = 0.5),

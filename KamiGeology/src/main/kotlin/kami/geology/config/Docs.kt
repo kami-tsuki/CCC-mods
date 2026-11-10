@@ -22,7 +22,7 @@ object Docs {
         "ring.scale" to "Outer edge of the ring relative to the deposit size, 1 for none.",
         "ring.density" to "Ore chance at the inner edge of the ring, fading to 0 at the outer edge.",
         "mining" to "Ore hardness multipliers, for players, Create drills and machines reading hardness.",
-        "mining.stone" to "Multiplier for ores in rock and core blocks. 32.5 makes a Netherite-Diamond pickaxe with Efficiency V as slow as vanilla wood.",
+        "mining.stone" to "Multiplier for ores in rock and core blocks. 16.25 makes a Netherite-Diamond pickaxe with Efficiency V twice as fast as vanilla wood.",
         "mining.deepslate" to "Multiplier for ores in deepslate."
     )
 

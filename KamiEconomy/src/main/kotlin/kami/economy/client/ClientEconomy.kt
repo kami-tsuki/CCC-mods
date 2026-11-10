@@ -7,6 +7,9 @@ import kami.economy.client.ui.PersonalPages
 import kami.economy.client.compat.jei.EconomyJei
 import kami.economy.client.compat.jei.JeiStore
 import kami.economy.client.compat.xaero.VendorPoints
+import kami.economy.client.villager.VillagerClient
+import kami.economy.economy.EnchantBooks
+import net.minecraft.client.Minecraft
 import kami.economy.world.CoinRules
 import kami.libs.compat.Mods
 import kami.libs.compat.Soft
@@ -29,6 +32,8 @@ object ClientEconomy {
         MarketSection.register()
         CoinRules.hideFromTabs()
         VendorPoints.init()
+        VillagerClient.init()
+        EnchantBooks.client = { Minecraft.getInstance().connection?.registryAccess() }
         if (KamiJei.present) {
             KamiJei.module(EconomyJei)
             JeiStore.init()

@@ -19,10 +19,10 @@ object Blacklist {
         return ItemSpec.spec(stack).substringAfter('#', "").takeIf { it.isNotEmpty() }
     }
 
-    fun itemId(stack: ItemStack): String = ItemSpec.spec(stack)
+    fun itemId(stack: ItemStack): String = EnchantBooks.spec(stack) ?: ItemSpec.spec(stack)
 
     fun classify(stack: ItemStack): Classification {
-        if (taczAmmoId(stack) != null) return Classification.ALLOWED
+        if (taczAmmoId(stack) != null || EnchantBooks.spec(stack) != null) return Classification.ALLOWED
 
         val id = registryId(stack)
         if (id in Coins.values.keys) return Classification.BLOCKED

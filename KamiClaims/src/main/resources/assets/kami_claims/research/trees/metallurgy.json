@@ -111,6 +111,11 @@
       "id": "advanced_netherite",
       "icon": "advancednetherite:netherite_iron_ingot",
       "order": 21
+    },
+    {
+      "id": "prospecting",
+      "icon": "kami_geology:prospector_t2",
+      "order": 22
     }
   ],
   "nodes": [
@@ -8861,8 +8866,8 @@
           "id": "northstar:wilter_stairs_from_wilter_planks_stonecutting"
         },
         {
-          "type": "recipe",
-          "id": "ramadandelight:stonecutting/mosaic_tiles"
+          "type": "output",
+          "id": "ramadandelight:mosaic_tiles"
         },
         {
           "type": "recipe",
@@ -9628,12 +9633,6 @@
       "unlocks": [
         {
           "type": "recipes",
-          "recipeType": "create:crushing",
-          "input": "#c:raw_materials/lead",
-          "output": "*:crushed_raw_lead"
-        },
-        {
-          "type": "recipes",
           "recipeType": "minecraft:smelting",
           "input": "*:crushed_raw_lead",
           "output": "#c:ingots/lead"
@@ -9706,10 +9705,6 @@
         {
           "type": "recipe",
           "id": "kami_js:tfmg_slag/milling"
-        },
-        {
-          "type": "recipe",
-          "id": "kubejs:c437"
         },
         {
           "type": "recipe",
@@ -10644,12 +10639,6 @@
       "unlocks": [
         {
           "type": "recipes",
-          "recipeType": "create:crushing",
-          "input": "#c:raw_materials/tin",
-          "output": "*:crushed_raw_tin"
-        },
-        {
-          "type": "recipes",
           "recipeType": "minecraft:smelting",
           "input": "*:crushed_raw_tin",
           "output": "#c:ingots/tin"
@@ -10803,12 +10792,6 @@
       "unlocks": [
         {
           "type": "recipes",
-          "recipeType": "create:crushing",
-          "input": "#c:raw_materials/nickel",
-          "output": "*:crushed_raw_nickel"
-        },
-        {
-          "type": "recipes",
           "recipeType": "minecraft:smelting",
           "input": "*:crushed_raw_nickel",
           "output": "#c:ingots/nickel"
@@ -10938,24 +10921,6 @@
         {
           "type": "recipes",
           "recipeType": "create:crushing",
-          "input": "#c:raw_materials/silver",
-          "output": "*:crushed_raw_silver"
-        },
-        {
-          "type": "recipes",
-          "recipeType": "minecraft:smelting",
-          "input": "*:crushed_raw_silver",
-          "output": "#c:ingots/silver"
-        },
-        {
-          "type": "recipes",
-          "recipeType": "minecraft:blasting",
-          "input": "*:crushed_raw_silver",
-          "output": "#c:ingots/silver"
-        },
-        {
-          "type": "recipes",
-          "recipeType": "create:crushing",
           "output": "*:crushed_raw_silver"
         },
         {
@@ -10970,7 +10935,7 @@
       "icon": "minecraft:blast_furnace",
       "level": 3,
       "cost": 0,
-      "time": "60m",
+      "time": "15m",
       "requires": [
         {
           "type": "node",
@@ -11392,10 +11357,6 @@
         {
           "type": "recipe",
           "id": "kami_js:curving/hammer_sheet_gold_ingot"
-        },
-        {
-          "type": "recipe",
-          "id": "kami_geology:prospector_t2"
         }
       ]
     },
@@ -11534,7 +11495,7 @@
       "icon": "minecraft:cut_copper",
       "level": 3,
       "cost": 0,
-      "time": "45m",
+      "time": "15m",
       "requires": [
         {
           "type": "node",
@@ -11616,16 +11577,6 @@
         {
           "type": "output",
           "id": "create:copper_scaffolding"
-        },
-        {
-          "type": "recipes",
-          "recipeType": "create:compacting",
-          "input": "#c:ingots/copper"
-        },
-        {
-          "type": "recipes",
-          "recipeType": "create:compacting",
-          "output": "#c:ingots/copper"
         }
       ]
     },
@@ -11635,7 +11586,7 @@
       "icon": "minecraft:iron_bars",
       "level": 3,
       "cost": 0,
-      "time": "45m",
+      "time": "15m",
       "requires": [
         {
           "type": "node",
@@ -11644,6 +11595,11 @@
         {
           "type": "node",
           "id": "chisel",
+          "hidden": true
+        },
+        {
+          "type": "node",
+          "id": "technology:andesite_casing",
           "hidden": true
         }
       ],
@@ -11782,6 +11738,10 @@
         {
           "type": "recipe",
           "id": "minecraft:industrial_iron_hull_from_stonecutting"
+        },
+        {
+          "type": "output",
+          "id": "rechiseledcreate:mechanical_chisel"
         }
       ]
     },
@@ -12001,8 +11961,8 @@
       "category": "netherite",
       "icon": "minecraft:netherite_ingot",
       "level": 25,
-      "cost": 500,
-      "time": "40m",
+      "cost": 5625,
+      "time": "4h",
       "requires": [
         {
           "type": "node",
@@ -12058,7 +12018,7 @@
         },
         {
           "type": "output",
-          "id": "createvintageneoforged:netherite_sheet"
+          "id": "vintage:netherite_sheet"
         },
         {
           "type": "recipe",
@@ -12087,22 +12047,6 @@
         {
           "type": "recipe",
           "id": "createdeco:netherite_ingot"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:diamond_block"
-        },
-        {
-          "type": "recipe",
-          "id": "stackedblocks:reverse/diamond_blocks"
-        },
-        {
-          "type": "recipe",
-          "id": "stackedblocksfarmersdelight:reverse/diamond_blocks"
-        },
-        {
-          "type": "recipe",
-          "id": "kami_geology:prospector_t4"
         },
         {
           "type": "recipe",
@@ -12135,6 +12079,18 @@
         {
           "type": "recipe",
           "id": "dndecor:netherite_sheet_metal_from_ingots_netherite_stonecutting"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:lodestone"
+        }
+      ],
+      "grandfather": [
+        {
+          "from": [
+            "technology:vt_explorer"
+          ],
+          "before": "2026-10-20T00:00:00Z"
         }
       ]
     },
@@ -12605,9 +12561,9 @@
       "id": "zinc_casting",
       "category": "zinc",
       "icon": "create:zinc_ingot",
-      "level": 10,
+      "level": 11,
       "cost": 0,
-      "time": "40m",
+      "time": "45m",
       "requires": [
         {
           "type": "node",
@@ -12649,9 +12605,9 @@
       "id": "lead_casting",
       "category": "lead",
       "icon": "tfmg:lead_ingot",
-      "level": 10,
+      "level": 12,
       "cost": 0,
-      "time": "40m",
+      "time": "45m",
       "requires": [
         {
           "type": "node",
@@ -12693,9 +12649,9 @@
       "id": "copper_casting",
       "category": "copper",
       "icon": "minecraft:copper_ingot",
-      "level": 10,
+      "level": 11,
       "cost": 0,
-      "time": "40m",
+      "time": "45m",
       "requires": [
         {
           "type": "node",
@@ -12737,9 +12693,9 @@
       "id": "iron_casting",
       "category": "iron",
       "icon": "minecraft:iron_ingot",
-      "level": 10,
+      "level": 11,
       "cost": 0,
-      "time": "40m",
+      "time": "45m",
       "requires": [
         {
           "type": "node",
@@ -12781,9 +12737,9 @@
       "id": "gold_casting",
       "category": "gold",
       "icon": "minecraft:gold_ingot",
-      "level": 10,
+      "level": 12,
       "cost": 0,
-      "time": "40m",
+      "time": "45m",
       "requires": [
         {
           "type": "node",
@@ -12825,9 +12781,9 @@
       "id": "tin_casting",
       "category": "tin",
       "icon": "create_ironworks:tin_ingot",
-      "level": 10,
+      "level": 11,
       "cost": 0,
-      "time": "40m",
+      "time": "45m",
       "requires": [
         {
           "type": "node",
@@ -12881,9 +12837,9 @@
       "id": "silver_casting",
       "category": "silver",
       "icon": "chemica:silver_ingot",
-      "level": 10,
+      "level": 12,
       "cost": 0,
-      "time": "40m",
+      "time": "45m",
       "requires": [
         {
           "type": "node",
@@ -13461,14 +13417,6 @@
         {
           "type": "recipe",
           "id": "chemica:mixing/electrum_grit"
-        },
-        {
-          "type": "recipe",
-          "id": "chemica:smelting/electrum_grit"
-        },
-        {
-          "type": "recipe",
-          "id": "chemica:blasting/electrum_grit"
         }
       ]
     },
@@ -13783,6 +13731,11 @@
         {
           "type": "node",
           "id": "technology:vats"
+        },
+        {
+          "type": "node",
+          "id": "technology:brass_sifting",
+          "hidden": true
         }
       ],
       "tasks": [
@@ -13799,7 +13752,7 @@
         },
         {
           "type": "recipe",
-          "id": "tfmg:vat_machine_recipe/aluminum"
+          "id": "tfmg:vat/aluminum"
         },
         {
           "type": "recipe",
@@ -14450,10 +14403,6 @@
         {
           "type": "recipe",
           "id": "createbigcannons:nethersteel_nugget"
-        },
-        {
-          "type": "recipe",
-          "id": "createbigcannons:melting/melt_nethersteel_*"
         }
       ]
     },
@@ -14663,8 +14612,8 @@
       "category": "advanced_netherite",
       "icon": "advancednetherite:netherite_iron_ingot",
       "level": 105,
-      "cost": 39000,
-      "time": "11h",
+      "cost": 19500,
+      "time": "5h30m",
       "requires": [
         {
           "type": "node",
@@ -14712,10 +14661,6 @@
         {
           "type": "recipe",
           "id": "advancednetherite:netherite_iron_block"
-        },
-        {
-          "type": "recipe",
-          "id": "kami_geology:prospector_t5"
         }
       ]
     },
@@ -14928,14 +14873,6 @@
       "unlocks": [
         {
           "type": "recipe",
-          "id": "create:crushing/uranium_ore"
-        },
-        {
-          "type": "recipe",
-          "id": "create:crushing/raw_uranium"
-        },
-        {
-          "type": "recipe",
           "id": "create:crushing/raw_uranium_block"
         },
         {
@@ -14961,6 +14898,52 @@
         {
           "type": "recipe",
           "id": "kami_js:createsifter/compact_raw_uranium_piece"
+        }
+      ]
+    },
+    {
+      "id": "thorium",
+      "category": "nuclear",
+      "icon": "createnuclear:raw_thorium",
+      "level": 140,
+      "cost": 49500,
+      "time": "12h10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "titanium"
+        },
+        {
+          "type": "node",
+          "id": "lead_washing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "mine",
+          "blocks": [
+            "createnuclear:thorium_ore",
+            "createnuclear:deepslate_thorium_ore"
+          ],
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "createnuclear:crushing/raw_thorium"
+        },
+        {
+          "type": "recipe",
+          "id": "createnuclear:crushing/raw_thorium_block"
+        },
+        {
+          "type": "recipe",
+          "id": "createnuclear:crafting/raw/raw_thorium_block"
+        },
+        {
+          "type": "recipe",
+          "id": "createnuclear:crafting/raw_thorium_from_decompacting"
         }
       ]
     },
@@ -15422,8 +15405,8 @@
       "category": "advanced_netherite",
       "icon": "advancednetherite:netherite_gold_ingot",
       "level": 205,
-      "cost": 69275,
-      "time": "14h20m",
+      "cost": 34675,
+      "time": "7h20m",
       "requires": [
         {
           "type": "node",
@@ -15466,10 +15449,6 @@
         {
           "type": "recipe",
           "id": "advancednetherite:netherite_gold_block"
-        },
-        {
-          "type": "recipe",
-          "id": "kami_geology:prospector_t6"
         }
       ]
     },
@@ -15563,8 +15542,8 @@
       "category": "advanced_netherite",
       "icon": "advancednetherite:netherite_emerald_ingot",
       "level": 305,
-      "cost": 99775,
-      "time": "17h40m",
+      "cost": 49875,
+      "time": "8h40m",
       "requires": [
         {
           "type": "node",
@@ -15615,10 +15594,6 @@
         {
           "type": "recipe",
           "id": "advancednetherite:netherite_emerald_block"
-        },
-        {
-          "type": "recipe",
-          "id": "kami_geology:prospector_t7"
         }
       ]
     },
@@ -15627,8 +15602,8 @@
       "category": "advanced_netherite",
       "icon": "advancednetherite:netherite_diamond_ingot",
       "level": 405,
-      "cost": 130275,
-      "time": "21h",
+      "cost": 65175,
+      "time": "10h30m",
       "requires": [
         {
           "type": "node",
@@ -15695,10 +15670,268 @@
         {
           "type": "recipe",
           "id": "advancednetherite:netherite_diamond_block"
+        }
+      ]
+    },
+    {
+      "id": "prospector_gilded",
+      "category": "prospecting",
+      "icon": "kami_geology:prospector_t2",
+      "level": 4,
+      "cost": 150,
+      "time": "15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gold_pressing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "event",
+          "kind": "prospect",
+          "subject": "t1",
+          "count": 10
         },
+        {
+          "type": "deposit",
+          "item": "create:golden_sheet",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "kami_geology:prospector_t2"
+        }
+      ],
+      "grandfather": [
+        {
+          "from": [
+            "metallurgy:gold_pressing"
+          ],
+          "before": "2026-10-20T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "prospector_diamond",
+      "category": "prospecting",
+      "icon": "kami_geology:prospector_t3",
+      "level": 17,
+      "cost": 1500,
+      "time": "1h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "prospector_gilded"
+        },
+        {
+          "type": "node",
+          "id": "technology:mechanical_crafter",
+          "hidden": true
+        }
+      ],
+      "tasks": [
+        {
+          "type": "event",
+          "kind": "prospect",
+          "subject": "t2",
+          "count": 25
+        },
+        {
+          "type": "event",
+          "kind": "deposit_found",
+          "count": 3
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "kami_geology:prospector_t3"
+        }
+      ],
+      "grandfather": [
+        {
+          "from": [
+            "technology:electron_tubes"
+          ],
+          "before": "2026-10-20T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "prospector_netherite",
+      "category": "prospecting",
+      "icon": "kami_geology:prospector_t4",
+      "level": 25,
+      "cost": 3000,
+      "time": "3h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "prospector_diamond"
+        },
+        {
+          "type": "node",
+          "id": "netherite"
+        },
+        {
+          "type": "node",
+          "id": "technology:vt_smithing",
+          "hidden": true
+        }
+      ],
+      "tasks": [],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "kami_geology:prospector_t4"
+        }
+      ],
+      "grandfather": [
+        {
+          "from": [
+            "metallurgy:netherite"
+          ],
+          "before": "2026-10-20T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "prospector_netherite_iron",
+      "category": "prospecting",
+      "icon": "kami_geology:prospector_t5",
+      "level": 105,
+      "cost": 27300,
+      "time": "6h20m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "prospector_netherite"
+        },
+        {
+          "type": "node",
+          "id": "netherite_iron"
+        }
+      ],
+      "tasks": [],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "kami_geology:prospector_t5"
+        }
+      ],
+      "grandfather": [
+        {
+          "from": [
+            "metallurgy:netherite_iron"
+          ],
+          "before": "2026-10-20T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "prospector_netherite_gold",
+      "category": "prospecting",
+      "icon": "kami_geology:prospector_t6",
+      "level": 205,
+      "cost": 47400,
+      "time": "9h50m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "prospector_netherite_iron"
+        },
+        {
+          "type": "node",
+          "id": "netherite_gold"
+        },
+        {
+          "type": "node",
+          "id": "technology:tfmg_electronics",
+          "hidden": true
+        }
+      ],
+      "tasks": [],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "kami_geology:prospector_t6"
+        }
+      ],
+      "grandfather": [
+        {
+          "from": [
+            "metallurgy:netherite_gold"
+          ],
+          "before": "2026-10-20T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "prospector_netherite_emerald",
+      "category": "prospecting",
+      "icon": "kami_geology:prospector_t7",
+      "level": 305,
+      "cost": 69800,
+      "time": "12h20m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "prospector_netherite_gold"
+        },
+        {
+          "type": "node",
+          "id": "netherite_emerald"
+        }
+      ],
+      "tasks": [],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "kami_geology:prospector_t7"
+        }
+      ],
+      "grandfather": [
+        {
+          "from": [
+            "metallurgy:netherite_emerald"
+          ],
+          "before": "2026-10-20T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "prospector_netherite_diamond",
+      "category": "prospecting",
+      "icon": "kami_geology:prospector_t8",
+      "level": 405,
+      "cost": 91000,
+      "time": "14h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "prospector_netherite_emerald"
+        },
+        {
+          "type": "node",
+          "id": "netherite_diamond"
+        }
+      ],
+      "tasks": [],
+      "unlocks": [
         {
           "type": "recipe",
           "id": "kami_geology:prospector_t8"
+        }
+      ],
+      "grandfather": [
+        {
+          "from": [
+            "metallurgy:netherite_diamond"
+          ],
+          "before": "2026-10-20T00:00:00Z"
         }
       ]
     }

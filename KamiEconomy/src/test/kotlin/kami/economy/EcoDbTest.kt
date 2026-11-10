@@ -25,7 +25,7 @@ class EcoDbTest {
         Db.open(file)
         Db.close()
         Db.open(file)
-        assertEquals(6, Db.read { one("SELECT COUNT(*) AS n FROM libs_migration WHERE module = 'eco'") { it.int("n") } })
+        assertEquals(8, Db.read { one("SELECT COUNT(*) AS n FROM libs_migration WHERE module = 'eco'") { it.int("n") } })
         assertEquals(0, Db.read { one("SELECT COUNT(*) AS n FROM eco_server") { it.int("n") } })
     }
 

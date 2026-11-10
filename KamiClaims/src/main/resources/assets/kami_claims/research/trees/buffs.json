@@ -90,9 +90,9 @@
       "id": "buff_points_1",
       "category": "view",
       "icon": "minecraft:nether_star",
-      "level": 30,
-      "cost": 20000,
-      "time": "3h5m",
+      "level": 22,
+      "cost": 7000,
+      "time": "1h50m",
       "requires": [
         {
           "type": "node",
@@ -102,8 +102,8 @@
       "tasks": [
         {
           "type": "deposit",
-          "item": "minecraft:nether_star",
-          "count": 1
+          "item": "minecraft:emerald_block",
+          "count": 16
         }
       ],
       "unlocks": [
@@ -214,8 +214,8 @@
       "tasks": [
         {
           "type": "deposit",
-          "item": "minecraft:nether_star",
-          "count": 1
+          "item": "minecraft:melon_slice",
+          "count": 64
         }
       ],
       "unlocks": [
@@ -308,8 +308,8 @@
       "tasks": [
         {
           "type": "deposit",
-          "item": "minecraft:nether_star",
-          "count": 1
+          "item": "minecraft:ghast_tear",
+          "count": 8
         }
       ],
       "unlocks": [
@@ -399,8 +399,8 @@
       "tasks": [
         {
           "type": "deposit",
-          "item": "minecraft:nether_star",
-          "count": 1
+          "item": "minecraft:sugar",
+          "count": 64
         }
       ],
       "unlocks": [
@@ -446,7 +446,7 @@
       "category": "movement",
       "icon": "minecraft:sugar",
       "level": 105,
-      "cost": 50000000,
+      "cost": 32000000,
       "time": "16h10m",
       "requires": [
         {
@@ -481,13 +481,18 @@
         {
           "type": "node",
           "id": "speed_1"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:gold_compacting",
+          "hidden": true
         }
       ],
       "tasks": [
         {
           "type": "deposit",
-          "item": "minecraft:nether_star",
-          "count": 1
+          "item": "minecraft:gold_block",
+          "count": 16
         }
       ],
       "unlocks": [
@@ -568,13 +573,23 @@
         {
           "type": "node",
           "id": "instant_health_1"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:iron_compacting",
+          "hidden": true
         }
       ],
       "tasks": [
         {
           "type": "deposit",
-          "item": "minecraft:nether_star",
-          "count": 1
+          "item": "minecraft:iron_block",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:obsidian",
+          "count": 16
         }
       ],
       "unlocks": [
@@ -660,8 +675,8 @@
       "tasks": [
         {
           "type": "deposit",
-          "item": "minecraft:nether_star",
-          "count": 1
+          "item": "minecraft:rabbit_foot",
+          "count": 8
         }
       ],
       "unlocks": [
@@ -1099,8 +1114,8 @@
       "tasks": [
         {
           "type": "deposit",
-          "item": "minecraft:nether_star",
-          "count": 1
+          "item": "minecraft:golden_carrot",
+          "count": 32
         }
       ],
       "unlocks": [
@@ -1128,8 +1143,13 @@
       "tasks": [
         {
           "type": "deposit",
-          "item": "minecraft:nether_star",
-          "count": 1
+          "item": "minecraft:pufferfish",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:turtle_scute",
+          "count": 8
         }
       ],
       "unlocks": [
@@ -4217,7 +4237,7 @@
       "category": "invest_citizens",
       "icon": "tfmg:nickel_block",
       "level": 20,
-      "cost": 10000,
+      "cost": 4000,
       "time": "45m",
       "requires": [
         {

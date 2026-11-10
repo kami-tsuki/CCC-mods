@@ -33,11 +33,12 @@ class Resolution(
     val nodes: Map<String, Matched>,
     val levels: Map<Int, Matched>,
     val outputs: Map<String, List<String>>,
+    val items: Map<String, Set<String>>,
     val problems: List<String>,
     val notes: List<String>
 ) {
     companion object {
-        val EMPTY = Resolution(Matched(), emptyMap(), emptyMap(), emptyMap(), emptyList(), emptyList())
+        val EMPTY = Resolution(Matched(), emptyMap(), emptyMap(), emptyMap(), emptyMap(), emptyList(), emptyList())
     }
 }
 
@@ -58,7 +59,10 @@ class Resolver(private val world: WorldFacts, private val defs: ResearchDefs) {
         val locked = all(defs.settings.locked, "settings.locked") - baseline
         val gated = (nodes.values + levels.values + locked).merged()
         val outputs = world.recipes.filter { it.id in gated.recipes && it.display.isNotEmpty() }.associate { it.id to it.display }
-        return Resolution(gated, nodes, levels, outputs, problems, notes)
+        val open = world.recipes.filter { it.id !in gated.recipes }.flatMapTo(HashSet()) { it.outputs }
+        val items = HashMap<String, MutableSet<String>>()
+        world.recipes.filter { it.id in gated.recipes }.forEach { recipe -> recipe.outputs.filter { it !in open }.forEach { items.getOrPut(it) { HashSet() } += recipe.id } }
+        return Resolution(gated, nodes, levels, outputs, items, problems, notes)
     }
 
     private fun all(unlocks: List<Unlock>, where: String) = unlocks.map { select(it, where) }.merged()

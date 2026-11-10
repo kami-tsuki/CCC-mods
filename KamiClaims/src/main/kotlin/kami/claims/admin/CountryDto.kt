@@ -19,7 +19,10 @@ class LedgerRow(val at: Long, val kind: String, val amount: Long, val balance: L
 class WarRow(val id: String, val enemy: String, val phase: String, val attacker: Boolean)
 
 @Serializable
-class ResearchSummary(val done: Int, val total: Int, val queue: List<String>)
+class ResearchSummary(val done: Int, val total: Int, val queue: List<String>, val categories: List<ResearchCategory>)
+
+@Serializable
+class ResearchCategory(val tree: String, val treeTitle: String, val id: String, val title: String, val done: Int, val total: Int, val queued: Int)
 
 @Serializable
 class CountryDetail(

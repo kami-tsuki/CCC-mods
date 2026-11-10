@@ -279,6 +279,14 @@
         {
           "type": "recipe",
           "id": "minecraft:iron_boots"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:fiery_boots"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:mossy_chestplate"
         }
       ]
     },
@@ -393,6 +401,14 @@
         {
           "type": "recipe",
           "id": "minecraft:shield"
+        },
+        {
+          "type": "output",
+          "id": "endermanoverhaul:corrupted_shield"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:dinosaur_bone_shield"
         }
       ]
     },
@@ -554,7 +570,7 @@
       "id": "goggle_helmets",
       "category": "special",
       "icon": "creategoggles:goggle_iron_helmet",
-      "level": 14,
+      "level": 12,
       "cost": 1200,
       "time": "1h20m",
       "requires": [
@@ -1173,6 +1189,18 @@
         {
           "type": "recipe",
           "id": "legendary_monsters:enderitium_sword"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:diamond_block"
+        },
+        {
+          "type": "recipe",
+          "id": "stackedblocks:reverse/diamond_blocks"
+        },
+        {
+          "type": "recipe",
+          "id": "stackedblocksfarmersdelight:reverse/diamond_blocks"
         }
       ]
     },
@@ -1191,6 +1219,10 @@
         {
           "type": "node",
           "id": "iron_armor"
+        },
+        {
+          "type": "node",
+          "id": "shield"
         }
       ],
       "tasks": [
@@ -1216,6 +1248,34 @@
         {
           "type": "recipe",
           "id": "minecraft:diamond_boots"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:atmospheric_boots"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:blastproof_helmet"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:chorus_mask"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:shulker_helmet"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:shulker_shield"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:frostbitten_shield"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:spiky_shield"
         }
       ]
     },
@@ -1463,7 +1523,7 @@
     {
       "id": "anti_radiation_suit",
       "category": "armor",
-      "icon": "createnuclear:white_anti_radiation_chestplate",
+      "icon": "createnuclear:default_anti_radiation_chestplate",
       "level": 150,
       "requires": [
         {
@@ -1711,6 +1771,10 @@
         {
           "type": "recipe",
           "id": "legendary_monsters:annihilator_leggings"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:buckler_of_annihilation"
         }
       ]
     },
@@ -2145,6 +2209,11 @@
           "type": "node",
           "id": "technology:smog_control",
           "hidden": true
+        },
+        {
+          "type": "node",
+          "id": "technology:vt_signals",
+          "hidden": true
         }
       ],
       "tasks": [
@@ -2171,6 +2240,14 @@
         {
           "type": "output",
           "id": "createbigcannons:gas_mask"
+        },
+        {
+          "type": "output",
+          "id": "adpother:iron_vacuum_tube"
+        },
+        {
+          "type": "output",
+          "id": "adpother:iron_vacuum_bag"
         }
       ]
     },
@@ -2400,6 +2477,22 @@
         {
           "type": "output",
           "id": "adpother:diamond_respirator"
+        },
+        {
+          "type": "output",
+          "id": "adpother:gold_vacuum_tube"
+        },
+        {
+          "type": "output",
+          "id": "adpother:gold_vacuum_bag"
+        },
+        {
+          "type": "output",
+          "id": "adpother:diamond_vacuum_tube"
+        },
+        {
+          "type": "output",
+          "id": "adpother:diamond_vacuum_bag"
         }
       ]
     },
@@ -2985,14 +3078,6 @@
         {
           "type": "output",
           "id": "sophisticatedbackpacks:stack_downgrade_tier_3"
-        },
-        {
-          "type": "recipe",
-          "id": "sophisticatedbackpacks:chipped/*"
-        },
-        {
-          "type": "recipe",
-          "id": "sophisticatedbackpacks:sawmill/*"
         }
       ]
     },
@@ -3255,7 +3340,7 @@
       "icon": "sophisticatedbackpacks:stack_upgrade_tier_4",
       "level": 50,
       "cost": 22500,
-      "time": "9h10m",
+      "time": "6h40m",
       "requires": [
         {
           "type": "node",
@@ -3864,14 +3949,6 @@
         {
           "type": "output",
           "id": "sophisticatedstorage:decoration_table"
-        },
-        {
-          "type": "recipe",
-          "id": "sophisticatedstorage:chipped/*"
-        },
-        {
-          "type": "recipe",
-          "id": "sophisticatedstorage:sawmill/*"
         }
       ]
     },
@@ -3921,10 +3998,6 @@
         {
           "type": "output",
           "id": "sophisticatedstorage:alchemy_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedstorage:pump_upgrade"
         }
       ]
     },
@@ -3970,10 +4043,6 @@
         {
           "type": "output",
           "id": "sophisticatedstorage:auto_*"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedstorage:xp_pump_upgrade"
         }
       ]
     },
@@ -4088,7 +4157,7 @@
       "icon": "sophisticatedstorage:stack_upgrade_tier_5",
       "level": 50,
       "cost": 22500,
-      "time": "9h10m",
+      "time": "6h40m",
       "requires": [
         {
           "type": "node",
@@ -4719,10 +4788,6 @@
         {
           "type": "output",
           "id": "fxntstorage:backpack_workshop_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "fxntstorage:backpack_thirst_upgrade"
         }
       ]
     },
@@ -4846,30 +4911,6 @@
         {
           "type": "output",
           "id": "numismatics:banking_guide"
-        },
-        {
-          "type": "output",
-          "id": "numismatics:spur"
-        },
-        {
-          "type": "output",
-          "id": "numismatics:bevel"
-        },
-        {
-          "type": "output",
-          "id": "numismatics:sprocket"
-        },
-        {
-          "type": "output",
-          "id": "numismatics:cog"
-        },
-        {
-          "type": "output",
-          "id": "numismatics:crown"
-        },
-        {
-          "type": "output",
-          "id": "numismatics:sun"
         }
       ]
     },
@@ -4941,10 +4982,6 @@
         {
           "type": "output",
           "id": "numismatics:bank_terminal"
-        },
-        {
-          "type": "output",
-          "id": "numismatics:blaze_banker"
         },
         {
           "type": "output",

@@ -76,17 +76,17 @@ object SkillTree {
         SkillClass.TRADER to Spec(
             listOf(mn(Skills.AUCTION_FEE, 0.01), mn(E.CLASS_XP, 0.01, 3), mn("sneak_speed", 0.02), mn(Skills.ORDER_SLOTS, 1.0), mn(Skills.AUCTION_SLOTS, 1.0)),
             listOf(
-                fx("smooth_talker", E.SILVER_TONGUE to 1.0), fx("stallholder", Skills.ORDER_SLOTS to 2.0), fx("light_fingers", "sneak_speed" to 0.08), fx("haggler", Skills.AUCTION_FEE to 0.04),
+                fx("smooth_talker", E.TRADE_XP to 0.1), fx("stallholder", Skills.ORDER_SLOTS to 2.0), fx("light_fingers", "sneak_speed" to 0.08), fx("haggler", Skills.AUCTION_FEE to 0.04),
                 fx("networker", E.CLASS_XP to 0.04), fx("courier", "speed" to 0.015), fx("deal_maker", Skills.AUCTION_FEE to 0.02, Skills.AUCTION_SLOTS to 1.0)
             ),
             listOf(fx("the_scales", Skills.AUCTION_FEE to 0.03), fx("the_coin", Skills.INFINITE_LOTS to 1.0), fx("the_road", "speed" to 0.01), fx("the_caravan", "sneak_speed" to 0.05), fx("the_handshake", E.CLASS_XP to 0.03)),
             listOf(
                 core("auctioneer", Skills.AUCTION_FEE, 0.03, 5) to core("market_sense", E.CLASS_XP, 0.03, 5),
-                core("silver_tongue", E.SILVER_TONGUE, 1.0, 3) to core("wholesaler", Skills.INFINITE_LOTS, 1.0, 3),
+                core("silver_tongue", E.TRADE_XP, 0.1, 3) to core("wholesaler", Skills.INFINITE_LOTS, 1.0, 3),
                 core("trade_winds", "speed", 0.008, 5) to core("shadow_step", "sneak_speed", 0.04, 5)
             ),
             listOf(
-                fx("tycoon", Skills.AUCTION_FEE to 0.3, E.SILVER_TONGUE to 2.0, "health" to -6.0),
+                fx("tycoon", Skills.AUCTION_FEE to 0.3, E.TRADE_XP to 0.4, "health" to -6.0),
                 fx("monopolist", Skills.ORDER_SLOTS to 4.0, Skills.AUCTION_SLOTS to 3.0, Skills.INFINITE_LOTS to 2.0, "health" to -4.0, "armor" to -3.0)
             )
         ),

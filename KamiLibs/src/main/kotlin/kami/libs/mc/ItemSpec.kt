@@ -8,11 +8,19 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.tags.TagKey
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.component.CustomData
+import java.util.concurrent.CopyOnWriteArrayList
 
 object ItemSpec {
+    private val resolvers = CopyOnWriteArrayList<(String) -> ItemStack?>()
+
+    fun resolver(resolve: (String) -> ItemStack?) {
+        resolvers += resolve
+    }
+
     fun base(spec: String): String = ItemSpecs.base(spec)
 
     fun stack(spec: String): ItemStack {
+        resolvers.firstNotNullOfOrNull { it(spec) }?.let { return it }
         val base = ItemSpecs.base(spec)
         val item = ResourceLocation.tryParse(base)?.let { BuiltInRegistries.ITEM.getOptional(it).orElse(null) } ?: return ItemStack.EMPTY
         val stack = ItemStack(item)

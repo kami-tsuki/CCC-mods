@@ -5,9 +5,6 @@ import kami.libs.db.Row
 import kami.libs.log.Log
 import kami.libs.stats.Stats
 import kotlinx.serialization.Serializable
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.attribute.PosixFilePermissions
 import java.util.UUID
 
 @Serializable
@@ -22,15 +19,6 @@ internal class LinkFile(val links: List<Link> = emptyList())
 private class Index(links: Collection<Link>) {
     val byDiscord = links.associateBy { it.discordId }
     val byName = links.groupBy { it.name.lowercase() }
-}
-
-internal fun restrict(path: Path) {
-    try {
-        Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rw-------"))
-    } catch (_: UnsupportedOperationException) {
-    } catch (e: Exception) {
-        Discord.log.warn("Cannot restrict the permissions of {}: {}", path, e.message)
-    }
 }
 
 internal fun Row.link() = Link(string("uuid"), string("name"), long("discord_id"), string("discord_name"), long("linked_at"))

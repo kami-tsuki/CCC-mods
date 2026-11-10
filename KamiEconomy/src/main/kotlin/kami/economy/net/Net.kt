@@ -30,6 +30,8 @@ import kami.economy.economy.SellResult
 import kami.economy.economy.BuyResult
 import kami.economy.economy.OrderResult
 import kami.economy.client.ClientHooks
+import kami.economy.client.villager.VillagerClient
+import kami.economy.villager.VillagerSync
 import kami.economy.quest.QuestBoost
 import kami.economy.quest.Quests
 import kami.libs.stats.Staff
@@ -152,6 +154,7 @@ object Net {
         r.playToClient(VariantsPayload.TYPE, VariantsPayload.CODEC) { v, _ -> ClientHooks.variants(v.map) }
         r.playToClient(PriceInfoPayload.TYPE, PriceInfoPayload.CODEC) { v, _ -> ClientHooks.priceInfo(v) }
         r.playToClient(JeiPayload.TYPE, JeiPayload.CODEC) { v, _ -> ClientHooks.jei(v) }
+        r.playToClient(VillagerSync.TYPE, VillagerSync.CODEC) { s, _ -> VillagerClient.sync(s) }
         WatchSync.register(r)
     }
 

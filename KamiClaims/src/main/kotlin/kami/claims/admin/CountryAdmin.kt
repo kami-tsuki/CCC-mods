@@ -8,6 +8,7 @@ import kami.claims.Realm
 import kami.claims.economy.Treasury
 import kami.claims.net.ResearchSync
 import kami.claims.research.Queue
+import kami.claims.research.Sweep
 import kami.claims.service.Announce
 import kami.claims.service.Fail
 import kami.claims.service.Naming
@@ -75,6 +76,15 @@ object CountryAdmin {
             else -> throw Fail("kami_claims.admin.bad_op", op)
         }
         return key
+    }
+
+    fun researchScope(c: Country, op: String, tree: String, category: String): Int {
+        val scope = Sweep(tree, category)
+        return when (op) {
+            "finish" -> Queue.finishAll(c, scope)
+            "reset" -> Queue.resetAll(c, scope)
+            else -> throw Fail("kami_claims.admin.bad_op", op)
+        }
     }
 
     fun money(c: Country, give: Boolean, amount: Long, actor: String?): Long {

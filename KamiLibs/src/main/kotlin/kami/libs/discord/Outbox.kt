@@ -13,7 +13,26 @@ import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
 internal object Outbox {
-    enum class Channel { CHAT, CONSOLE }
+    data class Channel(val key: String) {
+        val id: Long get() = when (this) {
+            CHAT -> Discord.chatId
+            CONSOLE -> Discord.consoleId
+            else -> key.toLongOrNull() ?: 0L
+        }
+        val url: String get() = when (this) {
+            CHAT -> Discord.connected.chatWebhookUrl
+            CONSOLE -> Discord.connected.consoleWebhookUrl
+            else -> ""
+        }
+
+        override fun toString() = key
+
+        companion object {
+            val CHAT = Channel("chat")
+            val CONSOLE = Channel("console")
+            fun of(id: Long) = Channel(id.toString())
+        }
+    }
 
     class Task(
         val build: (WebhookClient<Message>) -> WebhookMessageCreateAction<Message>,
@@ -32,7 +51,9 @@ internal object Outbox {
     private const val CAP = 200
     private const val CONSOLE_CAP = 2000
     private const val LIMIT = MESSAGE_MAX - 20
-    private val lanes = Channel.entries.associateWith { Lane() }
+    private val fixed = setOf(Channel.CHAT, Channel.CONSOLE)
+    private val lanes = HashMap<Channel, Lane>().apply { fixed.forEach { put(it, Lane()) } }
+    private var opened = false
     private val lines = ArrayDeque<String>()
     private var executor: ScheduledExecutorService? = null
     private var period = 0
@@ -57,6 +78,7 @@ internal object Outbox {
     @Synchronized
     fun open() {
         gen++
+        opened = true
         lanes.forEach { (channel, lane) ->
             lane.open = true
             lane.busy = false
@@ -67,6 +89,8 @@ internal object Outbox {
     @Synchronized
     fun reset() {
         gen++
+        opened = false
+        lanes.keys.retainAll(fixed)
         lanes.values.forEach {
             it.open = false
             it.busy = false
@@ -77,8 +101,13 @@ internal object Outbox {
     }
 
     @Synchronized
+    fun forget(channel: Channel) {
+        if (channel !in fixed) lanes.remove(channel)
+    }
+
+    @Synchronized
     fun submit(channel: Channel, task: Task) {
-        val lane = lanes.getValue(channel)
+        val lane = lanes.getOrPut(channel) { Lane().also { it.open = opened } }
         if (lane.queue.size >= CAP) {
             lane.dropped++
             return
@@ -170,7 +199,7 @@ internal object Outbox {
     private fun sendFailed(e: Throwable) = Discord.warnOnce("send-${e.javaClass.simpleName}", "Discord send failed: ${e.message}")
 
     private fun sendPlain(lane: Lane, channel: Channel, task: Task, mine: Int) {
-        val id = if (channel == Channel.CHAT) Discord.chatId else Discord.consoleId
+        val id = channel.id
         val target = Discord.jda?.getChannelById(MessageChannel::class.java, id)
         if (target == null) {
             Discord.warnOnce("plain-$channel", "The $channel channel $id was not found, cannot send messages")

@@ -54,6 +54,21 @@ class ResolverTest {
 
     private fun extras(keys: ExtraKeys) = IdExtras.decode(ResearchWire.decodeDefs(ResearchWire.encodeDefs(DefsView(emptyList(), IdExtras.encode(Gate.resolution)))).extras, keys)
 
+    @Test
+    fun itemsMapOnlyItemsWithoutOpenRecipe() {
+        val facts = WorldFacts(
+            listOf(
+                RecipeFact("a:only", "t", listOf("a:rare")),
+                RecipeFact("a:both_gated", "t", listOf("a:shared")),
+                RecipeFact("a:both_open", "t", listOf("a:shared")),
+                RecipeFact("a:open", "t", listOf("a:common"))
+            ),
+            emptyList()
+        )
+        val resolution = Resolver(facts, defs(listOf(node("n", recipe("a:only"), recipe("a:both_gated"))))).run()
+        assertEquals(mapOf("a:rare" to setOf("a:only")), resolution.items)
+    }
+
     @AfterTest
     fun restore() {
         Research.defs = ResearchDefs.EMPTY

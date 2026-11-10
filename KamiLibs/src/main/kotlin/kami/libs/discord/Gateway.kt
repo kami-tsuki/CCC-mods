@@ -3,6 +3,7 @@ package kami.libs.discord
 import net.dv8tion.jda.api.entities.MessageType
 import net.dv8tion.jda.api.events.guild.GuildBanEvent
 import net.dv8tion.jda.api.events.guild.GuildLeaveEvent
+import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
@@ -37,12 +38,17 @@ internal class Gateway(private val epoch: Int) : ListenerAdapter() {
         if (live && e.guild.idLong == Discord.guildId) Discord.each { it.onLeave(e.user.idLong) }
     }
 
+    override fun onGuildMemberJoin(e: GuildMemberJoinEvent) {
+        if (live && e.guild.idLong == Discord.guildId) Discord.each { it.onJoin(e.user.idLong) }
+    }
+
     override fun onGuildBan(e: GuildBanEvent) {
         if (live && e.guild.idLong == Discord.guildId) Discord.each { it.onBan(e.user.idLong) }
     }
 
     override fun onMessageReceived(e: MessageReceivedEvent) {
-        if (!live || !e.isFromGuild || e.isWebhookMessage || e.author.isBot || e.channel.idLong != Discord.chatId) return
+        val room = Rooms.byChannel[e.channel.idLong]
+        if (!live || !e.isFromGuild || e.isWebhookMessage || e.author.isBot || (e.channel.idLong != Discord.chatId && room == null)) return
         val m = e.message
         if (m.type != MessageType.DEFAULT && m.type != MessageType.INLINE_REPLY) return
         val full = Sanitize.inbound(m.contentDisplay)
@@ -55,9 +61,9 @@ internal class Gateway(private val epoch: Int) : ListenerAdapter() {
             ref?.let { Sanitize.inbound(it.member?.effectiveName ?: it.author.effectiveName) },
             ref?.let { Sanitize.inbound(it.contentDisplay).take(SNIPPET) },
             m.mentions.users.mapTo(HashSet()) { it.idLong },
-            m.attachments.map { Attachment(Sanitize.inbound(it.fileName), it.url) }
+            m.attachments.map { Attachment(Sanitize.inbound(it.fileName), it.url) }, e.channel.idLong
         )
-        Discord.each(true) { it.onMessage(inbound) }
+        if (room != null) Discord.each(true) { it.onRoom(room, inbound) } else Discord.each(true) { it.onMessage(inbound) }
     }
 
     override fun onSlashCommandInteraction(e: SlashCommandInteractionEvent) {

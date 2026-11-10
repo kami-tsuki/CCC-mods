@@ -9,6 +9,7 @@ import kami.economy.economy.Blacklist
 import kami.economy.economy.Stocks
 import kami.economy.economy.Variants
 import kami.economy.sane
+import kami.economy.villager.RecipeSeed
 import kami.libs.mc.ItemSpec
 import net.minecraft.core.HolderLookup
 import net.minecraft.core.component.DataComponents
@@ -34,6 +35,8 @@ object Dishes {
     )
     private val pathGuess = listOf("seeds" to 0.05, "seed" to 0.05, "egg" to 0.25, "sugar" to 0.15, "flour" to 0.15, "mushroom" to 0.2)
     @Volatile private var dishes: Map<String, Dish> = emptyMap()
+    @Volatile var recipes: List<Rec> = emptyList()
+        private set
 
     fun of(item: String): Dish? = dishes[item]
 
@@ -42,6 +45,8 @@ object Dishes {
     fun scan(server: MinecraftServer) {
         val access = server.registryAccess()
         val recs = server.recipeManager.recipes.mapNotNull { h -> runCatching { rec(h.value(), access) }.getOrNull() }
+        recipes = recs
+        RecipeSeed.reset()
         val patterns = Config.s.quests.namespaces.map { p -> Regex(p.split('*').joinToString(".*") { Regex.escape(it) }) }
         val scope = { id: String -> patterns.any { it.matches(id.substringBefore(':')) } }
         val plated = recs.filter { r -> r.inputs.any { i -> i.options.any { it.substringAfter(':') in plates } } }.mapTo(HashSet()) { it.out }

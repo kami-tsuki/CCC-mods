@@ -68,7 +68,12 @@ internal object EssMigrations {
         )
     )
 
-    fun register() = Migrations.register("ess", listOf(schema, players, banIps, warns, delivery, skills), after = listOf("libs"))
+    private val backfill = Migration(
+        "ess", 7, "skill_backfill",
+        ddl = listOf("CREATE TABLE ess_skill_backfill (uuid TEXT PRIMARY KEY, hours REAL NOT NULL, at INTEGER NOT NULL)")
+    )
+
+    fun register() = Migrations.register("ess", listOf(schema, players, banIps, warns, delivery, skills, backfill), after = listOf("libs"))
 
     private fun normalize(flags: Map<Flag, Collection<String>>) = LegacyData(Flag.entries.associateWith { flag ->
         flags[flag].orEmpty().mapNotNull { it.toUuidOrNull()?.toString() }.distinct().sorted()

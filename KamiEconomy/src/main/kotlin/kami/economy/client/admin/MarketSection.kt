@@ -34,6 +34,7 @@ object MarketSection {
                 NavItem("market.starter", tr("kami_economy.admin.nav.starter"), Icons.WHEAT),
                 NavItem("market.status", tr("kami_economy.admin.nav.status"), Icons.LOCK),
                 NavItem("market.frozen", tr("kami_economy.admin.nav.frozen"), Icons.WARNING),
+                NavItem("market.villagers", tr("kami_economy.admin.nav.villagers"), Icons.PEOPLE),
                 NavItem("market.stats", tr("kami_libs.common.statistics"), Icons.STATS),
                 NavItem("market.quests", tr("kami_libs.flow.quest"), Icons.STAR),
                 NavItem("market.quest_spawn", q("nav.spawn"), Icons.ADD),
@@ -48,6 +49,7 @@ object MarketSection {
                 "market.starter" -> StarterPage(app)
                 "market.status" -> StatusPage(app)
                 "market.frozen" -> FrozenPage(app)
+                "market.villagers" -> VillagerPage(app)
                 "market.stats" -> MarketStatsPage()
                 "market.quests" -> QuestAdminListPage(app)
                 "market.quest_spawn" -> QuestSpawnPage(app)

@@ -34,7 +34,9 @@
     "coins.JeiCheatMixin",
     "coins.ShopPaymentMixin",
     "coins.SophisticatedMenuMixin",
-    "coins.SophisticatedStorageMixin"
+    "coins.SophisticatedStorageMixin",
+    "villager.VillagerMixin",
+    "villager.WanderingTraderMixin"
   ],
   "client": [],
   "injectors": { "defaultRequire": 0 }

@@ -4,10 +4,14 @@ import kami.claims.Country
 import kami.claims.net.ResearchSync
 import kami.libs.config.ConfigFolder
 import kami.libs.config.Configs
+import kami.libs.config.Jsonc
 import kami.libs.log.Log
 import kami.libs.text.Phrase
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
 import net.minecraft.server.MinecraftServer
 import net.neoforged.neoforge.server.ServerLifecycleHooks
+import java.nio.file.Files
 
 object Research {
     var defs = ResearchDefs.EMPTY
@@ -26,7 +30,12 @@ object Research {
     fun reload(): String? {
         load(folder)
         ServerLifecycleHooks.getCurrentServer()?.let(::resolve)
-        return if (problems.isEmpty()) null else Phrase.of("kami_claims.research.reload.problems", problems.size).resolve()
+        val migrated = ResearchMigration.last
+        val text = if (defs.settings.migrations == MigrationMode.DRY_RUN) "kami_claims.research.reload.dry_run" else "kami_claims.research.reload.migrated"
+        return listOfNotNull(
+            if (problems.isEmpty()) null else Phrase.of("kami_claims.research.reload.problems", problems.size).resolve(),
+            if (migrated.isEmpty()) null else Phrase.of(text, migrated.size, migrated.map { it.country }.distinct().size).resolve()
+        ).joinToString(". ").ifEmpty { null }
     }
 
     fun resolve(server: MinecraftServer) {
@@ -49,17 +58,40 @@ object Research {
         ResearchSync.menus(null)
     }
 
+    private fun persistLevels(folder: ConfigFolder, levels: LevelsConfig, from: Int) {
+        val path = folder.root.resolve("levels.json")
+        val backup = folder.root.resolve("levels.json.v$from.bak")
+        runCatching {
+            if (!Files.exists(backup)) Files.copy(path, backup)
+            val json = Configs.json()
+            val text = Jsonc.annotate(json.encodeToString(JsonObject.serializer(), json.encodeToJsonElement(LevelsConfig.serializer(), levels).jsonObject), Docs.levels, listOf("Country levels and capacities", "Reload with /kami reload claims"))
+            Jsonc.write(path, text)
+            check(Jsonc.read(path) == text) { "the file was not written" }
+            log.info("levels.json upgraded to version {}, the previous file is kept as {}", levels.version, backup.fileName)
+        }.onFailure { log.warn("Could not write the upgraded levels.json: {}", it.message) }
+    }
+
+    private fun warnCustomTrees(trees: Map<String, TreeFile>) {
+        val json = Configs.json()
+        val custom = trees.filter { (id, file) ->
+            Defaults.trees[id]?.let { runCatching { json.encodeToString(TreeFile.serializer(), it) != json.encodeToString(TreeFile.serializer(), file) }.getOrDefault(false) } == true
+        }.keys
+        if (custom.isNotEmpty()) log.warn("Research trees {} differ from the bundled defaults, the legacy task signatures and costs may not match and queued progress may be remapped wrongly", custom)
+    }
+
     fun load(folder: ConfigFolder): List<String> {
         folder.startLoad()
         val settings = folder.file("research.json", ResearchSettings.serializer(), ResearchSettings(), Docs.settings, "Research settings")
         val stored = folder.file("levels.json", LevelsConfig.serializer(), LevelsConfig(version = LevelDefaults.VERSION), Docs.levels, "Country levels and capacities")
         val levels = LevelDefaults.upgrade(stored)
-        if (levels !== stored) log.info("levels.json upgraded in memory; set version: {} to keep your edits", LevelDefaults.VERSION)
+        if (levels !== stored) persistLevels(folder, levels, stored.version)
         val groups = folder.files("groups", Group.serializer(), Defaults.groups, Docs.group, "Research group")
         val trees = folder.files("trees", TreeFile.serializer(), Defaults.trees, Docs.tree, "Research tree")
+        warnCustomTrees(trees)
         val built = Validator.build(settings, levels, groups, trees, defs.trees, Defaults.trees)
         defs = built.defs
-        Queue.dropOrphans()
+        ResearchMigration.run()
+        if (defs.settings.migrations != MigrationMode.APPLY) Queue.dropOrphans()
         Levels.advanceAll()
         loadProblems = folder.problems + built.problems
         problems = loadProblems

@@ -12,6 +12,7 @@ import kami.claims.net.Sync
 import kami.claims.service.View
 import kami.claims.war.Wars
 import kami.libs.discord.Card
+import kami.libs.discord.DiscordApi
 import kami.libs.discord.DiscordFormat
 import kami.libs.discord.DiscordText
 import kami.libs.discord.EmbedField
@@ -30,6 +31,7 @@ object DiscordClaims {
         Mc.add(SlashCommand("country", "Show a country", listOf(SlashOption("name", "Country name, defaults to your own", required = false, complete = ::names)), public = true, run = ::country))
         Mc.add(SlashCommand("debts", "Your rent, prepaid credit and debts", linked = true, run = ::debts))
         Mc.section(::section)
+        DiscordApi.register(CountryChannels)
     }
 
     private fun text(locale: String, key: String, vararg args: Any) = DiscordText.get(KamiClaims.ID, locale, "kami_claims.discord.$key", *args)

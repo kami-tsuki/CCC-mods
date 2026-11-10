@@ -1,6 +1,7 @@
 package kami.essentials.skills
 
 import kami.essentials.Config
+import kami.essentials.chat.Names
 import kami.essentials.net.Net
 import kami.libs.db.Db
 import kami.libs.skills.SkillClass
@@ -14,6 +15,7 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
+import net.minecraft.stats.Stats as Vanilla
 import net.minecraft.world.entity.ai.attributes.AttributeModifier
 import net.neoforged.neoforge.common.util.FakePlayer
 import net.neoforged.neoforge.server.ServerLifecycleHooks
@@ -87,6 +89,7 @@ object SkillServer : SkillProvider {
     private val looked = HashMap<UUID, Int>()
     private val stamp = HashMap<UUID, Long>()
     private val carried = HashMap<UUID, Float>()
+    private val backfilled = HashSet<UUID>()
 
     val enabled get() = Config.s.skills.enabled
 
@@ -99,6 +102,7 @@ object SkillServer : SkillProvider {
                 val stale = text.substringBefore('|', "") != SkillTree.signature
                 UUID.fromString(r.string("uuid")) to SkillState(cls, r.double("xp"), r.long("active"), parse(text, cls), if (stale) 0 else r.int("refunds")).also { it.dirty = stale; it.reset = stale && cls != null }
             }.forEach { (id, s) -> states[id] = s }
+            query("SELECT uuid FROM ess_skill_backfill") { r -> UUID.fromString(r.string("uuid")) }.forEach { backfilled += it }
             query("SELECT uuid, item FROM ess_skill_craft") { r -> UUID.fromString(r.string("uuid")) to r.string("item") }
                 .forEach { (id, item) -> states[id]?.crafted?.add(item) }
         }
@@ -117,6 +121,7 @@ object SkillServer : SkillProvider {
         looked.clear()
         stamp.clear()
         carried.clear()
+        backfilled.clear()
         buckets.clear()
         bucketHour = 0
         SkillEvents.reset()
@@ -357,11 +362,30 @@ object SkillServer : SkillProvider {
     }
 
     fun joined(p: ServerPlayer) {
+        backfill(p)
         modifiers(p)
         val tag = p.persistentData
         if (!tag.contains(HEALTH)) return
         p.health = tag.getFloat(HEALTH)
         tag.remove(HEALTH)
+    }
+
+    private fun backfill(p: ServerPlayer) {
+        if (!enabled || staff(p) || !backfilled.add(p.uuid)) return
+        val c = Config.s.skills
+        val s = state(p.uuid)
+        val hours = min(Names.stat(p, Vanilla.PLAY_TIME) / 72_000.0 * c.backfillShare, c.backfillCapHours)
+        val seconds = ((hours * 3600).toLong() - s.active).coerceAtLeast(0)
+        Db.write { exec("INSERT OR IGNORE INTO ess_skill_backfill (uuid, hours, at) VALUES (?, ?, ?)", p.stringUUID, seconds / 3600.0, System.currentTimeMillis()) }
+        if (seconds == 0L) return
+        val xp = seconds / 3600.0 * c.playtimeXpPerHour
+        s.active += seconds
+        s.xp += xp
+        s.dirty = true
+        Stats.add("skill.xp.src", "p:${p.uuid}", "${tag(s)}:backfill", (xp * MILLI).roundToLong())
+        p.displayClientMessage(Component.translatable("kami_essentials.skill.backfill", seconds / 3600, xp.roundToLong()), false)
+        levelCheck(p, s)
+        Net.push(p)
     }
 
     fun carry(p: ServerPlayer, health: Float) {

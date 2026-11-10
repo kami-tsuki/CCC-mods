@@ -39,8 +39,6 @@ import net.minecraft.world.entity.player.Player
 import net.minecraft.world.entity.monster.Enemy
 import net.minecraft.world.Container
 import net.minecraft.world.inventory.AnvilMenu
-import net.minecraft.world.inventory.MerchantMenu
-import net.minecraft.world.item.trading.MerchantOffer
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.FishingRodItem
 import net.minecraft.world.item.Item
@@ -90,7 +88,7 @@ import net.neoforged.neoforge.event.entity.player.BonemealEvent
 import net.neoforged.neoforge.event.entity.player.CriticalHitEvent
 import net.neoforged.neoforge.event.entity.player.ItemFishedEvent
 import net.neoforged.neoforge.event.entity.player.PlayerEnchantItemEvent
-import net.neoforged.neoforge.event.entity.player.PlayerContainerEvent
+import net.neoforged.neoforge.event.entity.player.TradeWithVillagerEvent
 import net.neoforged.neoforge.event.entity.player.PlayerEvent
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent
 import net.neoforged.neoforge.event.entity.player.PlayerXpEvent
@@ -113,7 +111,7 @@ object SkillEvents {
     private val attachments = DeferredRegister.create(NeoForgeRegistries.Keys.ATTACHMENT_TYPES, KamiEssentials.ID)
     val codec: Codec<LongOpenHashSet> = Codec.LONG_STREAM.xmap({ LongOpenHashSet(it.toArray()) }, { it.longStream() })
     private val placed = attachments.register("placed", Supplier { AttachmentType.builder(Supplier { LongOpenHashSet() }).serialize(codec) { it.isNotEmpty() }.build() })
-    private val machines = setOf("create", "tfmg", "createvintageneoforged")
+    private val machines = setOf("create", "tfmg", "vintage")
     private val marked = setOf(Kind.ORE, Kind.LOG, Kind.STONE)
     private val sword by lazy { ItemStack(Items.NETHERITE_SWORD) }
     private val windUsed = HashMap<UUID, Long>()
@@ -137,14 +135,10 @@ object SkillEvents {
     private const val CALM_PAUSE = 200
     private const val MAX_KILL_SCALE = 40.0
     private const val SMELT_XP_CAP = 64
-    private const val DISCOUNT_STEP = 0.05
-    private const val DISCOUNT_MAX = 0.25
+    private const val TRADE_ORB = 4.5
     private var veining = false
     private var reflecting = false
-    private val discounts = HashMap<UUID, List<Discount>>()
     val spawned = setOf(MobSpawnType.NATURAL, MobSpawnType.CHUNK_GENERATION, MobSpawnType.STRUCTURE, MobSpawnType.PATROL, MobSpawnType.EVENT)
-
-    private class Discount(val offer: MerchantOffer, val prior: Int, val now: Int)
 
     private enum class Kind(val source: String?, val cls: SkillClass?) {
         ORE("ore", SkillClass.MINER), STONE("stone", SkillClass.MINER), LOG("log", SkillClass.LUMBER), LEAF(null, null), CROP("crop", SkillClass.FARMER)
@@ -169,8 +163,7 @@ object SkillEvents {
         FORGE_BUS.addListener<LivingChangeTargetEvent>(::target)
         FORGE_BUS.addListener<LivingEntityUseItemEvent.Finish>(::ate)
         FORGE_BUS.addListener<PlayerInteractEvent.RightClickItem>(EventPriority.LOWEST) { paper(it) }
-        FORGE_BUS.addListener<PlayerContainerEvent.Open>(::trading)
-        FORGE_BUS.addListener<PlayerContainerEvent.Close> { e -> (e.entity as? ServerPlayer)?.let(::untrade) }
+        FORGE_BUS.addListener<TradeWithVillagerEvent>(::traded)
         FORGE_BUS.addListener<PlayerXpEvent.PickupXp>(::orbs)
         FORGE_BUS.addListener<ItemFishedEvent>(::fished)
         FORGE_BUS.addListener<LivingDeathEvent>(::killed)
@@ -493,26 +486,12 @@ object SkillEvents {
         e.isCanceled = true
     }
 
-    private fun trading(e: PlayerContainerEvent.Open) {
+    private fun traded(e: TradeWithVillagerEvent) {
         val p = e.entity as? ServerPlayer ?: return
-        val menu = e.container as? MerchantMenu ?: return
-        untrade(p)
-        val pct = min(v(p, Effects.SILVER_TONGUE) * DISCOUNT_STEP, DISCOUNT_MAX)
-        if (pct <= 0) return
-        val applied = menu.offers.mapNotNull { o ->
-            floor(o.baseCostA.count * pct).toInt().takeIf { it > 0 }?.let { cut ->
-                val prior = o.specialPriceDiff
-                o.specialPriceDiff = prior - cut
-                Discount(o, prior, prior - cut)
-            }
-        }
-        if (applied.isEmpty()) return
-        discounts[p.uuid] = applied
-        SkillServer.used(p, Effects.SILVER_TONGUE)
-    }
-
-    private fun untrade(p: ServerPlayer) {
-        discounts.remove(p.uuid)?.forEach { if (it.now != 0 && it.offer.specialPriceDiff == it.now) it.offer.specialPriceDiff = it.prior }
+        val bonus = v(p, Effects.TRADE_XP)
+        if (bonus <= 0 || !e.merchantOffer.shouldRewardExp()) return
+        roll(p, TRADE_ORB * bonus).takeIf { it > 0 }?.let { p.giveExperiencePoints(it) }
+        SkillServer.used(p, Effects.TRADE_XP)
     }
 
     private fun orbs(e: PlayerXpEvent.PickupXp) {
@@ -639,11 +618,9 @@ object SkillEvents {
 
     fun reset() {
         windUsed.clear()
-        discounts.clear()
     }
 
     fun forget(p: ServerPlayer) {
-        untrade(p)
         windUsed.remove(p.uuid)
         Bonus.forget(p)
     }

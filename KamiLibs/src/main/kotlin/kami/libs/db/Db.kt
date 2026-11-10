@@ -7,21 +7,28 @@ import kotlinx.serialization.json.Json
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.storage.LevelResource
 import org.sqlite.JDBC
+import org.sqlite.SQLiteConnection
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Connection
+import java.sql.SQLException
 import java.time.LocalDate
 import java.util.Properties
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
 
 object Db {
-    private class Open(val file: Path, val writer: Writer, val reader: Connection, val scanner: Connection, val viewer: Connection) {
+    private class Open(val file: Path, val writer: Writer, val reader: Connection, val scanner: Connection, val viewer: Connection, val probe: Connection) {
         val session = Session(reader)
     }
 
     class ViewThread(task: Runnable, name: String) : Thread(task, name)
 
     private val log = Log.of("library")
+    private val watchdog by lazy { Executors.newSingleThreadScheduledExecutor { Thread(it, "kami-db-watchdog").apply { isDaemon = true } } }
+    private const val PROBE_MS = 8_000L
     private val pragmas = listOf(
         "PRAGMA journal_mode=WAL",
         "PRAGMA synchronous=NORMAL",
@@ -69,7 +76,7 @@ object Db {
         Files.createDirectories(path.parent)
         try {
             connect(path).use { c -> Migrator.run(Session(c), path, world) }
-            state = Open(path, Writer(connect(path)), reading(path), reading(path), reading(path))
+            state = Open(path, Writer(connect(path)), reading(path), reading(path), reading(path), reading(path, "PRAGMA temp_store=FILE"))
         } catch (e: Throwable) {
             log.error("{}", e.message, e)
             throw e
@@ -83,6 +90,8 @@ object Db {
         runCatching { s.reader.close() }
         runCatching { s.scanner.close() }
         runCatching { s.viewer.close() }
+        interrupt(s.probe)
+        synchronized(s.probe) { runCatching { s.probe.close() } }
         s.writer.close()
     }
 
@@ -96,6 +105,25 @@ object Db {
         val s = current()
         val c = if (Thread.currentThread() is ViewThread) s.viewer else s.scanner
         return synchronized(c) { Session(c).block() }
+    }
+
+    fun <T> probe(limitMs: Long = PROBE_MS, block: Session.() -> T): T {
+        val c = current().probe
+        return synchronized(c) {
+            val expired = AtomicBoolean()
+            val timer = watchdog.schedule({ expired.set(true); interrupt(c) }, limitMs, TimeUnit.MILLISECONDS)
+            try {
+                Session(c).block()
+            } catch (e: SQLException) {
+                if (expired.get()) throw TimeoutException("query took longer than $limitMs ms") else throw e
+            } finally {
+                timer.cancel(false)
+            }
+        }
+    }
+
+    private fun interrupt(c: Connection) {
+        runCatching { (c as SQLiteConnection).database.interrupt() }
     }
 
     fun backup() {
@@ -136,7 +164,7 @@ object Db {
 
     private fun current() = state ?: throw IllegalStateException("database is not open")
 
-    private fun reading(file: Path): Connection = connect(file).also { c -> c.createStatement().use { it.execute("PRAGMA query_only=ON") } }
+    private fun reading(file: Path, vararg extra: String): Connection = connect(file).also { c -> c.createStatement().use { s -> (listOf("PRAGMA query_only=ON") + extra).forEach(s::execute) } }
 
     private fun connect(file: Path): Connection = JDBC.createConnection("jdbc:sqlite:$file", Properties()).also { c ->
         c.createStatement().use { s -> pragmas.forEach { s.execute(it) } }

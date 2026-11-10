@@ -1,0 +1,6142 @@
+{
+"costs": {
+"buffs:absorption_1": 89000,
+"buffs:absorption_2": 2700000,
+"buffs:absorption_3": 230000000,
+"buffs:buff_points_1": 20000,
+"buffs:buff_points_2": 350000,
+"buffs:buff_points_3": 1800000,
+"buffs:buff_points_4": 20000000,
+"buffs:buffs_view": 1000,
+"buffs:citizens_1": 200,
+"buffs:citizens_10": 800000,
+"buffs:citizens_11": 2500000,
+"buffs:citizens_12": 7000000,
+"buffs:citizens_13": 20000000,
+"buffs:citizens_2": 1000,
+"buffs:citizens_3": 10000,
+"buffs:citizens_4": 10000,
+"buffs:citizens_5": 20000,
+"buffs:citizens_6": 30000,
+"buffs:citizens_7": 40000,
+"buffs:citizens_8": 50000,
+"buffs:citizens_9": 200000,
+"buffs:fire_resistance": 500000,
+"buffs:haste_1": 10000,
+"buffs:haste_2": 280000,
+"buffs:haste_3": 65000000,
+"buffs:health_boost_1": 1000000,
+"buffs:health_boost_2": 7400000,
+"buffs:health_boost_3": 340000000,
+"buffs:instant_health_1": 1000,
+"buffs:instant_health_2": 89000,
+"buffs:instant_health_3": 500000000,
+"buffs:jump_boost_1": 32000,
+"buffs:jump_boost_2": 870000,
+"buffs:jump_boost_3": 110000000,
+"buffs:land_1": 200,
+"buffs:land_10": 2000,
+"buffs:land_11": 10000,
+"buffs:land_12": 10000,
+"buffs:land_13": 10000,
+"buffs:land_14": 10000,
+"buffs:land_15": 10000,
+"buffs:land_16": 20000,
+"buffs:land_17": 20000,
+"buffs:land_18": 30000,
+"buffs:land_19": 30000,
+"buffs:land_2": 200,
+"buffs:land_20": 30000,
+"buffs:land_21": 40000,
+"buffs:land_22": 40000,
+"buffs:land_23": 45000,
+"buffs:land_24": 45000,
+"buffs:land_25": 45000,
+"buffs:land_26": 50000,
+"buffs:land_27": 50000,
+"buffs:land_28": 100000,
+"buffs:land_29": 100000,
+"buffs:land_3": 200,
+"buffs:land_30": 100000,
+"buffs:land_31": 200000,
+"buffs:land_32": 200000,
+"buffs:land_33": 400000,
+"buffs:land_34": 400000,
+"buffs:land_35": 400000,
+"buffs:land_36": 800000,
+"buffs:land_37": 800000,
+"buffs:land_38": 1500000,
+"buffs:land_39": 1500000,
+"buffs:land_4": 1000,
+"buffs:land_40": 1500000,
+"buffs:land_41": 2500000,
+"buffs:land_42": 2500000,
+"buffs:land_43": 4000000,
+"buffs:land_44": 4000000,
+"buffs:land_45": 4000000,
+"buffs:land_46": 7000000,
+"buffs:land_47": 7000000,
+"buffs:land_48": 12000000,
+"buffs:land_49": 12000000,
+"buffs:land_5": 1000,
+"buffs:land_50": 12000000,
+"buffs:land_6": 1000,
+"buffs:land_7": 1000,
+"buffs:land_8": 1000,
+"buffs:land_9": 2000,
+"buffs:loan_huge": 1000000,
+"buffs:loan_large": 100000,
+"buffs:loan_medium": 5000,
+"buffs:loan_slot_1": 2000,
+"buffs:loan_slot_2": 25000,
+"buffs:loan_small": 0,
+"buffs:luck_1": 710000,
+"buffs:luck_2": 4500000,
+"buffs:luck_3": 18000000,
+"buffs:night_vision": 15000,
+"buffs:provinces_1": 1000,
+"buffs:provinces_2": 20000,
+"buffs:provinces_3": 45000,
+"buffs:provinces_4": 200000,
+"buffs:provinces_5": 1500000,
+"buffs:provinces_6": 7000000,
+"buffs:regeneration_1": 5000,
+"buffs:regeneration_2": 160000,
+"buffs:regeneration_3": 180000000,
+"buffs:resistance_1": 6600,
+"buffs:resistance_2": 63000,
+"buffs:resistance_3": 83000000,
+"buffs:speed_1": 7600,
+"buffs:speed_2": 570000,
+"buffs:speed_3": 50000000,
+"buffs:strength_1": 50000,
+"buffs:strength_2": 1600000,
+"buffs:strength_3": 140000000,
+"buffs:treasury_1": 200,
+"buffs:treasury_10": 10000,
+"buffs:treasury_11": 10000,
+"buffs:treasury_12": 10000,
+"buffs:treasury_13": 10000,
+"buffs:treasury_14": 10000,
+"buffs:treasury_15": 20000,
+"buffs:treasury_16": 20000,
+"buffs:treasury_17": 20000,
+"buffs:treasury_18": 30000,
+"buffs:treasury_19": 30000,
+"buffs:treasury_2": 200,
+"buffs:treasury_20": 40000,
+"buffs:treasury_21": 40000,
+"buffs:treasury_22": 40000,
+"buffs:treasury_23": 45000,
+"buffs:treasury_24": 45000,
+"buffs:treasury_25": 50000,
+"buffs:treasury_26": 50000,
+"buffs:treasury_27": 50000,
+"buffs:treasury_28": 100000,
+"buffs:treasury_29": 100000,
+"buffs:treasury_3": 200,
+"buffs:treasury_30": 200000,
+"buffs:treasury_31": 200000,
+"buffs:treasury_32": 200000,
+"buffs:treasury_33": 400000,
+"buffs:treasury_34": 400000,
+"buffs:treasury_35": 800000,
+"buffs:treasury_36": 800000,
+"buffs:treasury_37": 800000,
+"buffs:treasury_38": 1500000,
+"buffs:treasury_39": 1500000,
+"buffs:treasury_4": 1000,
+"buffs:treasury_40": 2500000,
+"buffs:treasury_41": 2500000,
+"buffs:treasury_42": 2500000,
+"buffs:treasury_43": 4000000,
+"buffs:treasury_44": 4000000,
+"buffs:treasury_45": 7000000,
+"buffs:treasury_46": 7000000,
+"buffs:treasury_47": 7000000,
+"buffs:treasury_48": 12000000,
+"buffs:treasury_49": 12000000,
+"buffs:treasury_5": 1000,
+"buffs:treasury_50": 20000000,
+"buffs:treasury_6": 1000,
+"buffs:treasury_7": 1000,
+"buffs:treasury_8": 1000,
+"buffs:treasury_9": 2000,
+"buffs:water_breathing": 26000,
+"metallurgy:aluminum": 14400,
+"metallurgy:andesite_alloy_iron": 0,
+"metallurgy:andesite_alloy_zinc": 0,
+"metallurgy:antimony": 26100,
+"metallurgy:blast_furnace": 0,
+"metallurgy:blast_furnace_reinforcement": 7000,
+"metallurgy:brass": 0,
+"metallurgy:bronze": 1300,
+"metallurgy:cast_iron_ingot": 1100,
+"metallurgy:cast_iron_pressing": 1500,
+"metallurgy:ceramic_mold": 0,
+"metallurgy:chisel": 0,
+"metallurgy:chromium": 30000,
+"metallurgy:coal_compacting": 0,
+"metallurgy:cobalt": 28500,
+"metallurgy:coke": 2200,
+"metallurgy:composite_alloy": 67750,
+"metallurgy:constantan": 7050,
+"metallurgy:copper_casting": 0,
+"metallurgy:copper_compacting": 0,
+"metallurgy:copper_crushing": 0,
+"metallurgy:copper_deco": 0,
+"metallurgy:copper_melting": 0,
+"metallurgy:copper_pressing": 0,
+"metallurgy:copper_smelting": 0,
+"metallurgy:copper_washing": 0,
+"metallurgy:electrowinning": 36300,
+"metallurgy:electrum": 1775,
+"metallurgy:fireclay": 1500,
+"metallurgy:furnace": 0,
+"metallurgy:gold_casting": 0,
+"metallurgy:gold_compacting": 0,
+"metallurgy:gold_crushing": 0,
+"metallurgy:gold_melting": 0,
+"metallurgy:gold_pressing": 0,
+"metallurgy:gold_smelting": 0,
+"metallurgy:gold_washing": 0,
+"metallurgy:graphite": 10400,
+"metallurgy:heat_resistant_alloy": 73850,
+"metallurgy:hydrometallurgy": 23100,
+"metallurgy:ingot_mold": 2500,
+"metallurgy:iridium": 37500,
+"metallurgy:iron_casting": 0,
+"metallurgy:iron_compacting": 0,
+"metallurgy:iron_crushing": 0,
+"metallurgy:iron_deco": 0,
+"metallurgy:iron_melting": 0,
+"metallurgy:iron_pressing": 0,
+"metallurgy:iron_smelting": 0,
+"metallurgy:iron_washing": 0,
+"metallurgy:lead_casting": 0,
+"metallurgy:lead_compacting": 0,
+"metallurgy:lead_crushing": 0,
+"metallurgy:lead_melting": 0,
+"metallurgy:lead_pressing": 0,
+"metallurgy:lead_smelting": 0,
+"metallurgy:lead_washing": 0,
+"metallurgy:lightweight_alloy": 61650,
+"metallurgy:lithium": 11675,
+"metallurgy:lunar_resources": 54025,
+"metallurgy:magnesium": 40500,
+"metallurgy:magnetic_alloy": 13000,
+"metallurgy:martian_steel": 66225,
+"metallurgy:mercury_tungsten": 78425,
+"metallurgy:molten_cast_iron": 1000,
+"metallurgy:molybdenum": 31500,
+"metallurgy:netherite": 500,
+"metallurgy:netherite_diamond": 130275,
+"metallurgy:netherite_emerald": 99775,
+"metallurgy:netherite_gold": 69275,
+"metallurgy:netherite_iron": 39000,
+"metallurgy:nethersteel": 34500,
+"metallurgy:nickel_compacting": 0,
+"metallurgy:nickel_crushing": 0,
+"metallurgy:nickel_pressing": 0,
+"metallurgy:nickel_smelting": 0,
+"metallurgy:platinum": 36000,
+"metallurgy:resonant_metals": 22500,
+"metallurgy:silicon": 9225,
+"metallurgy:silver_casting": 0,
+"metallurgy:silver_compacting": 0,
+"metallurgy:silver_crushing": 0,
+"metallurgy:silver_melting": 0,
+"metallurgy:silver_pressing": 0,
+"metallurgy:silver_smelting": 0,
+"metallurgy:sodium": 15875,
+"metallurgy:steel": 5000,
+"metallurgy:stone_tools": 0,
+"metallurgy:stonecutter": 0,
+"metallurgy:tantalum": 36900,
+"metallurgy:tfmg_blast_furnace": 2000,
+"metallurgy:tin_casting": 0,
+"metallurgy:tin_compacting": 0,
+"metallurgy:tin_crushing": 0,
+"metallurgy:tin_melting": 0,
+"metallurgy:tin_pressing": 0,
+"metallurgy:tin_smelting": 0,
+"metallurgy:tin_washing": 0,
+"metallurgy:titanium": 46500,
+"metallurgy:tough_alloys": 58600,
+"metallurgy:tungsten": 51000,
+"metallurgy:tungsten_carbide": 55550,
+"metallurgy:uranium": 49500,
+"metallurgy:vanadium": 25500,
+"metallurgy:venus_resources": 67750,
+"metallurgy:zinc_casting": 0,
+"metallurgy:zinc_compacting": 0,
+"metallurgy:zinc_crushing": 0,
+"metallurgy:zinc_melting": 0,
+"metallurgy:zinc_pressing": 0,
+"metallurgy:zinc_smelting": 0,
+"metallurgy:zinc_washing": 0,
+"military:adv_diamond_sword": 130275,
+"military:adv_emerald_sword": 99775,
+"military:adv_gold_sword": 69275,
+"military:adv_iron_sword": 39000,
+"military:advanced_potato_cannon": 25500,
+"military:aluminum_sword": 14400,
+"military:ammo_12g": 17420,
+"military:ammo_22wmr": 15875,
+"military:ammo_308": 41100,
+"military:ammo_30_06": 33300,
+"military:ammo_338": 55500,
+"military:ammo_357mag": 26100,
+"military:ammo_40mm": 51900,
+"military:ammo_45_70": 23100,
+"military:ammo_45acp": 19040,
+"military:ammo_500mag": 49500,
+"military:ammo_50ae": 32700,
+"military:ammo_50bmg": 67500,
+"military:ammo_556x45": 32100,
+"military:ammo_57x28": 38100,
+"military:ammo_58x42": 36300,
+"military:ammo_6851fury": 44100,
+"military:ammo_762x39": 27900,
+"military:ammo_792x57": 30300,
+"military:ammo_9mm": 14400,
+"military:ammo_basics": 14400,
+"military:ammo_box_4": 67750,
+"military:ammo_box_diamond": 52500,
+"military:ammo_box_gold": 37500,
+"military:ammo_box_iron": 22500,
+"military:ammo_mods_1": 64500,
+"military:ammo_mods_2": 82500,
+"military:ammo_rpg_rocket": 59100,
+"military:ap_munitions": 37500,
+"military:basic_munitions": 22500,
+"military:bayonets": 25500,
+"military:bow_arrows": 0,
+"military:brass_melee": 1620,
+"military:brew_amplifiers": 4355,
+"military:brewing_stand": 1620,
+"military:bronze_autocannon": 34500,
+"military:bronze_cannon": 28500,
+"military:bronze_melee": 1125,
+"military:cannon_basics": 22500,
+"military:cast_iron_autocannon": 31500,
+"military:cbc_at_ap": 45000,
+"military:copper_melee": 0,
+"military:crossbow": 720,
+"military:diamond_melee": 5625,
+"military:dragon_breath": 7055,
+"military:drop_mortar": 25500,
+"military:electro_weapons": 22500,
+"military:explosives_chem": 18225,
+"military:fire_charge": 2000,
+"military:flamethrower": 25500,
+"military:gas_mask": 34500,
+"military:golden_barrel": 39300,
+"military:grapeshot_shrapnel": 34500,
+"military:grenades": 25500,
+"military:grips_1": 27000,
+"military:grips_2": 43500,
+"military:gun_aa12": 48300,
+"military:gun_ai_awp": 55500,
+"military:gun_ak47": 31500,
+"military:gun_aug": 36900,
+"military:gun_b93r": 21605,
+"military:gun_cz75": 18225,
+"military:gun_db_long": 22500,
+"military:gun_db_short": 17420,
+"military:gun_deagle": 34500,
+"military:gun_deagle_golden": 39300,
+"military:gun_fn_evolys": 53700,
+"military:gun_fn_fal": 42900,
+"military:gun_g36k": 39300,
+"military:gun_glock_17": 14400,
+"military:gun_hk416d": 41700,
+"military:gun_hk_g3": 41100,
+"military:gun_hk_mk23": 24900,
+"military:gun_hk_mp5a5": 24300,
+"military:gun_kar98": 30300,
+"military:gun_lonetrail": 35700,
+"military:gun_m1014": 38700,
+"military:gun_m107": 67500,
+"military:gun_m16a1": 32100,
+"military:gun_m16a4": 33900,
+"military:gun_m1911": 19880,
+"military:gun_m249": 50700,
+"military:gun_m320": 51900,
+"military:gun_m4a1": 35100,
+"military:gun_m700": 33300,
+"military:gun_m870": 25500,
+"military:gun_m95": 67500,
+"military:gun_m9a4": 15125,
+"military:gun_minigun": 63000,
+"military:gun_mk14": 47100,
+"military:gun_p320": 23700,
+"military:gun_p90": 38100,
+"military:gun_qbz_191": 40500,
+"military:gun_qbz_95": 36300,
+"military:gun_rhino357": 26100,
+"military:gun_rpg7": 59100,
+"military:gun_rpk": 42300,
+"military:gun_scar_h": 44700,
+"military:gun_scar_l": 37500,
+"military:gun_sks_tactical": 29100,
+"military:gun_spas_12": 45900,
+"military:gun_spr15hb": 43500,
+"military:gun_springfield1873": 23100,
+"military:gun_taurus500": 49500,
+"military:gun_timeless50": 32700,
+"military:gun_type_81": 27900,
+"military:gun_ump45": 26700,
+"military:gun_uzi": 22500,
+"military:gun_vector45": 39900,
+"military:gunsmithing": 14400,
+"military:he_munitions": 28500,
+"military:immersive_attachments": 28500,
+"military:iron_melee": 0,
+"military:knives_primitive": 0,
+"military:lasers": 45000,
+"military:lead_sword": 720,
+"military:mags_1": 30000,
+"military:mags_2": 48000,
+"military:mags_3": 66000,
+"military:martian_sword": 66225,
+"military:mg_autocannon": 48000,
+"military:muzzle_1": 34500,
+"military:muzzle_2": 52500,
+"military:netherite_melee": 14400,
+"military:nethersteel_cannon": 52500,
+"military:quad_potato_cannon": 11025,
+"military:restraints": 34500,
+"military:rifled_barrels": 42000,
+"military:rocket_pods": 48000,
+"military:scopes_high": 58500,
+"military:scopes_low": 31500,
+"military:scopes_mid": 40500,
+"military:sights_pistol": 25500,
+"military:sights_rifle": 27000,
+"military:silencers_1": 46500,
+"military:silencers_2": 61500,
+"military:silencers_3": 76500,
+"military:special_shells": 42000,
+"military:spectral_arrow": 980,
+"military:steel_cannon": 37500,
+"military:steel_melee": 8100,
+"military:stocks_1": 28500,
+"military:stocks_2": 49500,
+"military:tipped_arrow": 5180,
+"military:tnt": 3600,
+"military:twin_autocannon": 43500,
+"technology:accumulator": 27000,
+"technology:adjustable_gearshift": 1500,
+"technology:advanced_circuit": 67750,
+"technology:advanced_circuit_board": 43500,
+"technology:air_separation": 22500,
+"technology:aluminum_fluids": 15875,
+"technology:aluminum_kinetics": 15875,
+"technology:amber_glass": 19050,
+"technology:ammonia": 24900,
+"technology:andesite_casing": 0,
+"technology:andesite_funnels": 0,
+"technology:arc_furnace": 31500,
+"technology:aromatics": 36600,
+"technology:astronomy": 51000,
+"technology:auto_lander": 58600,
+"technology:autogas_engine": 26100,
+"technology:base_catalysts": 24300,
+"technology:basin": 0,
+"technology:bearings": 0,
+"technology:belt": 0,
+"technology:bio_engines": 46500,
+"technology:blast_furnace_machines": 2400,
+"technology:blaze_burner": 0,
+"technology:brackets": 0,
+"technology:brass_casing": 1200,
+"technology:brass_curios": 2000,
+"technology:brass_funnels": 1800,
+"technology:brass_hand": 1200,
+"technology:brass_motion": 2400,
+"technology:brass_pipes": 1600,
+"technology:brass_sifting": 2925,
+"technology:carbon_fiber_composite": 37500,
+"technology:carbon_fiber_strands": 32100,
+"technology:card_system": 2925,
+"technology:cardboard": 0,
+"technology:cart_assembler": 0,
+"technology:cast_iron_pipes": 1500,
+"technology:cast_iron_tank": 1800,
+"technology:catalytic_reforming": 36300,
+"technology:chain_conveyor": 700,
+"technology:chain_drives": 0,
+"technology:chassis": 0,
+"technology:chemica_lab": 14400,
+"technology:chlor_alkali": 24000,
+"technology:chute": 0,
+"technology:cobalt_catalyst": 29100,
+"technology:compressor": 28500,
+"technology:concrete": 8100,
+"technology:conductive_paste": 39000,
+"technology:connected_brass_drives": 2000,
+"technology:connected_clutches": 0,
+"technology:connected_gearing": 0,
+"technology:connected_precision": 3800,
+"technology:connected_redstone": 2600,
+"technology:contact_process": 26100,
+"technology:copper_casing": 0,
+"technology:copper_table_cover": 1600,
+"technology:copycats": 0,
+"technology:crafting_table": 0,
+"technology:create_radar": 27000,
+"technology:crushing_wheels": 0,
+"technology:cryogenic_fuels": 69275,
+"technology:cryogenics": 33300,
+"technology:cuisine": 800,
+"technology:curving_press": 6075,
+"technology:deployer": 2000,
+"technology:depot": 0,
+"technology:desk_utilities": 0,
+"technology:distillery": 13000,
+"technology:dnd_burner": 1300,
+"technology:dnd_fan_sails": 2925,
+"technology:dnd_heavy_machines": 4000,
+"technology:drill_saw": 0,
+"technology:electrolysis_machine": 66225,
+"technology:electrolyzer": 14400,
+"technology:electron_tubes": 1300,
+"technology:electronic_circuit": 39900,
+"technology:encased_fan": 0,
+"technology:enrichment": 60125,
+"technology:epoxy": 36900,
+"technology:exhaust_stacks": 7050,
+"technology:extendo_wand": 4500,
+"technology:factory_gauge": 3800,
+"technology:fan_catalysts": 2000,
+"technology:fermentation": 24300,
+"technology:firebox": 6000,
+"technology:fireproof_vat": 9000,
+"technology:first_rocket": 52500,
+"technology:fluid_basics": 700,
+"technology:fluid_handling": 900,
+"technology:fluid_mechanism": 800,
+"technology:flywheel": 1600,
+"technology:freezer": 33000,
+"technology:gantry": 0,
+"technology:gauges": 0,
+"technology:gearbox": 0,
+"technology:gn_brass_gears": 2300,
+"technology:gn_gears": 0,
+"technology:gn_industrial_gears": 4350,
+"technology:hand_crank": 0,
+"technology:hanging_signs": 0,
+"technology:harvester_plough": 0,
+"technology:heat_shield_t2": 66225,
+"technology:heat_shield_t3": 76900,
+"technology:high_cetane_engine": 49500,
+"technology:high_octane_engine": 51900,
+"technology:hose_pulley": 1000,
+"technology:hydrofluoric_acid": 27000,
+"technology:hydrogen_production": 19050,
+"technology:hydrogen_turbine": 52500,
+"technology:hypertubes": 3800,
+"technology:interplanetary_navigator": 61650,
+"technology:inventory_access": 2000,
+"technology:item_filter": 0,
+"technology:item_vault": 0,
+"technology:large_engine": 43500,
+"technology:large_generator": 34500,
+"technology:large_transformer": 40500,
+"technology:large_water_wheel": 0,
+"technology:latex_rubber": 11675,
+"technology:machine_input": 8650,
+"technology:mechanical_arm": 3500,
+"technology:mechanical_crafter": 2000,
+"technology:mechanical_press": 0,
+"technology:mechanical_roller": 2200,
+"technology:millstone": 0,
+"technology:mixer": 0,
+"technology:nitric_acid": 36300,
+"technology:nitroglycerin": 37500,
+"technology:nylon": 37500,
+"technology:packaging": 0,
+"technology:pg_basics": 11675,
+"technology:pg_circuits": 31500,
+"technology:pg_consumers": 15875,
+"technology:pg_control": 22500,
+"technology:pg_solar": 30000,
+"technology:pg_storage": 18225,
+"technology:pharma_extraction": 23100,
+"technology:pharma_lab": 14400,
+"technology:pharma_machines": 26100,
+"technology:pharma_sterile": 30300,
+"technology:pharma_synthesis": 40500,
+"technology:phosphoric_acid": 24300,
+"technology:pistons": 0,
+"technology:plastic_fluids": 17425,
+"technology:plastics": 15875,
+"technology:platinum_electrodes": 36600,
+"technology:polyethylene": 30000,
+"technology:portable_fluid_interface": 1200,
+"technology:potato_cannon": 5000,
+"technology:precision_mechanism": 3000,
+"technology:propeller_whisk": 0,
+"technology:ptfe": 29100,
+"technology:pumpjack": 11025,
+"technology:pvc": 30900,
+"technology:radial_engine": 30000,
+"technology:railways": 3500,
+"technology:reactor_casing": 52500,
+"technology:reactor_controller": 61650,
+"technology:reactor_core": 58600,
+"technology:reactor_shell": 55550,
+"technology:redstone_circuits": 2200,
+"technology:regular_engine": 25500,
+"technology:reinforced_iridium": 38100,
+"technology:rocket_electronics": 51600,
+"technology:rocket_waypoint": 83000,
+"technology:rope_pulley": 0,
+"technology:rose_quartz": 700,
+"technology:rotation_speed_controller": 3500,
+"technology:rubber": 15875,
+"technology:schematics": 0,
+"technology:sensors_displays": 2400,
+"technology:shafts_cogs": 0,
+"technology:sifting": 0,
+"technology:simple_engine": 17425,
+"technology:simple_large_engine": 34500,
+"technology:slicer": 0,
+"technology:smart_chute": 2000,
+"technology:smart_fluid_pipe": 2000,
+"technology:smog_brass": 2300,
+"technology:smog_control": 1300,
+"technology:smog_precision": 11025,
+"technology:space_life_support": 54025,
+"technology:spring_coiling": 0,
+"technology:sprinklers": 800,
+"technology:sr_acid_etching": 15125,
+"technology:sr_ash_ceramics": 13000,
+"technology:sr_combustion_belt": 14400,
+"technology:sr_infernal": 18225,
+"technology:sr_resonance_chamber": 20725,
+"technology:sr_sulfur_burner": 12325,
+"technology:sr_thermal_systems": 23100,
+"technology:sr_thermo_kinetics": 11675,
+"technology:sr_thermochemical_casing": 16650,
+"technology:steam_engine": 1500,
+"technology:steam_whistle": 1500,
+"technology:steel_fluids": 5500,
+"technology:steel_kinetics": 6550,
+"technology:steel_mechanism": 8000,
+"technology:sticky_launcher": 1000,
+"technology:stock_logistics": 2600,
+"technology:sturdy_sheet": 2600,
+"technology:sturdy_sifting": 2000,
+"technology:sulfuric_acid": 9800,
+"technology:surface_scanner": 9800,
+"technology:tantalum_capacitor": 39300,
+"technology:tfmg_circuits": 25500,
+"technology:tfmg_components": 23100,
+"technology:tfmg_electricity": 24000,
+"technology:tfmg_electronics": 26100,
+"technology:tfmg_generator": 13700,
+"technology:tfmg_structures": 6550,
+"technology:titanium_tetrachloride": 29700,
+"technology:toolbox": 0,
+"technology:train_controls": 4000,
+"technology:transformers": 28500,
+"technology:transmitter": 2000,
+"technology:turbine_engine": 37500,
+"technology:uranium_hexafluoride": 55550,
+"technology:uranium_leaching": 52500,
+"technology:uranium_rod": 61650,
+"technology:vacuum_chamber": 1200,
+"technology:vat_centrifuge": 18225,
+"technology:vat_mixer": 10400,
+"technology:vats": 8000,
+"technology:venus_chemistry": 72325,
+"technology:vibration_mechanism": 3975,
+"technology:vintage_laser": 3500,
+"technology:vintage_lathe": 3800,
+"technology:vintage_machines": 800,
+"technology:vt_beacon": 2925,
+"technology:vt_compass": 0,
+"technology:vt_enchanting": 1300,
+"technology:vt_explorer": 1300,
+"technology:vt_hopper": 0,
+"technology:vt_observer": 0,
+"technology:vt_pistons": 0,
+"technology:vt_rails": 0,
+"technology:vt_redstone": 0,
+"technology:vt_respawn": 2800,
+"technology:vt_scribe": 0,
+"technology:vt_signals": 0,
+"technology:vt_smithing": 0,
+"technology:vt_workshop": 0,
+"technology:wastewater_treatment": 20725,
+"technology:water_wheel": 0,
+"technology:weighted_ejector": 0,
+"technology:winding_machine": 8500,
+"technology:windmill": 0,
+"technology:wood_building": 0,
+"technology:wrench_goggles": 0,
+"technology:yellowcake": 58600,
+"tools_armor:advanced_netherite_diamond": 130275,
+"tools_armor:advanced_netherite_emerald": 99775,
+"tools_armor:advanced_netherite_gold": 69275,
+"tools_armor:advanced_netherite_iron": 39000,
+"tools_armor:advanced_respirators": 5625,
+"tools_armor:aluminum_tools": 15875,
+"tools_armor:anti_radiation_suit": 52500,
+"tools_armor:armored_backtanks": 3000,
+"tools_armor:backpack": 2300,
+"tools_armor:backpack_advanced_upgrades": 7050,
+"tools_armor:backpack_everlasting": 37500,
+"tools_armor:backpack_inception": 25500,
+"tools_armor:backpack_stack_1": 3600,
+"tools_armor:backpack_stack_2": 8100,
+"tools_armor:backpack_stack_3": 22500,
+"tools_armor:backpack_tiers": 2925,
+"tools_armor:backpack_upgrades": 2925,
+"tools_armor:backpack_utility_upgrades": 4350,
+"tools_armor:brass_armor": 2000,
+"tools_armor:brass_hammer_paxel": 2000,
+"tools_armor:brass_tools": 2000,
+"tools_armor:bronze_armor": 1300,
+"tools_armor:bronze_hammer_paxel": 1300,
+"tools_armor:bronze_tools": 1300,
+"tools_armor:cardboard_armor": 0,
+"tools_armor:copper_armor": 0,
+"tools_armor:copper_backtank": 3000,
+"tools_armor:copper_diving_gear": 4200,
+"tools_armor:copper_hammer_paxel": 0,
+"tools_armor:copper_storage": 0,
+"tools_armor:copper_tools": 0,
+"tools_armor:diamond_armor": 5000,
+"tools_armor:diamond_backpack": 6075,
+"tools_armor:diamond_backtank": 5000,
+"tools_armor:diamond_goggle_helmet": 5000,
+"tools_armor:diamond_hammer_paxel": 5000,
+"tools_armor:diamond_storage": 5625,
+"tools_armor:diamond_tools": 5000,
+"tools_armor:extended_wrench": 3600,
+"tools_armor:fxnt_advanced": 14400,
+"tools_armor:fxnt_network": 5625,
+"tools_armor:fxnt_storage": 2000,
+"tools_armor:goggle_helmets": 1200,
+"tools_armor:goggles": 0,
+"tools_armor:gold_armor": 0,
+"tools_armor:gold_backpack": 3600,
+"tools_armor:gold_hammer_paxel": 800,
+"tools_armor:gold_storage": 1300,
+"tools_armor:gold_tools": 0,
+"tools_armor:handheld_drill": 3800,
+"tools_armor:iron_armor": 0,
+"tools_armor:iron_hammer_paxel": 800,
+"tools_armor:iron_space_suit": 52500,
+"tools_armor:iron_storage": 0,
+"tools_armor:iron_tools": 0,
+"tools_armor:jetpack": 4600,
+"tools_armor:lab_gear": 26100,
+"tools_armor:lead_tools": 800,
+"tools_armor:leather_armor": 0,
+"tools_armor:martian_gear": 66225,
+"tools_armor:martian_space_suit": 67750,
+"tools_armor:netherite_armor": 14000,
+"tools_armor:netherite_backpack": 15875,
+"tools_armor:netherite_diving": 15000,
+"tools_armor:netherite_goggle_helmet": 14000,
+"tools_armor:netherite_hammer_paxel": 14000,
+"tools_armor:netherite_storage": 18225,
+"tools_armor:netherite_tools": 14000,
+"tools_armor:numismatics_banking": 5625,
+"tools_armor:numismatics_basics": 3600,
+"tools_armor:packing_tape": 2300,
+"tools_armor:portable_drill": 14400,
+"tools_armor:respirators": 1300,
+"tools_armor:rose_quartz_armor": 1775,
+"tools_armor:shield": 0,
+"tools_armor:shulker_storage": 18225,
+"tools_armor:sophisticated_omega": 67750,
+"tools_armor:spout_gun": 4350,
+"tools_armor:steel_armor": 7500,
+"tools_armor:steel_tools": 7500,
+"tools_armor:sticky_gear": 2925,
+"tools_armor:storage_advanced_upgrades": 7050,
+"tools_armor:storage_in_motion": 2025,
+"tools_armor:storage_network": 3600,
+"tools_armor:storage_stack_1": 2025,
+"tools_armor:storage_stack_2": 8100,
+"tools_armor:storage_stack_3": 22500,
+"tools_armor:storage_upgrades": 1775,
+"tools_armor:storage_utility_upgrades": 4350,
+"tools_armor:sturdy_armor": 4350,
+"tools_armor:tfmg_tools": 17425,
+"tools_armor:turtle_helmet": 1200,
+"tools_armor:vibrant_vaults": 5625,
+"tools_armor:wooden_storage": 0
+},
+"sigs": {
+"buffs:absorption_1": [
+"deposit|minecraft:nether_star"
+],
+"buffs:absorption_2": [
+"deposit|minecraft:nether_star"
+],
+"buffs:absorption_3": [
+"deposit|minecraft:nether_star"
+],
+"buffs:buff_points_1": [
+"deposit|minecraft:nether_star"
+],
+"buffs:buff_points_2": [
+"deposit|minecraft:nether_star"
+],
+"buffs:buff_points_3": [
+"deposit|minecraft:nether_star"
+],
+"buffs:buff_points_4": [
+"deposit|minecraft:nether_star"
+],
+"buffs:buffs_view": [
+"deposit|minecraft:emerald_block"
+],
+"buffs:citizens_1": [
+"deposit|#c:storage_blocks/nickel"
+],
+"buffs:citizens_10": [
+"deposit|#c:storage_blocks/nickel",
+"deposit|minecraft:emerald_block"
+],
+"buffs:citizens_11": [
+"deposit|#c:storage_blocks/nickel",
+"deposit|minecraft:emerald_block"
+],
+"buffs:citizens_12": [
+"deposit|#c:storage_blocks/nickel",
+"deposit|minecraft:emerald_block"
+],
+"buffs:citizens_13": [
+"deposit|#c:storage_blocks/nickel",
+"deposit|minecraft:emerald_block"
+],
+"buffs:citizens_2": [
+"deposit|#c:storage_blocks/nickel"
+],
+"buffs:citizens_3": [
+"deposit|#c:storage_blocks/nickel"
+],
+"buffs:citizens_4": [
+"deposit|#c:storage_blocks/nickel"
+],
+"buffs:citizens_5": [
+"deposit|#c:storage_blocks/nickel"
+],
+"buffs:citizens_6": [
+"deposit|#c:storage_blocks/nickel"
+],
+"buffs:citizens_7": [
+"deposit|#c:storage_blocks/nickel"
+],
+"buffs:citizens_8": [
+"deposit|#c:storage_blocks/nickel"
+],
+"buffs:citizens_9": [
+"deposit|#c:storage_blocks/nickel",
+"deposit|minecraft:emerald_block"
+],
+"buffs:fire_resistance": [
+"deposit|minecraft:nether_star"
+],
+"buffs:haste_1": [
+"deposit|minecraft:nether_star"
+],
+"buffs:haste_2": [
+"deposit|minecraft:nether_star"
+],
+"buffs:haste_3": [
+"deposit|minecraft:nether_star"
+],
+"buffs:health_boost_1": [
+"deposit|minecraft:nether_star"
+],
+"buffs:health_boost_2": [
+"deposit|minecraft:nether_star"
+],
+"buffs:health_boost_3": [
+"deposit|minecraft:nether_star"
+],
+"buffs:instant_health_1": [
+"deposit|minecraft:nether_star"
+],
+"buffs:instant_health_2": [
+"deposit|minecraft:nether_star"
+],
+"buffs:instant_health_3": [
+"deposit|minecraft:nether_star"
+],
+"buffs:jump_boost_1": [
+"deposit|minecraft:nether_star"
+],
+"buffs:jump_boost_2": [
+"deposit|minecraft:nether_star"
+],
+"buffs:jump_boost_3": [
+"deposit|minecraft:nether_star"
+],
+"buffs:land_1": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_10": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_11": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_12": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_13": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_14": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_15": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_16": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_17": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_18": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_19": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_2": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_20": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_21": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_22": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_23": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_24": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_25": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_26": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_27": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_28": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_29": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_3": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_30": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_31": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_32": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_33": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_34": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_35": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_36": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_37": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_38": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_39": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_4": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_40": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_41": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_42": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_43": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_44": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_45": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_46": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_47": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_48": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_49": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_5": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_50": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_6": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_7": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_8": [
+"deposit|minecraft:copper_block"
+],
+"buffs:land_9": [
+"deposit|minecraft:copper_block"
+],
+"buffs:loan_huge": [
+"deposit|minecraft:gold_block"
+],
+"buffs:loan_large": [
+"deposit|minecraft:gold_block"
+],
+"buffs:loan_medium": [
+"deposit|minecraft:gold_block"
+],
+"buffs:loan_slot_1": [
+"deposit|minecraft:gold_block"
+],
+"buffs:loan_slot_2": [
+"deposit|minecraft:gold_block"
+],
+"buffs:loan_small": [
+"deposit|minecraft:gold_ingot"
+],
+"buffs:luck_1": [
+"deposit|minecraft:nether_star"
+],
+"buffs:luck_2": [
+"deposit|minecraft:nether_star"
+],
+"buffs:luck_3": [
+"deposit|minecraft:nether_star"
+],
+"buffs:night_vision": [
+"deposit|minecraft:nether_star"
+],
+"buffs:provinces_1": [
+"deposit|#c:ingots/tin"
+],
+"buffs:provinces_2": [
+"deposit|#c:ingots/tin"
+],
+"buffs:provinces_3": [
+"deposit|#c:storage_blocks/tin"
+],
+"buffs:provinces_4": [
+"deposit|#c:storage_blocks/tin"
+],
+"buffs:provinces_5": [
+"deposit|#c:storage_blocks/tin"
+],
+"buffs:provinces_6": [
+"deposit|#c:storage_blocks/tin"
+],
+"buffs:regeneration_1": [
+"deposit|minecraft:nether_star"
+],
+"buffs:regeneration_2": [
+"deposit|minecraft:nether_star"
+],
+"buffs:regeneration_3": [
+"deposit|minecraft:nether_star"
+],
+"buffs:resistance_1": [
+"deposit|minecraft:nether_star"
+],
+"buffs:resistance_2": [
+"deposit|minecraft:nether_star"
+],
+"buffs:resistance_3": [
+"deposit|minecraft:nether_star"
+],
+"buffs:speed_1": [
+"deposit|minecraft:nether_star"
+],
+"buffs:speed_2": [
+"deposit|minecraft:nether_star"
+],
+"buffs:speed_3": [
+"deposit|minecraft:nether_star"
+],
+"buffs:strength_1": [
+"deposit|minecraft:nether_star"
+],
+"buffs:strength_2": [
+"deposit|minecraft:nether_star"
+],
+"buffs:strength_3": [
+"deposit|minecraft:nether_star"
+],
+"buffs:treasury_1": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_10": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_11": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_12": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_13": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_14": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_15": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_16": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_17": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_18": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_19": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_2": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_20": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_21": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_22": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_23": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_24": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_25": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_26": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_27": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_28": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_29": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_3": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_30": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_31": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_32": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_33": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_34": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_35": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_36": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_37": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_38": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_39": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_4": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_40": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_41": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_42": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_43": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_44": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_45": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_46": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_47": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_48": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_49": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_5": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_50": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_6": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_7": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_8": [
+"deposit|#c:ingots/silver"
+],
+"buffs:treasury_9": [
+"deposit|#c:ingots/silver"
+],
+"buffs:water_breathing": [
+"deposit|minecraft:nether_star"
+],
+"metallurgy:aluminum": [
+"deposit|tfmg:bauxite"
+],
+"metallurgy:andesite_alloy_iron": [
+"mine|minecraft:andesite"
+],
+"metallurgy:andesite_alloy_zinc": [
+"mine|minecraft:andesite"
+],
+"metallurgy:antimony": [
+"deposit|chemica:raw_antimony"
+],
+"metallurgy:blast_furnace": [
+"deposit|minecraft:coal_block",
+"deposit|minecraft:furnace"
+],
+"metallurgy:blast_furnace_reinforcement": [
+"deposit|tfmg:steel_ingot",
+"deposit|tfmg:heavy_plate"
+],
+"metallurgy:brass": [
+"deposit|#c:ingots/copper",
+"deposit|#c:ingots/zinc"
+],
+"metallurgy:bronze": [
+"deposit|#c:ingots/copper",
+"deposit|#c:ingots/tin"
+],
+"metallurgy:cast_iron_ingot": [
+"deposit|molten_metals:ceramic_ingot_mold",
+"deposit|minecraft:iron_block"
+],
+"metallurgy:cast_iron_pressing": [
+"deposit|tfmg:cast_iron_ingot"
+],
+"metallurgy:ceramic_mold": [
+"deposit|minecraft:clay_ball"
+],
+"metallurgy:chisel": [
+"deposit|minecraft:iron_ingot"
+],
+"metallurgy:chromium": [
+"deposit|chemica:raw_chromite"
+],
+"metallurgy:coal_compacting": [
+"deposit|minecraft:coal"
+],
+"metallurgy:cobalt": [
+"deposit|chemica:raw_cobalt"
+],
+"metallurgy:coke": [
+"deposit|minecraft:coal_block",
+"deposit|tfmg:cast_iron_ingot"
+],
+"metallurgy:composite_alloy": [
+"deposit|chemica:carbon_fiber_composite_sheet"
+],
+"metallurgy:constantan": [
+"deposit|#c:ingots/nickel"
+],
+"metallurgy:copper_casting": [
+"deposit|molten_metals:ceramic_ingot_mold",
+"deposit|#c:ingots/copper"
+],
+"metallurgy:copper_crushing": [
+"deposit|#c:ingots/copper"
+],
+"metallurgy:copper_deco": [
+"deposit|minecraft:copper_block",
+"deposit|minecraft:exposed_copper",
+"deposit|minecraft:weathered_copper",
+"deposit|minecraft:oxidized_copper"
+],
+"metallurgy:copper_melting": [
+"deposit|#c:ingots/copper"
+],
+"metallurgy:copper_pressing": [
+"deposit|#c:storage_blocks/copper"
+],
+"metallurgy:copper_smelting": [
+"deposit|#c:raw_materials/copper,#c:ores/copper"
+],
+"metallurgy:electrowinning": [
+"deposit|chemica:platinum_ingot",
+"deposit|sulfuricresonance:sulfuric_acid_bucket"
+],
+"metallurgy:electrum": [
+"deposit|#c:ingots/silver",
+"deposit|#c:ingots/gold"
+],
+"metallurgy:fireclay": [
+"deposit|tfmg:cast_iron_sheet"
+],
+"metallurgy:furnace": [
+"deposit|minecraft:cobblestone"
+],
+"metallurgy:gold_casting": [
+"deposit|molten_metals:ceramic_ingot_mold",
+"deposit|#c:ingots/gold"
+],
+"metallurgy:gold_crushing": [
+"deposit|#c:ingots/gold"
+],
+"metallurgy:gold_melting": [
+"deposit|#c:ingots/gold"
+],
+"metallurgy:gold_pressing": [
+"deposit|#c:storage_blocks/gold"
+],
+"metallurgy:gold_smelting": [
+"deposit|#c:raw_materials/gold,#c:ores/gold"
+],
+"metallurgy:graphite": [
+"mine|chemica:deepslate_graphite_ore"
+],
+"metallurgy:heat_resistant_alloy": [
+"deposit|chemica:tungsten_ingot"
+],
+"metallurgy:hydrometallurgy": [
+"deposit|sulfuricresonance:sulfuric_acid_bucket"
+],
+"metallurgy:ingot_mold": [
+"deposit|molten_metals:ceramic_ingot_mold"
+],
+"metallurgy:iridium": [
+"deposit|chemica:raw_platinum"
+],
+"metallurgy:iron_casting": [
+"deposit|molten_metals:ceramic_ingot_mold",
+"deposit|#c:ingots/iron"
+],
+"metallurgy:iron_crushing": [
+"deposit|#c:ingots/iron"
+],
+"metallurgy:iron_deco": [
+"deposit|minecraft:iron_block"
+],
+"metallurgy:iron_melting": [
+"deposit|#c:ingots/iron"
+],
+"metallurgy:iron_pressing": [
+"deposit|#c:storage_blocks/iron"
+],
+"metallurgy:iron_smelting": [
+"deposit|#c:raw_materials/iron,#c:ores/iron"
+],
+"metallurgy:lead_casting": [
+"deposit|molten_metals:ceramic_ingot_mold",
+"deposit|#c:ingots/lead"
+],
+"metallurgy:lead_crushing": [
+"deposit|#c:ingots/lead"
+],
+"metallurgy:lead_melting": [
+"deposit|#c:ingots/lead"
+],
+"metallurgy:lead_pressing": [
+"deposit|#c:storage_blocks/lead"
+],
+"metallurgy:lead_smelting": [
+"deposit|#c:raw_materials/lead,#c:ores/lead"
+],
+"metallurgy:lightweight_alloy": [
+"deposit|chemica:titanium_ingot"
+],
+"metallurgy:lithium": [
+"mine|tfmg:lithium_ore,tfmg:deepslate_lithium_ore"
+],
+"metallurgy:lunar_resources": [
+"visit|northstar:moon",
+"deposit|northstar:lunar_sapphire_shard"
+],
+"metallurgy:magnesium": [
+"mine|chemica:fervorite"
+],
+"metallurgy:magnetic_alloy": [
+"deposit|tfmg:silicon_ingot",
+"deposit|#c:ingots/nickel"
+],
+"metallurgy:martian_steel": [
+"visit|northstar:mars",
+"deposit|northstar:raw_martian_iron_ore"
+],
+"metallurgy:mercury_tungsten": [
+"visit|northstar:mercury"
+],
+"metallurgy:molten_cast_iron": [
+"deposit|#c:ingots/iron",
+"deposit|minecraft:coal"
+],
+"metallurgy:molybdenum": [
+"deposit|chemica:raw_molybdenum"
+],
+"metallurgy:netherite": [
+"mine|minecraft:ancient_debris",
+"deposit|minecraft:netherrack"
+],
+"metallurgy:netherite_diamond": [
+"deposit|advancednetherite:netherite_emerald_ingot",
+"deposit|minecraft:diamond_block"
+],
+"metallurgy:netherite_emerald": [
+"deposit|advancednetherite:netherite_gold_ingot",
+"deposit|minecraft:emerald_block"
+],
+"metallurgy:netherite_gold": [
+"deposit|advancednetherite:netherite_iron_ingot",
+"deposit|sulfuricresonance:resonant_gold_ingot"
+],
+"metallurgy:netherite_iron": [
+"deposit|minecraft:netherite_ingot",
+"deposit|sulfuricresonance:resonant_iron_ingot"
+],
+"metallurgy:nethersteel": [
+"deposit|minecraft:netherite_scrap",
+"deposit|tfmg:steel_ingot"
+],
+"metallurgy:nickel_crushing": [
+"deposit|#c:ingots/nickel"
+],
+"metallurgy:nickel_pressing": [
+"deposit|#c:storage_blocks/nickel"
+],
+"metallurgy:nickel_smelting": [
+"deposit|#c:raw_materials/nickel,#c:ores/nickel"
+],
+"metallurgy:platinum": [
+"deposit|chemica:raw_platinum"
+],
+"metallurgy:resonant_metals": [
+"deposit|#c:ingots/iron",
+"deposit|#c:ingots/gold"
+],
+"metallurgy:silicon": [
+"deposit|minecraft:quartz",
+"deposit|minecraft:sand"
+],
+"metallurgy:silver_casting": [
+"deposit|molten_metals:ceramic_ingot_mold",
+"deposit|#c:ingots/silver"
+],
+"metallurgy:silver_crushing": [
+"deposit|#c:ingots/silver"
+],
+"metallurgy:silver_melting": [
+"deposit|#c:ingots/silver"
+],
+"metallurgy:silver_pressing": [
+"deposit|#c:ingots/silver"
+],
+"metallurgy:silver_smelting": [
+"deposit|#c:raw_materials/silver,chemica:deepslate_silver_ore"
+],
+"metallurgy:sodium": [
+"deposit|chemica:salt"
+],
+"metallurgy:steel": [
+"deposit|tfmg:coal_coke",
+"deposit|tfmg:cast_iron_block"
+],
+"metallurgy:stone_tools": [
+"mine|minecraft:stone"
+],
+"metallurgy:stonecutter": [
+"deposit|minecraft:cobblestone"
+],
+"metallurgy:tantalum": [
+"visit|minecraft:the_nether",
+"deposit|chemica:zelosite"
+],
+"metallurgy:tfmg_blast_furnace": [
+"deposit|tfmg:fireproof_brick",
+"deposit|tfmg:cast_iron_block"
+],
+"metallurgy:tin_casting": [
+"deposit|molten_metals:ceramic_ingot_mold",
+"deposit|#c:ingots/tin"
+],
+"metallurgy:tin_crushing": [
+"deposit|#c:ingots/tin"
+],
+"metallurgy:tin_melting": [
+"deposit|#c:ingots/tin"
+],
+"metallurgy:tin_pressing": [
+"deposit|#c:storage_blocks/tin"
+],
+"metallurgy:tin_smelting": [
+"deposit|#c:raw_materials/tin,#c:ores/tin"
+],
+"metallurgy:titanium": [
+"deposit|chemica:rutile_crystal"
+],
+"metallurgy:tough_alloys": [
+"deposit|chemica:chromium_ingot",
+"deposit|chemica:molybdenum_ingot"
+],
+"metallurgy:tungsten": [
+"deposit|chemica:raw_tungsten"
+],
+"metallurgy:tungsten_carbide": [
+"deposit|chemica:tungsten_ingot"
+],
+"metallurgy:uranium": [
+"mine|createnuclear:uranium_ore,createnuclear:deepslate_uranium_ore"
+],
+"metallurgy:vanadium": [
+"deposit|chemica:raw_vanadium"
+],
+"metallurgy:venus_resources": [
+"visit|northstar:venus"
+],
+"metallurgy:zinc_casting": [
+"deposit|molten_metals:ceramic_ingot_mold",
+"deposit|#c:ingots/zinc"
+],
+"metallurgy:zinc_crushing": [
+"deposit|#c:ingots/zinc"
+],
+"metallurgy:zinc_melting": [
+"deposit|#c:ingots/zinc"
+],
+"metallurgy:zinc_pressing": [
+"deposit|#c:storage_blocks/zinc"
+],
+"metallurgy:zinc_smelting": [
+"deposit|#c:raw_materials/zinc,#c:ores/zinc"
+],
+"military:adv_diamond_sword": [
+"deposit|advancednetherite:netherite_diamond_ingot"
+],
+"military:adv_emerald_sword": [
+"deposit|advancednetherite:netherite_emerald_ingot"
+],
+"military:adv_gold_sword": [
+"deposit|advancednetherite:netherite_gold_ingot"
+],
+"military:adv_iron_sword": [
+"deposit|advancednetherite:netherite_iron_ingot"
+],
+"military:advanced_potato_cannon": [
+"deposit|tfmg:circuit_board",
+"deposit|tfmg:rebar"
+],
+"military:aluminum_sword": [
+"deposit|#c:ingots/aluminum"
+],
+"military:ammo_12g": [
+"deposit|minecraft:paper",
+"deposit|minecraft:gunpowder"
+],
+"military:ammo_22wmr": [
+"deposit|minecraft:copper_ingot",
+"deposit|minecraft:gunpowder"
+],
+"military:ammo_308": [
+"deposit|minecraft:copper_ingot",
+"deposit|minecraft:gunpowder"
+],
+"military:ammo_30_06": [
+"deposit|minecraft:copper_ingot",
+"deposit|minecraft:gunpowder"
+],
+"military:ammo_338": [
+"deposit|minecraft:copper_ingot",
+"deposit|minecraft:gunpowder"
+],
+"military:ammo_357mag": [
+"deposit|minecraft:copper_ingot",
+"deposit|minecraft:gunpowder"
+],
+"military:ammo_40mm": [
+"deposit|minecraft:iron_ingot",
+"deposit|minecraft:gunpowder"
+],
+"military:ammo_45_70": [
+"deposit|minecraft:copper_ingot",
+"deposit|minecraft:gunpowder"
+],
+"military:ammo_45acp": [
+"deposit|minecraft:copper_ingot",
+"deposit|minecraft:gunpowder"
+],
+"military:ammo_500mag": [
+"deposit|minecraft:copper_ingot",
+"deposit|minecraft:gunpowder"
+],
+"military:ammo_50ae": [
+"deposit|minecraft:copper_ingot",
+"deposit|minecraft:gunpowder"
+],
+"military:ammo_50bmg": [
+"deposit|minecraft:copper_ingot",
+"deposit|minecraft:gunpowder"
+],
+"military:ammo_556x45": [
+"deposit|minecraft:copper_ingot",
+"deposit|minecraft:gunpowder"
+],
+"military:ammo_57x28": [
+"deposit|minecraft:copper_ingot",
+"deposit|minecraft:gunpowder"
+],
+"military:ammo_58x42": [
+"deposit|minecraft:copper_ingot",
+"deposit|minecraft:gunpowder"
+],
+"military:ammo_6851fury": [
+"deposit|minecraft:copper_ingot",
+"deposit|minecraft:gunpowder"
+],
+"military:ammo_762x39": [
+"deposit|minecraft:copper_ingot",
+"deposit|minecraft:gunpowder"
+],
+"military:ammo_792x57": [
+"deposit|minecraft:copper_ingot",
+"deposit|minecraft:gunpowder"
+],
+"military:ammo_9mm": [
+"deposit|minecraft:copper_ingot",
+"deposit|minecraft:gunpowder"
+],
+"military:ammo_basics": [
+"deposit|create:brass_ingot",
+"deposit|minecraft:gunpowder"
+],
+"military:ammo_box_4": [
+"deposit|createbigcannons:nethersteel_ingot",
+"deposit|tacz:ammo_box"
+],
+"military:ammo_box_diamond": [
+"deposit|minecraft:diamond"
+],
+"military:ammo_box_gold": [
+"deposit|minecraft:gold_ingot"
+],
+"military:ammo_box_iron": [
+"deposit|minecraft:iron_ingot"
+],
+"military:ammo_mods_1": [
+"deposit|tfmg:heavy_plate",
+"deposit|minecraft:redstone"
+],
+"military:ammo_mods_2": [
+"deposit|tfmg:heavy_plate",
+"deposit|minecraft:redstone"
+],
+"military:ammo_rpg_rocket": [
+"deposit|minecraft:iron_ingot",
+"deposit|minecraft:gunpowder"
+],
+"military:ap_munitions": [
+"deposit|#c:ingots/steel",
+"deposit|minecraft:gunpowder"
+],
+"military:basic_munitions": [
+"deposit|tfmg:cast_iron_ingot",
+"deposit|minecraft:gunpowder"
+],
+"military:bayonets": [
+"deposit|tfmg:heavy_plate",
+"deposit|minecraft:redstone"
+],
+"military:bow_arrows": [
+"deposit|minecraft:feather",
+"deposit|minecraft:flint"
+],
+"military:brass_melee": [
+"deposit|create:brass_ingot"
+],
+"military:brew_amplifiers": [
+"deposit|minecraft:spider_eye",
+"deposit|minecraft:gold_nugget"
+],
+"military:brewing_stand": [
+"deposit|minecraft:blaze_rod",
+"deposit|minecraft:glass_bottle"
+],
+"military:bronze_autocannon": [
+"deposit|#c:ingots/bronze"
+],
+"military:bronze_cannon": [
+"deposit|#c:ingots/bronze"
+],
+"military:bronze_melee": [
+"deposit|#c:ingots/bronze"
+],
+"military:cannon_basics": [
+"deposit|tfmg:cast_iron_ingot",
+"deposit|minecraft:iron_ingot"
+],
+"military:cast_iron_autocannon": [
+"deposit|tfmg:cast_iron_ingot",
+"deposit|create:brass_ingot"
+],
+"military:cbc_at_ap": [
+"deposit|#c:ingots/steel",
+"deposit|minecraft:gunpowder"
+],
+"military:copper_melee": [
+"deposit|minecraft:copper_ingot",
+"deposit|create:zinc_ingot"
+],
+"military:crossbow": [
+"deposit|minecraft:string",
+"deposit|minecraft:iron_ingot"
+],
+"military:diamond_melee": [
+"deposit|minecraft:diamond"
+],
+"military:dragon_breath": [
+"deposit|minecraft:glass_bottle"
+],
+"military:drop_mortar": [
+"deposit|minecraft:iron_ingot",
+"deposit|minecraft:gunpowder"
+],
+"military:electro_weapons": [
+"deposit|powergrid:battery"
+],
+"military:explosives_chem": [
+"deposit|minecraft:gunpowder"
+],
+"military:fire_charge": [
+"deposit|minecraft:blaze_powder",
+"deposit|minecraft:coal"
+],
+"military:flamethrower": [
+"deposit|tfmg:circuit_board",
+"deposit|tfmg:spark_plug"
+],
+"military:gas_mask": [
+"deposit|tfmg:lead_sheet",
+"deposit|minecraft:charcoal"
+],
+"military:golden_barrel": [
+"deposit|create:brass_ingot"
+],
+"military:grapeshot_shrapnel": [
+"deposit|minecraft:gunpowder",
+"deposit|minecraft:iron_nugget"
+],
+"military:grenades": [
+"deposit|minecraft:gunpowder"
+],
+"military:grips_1": [
+"deposit|tfmg:heavy_plate",
+"deposit|minecraft:redstone"
+],
+"military:grips_2": [
+"deposit|tfmg:heavy_plate",
+"deposit|minecraft:redstone"
+],
+"military:gun_aa12": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_ai_awp": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_ak47": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_aug": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_b93r": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_cz75": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_db_long": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_db_short": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_deagle": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_deagle_golden": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_fn_evolys": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_fn_fal": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_g36k": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_glock_17": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_hk416d": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_hk_g3": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_hk_mk23": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_hk_mp5a5": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_kar98": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_lonetrail": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_m1014": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_m107": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_m16a1": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_m16a4": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_m1911": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_m249": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_m320": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_m4a1": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_m700": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_m870": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_m95": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_m9a4": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_minigun": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_mk14": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_p320": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_p90": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_qbz_191": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_qbz_95": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_rhino357": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_rpg7": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_rpk": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_scar_h": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_scar_l": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_sks_tactical": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_spas_12": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_spr15hb": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_springfield1873": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_taurus500": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_timeless50": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_type_81": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_ump45": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_uzi": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gun_vector45": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:gunsmithing": [
+"deposit|tfmg:heavy_plate",
+"deposit|tfmg:steel_mechanism"
+],
+"military:he_munitions": [
+"deposit|minecraft:gunpowder",
+"deposit|tfmg:cast_iron_ingot"
+],
+"military:immersive_attachments": [
+"deposit|tfmg:heavy_plate",
+"deposit|create:brass_ingot"
+],
+"military:iron_melee": [
+"deposit|minecraft:iron_ingot",
+"deposit|minecraft:gold_ingot"
+],
+"military:knives_primitive": [
+"deposit|minecraft:flint"
+],
+"military:lasers": [
+"deposit|tfmg:heavy_plate",
+"deposit|minecraft:redstone"
+],
+"military:lead_sword": [
+"deposit|#c:ingots/lead"
+],
+"military:mags_1": [
+"deposit|tfmg:heavy_plate",
+"deposit|minecraft:redstone"
+],
+"military:mags_2": [
+"deposit|tfmg:heavy_plate",
+"deposit|minecraft:redstone"
+],
+"military:mags_3": [
+"deposit|tfmg:heavy_plate",
+"deposit|minecraft:redstone"
+],
+"military:martian_sword": [
+"visit|northstar:mars",
+"deposit|northstar:martian_steel_ingot"
+],
+"military:mg_autocannon": [
+"deposit|#c:ingots/steel",
+"deposit|minecraft:gunpowder"
+],
+"military:muzzle_1": [
+"deposit|tfmg:heavy_plate",
+"deposit|minecraft:redstone"
+],
+"military:muzzle_2": [
+"deposit|tfmg:heavy_plate",
+"deposit|minecraft:redstone"
+],
+"military:netherite_melee": [
+"deposit|minecraft:netherite_ingot"
+],
+"military:nethersteel_cannon": [
+"deposit|createbigcannons:nethersteel_ingot"
+],
+"military:quad_potato_cannon": [
+"deposit|tfmg:steel_pipe",
+"deposit|tfmg:cast_iron_ingot"
+],
+"military:restraints": [
+"deposit|minecraft:iron_ingot",
+"deposit|minecraft:chain"
+],
+"military:rifled_barrels": [
+"deposit|#c:ingots/steel"
+],
+"military:rocket_pods": [
+"deposit|#c:ingots/steel",
+"deposit|minecraft:redstone"
+],
+"military:scopes_high": [
+"deposit|tfmg:heavy_plate",
+"deposit|minecraft:redstone"
+],
+"military:scopes_low": [
+"deposit|tfmg:heavy_plate",
+"deposit|minecraft:redstone"
+],
+"military:scopes_mid": [
+"deposit|tfmg:heavy_plate",
+"deposit|minecraft:redstone"
+],
+"military:sights_pistol": [
+"deposit|tfmg:heavy_plate",
+"deposit|minecraft:redstone"
+],
+"military:sights_rifle": [
+"deposit|tfmg:heavy_plate",
+"deposit|minecraft:redstone"
+],
+"military:silencers_1": [
+"deposit|tfmg:heavy_plate",
+"deposit|minecraft:redstone"
+],
+"military:silencers_2": [
+"deposit|tfmg:heavy_plate",
+"deposit|minecraft:redstone"
+],
+"military:silencers_3": [
+"deposit|tfmg:heavy_plate",
+"deposit|minecraft:redstone"
+],
+"military:special_shells": [
+"deposit|#c:ingots/steel",
+"deposit|minecraft:redstone"
+],
+"military:spectral_arrow": [
+"deposit|minecraft:glowstone_dust"
+],
+"military:steel_cannon": [
+"deposit|#c:ingots/steel"
+],
+"military:steel_melee": [
+"deposit|#c:ingots/steel"
+],
+"military:stocks_1": [
+"deposit|tfmg:heavy_plate",
+"deposit|minecraft:redstone"
+],
+"military:stocks_2": [
+"deposit|tfmg:heavy_plate",
+"deposit|minecraft:redstone"
+],
+"military:tipped_arrow": [
+"deposit|minecraft:arrow",
+"deposit|minecraft:glass_bottle"
+],
+"military:tnt": [
+"deposit|minecraft:gunpowder",
+"deposit|minecraft:charcoal"
+],
+"military:twin_autocannon": [
+"deposit|#c:ingots/steel"
+],
+"technology:accumulator": [
+"deposit|tfmg:industrial_aluminum_casing",
+"deposit|tfmg:lithium_ingot"
+],
+"technology:adjustable_gearshift": [
+"deposit|create:encased_chain_drive",
+"deposit|create:electron_tube"
+],
+"technology:advanced_circuit": [
+"deposit|northstar:circuit",
+"deposit|northstar:martian_steel_sheet"
+],
+"technology:advanced_circuit_board": [
+"deposit|chemica:electronic_circuit"
+],
+"technology:air_separation": [
+"deposit|tfmg:steel_pipe"
+],
+"technology:aluminum_fluids": [
+"deposit|tfmg:aluminum_ingot"
+],
+"technology:aluminum_kinetics": [
+"deposit|tfmg:aluminum_ingot"
+],
+"technology:amber_glass": [
+"deposit|minecraft:sand"
+],
+"technology:ammonia": [
+"deposit|tfmg:hydrogen_bucket",
+"deposit|chemica:nitrogen_bucket"
+],
+"technology:andesite_casing": [
+"deposit|#minecraft:logs"
+],
+"technology:andesite_funnels": [
+"deposit|create:andesite_alloy",
+"deposit|minecraft:dried_kelp"
+],
+"technology:arc_furnace": [
+"deposit|tfmg:coal_coke_block"
+],
+"technology:aromatics": [
+"deposit|chemica:aromatic_mix_bucket"
+],
+"technology:astronomy": [
+"deposit|#c:ingots/brass",
+"deposit|minecraft:amethyst_shard",
+"deposit|minecraft:book"
+],
+"technology:auto_lander": [
+"visit|northstar:moon",
+"deposit|northstar:polished_lunar_sapphire"
+],
+"technology:autogas_engine": [
+"deposit|tfmg:lpg_bucket"
+],
+"technology:base_catalysts": [
+"deposit|chemica:iron_dust",
+"deposit|chemica:copper_dust",
+"deposit|chemica:nickel_dust"
+],
+"technology:basin": [
+"deposit|create:andesite_alloy"
+],
+"technology:bearings": [
+"deposit|create:andesite_casing",
+"deposit|create:shaft"
+],
+"technology:belt": [
+"deposit|minecraft:dried_kelp"
+],
+"technology:bio_engines": [
+"deposit|chemica:biodiesel_bucket"
+],
+"technology:blast_furnace_machines": [
+"deposit|tfmg:fireproof_bricks",
+"deposit|tfmg:cast_iron_fluid_tank"
+],
+"technology:blaze_burner": [
+"deposit|#c:netherracks",
+"deposit|minecraft:blaze_rod"
+],
+"technology:brackets": [
+"deposit|#c:plates/iron",
+"deposit|create:andesite_alloy"
+],
+"technology:brass_casing": [
+"deposit|#c:ingots/brass",
+"deposit|#c:stripped_logs"
+],
+"technology:brass_curios": [
+"deposit|#c:storage_blocks/brass",
+"deposit|minecraft:clock"
+],
+"technology:brass_funnels": [
+"deposit|#c:ingots/brass",
+"deposit|create:electron_tube"
+],
+"technology:brass_hand": [
+"deposit|#c:plates/brass",
+"deposit|create:andesite_alloy"
+],
+"technology:brass_motion": [
+"deposit|create:brass_casing",
+"deposit|create:electron_tube",
+"deposit|create:cogwheel"
+],
+"technology:brass_pipes": [
+"deposit|create:brass_sheet",
+"deposit|create:fluid_pipe"
+],
+"technology:brass_sifting": [
+"deposit|create:brass_ingot"
+],
+"technology:carbon_fiber_composite": [
+"deposit|chemica:carbon_fiber_strands",
+"deposit|chemica:cured_epoxy_sheet"
+],
+"technology:carbon_fiber_strands": [
+"deposit|chemica:cobalt_catalyst",
+"deposit|chemica:ammonia_bucket"
+],
+"technology:card_system": [
+"deposit|create:brass_sheet"
+],
+"technology:cardboard": [
+"deposit|minecraft:paper",
+"deposit|minecraft:string"
+],
+"technology:cart_assembler": [
+"deposit|minecraft:minecart",
+"deposit|#c:dusts/redstone"
+],
+"technology:cast_iron_pipes": [
+"deposit|tfmg:cast_iron_sheet",
+"deposit|create:fluid_pipe"
+],
+"technology:cast_iron_tank": [
+"deposit|tfmg:cast_iron_sheet",
+"deposit|#c:barrels/wooden"
+],
+"technology:catalytic_reforming": [
+"deposit|chemica:platinum_dust"
+],
+"technology:chain_conveyor": [
+"deposit|minecraft:chain"
+],
+"technology:chain_drives": [
+"deposit|create:cogwheel",
+"deposit|create:shaft",
+"deposit|create:andesite_casing"
+],
+"technology:chassis": [
+"deposit|#minecraft:logs",
+"deposit|create:andesite_alloy"
+],
+"technology:chemica_lab": [
+"deposit|minecraft:glass"
+],
+"technology:chlor_alkali": [
+"deposit|chemica:brine_bucket"
+],
+"technology:chute": [
+"deposit|#c:plates/iron",
+"deposit|minecraft:iron_ingot"
+],
+"technology:cobalt_catalyst": [
+"deposit|chemica:cobalt_dust"
+],
+"technology:compressor": [
+"deposit|tfmg:steel_fluid_tank"
+],
+"technology:concrete": [
+"deposit|tfmg:steel_ingot"
+],
+"technology:conductive_paste": [
+"deposit|chemica:silver_dust"
+],
+"technology:connected_brass_drives": [
+"deposit|create:clutch",
+"deposit|create:electron_tube"
+],
+"technology:connected_clutches": [
+"deposit|create:clutch",
+"deposit|create:gearshift"
+],
+"technology:connected_gearing": [
+"deposit|create:gearbox",
+"deposit|create:large_cogwheel"
+],
+"technology:connected_precision": [
+"deposit|create:precision_mechanism",
+"deposit|create:rotation_speed_controller"
+],
+"technology:connected_redstone": [
+"deposit|create:electron_tube",
+"deposit|create:transmitter"
+],
+"technology:contact_process": [
+"deposit|chemica:vanadium_dust"
+],
+"technology:copper_casing": [
+"deposit|#c:ingots/copper",
+"deposit|#c:stripped_logs"
+],
+"technology:copper_table_cover": [
+"deposit|#c:ingots/copper"
+],
+"technology:copycats": [
+"deposit|#c:ingots/zinc"
+],
+"technology:crafting_table": [
+"fell|"
+],
+"technology:create_radar": [
+"deposit|tfmg:circuit_board"
+],
+"technology:crushing_wheels": [
+"deposit|create:andesite_casing"
+],
+"technology:cryogenic_fuels": [
+"deposit|minecraft:blue_ice",
+"deposit|northstar:oxygen_separator"
+],
+"technology:cryogenics": [
+"deposit|tfmg:hydrogen_bucket"
+],
+"technology:cuisine": [
+"deposit|create:wheat_flour",
+"deposit|minecraft:sugar"
+],
+"technology:curving_press": [
+"deposit|tfmg:steel_block"
+],
+"technology:deployer": [
+"deposit|create:brass_hand",
+"deposit|create:andesite_casing"
+],
+"technology:depot": [
+"deposit|create:andesite_alloy",
+"deposit|create:andesite_casing"
+],
+"technology:desk_utilities": [
+"deposit|minecraft:paper",
+"deposit|#c:plates/gold"
+],
+"technology:distillery": [
+"deposit|tfmg:steel_fluid_tank",
+"deposit|tfmg:steel_mechanism"
+],
+"technology:dnd_burner": [
+"deposit|minecraft:coal"
+],
+"technology:dnd_fan_sails": [
+"deposit|create:sail_frame"
+],
+"technology:dnd_heavy_machines": [
+"deposit|create:precision_mechanism"
+],
+"technology:drill_saw": [
+"deposit|create:andesite_casing",
+"deposit|#c:plates/iron"
+],
+"technology:electrolysis_machine": [
+"visit|northstar:mars",
+"deposit|northstar:martian_steel_ingot"
+],
+"technology:electrolyzer": [
+"deposit|minecraft:copper_block",
+"deposit|create:zinc_block"
+],
+"technology:electron_tubes": [
+"deposit|create:polished_rose_quartz",
+"deposit|#c:plates/iron"
+],
+"technology:electronic_circuit": [
+"deposit|tfmg:circuit_board"
+],
+"technology:encased_fan": [
+"deposit|minecraft:flint_and_steel",
+"deposit|minecraft:bucket"
+],
+"technology:enrichment": [
+"deposit|createnuclear:yellowcake",
+"deposit|minecraft:nether_star"
+],
+"technology:epoxy": [
+"deposit|chemica:benzene_bucket",
+"deposit|chemica:caustic_soda_bucket"
+],
+"technology:exhaust_stacks": [
+"deposit|tfmg:cast_iron_ingot"
+],
+"technology:extendo_wand": [
+"deposit|create:precision_mechanism",
+"deposit|create:brass_hand",
+"deposit|#c:ingots/brass"
+],
+"technology:factory_gauge": [
+"deposit|create:precision_mechanism",
+"deposit|create:stock_link"
+],
+"technology:fan_catalysts": [
+"deposit|#c:ingots/brass",
+"deposit|create:blaze_cake"
+],
+"technology:fermentation": [
+"deposit|minecraft:sugar"
+],
+"technology:firebox": [
+"deposit|tfmg:fireproof_bricks",
+"deposit|tfmg:brass_pipe"
+],
+"technology:fireproof_vat": [
+"deposit|tfmg:steel_chemical_vat",
+"deposit|tfmg:fireproof_bricks"
+],
+"technology:first_rocket": [
+"deposit|chemica:vanadium_ingot",
+"deposit|tfmg:kerosene_bucket"
+],
+"technology:fluid_basics": [
+"deposit|#c:ingots/copper",
+"deposit|#c:barrels/wooden"
+],
+"technology:fluid_handling": [
+"deposit|create_factory_logistics:fluid_mechanism",
+"deposit|minecraft:dried_kelp"
+],
+"technology:fluid_mechanism": [
+"deposit|#c:plates/copper",
+"deposit|create:cogwheel"
+],
+"technology:flywheel": [
+"deposit|#c:ingots/brass",
+"deposit|create:shaft"
+],
+"technology:freezer": [
+"deposit|tfmg:electromagnetic_coil"
+],
+"technology:gantry": [
+"deposit|create:andesite_casing",
+"deposit|create:andesite_alloy",
+"deposit|#c:dusts/redstone"
+],
+"technology:gauges": [
+"deposit|minecraft:compass",
+"deposit|create:andesite_casing"
+],
+"technology:gearbox": [
+"deposit|create:cogwheel",
+"deposit|create:shaft",
+"deposit|create:andesite_casing"
+],
+"technology:gn_brass_gears": [
+"deposit|create:brass_ingot"
+],
+"technology:gn_gears": [
+"deposit|create:cogwheel"
+],
+"technology:gn_industrial_gears": [
+"deposit|create:industrial_iron_block"
+],
+"technology:hand_crank": [
+"deposit|minecraft:crafting_table",
+"deposit|create:andesite_alloy"
+],
+"technology:hanging_signs": [
+"deposit|minecraft:chain"
+],
+"technology:harvester_plough": [
+"deposit|create:andesite_casing",
+"deposit|#c:plates/iron"
+],
+"technology:heat_shield_t2": [
+"deposit|northstar:martian_steel_sheet"
+],
+"technology:heat_shield_t3": [
+"visit|northstar:venus",
+"deposit|chemica:tungsten_ingot"
+],
+"technology:high_cetane_engine": [
+"deposit|tfmg:diesel_bucket"
+],
+"technology:high_octane_engine": [
+"deposit|tfmg:gasoline_bucket"
+],
+"technology:hose_pulley": [
+"deposit|create_factory_logistics:fluid_mechanism",
+"deposit|minecraft:dried_kelp_block"
+],
+"technology:hydrofluoric_acid": [
+"mine|chemica:deepslate_fluorite_ore"
+],
+"technology:hydrogen_production": [
+"deposit|tfmg:hydrogen_bucket"
+],
+"technology:hydrogen_turbine": [
+"deposit|chemica:carbon_fiber_strands"
+],
+"technology:hypertubes": [
+"deposit|#c:plates/brass",
+"deposit|create:smart_chute"
+],
+"technology:interplanetary_navigator": [
+"visit|northstar:moon",
+"deposit|northstar:targeting_computer",
+"deposit|northstar:polished_lunar_sapphire"
+],
+"technology:inventory_access": [
+"deposit|create:item_vault",
+"deposit|create:electron_tube"
+],
+"technology:item_filter": [
+"deposit|#c:nuggets/iron",
+"deposit|#minecraft:wool"
+],
+"technology:item_vault": [
+"deposit|#c:barrels/wooden",
+"deposit|#c:plates/iron"
+],
+"technology:large_engine": [
+"deposit|tfmg:steel_mechanism"
+],
+"technology:large_generator": [
+"deposit|tfmg:electromagnetic_coil",
+"deposit|tfmg:steel_block"
+],
+"technology:large_transformer": [
+"deposit|tfmg:copper_spool"
+],
+"technology:large_water_wheel": [
+"deposit|create:water_wheel"
+],
+"technology:latex_rubber": [
+"deposit|minecraft:oak_log"
+],
+"technology:machine_input": [
+"deposit|tfmg:steel_mechanism"
+],
+"technology:mechanical_arm": [
+"deposit|create:precision_mechanism",
+"deposit|create:brass_casing"
+],
+"technology:mechanical_crafter": [
+"deposit|create:brass_casing",
+"deposit|create:electron_tube",
+"deposit|minecraft:crafting_table"
+],
+"technology:mechanical_press": [
+"deposit|minecraft:iron_block",
+"deposit|create:andesite_casing"
+],
+"technology:mechanical_roller": [
+"deposit|create:crushing_wheel",
+"deposit|create:electron_tube"
+],
+"technology:millstone": [
+"deposit|create:andesite_casing"
+],
+"technology:mixer": [
+"deposit|create:andesite_casing",
+"deposit|create:cogwheel"
+],
+"technology:nitric_acid": [
+"deposit|chemica:ammonia_bucket"
+],
+"technology:nitroglycerin": [
+"deposit|chemica:glycerin_bucket"
+],
+"technology:nylon": [
+"deposit|chemica:cyclohexane_bucket",
+"deposit|chemica:nitrogen_dioxide_bucket"
+],
+"technology:packaging": [
+"deposit|#c:storage_blocks/cardboard",
+"deposit|#c:slimeballs"
+],
+"technology:pg_basics": [
+"deposit|create:andesite_casing",
+"deposit|powergrid:zinc_sheet",
+"deposit|create:copper_sheet"
+],
+"technology:pg_circuits": [
+"deposit|powergrid:electrical_gizmo",
+"deposit|powergrid:bjt_npn"
+],
+"technology:pg_consumers": [
+"deposit|powergrid:electric_motor",
+"deposit|powergrid:copper_coil"
+],
+"technology:pg_control": [
+"deposit|create:iron_sheet",
+"deposit|create:copper_sheet"
+],
+"technology:pg_solar": [
+"deposit|create:polished_rose_quartz",
+"deposit|powergrid:battery"
+],
+"technology:pg_storage": [
+"deposit|create:copper_sheet",
+"deposit|powergrid:acid_bucket"
+],
+"technology:pharma_extraction": [
+"deposit|createbigpharma:amber_glass"
+],
+"technology:pharma_lab": [
+"deposit|minecraft:book"
+],
+"technology:pharma_machines": [
+"deposit|tfmg:circuit_board"
+],
+"technology:pharma_sterile": [
+"deposit|tfmg:liquid_concrete_bucket"
+],
+"technology:pharma_synthesis": [
+"deposit|chemica:electronic_circuit"
+],
+"technology:phosphoric_acid": [
+"deposit|minecraft:bone_meal"
+],
+"technology:pistons": [
+"deposit|create:andesite_casing",
+"deposit|#c:slimeballs"
+],
+"technology:plastic_fluids": [
+"deposit|tfmg:plastic_sheet"
+],
+"technology:plastics": [
+"deposit|tfmg:crude_oil_bucket"
+],
+"technology:platinum_electrodes": [
+"deposit|chemica:platinum_block"
+],
+"technology:polyethylene": [
+"deposit|tfmg:ethylene_bucket"
+],
+"technology:portable_fluid_interface": [
+"deposit|create:chute",
+"deposit|create:copper_casing",
+"deposit|create_factory_logistics:fluid_mechanism"
+],
+"technology:potato_cannon": [
+"deposit|create:precision_mechanism",
+"deposit|create:fluid_pipe",
+"deposit|#c:ingots/copper"
+],
+"technology:precision_mechanism": [
+"deposit|#c:plates/gold",
+"deposit|create:cogwheel",
+"deposit|create:large_cogwheel",
+"deposit|#c:nuggets/iron"
+],
+"technology:propeller_whisk": [
+"deposit|#c:plates/iron",
+"deposit|create:andesite_alloy"
+],
+"technology:ptfe": [
+"deposit|chemica:fluorine_bucket"
+],
+"technology:pumpjack": [
+"deposit|tfmg:heavy_plate",
+"deposit|tfmg:steel_mechanism"
+],
+"technology:pvc": [
+"deposit|tfmg:ethylene_bucket",
+"deposit|chemica:chlorine_bucket"
+],
+"technology:radial_engine": [
+"deposit|tfmg:heavy_plate"
+],
+"technology:railways": [
+"deposit|create:brass_casing",
+"deposit|create:sturdy_sheet"
+],
+"technology:reactor_casing": [
+"deposit|tfmg:heavy_machinery_casing",
+"deposit|#c:ingots/lead"
+],
+"technology:reactor_controller": [
+"deposit|minecraft:nether_star",
+"deposit|sulfuricresonance:logic_bank"
+],
+"technology:reactor_core": [
+"deposit|chemica:electronic_circuit",
+"deposit|tfmg:industrial_aluminum_casing"
+],
+"technology:reactor_shell": [
+"deposit|createnuclear:reactor_casing",
+"deposit|createnuclear:reinforced_glass"
+],
+"technology:redstone_circuits": [
+"deposit|#c:plates/brass",
+"deposit|#c:dusts/redstone"
+],
+"technology:regular_engine": [
+"deposit|tfmg:aluminum_sheet"
+],
+"technology:reinforced_iridium": [
+"deposit|chemica:iridium_sheet"
+],
+"technology:rocket_electronics": [
+"deposit|chemica:advanced_circuit_board",
+"deposit|chemica:polytetrafluoroethylene_sheet"
+],
+"technology:rocket_waypoint": [
+"visit|northstar:mercury",
+"deposit|northstar:targeting_computer"
+],
+"technology:rope_pulley": [
+"deposit|create:andesite_casing",
+"deposit|#minecraft:wool"
+],
+"technology:rose_quartz": [
+"deposit|minecraft:quartz",
+"deposit|#c:sands"
+],
+"technology:rotation_speed_controller": [
+"deposit|create:precision_mechanism",
+"deposit|create:brass_casing"
+],
+"technology:rubber": [
+"deposit|sulfuricresonance:vulcanized_rubber"
+],
+"technology:schematics": [
+"deposit|minecraft:dispenser",
+"deposit|#c:storage_blocks/iron",
+"deposit|minecraft:smooth_stone"
+],
+"technology:sensors_displays": [
+"deposit|create:brass_casing",
+"deposit|create:electron_tube"
+],
+"technology:shafts_cogs": [
+"deposit|create:andesite_alloy"
+],
+"technology:sifting": [
+"deposit|minecraft:gravel"
+],
+"technology:simple_engine": [
+"deposit|tfmg:heavy_plate"
+],
+"technology:simple_large_engine": [
+"deposit|tfmg:cast_iron_ingot"
+],
+"technology:slicer": [
+"deposit|create:turntable",
+"deposit|create:cogwheel"
+],
+"technology:smart_chute": [
+"deposit|create:chute",
+"deposit|#c:plates/brass",
+"deposit|create:electron_tube"
+],
+"technology:smart_fluid_pipe": [
+"deposit|create:fluid_pipe",
+"deposit|create:electron_tube",
+"deposit|create_factory_logistics:fluid_mechanism"
+],
+"technology:smog_brass": [
+"deposit|create:brass_sheet"
+],
+"technology:smog_control": [
+"deposit|create:iron_sheet"
+],
+"technology:smog_precision": [
+"deposit|chemica:graphite_sheet"
+],
+"technology:space_life_support": [
+"visit|northstar:moon",
+"deposit|northstar:oxygen_separator"
+],
+"technology:spring_coiling": [
+"deposit|create:andesite_casing",
+"deposit|minecraft:iron_ingot"
+],
+"technology:sprinklers": [
+"deposit|create:fluid_pipe",
+"deposit|#c:plates/copper"
+],
+"technology:sr_acid_etching": [
+"deposit|create:copper_sheet"
+],
+"technology:sr_ash_ceramics": [
+"deposit|tfmg:fireclay"
+],
+"technology:sr_combustion_belt": [
+"deposit|minecraft:obsidian"
+],
+"technology:sr_infernal": [
+"deposit|minecraft:blaze_rod"
+],
+"technology:sr_resonance_chamber": [
+"deposit|sulfuricresonance:thermochemical_casing"
+],
+"technology:sr_sulfur_burner": [
+"deposit|sulfuricresonance:sulfur"
+],
+"technology:sr_thermal_systems": [
+"deposit|sulfuricresonance:resonant_gold_sheet"
+],
+"technology:sr_thermo_kinetics": [
+"deposit|sulfuricresonance:sulfur"
+],
+"technology:sr_thermochemical_casing": [
+"deposit|create:railway_casing"
+],
+"technology:steam_engine": [
+"deposit|#c:storage_blocks/copper",
+"deposit|#c:plates/gold",
+"deposit|create_factory_logistics:fluid_mechanism"
+],
+"technology:steam_whistle": [
+"deposit|#c:ingots/copper",
+"deposit|#c:plates/gold"
+],
+"technology:steel_fluids": [
+"deposit|tfmg:steel_ingot",
+"deposit|tfmg:heavy_plate"
+],
+"technology:steel_kinetics": [
+"deposit|tfmg:steel_ingot"
+],
+"technology:steel_mechanism": [
+"deposit|tfmg:heavy_plate",
+"deposit|tfmg:large_steel_cogwheel",
+"deposit|tfmg:screw"
+],
+"technology:sticky_launcher": [
+"deposit|create:sticker"
+],
+"technology:stock_logistics": [
+"deposit|create:item_vault",
+"deposit|create:transmitter",
+"deposit|create:packager"
+],
+"technology:sturdy_sheet": [
+"deposit|minecraft:obsidian",
+"deposit|minecraft:lava_bucket"
+],
+"technology:sturdy_sifting": [
+"deposit|create:sturdy_sheet"
+],
+"technology:sulfuric_acid": [
+"deposit|sulfuricresonance:sulfur"
+],
+"technology:surface_scanner": [
+"deposit|tfmg:heavy_plate"
+],
+"technology:tantalum_capacitor": [
+"deposit|chemica:tantalum_sheet"
+],
+"technology:tfmg_circuits": [
+"deposit|tfmg:transistor_item",
+"deposit|tfmg:resistor"
+],
+"technology:tfmg_components": [
+"deposit|tfmg:steel_ingot",
+"deposit|minecraft:paper"
+],
+"technology:tfmg_electricity": [
+"deposit|tfmg:electric_post",
+"deposit|minecraft:compass",
+"deposit|tfmg:rubber_sheet"
+],
+"technology:tfmg_electronics": [
+"deposit|tfmg:circuit_board",
+"deposit|tfmg:magnetic_alloy_ingot"
+],
+"technology:tfmg_generator": [
+"deposit|tfmg:steel_mechanism",
+"deposit|tfmg:magnet",
+"deposit|#c:ingots/copper"
+],
+"technology:tfmg_structures": [
+"deposit|tfmg:steel_ingot"
+],
+"technology:titanium_tetrachloride": [
+"deposit|chemica:chlorine_bucket"
+],
+"technology:toolbox": [
+"deposit|#c:plates/gold",
+"deposit|minecraft:leather"
+],
+"technology:train_controls": [
+"deposit|create:precision_mechanism",
+"deposit|create:railway_casing"
+],
+"technology:transformers": [
+"deposit|tfmg:magnetic_alloy_sheet",
+"deposit|create:iron_sheet"
+],
+"technology:transmitter": [
+"deposit|#c:plates/copper",
+"deposit|minecraft:lightning_rod"
+],
+"technology:turbine_engine": [
+"deposit|tfmg:aluminum_pipe"
+],
+"technology:uranium_hexafluoride": [
+"deposit|createnuclear:uranium_powder",
+"deposit|chemica:nickel_catalyst"
+],
+"technology:uranium_leaching": [
+"deposit|create:crushed_raw_uranium",
+"process|createnuclear:uranium_powder"
+],
+"technology:uranium_rod": [
+"deposit|createnuclear:enriched_yellowcake",
+"deposit|chemica:helium_bucket"
+],
+"technology:vacuum_chamber": [
+"deposit|create:mechanical_pump",
+"deposit|createvintageneoforged:iron_spring"
+],
+"technology:vat_centrifuge": [
+"deposit|tfmg:aluminum_ingot"
+],
+"technology:vat_mixer": [
+"deposit|tfmg:screw"
+],
+"technology:vats": [
+"deposit|tfmg:steel_fluid_tank",
+"deposit|tfmg:cast_iron_fluid_tank",
+"deposit|tfmg:lead_sheet"
+],
+"technology:venus_chemistry": [
+"visit|northstar:venus"
+],
+"technology:vibration_mechanism": [
+"deposit|minecraft:amethyst_shard"
+],
+"technology:vintage_laser": [
+"deposit|create:electron_tube",
+"deposit|minecraft:quartz"
+],
+"technology:vintage_lathe": [
+"deposit|create:precision_mechanism",
+"deposit|createvintageneoforged:iron_spring"
+],
+"technology:vintage_machines": [
+"deposit|createvintageneoforged:iron_spring",
+"deposit|create:mechanical_piston"
+],
+"technology:vt_beacon": [
+"deposit|minecraft:gold_block",
+"deposit|minecraft:obsidian",
+"deposit|minecraft:nautilus_shell"
+],
+"technology:vt_compass": [
+"deposit|#c:ingots/iron",
+"deposit|#c:dusts/redstone",
+"deposit|#c:ingots/gold"
+],
+"technology:vt_enchanting": [
+"deposit|minecraft:diamond",
+"deposit|minecraft:obsidian",
+"deposit|minecraft:book"
+],
+"technology:vt_explorer": [
+"deposit|minecraft:amethyst_shard",
+"deposit|minecraft:amethyst_shard",
+"deposit|minecraft:compass"
+],
+"technology:vt_hopper": [
+"deposit|#c:ingots/iron",
+"deposit|minecraft:cobblestone",
+"deposit|#c:dusts/redstone"
+],
+"technology:vt_observer": [
+"deposit|minecraft:quartz",
+"deposit|minecraft:crafting_table",
+"deposit|#c:dusts/redstone"
+],
+"technology:vt_pistons": [
+"deposit|#c:ingots/iron",
+"deposit|#c:slimeballs",
+"deposit|#c:dusts/redstone"
+],
+"technology:vt_rails": [
+"deposit|#c:ingots/iron",
+"deposit|#c:ingots/gold",
+"deposit|#c:dusts/redstone"
+],
+"technology:vt_redstone": [
+"deposit|#c:dusts/redstone",
+"deposit|minecraft:cobblestone"
+],
+"technology:vt_respawn": [
+"deposit|minecraft:crying_obsidian",
+"deposit|minecraft:glowstone",
+"deposit|minecraft:obsidian"
+],
+"technology:vt_scribe": [
+"deposit|minecraft:book",
+"deposit|minecraft:paper",
+"deposit|#minecraft:wool"
+],
+"technology:vt_signals": [
+"deposit|#c:dusts/redstone",
+"deposit|minecraft:quartz",
+"deposit|minecraft:stone"
+],
+"technology:vt_smithing": [
+"deposit|#c:ingots/iron",
+"deposit|minecraft:smithing_table"
+],
+"technology:vt_workshop": [
+"deposit|#c:ingots/iron",
+"deposit|minecraft:stone",
+"deposit|#minecraft:planks"
+],
+"technology:wastewater_treatment": [
+"deposit|chemica:distilled_water_bucket"
+],
+"technology:water_wheel": [
+"craft|create:andesite_alloy"
+],
+"technology:weighted_ejector": [
+"deposit|create:depot",
+"deposit|#c:plates/gold"
+],
+"technology:winding_machine": [
+"deposit|tfmg:steel_mechanism",
+"deposit|tfmg:heavy_plate"
+],
+"technology:windmill": [
+"deposit|#minecraft:wool",
+"deposit|create:shaft"
+],
+"technology:wood_building": [
+"fell|"
+],
+"technology:wrench_goggles": [
+"deposit|#c:plates/gold"
+],
+"technology:yellowcake": [
+"deposit|chemica:titanium_sheet",
+"deposit|chemica:platinum_catalyst"
+],
+"tools_armor:advanced_netherite_diamond": [
+"deposit|advancednetherite:netherite_diamond_ingot"
+],
+"tools_armor:advanced_netherite_emerald": [
+"deposit|advancednetherite:netherite_emerald_ingot"
+],
+"tools_armor:advanced_netherite_gold": [
+"deposit|advancednetherite:netherite_gold_ingot"
+],
+"tools_armor:advanced_netherite_iron": [
+"deposit|advancednetherite:netherite_iron_ingot"
+],
+"tools_armor:advanced_respirators": [
+"deposit|minecraft:diamond",
+"deposit|#c:ingots/gold"
+],
+"tools_armor:aluminum_tools": [
+"deposit|#c:ingots/aluminum"
+],
+"tools_armor:anti_radiation_suit": [
+"deposit|#c:ingots/lead",
+"deposit|minecraft:white_wool",
+"deposit|createnuclear:graphite_rod"
+],
+"tools_armor:armored_backtanks": [
+"deposit|create:copper_backtank",
+"deposit|#c:ingots/iron"
+],
+"tools_armor:backpack": [
+"deposit|minecraft:leather",
+"deposit|#minecraft:wool",
+"deposit|sbrc:wax_resin"
+],
+"tools_armor:backpack_advanced_upgrades": [
+"deposit|minecraft:diamond",
+"deposit|#c:ingots/gold"
+],
+"tools_armor:backpack_everlasting": [
+"deposit|minecraft:nether_star",
+"deposit|minecraft:end_crystal"
+],
+"tools_armor:backpack_inception": [
+"deposit|minecraft:nether_star",
+"kill|minecraft:wither"
+],
+"tools_armor:backpack_stack_1": [
+"deposit|#c:storage_blocks/copper",
+"deposit|#c:storage_blocks/iron"
+],
+"tools_armor:backpack_stack_2": [
+"deposit|#c:storage_blocks/gold",
+"deposit|#c:storage_blocks/diamond"
+],
+"tools_armor:backpack_stack_3": [
+"deposit|#c:storage_blocks/netherite"
+],
+"tools_armor:backpack_tiers": [
+"deposit|#c:ingots/copper",
+"deposit|#c:ingots/iron"
+],
+"tools_armor:backpack_upgrades": [
+"deposit|#c:strings",
+"deposit|create:iron_sheet"
+],
+"tools_armor:backpack_utility_upgrades": [
+"deposit|minecraft:ender_pearl",
+"deposit|#c:storage_blocks/redstone"
+],
+"tools_armor:brass_armor": [
+"deposit|#c:ingots/brass"
+],
+"tools_armor:brass_hammer_paxel": [
+"deposit|#c:ingots/brass",
+"deposit|#c:plates/brass"
+],
+"tools_armor:brass_tools": [
+"deposit|#c:ingots/brass"
+],
+"tools_armor:bronze_armor": [
+"deposit|#c:ingots/bronze"
+],
+"tools_armor:bronze_hammer_paxel": [
+"deposit|#c:ingots/bronze",
+"deposit|#c:plates/bronze"
+],
+"tools_armor:bronze_tools": [
+"deposit|#c:ingots/bronze"
+],
+"tools_armor:cardboard_armor": [
+"deposit|create:cardboard"
+],
+"tools_armor:copper_armor": [
+"deposit|#c:ingots/copper"
+],
+"tools_armor:copper_backtank": [
+"deposit|#c:storage_blocks/copper",
+"deposit|create:andesite_alloy",
+"deposit|create:shaft"
+],
+"tools_armor:copper_diving_gear": [
+"deposit|#c:ingots/copper",
+"deposit|#c:glass_blocks"
+],
+"tools_armor:copper_hammer_paxel": [
+"deposit|#c:ingots/copper",
+"deposit|#c:plates/copper"
+],
+"tools_armor:copper_storage": [
+"deposit|#c:ingots/copper"
+],
+"tools_armor:copper_tools": [
+"deposit|#c:ingots/copper"
+],
+"tools_armor:diamond_armor": [
+"deposit|minecraft:diamond"
+],
+"tools_armor:diamond_backpack": [
+"deposit|minecraft:diamond"
+],
+"tools_armor:diamond_backtank": [
+"deposit|minecraft:diamond",
+"deposit|create:copper_backtank"
+],
+"tools_armor:diamond_goggle_helmet": [
+"deposit|minecraft:diamond",
+"deposit|create:goggles"
+],
+"tools_armor:diamond_hammer_paxel": [
+"deposit|minecraft:diamond",
+"deposit|#c:plates/iron"
+],
+"tools_armor:diamond_storage": [
+"deposit|minecraft:diamond"
+],
+"tools_armor:diamond_tools": [
+"deposit|minecraft:diamond"
+],
+"tools_armor:extended_wrench": [
+"deposit|create:wrench",
+"deposit|#c:plates/brass"
+],
+"tools_armor:fxnt_advanced": [
+"deposit|#c:ingots/steel",
+"deposit|minecraft:diamond"
+],
+"tools_armor:fxnt_network": [
+"deposit|create:brass_ingot",
+"deposit|minecraft:diamond"
+],
+"tools_armor:fxnt_storage": [
+"deposit|#c:ingots/iron",
+"deposit|minecraft:barrel"
+],
+"tools_armor:goggle_helmets": [
+"deposit|create:goggles",
+"deposit|#c:ingots/iron"
+],
+"tools_armor:goggles": [
+"deposit|#c:plates/gold",
+"deposit|#c:glass_blocks"
+],
+"tools_armor:gold_armor": [
+"deposit|#c:ingots/gold"
+],
+"tools_armor:gold_backpack": [
+"deposit|#c:ingots/gold"
+],
+"tools_armor:gold_hammer_paxel": [
+"deposit|#c:ingots/gold",
+"deposit|#c:plates/gold"
+],
+"tools_armor:gold_storage": [
+"deposit|#c:ingots/gold"
+],
+"tools_armor:gold_tools": [
+"deposit|#c:ingots/gold"
+],
+"tools_armor:handheld_drill": [
+"deposit|create:mechanical_drill",
+"deposit|create:precision_mechanism"
+],
+"tools_armor:iron_armor": [
+"deposit|#c:ingots/iron"
+],
+"tools_armor:iron_hammer_paxel": [
+"deposit|#c:ingots/iron",
+"deposit|#c:plates/iron"
+],
+"tools_armor:iron_space_suit": [
+"deposit|#minecraft:wool",
+"deposit|chemica:polyethylene_sheet"
+],
+"tools_armor:iron_storage": [
+"deposit|#c:ingots/iron"
+],
+"tools_armor:iron_tools": [
+"deposit|#c:ingots/iron"
+],
+"tools_armor:jetpack": [
+"deposit|create:precision_mechanism",
+"deposit|create:copper_backtank",
+"deposit|create:brass_sheet"
+],
+"tools_armor:lab_gear": [
+"deposit|minecraft:white_wool",
+"deposit|createbigpharma:amber_glass"
+],
+"tools_armor:lead_tools": [
+"deposit|#c:ingots/lead"
+],
+"tools_armor:leather_armor": [
+"deposit|minecraft:leather"
+],
+"tools_armor:martian_gear": [
+"visit|northstar:mars",
+"deposit|northstar:martian_steel_ingot"
+],
+"tools_armor:martian_space_suit": [
+"deposit|#c:plates/martian_steel",
+"deposit|northstar:durable_fabric"
+],
+"tools_armor:netherite_armor": [
+"deposit|minecraft:netherite_ingot",
+"deposit|minecraft:netherite_upgrade_smithing_template"
+],
+"tools_armor:netherite_backpack": [
+"deposit|minecraft:netherite_ingot",
+"deposit|minecraft:netherite_upgrade_smithing_template"
+],
+"tools_armor:netherite_diving": [
+"deposit|minecraft:netherite_ingot",
+"deposit|minecraft:netherite_upgrade_smithing_template"
+],
+"tools_armor:netherite_goggle_helmet": [
+"deposit|minecraft:netherite_ingot",
+"deposit|create:goggles"
+],
+"tools_armor:netherite_hammer_paxel": [
+"deposit|minecraft:netherite_ingot"
+],
+"tools_armor:netherite_storage": [
+"deposit|minecraft:netherite_ingot"
+],
+"tools_armor:netherite_tools": [
+"deposit|minecraft:netherite_ingot",
+"deposit|minecraft:netherite_upgrade_smithing_template"
+],
+"tools_armor:numismatics_banking": [
+"deposit|minecraft:diamond",
+"deposit|create:precision_mechanism"
+],
+"tools_armor:numismatics_basics": [
+"deposit|create:brass_ingot",
+"deposit|#c:ingots/gold"
+],
+"tools_armor:packing_tape": [
+"deposit|minecraft:paper",
+"deposit|sbrc:wax_resin"
+],
+"tools_armor:portable_drill": [
+"deposit|dndesires:handheld_drill",
+"deposit|powergrid:electrical_gizmo"
+],
+"tools_armor:respirators": [
+"deposit|minecraft:leather",
+"deposit|#minecraft:wool"
+],
+"tools_armor:rose_quartz_armor": [
+"deposit|create:polished_rose_quartz"
+],
+"tools_armor:shield": [
+"deposit|#c:ingots/iron",
+"deposit|#minecraft:planks"
+],
+"tools_armor:shulker_storage": [
+"deposit|minecraft:shulker_shell"
+],
+"tools_armor:sophisticated_omega": [
+"deposit|#c:storage_blocks/netherite"
+],
+"tools_armor:spout_gun": [
+"deposit|create:spout",
+"deposit|create:precision_mechanism"
+],
+"tools_armor:steel_armor": [
+"deposit|#c:ingots/steel"
+],
+"tools_armor:steel_tools": [
+"deposit|#c:ingots/steel"
+],
+"tools_armor:sticky_gear": [
+"deposit|create:sticker",
+"deposit|minecraft:slime_block"
+],
+"tools_armor:storage_advanced_upgrades": [
+"deposit|minecraft:diamond",
+"deposit|#c:ingots/gold"
+],
+"tools_armor:storage_in_motion": [
+"deposit|minecraft:minecart",
+"deposit|#minecraft:boats"
+],
+"tools_armor:storage_network": [
+"deposit|minecraft:comparator",
+"deposit|minecraft:ender_pearl"
+],
+"tools_armor:storage_stack_1": [
+"deposit|#minecraft:logs",
+"deposit|#c:storage_blocks/copper"
+],
+"tools_armor:storage_stack_2": [
+"deposit|#c:storage_blocks/gold",
+"deposit|#c:storage_blocks/diamond"
+],
+"tools_armor:storage_stack_3": [
+"deposit|#c:storage_blocks/netherite"
+],
+"tools_armor:storage_upgrades": [
+"deposit|create:iron_sheet",
+"deposit|sbrc:wax_resin"
+],
+"tools_armor:storage_utility_upgrades": [
+"deposit|minecraft:ender_pearl"
+],
+"tools_armor:sturdy_armor": [
+"deposit|create:sturdy_sheet"
+],
+"tools_armor:tfmg_tools": [
+"deposit|#c:plates/aluminum",
+"deposit|#c:plates/steel"
+],
+"tools_armor:turtle_helmet": [
+"deposit|minecraft:turtle_scute"
+],
+"tools_armor:vibrant_vaults": [
+"deposit|create:brass_ingot",
+"deposit|minecraft:diamond"
+],
+"tools_armor:wooden_storage": [
+"deposit|#minecraft:planks",
+"deposit|sbrc:wax_resin"
+]
+},
+"targets": {
+"buffs:absorption_1": [
+1
+],
+"buffs:absorption_2": [
+2
+],
+"buffs:absorption_3": [
+4
+],
+"buffs:buff_points_1": [
+1
+],
+"buffs:buff_points_2": [
+1
+],
+"buffs:buff_points_3": [
+2
+],
+"buffs:buff_points_4": [
+2
+],
+"buffs:buffs_view": [
+9
+],
+"buffs:citizens_1": [
+8
+],
+"buffs:citizens_10": [
+192,
+24
+],
+"buffs:citizens_11": [
+224,
+32
+],
+"buffs:citizens_12": [
+256,
+48
+],
+"buffs:citizens_13": [
+320,
+64
+],
+"buffs:citizens_2": [
+16
+],
+"buffs:citizens_3": [
+24
+],
+"buffs:citizens_4": [
+32
+],
+"buffs:citizens_5": [
+48
+],
+"buffs:citizens_6": [
+64
+],
+"buffs:citizens_7": [
+96
+],
+"buffs:citizens_8": [
+128
+],
+"buffs:citizens_9": [
+160,
+16
+],
+"buffs:fire_resistance": [
+2
+],
+"buffs:haste_1": [
+1
+],
+"buffs:haste_2": [
+1
+],
+"buffs:haste_3": [
+2
+],
+"buffs:health_boost_1": [
+2
+],
+"buffs:health_boost_2": [
+2
+],
+"buffs:health_boost_3": [
+8
+],
+"buffs:instant_health_1": [
+1
+],
+"buffs:instant_health_2": [
+1
+],
+"buffs:instant_health_3": [
+8
+],
+"buffs:jump_boost_1": [
+1
+],
+"buffs:jump_boost_2": [
+2
+],
+"buffs:jump_boost_3": [
+4
+],
+"buffs:land_1": [
+4
+],
+"buffs:land_10": [
+22
+],
+"buffs:land_11": [
+24
+],
+"buffs:land_12": [
+26
+],
+"buffs:land_13": [
+28
+],
+"buffs:land_14": [
+30
+],
+"buffs:land_15": [
+32
+],
+"buffs:land_16": [
+34
+],
+"buffs:land_17": [
+36
+],
+"buffs:land_18": [
+38
+],
+"buffs:land_19": [
+40
+],
+"buffs:land_2": [
+6
+],
+"buffs:land_20": [
+42
+],
+"buffs:land_21": [
+44
+],
+"buffs:land_22": [
+46
+],
+"buffs:land_23": [
+48
+],
+"buffs:land_24": [
+50
+],
+"buffs:land_25": [
+52
+],
+"buffs:land_26": [
+54
+],
+"buffs:land_27": [
+56
+],
+"buffs:land_28": [
+58
+],
+"buffs:land_29": [
+60
+],
+"buffs:land_3": [
+8
+],
+"buffs:land_30": [
+62
+],
+"buffs:land_31": [
+64
+],
+"buffs:land_32": [
+66
+],
+"buffs:land_33": [
+68
+],
+"buffs:land_34": [
+70
+],
+"buffs:land_35": [
+72
+],
+"buffs:land_36": [
+74
+],
+"buffs:land_37": [
+76
+],
+"buffs:land_38": [
+78
+],
+"buffs:land_39": [
+80
+],
+"buffs:land_4": [
+10
+],
+"buffs:land_40": [
+82
+],
+"buffs:land_41": [
+84
+],
+"buffs:land_42": [
+86
+],
+"buffs:land_43": [
+88
+],
+"buffs:land_44": [
+90
+],
+"buffs:land_45": [
+92
+],
+"buffs:land_46": [
+94
+],
+"buffs:land_47": [
+96
+],
+"buffs:land_48": [
+98
+],
+"buffs:land_49": [
+100
+],
+"buffs:land_5": [
+12
+],
+"buffs:land_50": [
+102
+],
+"buffs:land_6": [
+14
+],
+"buffs:land_7": [
+16
+],
+"buffs:land_8": [
+18
+],
+"buffs:land_9": [
+20
+],
+"buffs:loan_huge": [
+256
+],
+"buffs:loan_large": [
+128
+],
+"buffs:loan_medium": [
+32
+],
+"buffs:loan_slot_1": [
+16
+],
+"buffs:loan_slot_2": [
+64
+],
+"buffs:loan_small": [
+32
+],
+"buffs:luck_1": [
+2
+],
+"buffs:luck_2": [
+2
+],
+"buffs:luck_3": [
+2
+],
+"buffs:night_vision": [
+1
+],
+"buffs:provinces_1": [
+128
+],
+"buffs:provinces_2": [
+256
+],
+"buffs:provinces_3": [
+64
+],
+"buffs:provinces_4": [
+128
+],
+"buffs:provinces_5": [
+192
+],
+"buffs:provinces_6": [
+256
+],
+"buffs:regeneration_1": [
+1
+],
+"buffs:regeneration_2": [
+1
+],
+"buffs:regeneration_3": [
+4
+],
+"buffs:resistance_1": [
+1
+],
+"buffs:resistance_2": [
+1
+],
+"buffs:resistance_3": [
+4
+],
+"buffs:speed_1": [
+1
+],
+"buffs:speed_2": [
+2
+],
+"buffs:speed_3": [
+2
+],
+"buffs:strength_1": [
+1
+],
+"buffs:strength_2": [
+2
+],
+"buffs:strength_3": [
+4
+],
+"buffs:treasury_1": [
+9
+],
+"buffs:treasury_10": [
+54
+],
+"buffs:treasury_11": [
+54
+],
+"buffs:treasury_12": [
+63
+],
+"buffs:treasury_13": [
+63
+],
+"buffs:treasury_14": [
+72
+],
+"buffs:treasury_15": [
+72
+],
+"buffs:treasury_16": [
+81
+],
+"buffs:treasury_17": [
+81
+],
+"buffs:treasury_18": [
+90
+],
+"buffs:treasury_19": [
+90
+],
+"buffs:treasury_2": [
+18
+],
+"buffs:treasury_20": [
+99
+],
+"buffs:treasury_21": [
+99
+],
+"buffs:treasury_22": [
+108
+],
+"buffs:treasury_23": [
+108
+],
+"buffs:treasury_24": [
+117
+],
+"buffs:treasury_25": [
+117
+],
+"buffs:treasury_26": [
+126
+],
+"buffs:treasury_27": [
+126
+],
+"buffs:treasury_28": [
+135
+],
+"buffs:treasury_29": [
+135
+],
+"buffs:treasury_3": [
+18
+],
+"buffs:treasury_30": [
+144
+],
+"buffs:treasury_31": [
+144
+],
+"buffs:treasury_32": [
+153
+],
+"buffs:treasury_33": [
+153
+],
+"buffs:treasury_34": [
+162
+],
+"buffs:treasury_35": [
+162
+],
+"buffs:treasury_36": [
+171
+],
+"buffs:treasury_37": [
+171
+],
+"buffs:treasury_38": [
+180
+],
+"buffs:treasury_39": [
+180
+],
+"buffs:treasury_4": [
+27
+],
+"buffs:treasury_40": [
+189
+],
+"buffs:treasury_41": [
+189
+],
+"buffs:treasury_42": [
+198
+],
+"buffs:treasury_43": [
+198
+],
+"buffs:treasury_44": [
+207
+],
+"buffs:treasury_45": [
+207
+],
+"buffs:treasury_46": [
+216
+],
+"buffs:treasury_47": [
+216
+],
+"buffs:treasury_48": [
+225
+],
+"buffs:treasury_49": [
+225
+],
+"buffs:treasury_5": [
+27
+],
+"buffs:treasury_50": [
+234
+],
+"buffs:treasury_6": [
+36
+],
+"buffs:treasury_7": [
+36
+],
+"buffs:treasury_8": [
+45
+],
+"buffs:treasury_9": [
+45
+],
+"buffs:water_breathing": [
+1
+],
+"metallurgy:aluminum": [
+256
+],
+"metallurgy:andesite_alloy_iron": [
+64
+],
+"metallurgy:andesite_alloy_zinc": [
+64
+],
+"metallurgy:antimony": [
+64
+],
+"metallurgy:blast_furnace": [
+5,
+3
+],
+"metallurgy:blast_furnace_reinforcement": [
+32,
+8
+],
+"metallurgy:brass": [
+64,
+64
+],
+"metallurgy:bronze": [
+96,
+32
+],
+"metallurgy:cast_iron_ingot": [
+8,
+8
+],
+"metallurgy:cast_iron_pressing": [
+32
+],
+"metallurgy:ceramic_mold": [
+32
+],
+"metallurgy:chisel": [
+16
+],
+"metallurgy:chromium": [
+64
+],
+"metallurgy:coal_compacting": [
+64
+],
+"metallurgy:cobalt": [
+64
+],
+"metallurgy:coke": [
+16,
+16
+],
+"metallurgy:composite_alloy": [
+16
+],
+"metallurgy:constantan": [
+48
+],
+"metallurgy:copper_casting": [
+4,
+16
+],
+"metallurgy:copper_crushing": [
+16
+],
+"metallurgy:copper_deco": [
+3,
+3,
+3,
+3
+],
+"metallurgy:copper_melting": [
+32
+],
+"metallurgy:copper_pressing": [
+6
+],
+"metallurgy:copper_smelting": [
+16
+],
+"metallurgy:electrowinning": [
+8,
+8
+],
+"metallurgy:electrum": [
+32,
+32
+],
+"metallurgy:fireclay": [
+16
+],
+"metallurgy:furnace": [
+64
+],
+"metallurgy:gold_casting": [
+4,
+16
+],
+"metallurgy:gold_crushing": [
+16
+],
+"metallurgy:gold_melting": [
+32
+],
+"metallurgy:gold_pressing": [
+6
+],
+"metallurgy:gold_smelting": [
+16
+],
+"metallurgy:graphite": [
+32
+],
+"metallurgy:heat_resistant_alloy": [
+64
+],
+"metallurgy:hydrometallurgy": [
+16
+],
+"metallurgy:ingot_mold": [
+8
+],
+"metallurgy:iridium": [
+32
+],
+"metallurgy:iron_casting": [
+4,
+16
+],
+"metallurgy:iron_crushing": [
+16
+],
+"metallurgy:iron_deco": [
+3
+],
+"metallurgy:iron_melting": [
+32
+],
+"metallurgy:iron_pressing": [
+6
+],
+"metallurgy:iron_smelting": [
+16
+],
+"metallurgy:lead_casting": [
+4,
+16
+],
+"metallurgy:lead_crushing": [
+16
+],
+"metallurgy:lead_melting": [
+32
+],
+"metallurgy:lead_pressing": [
+6
+],
+"metallurgy:lead_smelting": [
+16
+],
+"metallurgy:lightweight_alloy": [
+32
+],
+"metallurgy:lithium": [
+32
+],
+"metallurgy:lunar_resources": [
+1,
+16
+],
+"metallurgy:magnesium": [
+32
+],
+"metallurgy:magnetic_alloy": [
+32,
+64
+],
+"metallurgy:martian_steel": [
+1,
+64
+],
+"metallurgy:mercury_tungsten": [
+1
+],
+"metallurgy:molten_cast_iron": [
+64,
+32
+],
+"metallurgy:molybdenum": [
+64
+],
+"metallurgy:netherite": [
+16,
+512
+],
+"metallurgy:netherite_diamond": [
+8,
+32
+],
+"metallurgy:netherite_emerald": [
+8,
+32
+],
+"metallurgy:netherite_gold": [
+8,
+32
+],
+"metallurgy:netherite_iron": [
+16,
+32
+],
+"metallurgy:nethersteel": [
+32,
+64
+],
+"metallurgy:nickel_crushing": [
+16
+],
+"metallurgy:nickel_pressing": [
+6
+],
+"metallurgy:nickel_smelting": [
+16
+],
+"metallurgy:platinum": [
+64
+],
+"metallurgy:resonant_metals": [
+64,
+32
+],
+"metallurgy:silicon": [
+64,
+256
+],
+"metallurgy:silver_casting": [
+4,
+16
+],
+"metallurgy:silver_crushing": [
+16
+],
+"metallurgy:silver_melting": [
+32
+],
+"metallurgy:silver_pressing": [
+54
+],
+"metallurgy:silver_smelting": [
+16
+],
+"metallurgy:sodium": [
+128
+],
+"metallurgy:steel": [
+64,
+8
+],
+"metallurgy:stone_tools": [
+32
+],
+"metallurgy:stonecutter": [
+64
+],
+"metallurgy:tantalum": [
+1,
+64
+],
+"metallurgy:tfmg_blast_furnace": [
+32,
+4
+],
+"metallurgy:tin_casting": [
+4,
+16
+],
+"metallurgy:tin_crushing": [
+16
+],
+"metallurgy:tin_melting": [
+32
+],
+"metallurgy:tin_pressing": [
+6
+],
+"metallurgy:tin_smelting": [
+16
+],
+"metallurgy:titanium": [
+64
+],
+"metallurgy:tough_alloys": [
+32,
+32
+],
+"metallurgy:tungsten": [
+64
+],
+"metallurgy:tungsten_carbide": [
+32
+],
+"metallurgy:uranium": [
+32
+],
+"metallurgy:vanadium": [
+64
+],
+"metallurgy:venus_resources": [
+1
+],
+"metallurgy:zinc_casting": [
+4,
+16
+],
+"metallurgy:zinc_crushing": [
+16
+],
+"metallurgy:zinc_melting": [
+32
+],
+"metallurgy:zinc_pressing": [
+6
+],
+"metallurgy:zinc_smelting": [
+16
+],
+"military:adv_diamond_sword": [
+4
+],
+"military:adv_emerald_sword": [
+4
+],
+"military:adv_gold_sword": [
+4
+],
+"military:adv_iron_sword": [
+4
+],
+"military:advanced_potato_cannon": [
+4,
+8
+],
+"military:aluminum_sword": [
+14
+],
+"military:ammo_12g": [
+29,
+29
+],
+"military:ammo_22wmr": [
+28,
+28
+],
+"military:ammo_308": [
+49,
+49
+],
+"military:ammo_30_06": [
+41,
+41
+],
+"military:ammo_338": [
+64,
+64
+],
+"military:ammo_357mag": [
+34,
+34
+],
+"military:ammo_40mm": [
+60,
+60
+],
+"military:ammo_45_70": [
+31,
+31
+],
+"military:ammo_45acp": [
+29,
+29
+],
+"military:ammo_500mag": [
+58,
+58
+],
+"military:ammo_50ae": [
+41,
+41
+],
+"military:ammo_50bmg": [
+76,
+76
+],
+"military:ammo_556x45": [
+40,
+40
+],
+"military:ammo_57x28": [
+46,
+46
+],
+"military:ammo_58x42": [
+44,
+44
+],
+"military:ammo_6851fury": [
+52,
+52
+],
+"military:ammo_762x39": [
+36,
+36
+],
+"military:ammo_792x57": [
+38,
+38
+],
+"military:ammo_9mm": [
+28,
+28
+],
+"military:ammo_basics": [
+16,
+32
+],
+"military:ammo_box_4": [
+16,
+4
+],
+"military:ammo_box_diamond": [
+12
+],
+"military:ammo_box_gold": [
+24
+],
+"military:ammo_box_iron": [
+24
+],
+"military:ammo_mods_1": [
+44,
+46
+],
+"military:ammo_mods_2": [
+56,
+58
+],
+"military:ammo_rpg_rocket": [
+67,
+67
+],
+"military:ap_munitions": [
+24,
+64
+],
+"military:basic_munitions": [
+16,
+32
+],
+"military:bayonets": [
+18,
+20
+],
+"military:bow_arrows": [
+16,
+16
+],
+"military:brass_melee": [
+14
+],
+"military:brew_amplifiers": [
+8,
+32
+],
+"military:brewing_stand": [
+6,
+8
+],
+"military:bronze_autocannon": [
+24
+],
+"military:bronze_cannon": [
+24
+],
+"military:bronze_melee": [
+12
+],
+"military:cannon_basics": [
+24,
+16
+],
+"military:cast_iron_autocannon": [
+32,
+16
+],
+"military:cbc_at_ap": [
+32,
+64
+],
+"military:copper_melee": [
+12,
+8
+],
+"military:crossbow": [
+16,
+8
+],
+"military:diamond_melee": [
+8
+],
+"military:dragon_breath": [
+8
+],
+"military:drop_mortar": [
+24,
+24
+],
+"military:electro_weapons": [
+4
+],
+"military:explosives_chem": [
+32
+],
+"military:fire_charge": [
+8,
+16
+],
+"military:flamethrower": [
+4,
+4
+],
+"military:gas_mask": [
+12,
+24
+],
+"military:golden_barrel": [
+16
+],
+"military:grapeshot_shrapnel": [
+64,
+64
+],
+"military:grenades": [
+48
+],
+"military:grips_1": [
+19,
+21
+],
+"military:grips_2": [
+30,
+32
+],
+"military:gun_aa12": [
+62,
+35
+],
+"military:gun_ai_awp": [
+72,
+40
+],
+"military:gun_ak47": [
+40,
+24
+],
+"military:gun_aug": [
+47,
+27
+],
+"military:gun_b93r": [
+27,
+17
+],
+"military:gun_cz75": [
+26,
+17
+],
+"military:gun_db_long": [
+28,
+18
+],
+"military:gun_db_short": [
+25,
+16
+],
+"military:gun_deagle": [
+44,
+26
+],
+"military:gun_deagle_golden": [
+50,
+29
+],
+"military:gun_fn_evolys": [
+69,
+38
+],
+"military:gun_fn_fal": [
+55,
+31
+],
+"military:gun_g36k": [
+50,
+29
+],
+"military:gun_glock_17": [
+24,
+16
+],
+"military:gun_hk416d": [
+53,
+30
+],
+"military:gun_hk_g3": [
+52,
+30
+],
+"military:gun_hk_mk23": [
+31,
+19
+],
+"military:gun_hk_mp5a5": [
+30,
+19
+],
+"military:gun_kar98": [
+38,
+23
+],
+"military:gun_lonetrail": [
+45,
+26
+],
+"military:gun_m1014": [
+49,
+28
+],
+"military:gun_m107": [
+88,
+48
+],
+"military:gun_m16a1": [
+40,
+24
+],
+"military:gun_m16a4": [
+43,
+25
+],
+"military:gun_m1911": [
+26,
+17
+],
+"military:gun_m249": [
+65,
+36
+],
+"military:gun_m320": [
+67,
+37
+],
+"military:gun_m4a1": [
+44,
+26
+],
+"military:gun_m700": [
+42,
+25
+],
+"military:gun_m870": [
+32,
+20
+],
+"military:gun_m95": [
+88,
+48
+],
+"military:gun_m9a4": [
+24,
+16
+],
+"military:gun_minigun": [
+82,
+45
+],
+"military:gun_mk14": [
+60,
+34
+],
+"military:gun_p320": [
+29,
+18
+],
+"military:gun_p90": [
+48,
+28
+],
+"military:gun_qbz_191": [
+52,
+30
+],
+"military:gun_qbz_95": [
+46,
+27
+],
+"military:gun_rhino357": [
+32,
+20
+],
+"military:gun_rpg7": [
+76,
+42
+],
+"military:gun_rpk": [
+54,
+31
+],
+"military:gun_scar_h": [
+57,
+32
+],
+"military:gun_scar_l": [
+48,
+28
+],
+"military:gun_sks_tactical": [
+36,
+22
+],
+"military:gun_spas_12": [
+59,
+33
+],
+"military:gun_spr15hb": [
+56,
+32
+],
+"military:gun_springfield1873": [
+28,
+18
+],
+"military:gun_taurus500": [
+64,
+36
+],
+"military:gun_timeless50": [
+41,
+24
+],
+"military:gun_type_81": [
+35,
+21
+],
+"military:gun_ump45": [
+33,
+20
+],
+"military:gun_uzi": [
+28,
+18
+],
+"military:gun_vector45": [
+51,
+29
+],
+"military:gunsmithing": [
+16,
+4
+],
+"military:he_munitions": [
+48,
+16
+],
+"military:immersive_attachments": [
+12,
+12
+],
+"military:iron_melee": [
+16,
+8
+],
+"military:knives_primitive": [
+24
+],
+"military:lasers": [
+31,
+33
+],
+"military:lead_sword": [
+12
+],
+"military:mags_1": [
+21,
+23
+],
+"military:mags_2": [
+33,
+35
+],
+"military:mags_3": [
+45,
+47
+],
+"military:martian_sword": [
+1,
+8
+],
+"military:mg_autocannon": [
+48,
+96
+],
+"military:muzzle_1": [
+24,
+26
+],
+"military:muzzle_2": [
+36,
+38
+],
+"military:netherite_melee": [
+4
+],
+"military:nethersteel_cannon": [
+24
+],
+"military:quad_potato_cannon": [
+8,
+8
+],
+"military:restraints": [
+24,
+8
+],
+"military:rifled_barrels": [
+32
+],
+"military:rocket_pods": [
+48,
+64
+],
+"military:scopes_high": [
+40,
+42
+],
+"military:scopes_low": [
+22,
+24
+],
+"military:scopes_mid": [
+28,
+30
+],
+"military:sights_pistol": [
+15,
+17
+],
+"military:sights_rifle": [
+17,
+19
+],
+"military:silencers_1": [
+32,
+34
+],
+"military:silencers_2": [
+42,
+44
+],
+"military:silencers_3": [
+52,
+54
+],
+"military:special_shells": [
+32,
+32
+],
+"military:spectral_arrow": [
+16
+],
+"military:steel_cannon": [
+32
+],
+"military:steel_melee": [
+14
+],
+"military:stocks_1": [
+20,
+22
+],
+"military:stocks_2": [
+34,
+36
+],
+"military:tipped_arrow": [
+32,
+8
+],
+"military:tnt": [
+24,
+16
+],
+"military:twin_autocannon": [
+32
+],
+"technology:accumulator": [
+4,
+16
+],
+"technology:adjustable_gearshift": [
+8,
+8
+],
+"technology:advanced_circuit": [
+8,
+8
+],
+"technology:advanced_circuit_board": [
+4
+],
+"technology:air_separation": [
+16
+],
+"technology:aluminum_fluids": [
+24
+],
+"technology:aluminum_kinetics": [
+32
+],
+"technology:amber_glass": [
+64
+],
+"technology:ammonia": [
+4,
+4
+],
+"technology:andesite_casing": [
+64
+],
+"technology:andesite_funnels": [
+16,
+16
+],
+"technology:arc_furnace": [
+16
+],
+"technology:aromatics": [
+4
+],
+"technology:astronomy": [
+16,
+32,
+4
+],
+"technology:auto_lander": [
+1,
+4
+],
+"technology:autogas_engine": [
+4
+],
+"technology:base_catalysts": [
+16,
+16,
+16
+],
+"technology:basin": [
+16
+],
+"technology:bearings": [
+8,
+8
+],
+"technology:belt": [
+32
+],
+"technology:bio_engines": [
+4
+],
+"technology:blast_furnace_machines": [
+16,
+4
+],
+"technology:blaze_burner": [
+32,
+8
+],
+"technology:brackets": [
+16,
+16
+],
+"technology:brass_casing": [
+16,
+16
+],
+"technology:brass_curios": [
+4,
+4
+],
+"technology:brass_funnels": [
+16,
+16
+],
+"technology:brass_hand": [
+16,
+8
+],
+"technology:brass_motion": [
+8,
+8,
+8
+],
+"technology:brass_pipes": [
+16,
+8
+],
+"technology:brass_sifting": [
+24
+],
+"technology:carbon_fiber_composite": [
+8,
+4
+],
+"technology:carbon_fiber_strands": [
+2,
+4
+],
+"technology:card_system": [
+12
+],
+"technology:cardboard": [
+32,
+8
+],
+"technology:cart_assembler": [
+8,
+16
+],
+"technology:cast_iron_pipes": [
+16,
+8
+],
+"technology:cast_iron_tank": [
+16,
+8
+],
+"technology:catalytic_reforming": [
+16
+],
+"technology:chain_conveyor": [
+64
+],
+"technology:chain_drives": [
+16,
+16,
+16
+],
+"technology:chassis": [
+32,
+16
+],
+"technology:chemica_lab": [
+32
+],
+"technology:chlor_alkali": [
+8
+],
+"technology:chute": [
+16,
+16
+],
+"technology:cobalt_catalyst": [
+16
+],
+"technology:compressor": [
+4
+],
+"technology:concrete": [
+32
+],
+"technology:conductive_paste": [
+16
+],
+"technology:connected_brass_drives": [
+4,
+8
+],
+"technology:connected_clutches": [
+4,
+4
+],
+"technology:connected_gearing": [
+4,
+8
+],
+"technology:connected_precision": [
+4,
+2
+],
+"technology:connected_redstone": [
+16,
+4
+],
+"technology:contact_process": [
+16
+],
+"technology:copper_casing": [
+16,
+16
+],
+"technology:copper_table_cover": [
+32
+],
+"technology:copycats": [
+32
+],
+"technology:crafting_table": [
+1
+],
+"technology:create_radar": [
+4
+],
+"technology:crushing_wheels": [
+128
+],
+"technology:cryogenic_fuels": [
+32,
+2
+],
+"technology:cryogenics": [
+8
+],
+"technology:cuisine": [
+16,
+16
+],
+"technology:curving_press": [
+2
+],
+"technology:deployer": [
+8,
+8
+],
+"technology:depot": [
+8,
+8
+],
+"technology:desk_utilities": [
+16,
+4
+],
+"technology:distillery": [
+8,
+4
+],
+"technology:dnd_burner": [
+32
+],
+"technology:dnd_fan_sails": [
+16
+],
+"technology:dnd_heavy_machines": [
+4
+],
+"technology:drill_saw": [
+8,
+16
+],
+"technology:electrolysis_machine": [
+1,
+8
+],
+"technology:electrolyzer": [
+4,
+4
+],
+"technology:electron_tubes": [
+16,
+16
+],
+"technology:electronic_circuit": [
+4
+],
+"technology:encased_fan": [
+3,
+3
+],
+"technology:enrichment": [
+16,
+1
+],
+"technology:epoxy": [
+4,
+4
+],
+"technology:exhaust_stacks": [
+24
+],
+"technology:extendo_wand": [
+4,
+4,
+8
+],
+"technology:factory_gauge": [
+8,
+8
+],
+"technology:fan_catalysts": [
+16,
+4
+],
+"technology:fermentation": [
+64
+],
+"technology:firebox": [
+16,
+8
+],
+"technology:fireproof_vat": [
+2,
+16
+],
+"technology:first_rocket": [
+16,
+16
+],
+"technology:fluid_basics": [
+16,
+8
+],
+"technology:fluid_handling": [
+4,
+16
+],
+"technology:fluid_mechanism": [
+16,
+8
+],
+"technology:flywheel": [
+8,
+8
+],
+"technology:freezer": [
+4
+],
+"technology:gantry": [
+8,
+16,
+16
+],
+"technology:gauges": [
+4,
+8
+],
+"technology:gearbox": [
+8,
+8,
+8
+],
+"technology:gn_brass_gears": [
+16
+],
+"technology:gn_gears": [
+32
+],
+"technology:gn_industrial_gears": [
+8
+],
+"technology:hand_crank": [
+8,
+8
+],
+"technology:hanging_signs": [
+8
+],
+"technology:harvester_plough": [
+8,
+16
+],
+"technology:heat_shield_t2": [
+16
+],
+"technology:heat_shield_t3": [
+1,
+32
+],
+"technology:high_cetane_engine": [
+4
+],
+"technology:high_octane_engine": [
+4
+],
+"technology:hose_pulley": [
+4,
+8
+],
+"technology:hydrofluoric_acid": [
+16
+],
+"technology:hydrogen_production": [
+4
+],
+"technology:hydrogen_turbine": [
+8
+],
+"technology:hypertubes": [
+16,
+4
+],
+"technology:interplanetary_navigator": [
+1,
+2,
+8
+],
+"technology:inventory_access": [
+4,
+8
+],
+"technology:item_filter": [
+16,
+8
+],
+"technology:item_vault": [
+16,
+16
+],
+"technology:large_engine": [
+8
+],
+"technology:large_generator": [
+8,
+4
+],
+"technology:large_transformer": [
+8
+],
+"technology:large_water_wheel": [
+16
+],
+"technology:latex_rubber": [
+64
+],
+"technology:machine_input": [
+2
+],
+"technology:mechanical_arm": [
+8,
+8
+],
+"technology:mechanical_crafter": [
+8,
+8,
+8
+],
+"technology:mechanical_press": [
+4,
+4
+],
+"technology:mechanical_roller": [
+8,
+8
+],
+"technology:millstone": [
+64
+],
+"technology:mixer": [
+8,
+8
+],
+"technology:nitric_acid": [
+4
+],
+"technology:nitroglycerin": [
+4
+],
+"technology:nylon": [
+4,
+4
+],
+"technology:packaging": [
+16,
+8
+],
+"technology:pg_basics": [
+16,
+16,
+8
+],
+"technology:pg_circuits": [
+4,
+4
+],
+"technology:pg_consumers": [
+2,
+16
+],
+"technology:pg_control": [
+16,
+8
+],
+"technology:pg_solar": [
+16,
+4
+],
+"technology:pg_storage": [
+16,
+4
+],
+"technology:pharma_extraction": [
+16
+],
+"technology:pharma_lab": [
+4
+],
+"technology:pharma_machines": [
+4
+],
+"technology:pharma_sterile": [
+4
+],
+"technology:pharma_synthesis": [
+2
+],
+"technology:phosphoric_acid": [
+64
+],
+"technology:pistons": [
+8,
+8
+],
+"technology:plastic_fluids": [
+24
+],
+"technology:plastics": [
+4
+],
+"technology:platinum_electrodes": [
+2
+],
+"technology:polyethylene": [
+8
+],
+"technology:portable_fluid_interface": [
+8,
+8,
+4
+],
+"technology:potato_cannon": [
+4,
+8,
+16
+],
+"technology:precision_mechanism": [
+32,
+16,
+16,
+16
+],
+"technology:propeller_whisk": [
+16,
+8
+],
+"technology:ptfe": [
+4
+],
+"technology:pumpjack": [
+16,
+4
+],
+"technology:pvc": [
+4,
+4
+],
+"technology:radial_engine": [
+24
+],
+"technology:railways": [
+16,
+16
+],
+"technology:reactor_casing": [
+16,
+32
+],
+"technology:reactor_controller": [
+1,
+2
+],
+"technology:reactor_core": [
+4,
+8
+],
+"technology:reactor_shell": [
+16,
+16
+],
+"technology:redstone_circuits": [
+16,
+16
+],
+"technology:regular_engine": [
+16
+],
+"technology:reinforced_iridium": [
+2
+],
+"technology:rocket_electronics": [
+4,
+8
+],
+"technology:rocket_waypoint": [
+1,
+4
+],
+"technology:rope_pulley": [
+8,
+8
+],
+"technology:rose_quartz": [
+32,
+16
+],
+"technology:rotation_speed_controller": [
+8,
+8
+],
+"technology:rubber": [
+16
+],
+"technology:schematics": [
+1,
+4,
+16
+],
+"technology:sensors_displays": [
+8,
+16
+],
+"technology:shafts_cogs": [
+16
+],
+"technology:sifting": [
+64
+],
+"technology:simple_engine": [
+16
+],
+"technology:simple_large_engine": [
+32
+],
+"technology:slicer": [
+2,
+8
+],
+"technology:smart_chute": [
+8,
+8,
+8
+],
+"technology:smart_fluid_pipe": [
+8,
+8,
+4
+],
+"technology:smog_brass": [
+16
+],
+"technology:smog_control": [
+16
+],
+"technology:smog_precision": [
+8
+],
+"technology:space_life_support": [
+1,
+2
+],
+"technology:spring_coiling": [
+4,
+16
+],
+"technology:sprinklers": [
+8,
+8
+],
+"technology:sr_acid_etching": [
+32
+],
+"technology:sr_ash_ceramics": [
+32
+],
+"technology:sr_combustion_belt": [
+16
+],
+"technology:sr_infernal": [
+16
+],
+"technology:sr_resonance_chamber": [
+4
+],
+"technology:sr_sulfur_burner": [
+96
+],
+"technology:sr_thermal_systems": [
+8
+],
+"technology:sr_thermo_kinetics": [
+48
+],
+"technology:sr_thermochemical_casing": [
+8
+],
+"technology:steam_engine": [
+4,
+4,
+4
+],
+"technology:steam_whistle": [
+16,
+8
+],
+"technology:steel_fluids": [
+16,
+8
+],
+"technology:steel_kinetics": [
+24
+],
+"technology:steel_mechanism": [
+8,
+4,
+16
+],
+"technology:sticky_launcher": [
+2
+],
+"technology:stock_logistics": [
+8,
+8,
+4
+],
+"technology:sturdy_sheet": [
+16,
+2
+],
+"technology:sturdy_sifting": [
+8
+],
+"technology:sulfuric_acid": [
+64
+],
+"technology:surface_scanner": [
+8
+],
+"technology:tantalum_capacitor": [
+8
+],
+"technology:tfmg_circuits": [
+8,
+8
+],
+"technology:tfmg_components": [
+16,
+32
+],
+"technology:tfmg_electricity": [
+8,
+2,
+16
+],
+"technology:tfmg_electronics": [
+4,
+16
+],
+"technology:tfmg_generator": [
+4,
+2,
+32
+],
+"technology:tfmg_structures": [
+32
+],
+"technology:titanium_tetrachloride": [
+4
+],
+"technology:toolbox": [
+8,
+8
+],
+"technology:train_controls": [
+4,
+8
+],
+"technology:transformers": [
+8,
+16
+],
+"technology:transmitter": [
+8,
+8
+],
+"technology:turbine_engine": [
+16
+],
+"technology:uranium_hexafluoride": [
+32,
+2
+],
+"technology:uranium_leaching": [
+32,
+16
+],
+"technology:uranium_rod": [
+16,
+2
+],
+"technology:vacuum_chamber": [
+2,
+8
+],
+"technology:vat_centrifuge": [
+24
+],
+"technology:vat_mixer": [
+16
+],
+"technology:vats": [
+4,
+4,
+16
+],
+"technology:venus_chemistry": [
+1
+],
+"technology:vibration_mechanism": [
+16
+],
+"technology:vintage_laser": [
+8,
+16
+],
+"technology:vintage_lathe": [
+4,
+8
+],
+"technology:vintage_machines": [
+8,
+2
+],
+"technology:vt_beacon": [
+8,
+16,
+4
+],
+"technology:vt_compass": [
+8,
+8,
+2
+],
+"technology:vt_enchanting": [
+2,
+8,
+4
+],
+"technology:vt_explorer": [
+4,
+16,
+1
+],
+"technology:vt_hopper": [
+10,
+32,
+8
+],
+"technology:vt_observer": [
+8,
+2,
+32
+],
+"technology:vt_pistons": [
+6,
+4,
+8
+],
+"technology:vt_rails": [
+24,
+12,
+16
+],
+"technology:vt_redstone": [
+16,
+16
+],
+"technology:vt_respawn": [
+6,
+6,
+16
+],
+"technology:vt_scribe": [
+4,
+16,
+8
+],
+"technology:vt_signals": [
+32,
+8,
+16
+],
+"technology:vt_smithing": [
+16,
+1
+],
+"technology:vt_workshop": [
+32,
+16,
+16
+],
+"technology:wastewater_treatment": [
+4
+],
+"technology:water_wheel": [
+64
+],
+"technology:weighted_ejector": [
+8,
+8
+],
+"technology:winding_machine": [
+4,
+8
+],
+"technology:windmill": [
+32,
+16
+],
+"technology:wood_building": [
+6
+],
+"technology:wrench_goggles": [
+8
+],
+"technology:yellowcake": [
+8,
+1
+],
+"tools_armor:advanced_netherite_diamond": [
+12
+],
+"tools_armor:advanced_netherite_emerald": [
+12
+],
+"tools_armor:advanced_netherite_gold": [
+12
+],
+"tools_armor:advanced_netherite_iron": [
+12
+],
+"tools_armor:advanced_respirators": [
+8,
+16
+],
+"tools_armor:aluminum_tools": [
+32
+],
+"tools_armor:anti_radiation_suit": [
+64,
+16,
+2
+],
+"tools_armor:armored_backtanks": [
+2,
+16
+],
+"tools_armor:backpack": [
+32,
+16,
+8
+],
+"tools_armor:backpack_advanced_upgrades": [
+16,
+32
+],
+"tools_armor:backpack_everlasting": [
+4,
+4
+],
+"tools_armor:backpack_inception": [
+1,
+1
+],
+"tools_armor:backpack_stack_1": [
+8,
+8
+],
+"tools_armor:backpack_stack_2": [
+8,
+4
+],
+"tools_armor:backpack_stack_3": [
+2
+],
+"tools_armor:backpack_tiers": [
+16,
+16
+],
+"tools_armor:backpack_upgrades": [
+32,
+16
+],
+"tools_armor:backpack_utility_upgrades": [
+8,
+4
+],
+"tools_armor:brass_armor": [
+64
+],
+"tools_armor:brass_hammer_paxel": [
+48,
+8
+],
+"tools_armor:brass_tools": [
+32
+],
+"tools_armor:bronze_armor": [
+64
+],
+"tools_armor:bronze_hammer_paxel": [
+48,
+8
+],
+"tools_armor:bronze_tools": [
+32
+],
+"tools_armor:cardboard_armor": [
+16
+],
+"tools_armor:copper_armor": [
+48
+],
+"tools_armor:copper_backtank": [
+8,
+16,
+8
+],
+"tools_armor:copper_diving_gear": [
+16,
+4
+],
+"tools_armor:copper_hammer_paxel": [
+48,
+8
+],
+"tools_armor:copper_storage": [
+32
+],
+"tools_armor:copper_tools": [
+24
+],
+"tools_armor:diamond_armor": [
+32
+],
+"tools_armor:diamond_backpack": [
+16
+],
+"tools_armor:diamond_backtank": [
+16,
+2
+],
+"tools_armor:diamond_goggle_helmet": [
+16,
+4
+],
+"tools_armor:diamond_hammer_paxel": [
+24,
+8
+],
+"tools_armor:diamond_storage": [
+16
+],
+"tools_armor:diamond_tools": [
+16
+],
+"tools_armor:extended_wrench": [
+2,
+8
+],
+"tools_armor:fxnt_advanced": [
+32,
+24
+],
+"tools_armor:fxnt_network": [
+32,
+8
+],
+"tools_armor:fxnt_storage": [
+24,
+8
+],
+"tools_armor:goggle_helmets": [
+4,
+16
+],
+"tools_armor:goggles": [
+4,
+2
+],
+"tools_armor:gold_armor": [
+64
+],
+"tools_armor:gold_backpack": [
+24
+],
+"tools_armor:gold_hammer_paxel": [
+64,
+16
+],
+"tools_armor:gold_storage": [
+32
+],
+"tools_armor:gold_tools": [
+32
+],
+"tools_armor:handheld_drill": [
+2,
+1
+],
+"tools_armor:iron_armor": [
+64
+],
+"tools_armor:iron_hammer_paxel": [
+64,
+16
+],
+"tools_armor:iron_space_suit": [
+16,
+16
+],
+"tools_armor:iron_storage": [
+32
+],
+"tools_armor:iron_tools": [
+32
+],
+"tools_armor:jetpack": [
+4,
+2,
+8
+],
+"tools_armor:lab_gear": [
+32,
+8
+],
+"tools_armor:lead_tools": [
+32
+],
+"tools_armor:leather_armor": [
+24
+],
+"tools_armor:martian_gear": [
+1,
+48
+],
+"tools_armor:martian_space_suit": [
+32,
+16
+],
+"tools_armor:netherite_armor": [
+8,
+4
+],
+"tools_armor:netherite_backpack": [
+2,
+1
+],
+"tools_armor:netherite_diving": [
+4,
+3
+],
+"tools_armor:netherite_goggle_helmet": [
+2,
+4
+],
+"tools_armor:netherite_hammer_paxel": [
+4
+],
+"tools_armor:netherite_storage": [
+4
+],
+"tools_armor:netherite_tools": [
+4,
+2
+],
+"tools_armor:numismatics_banking": [
+8,
+4
+],
+"tools_armor:numismatics_basics": [
+16,
+16
+],
+"tools_armor:packing_tape": [
+32,
+8
+],
+"tools_armor:portable_drill": [
+1,
+2
+],
+"tools_armor:respirators": [
+16,
+8
+],
+"tools_armor:rose_quartz_armor": [
+48
+],
+"tools_armor:shield": [
+8,
+16
+],
+"tools_armor:shulker_storage": [
+4
+],
+"tools_armor:sophisticated_omega": [
+16
+],
+"tools_armor:spout_gun": [
+2,
+2
+],
+"tools_armor:steel_armor": [
+96
+],
+"tools_armor:steel_tools": [
+48
+],
+"tools_armor:sticky_gear": [
+4,
+4
+],
+"tools_armor:storage_advanced_upgrades": [
+16,
+32
+],
+"tools_armor:storage_in_motion": [
+2,
+2
+],
+"tools_armor:storage_network": [
+4,
+4
+],
+"tools_armor:storage_stack_1": [
+32,
+8
+],
+"tools_armor:storage_stack_2": [
+8,
+4
+],
+"tools_armor:storage_stack_3": [
+2
+],
+"tools_armor:storage_upgrades": [
+16,
+8
+],
+"tools_armor:storage_utility_upgrades": [
+8
+],
+"tools_armor:sturdy_armor": [
+48
+],
+"tools_armor:tfmg_tools": [
+16,
+16
+],
+"tools_armor:turtle_helmet": [
+3
+],
+"tools_armor:vibrant_vaults": [
+24,
+8
+],
+"tools_armor:wooden_storage": [
+64,
+4
+]
+}
+}

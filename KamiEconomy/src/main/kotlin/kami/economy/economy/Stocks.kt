@@ -79,11 +79,11 @@ object Stocks {
 
     fun afterSell(item: String, c: Double, lots: Int): Double = clampCourse(item, c * (1 - step(item)).pow(lots))
 
-    fun afterPlayer(item: String, c: Double, price: Double, lots: Int): Double {
+    fun afterPlayer(item: String, c: Double, price: Double, lots: Double): Double {
         if (c <= 0.0) return clampCourse(item, price)
         val clip = Config.s.courseClip
         val p = price.coerceIn(c * (1 - clip), c * (1 + clip))
-        return clampCourse(item, c + lots.toDouble() / (lots + depth(item)) * (p - c))
+        return clampCourse(item, c + lots / (lots + depth(item)) * (p - c))
     }
 
     fun supplyLeft(item: String): Int {

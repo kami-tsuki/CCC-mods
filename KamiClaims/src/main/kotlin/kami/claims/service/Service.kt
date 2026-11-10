@@ -3,6 +3,7 @@ package kami.claims.service
 import kami.libs.util.toUuidOrNull
 import kami.claims.net.ResearchSync
 import kami.claims.*
+import kami.claims.discord.CountryChannels
 import kami.claims.economy.Bank
 import kami.claims.economy.Treasury
 import kami.claims.research.Buffs
@@ -266,6 +267,7 @@ object Service {
         Realm.leave(c, p.stringUUID, Leave.LEAVE)
         ResearchSync.refresh(c)
         if (c.members.isEmpty()) Realm.disband(c)
+        else Mail.broadcast(c, Phrase.of("kami_claims.mail.member_left", v(p.name.string)), Tone.WARN)
         return Phrase.of("kami_claims.done.left", v(c.name))
     }
 
@@ -325,6 +327,7 @@ object Service {
             Realm.leave(c, id, if (banish) Leave.BAN else Leave.KICK)
             ResearchSync.refresh(c)
             Mail.direct(id, Phrase.of(if (banish) "kami_claims.mail.banished" else "kami_claims.mail.removed", v(c.name)), Tone.BAD)
+            Mail.broadcast(c, Phrase.of(if (banish) "kami_claims.mail.member_banished" else "kami_claims.mail.member_kicked", v(Names.of(p.server, id)), v(p.name.string)), Tone.BAD)
         }
         if (banish) {
             c.outsiders[id] = Rank.BANISHED
@@ -357,6 +360,7 @@ object Service {
         m.rank = rank
         ResearchSync.refresh(c)
         Mail.direct(id, Phrase.of("kami_claims.mail.rank", Words.rank(rank)))
+        CountryChannels.event(c, Phrase.of("kami_claims.mail.member_rank", v(Names.of(p.server, id)), Words.rank(rank), v(p.name.string)), Tone.INFO)
         return Phrase.of("kami_claims.done.rank")
     }
 

@@ -2,6 +2,7 @@ package kami.claims.social
 
 import kami.libs.util.toUuidOrNull
 import kami.claims.*
+import kami.claims.discord.CountryChannels
 import kami.libs.chat.Chat
 import kami.libs.chat.Tone
 import kami.libs.chat.tell
@@ -24,7 +25,10 @@ object Mail {
         if (box.size < Config.s.mailLimit) box += "${tone.name}|${text.json()}"
     }
 
-    fun broadcast(c: Country, text: Phrase, tone: Tone = Tone.INFO) = c.members.keys.forEach { direct(it, text, tone) }
+    fun broadcast(c: Country, text: Phrase, tone: Tone = Tone.INFO) {
+        c.members.keys.forEach { direct(it, text, tone) }
+        CountryChannels.event(c, text, tone)
+    }
 
     fun officers(c: Country, text: Phrase, tone: Tone = Tone.INFO) = c.members.filterValues { it.rank >= Rank.OFFICER }.keys.forEach { direct(it, text, tone) }
 

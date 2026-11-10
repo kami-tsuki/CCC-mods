@@ -46,13 +46,13 @@ class LevelTest : WithDb() {
     @Test
     fun dailyCapLimitsASourceAndResetsNextDay() {
         val c = country()
-        Levels.grant(c, "tasks", 200)
-        Levels.grant(c, "tasks", 200)
-        assertEquals(300L, c.xp)
-        assertEquals(300L, c.xpToday["tasks"])
+        Levels.grant(c, "tasks", 300)
+        Levels.grant(c, "tasks", 300)
+        assertEquals(450L, c.xp)
+        assertEquals(450L, c.xpToday["tasks"])
         day++
         Levels.grant(c, "tasks", 50)
-        assertEquals(350L, c.xp)
+        assertEquals(500L, c.xp)
         assertEquals(50L, c.xpToday["tasks"])
     }
 

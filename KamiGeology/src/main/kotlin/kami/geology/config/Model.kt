@@ -45,7 +45,7 @@ data class GeneralConfig(
 data class Ring(val scale: Double = 2.0, val density: Double = 0.04)
 
 @Serializable
-data class Mining(val enabled: Boolean = true, val stone: Double = 32.5, val deepslate: Double = 40.0)
+data class Mining(val enabled: Boolean = true, val stone: Double = 16.25, val deepslate: Double = 20.0)
 
 @Serializable
 data class Richness(

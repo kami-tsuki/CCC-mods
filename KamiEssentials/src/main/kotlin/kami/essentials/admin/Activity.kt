@@ -27,14 +27,16 @@ import kotlin.math.sqrt
 object Activity {
     private class Track(var dim: String, var x: Double, var y: Double, var z: Double, var at: Long)
 
+    private const val SETTLED_TICKS = 100
+
     private val joined = ConcurrentHashMap<UUID, Long>()
     private val tracks = HashMap<UUID, Track>()
 
     fun register() {
         Staff.hidden += { Vanish.active(it) }
         Stats.gauge("server.online") { mapOf("" to (ServerLifecycleHooks.getCurrentServer()?.playerCount ?: 0).toLong()) }
-        Stats.gauge("server.tps") { ServerLifecycleHooks.getCurrentServer()?.let { mapOf("" to (ServerStats.tps(it) * 100).toLong()) }.orEmpty() }
-        Stats.gauge("server.mspt") { ServerLifecycleHooks.getCurrentServer()?.let { mapOf("" to (ServerStats.mspt(it) * 100).toLong()) }.orEmpty() }
+        Stats.gauge("server.tps") { settled()?.let { mapOf("" to (ServerStats.tps(it) * 100).toLong()) }.orEmpty() }
+        Stats.gauge("server.mspt") { settled()?.let { mapOf("" to (ServerStats.mspt(it) * 100).toLong()) }.orEmpty() }
         Stats.gauge("server.memory") { val r = Runtime.getRuntime(); mapOf("" to (r.totalMemory() - r.freeMemory()) / 1_048_576) }
         Stats.gauge("server.ping") { ServerLifecycleHooks.getCurrentServer()?.playerList?.players?.associate { "p:${it.uuid}" to it.connection.latency().toLong() }.orEmpty() }
         FORGE_BUS.addListener<ServerTickEvent.Post> { if (it.server.tickCount % 20 == 0) runCatching { sample(it.server.playerList.players) } }
@@ -59,12 +61,21 @@ object Activity {
         if (p is FakePlayer) return
         joined[p.uuid] = System.currentTimeMillis()
         Stats.event("session.login", id(p), if (first) "new" else "")
+        online(null)
     }
 
     fun logout(p: ServerPlayer) {
         tracks.remove(p.uuid)
         val at = joined.remove(p.uuid) ?: return
         Stats.event("session.logout", id(p), v = System.currentTimeMillis() - at)
+        online(p)
+    }
+
+    private fun settled() = ServerLifecycleHooks.getCurrentServer()?.takeIf { it.tickCount >= SETTLED_TICKS }
+
+    private fun online(leaving: ServerPlayer?) {
+        val server = ServerLifecycleHooks.getCurrentServer() ?: return
+        Stats.event("server.online", v = server.playerList.players.count { it !== leaving }.toLong())
     }
 
     fun jumped(p: ServerPlayer) {

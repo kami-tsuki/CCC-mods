@@ -422,5 +422,14 @@
     {"item":"chemica:zelosite","base":5,"lot":16,"depth":64,"supply":128,"demand":172},
     {"item":"tfmg:galena","base":10,"lot":16,"depth":16,"supply":24,"demand":35},
     {"item":"createnuclear:autunite","base":400,"lot":16,"depth":16,"supply":24,"demand":35}
+  ],
+  "3": [
+    {"item":"createnuclear:thorium_ore","base":470,"lot":16,"depth":16,"supply":24,"demand":35},
+    {"item":"createnuclear:deepslate_thorium_ore","base":470,"lot":16,"depth":16,"supply":24,"demand":35},
+    {"item":"createnuclear:raw_thorium","base":420,"lot":16,"depth":16,"supply":24,"demand":35},
+    {"item":"createnuclear:raw_thorium_block","base":3780,"lot":16,"depth":16,"supply":24,"demand":35},
+    {"item":"createnuclear:nitrate_ore","base":57,"lot":16,"depth":32,"supply":64,"demand":86},
+    {"item":"createnuclear:deepslate_nitrate_ore","base":57,"lot":16,"depth":32,"supply":64,"demand":86},
+    {"item":"createnuclear:nitrate","base":50,"lot":16,"depth":32,"supply":64,"demand":86}
   ]
 }

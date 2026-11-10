@@ -59,7 +59,7 @@ object LibConfig {
                 unexplainedAlert = s.unexplainedAlert.coerceAtLeast(1),
                 unexplainedSingle = s.unexplainedSingle.coerceAtLeast(1),
                 stats = LibSettings().stats + s.stats,
-                statsSampleSeconds = s.statsSampleSeconds.coerceAtLeast(30),
+                statsSampleSeconds = s.statsSampleSeconds.coerceIn(30, 600),
                 staffCommandSeconds = s.staffCommandSeconds.coerceIn(0, 3600)
             )
         }

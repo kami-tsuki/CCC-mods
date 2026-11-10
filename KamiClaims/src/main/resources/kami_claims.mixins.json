@@ -17,6 +17,8 @@
     "research.PayloadContextMixin",
     "research.RecipeManagerMixin",
     "research.CraftingMenuMixin",
+    "research.EnchantmentMenuMixin",
+    "research.GrindstoneMenuMixin",
     "research.RecipeCacheMixin",
     "research.CreateRecipeFinderMixin",
     "research.CreateSequencedAssemblyMixin",

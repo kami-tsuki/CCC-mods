@@ -45,14 +45,14 @@ internal object Webhooks {
 
     private fun resolve(channel: Channel, mine: Int) {
         val jda = Discord.jda ?: return done(channel, mine, null)
-        val keys = Discord.connected
-        val (url, channelId) = if (channel == Channel.CHAT) keys.chatWebhookUrl to keys.chatChannelId else keys.consoleWebhookUrl to keys.consoleChannelId
+        val url = channel.url
+        val channelId = channel.id
         if (url.isNotBlank()) {
             val client = runCatching { WebhookClient.createClient(jda, url) }.getOrNull()
             if (client == null) Discord.warnOnce("url-$channel", "The $channel webhook URL in kami-discord-bot.json is invalid")
             return done(channel, mine, client, true)
         }
-        val container = channelId.toLongOrNull()?.let { jda.getChannelById(IWebhookContainer::class.java, it) }
+        val container = channelId.takeIf { it != 0L }?.let { jda.getChannelById(IWebhookContainer::class.java, it) }
         if (container == null) {
             Discord.warnOnce("channel-$channel", "The $channel channel $channelId was not found")
             return done(channel, mine, null)

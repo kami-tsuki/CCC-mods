@@ -21,7 +21,8 @@ object Naming {
 
     fun check(name: String, renaming: Country? = null) {
         validate(name)
-        if (Realm.data.countries.values.any { it !== renaming && it.name.equals(name, true) || it.id == name.lowercase() }) throw Fail("kami_claims.error.name_taken")
+        val key = NameRules.key(name)
+        if (Realm.data.countries.values.any { it !== renaming && (NameRules.key(it.name) == key || it.id == name.lowercase()) }) throw Fail("kami_claims.error.name_taken")
     }
 
     fun rename(country: Country, name: String, actor: String?, fee: Boolean = true): Phrase {

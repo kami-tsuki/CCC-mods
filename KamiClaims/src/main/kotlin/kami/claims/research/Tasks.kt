@@ -31,6 +31,7 @@ sealed interface Task {
     val target: Long
     val subject: String get() = ""
     val manual: Boolean get() = false
+    val signature: String get() = "$kind|$subject"
     fun accepts(subject: String): Boolean = true
     fun qualified(tree: String): Task = this
 }
@@ -159,6 +160,7 @@ class HoldTask(val condition: Condition) : Task {
     override val manual get() = true
     override val target get() = 1L
     override val subject get() = condition.describe().json()
+    override val signature get() = "$kind|${condition.stable()}"
     override fun qualified(tree: String) = HoldTask(condition.qualified(tree))
 }
 
@@ -183,6 +185,26 @@ class ProcessTask(val recipeType: String = "", val output: String = "", val coun
         return (recipeType.isBlank() || Selectors.glob(recipeType, type)) &&
             (output.isBlank() || itemMatches(output, result))
     }
+}
+
+internal fun Condition.stable(): String = when (this) {
+    is NodeDone -> "node:$id"
+    is AllOf -> "all(${of.joinToString(",") { it.stable() }})"
+    is AnyOf -> "any(${of.joinToString(",") { it.stable() }})"
+    is Not -> "not(${of.stable()})"
+    is MinLevel -> "level:$min"
+    is MinCitizens -> "citizens:$min"
+    is MinChunks -> "chunks:$min:${chunkType.orEmpty()}"
+    is MinTreasury -> "treasury:$min"
+    IsProvince -> "province"
+    NotProvince -> "not_province"
+    is MinProvinces -> "provinces:$min"
+    is MinAge -> "age:$days"
+    is MinAllies -> "allies:$min"
+    is MinResearched -> "researched:$min:${category.orEmpty()}"
+    is MinCounter -> "counter:$key:$min"
+    is MinPlots -> "plots:$min:$chunkType"
+    FlagSet -> "flag"
 }
 
 private fun itemMatches(spec: String, id: String) = Selectors.matches(spec, id) { RegistryTags.contains(BuiltInRegistries.ITEM, it, id) }

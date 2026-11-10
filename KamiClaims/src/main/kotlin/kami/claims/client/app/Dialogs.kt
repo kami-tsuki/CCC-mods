@@ -77,7 +77,7 @@ object Dialogs {
     fun nameError(text: String, snap: Snap): String? = when {
         text.length < (snap.limits?.nameMin ?: 3) -> tr("kami_claims.wizard.name.error.short", snap.limits?.nameMin ?: 3)
         !NameRules.valid(text) -> tr("kami_claims.wizard.name.error.chars")
-        ClaimsStore.countries.any { it.name.equals(text, true) } -> tr("kami_claims.error.name_taken")
+        ClaimsStore.countries.any { NameRules.key(it.name) == NameRules.key(text) && !it.name.equals(snap.info?.name, true) } -> tr("kami_claims.error.name_taken")
         else -> null
     }
 

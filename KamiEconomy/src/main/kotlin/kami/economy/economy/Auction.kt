@@ -1,8 +1,10 @@
 package kami.economy.economy
 
 import kami.economy.Config
+import kami.economy.LOG
 import kami.economy.Market
 import kami.economy.now
+import kami.economy.villager.VillagerCourses
 import kotlinx.serialization.Serializable
 import net.minecraft.core.HolderLookup
 import net.minecraft.nbt.CompoundTag
@@ -86,6 +88,7 @@ object Auctions {
         a.currentBid = price
         a.currentBidder = buyer
         Market.dirty = true
+        Notify.server?.let { s -> runCatching { VillagerCourses.auctioned(StackCodec.decode(a.stackData, s.registryAccess()), price) }.onFailure { LOG.warn("Villager price from auction {} failed", id, it) } }
     }
 
     fun expire(id: Long) {

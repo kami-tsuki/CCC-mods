@@ -10,6 +10,7 @@ import kami.economy.economy.TradeStatus
 import kami.economy.economy.Watchlist
 import kami.economy.db.MarketTables
 import kami.economy.quest.Quests
+import kami.economy.villager.VillagerCourses
 import kami.libs.db.Db
 import kami.libs.db.Session
 import kotlinx.serialization.Serializable
@@ -98,6 +99,7 @@ object Market {
         runCatching { Quests.load() }.onFailure { LOG.error("Quests could not be loaded", it) }
         TradeStatus.load()
         Watchlist.load()
+        VillagerCourses.load()
         reindex()
         data.books.keys.removeAll { k -> data.books.getValue(k).let { it.sells.isEmpty() && it.buys.isEmpty() } && Stocks.good(k) == null && !Blacklist.sellable(k) }
         Ledger.recover()
@@ -110,6 +112,7 @@ object Market {
         Quests.unload()
         TradeStatus.unload()
         Watchlist.unload()
+        VillagerCourses.unload()
     }
 
     private fun resolve(tag: String): List<String> =

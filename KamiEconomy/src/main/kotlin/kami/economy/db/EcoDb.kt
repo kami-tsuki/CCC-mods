@@ -9,6 +9,7 @@ import kami.economy.economy.Ledger
 import kami.economy.economy.TradeStatus
 import kami.economy.economy.Watchlist
 import kami.economy.quest.Quests
+import kami.economy.villager.VillagerCourses
 import kami.libs.db.Legacy
 import kami.libs.db.Migration
 import kami.libs.db.Migrations
@@ -90,8 +91,16 @@ object EcoDb {
         "ALTER TABLE eco_traded ADD COLUMN last INTEGER NOT NULL DEFAULT 0"
     ))
 
+    private val v7 = Migration("eco", 7, "villagers", ddl = listOf(
+        "CREATE TABLE eco_villager (spec TEXT PRIMARY KEY, course REAL NOT NULL, floor REAL NOT NULL, state TEXT NOT NULL, fills INTEGER NOT NULL, last INTEGER NOT NULL, samples TEXT NOT NULL)"
+    ))
+
+    private val v8 = Migration("eco", 8, "villager_lots", ddl = listOf(
+        "ALTER TABLE eco_villager ADD COLUMN lot INTEGER NOT NULL DEFAULT 1"
+    ))
+
     fun register() {
-        Migrations.register("eco", listOf(v1, v2, v3, v4, v5, v6), after = listOf("libs"))
-        SavePoint.register("economy") { SavePoint.join(Market.changes() + History.changes() + Quests.changes() + listOf(Ledger.changes(), TradeStatus.changes(), Watchlist.changes())) }
+        Migrations.register("eco", listOf(v1, v2, v3, v4, v5, v6, v7, v8), after = listOf("libs"))
+        SavePoint.register("economy") { SavePoint.join(Market.changes() + History.changes() + Quests.changes() + listOf(Ledger.changes(), TradeStatus.changes(), Watchlist.changes(), VillagerCourses.changes())) }
     }
 }

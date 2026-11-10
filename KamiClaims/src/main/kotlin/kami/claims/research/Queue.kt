@@ -54,7 +54,7 @@ object Queue {
 
     fun researching(country: Country) = country.research.queue.count { it.state == NodeState.RESEARCHING }
 
-    private fun tasksDone(entry: QueueEntry, node: Node) = node.tasks.indices.all { (entry.tasks[it] ?: 0) >= node.tasks[it].target }
+    internal fun tasksDone(entry: QueueEntry, node: Node) = node.tasks.indices.all { (entry.tasks[it] ?: 0) >= node.tasks[it].target }
 
     fun enqueue(country: Country, key: String, by: String?) {
         val node = node(country, key)
@@ -63,7 +63,7 @@ object Queue {
         Penalty.hard(node).firstOrNull { !it.met(country) }?.let { throw Fail("kami_claims.research.error.condition", it.describe()) }
         if (waiting(country) >= Levels.capacity(country, Capacity.QUEUE_SLOTS)) throw Fail("kami_claims.research.error.queue_full")
         val penalty = Penalty(country).ms(node)
-        val entry = QueueEntry(key, remainingMs = node.time.inWholeMilliseconds + penalty, penaltyMs = penalty, by = by, since = clock(), queuedAt = clock())
+        val entry = QueueEntry(key, remainingMs = node.time.inWholeMilliseconds + penalty, penaltyMs = penalty, by = by, since = clock(), queuedAt = clock(), sigs = ResearchMigration.sigs(node), targets = ResearchMigration.targets(node))
         country.research.queue += entry
         settle(country, entry, node)
         Realm.changed(false)
@@ -195,19 +195,18 @@ object Queue {
         val orphans = country.research.queue.filter { Research.defs.node(it.node) == null }
         if (orphans.isEmpty()) return@forEach
         country.research.queue.removeAll(orphans)
-        log.warn("Dropped {} queued research entries of {} whose nodes no longer exist: {}", orphans.size, country.id, orphans.map { it.node })
-        Mail.officers(country, Phrase.of("kami_claims.research.mail.dropped", Words.v(orphans.size)), Tone.BAD)
+        country.research.parked += orphans
+        log.warn("Parked {} queued research entries of {} whose nodes no longer exist: {}", orphans.size, country.id, orphans.map { it.node })
+        Mail.officers(country, Phrase.of("kami_claims.research.mail.parked", Words.v(orphans.size)), Tone.BAD)
         Realm.changed(false)
         ResearchSync.touch(country)
     }
 
     fun rescope(vararg countries: Country?) = countries.filterNotNull().forEach { country ->
         val orphans = if (settings.enabled) country.research.queue.filter { Research.defs.nodeFor(country, it.node) == null } else emptyList()
-        orphans.forEach { entry ->
-            Research.defs.node(entry.node)?.takeIf { entry.paid && it.cost > 0 }?.let { (if (entry.paidCost >= 0) entry.paidCost else it.cost).takeIf { c -> c > 0 }?.let { c -> Treasury.bank(country, LedgerKind.RESEARCH, c, null, entry.node) } }
-        }
-        if (orphans.isNotEmpty()) {
-            country.research.queue.removeAll(orphans)
+        val refunded = orphans.filter { ResearchMigration.refunded(country, it, Research.defs.node(it.node)) }
+        if (refunded.isNotEmpty()) {
+            country.research.queue.removeAll(refunded)
             Realm.changed(false)
         }
         ResearchSync.touch(country)
@@ -223,7 +222,7 @@ object Queue {
             Stats.event("research.time", subject, node.key, clock() - entry.startedAt)
             if (entry.queuedAt > 0) Stats.event("research.wait", subject, node.key, entry.startedAt - entry.queuedAt)
         }
-        Levels.grant(country, "research", node.xp ?: (XP_PER_NODE_LEVEL * maxOf(1, node.level)))
+        Levels.add(country, "research", (node.xp ?: (XP_PER_NODE_LEVEL * maxOf(1, node.level))).toDouble())
         if (settings.announce) Mail.broadcast(country, Phrase.of("kami_claims.research.mail.done", node.label().asValue()), Tone.OK)
         Realm.changed(false)
         ResearchSync.touch(country)
@@ -251,18 +250,35 @@ object Queue {
     }
 
     fun reset(country: Country, key: String?) {
-        if (key == null) {
-            country.research.done.clear()
-            country.research.queue.clear()
-        } else {
-            country.research.done.remove(key)
-            country.research.queue.removeAll { it.node == key }
-        }
-        Realm.changed(false)
-        ResearchSync.touch(country)
+        wipe(country, key?.let { listOf(it) })
     }
 
-    private fun settle(country: Country, entry: QueueEntry, node: Node) {
+    fun resetAll(country: Country, scope: Sweep): Int = wipe(country, if (scope.whole) null else scope.keys(country))
+
+    fun finishAll(country: Country, scope: Sweep): Int {
+        val todo = scope.keys(country).filter { it !in country.research.done }
+        if (todo.isEmpty()) return 0
+        todo.forEach { markDone(country, it) }
+        return commit(country, todo.size)
+    }
+
+    private fun wipe(country: Country, keys: Collection<String>?): Int {
+        val state = country.research
+        val scope = keys?.toSet()
+        val hit = (state.done.keys + state.queue.map { it.node }).filter { scope == null || it in scope }.toSet()
+        if (hit.isEmpty()) return 0
+        state.done.keys.removeAll(hit)
+        state.queue.removeAll { it.node in hit }
+        return commit(country, hit.size)
+    }
+
+    private fun commit(country: Country, changed: Int): Int {
+        Realm.changed(false)
+        ResearchSync.touch(country)
+        return changed
+    }
+
+    internal fun settle(country: Country, entry: QueueEntry, node: Node, notify: Boolean = true) {
         if (entry.state != NodeState.QUEUED) return
         node.tasks.forEachIndexed { index, task ->
             if (task is HoldTask && (entry.tasks[index] ?: 0) < 1 && task.condition.met(country)) {
@@ -273,12 +289,12 @@ object Queue {
         }
         if (!tasksDone(entry, node)) return
         entry.state = NodeState.READY
-        Mail.officers(country, Phrase.of("kami_claims.research.mail.ready", node.label().asValue()))
+        if (notify) Mail.officers(country, Phrase.of("kami_claims.research.mail.ready", node.label().asValue()))
         Realm.changed(false)
         ResearchSync.touch(country)
     }
 
-    private fun markDone(country: Country, key: String) {
+    internal fun markDone(country: Country, key: String) {
         country.research.queue.removeAll { it.node == key }
         country.research.done[key] = clock()
     }

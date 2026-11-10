@@ -13,6 +13,8 @@ import kami.libs.discord.Avatars
 import kami.libs.discord.DiscordApi
 import kami.libs.discord.DiscordBans
 import kami.libs.discord.DiscordFeature
+import kami.libs.discord.DiscordText
+import kami.libs.claims.Citizenship
 import kami.libs.discord.Embed
 import kami.libs.discord.Inbound
 import kami.libs.discord.Link
@@ -85,20 +87,36 @@ object Relay : DiscordFeature {
         feed(Config.s.discord.events.advancement, Config.s.discord.templates.advancement, color, p, "message" to message, "advancement" to title)
     }
 
-    override fun onMessage(m: Inbound) {
+    fun country(p: ServerPlayer, text: String, c: Citizenship) {
+        val d = Config.s.discord
+        if (!d.enabled || !d.chat.toDiscord || !recent.allow(p.uuid)) return
+        traffic("discord.out", p.uuid)
+        val ids = LinkedHashSet<Long>()
+        val out = Templates.outsideCode(text) { part, _ -> resolve(part.replace("](", "]\\("), ids) }
+        val rank = DiscordText.get("kami_claims", DiscordText.FALLBACK, "kami_claims.rank.${c.rank.lowercase()}")
+        DiscordApi.roomChat(c.country, Post("${p.gameProfile.name} · $rank", Avatars.of(p.uuid), out, ids)) { sent[it] = p.uuid }
+    }
+
+    override fun onMessage(m: Inbound) = inbound(m, null)
+
+    override fun onRoom(room: String, m: Inbound) = inbound(m, room)
+
+    private fun inbound(m: Inbound, room: String?) {
         val d = Config.s.discord
         if (!d.enabled || !d.chat.toMinecraft) return
         val link = Links.byDiscord(m.userId) ?: return
         val server = ServerLifecycleHooks.getCurrentServer() ?: return
         val author = link.id
+        if (room != null && Names.citizenship(author)?.country != room) return
         if (Mutes[author] != null || DiscordBans.banned(m.userId) != null || server.playerList.bans.isBanned(GameProfile(author, link.name)) || !incoming.allow(author)) return
         traffic("discord.in", author)
-        Talk.external(server, author, link.name, m)
+        Talk.external(server, author, link.name, m, room)
         val targets = HashSet<UUID>()
         m.mentions.forEach { id -> Links.byDiscord(id)?.let { targets += it.id } }
         m.replyTo?.let { sent[it] }?.let(targets::add)
         targets.remove(author)
         targets.mapNotNull(server.playerList::getPlayer).filterNot { Store[Flag.QUIET_DISCORD, it.uuid] }
+            .filter { room == null || Names.citizenship(it.uuid)?.country == room }
             .forEach { ping(it) }
     }
 

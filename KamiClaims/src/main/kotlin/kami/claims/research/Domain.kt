@@ -55,6 +55,9 @@ fun nodeLabel(tree: String, id: String, title: String): Phrase {
 class Category(val id: String, val title: String = "", val icon: String = "", val order: Int = 0)
 
 @Serializable
+data class Grandfather(val from: List<String> = emptyList(), val before: String = "")
+
+@Serializable
 data class Node(
     val id: String,
     val category: String,
@@ -68,6 +71,8 @@ data class Node(
     val requires: List<Condition> = emptyList(),
     val tasks: List<Task> = emptyList(),
     val unlocks: List<Unlock> = emptyList(),
+    val replaces: List<String> = emptyList(),
+    val grandfather: List<Grandfather> = emptyList(),
     val x: Int? = null,
     val y: Int? = null,
     @Transient val tree: String = ""
@@ -82,7 +87,16 @@ data class Node(
 
     fun dependencies(): List<String> = allConditions().flatMap { it.refs() }
 
-    fun placed(tree: String) = copy(requires = requires.map { it.qualified(tree) }, tasks = tasks.map { it.qualified(tree) }, tree = tree)
+    fun placed(tree: String): Node {
+        fun key(id: String) = if (id.contains(':')) id else "$tree:$id"
+        return copy(
+            requires = requires.map { it.qualified(tree) },
+            tasks = tasks.map { it.qualified(tree) },
+            replaces = replaces.map(::key),
+            grandfather = grandfather.map { Grandfather(it.from.map(::key), it.before) },
+            tree = tree
+        )
+    }
 }
 
 class Tree(val id: String, val title: String, val scope: Scope, val categories: List<Category>, val nodes: List<Node>, val strict: Boolean = false) {

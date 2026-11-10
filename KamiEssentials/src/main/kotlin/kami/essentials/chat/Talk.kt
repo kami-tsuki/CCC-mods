@@ -10,7 +10,6 @@ import kami.essentials.Store
 import kami.essentials.admin.Mutes
 import kami.essentials.discord.Relay
 import kami.essentials.vanish.Vanish
-import kami.libs.claims.Citizenship
 import kami.libs.chat.Chat
 import kami.libs.chat.Theme
 import kami.libs.chat.tell
@@ -100,12 +99,9 @@ object Talk {
             Store[Flag.COUNTRY_CHAT, p.uuid] = false
             return p.tell(chat.warn(Phrase.of("kami_essentials.talk.country.lost")))
         }
-        val root = countryRoot(c)
-        val rootLabel = c.parent ?: c.name
-        val tag = channelTag(Config.s.channels.countryIcon, Config.s.channels.countryColor).withStyle { it.withHoverEvent(hover(Phrase.of("kami_essentials.talk.country.tooltip", rootLabel))) }
-        broadcast(p, line(tag.append(Names.playerCountry(p)), text, p)) { viewer ->
-            Names.citizenship(viewer.uuid)?.let(::countryRoot) == root
-        }
+        val tag = channelTag(Config.s.channels.countryIcon, Config.s.channels.countryColor).withStyle { it.withHoverEvent(hover(Phrase.of("kami_essentials.talk.country.tooltip", c.name))) }
+        broadcast(p, line(tag.append(Names.playerCountry(p)), text, p)) { viewer -> Names.citizenship(viewer.uuid)?.country == c.country }
+        Relay.country(p, text, c)
     }
 
     fun channels(p: ServerPlayer) = listOfNotNull(
@@ -148,10 +144,12 @@ object Talk {
         p.tell(if (on) chat.ok(Phrase.of("kami_essentials.talk.admin.on")) else chat.ok(Phrase.of("kami_essentials.talk.admin.off")))
     }
 
-    fun external(server: MinecraftServer, id: UUID, name: String, m: Inbound) {
-        val line = line(channelTag("D", BLURPLE).withStyle { it.withHoverEvent(hover(Phrase.of("kami_essentials.talk.discord.tooltip"))) }.append(Names.linked(id, name, m.userName)), remote(m))
+    fun external(server: MinecraftServer, id: UUID, name: String, m: Inbound, room: String? = null) {
+        val tag = channelTag("D", BLURPLE).withStyle { it.withHoverEvent(hover(Phrase.of("kami_essentials.talk.discord.tooltip"))) }
+        val head = if (room == null) tag else channelTag(Config.s.channels.countryIcon, Config.s.channels.countryColor).append(tag)
+        val line = line(head.append(Names.linked(id, name, m.userName)), remote(m))
         server.sendSystemMessage(line)
-        server.playerList.players.filter { it.chatVisibility == ChatVisiblity.FULL }.forEach { it.tell(line) }
+        server.playerList.players.filter { it.chatVisibility == ChatVisiblity.FULL && (room == null || Names.citizenship(it.uuid)?.country == room) }.forEach { it.tell(line) }
     }
 
     private fun broadcast(from: ServerPlayer, line: Component, to: (ServerPlayer) -> Boolean) {
@@ -168,8 +166,6 @@ object Talk {
         .append(Component.literal("[").withColor(color).withStyle(ChatFormatting.BOLD))
         .append(Component.literal(icon).withColor(color).withStyle(ChatFormatting.BOLD))
         .append(Component.literal("] ").withColor(color).withStyle(ChatFormatting.BOLD))
-
-    private fun countryRoot(c: Citizenship): String = c.parent?.lowercase() ?: c.country
 
     private fun dm(from: Component, to: Component, text: String, speaker: ServerPlayer?): MutableComponent = Component.empty()
         .append(Component.literal("✉ ").withColor(Theme.LINK))

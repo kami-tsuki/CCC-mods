@@ -238,7 +238,20 @@ class QueueTest : WithDb() {
         Queue.tick(c, 300_000)
         assertTrue(c.research.queue.isEmpty())
         assertNotNull(c.research.done["t:a"])
-        assertEquals(100L, c.xp)
+        assertEquals(10L, c.xp)
+    }
+
+    @Test
+    fun researchXpIsATenthWithFractionalCarry() {
+        Research.defs = Validator.build(ResearchSettings(baseline = emptyList()), LevelsConfig(xpFromLevel = 0), mapOf("g" to Group()), mapOf("t" to tree("country", node("half", ""","xp":5"""), node("big", ""","level":3""")))).defs
+        val c = country("alpha")
+        Queue.finish(c, "t:half")
+        assertEquals(0L, c.xp)
+        Queue.revoke(c, "t:half")
+        Queue.finish(c, "t:half")
+        assertEquals(1L, c.xp)
+        Queue.finish(c, "t:big")
+        assertEquals(31L, c.xp)
     }
 
     @Test
@@ -250,13 +263,14 @@ class QueueTest : WithDb() {
     }
 
     @Test
-    fun orphanedEntriesAreDroppedWhenTheirNodeVanishes() {
+    fun orphanedEntriesAreParkedWhenTheirNodeVanishes() {
         val c = country("alpha")
         Queue.enqueue(c, "t:a", null)
         install()
         Research.defs = Validator.build(ResearchSettings(baseline = emptyList()), LevelsConfig(), mapOf("g" to Group()), mapOf("p" to tree("province", node("x")))).defs
         Queue.dropOrphans()
         assertTrue(c.research.queue.isEmpty())
+        assertEquals(listOf("t:a"), c.research.parked.map { it.node })
     }
 
     @Test

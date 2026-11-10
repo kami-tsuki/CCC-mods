@@ -79,6 +79,32 @@ data class QuestSettings(
     }
 }
 
+@Serializable
+data class VillagerSettings(
+    val enabled: Boolean = true,
+    val spreadPct: Double = 0.05,
+    val demandCap: Double = 0.5,
+    val impact: Double = 0.25,
+    val unknownMul: Double = 3.0,
+    val buySeedMul: Double = 0.5,
+    val craftMul: Double = 1.25,
+    val decayPct: Double = 0.04,
+    val minPrice: Int = 1,
+    val emeraldPrice: Double = 24.0
+) {
+    fun sane() = copy(
+        spreadPct = spreadPct.coerceIn(0.0, 0.5),
+        demandCap = demandCap.coerceIn(0.0, 5.0),
+        impact = impact.coerceIn(0.0, 1.0),
+        unknownMul = unknownMul.coerceIn(1.0, 20.0),
+        buySeedMul = buySeedMul.coerceIn(0.05, 1.0),
+        craftMul = craftMul.coerceIn(1.0, 5.0),
+        decayPct = decayPct.coerceIn(0.0, 0.5),
+        minPrice = minPrice.coerceAtLeast(1),
+        emeraldPrice = emeraldPrice.coerceIn(0.0, 1_000_000.0)
+    )
+}
+
 private fun BoostRange.valid() = minPct in 1..maxPct && maxPct <= Boost.MAX_PCT && minHours in 1..maxHours && maxHours <= Boost.MAX_HOURS
 
 @Serializable
@@ -126,7 +152,8 @@ data class Settings(
     val discordAlertCooldownMinutes: Int = 60,
     val discordItemIconUrl: String = "",
 
-    val quests: QuestSettings = QuestSettings()
+    val quests: QuestSettings = QuestSettings(),
+    val villagers: VillagerSettings = VillagerSettings()
 ) {
     val storageItemSet: Set<String> by lazy { storageItemIds.toHashSet() }
     val creativeItemSet: Set<String> by lazy { creativeItemIds.toHashSet() }
@@ -135,7 +162,7 @@ data class Settings(
     val allyTaxPct: Int get() = (allyTaxRate * 100).roundToInt()
     val auctionFeeBps: Int get() = (auctionFeePct * 10_000).roundToInt()
 
-    fun lotOf(item: String): Int = kami.economy.economy.Variants.of(item)?.let { kami.economy.economy.Variants.lot(item, lotOf(it.core)) } ?: (lots[item] ?: kami.economy.economy.Stocks.good(item)?.lot)?.takeIf { it in 1..maxAmount } ?: 1
+    fun lotOf(item: String): Int = kami.economy.economy.Variants.of(item)?.let { kami.economy.economy.Variants.lot(item, lotOf(it.core)) } ?: (lots[item] ?: kami.economy.economy.Stocks.good(item)?.lot ?: kami.economy.villager.VillagerCourses.lot(item))?.takeIf { it in 1..maxAmount } ?: 1
 
     fun validPrice(price: Int) = price in 1..maxPrice
     fun validAmount(amount: Int) = amount in 1..maxAmount
@@ -162,6 +189,7 @@ internal fun Settings.sane(): Settings = copy(
     priceDeltaThresholdPct = priceDeltaThresholdPct.coerceIn(0.0, 1.0),
     auctionCheckIntervalTicks = auctionCheckIntervalTicks.coerceAtLeast(20),
     quests = quests.sane(),
+    villagers = villagers.sane(),
     starterGoods = starterGoods.map { it.normalized() }.filter { g -> g.valid().also { ok -> if (!ok) LOG.warn("Dropped invalid starter good {}", g.item) } }
 )
 
@@ -222,6 +250,21 @@ private val sections = listOf(
             "quests.bankFloor" to "Minimum server bank balance after a quest payout; the amount shrinks or the spawn is skipped.",
             "quests.research" to "Research boost per rarity: minPct, maxPct (5% steps), minHours, maxHours.",
             "quests.xp" to "Country XP boost per rarity: minPct, maxPct (10% steps), minHours, maxHours."
+        )
+    ),
+    Section(
+        "villagers.json", "Villagers trade for money at the market course instead of emeralds.",
+        mapOf(
+            "villagers.enabled" to "Replace emerald trades with money trades paid by bank card.",
+            "villagers.spreadPct" to "Max per-villager offset from the course, 0-0.5 (0.05 = +-5%).",
+            "villagers.demandCap" to "Max surcharge from vanilla demand, 0-5 (0.5 = +50%).",
+            "villagers.impact" to "Course pull of one villager trade, in market lots, 0-1.",
+            "villagers.unknownMul" to "Start price factor for unknown goods a villager sells.",
+            "villagers.buySeedMul" to "Start price factor for unknown goods a villager buys.",
+            "villagers.craftMul" to "Factor on the recipe cost when it seeds a price.",
+            "villagers.decayPct" to "Daily drop of a start price nobody traded yet, 0-0.5.",
+            "villagers.minPrice" to "Smallest price of one villager trade.",
+            "villagers.emeraldPrice" to "Value of one emerald for start prices when emeralds are no starter good. 0 = unknown goods stay unpriced."
         )
     ),
     Section(

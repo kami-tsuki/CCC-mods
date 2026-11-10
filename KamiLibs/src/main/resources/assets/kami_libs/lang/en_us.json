@@ -94,6 +94,7 @@
   "kami_libs.flow.vendor": "Vendors",
   "kami_libs.flow.transfer": "Transfers",
   "kami_libs.flow.quest": "Quests",
+  "kami_libs.flow.villager": "Villager trade",
   "kami_libs.note.rent": "rent",
   "kami_libs.note.rent_debt": "rent + debt",
   "kami_libs.note.debt": "debt",

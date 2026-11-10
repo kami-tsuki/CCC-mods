@@ -76,7 +76,7 @@ fun SkillNode.icon(): Icon = if (kind == NodeKind.START) cls.icon() else if (kin
     Skills.SCAN_RANGE -> Icons.MAP
     Skills.AUCTION_FEE, Skills.AUCTION_SLOTS -> Icons.SCALES
     Skills.ORDER_SLOTS, Effects.EAT_PAPER -> Icons.SCROLL
-    Effects.SILVER_TONGUE, Effects.RAVAGER_TAMER, Effects.DROWNED_TRUCE -> Icons.HANDSHAKE
+    Effects.TRADE_XP, Effects.RAVAGER_TAMER, Effects.DROWNED_TRUCE -> Icons.HANDSHAKE
     Effects.CLASS_XP, Effects.KILL_XP, Effects.ORE_XP, Effects.FISH_XP -> Icons.STATS
     Effects.ANVIL_SAVE, Effects.DURABILITY_SAVE, Effects.ROD_SAVE, Effects.TOOL_PICKAXE, Effects.TOOL_HOE, Effects.TOOL_AXE, Effects.SAWMILL, Effects.PAPER_PRESS, Effects.POCKET_CRAFT -> Icons.TOOL
     Effects.CROP_FORTUNE, Effects.REPLANT, Effects.VEGGIE_FOOD, Effects.HOE_DAMAGE -> Icons.WHEAT

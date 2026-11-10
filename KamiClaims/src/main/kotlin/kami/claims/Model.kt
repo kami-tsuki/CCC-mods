@@ -8,9 +8,13 @@ import kami.claims.research.Capacity
 import kami.claims.research.Levels
 import kami.claims.research.Loans
 import kami.claims.research.Queue
+import kami.claims.research.Research
+import kami.claims.research.ResearchDefs
+import kami.claims.research.ResearchMigration
 import kami.claims.research.ResearchState
 import kami.claims.net.ResearchSync
 import kami.claims.service.Housing
+import kami.claims.discord.CountryChannels
 import kami.claims.service.Announce
 import kami.claims.service.Work
 import kami.claims.war.ChunkRef
@@ -209,7 +213,7 @@ class Country(
     val alliances: MutableSet<String> = mutableSetOf(),
     val allianceOffers: MutableMap<String, Long> = mutableMapOf(),
     val tradePolicy: MutableMap<String, TradePolicy> = mutableMapOf(),
-    val research: ResearchState = ResearchState(),
+    var research: ResearchState = ResearchState(),
     var xp: Long = 0,
     val xpToday: MutableMap<String, Long> = mutableMapOf(),
     var xpDay: Long = 0,
@@ -220,7 +224,7 @@ class Country(
     var slug: String = "",
     val tokens: MutableMap<String, Int> = mutableMapOf(),
     val counters: MutableMap<String, Long> = mutableMapOf(),
-    val buffs: BuffState = BuffState(),
+    var buffs: BuffState = BuffState(),
     val loans: MutableList<Loan> = mutableListOf(),
     val loanCooldowns: MutableMap<String, Long> = mutableMapOf(),
     val lendOffers: MutableList<LendOffer> = mutableListOf(),
@@ -253,7 +257,9 @@ class Country(
     var tributeHeld: Long = 0,
     var tributeHigh: Long = 0,
     val ratings: MutableMap<String, Rating> = mutableMapOf(),
-    val safeChunks: MutableList<ChunkRef> = mutableListOf()
+    val safeChunks: MutableList<ChunkRef> = mutableListOf(),
+    var discordChannel: Long = 0,
+    val discordSeen: MutableSet<Long> = mutableSetOf()
 ) {
     val id get() = slug.ifEmpty { name.lowercase() }
     val active get() = state == CountryState.ACTIVE
@@ -332,6 +338,7 @@ object Realm {
         }
         syncAllies()
         orphans.forEach(Housing::refund)
+        if (Research.defs !== ResearchDefs.EMPTY) ResearchMigration.run()
     }
 
     private fun migrate(data: Data) {
@@ -452,6 +459,7 @@ object Realm {
 
     fun disband(c: Country) {
         if (!c.active) return
+        CountryChannels.drop(c)
         WarDebt.forgive(c.id)
         Stats.event("country.disband", "c:${c.id}")
         Loans.dissolve(c)

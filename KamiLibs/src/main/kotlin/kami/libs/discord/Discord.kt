@@ -196,7 +196,10 @@ internal object Discord {
             listOf(chatId to listOf(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MANAGE_WEBHOOKS, Permission.MANAGE_CHANNEL), consoleId to listOf(Permission.VIEW_CHANNEL, Permission.MANAGE_WEBHOOKS), marketId to listOf(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MESSAGE_EMBED_LINKS))
                 .flatMap { (id, perms) -> guild.getGuildChannelById(id)?.let { c -> perms.filterNot { self.hasPermission(c, it) }.map { "${it.getName()} in #${c.name}" } }.orEmpty() }
         log.info("Discord bot roles: {}", self.roles.joinToString { it.name })
-        if (missing.isNotEmpty()) log.warn("Discord bot is missing permissions: {}", missing.joinToString())
+        val category = guild.getCategoryById(Rooms.categoryId)?.let { c ->
+            (listOf(Permission.MANAGE_CHANNEL, Permission.MANAGE_PERMISSIONS, Permission.MANAGE_WEBHOOKS) + Rooms.MEMBER).distinct().filterNot { self.hasPermission(c, it) }.map { "${it.getName()} in category ${c.name}" }
+        }.orEmpty()
+        if (missing.isNotEmpty() || category.isNotEmpty()) log.warn("Discord bot is missing permissions: {}", (missing + category).joinToString())
         if (missing.any { it.startsWith(Permission.MANAGE_WEBHOOKS.getName()) }) log.warn("Without Manage Webhooks the bot posts plain messages under its own name")
     }
 
@@ -334,7 +337,7 @@ internal object Discord {
 
     private fun readyClient() = jda?.takeIf { state == DiscordState.READY }
 
-    private fun guild(): Guild? = readyClient()?.getGuildById(guildId)
+    fun guild(): Guild? = readyClient()?.getGuildById(guildId)
 
     private fun close(client: JDA, timeoutMs: Long) {
         try {

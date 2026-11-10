@@ -3,8 +3,16 @@ package kami.claims.research
 import kami.claims.Country
 import kami.libs.config.Configs
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
+
+@Serializable
+enum class MigrationMode {
+    @SerialName("apply") APPLY,
+    @SerialName("dry_run") DRY_RUN,
+    @SerialName("off") OFF
+}
 
 @Serializable
 data class ResearchSettings(
@@ -13,7 +21,8 @@ data class ResearchSettings(
     val tickSeconds: Int = 5,
     val baseline: List<String> = listOf("basics"),
     val locked: List<Unlock> = emptyList(),
-    val announce: Boolean = true
+    val announce: Boolean = true,
+    val migrations: MigrationMode = MigrationMode.APPLY
 )
 
 @Serializable
@@ -44,6 +53,13 @@ class ResearchDefs(val settings: ResearchSettings, val levels: LevelsConfig, val
     }
 }
 
+@Serializable
+class LegacyData(
+    val sigs: Map<String, List<String>> = emptyMap(),
+    val targets: Map<String, List<Long>> = emptyMap(),
+    val costs: Map<String, Long> = emptyMap()
+)
+
 object Defaults {
     private val json = Configs.json()
     val groupNames = listOf("basics")
@@ -51,6 +67,8 @@ object Defaults {
 
     val groups: Map<String, Group> by lazy { groupNames.associateWith { read("groups/$it.json", Group.serializer()) } }
     val trees: Map<String, TreeFile> by lazy { treeNames.associateWith { read("trees/$it.json", TreeFile.serializer()) } }
+
+    val legacy: LegacyData by lazy { read("legacy_sigs.json", LegacyData.serializer()) }
 
     private fun <T> read(path: String, serializer: KSerializer<T>): T {
         val stream = Defaults::class.java.getResourceAsStream("/assets/kami_claims/research/$path") ?: error("Missing bundled $path")
@@ -65,10 +83,11 @@ object Docs {
         "tickSeconds" to "Seconds between research timer updates",
         "baseline" to "Group ids that are always unlocked",
         "locked" to "Extra selectors that stay locked until a node opens them",
-        "announce" to "Announce finished research to the country"
+        "announce" to "Announce finished research to the country",
+        "migrations" to "Tree change migrations (aliases, grandfathering, task reconcile): apply, dry_run (log only) or off"
     )
     val levels = mapOf(
-        "curve" to "XP cost per level from level from: concave quadratic base + rise * (n - from) * (2 * peak - from - n) up to peak, then convex peak cost + tail * (n - peak) ^ 2",
+        "curve" to "XP cost per level from level from: concave quadratic base + rise * (n - from) * (2 * peak - from - n) up to peak, then convex peak cost + tail * (n - peak) ^ 2, constant from flatFrom on (0 means never flat)",
         "xpFromLevel" to "XP is only earned from this level on, lower levels need requirements only",
         "table" to "Optional explicit XP thresholds for levels 2 and up, replaces the curve when not empty",
         "maxLevel" to "Highest reachable level",
@@ -82,6 +101,6 @@ object Docs {
     val tree = mapOf(
         "scope" to "country, province or any: which countries get this tree, a country uses every matching tree",
         "categories" to "Tabs of the tree",
-        "nodes" to "Nodes: id, category, level, cost (spurs), time (like 1h30m), requires (node requirements are optional unless the tree sets strict: each missing one adds its time, recursively), tasks, unlocks"
+        "nodes" to "Nodes: id, category, level, cost (spurs), time (like 1h30m), requires (node requirements are optional unless the tree sets strict: each missing one adds its time, recursively), tasks, unlocks, replaces (old node ids this node takes over), grandfather (list of from: node ids and before: ISO instant, grants this node to countries that finished a from node before that time)"
     )
 }

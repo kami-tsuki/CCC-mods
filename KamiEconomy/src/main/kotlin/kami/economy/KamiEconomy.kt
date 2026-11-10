@@ -1,6 +1,7 @@
 package kami.economy
 
 import kami.economy.admin.MarketAdmin
+import kami.economy.admin.VillagerAdmin
 import kami.economy.compat.CoinProtection
 import kami.economy.compat.JadeEconomy
 import kami.economy.net.WatchSync
@@ -14,6 +15,8 @@ import kami.economy.economy.History
 import kami.economy.economy.Ledger
 import kami.economy.economy.Notify
 import kami.economy.economy.EconomyProvider
+import kami.economy.economy.EnchantBooks
+import kami.libs.mc.ItemSpec
 import kami.economy.economy.Pricing
 import kami.economy.economy.Starters
 import kami.economy.economy.VariantScan
@@ -21,6 +24,7 @@ import kami.economy.economy.StackCodec
 import kami.economy.net.Net
 import kami.economy.quest.Quests
 import kami.economy.quest.Dishes
+import kami.economy.villager.VillagerTrade
 import kami.economy.world.CoinRules
 import kami.economy.world.Vendors
 import kami.economy.world.VendorRegistry
@@ -67,9 +71,11 @@ object KamiEconomy {
             Soft.expect(Mods.SOPHISTICATED_CORE, "net.p3pp3rf1y.sophisticatedcore.common.gui.StorageContainerMenuBase", "clicked", "handleOverflow", "doClick", "mergeItemStack")
             Configs.onReload("economy") { if (Notify.server != null) { Market.reindex(); Starters.push() }; null }
             MarketApi.register(EconomyProvider)
+            ItemSpec.resolver(EnchantBooks::stack)
             it.enqueueWork { MarketDisplay.bind() }
         }
         MarketDisplay.register(MOD_BUS)
+        VillagerTrade.register(MOD_BUS)
         MOD_BUS.addListener<RegisterPayloadHandlersEvent> { Net.register(it) }
         if (FMLEnvironment.dist == Dist.CLIENT) ClientEconomy.init()
         EconomyCommands.register()
@@ -77,6 +83,7 @@ object KamiEconomy {
         ServerBank.keep(Ledger::holds)
         WealthSources.register()
         MarketAdmin.register()
+        VillagerAdmin.register()
         DiscordMarket.register()
         JadeEconomy.register()
         CoinRules.register()

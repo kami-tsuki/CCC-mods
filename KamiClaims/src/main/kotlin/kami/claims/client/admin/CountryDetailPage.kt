@@ -1,11 +1,13 @@
 package kami.claims.client.admin
 
+import kami.libs.text.Phrase
 import kami.libs.ui.core.Memo
 import kami.claims.admin.CountryAdmin
 import kami.claims.admin.CountryDetail
 import kami.claims.admin.CountryRequests
 import kami.claims.admin.LedgerRow
 import kami.claims.admin.MemberRow
+import kami.claims.admin.ResearchCategory
 import kami.claims.admin.WarRow
 import kami.claims.client.ClientHooks
 import kami.claims.client.app.pages.WarPage
@@ -42,6 +44,8 @@ private const val COMPACT_W = 420
 private const val KPI_COUNT = 7
 private const val GROUP_GAP = 6
 
+private data class ScopeCat(val cat: ResearchCategory, val key: String, val treeName: String, val categoryName: String)
+
 internal class CountryDetailPage(private val app: KamiApp) : Page() {
     private val countryTabs = Memo()
     private val warColumnsMemo = Memo()
@@ -60,6 +64,7 @@ internal class CountryDetailPage(private val app: KamiApp) : Page() {
     private var leader: String? = null
     private var war: String? = null
     private var op = CountryAdmin.researchOps[0]
+    private var scope = ""
     private var controlsH = 0
     private var stats: CountryStats? = null
 
@@ -74,6 +79,7 @@ internal class CountryDetailPage(private val app: KamiApp) : Page() {
         stats = null
         leader = null
         war = null
+        scope = ""
         listOf(name, chunk, node, amount).forEach { it.set("") }
     }
 
@@ -214,9 +220,32 @@ internal class CountryDetailPage(private val app: KamiApp) : Page() {
             ui.select(row.take(ops.maxOf { Draw.width(it.label) } + 24), ops, op, key = "country-op")?.let { op = it }
             ui.textField(row.remaining(), node, tr("kami_claims.admin.research.placeholder"), maxLength = 128, key = "country-node")
         }
-        val needsNode = op != "reset"
-        button(line(), tr("kami_claims.admin.research"), Icons.SCROLL, missing.takeIf { needsNode && node.text.isBlank() }, op == "reset" || op == "revoke", CountryRequests.RESEARCH,
-            tr("kami_claims.admin.research.title", tr("kami_claims.admin.research.$op"), node.text.trim().ifEmpty { tr("kami_claims.admin.research.all") }, d.row.name)) { listOf(op, node.text.trim()) }
+        button(line(), tr("kami_claims.admin.research"), Icons.SCROLL, missing.takeIf { node.text.isBlank() }, op == "reset" || op == "revoke", CountryRequests.RESEARCH,
+            tr("kami_claims.admin.research.title", tr("kami_claims.admin.research.$op"), node.text.trim(), d.row.name)) { listOf(op, node.text.trim()) }
+        f.skip(GROUP_GAP)
+        val cats = d.research.categories.map { c ->
+            ScopeCat(c, "${c.tree}|${c.id}", Phrase.or("kami_claims.research.tree.${c.tree}", c.treeTitle).resolve(), Phrase.or("kami_claims.research.category.${c.id}", c.title).resolve())
+        }
+        val pickedCat = cats.firstOrNull { it.key == scope }
+        val picked = pickedCat?.cat
+        val scopeName = pickedCat?.let { tr("kami_claims.admin.research.scope.name", it.treeName, it.categoryName) } ?: tr("kami_claims.admin.research.all")
+        val done = picked?.done ?: d.research.categories.sumOf { it.done }
+        val total = picked?.total ?: d.research.categories.sumOf { it.total }
+        val queued = picked?.queued ?: d.research.categories.sumOf { it.queued }
+        val finishable = total - done
+        val resettable = done + queued
+        val scopes = listOf(Option("", tr("kami_claims.admin.research.scope.all", d.research.categories.sumOf { it.done }, d.research.categories.sumOf { it.total }))) +
+            cats.map { Option(it.key, tr("kami_claims.admin.research.scope.cat", it.treeName, it.categoryName, it.cat.done, it.cat.total)) }
+        ui.select(f.take(CONTROL_H), scopes, pickedCat?.key ?: "", key = "country-scope")?.let { scope = it }
+        val suffix = if (picked == null) "all" else "category"
+        val tree = picked?.tree.orEmpty()
+        val category = picked?.id.orEmpty()
+        line().let { row ->
+            button(row, tr("kami_claims.admin.research.finish_$suffix"), Icons.SCROLL, tr("kami_claims.admin.research.scope.complete").takeIf { finishable == 0 }, false, CountryRequests.RESEARCH_SCOPE,
+                tr("kami_claims.admin.research.scope.title", tr("kami_claims.admin.research.finish"), scopeName, d.row.name, finishable)) { listOf("finish", tree, category) }
+            button(row, tr("kami_claims.admin.research.reset_$suffix"), Icons.REMOVE, tr("kami_claims.admin.research.scope.empty").takeIf { resettable == 0 }, true, CountryRequests.RESEARCH_SCOPE,
+                tr("kami_claims.admin.research.scope.title", tr("kami_claims.admin.research.reset"), scopeName, d.row.name, resettable)) { listOf("reset", tree, category) }
+        }
         f.skip(GROUP_GAP)
         val value = Format.parseAmount(amount.text)?.takeIf { it > 0 }
         val bad = tr("kami_claims.admin.money.invalid").takeIf { value == null }

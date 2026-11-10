@@ -253,6 +253,195 @@
       ]
     },
     {
+      "id": "kitchen",
+      "category": "basics",
+      "icon": "farmersdelight:cooking_pot",
+      "level": 2,
+      "cost": 0,
+      "time": "10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "crafting_table"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:iron_smelting"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:copper_smelting",
+          "hidden": true
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:zinc_smelting",
+          "hidden": true
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "#c:ingots/iron",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "farmersdelight:cooking_pot"
+        },
+        {
+          "type": "block",
+          "id": "farmersdelight:cooking_pot"
+        },
+        {
+          "type": "output",
+          "id": "farmersdelight:stove"
+        },
+        {
+          "type": "block",
+          "id": "farmersdelight:stove"
+        },
+        {
+          "type": "output",
+          "id": "farmersdelight:skillet"
+        },
+        {
+          "type": "block",
+          "id": "farmersdelight:skillet"
+        },
+        {
+          "type": "output",
+          "id": "croptopia:cooking_pot"
+        },
+        {
+          "type": "output",
+          "id": "croptopia:food_press"
+        },
+        {
+          "type": "output",
+          "id": "croptopia:frying_pan"
+        },
+        {
+          "type": "output",
+          "id": "croptopia:mortar_and_pestle"
+        },
+        {
+          "type": "output",
+          "id": "vanilladelight:modular_stove"
+        },
+        {
+          "type": "block",
+          "id": "vanilladelight:modular_stove"
+        },
+        {
+          "type": "output",
+          "id": "vanilladelight:modular_cutting_board"
+        },
+        {
+          "type": "block",
+          "id": "vanilladelight:modular_cutting_board"
+        },
+        {
+          "type": "output",
+          "id": "barbequesdelight:grill"
+        },
+        {
+          "type": "block",
+          "id": "barbequesdelight:grill"
+        },
+        {
+          "type": "output",
+          "id": "expandeddelight:juicer"
+        },
+        {
+          "type": "block",
+          "id": "expandeddelight:juicer"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:smoker"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:composter"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:beehive"
+        },
+        {
+          "type": "output",
+          "id": "farmersdelight:iron_knife"
+        },
+        {
+          "type": "output",
+          "id": "croptopia:knife"
+        },
+        {
+          "type": "output",
+          "id": "create_things_and_misc:copper_knife"
+        },
+        {
+          "type": "output",
+          "id": "create_things_and_misc:zinc_knife"
+        },
+        {
+          "type": "output",
+          "id": "vanilladelight:copper_knife"
+        },
+        {
+          "type": "output",
+          "id": "expandeddelight:cask"
+        },
+        {
+          "type": "block",
+          "id": "expandeddelight:cask"
+        },
+        {
+          "type": "output",
+          "id": "farmersdelight:cutting_board"
+        },
+        {
+          "type": "block",
+          "id": "farmersdelight:cutting_board"
+        }
+      ],
+      "grandfather": [
+        {
+          "from": [
+            "technology:cuisine"
+          ],
+          "before": "2026-10-20T00:00:00Z"
+        },
+        {
+          "from": [
+            "technology:vt_scribe"
+          ],
+          "before": "2026-10-20T00:00:00Z"
+        },
+        {
+          "from": [
+            "technology:harvester_plough"
+          ],
+          "before": "2026-10-20T00:00:00Z"
+        },
+        {
+          "from": [
+            "military:iron_melee"
+          ],
+          "before": "2026-10-20T00:00:00Z"
+        },
+        {
+          "from": [
+            "military:copper_melee"
+          ],
+          "before": "2026-10-20T00:00:00Z"
+        }
+      ]
+    },
+    {
       "id": "andesite_casing",
       "category": "basics",
       "icon": "create:andesite_casing",
@@ -263,6 +452,19 @@
         {
           "type": "node",
           "id": "crafting_table"
+        },
+        {
+          "type": "any",
+          "of": [
+            {
+              "type": "node",
+              "id": "metallurgy:andesite_alloy_iron"
+            },
+            {
+              "type": "node",
+              "id": "metallurgy:andesite_alloy_zinc"
+            }
+          ]
         }
       ],
       "tasks": [
@@ -752,8 +954,8 @@
           "id": "create:millstone"
         },
         {
-          "type": "output",
-          "id": "create:wheat_flour"
+          "type": "recipe",
+          "id": "create:milling/wheat"
         },
         {
           "type": "output",
@@ -1275,19 +1477,7 @@
         },
         {
           "type": "output",
-          "id": "create_connected:fan_chocolate_coating_catalyst"
-        },
-        {
-          "type": "output",
-          "id": "create_connected:fan_exploding_catalyst"
-        },
-        {
-          "type": "output",
           "id": "create_connected:fan_freezing_catalyst"
-        },
-        {
-          "type": "output",
-          "id": "create_connected:fan_glooming_catalyst"
         },
         {
           "type": "output",
@@ -1295,23 +1485,7 @@
         },
         {
           "type": "output",
-          "id": "create_connected:fan_honey_coating_catalyst"
-        },
-        {
-          "type": "output",
-          "id": "create_connected:fan_purifying_catalyst"
-        },
-        {
-          "type": "output",
-          "id": "create_connected:fan_resonance_catalyst"
-        },
-        {
-          "type": "output",
           "id": "create_connected:fan_sanding_catalyst"
-        },
-        {
-          "type": "output",
-          "id": "create_connected:fan_sculking_catalyst"
         },
         {
           "type": "output",
@@ -1323,15 +1497,7 @@
         },
         {
           "type": "output",
-          "id": "create_connected:fan_soul_stripping_catalyst"
-        },
-        {
-          "type": "output",
           "id": "create_connected:fan_splashing_catalyst"
-        },
-        {
-          "type": "output",
-          "id": "create_connected:fan_transmutation_catalyst"
         },
         {
           "type": "output",
@@ -1451,7 +1617,7 @@
     {
       "id": "spring_coiling",
       "category": "processing",
-      "icon": "createvintageneoforged:spring_coiling_machine",
+      "icon": "vintage:spring_coiling_machine",
       "level": 10,
       "cost": 0,
       "time": "40m",
@@ -1480,30 +1646,26 @@
       "unlocks": [
         {
           "type": "block",
-          "id": "createvintageneoforged:spring_coiling_machine"
+          "id": "vintage:spring_coiling_machine"
         },
         {
           "type": "output",
-          "id": "createvintageneoforged:spring_coiling_machine"
+          "id": "vintage:spring_coiling_machine"
         },
         {
           "type": "output",
-          "id": "createvintageneoforged:spring_coiling_machine_wheel"
+          "id": "vintage:spring_coiling_machine_wheel"
         },
         {
           "type": "output",
-          "id": "createvintageneoforged:iron_rod"
-        },
-        {
-          "type": "output",
-          "id": "createvintageneoforged:iron_spring"
+          "id": "vintage:iron_spring"
         }
       ]
     },
     {
       "id": "vintage_machines",
       "category": "processing",
-      "icon": "createvintageneoforged:vibrating_table",
+      "icon": "vintage:vibrating_table",
       "level": 12,
       "cost": 800,
       "time": "55m",
@@ -1524,12 +1686,17 @@
           "type": "node",
           "id": "vt_workshop",
           "hidden": true
+        },
+        {
+          "type": "node",
+          "id": "tools_armor:goggle_helmets",
+          "hidden": true
         }
       ],
       "tasks": [
         {
           "type": "deposit",
-          "item": "createvintageneoforged:iron_spring",
+          "item": "vintage:iron_spring",
           "count": 8
         },
         {
@@ -1541,54 +1708,54 @@
       "unlocks": [
         {
           "type": "block",
-          "id": "createvintageneoforged:vibrating_table"
+          "id": "vintage:vibrating_table"
         },
         {
           "type": "output",
-          "id": "createvintageneoforged:vibrating_table"
+          "id": "vintage:vibrating_table"
         },
         {
           "type": "block",
-          "id": "createvintageneoforged:belt_grinder"
+          "id": "vintage:belt_grinder"
         },
         {
           "type": "output",
-          "id": "createvintageneoforged:belt_grinder"
+          "id": "vintage:belt_grinder"
         },
         {
           "type": "output",
-          "id": "createvintageneoforged:grinder_belt"
+          "id": "vintage:grinder_belt"
         },
         {
           "type": "block",
-          "id": "createvintageneoforged:helve_hammer"
+          "id": "vintage:helve_hammer"
         },
         {
           "type": "output",
-          "id": "createvintageneoforged:helve_hammer"
+          "id": "vintage:helve_hammer"
         },
         {
           "type": "block",
-          "id": "createvintageneoforged:centrifuge"
+          "id": "vintage:centrifuge"
         },
         {
           "type": "output",
-          "id": "createvintageneoforged:centrifuge"
+          "id": "vintage:centrifuge"
         },
         {
           "type": "recipe",
-          "id": "createvintageneoforged:hammering/auto_smithing"
+          "id": "vintage:hammering/auto_smithing"
         },
         {
           "type": "recipe",
-          "id": "createvintageneoforged:hammering/auto_upgrade"
+          "id": "vintage:hammering/auto_upgrade"
         }
       ]
     },
     {
       "id": "vacuum_chamber",
       "category": "fluids",
-      "icon": "createvintageneoforged:vacuum_chamber",
+      "icon": "vintage:vacuum_chamber",
       "level": 14,
       "cost": 1200,
       "time": "1h15m",
@@ -1610,25 +1777,25 @@
         },
         {
           "type": "deposit",
-          "item": "createvintageneoforged:iron_spring",
+          "item": "vintage:iron_spring",
           "count": 8
         }
       ],
       "unlocks": [
         {
           "type": "block",
-          "id": "createvintageneoforged:vacuum_chamber"
+          "id": "vintage:vacuum_chamber"
         },
         {
           "type": "output",
-          "id": "createvintageneoforged:vacuum_chamber"
+          "id": "vintage:vacuum_chamber"
         }
       ]
     },
     {
       "id": "vintage_laser",
       "category": "brass",
-      "icon": "createvintageneoforged:laser",
+      "icon": "vintage:laser",
       "level": 21,
       "cost": 3500,
       "time": "3h",
@@ -1661,30 +1828,38 @@
       "unlocks": [
         {
           "type": "block",
-          "id": "createvintageneoforged:laser"
+          "id": "vintage:laser"
         },
         {
           "type": "output",
-          "id": "createvintageneoforged:laser"
+          "id": "vintage:laser"
         },
         {
           "type": "output",
-          "id": "createvintageneoforged:laser_item"
+          "id": "vintage:laser_item"
         },
         {
           "type": "output",
-          "id": "createvintageneoforged:recipe_card"
+          "id": "vintage:recipe_card"
         },
         {
           "type": "output",
-          "id": "createvintageneoforged:helve_hammer_slot_cover"
+          "id": "vintage:helve_hammer_slot_cover"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:lathe_laser/diamond"
+        },
+        {
+          "type": "recipe",
+          "id": "northstar:sandpaper_polishing/diamond"
         }
       ]
     },
     {
       "id": "vintage_lathe",
       "category": "brass",
-      "icon": "createvintageneoforged:lathe",
+      "icon": "vintage:lathe",
       "level": 22,
       "cost": 3800,
       "time": "3h30m",
@@ -1702,18 +1877,18 @@
         },
         {
           "type": "deposit",
-          "item": "createvintageneoforged:iron_spring",
+          "item": "vintage:iron_spring",
           "count": 8
         }
       ],
       "unlocks": [
         {
           "type": "block",
-          "id": "createvintageneoforged:lathe"
+          "id": "vintage:lathe"
         },
         {
           "type": "output",
-          "id": "createvintageneoforged:lathe"
+          "id": "vintage:lathe"
         }
       ]
     },
@@ -2323,16 +2498,17 @@
         },
         {
           "type": "node",
-          "id": "metallurgy:iron_compacting"
-        },
-        {
-          "type": "node",
           "id": "vt_hopper",
           "hidden": true
         },
         {
           "type": "node",
           "id": "vt_observer",
+          "hidden": true
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:iron_pressing",
           "hidden": true
         }
       ],
@@ -2377,6 +2553,14 @@
         {
           "type": "output",
           "id": "create:schematic_and_quill"
+        },
+        {
+          "type": "output",
+          "id": "create_pattern_schematics:empty_pattern_schematic"
+        },
+        {
+          "type": "output",
+          "id": "create_pattern_schematics:pattern_schematic_and_quill"
         }
       ]
     },
@@ -2469,14 +2653,6 @@
         {
           "type": "output",
           "id": "create:mechanical_plough"
-        },
-        {
-          "type": "output",
-          "id": "minecraft:composter"
-        },
-        {
-          "type": "output",
-          "id": "minecraft:beehive"
         }
       ]
     },
@@ -3249,6 +3425,10 @@
         {
           "type": "output",
           "id": "create_factory_logistics:fluid_mechanism"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:fluid_mechanism/press"
         }
       ]
     },
@@ -3359,112 +3539,7 @@
           "count": 16
         }
       ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "create:dough"
-        },
-        {
-          "type": "output",
-          "id": "create:sweet_roll"
-        },
-        {
-          "type": "output",
-          "id": "create:chocolate"
-        },
-        {
-          "type": "output",
-          "id": "create:bar_of_chocolate"
-        },
-        {
-          "type": "output",
-          "id": "create:builders_tea"
-        },
-        {
-          "type": "output",
-          "id": "create:honey"
-        },
-        {
-          "type": "output",
-          "id": "create:honeyed_apple"
-        },
-        {
-          "type": "output",
-          "id": "create:chocolate_glazed_berries"
-        },
-        {
-          "type": "output",
-          "id": "create:blaze_cake"
-        },
-        {
-          "type": "output",
-          "id": "create:blaze_cake_base"
-        },
-        {
-          "type": "output",
-          "id": "farmersdelight:cooking_pot"
-        },
-        {
-          "type": "block",
-          "id": "farmersdelight:cooking_pot"
-        },
-        {
-          "type": "output",
-          "id": "farmersdelight:stove"
-        },
-        {
-          "type": "block",
-          "id": "farmersdelight:stove"
-        },
-        {
-          "type": "output",
-          "id": "farmersdelight:*_crate"
-        },
-        {
-          "type": "block",
-          "id": "farmersdelight:*_crate"
-        },
-        {
-          "type": "output",
-          "id": "farmersdelight:*_cabinet"
-        },
-        {
-          "type": "block",
-          "id": "farmersdelight:*_cabinet"
-        },
-        {
-          "type": "output",
-          "id": "cratedelight:*"
-        },
-        {
-          "type": "block",
-          "id": "cratedelight:*"
-        },
-        {
-          "type": "output",
-          "id": "cratedelightcroptopia:*"
-        },
-        {
-          "type": "block",
-          "id": "cratedelightcroptopia:*"
-        },
-        {
-          "type": "output",
-          "id": "croptopia:cooking_pot"
-        },
-        {
-          "type": "block",
-          "id": "croptopia:cooking_pot"
-        },
-        {
-          "type": "output",
-          "id": "croptopia:food_press"
-        },
-        {
-          "type": "block",
-          "id": "croptopia:food_press"
-        }
-      ]
+      "unlocks": []
     },
     {
       "id": "chain_conveyor",
@@ -3947,10 +4022,6 @@
         {
           "type": "recipe",
           "id": "create:crafting/materials/electron_tube"
-        },
-        {
-          "type": "recipe",
-          "id": "kami_geology:prospector_t3"
         }
       ]
     },
@@ -5338,10 +5409,6 @@
           "id": "createrailwaysnavigator:navigator"
         },
         {
-          "type": "block",
-          "id": "createrailwaysnavigator:navigator"
-        },
-        {
           "type": "output",
           "id": "createrailwaysnavigator:penalty_anchor"
         },
@@ -6696,6 +6763,11 @@
           "type": "node",
           "id": "item_filter",
           "hidden": true
+        },
+        {
+          "type": "node",
+          "id": "technology:brass_sifting",
+          "hidden": true
         }
       ],
       "tasks": [
@@ -7229,7 +7301,7 @@
     {
       "id": "curving_press",
       "category": "processing",
-      "icon": "createvintageneoforged:curving_press",
+      "icon": "vintage:curving_press",
       "level": 26,
       "cost": 6075,
       "time": "4h",
@@ -7253,27 +7325,27 @@
       "unlocks": [
         {
           "type": "block",
-          "id": "createvintageneoforged:curving_press"
+          "id": "vintage:curving_press"
         },
         {
           "type": "output",
-          "id": "createvintageneoforged:curving_press"
+          "id": "vintage:curving_press"
         },
         {
           "type": "output",
-          "id": "createvintageneoforged:convex_curving_head"
+          "id": "vintage:convex_curving_head"
         },
         {
           "type": "output",
-          "id": "createvintageneoforged:concave_curving_head"
+          "id": "vintage:concave_curving_head"
         },
         {
           "type": "output",
-          "id": "createvintageneoforged:v_shaped_curving_head"
+          "id": "vintage:v_shaped_curving_head"
         },
         {
           "type": "output",
-          "id": "createvintageneoforged:w_shaped_curving_head"
+          "id": "vintage:w_shaped_curving_head"
         },
         {
           "type": "recipe",
@@ -7282,10 +7354,6 @@
         {
           "type": "recipe",
           "id": "kami_js:curving/glass_bottle"
-        },
-        {
-          "type": "recipe",
-          "id": "kami_js:curving/cauldron"
         },
         {
           "type": "recipe",
@@ -7524,7 +7592,7 @@
         },
         {
           "type": "recipe",
-          "id": "tfmg:vat_machine_recipe/concrete"
+          "id": "tfmg:vat/concrete"
         },
         {
           "type": "recipe",
@@ -7624,7 +7692,7 @@
       "tasks": [
         {
           "type": "deposit",
-          "item": "sulfuricresonance:sulfur",
+          "item": "tfmg:sulfur",
           "count": 64
         }
       ],
@@ -7644,6 +7712,18 @@
         {
           "type": "recipe",
           "id": "tfmg:crushing/copper_sulfate"
+        },
+        {
+          "type": "recipe",
+          "id": "sulfuricresonance:crushing/gunpowder_crushing"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crushing/sulfur"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:vintage/nitrate_dust_separation"
         }
       ]
     },
@@ -7926,7 +8006,7 @@
       "tasks": [
         {
           "type": "deposit",
-          "item": "sulfuricresonance:sulfur",
+          "item": "tfmg:sulfur",
           "count": 48
         }
       ],
@@ -7954,6 +8034,14 @@
         {
           "type": "recipe",
           "id": "sulfuricresonance:minecraft/thermochemical_link_drive"
+        },
+        {
+          "type": "recipe",
+          "id": "sulfuricresonance:crushing/gunpowder_crushing"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crushing/sulfur"
         }
       ]
     },
@@ -8001,6 +8089,14 @@
         {
           "type": "recipe",
           "id": "sulfuricresonance:minecraft/rubber_padding_craft"
+        },
+        {
+          "type": "recipe",
+          "id": "sulfuricresonance:crushing/gunpowder_crushing"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crushing/sulfur"
         }
       ]
     },
@@ -8080,6 +8176,10 @@
         {
           "type": "recipe",
           "id": "tfmg:crushing/sulfur"
+        },
+        {
+          "type": "recipe",
+          "id": "sulfuricresonance:crushing/netherwood_crushing"
         }
       ]
     },
@@ -8563,6 +8663,18 @@
         {
           "type": "recipe",
           "id": "createbigpharma:milling_caffeine"
+        },
+        {
+          "type": "output",
+          "id": "createbigpharma:erlenmeyer_flask"
+        },
+        {
+          "type": "output",
+          "id": "createbigpharma:test_tube"
+        },
+        {
+          "type": "output",
+          "id": "createbigpharma:empty_syringe"
         }
       ]
     },
@@ -8686,15 +8798,15 @@
       "unlocks": [
         {
           "type": "recipe",
-          "id": "tfmg:vat_machine_recipe/naphtha"
+          "id": "tfmg:vat/naphtha"
         },
         {
           "type": "recipe",
-          "id": "tfmg:vat_machine_recipe/plastic_from_ethylene"
+          "id": "tfmg:vat/plastic_from_ethylene"
         },
         {
           "type": "recipe",
-          "id": "tfmg:vat_machine_recipe/plastic_from_propylene"
+          "id": "tfmg:vat/plastic_from_propylene"
         },
         {
           "type": "recipe",
@@ -8711,6 +8823,18 @@
         {
           "type": "recipe",
           "id": "tfmg:crafting/materials/lithium_charge"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:filling/ethylene_tank"
+        }
+      ],
+      "grandfather": [
+        {
+          "from": [
+            "technology:compressor"
+          ],
+          "before": "2026-10-20T00:00:00Z"
         }
       ]
     },
@@ -8741,7 +8865,7 @@
       "unlocks": [
         {
           "type": "recipe",
-          "id": "tfmg:vat_machine_recipe/rubber"
+          "id": "tfmg:vat/rubber"
         },
         {
           "type": "recipe",
@@ -9082,7 +9206,7 @@
         },
         {
           "type": "recipe",
-          "id": "tfmg:vat_machine_recipe/neon"
+          "id": "tfmg:vat/neon"
         },
         {
           "type": "recipe",
@@ -9101,11 +9225,6 @@
         {
           "type": "node",
           "id": "sr_combustion_belt"
-        },
-        {
-          "type": "node",
-          "id": "cuisine",
-          "hidden": true
         }
       ],
       "tasks": [
@@ -9178,10 +9297,6 @@
         },
         {
           "type": "recipe",
-          "id": "sulfuricresonance:crushing/netherwood_crushing"
-        },
-        {
-          "type": "recipe",
           "id": "sulfuricresonance:minecraft/pyroclastic_powder"
         }
       ]
@@ -9206,8 +9321,8 @@
       "tasks": [
         {
           "type": "deposit",
-          "item": "tfmg:hydrogen_bucket",
-          "count": 4
+          "item": "chemica:distilled_water_bucket",
+          "count": 8
         }
       ],
       "unlocks": [
@@ -9248,6 +9363,11 @@
         {
           "type": "node",
           "id": "pharma_lab"
+        },
+        {
+          "type": "node",
+          "id": "technology:sulfuric_acid",
+          "hidden": true
         }
       ],
       "tasks": [
@@ -9436,6 +9556,11 @@
         {
           "type": "node",
           "id": "metallurgy:constantan"
+        },
+        {
+          "type": "node",
+          "id": "technology:sulfuric_acid",
+          "hidden": true
         }
       ],
       "tasks": [
@@ -9742,6 +9867,10 @@
       "unlocks": [
         {
           "type": "recipe",
+          "id": "kami_js:vintage/nitrate_dust_separation"
+        },
+        {
+          "type": "recipe",
           "id": "chemica:vat_machine_recipe/electrolysis/brine"
         },
         {
@@ -9787,10 +9916,6 @@
         {
           "type": "recipe",
           "id": "tfmg:crushing/dirt"
-        },
-        {
-          "type": "recipe",
-          "id": "kami_js:vintage/nitrate_dust_separation"
         }
       ]
     },
@@ -9814,6 +9939,11 @@
         {
           "type": "node",
           "id": "metallurgy:aluminum",
+          "hidden": true
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:nickel_crushing",
           "hidden": true
         }
       ],
@@ -9959,7 +10089,7 @@
       "tasks": [
         {
           "type": "deposit",
-          "item": "tfmg:hydrogen_bucket",
+          "item": "chemica:hydrogen_fuel",
           "count": 4
         },
         {
@@ -10043,7 +10173,7 @@
         },
         {
           "type": "recipe",
-          "id": "tfmg:vat_machine_recipe/etched_circuit_board"
+          "id": "tfmg:vat/etched_circuit_board"
         },
         {
           "type": "recipe",
@@ -10138,7 +10268,7 @@
       "tasks": [
         {
           "type": "deposit",
-          "item": "tfmg:lpg_bucket",
+          "item": "tfmg:engine_cylinder",
           "count": 4
         }
       ],
@@ -10523,10 +10653,6 @@
         {
           "type": "recipe",
           "id": "tfmg:filling/carbon_dioxide_tank"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:filling/ethylene_tank"
         },
         {
           "type": "recipe",
@@ -10956,7 +11082,7 @@
         },
         {
           "type": "recipe",
-          "id": "tfmg:vat_machine_recipe/arc_furnace_steel"
+          "id": "tfmg:vat/arc_furnace_steel"
         },
         {
           "type": "recipe",
@@ -11347,10 +11473,6 @@
         {
           "type": "recipe",
           "id": "kami_js:gases/water_electrolysis_pem"
-        },
-        {
-          "type": "recipe",
-          "id": "chemica:cutting/platinum_electrode"
         }
       ]
     },
@@ -12328,8 +12450,8 @@
         },
         {
           "type": "deposit",
-          "item": "tfmg:magnet",
-          "count": 2
+          "item": "tfmg:magnetic_alloy_ingot",
+          "count": 8
         },
         {
           "type": "deposit",
@@ -12401,6 +12523,10 @@
         {
           "type": "recipe",
           "id": "kami_js:sulfuric/capacitor_etched"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:magnet/charged_alloy"
         }
       ]
     },
@@ -12924,6 +13050,10 @@
         {
           "type": "recipe",
           "id": "kami_js:sulfuric/aluminum_cable_hub_resonant"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:filling/neon_tank"
         }
       ]
     },
@@ -12964,10 +13094,6 @@
       "unlocks": [
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/polarizer"
-        },
-        {
-          "type": "recipe",
           "id": "tfmg:crafting/materials/electric_diode"
         },
         {
@@ -12984,15 +13110,19 @@
         },
         {
           "type": "recipe",
-          "id": "tfmg:polarizing/magnet"
-        },
-        {
-          "type": "recipe",
           "id": "tfmg:sequenced_assembly/potentiometer"
         },
         {
           "type": "recipe",
           "id": "tfmg:crafting/materials/traffic_light"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:crafting/materials/polarizer"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:polarizing/magnet"
         }
       ]
     },
@@ -13387,11 +13517,11 @@
         },
         {
           "type": "recipe",
-          "id": "createnuclear:item_application/reactor_input_from_hopper_and_reactor_casing"
+          "id": "createnuclear:deploying/reactor_rod_input_from_hopper_and_reactor_casing"
         },
         {
           "type": "recipe",
-          "id": "createnuclear:item_application/reactor_output_from_shaft_and_reactor_casing"
+          "id": "createnuclear:deploying/reactor_output_from_shaft_and_reactor_casing"
         },
         {
           "type": "recipe",
@@ -13404,6 +13534,310 @@
         {
           "type": "recipe",
           "id": "createnuclear:mechanical_crafting/graphite_rod"
+        }
+      ]
+    },
+    {
+      "id": "liquid_nitrogen",
+      "category": "nuclear",
+      "icon": "createnuclear:nitrogen_bucket",
+      "level": 150,
+      "cost": 52500,
+      "time": "12h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "reactor_casing"
+        },
+        {
+          "type": "node",
+          "id": "cryogenics"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "createnuclear:nitrogen_concentrate",
+          "count": 16
+        },
+        {
+          "type": "process",
+          "output": "createnuclear:cooled_nitrogen_concentrate",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "createnuclear:smelting/nitrogen_concentrate_for_nitrogen_concentrate"
+        },
+        {
+          "type": "recipe",
+          "id": "createnuclear:blasting/nitrogen_concentrate_for_nitrogen_concentrate"
+        },
+        {
+          "type": "recipe",
+          "id": "createnuclear:snow_powder/cooled_nitrogen_concentrate"
+        },
+        {
+          "type": "recipe",
+          "id": "createnuclear:mixing/liquid_nitrogen"
+        }
+      ]
+    },
+    {
+      "id": "thorium_processing",
+      "category": "nuclear",
+      "icon": "createnuclear:thorium_dust",
+      "level": 150,
+      "cost": 52500,
+      "time": "12h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:thorium"
+        },
+        {
+          "type": "node",
+          "id": "nitric_acid"
+        },
+        {
+          "type": "node",
+          "id": "vats"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "createnuclear:raw_thorium",
+          "count": 32
+        },
+        {
+          "type": "process",
+          "output": "createnuclear:thorium_ingot",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "kami_js:nuclear/thorium_digestion"
+        },
+        {
+          "type": "recipe",
+          "id": "createnuclear:compacting/thorium_fluid_to_thorium_ingot"
+        }
+      ]
+    },
+    {
+      "id": "thorium_rod",
+      "category": "nuclear",
+      "icon": "createnuclear:thorium_rod",
+      "level": 155,
+      "cost": 54000,
+      "time": "12h40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "thorium_processing"
+        },
+        {
+          "type": "node",
+          "id": "reactor_casing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "createnuclear:thorium_ingot",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:heavy_machinery_casing",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "createnuclear:mechanical_crafting/thorium_rod"
+        },
+        {
+          "type": "recipe",
+          "id": "createnuclear:crafting/crafting/thorium_block_from_compacting"
+        },
+        {
+          "type": "recipe",
+          "id": "createnuclear:crafting/crafting/thorium_ingot_from_compacting"
+        },
+        {
+          "type": "recipe",
+          "id": "createnuclear:crafting/crafting/thorium_ingot_from_decompacting"
+        },
+        {
+          "type": "recipe",
+          "id": "createnuclear:crafting/crafting/thorium_nugget_from_decompacting"
+        },
+        {
+          "type": "recipe",
+          "id": "createnuclear:crafting/thorium_ingot_from_decompacting"
+        },
+        {
+          "type": "recipe",
+          "id": "createnuclear:crafting/thorium_nugget_from_decompacting"
+        }
+      ]
+    },
+    {
+      "id": "reactor_alarm",
+      "category": "nuclear",
+      "icon": "createnuclear:reactor_alarm",
+      "level": 155,
+      "cost": 54000,
+      "time": "12h40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "reactor_casing"
+        },
+        {
+          "type": "node",
+          "id": "electronic_circuit"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "createnuclear:reactor_casing",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "chemica:electronic_circuit",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "createnuclear:mechanical_crafting/reactor_alarm"
+        },
+        {
+          "type": "block",
+          "id": "createnuclear:reactor_alarm"
+        }
+      ]
+    },
+    {
+      "id": "reactor_fluid_input",
+      "category": "nuclear",
+      "icon": "createnuclear:reactor_fluid_input",
+      "level": 155,
+      "cost": 54000,
+      "time": "12h40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "reactor_casing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "createnuclear:reactor_casing",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "create:fluid_pipe",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "createnuclear:deploying/reactor_fluid_input_from_fluid_pipe_and_reactor_casing"
+        },
+        {
+          "type": "block",
+          "id": "createnuclear:reactor_fluid_input"
+        }
+      ]
+    },
+    {
+      "id": "biome_irradiation_extractor",
+      "category": "nuclear",
+      "icon": "createnuclear:biome_irradiation_extractor",
+      "level": 160,
+      "cost": 55550,
+      "time": "12h50m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "reactor_casing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "createnuclear:reactor_casing",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "createnuclear:reinforced_glass",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "createnuclear:crafting/reinforced_glass_bottle"
+        },
+        {
+          "type": "recipe",
+          "id": "createnuclear:crafting/biome_irradiation_extractor"
+        }
+      ]
+    },
+    {
+      "id": "nitrogen_liquefaction",
+      "category": "nuclear",
+      "icon": "createnuclear:nitrogen_bucket",
+      "level": 165,
+      "cost": 57000,
+      "time": "13h",
+      "requires": [
+        {
+          "type": "node",
+          "id": "reactor_shell"
+        },
+        {
+          "type": "node",
+          "id": "air_separation"
+        },
+        {
+          "type": "node",
+          "id": "liquid_nitrogen"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "createnuclear:cooled_nitrogen_concentrate",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:steel_chemical_vat",
+          "count": 2
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "kami_js:nuclear/nitrogen_liquefaction"
         }
       ]
     },
@@ -13802,10 +14236,6 @@
         {
           "type": "recipe",
           "id": "northstar:sandpaper_polishing/amethyst_shard"
-        },
-        {
-          "type": "recipe",
-          "id": "northstar:sandpaper_polishing/diamond"
         }
       ]
     },
@@ -15069,10 +15499,6 @@
         },
         {
           "type": "output",
-          "id": "minecraft:smoker"
-        },
-        {
-          "type": "output",
           "id": "minecraft:jukebox"
         },
         {
@@ -15107,12 +15533,7 @@
         {
           "type": "deposit",
           "item": "minecraft:amethyst_shard",
-          "count": 4
-        },
-        {
-          "type": "deposit",
-          "item": "minecraft:amethyst_shard",
-          "count": 16
+          "count": 20
         },
         {
           "type": "deposit",
@@ -15131,15 +15552,19 @@
         },
         {
           "type": "output",
-          "id": "minecraft:lodestone"
-        },
-        {
-          "type": "output",
           "id": "minecraft:soul_campfire"
         },
         {
           "type": "output",
           "id": "minecraft:calibrated_sculk_sensor"
+        },
+        {
+          "type": "output",
+          "id": "explorerscompass:explorerscompass"
+        },
+        {
+          "type": "output",
+          "id": "naturescompass:naturescompass"
         }
       ]
     },
@@ -15656,6 +16081,30 @@
         {
           "type": "recipe",
           "id": "creategoggles:goggle_armor_trimming_c"
+        },
+        {
+          "type": "output",
+          "id": "bhc:canister"
+        },
+        {
+          "type": "output",
+          "id": "bhc:red_heart_canister"
+        },
+        {
+          "type": "output",
+          "id": "bhc:yellow_heart_canister"
+        },
+        {
+          "type": "output",
+          "id": "bhc:green_heart_canister"
+        },
+        {
+          "type": "output",
+          "id": "bhc:blue_heart_canister"
+        },
+        {
+          "type": "output",
+          "id": "bhc:red_heartpulse_belt"
         }
       ]
     }

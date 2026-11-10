@@ -94,6 +94,7 @@
   "kami_libs.flow.vendor": "Händler",
   "kami_libs.flow.transfer": "Überweisungen",
   "kami_libs.flow.quest": "Quests",
+  "kami_libs.flow.villager": "Dorfbewohnerhandel",
   "kami_libs.note.rent": "Miete",
   "kami_libs.note.rent_debt": "Miete + Schulden",
   "kami_libs.note.debt": "Schulden",

@@ -10,7 +10,7 @@ object Pricing {
         if (lots <= 0) return
         val c = Stocks.course(item)
         Market.book(item).course = when {
-            !server -> Stocks.afterPlayer(item, c, perLot, lots)
+            !server -> Stocks.afterPlayer(item, c, perLot, lots.toDouble())
             buy -> Stocks.afterBuy(item, c, lots)
             else -> Stocks.afterSell(item, c, lots)
         }

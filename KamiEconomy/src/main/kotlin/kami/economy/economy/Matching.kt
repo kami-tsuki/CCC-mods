@@ -117,7 +117,7 @@ object Matching {
                 i++
                 if (good != null && !Quests.owns(o.owner) && !Trade.sameCountry(who, o.owner) && moves(item, who, o.owner, moved, t)) {
                     moved += washKeys(item, who, o.owner)
-                    if (o.peg == null) c = Stocks.afterPlayer(item, c, o.price.toDouble(), lots)
+                    if (o.peg == null) c = Stocks.afterPlayer(item, c, o.price.toDouble(), lots.toDouble())
                 }
             } else {
                 val next = if (buy) Stocks.afterBuy(item, c, 1) else Stocks.afterSell(item, c, 1)

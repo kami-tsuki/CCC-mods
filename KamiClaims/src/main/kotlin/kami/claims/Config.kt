@@ -247,6 +247,7 @@ data class Settings(
     val guiCooldown: Int = 4,
     val mailLimit: Int = 10,
     val announce: Map<String, Announcement> = Announcement.defaults,
+    val countryChannels: Boolean = true,
     val war: WarSettings = WarSettings(),
     val visibility: VisibilitySettings = VisibilitySettings(),
     val types: Map<String, TypeDef> = linkedMapOf(
@@ -503,7 +504,8 @@ private val sections = listOf(
             "announce" to "Per event: mc = global chat (needs broadcast in messages.json), discord = template for Discord. Template fields differ per event, see the default templates.",
             "announce.*.mc" to "Send this event to global chat.",
             "announce.*.discord" to "Send this event to Discord.",
-            "announce.*.template" to "Discord text with placeholders in braces."
+            "announce.*.template" to "Discord text with placeholders in braces.",
+            "countryChannels" to "Give every country a private Discord channel with its chat and events. Needs countryCategoryId in kami-discord-bot.json."
         )
     )
 )

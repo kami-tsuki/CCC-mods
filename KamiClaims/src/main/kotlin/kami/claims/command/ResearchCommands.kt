@@ -13,6 +13,7 @@ import kami.claims.research.NodeState
 import kami.claims.research.Penalty
 import kami.claims.research.Queue
 import kami.claims.research.Research
+import kami.claims.research.ResearchMigration
 import kami.claims.service.Service
 import kami.claims.service.Words
 import kami.claims.service.Words.num
@@ -26,6 +27,7 @@ import net.minecraft.commands.arguments.GameProfileArgument
 import net.minecraft.commands.arguments.ResourceLocationArgument
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
+import java.time.Instant
 
 private fun nodeIds() = Research.defs.nodes.values.map { it.id }.distinct()
 
@@ -33,9 +35,9 @@ private fun Ctx.act(name: String, vararg args: String) = ok(Service.act(me(), na
 
 private fun Ctx.target(): Country = Realm.country(text("country")) ?: fail(Phrase.of("kami_claims.error.unknown_country"))
 
-private fun Ctx.finished(name: String, target: Country, node: String = "") {
+private fun Ctx.finished(name: String, target: Country, node: String = "", vararg extra: Any) {
     Audit.record(source, "claims.research.$name", target.id, "", if (node.isEmpty()) emptyMap() else mapOf("node" to node))
-    ok(Phrase.of("kami_claims.research.admin.$name", Words.v(target.name)), true)
+    ok(Phrase.of("kami_claims.research.admin.$name", Words.v(target.name), *extra), true)
 }
 
 private fun status(country: Country, node: ResearchNode): Phrase {
@@ -133,12 +135,36 @@ private fun Ctx.why() {
 
 private fun Ctx.adminStep(name: String, node: String?) = target().let { finished(name, it, CountryAdmin.research(it, name, node).orEmpty()) }
 
+private fun Ctx.migrations(country: Country?) {
+    val lines = if (country == null) ResearchMigration.last.map { "${it.country}  ${it.text}" } else country.research.migrations.map { (rule, time) -> "$rule  ${Instant.ofEpochMilli(time)}" }
+    if (lines.isEmpty()) return info(Phrase.of("kami_claims.research.migrations.none"))
+    info(Phrase.of("kami_claims.research.migrations.title", Words.v(country?.name ?: "-"), num(lines.size)))
+    lines.take(40).forEach { line -> row { muted(line) } }
+}
+
+private fun Ctx.parked(country: Country) {
+    info(Phrase.of("kami_claims.research.parked.title", Words.v(country.name), num(country.research.parked.size)))
+    country.research.parked.take(40).forEach { entry -> row { muted("${entry.node}  ${entry.state.name.lowercase()}${if (entry.paid) "  paid" else ""}") } }
+}
+
+private fun Ctx.parkedOp(op: String) {
+    val country = target()
+    if (op != "refund") {
+        ResearchMigration.purgeParked(country)
+        return finished("parked_purge", country)
+    }
+    val result = ResearchMigration.refundParked(country)
+    if (result.kept == 0) finished("parked_refund", country) else finished("parked_refund_kept", country, "", num(result.total), num(result.kept))
+}
+
 fun adminResearchCmd(): Node {
     fun step(name: String) = lit(name).then(word("country") { Realm.data.countries.keys }.then(word("node", ::nodeIds).does { it.adminStep(name, it.text("node")) }))
     return lit("research").requires { Perms.has(it, Perms.RESEARCH_ADMIN) }
         .then(step("grant"))
         .then(step("revoke"))
         .then(step("finish"))
+        .then(lit("migrations").does { it.migrations(null) }.then(word("country") { Realm.data.countries.keys }.does { it.migrations(it.target()) }))
+        .then(lit("parked").then(word("country") { Realm.data.countries.keys }.does { it.parked(it.target()) }.then(lit("purge").does { it.parkedOp("purge") }).then(lit("refund").does { it.parkedOp("refund") })))
         .then(lit("why").then(arg("player", GameProfileArgument.gameProfile()).then(arg("recipe", ResourceLocationArgument.id()).suggests { _, b -> SharedSuggestionProvider.suggestResource(Gate.resolution.gated.let { it.recipes + it.blocks }.map(ResourceLocation::parse), b) }.does { it.why() })))
         .then(lit("reset").then(word("country") { Realm.data.countries.keys }
             .does { it.adminStep("reset", null) }

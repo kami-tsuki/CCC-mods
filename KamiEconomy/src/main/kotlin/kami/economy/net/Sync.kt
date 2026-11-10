@@ -31,6 +31,7 @@ import kami.economy.quest.Quest
 import kami.economy.quest.QuestBoost
 import kami.economy.quest.Quests
 import kami.economy.economy.TradeStatus
+import kami.economy.villager.VillagerCourses
 import kami.libs.admin.Players
 import kami.libs.admin.Subject
 import kami.libs.claims.ClaimsApi
@@ -314,7 +315,7 @@ object Sync {
                 .map { it.first }
         }
         return order.asSequence().filter { s.hit(it) }.map { row(it, me) }
-            .filter { it.buy > 0 || it.sell > 0 || it.sold + it.bought > 0 || it.last > 0 || it.status.isNotEmpty() }
+            .filter { it.buy > 0 || it.sell > 0 || it.sold + it.bought > 0 || it.last > 0 || it.status.isNotEmpty() || it.course > 0 && VillagerCourses.listed(it.item) }
             .take(limit + 1).toList()
     }
 

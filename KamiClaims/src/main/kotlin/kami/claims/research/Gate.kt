@@ -50,6 +50,13 @@ object Gate {
     fun recipe(country: Country?, namespace: String, path: String) =
         !gatedRecipes.contains(namespace, path) || (country != null && unlocked(country).recipes.contains(namespace, path))
 
+    fun item(country: Country?, id: String): Boolean {
+        val recipes = resolution.items[id] ?: return true
+        if (country == null) return false
+        val unlocked = unlocked(country).recipes
+        return recipes.any { it in unlocked }
+    }
+
     fun block(country: Country?, block: ResourceLocation) = block(country, block.namespace, block.path)
 
     fun block(country: Country?, namespace: String, path: String) =

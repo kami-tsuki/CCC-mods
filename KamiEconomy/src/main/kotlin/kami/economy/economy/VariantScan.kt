@@ -11,6 +11,7 @@ import net.minecraft.world.item.crafting.ShapelessRecipe
 
 object VariantScan {
     private var pairs: List<Pair<String, String>> = emptyList()
+    private var books: Map<String, Variant> = emptyMap()
 
     private fun CraftingRecipe.inputs(): Set<String>? =
         ingredients.filterNot { it.isEmpty }.map { i -> i.items.map(ItemSpec::spec).toSet() }.takeIf { l -> l.isNotEmpty() && l.all { it.isNotEmpty() && it == l[0] } }?.get(0)
@@ -35,12 +36,13 @@ object VariantScan {
         }
         pairs = expand.flatMap { (small, bigs) -> bigs.filter { big -> compress[big]?.contains(small) == true }.map { small to it } }
             .filter { Blacklist.sellable(it.first) && Blacklist.sellable(it.second) }.distinct()
+        books = EnchantBooks.variants()
         apply()
     }
 
     fun apply() {
         val starters = Market.starterIds()
-        val next = Variants.derive(pairs) { it in starters }
+        val next = Variants.derive(pairs) { it in starters } + books
         if (next == Variants.map) return
         Variants.map = next
         Notify.server?.let(Net::broadcastVariants)

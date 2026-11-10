@@ -20,10 +20,10 @@ object LevelDefaults {
 
     val sources: Map<String, XpSource> = mapOf(
         "research" to XpSource(0.1),
-        "tasks" to XpSource(20.0, 300),
+        "tasks" to XpSource(30.0, 450),
         "taxes" to XpSource(0.2, 300),
         "claims" to XpSource(1.0, 150),
-        "playtime" to XpSource(15.0, 300),
+        "playtime" to XpSource(20.0, 480),
         "trade" to XpSource(1.0, 300),
         "auction_sold" to XpSource(100.0, 500),
         "rent" to XpSource(100.0, 500),
@@ -50,7 +50,7 @@ object LevelDefaults {
         10 to rule(MinCitizens(2), FlagSet, MinTreasury(1000))
     )
 
-    const val VERSION = 2
+    const val VERSION = 4
 
     private val housingRewards: Map<Int, List<Unlock>> = mapOf(
         13 to listOf(FeatureUnlock(Features.PLOTS_FAMILY)),
@@ -60,10 +60,18 @@ object LevelDefaults {
 
     private val jobSlotRewards: Map<Int, List<Unlock>> = listOf(16, 61, 125).associateWith { listOf(add(Capacity.JOB_SLOTS, 1)) }
 
+    private val researchSlotRewards: Map<Int, List<Unlock>> = listOf(10, 20, 30, 100, 150).associateWith { listOf(add(Capacity.RESEARCH_SLOTS, 1)) }
+
+    private val oldSlotLevels = mapOf(10 to 1, 30 to 1, 100 to 1, 500 to 1)
+
+    private val oldCurve = XpCurve(tail = 1.5)
+
+    private val v3Curve = XpCurve(tail = 0.2)
+
     private val researchRewards: Map<Int, List<Unlock>> = merge(
         merge(
             listOf(3, 5, 12, 20, 40, 75, 150, 300, 500).associateWith { listOf(add(Capacity.QUEUE_SLOTS, 1)) },
-            listOf(10, 30, 100, 500).associateWith { listOf(add(Capacity.RESEARCH_SLOTS, 1)) }
+            researchSlotRewards
         ),
         mapOf(10 to speed(1, 10), 20 to speed(1, 20), 25 to speed(2, 30), 50 to speed(2, 50), 100 to speed(2, 60))
     )
@@ -78,8 +86,38 @@ object LevelDefaults {
 
     fun upgrade(config: LevelsConfig): LevelsConfig = when {
         config.version < 1 -> upgrade(housingAndJobs(config))
-        config.version < 2 -> config.copy(version = 2, rewards = merge(config.rewards.mapValues { (_, list) -> list.filterNot(::researchReward) }.filterValues { it.isNotEmpty() }, researchRewards))
+        config.version < 2 -> upgrade(config.copy(version = 2, rewards = merge(config.rewards.mapValues { (_, list) -> list.filterNot(::researchReward) }.filterValues { it.isNotEmpty() }, researchRewards)))
+        config.version < 3 -> config.copy(
+            version = 3,
+            curve = retuneCurve(config.curve),
+            sources = retune(retune(config.sources, "tasks", 20.0, 300), "playtime", 15.0, 300),
+            rewards = retuneSlots(config.rewards)
+        ).let(::upgrade)
+        config.version < 4 -> config.copy(version = 4, curve = retuneTail(config.curve))
         else -> config
+    }
+
+    private fun retuneTail(curve: XpCurve): XpCurve {
+        val stock = curve.from == v3Curve.from && curve.peak == v3Curve.peak && curve.base == v3Curve.base && curve.rise == v3Curve.rise && curve.tail == v3Curve.tail && curve.flatFrom == v3Curve.flatFrom
+        return if (stock) XpCurve(curve.from, curve.peak, curve.base, curve.rise) else curve
+    }
+
+    private fun retuneCurve(curve: XpCurve): XpCurve {
+        val stock = curve.from == oldCurve.from && curve.peak == oldCurve.peak && curve.base == oldCurve.base && curve.rise == oldCurve.rise && curve.tail == oldCurve.tail
+        return if (stock) XpCurve(curve.from, curve.peak, curve.base, curve.rise) else XpCurve(curve.from, curve.peak, curve.base, curve.rise, curve.tail, 0)
+    }
+
+    private fun retune(current: Map<String, XpSource>, key: String, rate: Double, cap: Long): Map<String, XpSource> {
+        val stored = current[key] ?: return current
+        val fresh = sources[key] ?: return current
+        return if (stored.rate == rate && stored.dailyCap == cap) current + (key to fresh) else current
+    }
+
+    private fun retuneSlots(current: Map<Int, List<Unlock>>): Map<Int, List<Unlock>> {
+        fun slot(unlock: Unlock) = unlock is CapacityUnlock && unlock.key == Capacity.RESEARCH_SLOTS
+        val levels = current.mapValues { (_, list) -> list.filterIsInstance<CapacityUnlock>().filter(::slot).sumOf { it.add } }.filterValues { it > 0 }
+        if (levels != oldSlotLevels) return current
+        return merge(current.mapValues { (_, list) -> list.filterNot(::slot) }.filterValues { it.isNotEmpty() }, researchSlotRewards)
     }
 
     private fun housingAndJobs(config: LevelsConfig): LevelsConfig {

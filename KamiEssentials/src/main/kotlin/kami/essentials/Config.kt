@@ -142,6 +142,8 @@ data class SkillSettings(
     val gateScale: Double = 0.395,
     val gatePower: Double = 1.5,
     val playtimeXpPerHour: Double = 300.0,
+    val backfillShare: Double = 0.7,
+    val backfillCapHours: Double = 100.0,
     val xpBase: Double = 40.0,
     val xpScale: Double = 530.0,
     val xpPower: Double = 0.5,

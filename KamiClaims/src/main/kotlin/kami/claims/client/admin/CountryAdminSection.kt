@@ -36,6 +36,7 @@ object CountryAdminSection {
     const val LIST_PAGE = "countries.list"
     const val DETAIL_PAGE = "countries.detail"
     const val STATS_PAGE = "countries.stats"
+    const val DISCORD_PAGE = "countries.discord"
     private const val REFRESH_MS = 15_000L
 
     var shown: String? = null
@@ -45,12 +46,14 @@ object CountryAdminSection {
         listOf(
             NavItem(LIST_PAGE, tr("kami_claims.admin.nav.list"), Icons.FLAG),
             NavItem(DETAIL_PAGE, tr("kami_claims.admin.nav.detail"), Icons.CROWN),
-            NavItem(STATS_PAGE, tr("kami_libs.common.statistics"), Icons.STATS)
+            NavItem(STATS_PAGE, tr("kami_libs.common.statistics"), Icons.STATS),
+            NavItem(DISCORD_PAGE, tr("kami_claims.admin.discord.title"), Icons.CHAIN)
         )
     }, { app, id ->
         when (id) {
             DETAIL_PAGE -> CountryDetailPage(app)
             STATS_PAGE -> CountryStatsPage()
+            DISCORD_PAGE -> DiscordRoomsPage(app)
             else -> CountryListPage(app)
         }
     }))

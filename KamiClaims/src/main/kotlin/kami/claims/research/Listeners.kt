@@ -10,6 +10,7 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.Level
 import net.neoforged.bus.api.EventPriority
 import net.neoforged.neoforge.common.util.FakePlayer
+import net.neoforged.neoforge.event.AnvilUpdateEvent
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent
 import net.neoforged.neoforge.event.entity.player.PlayerDestroyItemEvent
 import net.neoforged.neoforge.event.entity.player.PlayerEnchantItemEvent
@@ -38,6 +39,12 @@ object Listeners {
     }
 
     fun register() {
+        FORGE_BUS.addListener<AnvilUpdateEvent> {
+            val player = it.player as? ServerPlayer ?: return@addListener
+            if (ItemGate.allows(player, it.left) && ItemGate.allows(player, it.right)) return@addListener
+            it.isCanceled = true
+            ItemGate.deny(player)
+        }
         FORGE_BUS.addListener<ProgressEvent> { Progress.onEvent(it) }
         FORGE_BUS.addListener<ServerTickEvent.Post> { Buffs.tick(it.server) }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { Buffs.forget(it.entity.uuid) }

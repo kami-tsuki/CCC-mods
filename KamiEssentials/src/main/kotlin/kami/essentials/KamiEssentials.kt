@@ -4,6 +4,7 @@ import kami.libs.player.Presence
 import kami.libs.skills.SkillProfile
 import kami.libs.skills.Skills
 import kami.libs.text.Phrase
+import kami.libs.tunnel.Tunnel
 import kami.essentials.admin.Activity
 import kami.essentials.admin.AdminServer
 import kami.essentials.admin.DiscordAdmin
@@ -95,8 +96,9 @@ object KamiEssentials {
             loading("skills") { SkillServer.load() }
             ServerStats.start()
             Bot.start(it.server)
+            if (it.server.isDedicatedServer) runCatching { Tunnel.start() }.onFailure { e -> LOG.error("Tunnel did not start: {}", e.toString()) }
         }
-        FORGE_BUS.addListener<ServerStoppingEvent> { Bot.stop(); Trades.stop(); FakeDeop.reset(); SkillServer.unload() }
+        FORGE_BUS.addListener<ServerStoppingEvent> { Tunnel.stop(); Bot.stop(); Trades.stop(); FakeDeop.reset(); SkillServer.unload() }
         FORGE_BUS.addListener<ServerStoppedEvent>(EventPriority.LOWEST) { Players.known = null; PlayerRecords.unload(); Mutes.unload(); Warns.unload(); Moderation.unload(); Deliveries.unload() }
         FORGE_BUS.addListener<ServerTickEvent.Post> {
             Trades.tick()

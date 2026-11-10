@@ -48,6 +48,18 @@
     {
       "type": "output",
       "id": "minecraft:brick"
+    },
+    {
+      "type": "output",
+      "id": "farmersdelight:flint_knife"
+    },
+    {
+      "type": "output",
+      "id": "moredelight:wooden_knife"
+    },
+    {
+      "type": "output",
+      "id": "moredelight:stone_knife"
     }
   ]
 }

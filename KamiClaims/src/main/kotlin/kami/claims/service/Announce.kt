@@ -3,6 +3,8 @@ package kami.claims.service
 import kami.claims.Config
 import kami.claims.Country
 import kami.claims.Names
+import kami.claims.Realm
+import kami.claims.discord.CountryChannels
 import kami.claims.social.Mail
 import kami.libs.chat.Theme
 import kami.libs.discord.DiscordApi
@@ -32,6 +34,10 @@ object Announce {
             val text = Phrase.of("kami_claims.announce.$key", *values.map { (k, v) -> phrases[k]?.asValue() ?: Phrase.value(v) }.toTypedArray())
             server?.playerList?.broadcastSystemMessage(Mail.chat.info(text.component()), false)
         }
-        if (cfg.discord && cfg.template.isNotBlank()) DiscordApi.event(Embed(Templates.fillCoded(cfg.template, values), country.color.takeIf { it != 0 } ?: colours.getValue(key)))
+        if (cfg.template.isBlank()) return
+        val text = Templates.fillCoded(cfg.template, values)
+        val color = country.color.takeIf { it != 0 } ?: colours.getValue(key)
+        if (cfg.discord) DiscordApi.event(Embed(text, color))
+        (listOf(country) + values.values.mapNotNull(Realm::live)).distinctBy { it.id }.forEach { CountryChannels.post(it, text, color) }
     }
 }

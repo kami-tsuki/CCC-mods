@@ -2,6 +2,7 @@ package kami.libs.discord
 
 import kami.libs.config.ConfigFolder
 import kami.libs.config.ConfigMigration
+import kami.libs.config.restrict
 import kotlinx.serialization.Serializable
 import java.nio.file.Files
 import net.neoforged.fml.loading.FMLPaths
@@ -10,7 +11,7 @@ import net.neoforged.fml.loading.FMLPaths
 data class DiscordKeys(
     val token: String = "", val guildId: String = "", val chatChannelId: String = "", val consoleChannelId: String = "",
     val chatWebhookUrl: String = "", val consoleWebhookUrl: String = "", val verifiedRoleId: String = "", val adminRoleId: String = "", val inviteLink: String = "",
-    val marketChannelId: String = ""
+    val marketChannelId: String = "", val countryCategoryId: String = ""
 ) {
     override fun toString() = "DiscordKeys(***)"
 }
@@ -28,7 +29,8 @@ internal object KeyFile {
         "verifiedRoleId" to "Id of the role given to linked players. Empty disables role handling.",
         "adminRoleId" to "Id of the role allowed to use admin slash commands.",
         "inviteLink" to "Invite link shown to players who still have to verify.",
-        "marketChannelId" to "Id of the channel that receives market price updates. Empty disables them."
+        "marketChannelId" to "Id of the channel that receives market price updates. Empty disables them.",
+        "countryCategoryId" to "Id of the category that holds the private country channels. Empty disables them."
     )
 
     private val path by lazy { FMLPaths.CONFIGDIR.get().resolve("kami-discord-bot.json") }
@@ -44,6 +46,6 @@ internal object KeyFile {
     }
 
     private fun DiscordKeys.trimmed() = DiscordKeys(
-        token.trim(), guildId.trim(), chatChannelId.trim(), consoleChannelId.trim(), chatWebhookUrl.trim(), consoleWebhookUrl.trim(), verifiedRoleId.trim(), adminRoleId.trim(), inviteLink.trim(), marketChannelId.trim()
+        token.trim(), guildId.trim(), chatChannelId.trim(), consoleChannelId.trim(), chatWebhookUrl.trim(), consoleWebhookUrl.trim(), verifiedRoleId.trim(), adminRoleId.trim(), inviteLink.trim(), marketChannelId.trim(), countryCategoryId.trim()
     )
 }

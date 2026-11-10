@@ -26,9 +26,10 @@ class XpSource(val rate: Double, val dailyCap: Long = 0)
 class LevelRule(val xp: Long? = null, val requires: List<Condition> = emptyList())
 
 @Serializable
-class XpCurve(val from: Int = 11, val peak: Int = 50, val base: Double = 100.0, val rise: Double = 0.32, val tail: Double = 1.5) {
+class XpCurve(val from: Int = 11, val peak: Int = 50, val base: Double = 100.0, val rise: Double = 0.32, val tail: Double = 0.15, val flatFrom: Int = 250) {
     fun cost(level: Int): Long = when {
         level < from -> 0
+        flatFrom > 0 && level > flatFrom -> cost(flatFrom)
         level <= peak -> (base + rise * (level - from) * (2 * peak - from - level)).roundToLong()
         else -> (cost(peak) + tail * (level - peak).toDouble().pow(2)).roundToLong()
     }
@@ -93,7 +94,7 @@ object Levels {
     var day: () -> Long = ::today
     var announce: (Country) -> Unit = { Announce.fire("levelUp", it, mapOf("country" to it.name, "level" to it.level.toString())) }
 
-    private data class Stamp(val rev: Int, val done: Int, val level: Int)
+    private data class Stamp(val rev: Int, val state: Int, val done: Int, val level: Int)
 
     private var memoDefs: Any? = null
 
@@ -104,7 +105,7 @@ object Levels {
             memoDefs = Research.defs
             memo.clear()
         }
-        val stamp = Stamp(Realm.rev, country.research.done.size, country.level)
+        val stamp = Stamp(Realm.rev, System.identityHashCode(country.research), country.research.done.hashCode(), country.level)
         val id = country.id to key
         memo[id]?.let { if (it.first == stamp) return it.second }
         val value = Research.defs.levels.capacity(key) +

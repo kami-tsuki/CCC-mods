@@ -2,8 +2,8 @@ package kami.economy.client
 
 import com.mojang.blaze3d.platform.InputConstants
 import kami.economy.client.ui.MarketApp
+import kami.economy.economy.Blacklist
 import kami.libs.jei.KamiJei
-import kami.libs.mc.ItemSpec
 import kami.libs.ui.app.AppScreen
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.gui.components.EditBox
@@ -20,7 +20,7 @@ import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 object MarketLink {
     private val key = KeyMapping("key.kami_economy.open_item", KeyConflictContext.GUI, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_N, "key.categories.kami_economy")
 
-    fun market(stack: ItemStack): String? = ItemSpec.spec(stack).takeIf { !stack.isEmpty && PriceCache.shown(it) != null }
+    fun market(stack: ItemStack): String? = Blacklist.itemId(stack).takeIf { !stack.isEmpty && PriceCache.shown(it) != null }
 
     fun hoveredMarketItem(screen: Screen): String? {
         if (KamiJei.typing() || screen.focused is EditBox || (screen as? AppScreen)?.app?.ui?.typing == true) return null

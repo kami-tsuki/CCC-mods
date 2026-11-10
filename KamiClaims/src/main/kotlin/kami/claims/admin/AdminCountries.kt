@@ -5,6 +5,7 @@ import kami.claims.Country
 import kami.claims.Names
 import kami.claims.Realm
 import kami.claims.research.Research
+import kami.claims.research.Tree
 import kami.claims.service.Fail
 import kami.claims.war.Fame
 import kami.claims.war.Power
@@ -36,6 +37,7 @@ object CountryRequests {
     const val UNCLAIM = "countries.unclaim"
     const val WAR_END = "countries.war_end"
     const val RESEARCH = "countries.research"
+    const val RESEARCH_SCOPE = "countries.research_scope"
     const val MONEY = "countries.money"
 }
 
@@ -43,6 +45,7 @@ object AdminCountries {
     private const val LEDGER = 50
 
     fun register() {
+        AdminRooms.register()
         AdminMetrics.register("kami_claims.metric.countries") { Realm.data.countries.values.count { it.active }.toLong() }
         AdminMetrics.register("kami_claims.metric.wars") { Realm.data.wars.count { it.active }.toLong() }
         StatsViews.resolvers += { k -> k.takeIf { it.startsWith("c:") }?.let { Realm.country(it.substring(2))?.name } }
@@ -61,6 +64,7 @@ object AdminCountries {
         act(CountryRequests.UNCLAIM) { ctx, c, a -> CountryAdmin.unclaim(c, a.text(0) ?: missing(ctx)) }
         act(CountryRequests.WAR_END) { ctx, c, a -> CountryAdmin.endWar(c, a.text(0) ?: missing(ctx), ctx.reason) }
         act(CountryRequests.RESEARCH) { ctx, c, a -> CountryAdmin.research(c, a.text(0) ?: missing(ctx), a.getOrNull(1)) }
+        act(CountryRequests.RESEARCH_SCOPE) { ctx, c, a -> CountryAdmin.researchScope(c, a.text(0) ?: missing(ctx), a.getOrNull(1).orEmpty(), a.getOrNull(2).orEmpty()) }
         act(CountryRequests.MONEY) { ctx, c, a ->
             val give = when (a.text(0) ?: missing(ctx)) {
                 "give" -> true
@@ -109,7 +113,19 @@ object AdminCountries {
         Power.score(c), c.reputation.roundToInt(), fame, Fame.count(c)
     )
 
-    private fun detail(server: MinecraftServer, c: Country) = CountryDetail(
+    private fun categories(c: Country, trees: List<Tree>) = trees.flatMap { t ->
+        t.categories.sortedBy { it.order }.map { cat ->
+            val keys = t.nodes.filter { it.category == cat.id }
+            ResearchCategory(t.id, t.title, cat.id, cat.title, keys.count { it.key in c.research.done }, keys.size, keys.count { k -> k.key !in c.research.done && c.research.queue.any { it.node == k.key } })
+        }
+    }
+
+    private fun summary(c: Country): ResearchSummary {
+        val categories = categories(c, Research.defs.treesFor(c))
+        return ResearchSummary(categories.sumOf { it.done }, categories.sumOf { it.total }, c.research.queue.map { it.node }, categories)
+    }
+
+    private fun detail(server: MinecraftServer, c: Country): CountryDetail = CountryDetail(
         row(server, c, Fame.score(c)), revision(c), c.created,
         c.members.entries.sortedByDescending { it.value.rank }.map { (id, m) -> MemberRow(id, Names.of(server, id), m.rank.name, m.since, m.seen) },
         c.ledger.takeLast(LEDGER).asReversed().map { LedgerRow(it.at, it.kind.name, it.amount, it.balance, it.actor?.let { a -> Names.of(server, a) }, it.note) },
@@ -118,6 +134,6 @@ object AdminCountries {
             WarRow(w.id, Wars.name((if (attacker) w.defender else w.attacker).main), w.phase.name, attacker)
         },
         c.provinces.mapNotNull { Realm.country(it)?.name },
-        ResearchSummary(c.research.done.size, Research.defs.treesFor(c).sumOf { it.nodes.size }, c.research.queue.map { it.node })
+        summary(c)
     )
 }

@@ -21,6 +21,7 @@ RES = os.path.join(ROOT, 'KamiClaims', 'src', 'main', 'resources', 'assets', 'ka
 SERVER = os.path.join(ROOT, 'Test-Server-NeoForge-1.21.1')
 TREES = ['metallurgy', 'technology', 'tools_armor', 'military', 'buffs']
 CACHE_VERSION = 2
+SMELTING = {'minecraft:smelting', 'minecraft:blasting', 'minecraft:smoking', 'minecraft:campfire_cooking'}
 IGNORE_PRODUCERS = {'technology:wood_building', 'technology:crafting_table'}
 
 OWNER = {
@@ -365,7 +366,11 @@ def result_ids(r):
     if isinstance(r, str):
         return [r]
     if isinstance(r, dict):
+        if 'amount' in r or 'fluid' in r:
+            return []
         v = r.get('id') or r.get('item')
+        if isinstance(v, dict):
+            v = v.get('id') or v.get('item')
         return [v] if isinstance(v, str) else []
     return []
 
@@ -377,7 +382,7 @@ def recipe_facts(rid, j, tags):
         v = j.get(key)
         if isinstance(v, list):
             for n, r in enumerate(v):
-                if n == 0 or (not sequenced and not (isinstance(r, dict) and 'chance' in r)):
+                if n == 0 or not sequenced:
                     outs += result_ids(r)
         elif v is not None:
             outs += result_ids(v)
@@ -657,9 +662,9 @@ class Model:
             for rid, f in self.recipes.items():
                 if rid in free_recipes or rid in self.rnodes or not self.free_type(f):
                     continue
-                if all(o in self.hard for o in f['outs']):
+                if f['type'] not in SMELTING and all(o in self.hard for o in f['outs']):
                     continue
-                if all(any(i not in produced or i in self.free_items for i in s) for s in f['slots']):
+                if all(any(i not in produced or i in self.free_items or i in self.world for i in s) for s in f['slots']):
                     free_recipes.add(rid)
                     for o in f['outs']:
                         if o not in self.free_items:
@@ -667,16 +672,27 @@ class Model:
                     changed = True
         self.produced = produced
 
+    def type_nodes(self, rtype):
+        if not hasattr(self, '_type_nodes'):
+            self._type_nodes = defaultdict(set)
+            for rid, nodes in self.rnodes.items():
+                if rid in self.recipes:
+                    self._type_nodes[self.recipes[rid]['type']] |= nodes
+        return self._type_nodes.get(rtype, set())
+
     def free_type(self, f):
         if f['type'] in ('minecraft:crafting_shaped', 'minecraft:crafting_shapeless', 'minecraft:stonecutting', 'minecraft:smithing_transform', 'minecraft:smithing_trim'):
             return True
-        return f['type'] in ('minecraft:smelting', 'minecraft:blasting', 'minecraft:smoking', 'minecraft:campfire_cooking') and f['id'].split(':')[0] in ('minecraft', 'create')
+        return f['type'] in ('minecraft:smelting', 'minecraft:blasting', 'minecraft:smoking', 'minecraft:campfire_cooking')
 
     def is_free(self, item):
         return item not in self.produced or item in self.free_items or item in self.world
 
     def load_world(self):
-        self.world = {'minecraft:coal', 'minecraft:charcoal'}
+        self.world = {'minecraft:coal', 'minecraft:charcoal', 'chemica:salt', 'minecraft:string', 'minecraft:flint', 'minecraft:clay_ball', 'minecraft:bamboo'}
+        self.world |= {'minecraft:soul_sand', 'minecraft:basalt', 'minecraft:blackstone', 'minecraft:calcite'}
+        self.world |= {f'create:{x}' for x in ('asurine', 'crimsite', 'limestone', 'ochrum', 'scorchia', 'scoria', 'veridium')}
+        self.world |= {f'dndecor:{x}' for x in ('dolomite', 'gabbro', 'weathered_limestone')}
         self.hard = set()
         for tag, items in self.tags.items():
             if re.match(r'c:(ingots|nuggets|plates|storage_blocks|rods|gears|wires|dusts)/', tag):
@@ -687,16 +703,22 @@ class Model:
     def need(self, slot, node, allow_self):
         if any(self.is_free(i) for i in slot):
             return None
+        anc = self.closure(node, True)
+        if allow_self:
+            anc = anc | {node}
         producers = set()
         for i in slot:
             for rid in self.by_out.get(i, ()):
+                f = self.recipes[rid]
+                if rid not in self.rnodes:
+                    if f['type'] in SMELTING or (i not in self.hard and self.free_type(f)):
+                        return None
+                    if self.type_nodes(f['type']) & anc:
+                        return None
                 producers |= self.rnodes.get(rid, set())
         producers -= IGNORE_PRODUCERS
         if not producers:
             return None
-        anc = self.closure(node, True)
-        if allow_self:
-            anc = anc | {node}
         if producers & anc:
             return None
         lvl = min(self.nodes[p]['level'] for p in producers)
@@ -853,6 +875,9 @@ def report_e(m):
         icon = icon.split('#', 1)[0] if icon.find('#') > 0 else icon  # item#pack-id specs (TACZ) check the base item
         if icon and icon not in known:
             lines.append(f"{key}: icon {n['icon']} is not in the pack")
+        for u in n.get('unlocks', []):
+            if u['type'] in ('recipe', 'recipe_type', 'recipes', 'output', 'mod') and not m.select(u, {}):
+                lines.append(f"{key}: unlock {u['type']} {u.get('id') or u.get('output') or u.get('input')} selects nothing")
         gating = any(u['type'] in ('recipe', 'recipe_type', 'recipes', 'output', 'mod', 'block', 'group') for u in n.get('unlocks', []))
         if gating and not any(m.sel[key]) and not m.sel_blocks[key]:
             lines.append(f'{key}: unlocks select no recipe and no block')
@@ -939,7 +964,7 @@ def report_d(m, namespaces):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--ns', default='create,create_connected,create_factory_logistics,sliceanddice,createvintageneoforged,create_hypertube,create_jetpack,create_train_parts')
+    ap.add_argument('--ns', default='create,create_connected,create_factory_logistics,sliceanddice,vintage,create_hypertube,create_jetpack,create_train_parts')
     ap.add_argument('--section', default='abcdef')
     ap.add_argument('--all', action='store_true')
     a = ap.parse_args()
