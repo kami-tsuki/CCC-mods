@@ -135,9 +135,10 @@ object MinimapAdapter {
             }
             val points = s.points(dim).associateBy { it.id }
             val sigs = points.mapValues { (_, p) -> Objects.hash(p.x, p.y, p.z, p.name, p.initials, p.color) }
-            val diff = Colors.diff(st.sigs, sigs)
-            (diff.removed + diff.upserted).forEach { Refl.call(tp, "remove", it) }
-            diff.upserted.forEach { id ->
+            val removed = st.sigs.keys - sigs.keys
+            val upserted = sigs.filter { (id, sig) -> st.sigs[id] != sig }.keys
+            (removed + upserted).forEach { Refl.call(tp, "remove", it) }
+            upserted.forEach { id ->
                 val p = points.getValue(id)
                 val color = api.fromIndex.invoke(null, Colors.nearestChatColor(p.color))
                 Refl.call(tp, "add", id, api.make.newInstance(p.x, p.y ?: 64, p.z, p.name, p.initials.take(2), color, api.normal))

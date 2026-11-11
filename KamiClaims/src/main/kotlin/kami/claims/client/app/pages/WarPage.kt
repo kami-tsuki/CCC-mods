@@ -3,8 +3,10 @@ package kami.claims.client.app.pages
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ClaimsPage
 import kami.claims.client.app.Dialogs
+import kami.libs.ui.widget.MasterDetail
 import kami.claims.client.app.Vocabulary
 import kami.claims.client.store.ClaimsStore
+import kami.claims.gov.Perm
 import kami.claims.net.Info
 import kami.claims.net.OfferTerms
 import kami.claims.net.StakeLine
@@ -33,6 +35,7 @@ class WarPage(app: ClaimsApp) : ClaimsPage(app) {
     override val title get() = tr("kami_claims.nav.war")
     override val sections = listOf("world")
     private val table = TableState<WarLine>()
+    private val layout = MasterDetail(0.5, 180, 260)
     private var tab = 0
 
     override fun draw(ui: Ui, r: Rect) {
@@ -42,7 +45,7 @@ class WarPage(app: ClaimsApp) : ClaimsPage(app) {
             TabItem(tr("kami_claims.warpage.tab.wars"), Icons.SHIELD, info.wars.size, if (info.wars.any { it.offer != null && it.offerFrom != info.name }) Severity.WARNING else Severity.NEUTRAL),
             TabItem(tr("kami_claims.warpage.tab.standing"), Icons.STAR, info.warDebts.size, Severity.NEUTRAL)
         ), tab, "war-tabs")?.let { tab = it }
-        val chief = chief(info)
+        val chief = chief()
         val cooling = info.cooldownUntil > System.currentTimeMillis()
         val why = chief ?: if (cooling) tr("kami_claims.warpage.cooldown", Format.until(info.cooldownUntil)) else null
         if (ui.button(tabs.right(126), tr("kami_claims.warpage.declare"), Icons.FLAG, ButtonStyle.DANGER, why == null, why, pending = pending("war_declare"), key = "war-declare")) declare(info)
@@ -50,24 +53,21 @@ class WarPage(app: ClaimsApp) : ClaimsPage(app) {
         if (tab == 0) wars(ui, body, info) else standing(ui, body, info)
     }
 
-    private fun chief(info: Info) = when {
-        ClaimsStore.delegated -> tr("kami_claims.warpage.own_only")
-        info.rank.equals("president", true) -> null
-        else -> tr("kami_claims.warpage.president_only")
-    }
+    private fun chief() = if (ClaimsStore.delegated) tr("kami_claims.warpage.own_only") else lock(Perm.WAR)
 
     private fun wars(ui: Ui, r: Rect, info: Info) {
         if (info.wars.isEmpty()) {
             ui.emptyState(r, tr("kami_claims.warpage.empty.title"), tr("kami_claims.warpage.empty.desc"))
             return
         }
-        val detailW = if (app.compact) 0 else (r.w * 0.5).toInt().coerceIn(180, 260)
-        ui.table(r.dropRight(detailW, if (detailW > 0) 8 else 0), listOf(
-            Column.text<WarLine>(tr("kami_libs.flow.war"), -1) { tr("kami_claims.warpage.versus", it.attacker, it.defender) },
-            Column.text<WarLine>(tr("kami_claims.warpage.col.phase"), 70, color = { phaseColor(it.phase) }) { phase(it.phase) },
-            Column.number<WarLine>(tr("kami_libs.common.time_left"), 64, format = { left(if (it == Long.MAX_VALUE) 0 else it) }) { if (it.ends > 0) it.ends else Long.MAX_VALUE }
-        ), info.wars, table, { it.id }, severity = { if (it.offer != null && it.offerFrom != info.name) Severity.WARNING else null })
-        if (detailW > 0) (info.wars.firstOrNull { it.id in table.selected } ?: info.wars.first()).let { detail(ui, r.right(detailW), it, info) }
+        table.selected.removeAll { id -> info.wars.none { it.id == id } }
+        layout.draw(ui, r, app.compact, table.selected, { list ->
+            ui.table(list, listOf(
+                Column.text<WarLine>(tr("kami_libs.flow.war"), -1) { tr("kami_claims.warpage.versus", it.attacker, it.defender) },
+                Column.text<WarLine>(tr("kami_claims.warpage.col.phase"), 70, color = { phaseColor(it.phase) }) { phase(it.phase) },
+                Column.number<WarLine>(tr("kami_libs.common.time_left"), 64, format = { left(if (it == Long.MAX_VALUE) 0 else it) }) { if (it.ends > 0) it.ends else Long.MAX_VALUE }
+            ), info.wars, table, { it.id }, severity = { if (it.offer != null && it.offerFrom != info.name) Severity.WARNING else null })
+        }, { panel -> (info.wars.firstOrNull { it.id in table.selected } ?: info.wars.first()).let { detail(ui, panel, it, info) } })
     }
 
     private fun detail(ui: Ui, r: Rect, w: WarLine, info: Info) {
@@ -101,7 +101,7 @@ class WarPage(app: ClaimsApp) : ClaimsPage(app) {
     }
 
     private fun actions(ui: Ui, r: Rect, w: WarLine, info: Info) {
-        val chief = chief(info)
+        val chief = chief()
         val main = info.name == w.attacker || info.name == w.defender
         val enemy = if (info.name == w.attacker) w.defender else w.attacker
         var y = r.bottom - CONTROL_H
@@ -157,7 +157,7 @@ class WarPage(app: ClaimsApp) : ClaimsPage(app) {
         if (info.warOverlord.isNotEmpty()) ui.property(left.take(11), tr("kami_claims.warpage.war_province"), info.warOverlord, Palette.danger)
         ui.section(left.take(14), tr("kami_claims.warpage.debts"))
         if (info.warDebts.isEmpty()) left.take(11).let { Draw.text(ui.g, tr("kami_claims.warpage.debts.none"), it.x, it.y, Palette.textMuted) }
-        val chief = chief(info)
+        val chief = chief()
         info.warDebts.forEach { (to, amount) ->
             if (left.rest.h < CONTROL_H) return@forEach
             val row = left.take(CONTROL_H)

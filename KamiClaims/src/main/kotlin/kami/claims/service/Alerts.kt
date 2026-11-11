@@ -1,9 +1,10 @@
 package kami.claims.service
 
-import kami.claims.Cap
 import kami.claims.Config
 import kami.claims.Country
 import kami.claims.Realm
+import kami.claims.gov.Perm
+import kami.claims.gov.Permissions
 import kami.claims.Tenancy
 import kami.claims.now
 import kami.claims.research.Buffs
@@ -50,11 +51,10 @@ object Alerts {
             }
             return out
         }
-        val rank = if (delegated) Oversight.actingRank else Service.rankOf(c, p)
-        fun can(cap: Cap) = delegated || rank >= s.min(cap)
+        fun can(perm: Perm) = delegated || Permissions.holds(c, me, perm)
         val claims = Realm.claims(c.id)
         val sum = Upkeep.summary(c)
-        if (can(Cap.DETAILS)) {
+        if (can(Perm.DETAILS)) {
             val debt = claims.filter { it.debt > 0 }
             if (debt.isNotEmpty()) {
                 val worst = debt.maxOf { it.debt }
@@ -97,16 +97,16 @@ object Alerts {
                 t("kami_claims.alert.myplot.action"), page = "plots", focus = "${cl.x}:${cl.z}"
             )
         }
-        if (!delegated && can(Cap.INVITE)) {
+        if (!delegated && can(Perm.INVITE)) {
             val requests = c.requests.count { it.value > now() }
             if (requests > 0) out += alert("requests", "INFO", t("kami_claims.alert.requests.title", requests.toString()), t("kami_claims.alert.requests.body"),
                 t("kami_claims.alert.review"), page = "citizens", focus = "requests")
         }
-        if (!delegated && can(Cap.TRADE)) c.allianceOffers.filterValues { it > now() }.keys.mapNotNull { Realm.country(it) }.forEach { from ->
+        if (!delegated && can(Perm.DIPLOMACY)) c.allianceOffers.filterValues { it > now() }.keys.mapNotNull { Realm.country(it) }.forEach { from ->
             out += alert("alliance:${from.id}", "INFO", t("kami_claims.alert.alliance.title", from.name), t("kami_claims.alert.alliance.body"),
                 t("kami_claims.alert.review"), page = "relations", focus = "country:${from.name}")
         }
-        if (!delegated && can(Cap.PROVINCE)) {
+        if (!delegated && can(Perm.PROVINCES)) {
             c.provinceInvites.filterValues { it.until > now() }.forEach { (pid, offer) ->
                 val parent = Realm.country(pid) ?: return@forEach
                 out += alert(
@@ -134,12 +134,12 @@ object Alerts {
             out += alert("warProvince", "WARNING", t("kami_claims.alert.war_province.title", o.name),
                 t("kami_claims.alert.war_province.body", o.name, money(c.warDebts[o.id] ?: 0L)), t("kami_claims.alert.open.budget"), page = "budget")
         }
-        if (!delegated && c.president() == me) Wars.pending(c).forEach { w ->
+        if (!delegated && Permissions.holds(c, me, Perm.WAR)) Wars.pending(c).forEach { w ->
             out += alert("war:${w.id}", "DANGER", t("kami_claims.alert.war.title", Realm.country(w.attacker.main)?.name ?: w.attacker.main),
                 t("kami_claims.alert.war.body", Wars.hours(w.phaseEnds - now())), t("kami_claims.alert.open.war"), page = "war")
         }
         if (!delegated) {
-            val president = c.president()?.let { c.members[it] }
+            val president = Permissions.president(c)?.let { c.members[it] }
             val idle = president?.let { (now() - it.seen) / s.dayMillis } ?: 0
             if (president != null && idle >= s.successionDays - 7) out += alert("succession", "WARNING", t("kami_claims.alert.succession.title", days(idle)),
                 t("kami_claims.alert.succession.body", days(s.successionDays)), page = "citizens")

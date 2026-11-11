@@ -1,6 +1,7 @@
 package kami.claims.war
 
 import kami.claims.Country
+import kami.claims.gov.ProvinceRule
 import kami.claims.Realm
 import kami.claims.TradePolicy
 import kami.claims.now
@@ -25,6 +26,17 @@ object Joining {
             val allies = main.alliances.mapNotNull(Realm::country)
             add(allies.map { it.id } + allies.flatMap { it.provinces }, listOf(side.main))
             add(main.provinces.toList(), mains)
+        }
+    }
+
+    internal fun vassals(main: Country): List<Country> =
+        if (main.government.levers.provinces == ProvinceRule.VASSAL) main.provinces.mapNotNull(Realm::country) else emptyList()
+
+    internal fun levy(war: War) = war.sides.forEach { side ->
+        val main = Realm.country(side.main) ?: return@forEach
+        vassals(main).filter { can(it, war, main) }.forEach {
+            join(it, war, main)
+            Mail.officers(it, Phrase.of("kami_claims.mail.war.levied", v(main.name)), Tone.WARN)
         }
     }
 

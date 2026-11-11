@@ -61,14 +61,14 @@ object WarDebt {
         return debtors
     }
 
-    fun bind(debtor: Country) {
+    fun bind(debtor: Country, warId: String? = null) {
         if (debtor.warOverlord != null || !debtor.active) return
         val creditor = debtor.warDebts.entries.sortedByDescending { it.value }
             .firstNotNullOfOrNull { (id, debt) -> Realm.country(id)?.takeIf { debt > 0 && it.active && !Diplomacy.sameFamily(debtor, it) } } ?: return
         debtor.warOverlord = creditor.id
         Reputation.change(debtor, "deal", -Config.s.war.repDealBroken)
         Wars.mail(listOf(debtor.id, creditor.id), Phrase.of("kami_claims.mail.war.province.bound", v(debtor.name), v(creditor.name)), Tone.WARN)
-        Announce.fire("warProvince", debtor, mapOf("province" to debtor.name, "parent" to creditor.name, "other" to creditor.name))
+        Announce.fire("warProvince", debtor, mapOf("province" to debtor.name, "parent" to creditor.name, "other" to creditor.name, "warId" to warId.orEmpty()))
         refresh(debtor, creditor)
         Realm.changed()
     }

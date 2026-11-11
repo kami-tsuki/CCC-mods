@@ -72,6 +72,7 @@ object Treasury {
         Journal.leg(CountryParty(c.id), delta, flow, counterparty, note, kind.name)
         ResearchSync.refresh(c)
         c.ledger += LedgerEntry(now(), kind, delta, c.treasury, actor, note)
+        if (kind == LedgerKind.WITHDRAW && delta < 0) c.withdrawn.add(now() / Config.s.dayMillis, -delta)
         val overflow = c.ledger.size - Config.s.ledgerSize
         if (overflow > 0) c.ledger.subList(0, overflow).clear()
     }

@@ -1,11 +1,14 @@
 package kami.economy.client.admin
 
+import kami.libs.ui.style.Metrics
 import kami.economy.admin.VillagerAdmin
 import kami.economy.admin.VillagerOffer
 import kami.economy.admin.VillagerOverview
 import kami.economy.admin.VillagerRow
 import kami.libs.ui.app.KamiApp
 import kami.libs.ui.app.Page
+import kami.libs.ui.app.Route
+import kami.libs.ui.app.leaveGuard
 import kami.libs.ui.app.Remote
 import kami.libs.ui.app.adminConfirmAct
 import kami.libs.ui.app.adminManager
@@ -24,13 +27,10 @@ import kami.libs.ui.style.Severity
 import kami.libs.ui.text.tr
 import kami.libs.ui.widget.*
 
-private const val REFRESH_MS = 5_000L
-private const val TILE_H = 44
-private const val GAP = 6
 private const val PROP_H = 12
 
 internal class VillagerPage(private val app: KamiApp) : Page() {
-    private val remote = Remote(VillagerAdmin.VIEW, VillagerOverview.serializer(), REFRESH_MS)
+    private val remote = Remote(VillagerAdmin.VIEW, VillagerOverview.serializer(), Metrics.REFRESH_FAST_MS)
     private val goods = TableState<VillagerRow>()
     private val offers = TableState<VillagerOffer>()
     private val goodsMemo = Memo()
@@ -38,18 +38,27 @@ internal class VillagerPage(private val app: KamiApp) : Page() {
     private val course = TextState()
     private var lock = true
     private var selected: String? = null
+    private val guard = leaveGuard(app)
 
     override val title get() = tr("kami_economy.admin.villager.title")
     override val subtitle get() = tr("kami_economy.admin.villager.help")
 
+    private fun courseDirty(): Boolean {
+        val typed = course.text.trim().toDoubleOrNull() ?: return course.text.isNotBlank()
+        val saved = remote.data?.rows?.firstOrNull { it.spec == selected }?.course
+        return typed != saved
+    }
+
+    override fun leaving(next: Route) = guard.allow(next, courseDirty()) { course.set("") }
+
     override fun draw(ui: Ui, r: Rect) {
         remote.poll()
         val d = remote.data
-        tiles(ui, r.top(TILE_H), d)
-        val (left, right) = r.dropTop(TILE_H + GAP).columns(listOf(1.2f, 1f), 8)
+        tiles(ui, r.top(Metrics.tileH), d)
+        val (left, right) = r.dropTop(Metrics.tileH + Metrics.gap).columns(listOf(1.2f, 1f), 8)
         val rows = d?.rows.orEmpty()
         ui.remoteTable(left, remote, goodsColumns(), rows, goods, { it.spec }, tr("kami_economy.admin.villager.empty"), "villager-goods", severity = { severity(it.state) })
-        goods.selected.lastOrNull()?.let { selected = it.toString() }
+        goods.selected.lastOrNull()?.toString()?.let { if (it != selected) { selected = it; course.set("") } }
         val (top, bottom) = right.rows(listOf(0.42f, 0.58f), 8)
         detail(ui, top, rows.firstOrNull { it.spec == selected })
         near(ui, bottom, d)
@@ -78,13 +87,13 @@ internal class VillagerPage(private val app: KamiApp) : Page() {
         ui.property(prop(0), tr("kami_economy.admin.villager.course"), Format.rateMoney(row.course), Palette.money)
         ui.property(prop(1), tr("kami_economy.admin.villager.floor"), Format.rateMoney(row.floor))
         ui.property(prop(2), tr("kami_economy.admin.villager.fills"), Format.number(row.fills))
-        val input = Row(body.dropTop(PROP_H * 3 + GAP).top(CONTROL_H), GAP)
+        val input = Row(body.dropTop(PROP_H * 3 + Metrics.gap).top(CONTROL_H), Metrics.gap)
         ui.textField(input.take(80), course, Format.rate(row.course), allow = { it.isDigit() || it == '.' }, key = "villager-course:${row.spec}")
         ui.checkbox(input.take(60), tr("kami_economy.admin.villager.lock"), lock, key = "villager-lock")?.let { lock = it }
         val value = course.text.toDoubleOrNull()?.takeIf { it > 0 }
         action(ui, input, tr("kami_economy.admin.villager.set"), Icons.CHECK, down ?: tr("kami_economy.admin.villager.bad_course").takeIf { value == null }, false,
             VillagerAdmin.SET, listOf(row.spec, value.toString(), if (lock) "1" else "0"), tr("kami_economy.admin.villager.set.title", row.spec, value?.let(Format::rateMoney).orEmpty()))
-        val bar = Row(body.dropTop(PROP_H * 3 + GAP * 2 + CONTROL_H).top(CONTROL_H), GAP)
+        val bar = Row(body.dropTop(PROP_H * 3 + Metrics.gap * 2 + CONTROL_H).top(CONTROL_H), Metrics.gap)
         action(ui, bar, tr("kami_economy.admin.villager.unlock"), Icons.LOCK, down ?: tr("kami_economy.admin.villager.not_locked").takeIf { row.state != "locked" }, false,
             VillagerAdmin.UNLOCK, listOf(row.spec), tr("kami_economy.admin.villager.unlock.title", row.spec))
         action(ui, bar, tr("kami_economy.admin.villager.reset"), Icons.REMOVE, down, true, VillagerAdmin.RESET, listOf(row.spec), tr("kami_economy.admin.villager.reset.title", row.spec))

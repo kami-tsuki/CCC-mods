@@ -3,6 +3,7 @@ package kami.economy.client.ui
 import kami.economy.client.admin.MarketSection
 import kami.economy.net.Net
 import kami.economy.net.OrderRow
+import kami.libs.economy.Flow
 import kami.libs.economy.Movement
 import kami.libs.economy.Statement
 import kami.libs.ui.app.KamiApp
@@ -118,7 +119,7 @@ private class TradesPage : Page() {
         ui.searchField(bar.dropRight(seg.w, BAR_GAP).left(SEARCH_MAX), box.text)
         ui.segmented(seg, options, side, key = "trade-side")?.let { side = it }
         val area = r.dropTop(SMALL_H, 6)
-        val all = ui.filtered("trades:all", listOf(Personal.account?.movements)) { Personal.account?.movements.orEmpty().filter { it.item.isNotEmpty() && !it.item.startsWith(Statement.NOTE) } }
+        val all = ui.filtered("trades:all", listOf(Personal.account?.movements)) { Personal.account?.movements.orEmpty().filter { it.item.isNotEmpty() && it.flow != Flow.FEE && !it.item.startsWith(Statement.NOTE) } }
         val found = box.filter(ui, "trades:rows", all) { box.hit(it.item, partyLabel(it.counterparty)) }
         val rows = if (side == Side.ALL) found else ui.filtered("trades:side", listOf(side, found)) { found.filter { (it.amount < 0) == (side == Side.BUY) } }
         ui.table(area, columns, rows, table, { "${it.at}:${it.flow}:${it.amount}:${it.item}" }, rowHeight = ROW_H, emptyText = tr("kami_economy.personal.trades.empty"), key = "trades", loading = loading)

@@ -20,6 +20,7 @@ import kami.libs.ui.style.Sprites
 import kami.libs.ui.style.TextStyle
 import net.minecraft.client.Minecraft
 import net.minecraft.world.item.ItemStack
+import kotlin.math.max
 
 fun Ui.filterBar(r: Rect, key: String, content: (Rect) -> Unit): Rect {
     val bar = r.top(CONTROL_H)
@@ -170,7 +171,7 @@ fun Ui.banner(r: Rect, severity: Severity, title: String, body: String? = null, 
     Draw.icon(g, iconFor(severity), r.x + 5, r.y + (r.h - 16) / 2)
     val actionW = action?.let { buttonWidth(it) } ?: 0
     val textW = (r.w - 34 - actionW).coerceAtLeast(20)
-    if (body == null) fitText(r.x + 25, r.y + (r.h - 8) / 2, textW, title, severity.color, TextStyle.HEADING, key = "$key:title")
+    if (body == null) fitText(r.x + 25, Draw.textY(r), textW, title, severity.color, TextStyle.HEADING, key = "$key:title")
     else {
         fitText(r.x + 25, r.y + (r.h - 18) / 2, textW, title, severity.color, TextStyle.HEADING, key = "$key:title")
         fitText(r.x + 25, r.y + (r.h - 18) / 2 + 10, textW, body, Palette.textSecondary, key = "$key:body")
@@ -182,7 +183,7 @@ fun Ui.noticeBar(r: Rect, icon: Icon, text: String, severity: Severity = Severit
     Draw.box(g, r, severity.tint, severity.edge)
     Draw.leadIcon(g, icon, r.x + 6, r.centerY)
     val actionW = actionLabel?.let { buttonWidth(it, actionIcon) } ?: 0
-    fitText(r.x + 22, r.y + (r.h - 8) / 2, (r.w - actionW - 32).coerceAtLeast(0), text, severity.color, key = "$key:text")
+    fitText(r.x + 22, Draw.textY(r), (r.w - actionW - 32).coerceAtLeast(0), text, severity.color, key = "$key:text")
     return actionLabel != null && edgeButton(Rect(r.x, r.y + (r.h - SMALL_H) / 2, r.w - 2, SMALL_H), actionLabel, actionIcon, key = "$key:action")
 }
 
@@ -227,9 +228,9 @@ fun Ui.timeline(r: Rect, steps: List<Step>) {
         Draw.fill(g, Rect(x - 2, y - 1, 7, 7), Palette.canvas)
         Draw.fill(g, Rect(x - 1, y, 5, 5), dot)
         if (s.state == StepState.CURRENT) Draw.outline(g, Rect(x - 3, y - 2, 9, 9), Palette.alpha(Palette.warning, (0x60 + 0x9F * pulse()).toInt()))
-        val lx = (x - Draw.width(s.label) / 2).coerceIn(r.x, r.right - Draw.width(s.label))
+        val lx = (x - Draw.width(s.label) / 2).coerceIn(r.x, max(r.x, r.right - Draw.width(s.label)))
         Draw.text(g, s.label, lx, y + 10, if (s.state == StepState.PENDING) Palette.textMuted else Palette.text)
-        val dx = (x - Draw.width(s.detail) / 2).coerceIn(r.x, r.right - Draw.width(s.detail))
+        val dx = (x - Draw.width(s.detail) / 2).coerceIn(r.x, max(r.x, r.right - Draw.width(s.detail)))
         Draw.text(g, s.detail, dx, y + 20, Palette.textMuted)
     }
 }
@@ -266,7 +267,7 @@ fun Ui.legendItem(x: Int, y: Int, color: Int, label: String, hatched: Boolean = 
 fun Ui.itemSlot(r: Rect, stack: ItemStack, count: String? = null, selected: Boolean = false, enabled: Boolean = true, key: Any = "slot:${r.x}:${r.y}"): Boolean {
     val hover = hover(key, r)
     panel(r, sunken = true)
-    if (hover && enabled) Draw.fill(g, r.inset(1), Palette.alpha(0xFFFFFF, 0x60))
+    if (hover && enabled) Draw.fill(g, r.inset(1), Palette.alpha(Palette.washLight, 0x60))
     if (selected) Draw.outline(g, r, Palette.brass)
     val x = r.x + (r.w - 16) / 2
     val y = r.y + (r.h - 16) / 2

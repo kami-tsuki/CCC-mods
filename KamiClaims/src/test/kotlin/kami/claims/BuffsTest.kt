@@ -37,12 +37,11 @@ class BuffsTest {
     fun pointsAreSpentAndReturned() {
         val c = country("buffs_view", "buff_points_1", "instant_health_1", "speed_1", "speed_2")
         assertEquals(2, Buffs.points(c))
-        Buffs.toggle(c, "buffs:speed_2")
-        assertEquals(2, Buffs.used(c))
-        assertFailsWith<Fail> { Buffs.toggle(c, "buffs:instant_health_1") }
-        Buffs.toggle(c, "buffs:speed_2")
-        Buffs.toggle(c, "buffs:instant_health_1")
         Buffs.toggle(c, "buffs:speed_1")
+        assertEquals(1, Buffs.used(c))
+        Buffs.toggle(c, "buffs:instant_health_1")
+        assertEquals(2, Buffs.used(c))
+        assertFailsWith<Fail> { Buffs.toggle(c, "buffs:speed_2") }
         assertEquals(setOf("buffs:instant_health_1", "buffs:speed_1"), c.buffs.enabled)
         c.research.done.remove("buffs:speed_1")
         Buffs.prune(c)
@@ -63,14 +62,14 @@ class BuffsTest {
 
     @Test
     fun surchargeAddsEnabledTaxToBorderPrice() {
-        val c = country("buffs_view", "buff_points_1", "buff_points_2", "buff_points_3", "instant_health_1", "speed_2")
+        val c = country("buffs_view", "buff_points_2", "instant_health_1", "speed_2")
         grid(c, 3)
         Buffs.toggle(c, "buffs:instant_health_1")
         Buffs.toggle(c, "buffs:speed_2")
         val base = Realm.price(Realm.at(dim, 1, 1)!!)
-        assertEquals(3, Buffs.tax(c))
+        assertEquals(5, Buffs.tax(c))
         assertEquals(base, Buffs.price(c, Realm.at(dim, 1, 1)!!))
-        assertEquals(base + 3, Buffs.price(c, Realm.at(dim, 0, 0)!!))
+        assertEquals(base + 5, Buffs.price(c, Realm.at(dim, 0, 0)!!))
     }
 
     @Test

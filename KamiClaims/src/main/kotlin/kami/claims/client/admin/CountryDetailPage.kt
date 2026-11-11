@@ -43,6 +43,7 @@ private const val TILE_H = 44
 private const val COMPACT_W = 420
 private const val KPI_COUNT = 7
 private const val GROUP_GAP = 6
+private const val FIRST_GOVERNANCE_TAB = 4
 
 private data class ScopeCat(val cat: ResearchCategory, val key: String, val treeName: String, val categoryName: String)
 
@@ -61,12 +62,16 @@ internal class CountryDetailPage(private val app: KamiApp) : Page() {
     private val chunk = TextState()
     private val node = TextState()
     private val amount = TextState()
+    private val level = TextState()
     private var leader: String? = null
     private var war: String? = null
     private var op = CountryAdmin.researchOps[0]
     private var scope = ""
     private var controlsH = 0
     private var stats: CountryStats? = null
+    private val kit = GovernanceKit(app)
+    private val governanceTabs = listOf(GovernmentTab(kit), RanksTab(kit), GroupsTab(kit), JobsTab(kit), SectorsTab(kit))
+    private val audit = AuditTab()
 
     override val title get() = current()?.row?.name ?: tr("kami_claims.admin.nav.detail")
 
@@ -80,7 +85,9 @@ internal class CountryDetailPage(private val app: KamiApp) : Page() {
         leader = null
         war = null
         scope = ""
-        listOf(name, chunk, node, amount).forEach { it.set("") }
+        governanceTabs.forEach { it.reset() }
+        listOf(name, chunk, node, amount, level).forEach { it.set("") }
+        op = CountryAdmin.researchOps[0]
     }
 
     private fun current() = detail.data?.takeIf { it.row.id == id }
@@ -98,7 +105,8 @@ internal class CountryDetailPage(private val app: KamiApp) : Page() {
         val tilesH = if (compact) TILE_H * 2 + 4 else TILE_H
         tiles(ui, r.dropTop(HEADER_H + 4).top(tilesH), d)
         val rest = r.dropTop(HEADER_H + tilesH + 10)
-        if (compact) {
+        if (tab >= FIRST_GOVERNANCE_TAB) tables(ui, rest, d)
+        else if (compact) {
             val split = rest.h * 11 / 20
             tables(ui, rest.top(split), d)
             controls(ui, rest.dropTop(split + 8), d)
@@ -158,11 +166,17 @@ internal class CountryDetailPage(private val app: KamiApp) : Page() {
     }
 
     private fun tables(ui: Ui, r: Rect, d: CountryDetail) {
-        val tabs = countryTabs.of(d.members.size, d.wars.size, Format.locale) { listOf(
+        val tabs = countryTabs.of(d.members.size, d.wars.size, d.governance.ranks.size, d.governance.jobs.size, d.governance.sectors.size, Format.locale) { listOf(
             TabItem(tr("kami_libs.common.members"), Icons.PEOPLE, d.members.size),
             TabItem(tr("kami_claims.admin.tab.ledger"), Icons.LEDGER),
             TabItem(tr("kami_claims.admin.tab.wars"), Icons.SHIELD, d.wars.size, Severity.DANGER),
-            TabItem(tr("kami_libs.common.statistics"), Icons.STATS)
+            TabItem(tr("kami_libs.common.statistics"), Icons.STATS),
+            TabItem(tr("kami_claims.admin.tab.government"), Icons.SCALES),
+            TabItem(tr("kami_claims.admin.tab.ranks"), Icons.CROWN, d.governance.ranks.size),
+            TabItem(tr("kami_claims.admin.tab.groups"), Icons.LOCK),
+            TabItem(tr("kami_claims.admin.tab.jobs"), Icons.SCROLL, d.governance.jobs.size),
+            TabItem(tr("kami_claims.admin.tab.sectors"), Icons.AREA, d.governance.sectors.size),
+            TabItem(tr("kami_claims.admin.tab.audit"), Icons.LEDGER)
         ) }
         ui.subTabs(r.top(CONTROL_H), tabs, tab, key = "country-tabs")?.let { tab = it }
         val body = r.dropTop(CONTROL_H + 6)
@@ -172,7 +186,9 @@ internal class CountryDetailPage(private val app: KamiApp) : Page() {
             1 -> ui.table(body, ledgerColumns(), d.ledger, ledger, { it.at to it.kind to it.balance }, severity = { if (it.amount >= 0) Severity.SUCCESS else Severity.DANGER },
                 emptyText = tr("kami_libs.table.empty"), key = "country-ledger")
             2 -> ui.table(body, warColumns(), d.wars, wars, { it.id }, emptyText = tr("kami_libs.table.empty"), key = "country-wars")
-            else -> (stats ?: CountryStats(d.row.id).also { stats = it }).draw(ui, body)
+            3 -> (stats ?: CountryStats(d.row.id).also { stats = it }).draw(ui, body)
+            governanceTabs.size + FIRST_GOVERNANCE_TAB -> audit.draw(ui, body, d)
+            else -> governanceTabs[tab - FIRST_GOVERNANCE_TAB].draw(ui, body, d)
         }
     }
 
@@ -247,6 +263,11 @@ internal class CountryDetailPage(private val app: KamiApp) : Page() {
                 tr("kami_claims.admin.research.scope.title", tr("kami_claims.admin.research.reset"), scopeName, d.row.name, resettable)) { listOf("reset", tree, category) }
         }
         f.skip(GROUP_GAP)
+        val wanted = level.text.trim().toIntOrNull()?.takeIf { it in 1..d.topLevel }
+        ui.textField(f.take(CONTROL_H), level, tr("kami_claims.admin.level.placeholder", d.row.level, Format.number(d.xp), d.topLevel), maxLength = 4, allow = { it.isDigit() }, key = "country-level")
+        button(line(), tr("kami_claims.admin.level.apply"), Icons.SCROLL, tr("kami_claims.admin.level.invalid", d.topLevel).takeIf { wanted == null }, true, CountryRequests.LEVEL,
+            tr("kami_claims.admin.level.title", d.row.name, d.row.level, wanted ?: 0)) { listOf(wanted.toString()) }
+        f.skip(GROUP_GAP)
         val value = Format.parseAmount(amount.text)?.takeIf { it > 0 }
         val bad = tr("kami_claims.admin.money.invalid").takeIf { value == null }
         ui.textField(f.take(CONTROL_H), amount, tr("kami_libs.common.amount"), Icons.COIN, allow = { it.isDigit() || it in "kmbKMB.," }, key = "country-amount")
@@ -263,7 +284,7 @@ internal class CountryDetailPage(private val app: KamiApp) : Page() {
             avatar(row.uuid, r.x, r.y + (r.h - 10) / 2, 10, null)
             fitText(r.x + 14, r.y + (r.h - 8) / 2, r.w - 14, row.name, Palette.text, key = "mn:${row.uuid}")
         },
-        Column.text<MemberRow>(tr("kami_libs.common.rank"), 64) { tr("kami_claims.rank.${it.rank.lowercase()}") },
+        Column.text<MemberRow>(tr("kami_libs.common.rank"), 64) { it.rank },
         Column.number<MemberRow>(tr("kami_claims.admin.col.since"), 60, format = { Format.ago(it) }) { it.since },
         Column.number<MemberRow>(tr("kami_libs.common.last_seen"), 60, format = { Format.ago(it) }) { it.seen }
     ) }

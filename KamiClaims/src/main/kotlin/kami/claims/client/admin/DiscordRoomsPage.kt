@@ -127,7 +127,7 @@ internal class DiscordRoomsPage(private val app: KamiApp) : Page() {
             avatar(row.uuid, r.x, r.y + (r.h - 10) / 2, 10, null)
             fitText(r.x + 14, r.y + (r.h - 8) / 2, r.w - 14, row.name, Palette.text, key = "dm:${row.uuid}")
         },
-        Column.text<RoomMember>(tr("kami_libs.common.rank"), 60) { tr("kami_claims.rank.${it.rank.lowercase()}") },
+        Column.text<RoomMember>(tr("kami_libs.common.rank"), 60) { it.rank },
         Column.text<RoomMember>(tr("kami_claims.admin.discord.account"), 80) { it.discord.ifEmpty { "-" } },
         Column.text<RoomMember>(tr("kami_libs.common.status"), 70) { state(it.state) }
     ) }

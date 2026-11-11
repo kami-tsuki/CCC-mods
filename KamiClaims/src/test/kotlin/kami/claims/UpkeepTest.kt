@@ -1,5 +1,6 @@
 package kami.claims
 
+import kami.claims.gov.PRESIDENT
 import kami.claims.service.*
 
 import kotlin.test.Test
@@ -15,7 +16,8 @@ class UpkeepTest : WithDb() {
         Realm.reset(Data())
         val c = Country("test", treasury = treasury)
         Realm.data.countries[c.id] = c
-        Realm.join(c, "p1", Rank.PRESIDENT)
+        c.mixed()
+        Realm.join(c, "p1", PRESIDENT)
         (0 until Config.s.freeChunks + paid).forEach { i ->
             Realm.add(Claim(c.id, dim, i, 0, "civic", at = i.toLong(), since = 0, capital = i == 0))
         }

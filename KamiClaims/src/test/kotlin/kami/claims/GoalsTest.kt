@@ -1,5 +1,6 @@
 package kami.claims
 
+import kami.claims.gov.PRESIDENT
 import kami.claims.research.*
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -22,7 +23,8 @@ class GoalsTest {
     private fun country(): Country {
         val c = Country("alpha", treasury = 1000)
         Realm.data.countries[c.id] = c
-        Realm.join(c, "alpha_p", Rank.PRESIDENT)
+        c.mixed()
+        Realm.join(c, "alpha_p", PRESIDENT)
         return c
     }
 
@@ -45,7 +47,7 @@ class GoalsTest {
         assertEquals(2, raise.level)
         assertEquals(8, raise.max)
         assertEquals(4, assertNotNull(Goals.nextRaise(c, Capacity.PLOTS)).level)
-        assertNull(Goals.nextRaise(c, Capacity.OFFICERS))
+        assertNull(Goals.nextRaise(c, Capacity.RANKS))
     }
 
     @Test

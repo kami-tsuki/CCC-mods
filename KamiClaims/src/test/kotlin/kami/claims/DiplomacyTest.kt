@@ -1,5 +1,8 @@
 package kami.claims
 
+import kami.claims.gov.PRESIDENT
+import kami.claims.gov.CITIZEN
+import kami.claims.gov.Standing
 import kami.claims.service.Diplomacy
 import kami.claims.service.Fail
 import kami.claims.service.Provinces
@@ -13,7 +16,8 @@ class DiplomacyTest : WithDb() {
     private fun country(name: String): Country {
         val c = Country(name, level = 100)
         Realm.data.countries[c.id] = c
-        Realm.join(c, "${name}_p", Rank.PRESIDENT)
+        c.mixed()
+        Realm.join(c, "${name}_p", PRESIDENT)
         return c
     }
 
@@ -22,18 +26,18 @@ class DiplomacyTest : WithDb() {
         Realm.reset(Data())
         val a = country("aurelia")
         val b = country("verdania")
-        Realm.join(b, "verdania_q", Rank.CITIZEN)
-        a.outsiders["verdania_q"] = Rank.BANISHED
+        Realm.join(b, "verdania_q", CITIZEN)
+        a.outsiders["verdania_q"] = Standing.BANISHED
         Diplomacy.propose(a, b)
         Diplomacy.accept(b, a)
         assertEquals("allied", Diplomacy.relation(a, b))
-        assertEquals(Rank.ALLIED, a.rank("verdania_p"))
-        assertEquals(Rank.BANISHED, a.rank("verdania_q"))
-        assertEquals(Rank.ALLIED, b.rank("aurelia_p"))
+        assertEquals(Standing.ALLIED, a.outsiders["verdania_p"])
+        assertEquals(Standing.BANISHED, a.outsiders["verdania_q"])
+        assertEquals(Standing.ALLIED, b.outsiders["aurelia_p"])
         Diplomacy.end(b, a)
-        assertEquals(null, a.rank("verdania_p"))
-        assertEquals(null, b.rank("aurelia_p"))
-        assertEquals(Rank.BANISHED, a.rank("verdania_q"))
+        assertEquals(null, a.outsiders["verdania_p"])
+        assertEquals(null, b.outsiders["aurelia_p"])
+        assertEquals(Standing.BANISHED, a.outsiders["verdania_q"])
     }
 
     @Test

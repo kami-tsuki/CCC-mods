@@ -1,5 +1,6 @@
 package kami.claims
 
+import kami.claims.gov.PRESIDENT
 import kami.claims.war.Entry
 import kami.claims.war.NameTagTeams
 import kami.claims.war.Pos
@@ -23,7 +24,7 @@ class WarVisibilityTest : WithDb() {
     private fun country(name: String): Country {
         val c = Country(name, created = now() - 10 * day, level = 100, treasury = 100_000)
         Realm.data.countries[c.id] = c
-        c.members["${name}_p"] = Member(Rank.PRESIDENT, since = now() - 1000)
+        c.members["${name}_p"] = Member(PRESIDENT, since = now() - 1000)
         return c
     }
 

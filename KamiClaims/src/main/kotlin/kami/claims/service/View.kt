@@ -1,6 +1,9 @@
 package kami.claims.service
 
 import kami.claims.*
+import kami.claims.gov.Perm
+import kami.claims.gov.Permissions
+import kami.claims.gov.Standing
 import kami.claims.war.Fame
 import kami.claims.war.SafeChunks
 import kami.claims.war.Wars
@@ -66,19 +69,19 @@ object View {
         return when {
             home?.id == c.id -> REL_MEMBER
             home != null && (c.parent == home.id || home.parent == c.id || (home.parent != null && home.parent == c.parent)) -> REL_FAMILY
-            c.outsiders[viewer] == Rank.BANISHED -> REL_BANISHED
-            c.outsiders[viewer] == Rank.ALLIED -> REL_ALLY
+            c.outsiders[viewer] == Standing.BANISHED -> REL_BANISHED
+            c.outsiders[viewer] == Standing.ALLIED -> REL_ALLY
             else -> REL_NONE
         }
     }
 
-    fun relation(c: Country, viewer: String) = when (c.rank(viewer)) {
-        null, Rank.BANISHED -> 0
-        Rank.ALLIED -> 2
-        else -> 1
+    fun relation(c: Country, viewer: String) = when {
+        viewer in c.members -> 1
+        c.outsiders[viewer] == Standing.ALLIED -> 2
+        else -> 0
     }
 
-    fun privileged(c: Country, viewer: String) = Config.s.can(c.members[viewer]?.rank, Cap.DETAILS)
+    fun privileged(c: Country, viewer: String) = viewer in c.members && Permissions.holds(c, viewer, Perm.DETAILS)
 
     fun flags(cl: Claim, c: Country, viewer: String, held: Collection<Key> = Realm.held(c.id)[viewer].orEmpty(), scope: (String) -> Boolean = Scope.of(viewer, false), enemy: Boolean = false): Int {
         if (enemy) return ENEMY
@@ -87,7 +90,7 @@ object View {
         val member = c.members[viewer]
         var f = if (rel == 0) 0 else if (rel == 1) OWN else ALLY
         if (cl.capital && inScope) f = f or CAPITAL
-        if (member != null && viewer in cl.workers && Work.holds(member, cl.type)) f = f or ASSIGNED
+        if (member != null && viewer in cl.workers && Work.holds(c, viewer, cl)) f = f or ASSIGNED
         if (cl.plot) f = f or plot(cl, c, viewer, held, inScope)
         if (rel == 0) return f
         if (privileged(c, viewer)) {
@@ -99,7 +102,7 @@ object View {
 
     private fun plot(cl: Claim, c: Country, viewer: String, held: Collection<Key>, inScope: Boolean): Int {
         if (!Housing.tenanted(cl)) {
-            return (if (Config.s.can(c.members[viewer]?.rank, Cap.PLOT)) CLAIMABLE else 0) or (if (Housing.blocker(c, cl, viewer, held) == null) OFFER else 0)
+            return (if (viewer in c.members && Permissions.holds(c, viewer, Perm.PLOTS)) CLAIMABLE else 0) or (if (Housing.blocker(c, cl, viewer, held) == null) OFFER else 0)
         }
         return when {
             cl.owner == viewer -> MINE or (if (cl.state == Tenancy.MOVING_OUT) MOVING else 0)

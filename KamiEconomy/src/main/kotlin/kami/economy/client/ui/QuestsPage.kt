@@ -11,6 +11,7 @@ import kami.libs.ui.app.receiptDialog
 import kami.libs.ui.core.Memo
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Ui
+import kami.libs.ui.UiPrefs
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icons
@@ -23,7 +24,7 @@ import net.minecraft.util.Mth
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
-private const val MAX_CARDS = 5
+private const val MAX_CARDS = 20
 private const val MAX_TIER = 5
 private const val CARD_GAP = 6
 private const val Y_NAME = 5
@@ -38,15 +39,19 @@ private const val QTY_W = 96
 private const val GO_W = 70
 private const val BANNER_H = 22
 private const val RAINBOW_MS = 3000L
-private val COLORS = intArrayOf(0xFF3C5FD6.toInt(), 0xFF2E9E4A.toInt(), 0xFFD9A400.toInt(), 0xFF9440D6.toInt())
+private const val RARITIES = 4
 
 internal const val QUEST_BANNER_H = BANNER_H
 
-internal fun questColor(rarity: Int): Int =
-    if (rarity >= COLORS.size) 0xFF000000.toInt() or Mth.hsvToRgb((System.currentTimeMillis() % RAINBOW_MS) / RAINBOW_MS.toFloat(), 0.75f, 0.95f)
-    else COLORS[rarity.coerceAtLeast(0)]
+internal fun questColor(rarity: Int): Int = when {
+    rarity >= RARITIES -> if (UiPrefs.prefs.reduceMotion) Palette.accent else 0xFF000000.toInt() or Mth.hsvToRgb((System.currentTimeMillis() % RAINBOW_MS) / RAINBOW_MS.toFloat(), 0.75f, 0.95f)
+    rarity == 1 -> Palette.success
+    rarity == 2 -> Palette.warning
+    rarity == 3 -> Palette.link
+    else -> Palette.info
+}
 
-internal fun questName(rarity: Int) = tr("kami_economy.quest.rarity.${rarity.coerceIn(0, COLORS.size)}")
+internal fun questName(rarity: Int) = tr("kami_economy.quest.rarity.${rarity.coerceIn(0, RARITIES)}")
 
 private fun QuestRow.per() = if (course > 0) ((lotPrice / course - 1) * 100).roundToInt() else 0
 

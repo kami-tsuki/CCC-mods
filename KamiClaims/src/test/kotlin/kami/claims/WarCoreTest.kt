@@ -1,5 +1,8 @@
 package kami.claims
 
+import kami.claims.gov.ProvinceRule
+import kami.claims.gov.PRESIDENT
+import kami.claims.gov.CITIZEN
 import kami.claims.research.LevelsConfig
 import kami.claims.research.Research
 import kami.claims.research.ResearchDefs
@@ -52,14 +55,16 @@ class WarCoreTest : WithDb() {
     private fun country(name: String, age: Long = 10 * day): Country {
         val c = Country(name, created = now() - age, level = 100, treasury = 100_000)
         Realm.data.countries[c.id] = c
-        c.members["${name}_p"] = Member(Rank.PRESIDENT, since = now() - 1000)
+        c.members["${name}_p"] = Member(PRESIDENT, since = now() - 1000)
         return c
     }
 
     private fun setup(): Pair<Country, Country> {
         Realm.reset(Data())
-        return country("aurelia") to country("verdania")
+        return autonomous(country("aurelia")) to autonomous(country("verdania"))
     }
+
+    private fun autonomous(c: Country) = c.also { it.government.levers = it.government.levers.copy(provinces = ProvinceRule.AUTONOMOUS) }
 
     @Test
     fun declareFightAndPreparationAdvancesToWar() {
@@ -171,7 +176,7 @@ class WarCoreTest : WithDb() {
         assertTrue(WarLocks.staked(a, ChunkRef(dim, 5, 0).key))
         assertFalse(WarLocks.staked(a, ChunkRef(dim, 6, 0).key))
         assertFailsWith<Fail> { WarLocks.disband(b) }
-        Realm.data.countries[a.id]!!.members["late"] = Member(Rank.CITIZEN, since = now() + 1000)
+        Realm.data.countries[a.id]!!.members["late"] = Member(CITIZEN, since = now() + 1000)
         assertFailsWith<Fail> { WarLocks.roster(a, "aurelia_p") }
         WarLocks.roster(a, "late")
     }
@@ -418,7 +423,7 @@ class WarCoreTest : WithDb() {
     @Test
     fun warProvinceKeepsOverlordAndSkipsFamilyCreditors() {
         val (a, b) = setup()
-        val top = country("ostland")
+        val top = autonomous(country("ostland"))
         Provinces.finalize(a, top, TaxMode.FLAT, 0.0)
         a.warDebts[top.id] = 900
         a.warDebts[b.id] = 500

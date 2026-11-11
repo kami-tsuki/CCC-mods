@@ -4,10 +4,16 @@ import kami.claims.net.ResearchSync
 import kami.claims.*
 import kami.claims.economy.Treasury
 import kami.claims.research.Buffs
-import kami.claims.research.Features
+import kami.claims.gov.CITIZEN
+import kami.claims.gov.Leadership
+import kami.claims.gov.ProvinceRule
+import kami.claims.gov.PRESIDENT
+import kami.claims.gov.Permissions
+import kami.claims.gov.changeRank
+import kami.claims.gov.heirEligible
+import kami.claims.gov.leaderChanged
 import kami.claims.research.Levels
 import kami.claims.research.Loans
-import kami.claims.research.Progress
 import kami.claims.social.Mail
 import kami.claims.war.Reputation
 import kami.claims.war.WarLocks
@@ -26,6 +32,7 @@ object Upkeep {
     private val s get() = Config.s
 
     private const val SWEEP_MS = 60_000L
+    private const val ELECTORATE_DAYS = 3
 
     private var swept = 0L
 
@@ -61,7 +68,7 @@ object Upkeep {
             }
         }
         Realm.data.reserves.removeAll { it.until < now() }
-        Reputation.decay()
+        runCatching { Reputation.decay() }.onFailure { KamiClaims.LOG.error("Reputation decay failed", it) }
         Realm.changed()
     }
 
@@ -80,31 +87,57 @@ object Upkeep {
         if (c.members.isEmpty() && !Wars.involved(c)) return Realm.disband(c)
         succession(c)
         expire(c)
-        val income = Housing.collect(c) + c.pending
+        if (!c.active) return
+        val rent = Housing.collect(c)
+        val income = rent + c.pending
         c.pending = 0
         Loans.collect(c, day)
         Realm.refreshFree(c)
         Levels.add(c, "claims", Realm.claimCount(c.id).toDouble())
         bill(c, day)
-        provinceTax(c, income)
+        provinceTax(c, rent)
         Work.pay(c, day, income)
         Treasury.snapshot(c, day)
     }
 
-    private fun seniority() = compareByDescending<Map.Entry<String, Member>> { it.value.rank }.thenBy { it.value.since }
+    private fun seniority(c: Country) = compareBy<Map.Entry<String, Member>> { Permissions.position(c, it.value.rank) }.thenBy { it.value.since }
+
+    private fun recentlySeen(m: Member) = now() - m.seen <= s.successionDays * s.dayMillis
+
+    private fun tenured(m: Member) = now() - m.since >= ELECTORATE_DAYS * s.dayMillis
+
+    internal fun heir(c: Country, bossId: String): String? {
+        val candidates = c.members.filter { it.key != bossId && recentlySeen(it.value) && tenured(it.value) }
+        val bySeniority = candidates.entries.minWithOrNull(seniority(c))?.key
+        val named = c.government.heir?.takeIf { it in candidates && c.government.heirEligible(candidates.getValue(it)) }
+        return when (c.government.levers.leadership) {
+            Leadership.HEREDITARY -> named ?: bySeniority
+            Leadership.APPOINTED -> named ?: elected(c, candidates) ?: bySeniority
+            Leadership.ELECTED -> elected(c, candidates) ?: bySeniority
+            Leadership.SEIZED -> bySeniority
+        }
+    }
+
+    private fun elected(c: Country, candidates: Map<String, Member>): String? {
+        val electorate = c.members.filterValues(::tenured).keys
+        val tally = c.government.votes.filterKeys { it in electorate }.values.filter { it in candidates }.groupingBy { it }.eachCount()
+        val leading = tally.maxByOrNull { it.value } ?: return null
+        return leading.key.takeIf { leading.value * 2 > electorate.size }
+    }
 
     private fun succession(c: Country) {
-        val boss = c.president()?.let { c.members[it] } ?: return
-        if (now() - boss.seen <= s.successionDays * s.dayMillis) return
-        val heir = c.members.entries.filter { it.value !== boss && it.value.rank != Rank.BANISHED }.sortedWith(seniority()).firstOrNull() ?: return
-        val old = Announce.name(c.president()!!)
-        boss.rank = Rank.CITIZEN
-        heir.value.rank = Rank.PRESIDENT
-        if (Features.unlocked(c, Features.CHANCELLOR) && c.members.values.none { it.rank == Rank.CHANCELLOR }) {
-            c.members.entries.filter { it.value !== heir.value && it.value.rank != Rank.BANISHED }.sortedWith(seniority()).firstOrNull()?.value?.rank = Rank.CHANCELLOR
+        val bossId = Permissions.president(c) ?: return
+        val boss = c.members.getValue(bossId)
+        if (recentlySeen(boss)) return
+        val heirId = heir(c, bossId) ?: return
+        val old = Announce.name(bossId)
+        Housing.repriced(c) {
+            boss.changeRank(CITIZEN)
+            c.members.getValue(heirId).let { it.changeRank(PRESIDENT); it.seen = now() }
         }
+        c.leaderChanged()
         Mail.broadcast(c, Phrase.of("kami_claims.mail.succession"))
-        Announce.fire("succession", c, mapOf("country" to c.name, "old" to old, "leader" to Announce.name(heir.key)))
+        Announce.fire("succession", c, mapOf("country" to c.name, "old" to old, "leader" to Announce.name(heirId)))
     }
 
     private fun expire(c: Country) {
@@ -113,6 +146,7 @@ object Upkeep {
         claims.filter { it.free && !it.capital && it.owner == null }.forEach { if (Realm.removable(it)) Realm.unclaim(it, true) }
         claims.firstOrNull { it.capital && it.owner == null }?.let { if (Realm.claimCount(c.id) == 1) Realm.unclaim(it, true) }
         ResearchSync.refresh(c)
+        if (Realm.claimCount(c.id) == 0) Realm.disband(c)
     }
 
     private fun bill(c: Country, day: Long) {
@@ -151,11 +185,16 @@ object Upkeep {
         if (indebt > 0) Mail.broadcast(c, Phrase.of("kami_claims.mail.debt", chunks(indebt)), Tone.WARN)
     }
 
-    private fun provinceTax(c: Country, income: Long) {
+    private fun provinceTax(c: Country, rent: Long) {
         val parent = c.parent?.let { Realm.country(it) } ?: return
-        Reputation.tribute(c, parent, income)
-        val owed = tributeOwed(c.taxMode, c.taxAmount, income).coerceAtMost(Treasury.room(parent))
-        if (owed == 0L) { c.provinceDebt = 0; return }
+        val rule = parent.government.levers.provinces
+        if (rule == ProvinceRule.FREE) { c.provinceDebt = 0; return }
+        Reputation.tribute(c, parent, rent)
+        val amount = if (rule == ProvinceRule.AUTONOMOUS) c.taxAmount / 2 else c.taxAmount
+        val full = tributeOwed(c.taxMode, amount, rent)
+        if (full == 0L) { c.provinceDebt = 0; return }
+        val owed = full.coerceAtMost(Treasury.room(parent))
+        if (owed == 0L) return
         if (c.treasury >= owed) {
             Treasury.move(c, LedgerKind.TRIBUTE_OUT, -owed, note = parent.name, counterparty = CountryParty(parent.id))
             Treasury.move(parent, LedgerKind.TRIBUTE_IN, owed, note = c.name, counterparty = CountryParty(c.id))

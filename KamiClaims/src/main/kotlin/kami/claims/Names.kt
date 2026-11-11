@@ -3,7 +3,6 @@ package kami.claims
 import kami.libs.util.toUuidOrNull
 import kami.libs.admin.Players
 import net.minecraft.server.MinecraftServer
-import java.util.UUID
 
 object Names {
     fun of(server: MinecraftServer?, id: String): String =

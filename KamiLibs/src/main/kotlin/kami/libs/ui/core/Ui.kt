@@ -1,10 +1,9 @@
 package kami.libs.ui.core
 
+import kami.libs.ui.UiPrefs
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
-import kami.libs.ui.style.Icon
 import kami.libs.ui.style.Palette
-import kami.libs.ui.style.Severity
 import kami.libs.ui.style.UiSound
 import kami.libs.ui.anim.reveal
 import kami.libs.ui.anim.Effects
@@ -18,26 +17,13 @@ import net.minecraft.client.gui.screens.Screen
 import org.joml.Vector3f
 import org.lwjgl.glfw.GLFW
 
-enum class Cursor(val shape: Int) { ARROW(GLFW.GLFW_ARROW_CURSOR), HAND(GLFW.GLFW_HAND_CURSOR), TEXT(GLFW.GLFW_IBEAM_CURSOR), MOVE(GLFW.GLFW_CROSSHAIR_CURSOR) }
-
-class Tip(
-    val title: String? = null,
-    val lines: List<Pair<String, Int>> = emptyList(),
-    val severity: Severity? = null,
-    val icon: Icon? = null,
-    val keys: String? = null,
-    val extraHeight: Int = 0,
-    val extra: ((GuiGraphics, Rect) -> Unit)? = null
-) {
-    companion object {
-        fun text(text: String, title: String? = null) = Tip(title, listOf(text to Palette.textSecondary))
-        fun disabled(reason: String) = Tip(null, listOf(reason to Palette.warning), Severity.WARNING)
-    }
-}
-
 private const val TIP_FADE_MS = 90
 private const val TIP_Z = 5000f
 private const val PARTICLE_Z = 4900f
+
+private class Blocker(val layer: Int, val rect: Rect, val outside: Boolean = false, val hole: Rect? = null) {
+    fun covers(x: Int, y: Int) = if (outside) !rect.contains(x, y) && hole?.contains(x, y) != true else rect.contains(x, y)
+}
 
 class Ui {
     lateinit var g: GuiGraphics
@@ -81,8 +67,8 @@ class Ui {
     val glows = Glows()
     private val startNanos = System.nanoTime()
     private val clips = ArrayList<Rect>()
-    private var blockers = ArrayList<Pair<Int, Rect>>()
-    private var nextBlockers = ArrayList<Pair<Int, Rect>>()
+    private var blockers = ArrayList<Blocker>()
+    private var nextBlockers = ArrayList<Blocker>()
     private val overlays = sortedMapOf<Int, MutableList<() -> Unit>>()
     private val focusOrder = ArrayList<String>()
     private var escapes = listOf<Pair<Int, () -> Unit>>()
@@ -134,7 +120,10 @@ class Ui {
         time = elapsed
         wallMillis = System.currentTimeMillis()
         frame++
+        UiPrefs.apply(this)
         motion.sweep(frame)
+        UiScale.sync(Minecraft.getInstance().window.guiScale.toInt())
+        UiPrefs.refreshCaches()
         val scale = UiScale.factor
         mouseX = UiScale.unscale(mx, scale)
         mouseY = UiScale.unscale(my, scale)
@@ -153,7 +142,7 @@ class Ui {
         rawMouseY = my
         Draw.hover = numberHook
         g.pose().pushPose()
-        g.pose().scale(scale, scale, 1f)
+        if (UiScale.active) g.pose().scale(scale, scale, 1f)
         try {
             draw()
             runOverlays()
@@ -174,7 +163,7 @@ class Ui {
         applyCursor()
         typing = typingNext
         typingNext = false
-        if (input.releases.isNotEmpty()) active = null
+        if (input.releases.any { it.button == 0 }) active = null
         input.endFrame(Screen.hasShiftDown(), Screen.hasControlDown())
     }
 
@@ -205,20 +194,27 @@ class Ui {
         }
     }
 
-    fun block(r: Rect) { nextBlockers += layer to r }
+    fun block(r: Rect) { nextBlockers += Blocker(layer, r) }
+
+    fun blockOutside(r: Rect, hole: Rect? = null) { nextBlockers += Blocker(layer, r, true, hole) }
 
     fun canHit(x: Int, y: Int): Boolean {
         if (clips.isNotEmpty() && !clips.last().contains(x, y)) return false
-        return blockers.none { (l, r) -> l > layer && r.contains(x, y) }
+        return blockers.none { it.layer > layer && it.covers(x, y) }
     }
 
     fun hovering(r: Rect) = r.contains(mouseX, mouseY) && canHit(mouseX, mouseY)
 
-    fun hover(key: Any, r: Rect): Boolean {
+    private var lastHoverSound = 0L
+
+    fun hover(key: Any, r: Rect, sound: Boolean = false): Boolean {
         val over = hovering(r)
         if (over) {
             val full = id(key)
-            if (hovered != full) { hovered = full; hoverSince = wallMillis }
+            if (hovered != full) {
+                hovered = full; hoverSince = wallMillis
+                if (sound && !reduceMotion && wallMillis - lastHoverSound >= 60) { lastHoverSound = wallMillis; UiSound.hover() }
+            }
         }
         return over
     }
@@ -245,12 +241,14 @@ class Ui {
 
     fun focusedSince(mark: Int, id: String) = (mark until focusOrder.size).any { focusOrder[it] == id }
 
-    fun focusable(key: Any): String = id(key).also { focusOrder += it }
+    private fun modalAbove() = blockers.any { it.layer > layer && (it.outside || it.rect.w >= screen.w && it.rect.h >= screen.h) }
+
+    fun focusable(key: Any): String = id(key).also { if (!modalAbove()) focusOrder += it }
     fun focused(key: Any) = focus == id(key)
     fun focusRing(key: Any, r: Rect) { if (keyboardMode && focused(key)) Draw.outline(g, r.grow(1), Palette.focus) }
 
     fun activatedByKey(key: Any, repeats: Boolean = true): Boolean {
-        if (!focused(key)) return false
+        if (!focused(key) || modalAbove()) return false
         val ok = { k: Key -> repeats || !k.repeat }
         return (input.takeKey(GLFW.GLFW_KEY_ENTER, ok) ?: input.takeKey(GLFW.GLFW_KEY_SPACE, ok) ?: input.takeKey(GLFW.GLFW_KEY_KP_ENTER, ok)) != null
     }
@@ -303,7 +301,7 @@ class Ui {
         if (wallMillis - tipSince < delay && !keyboard) return
         val t = build() ?: return
         tip = t
-        tipKey = id(key)
+        tipKey = k
     }
 
     fun tooltip(key: Any, r: Rect, text: String?) = tooltip(key, r) { text?.let { Tip.text(it) } }

@@ -70,7 +70,7 @@ object Negotiation {
             war.phaseEnds = war.ceasefireStart + o.ceasefireDays * day
             war.ceasefires++
             war.extendedDays = 0
-            val vars = mapOf("country" to attacker.name, "other" to Wars.name(war.defender.main), "phase" to "ceasefire")
+            val vars = mapOf("country" to attacker.name, "other" to Wars.name(war.defender.main), "phase" to "ceasefire", "warId" to war.id)
             Announce.fire("warPhase", attacker, vars, mapOf("phase" to Phrase.of("kami_claims.war.phase.ceasefire")))
         }
         Mail.officers(from, Phrase.of("kami_claims.mail.war.offer_accepted", v(c.name), text))

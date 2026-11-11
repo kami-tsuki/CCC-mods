@@ -1,5 +1,6 @@
 package kami.claims
 
+import kami.claims.gov.PRESIDENT
 import kami.claims.service.Scope
 import kami.claims.war.War
 import kami.claims.war.WarKind
@@ -48,9 +49,12 @@ class ScopeTest {
         val loyal = Country("Loyal").also { it.parent = king.id; Realm.data.countries[it.id] = it }
         val foe = Country("Foe").also { Realm.data.countries[it.id] = it }
         king.provinces += listOf(rebel.id, loyal.id)
-        Realm.join(king, "k", Rank.PRESIDENT)
-        Realm.join(rebel, "r", Rank.PRESIDENT)
-        Realm.join(loyal, "l", Rank.PRESIDENT)
+        king.mixed()
+        Realm.join(king, "k", PRESIDENT)
+        rebel.mixed()
+        Realm.join(rebel, "r", PRESIDENT)
+        loyal.mixed()
+        Realm.join(loyal, "l", PRESIDENT)
         Realm.data.wars += War("w1", WarKind.REGULAR, WarSide(king.id), WarSide(foe.id), 0L)
         Realm.data.wars += War("w2", WarKind.REGULAR, WarSide(king.id), WarSide(rebel.id), 0L)
         val s = Scope.of("k", false)

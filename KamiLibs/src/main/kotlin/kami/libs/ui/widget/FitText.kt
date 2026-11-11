@@ -7,7 +7,7 @@ import kami.libs.ui.style.Palette
 import kami.libs.ui.style.TextStyle
 
 fun Ui.cellText(r: Rect, text: String, color: Int = Palette.text, align: Align = Align.LEFT, key: Any = "cell:${r.x},${r.y}"): Int =
-    fitText(r.x, r.y + (r.h - 8) / 2, r.w, text, color, align = align, key = key)
+    fitText(r.x, Draw.textY(r), r.w, text, color, align = align, key = key)
 
 fun Ui.fitText(x: Int, y: Int, w: Int, text: String, color: Int = Palette.text, style: TextStyle = TextStyle.BODY, align: Align = Align.LEFT, key: Any = "$x,$y"): Int {
     val shown = Draw.fit(text, w, style)

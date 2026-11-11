@@ -1,6 +1,5 @@
 package kami.claims.client.world
 
-import com.mojang.math.Axis
 import kami.claims.mixin.client.EntityRendererAccess
 import kami.claims.net.RowKind
 import kami.claims.net.TagRow
@@ -60,8 +59,7 @@ object NameTags {
 
     private fun component(r: TagRow): Component = when (r.kind) {
         RowKind.NOMAD -> Component.translatable("kami_claims.nametag.nomad")
-        RowKind.RANK -> Component.translatable("kami_claims.rank." + r.text)
-        RowKind.COUNTRY -> Component.literal(r.text)
+        RowKind.RANK, RowKind.COUNTRY -> Component.literal(r.text)
         RowKind.CLASS -> Component.translatable("kami_claims.nametag.skill", Component.translatableWithFallback("kami_libs.skill.class.${r.text}", r.text.replaceFirstChar(Char::titlecase)), r.level)
         RowKind.LEVEL -> Component.translatable("kami_claims.nametag.level", r.level)
     }.withColor(r.color)

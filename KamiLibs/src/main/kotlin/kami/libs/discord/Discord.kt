@@ -66,6 +66,7 @@ internal object Discord {
     val chatId get() = connected.chatChannelId.toLongOrNull() ?: 0L
     val consoleId get() = connected.consoleChannelId.toLongOrNull() ?: 0L
     val marketId get() = connected.marketChannelId.toLongOrNull() ?: 0L
+    val newsId get() = connected.newsChannelId.toLongOrNull() ?: 0L
 
     fun warnOnce(kind: String, message: String) {
         if (warned.add(kind)) log.warn(message)
@@ -193,7 +194,7 @@ internal object Discord {
         val self = guild.selfMember
         if (self.hasPermission(Permission.ADMINISTRATOR)) return
         val missing = listOf(Permission.MANAGE_ROLES, Permission.BAN_MEMBERS).filterNot { self.hasPermission(it) }.map { it.getName() } +
-            listOf(chatId to listOf(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MANAGE_WEBHOOKS, Permission.MANAGE_CHANNEL), consoleId to listOf(Permission.VIEW_CHANNEL, Permission.MANAGE_WEBHOOKS), marketId to listOf(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MESSAGE_EMBED_LINKS))
+            listOf(chatId to listOf(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MANAGE_WEBHOOKS, Permission.MANAGE_CHANNEL), consoleId to listOf(Permission.VIEW_CHANNEL, Permission.MANAGE_WEBHOOKS), marketId to listOf(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MESSAGE_EMBED_LINKS), newsId to listOf(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MESSAGE_EMBED_LINKS))
                 .flatMap { (id, perms) -> guild.getGuildChannelById(id)?.let { c -> perms.filterNot { self.hasPermission(c, it) }.map { "${it.getName()} in #${c.name}" } }.orEmpty() }
         log.info("Discord bot roles: {}", self.roles.joinToString { it.name })
         val category = guild.getCategoryById(Rooms.categoryId)?.let { c ->

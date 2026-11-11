@@ -6,6 +6,7 @@ import kami.libs.log.Log
 import kami.libs.ui.core.Rect
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Palette
+import net.minecraft.client.gui.GuiGraphics
 import kotlinx.serialization.Serializable
 import java.nio.file.Files
 import kotlin.math.abs
@@ -22,13 +23,13 @@ class HudPos(var anchor: Anchor = Anchor.TOP_LEFT, var dx: Int = 0, var dy: Int 
 
 class HudElement(
     val id: String, val default: HudPos, val sample: () -> String, val color: () -> Int = { Palette.text },
-    val lines: (() -> List<Pair<String, Int>>)? = null
+    val lines: (() -> List<Pair<String, Int>>)? = null, val size: (() -> Pair<Int, Int>)? = null, val draw: ((GuiGraphics, Rect) -> Unit)? = null
 )
 
 class HudOption(val label: () -> String, val choices: List<Pair<String, () -> String>>, val get: () -> String, val set: (String) -> Unit)
 
 @Serializable
-class HudData(val pos: MutableMap<String, HudPos> = mutableMapOf())
+class HudData(val pos: MutableMap<String, HudPos> = mutableMapOf(), val bars: MutableMap<String, BarPrefs> = mutableMapOf())
 
 object HudLayout {
     const val MARGIN = 4
@@ -37,6 +38,7 @@ object HudLayout {
 
     val elements = LinkedHashMap<String, HudElement>()
     val options = ArrayList<HudOption>()
+    val bars get() = data.bars
     private val json = Configs.json()
     private val file by lazy { Configs.dir("libs").resolve("hud.json") }
     private val data: HudData by lazy { runCatching { json.decodeFromString(HudData.serializer(), Files.readString(file)) }.getOrNull() ?: HudData() }
@@ -44,6 +46,7 @@ object HudLayout {
     const val LINE_H = 9
 
     fun sampleSize(e: HudElement): Pair<Int, Int> {
+        e.size?.let { return it() }
         val rows = e.lines?.invoke() ?: return Draw.width(e.sample()) + 10 to BOX_H
         return (rows.maxOfOrNull { Draw.width(it.first) } ?: 0) + 10 to rows.size * LINE_H + 6
     }
@@ -56,7 +59,7 @@ object HudLayout {
 
     fun set(id: String, p: HudPos) { data.pos[id] = p }
 
-    fun reset() { data.pos.clear(); save() }
+    fun reset() { data.pos.clear(); data.bars.clear(); HudBars.reset(); save() }
 
     fun place(id: String, sw: Int, sh: Int, w: Int, h: Int = BOX_H) = place(pos(id), sw, sh, w, h)
 

@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
+import kami.economy.world.CoinClick;
 import kami.economy.world.CoinRules;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -17,12 +18,7 @@ import org.spongepowered.asm.mixin.injection.At;
 public abstract class CoinMenuMixin {
     @WrapMethod(method = "doClick")
     private void kami$coinClick(int slot, int button, ClickType type, Player player, Operation<Void> original) {
-        CoinRules.clickStart();
-        try {
-            original.call(slot, button, type, player);
-        } finally {
-            CoinRules.clickEnd(player);
-        }
+        CoinClick.run(slot, button, type, player, original);
     }
 
     @WrapOperation(method = {"doClick", "moveItemStackTo"}, at = @At(value = "INVOKE", target = "Lnet/minecraft/world/inventory/Slot;mayPlace(Lnet/minecraft/world/item/ItemStack;)Z"))

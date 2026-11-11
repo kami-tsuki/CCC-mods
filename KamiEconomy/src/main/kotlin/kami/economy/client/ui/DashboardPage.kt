@@ -1,5 +1,6 @@
 package kami.economy.client.ui
 
+import kami.libs.ui.style.Metrics
 import kami.economy.client.admin.MarketSection
 import kami.economy.net.Dash
 import kami.economy.net.Leader
@@ -20,12 +21,15 @@ import kami.libs.ui.text.tr
 import kami.libs.ui.text.trJson
 import kami.libs.ui.widget.*
 
-private const val KPI_H = 34
-private const val CARD_H = 124
 private const val STAT_H = 20
 private const val WATCH_MIN = 96
 private const val LEADER_H = 12
-private val MEDALS = listOf(0xFFE0B040.toInt(), 0xFFBFC3C9.toInt(), 0xFFB8733B.toInt())
+
+private fun medal(rank: Int) = when (rank) {
+    0 -> Palette.money
+    1 -> Palette.textSecondary
+    else -> Palette.brass
+}
 
 internal class DashboardPage(val app: MarketApp) : Page() {
     override val title get() = tr("kami_libs.common.dashboard")
@@ -43,14 +47,14 @@ internal class DashboardPage(val app: MarketApp) : Page() {
     override fun draw(ui: Ui, r: Rect) {
         val s = app.snap
         val wide = r.w >= 480
-        val cardsH = if (wide) CARD_H else 3 * CARD_H + 12
+        val cardsH = if (wide) Metrics.cardH else 3 * Metrics.cardH + 12
         val footH = STAT_H + 4 + SMALL_H
         val main = r.dropBottom(footH + 6)
         val foot = Rect(r.x, r.bottom - footH, r.w, footH)
-        val watchH = (main.h - KPI_H - cardsH - 12).coerceAtLeast(WATCH_MIN)
-        ui.scroll("dashboard", main, KPI_H + cardsH + watchH + 12) { c ->
+        val watchH = (main.h - Metrics.kpiH - cardsH - 12).coerceAtLeast(WATCH_MIN)
+        ui.scroll("dashboard", main, Metrics.kpiH + cardsH + watchH + 12) { c ->
             val flow = Flow(c, 6)
-            ui.kpiRow(flow.take(KPI_H), listOf(
+            ui.kpiRow(flow.take(Metrics.kpiH), listOf(
                 KpiTile(tr("kami_economy.dash.funds"), Format.money(s.funds), Icons.COIN, Palette.money),
                 slotTile(tr("kami_economy.slots.orders"), s.orderSlots),
                 slotTile(tr("kami_libs.common.auctions"), s.auctionSlots),
@@ -115,7 +119,7 @@ internal class DashboardPage(val app: MarketApp) : Page() {
         Draw.text(ui.g, title, inner.x, top, Palette.textMuted)
         var y = top + 11
         list.forEachIndexed { i, l ->
-            Draw.leadIcon(ui.g, Icons.STAR, inner.x, y + 4, MEDALS.getOrElse(i) { MEDALS.last() })
+            Draw.leadIcon(ui.g, Icons.STAR, inner.x, y + 4, medal(i))
             var x = inner.x + 16
             if (l.flag != null || l.color != 0) { ui.flag(Rect(x, y, 11, 8), l.color, l.flag); x += 14 }
             ui.fitText(x, y, inner.right - x - 60, l.name, Palette.text)

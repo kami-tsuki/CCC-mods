@@ -1,0 +1,53 @@
+{
+  "id": "vista_dark",
+  "family": "vista",
+  "name": "Vista",
+  "base": "dark",
+  "variant": "dark",
+  "color": {
+    "bg.canvas": "#101A2A",
+    "bg.surface": "#162338",
+    "bg.raised": "#1E2E48",
+    "bg.sunken": "#0A111D",
+    "bg.field": "#0D1626",
+    "bg.hover": "#26395A",
+    "bg.selected": "#1F4A86",
+    "bg.overlay": "#162338F4",
+    "bevel.light": "#3E5F90",
+    "bevel.dark": "#060B14",
+    "bevel.inset_dark": "#04070D",
+    "bevel.outline": "#3E6AA8",
+    "border.subtle": "#1E2E48",
+    "border.default": "#34507C",
+    "border.strong": "#6E96D0",
+    "border.brass": "#5CB0FF",
+    "text.link": "#7DC0FF",
+    "cat.chunk.civic": "#777F93",
+    "cat.chunk.mining": "#BB7011",
+    "cat.chunk.forestry": "#259253",
+    "cat.chunk.factory": "#407FD8",
+    "cat.chunk.market": "#C85D81",
+    "cat.chunk.residential": "#9C6AD1",
+    "cat.chunk.wilderness": "#4A8F45",
+    "cat.rank.chancellor": "#9C6AD1",
+    "cat.rank.officer": "#4B7ED5",
+    "cat.rank.citizen": "#20925D",
+    "cat.rank.allied": "#1188C7",
+    "cat.rank.banished": "#D65559"
+  },
+  "shape": {
+    "radius": "3",
+    "bevel": "glass",
+    "shadow": "2",
+    "glow": "1",
+    "focus": "2",
+    "control": "1.06"
+  },
+  "sound": {
+    "click": "minecraft:block.amethyst_block.chime 1.6 0.3",
+    "hover": "minecraft:block.amethyst_block.hit 2.0 0.08",
+    "toggle": "minecraft:block.amethyst_block.chime 1.9 0.25",
+    "open": "minecraft:block.amethyst_cluster.place 1.4 0.4",
+    "close": "minecraft:block.amethyst_cluster.place 1.0 0.3"
+  }
+}

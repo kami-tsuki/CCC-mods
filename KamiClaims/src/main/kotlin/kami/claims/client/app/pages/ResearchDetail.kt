@@ -65,7 +65,7 @@ class ResearchDetail(private val page: ClaimsPage) {
         return NodeFacts(
             node, trees,
             node.summary().resolve().ifEmpty { null },
-            tree?.let { t -> node.requires.map { t.nodes[it] } },
+            tree?.let { t -> node.requires.mapNotNull { t.nodes.getOrNull(it) } },
             node.conditionTexts().withIndex().filter { it.value.key != NODE_CONDITION }.map { it.index to it.value.resolve() },
             tree?.nodes?.filter { index in it.requires }.orEmpty() + trees.filter { it.id != node.tree }.flatMap { t -> t.nodes.filter { node.key in it.external } },
             node.tasks.map(::taskText)

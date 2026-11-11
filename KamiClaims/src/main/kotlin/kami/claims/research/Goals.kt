@@ -100,7 +100,7 @@ object Goals {
     private fun page(key: Capacity) = when (key) {
         Capacity.CHUNKS -> "chunks"
         Capacity.PROVINCES -> "provinces"
-        Capacity.CITIZENS, Capacity.OFFICERS -> "citizens"
+        Capacity.CITIZENS -> "citizens"
         Capacity.TREASURY -> "budget"
         Capacity.RESEARCH_SLOTS, Capacity.QUEUE_SLOTS -> "research"
         else -> "levels"

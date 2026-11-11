@@ -1,9 +1,8 @@
 package kami.economy.client
 
-import kami.libs.config.KamiConfig
-import kami.libs.config.Section
-import kami.libs.log.Log
+import kami.libs.config.Configs
 import kami.libs.ui.app.NavPrefs
+import kami.libs.ui.settings.ClientSettings
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -17,28 +16,12 @@ class Prefs(
 ): NavPrefs
 
 object MarketPrefs {
-    private val config = KamiConfig(
-        "economy", Prefs(),
-        listOf(
-            Section(
-                "client.json", "Settings of this game client for the market screen.",
-                mapOf(
-                    "tourDone" to "The guided tour was finished or skipped.",
-                    "chartRange" to "Price chart range on the item page: day, week, month or all.",
-                    "railCollapsed" to "The sidebar is collapsed to icons.",
-                    "collapsedGroups" to "Navigation groups you collapsed.",
-                    "watch" to "Legacy local watchlist, uploaded to the server once and then removed.",
-                    "showWorth" to "Show the market value of your inventory under inventory screens."
-                )
-            )
-        ),
-        reloadable = false
-    )
-    val prefs: Prefs by lazy { config.load(); config.value }
+    private val section by lazy {
+        ClientSettings.register("mods.economy", Prefs.serializer(), Prefs(), Configs.dir("economy").resolve("client.json"))
+    }
+    val prefs: Prefs get() = section.value
 
-    private val log = Log.of("economy")
-
-    fun save() = runCatching { config.save(prefs) }.onFailure { log.warn("Could not save client.json: {}", it.message) }
+    fun save() = ClientSettings.save()
 
     fun finishTour() {
         prefs.tourDone = true

@@ -17,7 +17,6 @@ import kami.libs.stats.Stats
 import kami.libs.text.Phrase
 import kami.libs.util.Time.HOUR_MS
 import net.neoforged.neoforge.server.ServerLifecycleHooks
-import java.util.UUID
 import kotlin.math.min
 
 object Queue {
@@ -63,7 +62,7 @@ object Queue {
         Penalty.hard(node).firstOrNull { !it.met(country) }?.let { throw Fail("kami_claims.research.error.condition", it.describe()) }
         if (waiting(country) >= Levels.capacity(country, Capacity.QUEUE_SLOTS)) throw Fail("kami_claims.research.error.queue_full")
         val penalty = Penalty(country).ms(node)
-        val entry = QueueEntry(key, remainingMs = node.time.inWholeMilliseconds + penalty, penaltyMs = penalty, by = by, since = clock(), queuedAt = clock(), sigs = ResearchMigration.sigs(node), targets = ResearchMigration.targets(node))
+        val entry = QueueEntry(key, remainingMs = node.time.inWholeMilliseconds + penalty, penaltyMs = penalty, by = by, since = clock(), queuedAt = clock())
         country.research.queue += entry
         settle(country, entry, node)
         Realm.changed(false)
@@ -116,7 +115,7 @@ object Queue {
 
     private fun begin(country: Country, entry: QueueEntry, node: Node, actor: String?): Boolean {
         if (!entry.paid) {
-            val cost = (node.cost * (1.0 - skill(country, Skills.RESEARCH_COST))).toLong()
+            val cost = (node.cost * (1.0 - skill(country, Skills.RESEARCH_COST))).toLong().coerceAtLeast(0)
             if (cost > 0 && (country.treasury < cost || Treasury.bank(country, LedgerKind.RESEARCH, -cost, actor, entry.node) == 0L)) return false
             entry.paid = true
             entry.paidCost = cost
@@ -204,7 +203,7 @@ object Queue {
 
     fun rescope(vararg countries: Country?) = countries.filterNotNull().forEach { country ->
         val orphans = if (settings.enabled) country.research.queue.filter { Research.defs.nodeFor(country, it.node) == null } else emptyList()
-        val refunded = orphans.filter { ResearchMigration.refunded(country, it, Research.defs.node(it.node)) }
+        val refunded = orphans.filter { ResearchReset.refunded(country, it) }
         if (refunded.isNotEmpty()) {
             country.research.queue.removeAll(refunded)
             Realm.changed(false)

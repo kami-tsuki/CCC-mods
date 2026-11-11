@@ -1,5 +1,6 @@
 package kami.essentials.client.admin
 
+import kami.libs.ui.style.Metrics
 import kami.libs.util.toUuidOrNull
 import kami.libs.ui.AutoRefresh
 import kami.libs.ui.app.Remote
@@ -42,9 +43,7 @@ import kami.libs.economy.Flow as MoneyFlow
 import kami.libs.ui.text.noteLabel
 
 private const val BANNER_H = 30
-private const val CHART_H = 96
 private const val CHART_DAYS = 30
-private const val REFRESH_MS = 10_000L
 private const val METRIC_H = 30
 private const val METRIC_W = 90
 private const val MB = 1_048_576L
@@ -113,7 +112,7 @@ private fun journalSeverity(e: Journal.Entry) = amountSeverity(e.delta)
 
 internal class DashboardPage(private val app: AdminApp) : Page() {
     override val title get() = tr("kami_libs.common.dashboard")
-    private val remote = Remote("server.dashboard", Dashboard.serializer(), REFRESH_MS)
+    private val remote = Remote("server.dashboard", Dashboard.serializer(), Metrics.REFRESH_MS)
     private val range = TimeRange("dashboard:range")
     private val board = StatBoard(range)
     private val online = board.series("server.online")
@@ -213,11 +212,11 @@ internal class BankPage : Page() {
             netTile(tr("kami_libs.range.7d"), 7),
             netTile(tr("kami_libs.range.30d"), CHART_DAYS)
         ), key = "bank-kpi")
-        val chartBox = r.dropTop(STAT_TILE_H + 6).top(CHART_H)
+        val chartBox = r.dropTop(STAT_TILE_H + 6).top(Metrics.chartCompactH)
         val chart = ui.card(chartBox, tr("kami_essentials.admin.bank.daily"), Icons.STATS)
         if (s == null) ui.skeleton(chart)
         else ui.barChart(chart, inflow, outflow, List(days.size) { Format.dayLabel(today - CHART_DAYS + 1 + it) }, format = { Format.money(it) }, key = "bank-daily")
-        val body = filter.draw(ui, r.dropTop(STAT_TILE_H + CHART_H + 12))
+        val body = filter.draw(ui, r.dropTop(STAT_TILE_H + Metrics.chartCompactH + 12))
         ui.pagedTable(body, paged, journalColumns(false), table, { it.id }, tr("kami_essentials.admin.journal.empty"), "bank-moves", ::journalSeverity)
     }
 }

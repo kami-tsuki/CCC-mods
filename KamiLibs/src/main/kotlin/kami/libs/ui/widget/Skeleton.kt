@@ -17,7 +17,7 @@ fun skeletonRowCount(height: Int, rowHeight: Int = TABLE_ROW_H) = if (rowHeight 
 fun Ui.skeleton(r: Rect) {
     if (r.isEmpty) return
     Draw.fill(g, r, Palette.alpha(Palette.border, 0x50))
-    shimmer(r, Palette.alpha(0xFFFFFF, 0x40))
+    shimmer(r, Palette.alpha(Palette.washLight, 0x40))
 }
 
 fun Ui.skeletonForm(r: Rect, fields: Int = 4) {

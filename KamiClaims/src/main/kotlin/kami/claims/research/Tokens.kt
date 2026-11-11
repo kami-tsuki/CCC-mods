@@ -10,6 +10,7 @@ import kami.claims.service.Words
 object Tokens {
     const val RENAME = "rename"
     const val CAPITAL_MOVE = "capital_move"
+    const val SETTINGS = "settings"
 
     private fun count(country: Country, id: String) = country.tokens[id] ?: 0
 

@@ -95,7 +95,7 @@ private fun window(a: Account, count: Int): List<DayTotal> {
 private class Derived(val days: List<DayTotal>, val net7: Long, val net30: Long, val weekIncome: Long, val weekExpense: Long, val trail: List<Long>, val labels: List<String>)
 
 class DashboardPage(private val app: PersonalApp) : Page() {
-    override val title get() = tr("kami_libs.common.dashboard")
+    override val title get() = tr("kami_essentials.bank.group")
     override val help get() = listOf(
         Callout("personal:tiles", tr("kami_essentials.personal.help.tiles"), tr("kami_essentials.personal.help.tiles.desc")),
         Callout("personal:chart", tr("kami_essentials.personal.chart"), tr("kami_essentials.personal.help.chart.desc"))

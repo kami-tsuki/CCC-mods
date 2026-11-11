@@ -1,19 +1,17 @@
 package kami.claims.service
 
-import kami.claims.Cap
 import kami.claims.Config
-import kami.claims.Rank
 import kami.claims.Country
+import kami.claims.gov.Perm
+import kami.claims.gov.ProvinceRule
 import kami.claims.ProvinceOffer
 import kami.claims.Realm
 import kami.claims.TaxMode
 import kami.claims.net.ResearchSync
 import kami.claims.research.Queue
 import kami.claims.now
-import kami.claims.overlordRanks
 import kami.claims.research.Capacity
 import kami.claims.research.Features
-import kami.claims.research.Levels
 import kami.claims.research.Loans
 import kami.claims.research.Progress
 import kami.claims.social.Mail
@@ -31,9 +29,12 @@ object Provinces {
 
     val keptRights = listOf("control", "treasury", "members", "name").map { "kami_claims.province.right.kept.$it" }
 
-    fun tribute(text: String, mode: TaxMode): Double {
+    fun tribute(text: String, mode: TaxMode, parent: Country): Double {
         val v = text.toDoubleOrNull()?.takeIf { it.isFinite() } ?: throw Fail("kami_claims.error.number")
-        return if (mode == TaxMode.PERCENT) (v / 100).coerceIn(s.provinceTaxRateBounds[0], s.provinceTaxRateBounds[1]) else v.coerceIn(0.0, MAX_FLAT)
+        val rule = parent.government.levers.provinces
+        if (rule == ProvinceRule.FREE) return 0.0
+        val top = s.provinceTaxRateBounds[1] / if (rule == ProvinceRule.AUTONOMOUS) 2 else 1
+        return if (mode == TaxMode.PERCENT) (v / 100).coerceIn(s.provinceTaxRateBounds[0].coerceAtMost(top), top) else v.coerceIn(0.0, MAX_FLAT)
     }
 
     fun cooldown(c: Country) = (c.independenceDeclinedAt + s.independenceCooldownDays * s.dayMillis - now()).coerceAtLeast(0)
@@ -63,7 +64,7 @@ object Provinces {
         if (target.parent == parent.id) throw Fail("kami_claims.error.already_yours")
         Diplomacy.mutual(parent, target)
         target.provinceInvites[parent.id] = ProvinceOffer(expiry(), mode, amount)
-        Mail.officers(target, Phrase.of("kami_claims.mail.province_invite", v(parent.name)))
+        Mail.holders(target, Perm.PROVINCES, Phrase.of("kami_claims.mail.province_invite", v(parent.name)))
     }
 
     fun request(child: Country, target: Country) {
@@ -75,7 +76,7 @@ object Provinces {
         if (target.parent != null) throw Fail("kami_claims.error.province_holder", v(target.name))
         Diplomacy.mutual(child, target)
         target.provinceRequests[child.id] = expiry()
-        Mail.officers(target, Phrase.of("kami_claims.mail.province_request", v(child.name)))
+        Mail.holders(target, Perm.PROVINCES, Phrase.of("kami_claims.mail.province_request", v(child.name)))
     }
 
     fun offer(child: Country, parent: Country): ProvinceOffer {
@@ -106,7 +107,7 @@ object Provinces {
         parent.provinceRequests.remove(child.id)
         val offer = ProvinceOffer(expiry(), mode, amount, answered = true)
         child.provinceInvites[parent.id] = offer
-        Mail.officers(child, Phrase.of("kami_claims.mail.province_approved", v(parent.name), Words.tribute(offer.mode, offer.amount)))
+        Mail.holders(child, Perm.PROVINCES, Phrase.of("kami_claims.mail.province_approved", v(parent.name), Words.tribute(offer.mode, offer.amount)))
         return offer
     }
 
@@ -166,7 +167,7 @@ object Provinces {
         val wait = cooldown(child)
         if (wait > 0) throw Fail(Phrase.of("kami_claims.error.independence_cooldown", v(parent.name), v(Phrase.of("kami_libs.unit.hour.short", (wait / HOUR_MS + 1).toString()))), "COOLDOWN")
         child.independenceRequested = true
-        Mail.officers(parent, Phrase.of("kami_claims.mail.independence_request", v(child.name)))
+        Mail.holders(parent, Perm.PROVINCES, Phrase.of("kami_claims.mail.independence_request", v(child.name)))
     }
 
     fun withdrawIndependence(child: Country) {
@@ -179,28 +180,39 @@ object Provinces {
         if (!child.independenceRequested) throw Fail("kami_claims.error.no_independence_ask", v(child.name))
         child.independenceRequested = false
         child.independenceDeclinedAt = now()
-        Mail.officers(child, Phrase.of("kami_claims.mail.independence_declined", v(parent.name)), Tone.WARN)
+        Mail.holders(child, Perm.PROVINCES, Phrase.of("kami_claims.mail.independence_declined", v(parent.name)), Tone.WARN)
     }
 
     fun setManage(child: Country, on: Boolean) {
         val parent = child.parent?.let { Realm.country(it) } ?: throw Fail("kami_claims.error.not_province")
+        val changed = child.overlordManage != on
         child.overlordManage = on
         ResearchSync.refresh(child)
-        Mail.officers(parent, Phrase.of(if (on) "kami_claims.mail.overlord_manage.on" else "kami_claims.mail.overlord_manage.off", v(child.name)))
+        if (changed) Mail.holders(parent, Perm.PROVINCES, Phrase.of(if (on) "kami_claims.mail.overlord_manage.on" else "kami_claims.mail.overlord_manage.off", v(child.name)))
     }
 
-    fun setAccess(child: Country, cap: Cap, rank: Rank?) {
+    fun setDirectManage(parent: Country, child: Country, on: Boolean) {
+        ownProvince(parent, child)
+        if (parent.government.levers.provinces != ProvinceRule.DIRECT) throw Fail("kami_claims.error.not_direct")
+        val changed = child.overlordManage != on
+        child.overlordManage = on
+        ResearchSync.refresh(child)
+        if (changed) Mail.holders(child, Perm.PROVINCES, Phrase.of(if (on) "kami_claims.mail.overlord_manage.on" else "kami_claims.mail.overlord_manage.off", v(parent.name)))
+    }
+
+    fun setAccess(child: Country, perm: Perm, on: Boolean) {
         if (child.parent == null) throw Fail("kami_claims.error.not_province")
-        if (cap !in Oversight.grantable || (rank != null && rank !in overlordRanks)) throw Fail("kami_claims.error.unknown_province_action")
-        if (rank == null) child.overlordCaps.remove(cap) else child.overlordCaps[cap] = rank
+        if (perm !in Oversight.grantable) throw Fail("kami_claims.error.unknown_province_action")
+        if (on) child.overlordPerms += perm else child.overlordPerms -= perm
         ResearchSync.refresh(child)
     }
 
     fun setTribute(parent: Country, child: Country, mode: TaxMode, amount: Double) {
         ownProvince(parent, child)
+        val changed = child.taxMode != mode || child.taxAmount != amount
         child.taxMode = mode
         child.taxAmount = amount
-        Mail.officers(child, Phrase.of("kami_claims.mail.tribute_changed", v(parent.name), Words.tribute(mode, amount)))
+        if (changed) Mail.holders(child, Perm.PROVINCES, Phrase.of("kami_claims.mail.tribute_changed", v(parent.name), Words.tribute(mode, amount)))
     }
 
     fun checkGive(parent: Country, child: Country, newParent: Country) {

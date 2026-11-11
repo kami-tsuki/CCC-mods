@@ -36,8 +36,8 @@ private const val PAD = 5
 private const val BUTTON_W = 84
 private const val MIN_CARD_W = 250
 private const val ROW_H = 11
-private const val TITLE_H = SMALL_H + 3
-private const val FIELD_H = 10 + CONTROL_H
+private val TITLE_H get() = SMALL_H + 3
+private val FIELD_H get() = 10 + CONTROL_H
 
 private class Texts {
     val nav = tr("kami_claims.nav.loans")
@@ -150,7 +150,7 @@ class LoansPage(app: ClaimsApp) : ClaimsPage(app) {
     private var relist = false
     private var minOn = false
     private var maxOn = false
-    private var marketSort = "interest"
+    private var marketSort = LoanSort.INTEREST
     private var affordableOnly = false
 
     private fun texts() = textMemo.of(Format.locale) { Texts() }
@@ -202,13 +202,9 @@ class LoansPage(app: ClaimsApp) : ClaimsPage(app) {
         val row = Row(bar, 6)
         val only = tr("kami_claims.loans.filter.affordable")
         ui.toggle(row.takeFromRight(Draw.width(only) + 34), affordableOnly, only, key = "loans-affordable")?.let { affordableOnly = it }
-        val sorts = listOf("interest" to t.interest, "amount" to t.amount, "term" to t.term)
+        val sorts = listOf(LoanSort.INTEREST to t.interest, LoanSort.AMOUNT to t.amount, LoanSort.TERM to t.term)
         ui.select(row.take(130), sorts.map { Option(it.first, it.second) }, marketSort, key = "loans-sort")?.let { marketSort = it }
-        val shown = market.filter { !affordableOnly || it.reason == null }.sortedWith(when (marketSort) {
-            "amount" -> compareBy<MarketCard> { it.offer.amount }
-            "term" -> compareBy<MarketCard> { it.offer.termDays }
-            else -> compareBy<MarketCard> { it.offer.effectivePct }
-        })
+        val shown = LoansModel.arrange(market, marketSort, affordableOnly, { it.reason == null }) { it.offer }
         if (shown.isEmpty()) Draw.text(ui.g, marketEmpty, stack.x, stack.take(Draw.LINE).y, Palette.textMuted)
         shown.forEachIndexed { i, card -> drawMarket(ui, stack.take(card.h), card, i) }
         val head = stack.take(14)
@@ -257,14 +253,9 @@ class LoansPage(app: ClaimsApp) : ClaimsPage(app) {
         repField(ui, third[0], t.min, minRep, minOn, edit, "loan-form:min", loans.repMax)?.let { minOn = it }
         repField(ui, third[1], t.max, maxRep, maxOn, edit, "loan-form:max", loans.repMax)?.let { maxOn = it }
         val calc = calcMemo.of(amount.value, term.value, interest.value, tariff, Format.locale) {
-            val total = LoanTerms.total(amount.value, interest.value.toInt())
-            val main = tr("kami_claims.loans.form.calc", Format.money(total), Format.money(LoanTerms.perDay(total, term.value.toInt())))
-            val worst = if (tariff) {
-                val effective = (interest.value * (100 + Diplomacy.MAX_TARIFF) / 100).toInt()
-                val worstTotal = LoanTerms.total(amount.value, effective)
-                tr("kami_claims.loans.form.calc.tariff", Diplomacy.MAX_TARIFF, effective, Format.money(worstTotal), Format.money(LoanTerms.perDay(worstTotal, term.value.toInt())))
-            } else null
-            main to worst
+            val q = LoansModel.quote(amount.value, term.value, interest.value, tariff)
+            val worst = q.worstEffective?.let { tr("kami_claims.loans.form.calc.tariff", Diplomacy.MAX_TARIFF, it, Format.money(q.worstTotal), Format.money(q.worstPerDay)) }
+            tr("kami_claims.loans.form.calc", Format.money(q.total), Format.money(q.perDay)) to worst
         }
         val calcRow = stack.take(ROW_H)
         ui.fitText(stack.x, calcRow.y, stack.w, calc.first, Palette.textSecondary, key = "calc:1")
@@ -292,12 +283,12 @@ class LoansPage(app: ClaimsApp) : ClaimsPage(app) {
 
     private fun createReason(loans: LoansView, treasury: Long): String? =
         reasonMemo.of(loans, treasury, amount.value, minOn, maxOn, minRep.value, maxRep.value, Format.locale) {
-            when {
-                lendLock != null -> lendLock
-                loans.own.size >= MAX_LINKS -> tr("kami_claims.loans.error.offer_limit")
-                treasury < amount.value -> tr("kami_claims.loans.reason.funds", Format.money(amount.value))
-                minOn && maxOn && minRep.value > maxRep.value -> texts().range
-                else -> null
+            when (LoansModel.block(lendLock != null, loans.own.size, MAX_LINKS, treasury, amount.value, minOn, maxOn, minRep.value.toInt(), maxRep.value.toInt())) {
+                LoanBlock.LEND_LOCKED -> lendLock
+                LoanBlock.OFFER_LIMIT -> tr("kami_claims.loans.error.offer_limit")
+                LoanBlock.FUNDS -> tr("kami_claims.loans.reason.funds", Format.money(amount.value))
+                LoanBlock.RANGE -> texts().range
+                null -> null
             }
         }
 

@@ -1,5 +1,6 @@
 package kami.claims
 
+import kami.claims.gov.PRESIDENT
 import kami.claims.economy.Treasury
 import kami.claims.research.*
 import kami.claims.service.Fail
@@ -18,7 +19,8 @@ class LevelSpecTest : WithDb() {
     private fun country(level: Int = 1): Country {
         val c = Country("alpha", treasury = 1000, level = level)
         Realm.data.countries[c.id] = c
-        Realm.join(c, "alpha_p", Rank.PRESIDENT)
+        c.mixed()
+        Realm.join(c, "alpha_p", PRESIDENT)
         return c
     }
 
@@ -76,10 +78,8 @@ class LevelSpecTest : WithDb() {
         assertTrue(Research.defs.levels.featureLevel(Features.claimType("residential"))!! > 1)
         assertNull(Research.defs.levels.featureLevel(Features.claimType("civic")))
         assertFailsWith<Fail> { Features.require(c, Features.BANISH) }
-        assertFailsWith<Fail> { Features.requireRank(c, Rank.OFFICER) }
         c.level = 100
         Features.require(c, Features.BANISH)
-        Features.requireRank(c, Rank.CHANCELLOR)
     }
 
     @Test

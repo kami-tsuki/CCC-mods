@@ -13,7 +13,6 @@ import kami.libs.ui.app.remoteTable
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Ui
-import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette

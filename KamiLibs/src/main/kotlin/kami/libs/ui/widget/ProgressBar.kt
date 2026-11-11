@@ -41,7 +41,7 @@ fun Ui.progressBar(
         Draw.textRight(g, right, r.right, r.y + 1, rightColor)
     }
     val filled = drawBar(bar, shown, fill)
-    if (shimmer && !paused && shown > 0f && fraction < 1f) shimmer(filled, Palette.alpha(0xFFFFFF, SHIMMER_ALPHA))
+    if (shimmer && !paused && shown > 0f && fraction < 1f) shimmer(filled, Palette.alpha(Palette.washLight, SHIMMER_ALPHA))
     if (paused) Draw.hatch(g, bar.inset(1), Palette.alpha(Palette.warning, PAUSED_HATCH_ALPHA))
     if (!labelled && bar.h >= 10) Draw.textCentered(g, count, bar, Palette.textInverse)
 }

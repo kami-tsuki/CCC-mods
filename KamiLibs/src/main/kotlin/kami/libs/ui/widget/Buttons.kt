@@ -11,6 +11,7 @@ import kami.libs.ui.core.Row
 import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
+import kami.libs.ui.style.Metrics
 import kami.libs.ui.style.Icon
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
@@ -25,8 +26,8 @@ enum class ButtonStyle(val look: Sprites.Look, val text: () -> Int) {
     GHOST(Sprites.Look.GHOST, { Palette.textSecondary })
 }
 
-const val CONTROL_H = 18
-const val SMALL_H = 16
+val CONTROL_H: Int get() = Metrics.controlH
+val SMALL_H: Int get() = Metrics.smallH
 private const val HOVER_LIGHTEN = 0x1C
 
 fun buttonWidth(label: String, icon: Icon? = null) = Draw.width(label) + (if (icon != null) Draw.ICON else 0) + 14
@@ -53,7 +54,7 @@ fun Ui.adaptiveButton(
 }
 
 private fun Ui.hoverWash(r: Rect, feel: Feel) =
-    Draw.fill(g, r.inset(1), Palette.alpha(0xFFFFFF, (HOVER_LIGHTEN * feel.hover * (1f - feel.press)).toInt()))
+    Draw.fill(g, r.inset(1), Palette.alpha(Palette.washLight, (HOVER_LIGHTEN * feel.hover * (1f - feel.press)).toInt()))
 
 private class Press(val id: String, val hover: Boolean, val down: Boolean)
 
@@ -86,13 +87,13 @@ fun Ui.button(
     val sink = if (feel.press > 0.5f) 1 else 0
     val color = if (usable) style.text() else Palette.textDisabled
     val iconSlot = if (icon != null || pending) (if (label.isEmpty()) Draw.ICON - 4 else Draw.ICON) else 0
-    val content = iconSlot + Draw.width(label)
+    val shown = Draw.fit(label, r.w - iconSlot - 8)
+    val content = iconSlot + Draw.width(shown)
     var x = r.x + maxOf(2, (r.w - content) / 2)
     if (pending) spinner(x, r.centerY - 4 + sink, color)
     else if (icon != null) Draw.leadIcon(g, icon, x, r.centerY + sink, if (!usable) Palette.iconOff else if (style == ButtonStyle.PRIMARY || style == ButtonStyle.DANGER) Palette.textInverse else null)
     x += iconSlot
-    val shown = Draw.fit(label, r.w - 6 - (x - r.x))
-    if (label.isNotEmpty()) Draw.text(g, shown, x, r.y + (r.h - 8) / 2 + sink, TextStyle.BODY, color)
+    if (label.isNotEmpty()) Draw.text(g, shown, x, Draw.textY(r) + sink, TextStyle.BODY, color)
     controlTip(k, r, enabled, disabledReason, tip ?: label.takeIf { it != shown })
     focusRing(k, r)
     return pressEnd(k, p, usable)
@@ -137,7 +138,7 @@ fun Ui.holdButton(r: Rect, label: String, holdMs: Long = 1500, enabled: Boolean 
     val progress = if (state[0] != 0L) ((wallMillis - state[0]).toFloat() / ms).coerceIn(0f, 1f)
     else if (state[1] != 0L) 1f - (wallMillis - state[1]).toFloat() / KEY_CONFIRM_MS else 0f
     Draw.sprite(g, Sprites.Look.DANGER.of(hover && enabled, holding, enabled), r)
-    if (progress > 0f) Draw.fill(g, Rect(r.x + 1, r.y + 1, ((r.w - 2) * progress).toInt(), r.h - 2), Palette.alpha(0xFFFFFF, 0x28))
+    if (progress > 0f) Draw.fill(g, Rect(r.x + 1, r.y + 1, ((r.w - 2) * progress).toInt(), r.h - 2), Palette.alpha(Palette.washLight, 0x28))
     val text = if (holding) tr("kami_libs.common.keep_holding") else label
     Draw.textCentered(g, Draw.fit(text, r.w - 8), r, if (enabled) Palette.textInverse else Palette.textDisabled)
     controlTip(k, r, enabled, disabledReason, tr("kami_libs.common.hold_to_confirm.tooltip", Format.decimal(ms / 1000.0)))

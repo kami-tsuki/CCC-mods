@@ -7,6 +7,7 @@ import kami.libs.skills.SkillClass
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Holder
 import net.minecraft.core.component.DataComponents
+import kami.libs.mc.ItemSpec
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.core.Direction
@@ -185,7 +186,7 @@ object SkillEvents {
         FORGE_BUS.addListener<PlayerEvent.ItemCraftedEvent> { e ->
             val p = e.entity as? ServerPlayer ?: return@addListener
             if (e.crafting.isEmpty || !SkillServer.enabled) return@addListener
-            if (!SkillServer.staff(p) && mixed(e.inventory) && SkillServer.crafted(p, BuiltInRegistries.ITEM.getKey(e.crafting.item).toString())) xp(p, SkillClass.WORKER, "craft", "craft")
+            if (!SkillServer.staff(p) && mixed(e.inventory) && SkillServer.crafted(p, ItemSpec.id(e.crafting))) xp(p, SkillClass.WORKER, "craft", "craft")
             val press = when {
                 e.crafting.`is`(ItemTags.PLANKS) -> v(p, Effects.SAWMILL)
                 e.crafting.`is`(Items.PAPER) -> v(p, Effects.PAPER_PRESS)

@@ -10,7 +10,8 @@ object LevelDefaults {
         Capacity.RESEARCH_SLOTS to 1,
         Capacity.QUEUE_SLOTS to 1,
         Capacity.TREASURY to 10_000,
-        Capacity.OFFICERS to 0,
+        Capacity.RANKS to 2,
+        Capacity.SECTORS to 0,
         Capacity.MARKET_SLOTS to 5,
         Capacity.AUCTION_SLOTS to 5,
         Capacity.FREE_CHUNKS to 0,
@@ -136,12 +137,13 @@ object LevelDefaults {
         5 to listOf(TokenUnlock(Tokens.RENAME)),
         6 to listOf(add(Capacity.FREE_CHUNKS, 1), add(Capacity.CHUNKS, 12)),
         7 to listOf(add(Capacity.TREASURY, 40_000)),
-        8 to listOf(FeatureUnlock(Features.CHANCELLOR), add(Capacity.CITIZENS, 10)),
-        9 to listOf(add(Capacity.OFFICERS, 2), add(Capacity.CHUNKS, 16)),
+        8 to listOf(add(Capacity.CITIZENS, 10)),
+        9 to listOf(add(Capacity.CHUNKS, 16)),
         10 to listOf(
-            add(Capacity.CITIZENS, 16), add(Capacity.CHUNKS, 32), FeatureUnlock(Features.claimType("wilderness")), FeatureUnlock(Features.claimType("infrastructure")), FeatureUnlock(Features.BANISH)
+            add(Capacity.CITIZENS, 16), add(Capacity.CHUNKS, 32), add(Capacity.RANKS, 2), FeatureUnlock(Features.claimType("wilderness")), FeatureUnlock(Features.claimType("infrastructure")), FeatureUnlock(Features.BANISH)
         ),
-        11 to listOf(add(Capacity.OFFICERS, 1), add(Capacity.PROVINCES, 1)),
+        11 to listOf(add(Capacity.PROVINCES, 1), TokenUnlock(Tokens.SETTINGS)),
+        12 to listOf(add(Capacity.SECTORS, 2)),
         13 to listOf(add(Capacity.CITIZENS, 5)),
         14 to listOf(add(Capacity.CHUNKS, 64)),
         16 to listOf(TokenUnlock(Tokens.CAPITAL_MOVE)),
@@ -156,19 +158,20 @@ object LevelDefaults {
         25 to listOf(FeatureUnlock(Features.claimType("market")), FeatureUnlock(FeatureIds.VENDORS)),
         30 to listOf(add(Capacity.TREASURY, 500_000)),
         35 to listOf(add(Capacity.TREASURY, 500_000)),
-        40 to listOf(add(Capacity.TREASURY, 500_000)),
+        40 to listOf(add(Capacity.TREASURY, 500_000), add(Capacity.SECTORS, 2)),
         45 to listOf(add(Capacity.TREASURY, 250_000)),
-        50 to listOf(add(Capacity.TREASURY, 250_000)),
+        50 to listOf(add(Capacity.TREASURY, 250_000), add(Capacity.RANKS, 2)),
         55 to listOf(add(Capacity.TREASURY, 2_500_000)),
         60 to listOf(add(Capacity.TREASURY, 5_000_000)),
         65 to listOf(add(Capacity.TREASURY, 10_000_000)),
         70 to listOf(add(Capacity.TREASURY, 20_000_000)),
         75 to listOf(add(Capacity.TREASURY, 35_000_000)),
-        80 to listOf(add(Capacity.TREASURY, 50_000_000)),
+        80 to listOf(add(Capacity.TREASURY, 50_000_000), add(Capacity.SECTORS, 2)),
         85 to listOf(add(Capacity.TREASURY, 75_000_000)),
         90 to listOf(add(Capacity.TREASURY, 150_000_000)),
         95 to listOf(add(Capacity.TREASURY, 250_000_000)),
-        100 to listOf(add(Capacity.TREASURY, 400_000_000))
+        100 to listOf(add(Capacity.TREASURY, 400_000_000), add(Capacity.RANKS, 3)),
+        200 to listOf(add(Capacity.RANKS, 4))
     )
 
     private fun rule(vararg requires: Condition) = LevelRule(requires = requires.toList())

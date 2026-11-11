@@ -8,6 +8,7 @@ import kami.economy.QuestSettings
 import kami.economy.economy.Blacklist
 import kami.economy.economy.FillLinePlan
 import kami.economy.economy.Matching
+import kami.economy.economy.Notify
 import kami.economy.economy.Stocks
 import kami.economy.economy.Trade
 import kami.economy.economy.TradeStatus
@@ -45,6 +46,7 @@ object Quests {
     private const val ROLL_TRIES = 3
     private const val RETRY_MS = 5 * 60_000L
     private const val STALE_MS = 10 * 60_000L
+    private const val MIN_DISH_LEVEL = 10
 
     private val quests = LinkedHashMap<Long, Quest>()
     private val live = LinkedHashMap<Long, Quest>()
@@ -58,6 +60,7 @@ object Quests {
     internal var dishes: () -> Collection<Dish> = { Dishes.all() }
     internal var eligible: (String) -> Boolean = Blacklist::sellable
     internal var stackOf: (String) -> Int = { Blacklist.prototype(it)?.maxStackSize ?: 1 }
+    internal var levels: () -> List<Int?> = { Notify.server?.playerList?.players?.map { ClaimsApi.level(it.uuid) }.orEmpty() }
     internal var staff: (String) -> Boolean = { Staff.active("p:$it") }
 
     fun owns(owner: String) = owner.startsWith(PREFIX)
@@ -217,6 +220,7 @@ object Quests {
     }
 
     private fun candidates(): List<Dish> {
+        if (!QuestRoll.dishesOpen(levels(), MIN_DISH_LEVEL)) return emptyList()
         val open = live.values.mapTo(HashSet()) { it.item }
         return dishes().filter {
             it.quest && it.item !in open && Variants.of(it.item) == null && eligible(it.item) &&

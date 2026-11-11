@@ -28,6 +28,8 @@ internal object QuestRoll {
         return if (rnd.nextDouble() < s.uncommonShare) 1 else 0
     }
 
+    fun dishesOpen(levels: List<Int?>, min: Int): Boolean = levels.isEmpty() || levels.any { it == null || it >= min }
+
     fun ref(s: QuestSettings, tier: Int): Double = (s.amounts[0][0] / 2.0.pow(tier - 1)).coerceAtLeast(1.0)
 
     fun factors(

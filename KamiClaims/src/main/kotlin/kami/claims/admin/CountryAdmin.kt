@@ -3,17 +3,22 @@ package kami.claims.admin
 import kami.claims.Country
 import kami.claims.LedgerKind
 import kami.claims.Names
-import kami.claims.Rank
 import kami.claims.Realm
 import kami.claims.economy.Treasury
+import kami.claims.gov.CITIZEN
+import kami.claims.gov.changeRank
+import kami.claims.gov.PRESIDENT
+import kami.claims.gov.leaderChanged
+import kami.claims.gov.Permissions
 import kami.claims.net.ResearchSync
+import kami.claims.research.Levels
 import kami.claims.research.Queue
 import kami.claims.research.Sweep
 import kami.claims.service.Announce
 import kami.claims.service.Fail
+import kami.claims.service.Housing
 import kami.claims.service.Naming
 import kami.claims.service.Words
-import kami.claims.service.Service
 import kami.claims.social.Mail
 import kami.claims.war.Stakes
 import kami.claims.war.WarResult
@@ -34,10 +39,13 @@ object CountryAdmin {
 
     fun leader(c: Country, id: String, server: MinecraftServer?) {
         val next = c.members[id] ?: throw Fail("kami_claims.error.not_member")
-        if (next.rank == Rank.PRESIDENT) throw Fail("kami_claims.error.already_president")
-        val old = c.president()
-        old?.let { c.members.getValue(it).rank = Service.stepDown(c, next) }
-        next.rank = Rank.PRESIDENT
+        if (Permissions.isPresident(c, id)) throw Fail("kami_claims.error.already_president")
+        val old = Permissions.president(c)
+        Housing.repriced(c) {
+            old?.let { c.members.getValue(it).changeRank(CITIZEN) }
+            next.changeRank(PRESIDENT)
+        }
+        c.leaderChanged()
         Mail.broadcast(c, Phrase.of("kami_claims.mail.president"))
         Announce.fire("leaderHandover", c, mapOf("country" to c.name, "old" to old?.let { Names.of(server, it) }.orEmpty(), "leader" to Names.of(server, id)))
         ResearchSync.refresh(c)
@@ -86,6 +94,8 @@ object CountryAdmin {
             else -> throw Fail("kami_claims.admin.bad_op", op)
         }
     }
+
+    fun level(c: Country, level: Int): Int = Levels.setLevel(c, level)
 
     fun money(c: Country, give: Boolean, amount: Long, actor: String?): Long {
         val n = if (give) amount else minOf(amount, c.treasury.coerceAtLeast(0))

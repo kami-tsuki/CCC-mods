@@ -28,7 +28,7 @@ class Tour(val steps: List<Callout>, val onFinish: () -> Unit) {
 
     fun draw(ui: Ui, app: KamiApp) {
         val step = steps.getOrNull(index) ?: return finish()
-        step.route?.let { if (app.route.page != it.page) app.navigate(it, sound = false) }
+        if (step.route?.let { app.route.page != it.page && !app.navigate(it, sound = false) } == true) return finish()
         val target = ui.anchors[step.anchor]
         ui.block(ui.screen)
         if (target == null) {

@@ -66,7 +66,7 @@ private class MapsPage : Page() {
 
     private fun choiceRow(ui: Ui, row: Rect, c: MapChoice) {
         val label = Draw.fit(tr(c.label), row.w / 2 - 4)
-        Draw.text(ui.g, label, row.x, row.y + (row.h - 8) / 2, Palette.textSecondary)
+        Draw.text(ui.g, label, row.x, Draw.textY(row), Palette.textSecondary)
         val options = c.options.map { (id, key) -> Option(id, tr(key)) }
         ui.segmented(row.right(row.w / 2), options, Registry.choice(c.id), key = "maps:c:${c.id}")?.let { Registry.setChoice(c.id, it) }
     }

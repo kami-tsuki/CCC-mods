@@ -540,6 +540,7 @@ object Ledger {
             bankSale(it)
             write(it.copy(state = LedgerState.PAID))
         }
+        if (paid == null) return false
         tradedFills(current.actor, current.item, current.fills, true, washedOut) { net(it) - it.tariff }
         stockSale(current.actor, current.item, current.fills.filter { it.owner.isEmpty() }.sumOf { it.qty })
         return paid != null
@@ -962,7 +963,7 @@ object Ledger {
                 IntentType.BID_CANCEL -> refundBid(intent)
                 IntentType.SELL_NOW -> soldNow(intent)
                 IntentType.AUCTION_CANCEL -> {
-                    if (intent.state == LedgerState.PENDING && intent.prevBidder.isNotEmpty()) Auctions.cancelled(intent.auctionId)
+                    if (intent.state == LedgerState.PENDING && (intent.prevBidder.isNotEmpty() || Auctions.find(intent.auctionId)?.state == AuctionState.OPEN)) Auctions.cancelled(intent.auctionId)
                     returnAuction(intent)
                 }
             }

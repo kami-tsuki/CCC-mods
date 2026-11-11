@@ -27,7 +27,7 @@ class AdminApp private constructor() : KamiApp() {
     internal val playerDetail = Remote("players.detail", PlayerDetail.serializer()) { listOfNotNull(playerUuid) }
     override val module get() = AdminSections.MODULE
     override val home = Route("dashboard")
-    override val navKey get() = listOf(Admin.level, AdminSections.sections.map { it.group() to it.items().map { i -> i.page } })
+    override val navKey get() = listOf(Admin.level, playerUuid != null, AdminSections.sections.map { it.group() to it.items().map { i -> i.page } })
 
     init {
         bind(AdminPrefs.prefs, AdminPrefs::save)
@@ -50,8 +50,7 @@ class AdminApp private constructor() : KamiApp() {
             "kami_essentials.admin.nav.players" to mutableListOf(
                 NavItem("players", tr("kami_essentials.admin.nav.directory"), Icons.PEOPLE),
                 NavItem("statistics", tr("kami_libs.common.statistics"), Icons.STATS),
-                NavItem("skills", tr("kami_essentials.admin.skills"), Icons.TREE),
-                NavItem("player", tr("kami_libs.common.details"), Icons.PERSON)
+                NavItem("skills", tr("kami_essentials.admin.skills"), Icons.TREE)
             ),
             "kami_essentials.admin.nav.moderation" to mutableListOf(
                 NavItem("bans", tr("kami_essentials.admin.nav.bans"), Icons.BAN),
@@ -59,6 +58,7 @@ class AdminApp private constructor() : KamiApp() {
                 NavItem("warns", tr("kami_essentials.admin.nav.warns"), Icons.WARNING)
             )
         )
+        playerUuid?.let { groups.getValue("kami_essentials.admin.nav.players") += NavItem("player", tr("kami_libs.common.details"), Icons.PERSON) }
         AdminSections.sections.forEach { s -> s.items().takeIf { it.isNotEmpty() }?.let { groups.getOrPut(s.group()) { mutableListOf() } += it } }
         return groups.map { (key, items) -> NavGroup(tr(key), items, key) }
     }

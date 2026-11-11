@@ -35,29 +35,31 @@ fun Ui.popover(anchor: Rect, w: Int, h: Int, align: PopoverAlign = PopoverAlign.
     val y = (if (below) anchor.bottom + 2 else anchor.y - 2 - h).coerceIn(0, max(0, screen.bottom - h))
     val box = Rect(x, y, w, h)
     block(box)
+    blockOutside(box, anchor)
     Draw.shadow(g, box, shadow)
     Draw.sprite(g, Sprites.POPOVER, box)
     content(box)
-    if (input.presses.any { !it.consumed && !box.contains(it.x, it.y) && !anchor.contains(it.x, it.y) }) onOutside()
+    input.presses.firstOrNull { !it.consumed && !box.contains(it.x, it.y) && !anchor.contains(it.x, it.y) }?.let { it.consumed = true; UiSound.close(); onOutside() }
 }
 
-fun Ui.clickable(key: Any, r: Rect, enabled: Boolean = true): Boolean {
+fun Ui.clickable(key: Any, r: Rect, enabled: Boolean = true, sound: Boolean = true): Boolean {
     focusable(key)
-    val hover = hover(key, r)
+    val hover = hover(key, r, enabled && sound)
     if (enabled && hover) cursor = Cursor.HAND
     val hit = enabled && (pressed(r) != null || activatedByKey(key))
-    if (hit) UiSound.click()
+    if (hit && sound) UiSound.click()
     return hit
 }
 
 fun Ui.checkbox(r: Rect, label: String, checked: Boolean?, enabled: Boolean = true, disabledReason: String? = null, tip: String? = null, key: Any? = null): Boolean? {
     val k = key ?: autoKey("check:$label")
     val box = Rect(r.x, r.y + (r.h - 10) / 2, 10, 10)
-    val hit = clickable(k, r, enabled)
+    val hit = clickable(k, r, enabled, false)
+    if (hit) UiSound.toggle()
     Draw.sprite(g, when (checked) { true -> Sprites.CHECKBOX_ON; null -> Sprites.CHECKBOX_MIXED; false -> Sprites.CHECKBOX }, box)
     if (hovering(r) && enabled) Draw.outline(g, box, Palette.borderStrong)
     val shown = Draw.fit(label, r.w - 14)
-    if (label.isNotEmpty()) Draw.text(g, shown, r.x + 14, r.y + (r.h - 8) / 2, if (enabled) Palette.textSecondary else Palette.textDisabled)
+    if (label.isNotEmpty()) Draw.text(g, shown, r.x + 14, Draw.textY(r), if (enabled) Palette.textSecondary else Palette.textDisabled)
     controlTip(k, r, enabled, disabledReason, tip ?: label.takeIf { it != shown })
     focusRing(k, box)
     return if (hit) checked != true else null
@@ -66,12 +68,13 @@ fun Ui.checkbox(r: Rect, label: String, checked: Boolean?, enabled: Boolean = tr
 fun Ui.toggle(r: Rect, on: Boolean, label: String = "", enabled: Boolean = true, disabledReason: String? = null, tip: String? = null, key: Any? = null): Boolean? {
     val k = key ?: autoKey("toggle:$label")
     val track = Rect(r.x, r.y + (r.h - 10) / 2, 20, 10)
-    val hit = clickable(k, r, enabled)
+    val hit = clickable(k, r, enabled, false)
+    if (hit) UiSound.toggle()
     val t = anim("toggle:$k", if (on) 1f else 0f)
     Draw.sprite(g, if (on) Sprites.TOGGLE_ON else Sprites.TOGGLE, track)
     Draw.sprite(g, Sprites.KNOB, Rect(track.x + 1 + (10 * t).toInt(), track.y + 1, 8, 8))
     val shown = Draw.fit(label, r.w - 26)
-    if (label.isNotEmpty()) Draw.text(g, shown, r.x + 25, r.y + (r.h - 8) / 2, if (enabled) Palette.textSecondary else Palette.textDisabled)
+    if (label.isNotEmpty()) Draw.text(g, shown, r.x + 25, Draw.textY(r), if (enabled) Palette.textSecondary else Palette.textDisabled)
     controlTip(k, r, enabled, disabledReason, tip ?: label.takeIf { it != shown })
     focusRing(k, track)
     return if (hit) !on else null
@@ -88,7 +91,7 @@ fun <T> Ui.radioGroup(r: Rect, options: List<Option<T>>, selected: T, enabled: B
         Draw.sprite(g, if (o.value == selected) Sprites.RADIO_ON else Sprites.RADIO, Rect(r.x, y + (rowHeight - 10) / 2, 10, 10))
         var tx = r.x + 14
         o.icon?.let { tx += Draw.leadIcon(g, it, tx, y + rowHeight / 2) }
-        Draw.text(g, o.label, tx, y + (rowHeight - 8) / 2, if (usable) (if (o.value == selected) Palette.text else Palette.textSecondary) else Palette.textDisabled)
+        Draw.text(g, o.label, tx, Draw.textY(y, rowHeight), if (usable) (if (o.value == selected) Palette.text else Palette.textSecondary) else Palette.textDisabled)
         o.description?.let { Draw.paragraph(g, it, r.x + 14, y + rowHeight, r.w - 14, Palette.textMuted) }
         o.reason?.let { reason -> tooltip("$key:${o.label}", row) { Tip.disabled(reason) } }
         y += row.h + 2
@@ -117,7 +120,7 @@ fun <T> Ui.segmented(r: Rect, options: List<Option<T>>, selected: T, enabled: Bo
         (if (o.lock != null) Icons.LOCK else o.icon)?.let { Draw.leadIcon(g, it, x, cell.centerY, if (usable) null else Palette.iconOff) }
         x += iconW
         val shown = Draw.fit(o.label, cell.right - x - 3)
-        if (o.label.isNotEmpty()) Draw.text(g, shown, x, cell.y + (cell.h - 8) / 2, when {
+        if (o.label.isNotEmpty()) Draw.text(g, shown, x, Draw.textY(cell), when {
             !usable -> Palette.textDisabled
             chosen -> Palette.text
             else -> Palette.textMuted
@@ -147,7 +150,7 @@ fun <T> Ui.select(
     var tx = r.x + 5
     current?.color?.let { Draw.fill(g, Rect(tx, r.centerY - 3, 6, 6), it); tx += 10 }
     current?.icon?.let { tx += Draw.leadIcon(g, it, tx, r.centerY) }
-    Draw.text(g, Draw.fit(current?.label ?: placeholder, r.right - tx - 14), tx, r.y + (r.h - 8) / 2, if (current == null) Palette.textMuted else if (enabled) Palette.text else Palette.textDisabled)
+    Draw.text(g, Draw.fit(current?.label ?: placeholder, r.right - tx - 14), tx, Draw.textY(r), if (current == null) Palette.textMuted else if (enabled) Palette.text else Palette.textDisabled)
     Draw.tintedIcon(g, Icons.CHEVRON_DOWN, r.right - Draw.ICON - 1, r.y + (r.h - Draw.ICON) / 2, Draw.ICON, if (enabled) Palette.textSecondary else Palette.textDisabled)
     if (!enabled && disabledReason != null) tooltip(key, r) { Tip.disabled(disabledReason) } else current?.description?.let { d -> tooltip(key, r) { Tip.text(d, current.label) } }
     focusRing(key, r)
@@ -158,7 +161,7 @@ fun <T> Ui.select(
     }
     if (!state[0]) return deferred
     onEscape(50) { state[0] = false }
-    overlay {
+    overlay(2) {
         val sq = SearchQuery.parse(filter.text)
         val visible = options.filter { sq.matches(it.label, it.description ?: "") }
         val rowH = if (visible.any { it.description != null }) 22 else 14

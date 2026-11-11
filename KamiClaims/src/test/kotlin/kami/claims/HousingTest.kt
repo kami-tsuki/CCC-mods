@@ -1,5 +1,8 @@
 package kami.claims
 
+import kami.claims.gov.PRESIDENT
+import kami.claims.gov.CITIZEN
+import kami.claims.gov.Standing
 import kami.claims.research.Capacity
 import kami.claims.research.Levels
 import kami.claims.service.Fail
@@ -28,7 +31,8 @@ class HousingTest : WithDb() {
     private fun country(name: String, treasury: Long = 0): Country {
         val c = Country(name, treasury = treasury)
         Realm.data.countries[c.id] = c
-        Realm.join(c, "${name}_p", Rank.PRESIDENT)
+        c.mixed()
+        Realm.join(c, "${name}_p", PRESIDENT)
         return c
     }
 
@@ -48,15 +52,15 @@ class HousingTest : WithDb() {
         val parent = country("parentland")
         val child = country("childland")
         val sibling = country("siblingland")
-        Realm.join(land, "cit", Rank.CITIZEN)
+        Realm.join(land, "cit", CITIZEN)
         Provinces.finalize(child, parent, TaxMode.FLAT, 0.0)
         Provinces.finalize(sibling, parent, TaxMode.FLAT, 0.0)
         land.alliances += child.id
         child.alliances += land.id
-        land.outsiders["friend"] = Rank.ALLIED
-        land.outsiders["exile"] = Rank.BANISHED
+        land.outsiders["friend"] = Standing.ALLIED
+        land.outsiders["exile"] = Standing.BANISHED
         land.autoAllies += "auto"
-        land.outsiders["auto"] = Rank.ALLIED
+        land.outsiders["auto"] = Standing.ALLIED
         assertEquals(Claimant.CITIZEN, Housing.category(land, "land_p"))
         assertEquals(Claimant.ALLIED, Housing.category(land, "childland_p"))
         assertEquals(Claimant.ALLIED, Housing.category(land, "friend"))
@@ -102,7 +106,7 @@ class HousingTest : WithDb() {
     fun rentDebtLeadsToMoveOutAndExpiryAndFullTreasuryPartiallyPays() {
         Realm.reset(Data())
         val land = country("land", 100).also { it.level = 30 }
-        Realm.join(land, "tenant", Rank.CITIZEN)
+        Realm.join(land, "tenant", CITIZEN)
         land.rentDebtLimit = 12
         land.moveOutDays = 1
         val cl = plot(land, 0)
@@ -151,7 +155,7 @@ class HousingTest : WithDb() {
         land.offer.open += Claimant.RANDOM
         Housing.collect(land)
         assertEquals(Tenancy.ACTIVE, cl.state)
-        Realm.join(land, "tenant", Rank.CITIZEN)
+        Realm.join(land, "tenant", CITIZEN)
         Realm.leave(land, "tenant", Leave.KICK)
         assertEquals(Tenancy.MOVING_OUT, cl.state)
     }
@@ -160,7 +164,7 @@ class HousingTest : WithDb() {
     fun leavingWhileMovingOutKeepsTheMoveOut() {
         Realm.reset(Data())
         val land = country("land", 100).also { it.level = 30 }
-        Realm.join(land, "tenant", Rank.CITIZEN)
+        Realm.join(land, "tenant", CITIZEN)
         val cl = plot(land, 0)
         Housing.claim(land, cl, "tenant")
         Housing.moveOut(land, cl, "debt")
@@ -174,7 +178,7 @@ class HousingTest : WithDb() {
     fun releaseNeedsNoDebtAndMoveOutsLockReclaiming() {
         Realm.reset(Data())
         val land = country("land", 100).also { it.level = 30 }
-        Realm.join(land, "tenant", Rank.CITIZEN)
+        Realm.join(land, "tenant", CITIZEN)
         val cl = plot(land, 0)
         Housing.claim(land, cl, "tenant")
         cl.rentDebt = 5
@@ -207,7 +211,7 @@ class HousingTest : WithDb() {
     fun disbandedCountryWithTenantsIsInactiveUntilTheLastMoveOutEnds() {
         Realm.reset(Data())
         val land = country("land", 50)
-        Realm.join(land, "tenant", Rank.CITIZEN)
+        Realm.join(land, "tenant", CITIZEN)
         val home = plot(land, 0)
         plot(land, 1)
         Housing.claim(land, home, "tenant")
@@ -276,7 +280,7 @@ class HousingTest : WithDb() {
     fun payRentClearsArrearsFirstThenCapsCreditAndBillingConsumesIt() {
         Realm.reset(Data())
         val land = country("land", 0).also { it.level = 30 }
-        Realm.join(land, "tenant", Rank.CITIZEN)
+        Realm.join(land, "tenant", CITIZEN)
         val cl = plot(land, 0)
         Housing.claim(land, cl, "tenant")
         val rate = Housing.rate(land, cl).toLong()
@@ -300,7 +304,7 @@ class HousingTest : WithDb() {
     fun rentCollectedBeforeAThrowStillReachesTheTreasury() {
         Realm.reset(Data())
         val land = country("land", 0).also { it.level = 30 }
-        val plots = listOf("t1", "t2").mapIndexed { i, t -> Realm.join(land, t, Rank.CITIZEN); plot(land, i).also { Housing.claim(land, it, t) } }
+        val plots = listOf("t1", "t2").mapIndexed { i, t -> Realm.join(land, t, CITIZEN); plot(land, i).also { Housing.claim(land, it, t) } }
         var calls = 0
         Housing.pay = { _, _, _, _ -> if (calls++ > 0) error("boom") else true }
         assertFailsWith<IllegalStateException> { Housing.collect(land) }

@@ -1,5 +1,6 @@
 package kami.claims
 
+import kami.claims.press.PressSettings
 import kami.libs.config.ConfigModule
 import kami.libs.config.Section
 import kami.libs.util.Time
@@ -15,7 +16,7 @@ data class Rule(
 data class TypeDef(val price: Int, val period: Int = 1, val job: String? = null, val rule: Rule)
 
 @Serializable
-data class JobCfg(val type: String, val actions: List<Action>, val pay: Int, val quota: Int, val period: Int = 1, val blocks: List<String> = emptyList())
+data class JobCfg(val type: String, val pay: Int, val quota: Int, val period: Int = 1, val blocks: List<String> = emptyList())
 
 private fun rule(brk: Access, place: Access, interact: Access, container: Access, machines: Boolean = false) =
     Rule(mapOf(Action.BREAK to brk, Action.PLACE to place, Action.INTERACT to interact, Action.CONTAINER to container), machines)
@@ -43,7 +44,9 @@ data class Announcement(val mc: Boolean = true, val discord: Boolean = true, val
             "warAnswered" to Announcement(template = "{other} answered the war declaration of {country}: {choice}."),
             "warPhase" to Announcement(template = "The war between {country} and {other} entered {phase}."),
             "warEnded" to Announcement(template = "The war between {country} and {other} ended: {result}."),
-            "warJoined" to Announcement(template = "{country} joined the war against {other} on the side of {side}.")
+            "warJoined" to Announcement(template = "{country} joined the war against {other} on the side of {side}."),
+            "renamed" to Announcement(discord = false, template = "{old} is now called {country}."),
+            "flagChanged" to Announcement(mc = false, discord = false)
         )
     }
 }
@@ -199,7 +202,6 @@ data class Settings(
     val capitalMoveCost: Long = 10_000,
     val rentDefaults: Map<Claimant, Int> = mapOf(Claimant.CITIZEN to 5, Claimant.PARENT to 3, Claimant.PROVINCE to 8, Claimant.ALLIED to 8, Claimant.RANDOM to 10),
     val rentXp: Map<Claimant, Int> = mapOf(Claimant.CITIZEN to 100, Claimant.PARENT to 50, Claimant.PROVINCE to 50, Claimant.ALLIED to 50, Claimant.RANDOM to 1),
-    val rankPlots: Map<Rank, Int> = mapOf(Rank.CITIZEN to 2, Rank.OFFICER to 4, Rank.CHANCELLOR to 9, Rank.PRESIDENT to 25),
     val guestPlots: Map<Claimant, Int> = mapOf(Claimant.PARENT to 2, Claimant.PROVINCE to 2, Claimant.ALLIED to 2, Claimant.RANDOM to 1),
     val maxRent: Int = 100,
     val jobShare: Double = 0.6,
@@ -231,11 +233,6 @@ data class Settings(
     val skyRule: Boolean = true,
     val skyFreeDimensions: List<String> = listOf("minecraft:the_nether", "minecraft:the_end"),
     val plotAllied: List<Action> = listOf(Action.INTERACT),
-    val caps: Map<Cap, Rank> = mapOf(
-        Cap.CLAIM to Rank.CHANCELLOR, Cap.CAPITAL to Rank.PRESIDENT, Cap.TAX to Rank.CHANCELLOR, Cap.RULES to Rank.CHANCELLOR,
-        Cap.WITHDRAW to Rank.CHANCELLOR, Cap.INVITE to Rank.OFFICER, Cap.MEMBERS to Rank.OFFICER, Cap.RANK to Rank.CHANCELLOR,
-        Cap.JOBS to Rank.OFFICER, Cap.PLOT to Rank.CITIZEN, Cap.DETAILS to Rank.CHANCELLOR, Cap.PROVINCE to Rank.CHANCELLOR, Cap.TRADE to Rank.CHANCELLOR, Cap.RESEARCH to Rank.CHANCELLOR, Cap.HOUSING to Rank.OFFICER
-    ),
     val provinceTaxRateBounds: List<Double> = listOf(0.0, 0.5),
     val maxProvinceDebt: Int = 3,
     val independenceCooldownDays: Int = 3,
@@ -248,6 +245,7 @@ data class Settings(
     val mailLimit: Int = 10,
     val announce: Map<String, Announcement> = Announcement.defaults,
     val countryChannels: Boolean = true,
+    val press: PressSettings = PressSettings(),
     val war: WarSettings = WarSettings(),
     val visibility: VisibilitySettings = VisibilitySettings(),
     val types: Map<String, TypeDef> = linkedMapOf(
@@ -262,15 +260,12 @@ data class Settings(
         "wilderness" to type(1, 7, rule = rule(Access.NONE, Access.NONE, Access.ALLIED, Access.ALLIED))
     ),
     val jobs: Map<String, JobCfg> = linkedMapOf(
-        "miner" to JobCfg("mining", listOf(Action.BREAK), 6, 64, 1, listOf("#c:ores", "#minecraft:base_stone_overworld")),
-        "farmer" to JobCfg("farming", listOf(Action.BREAK), 4, 48, 1, listOf("#minecraft:crops")),
-        "forester" to JobCfg("forestry", listOf(Action.BREAK), 4, 32, 1, listOf("#minecraft:logs")),
-        "worker" to JobCfg("factory", listOf(Action.BREAK, Action.PLACE), 3, 100, 1)
+        "miner" to JobCfg("mining", 6, 64, 1, listOf("#c:ores", "#minecraft:base_stone_overworld")),
+        "farmer" to JobCfg("farming", 4, 48, 1, listOf("#minecraft:crops")),
+        "forester" to JobCfg("forestry", 4, 32, 1, listOf("#minecraft:logs")),
+        "worker" to JobCfg("factory", 3, 100, 1)
     )
 ) {
-    fun min(cap: Cap) = caps[cap] ?: Rank.PRESIDENT
-    fun can(rank: Rank?, cap: Cap) = rank != null && rank >= min(cap)
-
     val dimensionSet: Set<String> by lazy { dimensions.toHashSet() }
     val freeBlockSet: Set<String> by lazy { freeBlocks.toHashSet() }
     val skyFreeSet: Set<String> by lazy { skyFreeDimensions.toHashSet() }
@@ -287,7 +282,6 @@ private fun Settings.sane(): Settings {
         jobShare = jobShare.coerceIn(0.0, 1.0),
         nameLength = nameLength.takeIf { it.size == 2 && it[0] in 1..it[1] && it[1] <= 48 } ?: listOf(3, 24),
         types = valid,
-        caps = Cap.values().associateWith { caps[it] ?: Settings().caps.getValue(it) },
         renameCost = renameCost.coerceAtLeast(0),
         capitalMoveCost = capitalMoveCost.coerceAtLeast(0),
         maxRect = maxRect.coerceIn(1, 4096),
@@ -299,6 +293,7 @@ private fun Settings.sane(): Settings {
         historyDays = historyDays.coerceIn(7, 730),
         announce = Announcement.defaults + announce,
         war = war.sane(),
+        press = press.sane(),
         visibility = visibility.sane()
     )
 }
@@ -347,11 +342,11 @@ private val sections = listOf(
         )
     ),
     Section(
-        "jobs.json", "Jobs and their daily pay. Countries can change pay and quota in game.",
+        "jobs.json", "Job limits and the jobs a new country starts with. Countries define their own jobs in game.",
         mapOf(
             "jobShare" to "Most of the daily income that may go to job pay, 0 to 1.",
             "maxJobPay" to "Highest pay a country can set for one job.",
-            "jobs" to "type = chunk type; actions count toward the quota; blocks limits what counts (tags start with #).",
+            "jobs" to "Starter jobs copied into countries that have none. type = chunk type; blocks limits what counts (tags start with #).",
             "jobs.*.quota" to "Actions needed per period to get paid.",
             "jobs.*.period" to "Days per work period."
         )
@@ -361,7 +356,6 @@ private val sections = listOf(
         mapOf(
             "rentDefaults" to "Default daily rent of a plot per group: CITIZEN, PARENT, PROVINCE, ALLIED, RANDOM.",
             "rentXp" to "Level XP a country earns per rent payment, per group.",
-            "rankPlots" to "Default plot limit per rank.",
             "guestPlots" to "Default plot limit per group of non-citizens.",
             "maxRent" to "Highest daily rent a country can set.",
             "plotAllied" to "What allied players may do on a plot."
@@ -386,10 +380,6 @@ private val sections = listOf(
             "skyRule" to "Crops and saplings grow only with open sky above. Full top or bottom faces block it (blocks, slabs, stairs, farmland). Thin blocks, leaves, glass and the kami_claims:sky_transparent tag do not. Applies everywhere.",
             "skyFreeDimensions" to "Dimensions where the open sky rule is not applied, like the Nether."
         )
-    ),
-    Section(
-        "ranks.json", "Lowest rank that may use each feature.",
-        mapOf("caps" to "Ranks from low to high: BANISHED, ALLIED, CITIZEN, OFFICER, CHANCELLOR, PRESIDENT.")
     ),
     Section(
         "messages.json", "Messages and notifications.",
@@ -496,6 +486,32 @@ private val sections = listOf(
             "visibility.fairPlay" to "Players in an active war lose the Xaero cave map and radar (fair play) and see only the claim scope on the map. Operators are exempt.",
             "visibility.positionIntervalTicks" to "Ticks between minimap position updates per player, at least 10.",
             "visibility.opLevel" to "Permission level that counts as operator for minimap visibility, 0 to 4."
+        )
+    ),
+    Section(
+        "press.json", "Newspaper: limits, costs, system articles and reports. Times are UTC.",
+        mapOf(
+            "press" to "Newspaper settings.",
+            "press.dailyCap" to "Articles one country may publish per UTC day.",
+            "press.perCountryCap" to "Per country id: own daily cap instead of dailyCap.",
+            "press.draftSlots" to "Drafts one country may keep.",
+            "press.lockMinutes" to "Idle minutes before a draft lock can be taken over.",
+            "press.autosaveMinSeconds" to "Fewest seconds between two autosaves of one draft.",
+            "press.feeSpur" to "Spurs taken from the country treasury per published article.",
+            "press.titleMax" to "Longest title in characters.",
+            "press.subtitleMax" to "Longest subtitle in characters.",
+            "press.bodyMax" to "Longest body in characters.",
+            "press.retentionDays" to "Days an article is kept before it is removed.",
+            "press.cost" to "Paper, ink and dye an article costs the publisher.",
+            "press.events" to "System articles per event key: true writes one. Keys: founded, disbanded, warDeclared, warEnded, warPhase, warProvince, provinceBecame, provinceReleased, provinceGiven, leaderHandover, succession, allianceFormed, renamed, flagChanged.",
+            "press.warUpdatesPerWar" to "Most warPhase and warProvince articles per war.",
+            "press.warUpdatesPerDay" to "Most warPhase and warProvince articles per war per UTC day.",
+            "press.systemPerHour" to "Most event articles per hour. Further events wait for the daily digest.",
+            "press.digest" to "Collect events over the hourly limit into one daily digest article.",
+            "press.marketReport" to "Market movers article: enabled and times. A time is HH:mm for every day or 'Mon HH:mm' for one weekday (Mon Tue Wed Thu Fri Sat Sun), UTC.",
+            "press.rankingReport" to "Country ranking article: enabled and times, same format as marketReport.",
+            "press.newsRoom" to "Post articles to the Discord newspaper channel.",
+            "press.countryRoom" to "Post an article's short form to the author country's Discord room."
         )
     ),
     Section(

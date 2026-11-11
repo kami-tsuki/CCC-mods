@@ -8,6 +8,7 @@ import kami.claims.LendState
 import kami.claims.Loan
 import kami.claims.Realm
 import kami.claims.economy.Treasury
+import kami.claims.gov.Perm
 import kami.claims.net.ActiveLoanView
 import kami.claims.net.LoanOfferView
 import kami.claims.net.LoanTerms
@@ -165,8 +166,8 @@ object Loans {
             when {
                 remaining(loan) <= 0 -> close(country, loan, day, earned(loan, day))
                 missing > 0 -> {
-                    Mail.officers(country, Phrase.of("kami_claims.mail.loan_missed", Words.v(loan.id), Words.money(loan.overdue)), Tone.BAD)
-                    loan.lender?.let(Realm::country)?.let { Mail.officers(it, Phrase.of("kami_claims.mail.loan_lender_missed", Words.v(country.name), Words.money(missing)), Tone.BAD) }
+                    Mail.holders(country, Perm.WITHDRAW, Phrase.of("kami_claims.mail.loan_missed", Words.v(loan.id), Words.money(loan.overdue)), Tone.BAD)
+                    loan.lender?.let(Realm::country)?.let { Mail.holders(it, Perm.WITHDRAW, Phrase.of("kami_claims.mail.loan_lender_missed", Words.v(country.name), Words.money(missing)), Tone.BAD) }
                 }
             }
         }
@@ -176,7 +177,7 @@ object Loans {
     private fun orphaned(country: Country, loan: Loan): Boolean {
         if (loan.lender == null || Realm.country(loan.lender) != null) return false
         country.loans.remove(loan)
-        Mail.officers(country, Phrase.of("kami_claims.mail.loan_forgiven", Words.v(loan.id)), Tone.INFO)
+        Mail.holders(country, Perm.WITHDRAW, Phrase.of("kami_claims.mail.loan_forgiven", Words.v(loan.id)), Tone.INFO)
         return true
     }
 
@@ -198,12 +199,12 @@ object Loans {
         country.loanBlockDay = max(country.loanBlockDay, day + loan.missed)
         if (earned && !repFarm(country, loan)) Reputation.payoff(country)
         Stats.event("loan.close", "c:${country.id}", party(loan), loan.missed.toLong())
-        Mail.officers(country, Phrase.of("kami_claims.mail.loan_repaid", Words.v(loan.id)), Tone.OK)
+        Mail.holders(country, Perm.WITHDRAW, Phrase.of("kami_claims.mail.loan_repaid", Words.v(loan.id)), Tone.OK)
         val lender = loan.lender?.let(Realm::country)
         if (loan.lender == null) country.loanCooldowns[loan.id] = day
         else if (lender != null) {
             Stats.add("loan.interest", "c:${lender.id}", n = loan.total - loan.principal)
-            Mail.officers(lender, Phrase.of("kami_claims.mail.loan_returned", Words.v(country.name), Words.v(loan.id)), Tone.OK)
+            Mail.holders(lender, Perm.WITHDRAW, Phrase.of("kami_claims.mail.loan_returned", Words.v(country.name), Words.v(loan.id)), Tone.OK)
             lender.lendOffers.firstOrNull { it.id == loan.id }?.let { relist(lender, it) }
         }
     }
@@ -215,7 +216,7 @@ object Loans {
         try {
             activate(lender, offer, null)
         } catch (e: Fail) {
-            Mail.officers(lender, Phrase.of("kami_claims.mail.loan_relist_failed", Words.v(offer.id), Words.money(offer.amount)), Tone.BAD)
+            Mail.holders(lender, Perm.WITHDRAW, Phrase.of("kami_claims.mail.loan_relist_failed", Words.v(offer.id), Words.money(offer.amount)), Tone.BAD)
         }
     }
 
@@ -253,8 +254,7 @@ object Loans {
         activate(country, offer, actor)
         country.lendOffers += offer
         Stats.event("loan.offer.create", "c:${country.id}", id, amount)
-        Realm.changed(false)
-        refreshAll()
+        sync(country, true)
         return Phrase.of("kami_claims.loans.done.offer_created", Words.money(amount))
     }
 
@@ -268,8 +268,7 @@ object Loans {
             activate(country, offer, actor)
         } else release(country, offer)
         Stats.add(if (on) "loan.offer.on" else "loan.offer.off", "c:${country.id}")
-        Realm.changed(false)
-        refreshAll()
+        sync(country, true)
         return done
     }
 
@@ -284,7 +283,7 @@ object Loans {
                 if (borrower != null && loan != null) {
                     borrower.loans.remove(loan)
                     Stats.event("loan.forgive", "c:${country.id}", "c:${borrower.id}", remaining(loan))
-                    Mail.officers(borrower, Phrase.of("kami_claims.mail.loan_forgiven_by", Words.v(country.name), Words.v(loan.id)), Tone.INFO)
+                    Mail.holders(borrower, Perm.WITHDRAW, Phrase.of("kami_claims.mail.loan_forgiven_by", Words.v(country.name), Words.v(loan.id)), Tone.INFO)
                     done = Phrase.of("kami_claims.loans.done.forgiven", Words.money(remaining(loan)))
                 }
             }
@@ -292,13 +291,13 @@ object Loans {
         }
         country.lendOffers.remove(offer)
         Stats.add("loan.offer.delete", "c:${country.id}")
-        Realm.changed(false)
-        refreshAll()
+        sync(country, true)
         return done
     }
 
     fun borrow(country: Country, id: String, expectedTotal: Long, actor: String?): Phrase {
         Features.require(country, Features.LOANS)
+        if (country.parent != null) throw Fail("kami_claims.loans.error.province")
         val (lender, offer) = Realm.data.countries.values.firstNotNullOfOrNull { c -> c.lendOffers.firstOrNull { it.id == id }?.let { c to it } }
             ?: throw Fail("kami_claims.loans.error.offer_unknown")
         if (lender === country) throw Fail("kami_claims.loans.error.own_offer")
@@ -314,10 +313,9 @@ object Loans {
         country.loans += Loan(id, offer.amount, total, 0, perDay, day, lender = lender.id)
         Stats.event("loan.take", "c:${country.id}", "c:${lender.id}", offer.amount)
         Stats.add("loan.lend", "c:${lender.id}", "c:${country.id}", offer.amount)
-        Mail.officers(lender, Phrase.of("kami_claims.mail.loan_borrowed", Words.v(country.name), Words.money(offer.amount)), Tone.OK)
+        Mail.holders(lender, Perm.WITHDRAW, Phrase.of("kami_claims.mail.loan_borrowed", Words.v(country.name), Words.money(offer.amount)), Tone.OK)
         disableOffers(country)
-        Realm.changed(false)
-        refreshAll()
+        sync(country, true)
         return Phrase.of("kami_claims.loans.done.taken", Words.money(offer.amount), Words.money(perDay))
     }
 
@@ -340,18 +338,17 @@ object Loans {
         Realm.data.countries.values.filter { it !== country }.forEach { other ->
             other.loans.filter { it.lender == country.id }.forEach {
                 other.loans.remove(it)
-                Mail.officers(other, Phrase.of("kami_claims.mail.loan_forgiven", Words.v(it.id)), Tone.INFO)
+                Mail.holders(other, Perm.WITHDRAW, Phrase.of("kami_claims.mail.loan_forgiven", Words.v(it.id)), Tone.INFO)
             }
             other.lendOffers.filter { it.borrower == country.id }.forEach {
                 it.state = LendState.DISABLED
                 it.borrower = null
-                Mail.officers(other, Phrase.of("kami_claims.mail.loan_defunct", Words.v(country.name)), Tone.BAD)
+                Mail.holders(other, Perm.WITHDRAW, Phrase.of("kami_claims.mail.loan_defunct", Words.v(country.name)), Tone.BAD)
             }
         }
         country.lendOffers.clear()
         country.loans.clear()
-        Realm.changed(false)
-        refreshAll()
+        sync(country, true)
     }
 
     private fun activeView(loan: Loan, party: String) =

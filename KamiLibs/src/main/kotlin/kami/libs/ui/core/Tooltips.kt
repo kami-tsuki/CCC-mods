@@ -1,5 +1,6 @@
 package kami.libs.ui.core
 
+import kami.libs.ui.UiPrefs
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.TextStyle
@@ -12,6 +13,9 @@ object Tooltips {
     private const val MAX_WIDTH = 180
     private const val PAD = 4
     private const val RISE = 2
+    private var cachedFrom: Tip? = null
+    private var cachedDetailed = false
+    private var cached: Tip? = null
 
     private fun layout(t: Tip): Pair<Int, List<Pair<List<FormattedCharSequence>, Int>>> {
         val titleW = t.title?.let { Draw.width(it, TextStyle.HEADING) + if (t.icon != null) Draw.ICON else 0 } ?: 0
@@ -21,7 +25,9 @@ object Tooltips {
         return width to t.lines.map { Draw.wrap(it.first, width) to it.second }
     }
 
-    fun draw(g: GuiGraphics, t: Tip, mx: Int, my: Int, screen: Rect, appear: Float = 1f) {
+    fun draw(g: GuiGraphics, tip: Tip, mx: Int, my: Int, screen: Rect, appear: Float = 1f) {
+        val detailed = UiPrefs.prefs.detailedTooltips
+        val t = if (cachedFrom === tip && cachedDetailed == detailed) cached!! else tip.shown(detailed).also { cachedFrom = tip; cachedDetailed = detailed; cached = it }
         val (width, wrapped) = layout(t)
         var height = PAD * 2
         if (t.title != null) height += Draw.LINE + 1

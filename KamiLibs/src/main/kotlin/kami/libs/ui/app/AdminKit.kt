@@ -154,7 +154,7 @@ class Paged<T>(name: String, item: KSerializer<T>, private val filter: () -> Lis
     val stale get() = remote.data == null && remote.latest != null
     val rows get() = shown?.rows.orEmpty()
     val total get() = shown?.total ?: 0L
-    val pages get() = shown?.let { ((it.total + it.size - 1) / it.size.coerceAtLeast(1)).toInt() } ?: 1
+    val pages get() = shown?.let { ((it.total + it.size - 1) / it.size.coerceAtLeast(1)).toInt().coerceAtLeast(1) } ?: 1
 
     internal fun moved(): Boolean {
         val v = last.orEmpty() + index.toString()

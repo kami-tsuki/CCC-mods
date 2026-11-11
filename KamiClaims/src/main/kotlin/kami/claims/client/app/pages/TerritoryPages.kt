@@ -1,7 +1,7 @@
 package kami.claims.client.app.pages
 
+import kami.claims.gov.Perm
 import kami.claims.client.store.ClientResearch
-import kami.claims.client.app.rankOf
 import kami.libs.text.SearchQuery
 import kami.libs.ui.text.trJson
 import kami.libs.ui.text.trn
@@ -113,7 +113,7 @@ class ChunksPage(app: ClaimsApp) : ClaimsPage(app) {
             Column.text<ClaimLine>(tr("kami_claims.role.owner"), -1, color = { if (it.rentDebt > 0) Palette.danger else Palette.textSecondary }) { row -> row.owner + if (row.rentDebt > 0) "  (${tr("kami_claims.home.debt", Format.money(row.rentDebt))})" else "" },
             Column<ClaimLine>(tr("kami_claims.chunks.col.claimed"), 64, Align.RIGHT, compareBy { it.at }) { _, c, row -> Draw.textRight(g, if (row.at > 0) Format.ago(row.at) else "", c.right, c.y + 3, Palette.textMuted) }
         ) }
-        val events = ui.table(tableArea, columns, rows, table, { "${it.x}:${it.z}" }, multi = can("claim"), severity = { if (it.debt > 0) Severity.DANGER else null }, emptyText = tr("kami_claims.chunks.empty.filtered"))
+        val events = ui.table(tableArea, columns, rows, table, { "${it.x}:${it.z}" }, multi = can(Perm.UNCLAIM) || can(Perm.CHUNK_TYPE), severity = { if (it.debt > 0) Severity.DANGER else null }, emptyText = tr("kami_claims.chunks.empty.filtered"))
         events.opened?.let { app.openMapAt(it.x, it.z) }
         if (selected.isNotEmpty()) bulk(ui, r.bottom(BULK_H), selected)
     }
@@ -134,7 +134,7 @@ class ChunksPage(app: ClaimsApp) : ClaimsPage(app) {
             row.take(Draw.width(count, TextStyle.HEADING) + 10)
         }
         val release = tr("kami_claims.chunks.release")
-        if (ui.edgeButton(row, release, Icons.REMOVE, ButtonStyle.DANGER, can("claim"), lock("claim"), key = "bulk-release")) {
+        if (ui.edgeButton(row, release, Icons.REMOVE, ButtonStyle.DANGER, can(Perm.UNCLAIM), lock(Perm.UNCLAIM), key = "bulk-release")) {
             val saved = selected.filter { !it.free }.sumOf { price(it) }
             val blocked = selected.filter { it.capital || it.locked.isNotEmpty() }
             Dialogs.confirm(app, tr("kami_claims.chunks.release.confirm.title", trn("kami_claims.unit.chunk", selected.size)), tr("kami_claims.chunks.release.confirm.subtitle"), Icons.REMOVE, listOfNotNull(
@@ -146,7 +146,7 @@ class ChunksPage(app: ClaimsApp) : ClaimsPage(app) {
         }
         if (bulkType.isEmpty()) bulkType = snap.types.firstOrNull()?.name ?: ""
         val retype = tr("kami_claims.chunks.retype")
-        val retyped = ui.edgeButton(row, retype, enabled = can("claim"), disabledReason = lock("claim"), key = "bulk-type-go")
+        val retyped = ui.edgeButton(row, retype, enabled = can(Perm.CHUNK_TYPE), disabledReason = lock(Perm.CHUNK_TYPE), key = "bulk-type-go")
         val typeOptions = bulkTypes.of(snap.types, Format.locale, ClientResearch.state, ClientResearch.defs) { snap.types.map { Option(it.name, Vocabulary.type(it.name).label, Vocabulary.type(it.name).icon, null, Vocabulary.type(it.name).color, lock = ClientLocks.claimType(it.name)) } }
         ui.select(row.takeFromRight(if (r.w < 360) 90 else 120), typeOptions, bulkType, key = "bulk-type")?.let { bulkType = it }
         if (retyped) {
@@ -199,8 +199,8 @@ class PlotsPage(app: ClaimsApp) : ClaimsPage(app) {
         ui.anchor("plots:tabs", tabsRect)
         ui.subTabs(tabsRect, listOf(
             TabItem(tr("kami_claims.plots.tab.free"), null, l.free.size, Severity.SUCCESS),
-            TabItem(tr("kami_claims.plots.tab.all"), null, l.debt, Severity.WARNING, lock("details")),
-            TabItem(tr("kami_claims.plots.tab.moving"), null, l.moving.size, Severity.DANGER, lock("details"))
+            TabItem(tr("kami_claims.plots.tab.all"), null, l.debt, Severity.WARNING, lock(Perm.DETAILS)),
+            TabItem(tr("kami_claims.plots.tab.moving"), null, l.moving.size, Severity.DANGER, lock(Perm.DETAILS))
         ), tab, "plot-tabs")?.let { tab = it }
         val me = info.members.firstOrNull { it.id == snap.me }
         val held = me?.plotsHeld ?: 0
@@ -245,7 +245,7 @@ class PlotsPage(app: ClaimsApp) : ClaimsPage(app) {
         events.opened?.let { app.openMapAt(it.x, it.z) }
         val chosen = plots.firstOrNull { "${it.x}:${it.z}" in tableFree.selected }
         val bar = r.bottom(22)
-        val lockReason = lock("plot") ?: if (full) tr("kami_claims.plots.limit", Format.number(limit)) else null
+        val lockReason = lock(Perm.PLOTS) ?: if (full) tr("kami_claims.plots.limit", Format.number(limit)) else null
         val row = Row(Rect(bar.x, bar.y, bar.w, CONTROL_H))
         if (ui.edgeButton(row, tr("kami_claims.plots.rent"), Icons.HOUSE, ButtonStyle.PRIMARY, chosen != null && lockReason == null, lockReason ?: tr("kami_claims.plots.select_first"), key = "rent")) chosen?.let { c ->
             Dialogs.rent(app, c.x, c.z, c.rent, tr("kami_claims.chunk_type.residential"))
@@ -253,15 +253,11 @@ class PlotsPage(app: ClaimsApp) : ClaimsPage(app) {
         if (ui.edgeButton(row, tr("kami_claims.toast.show_on_map"), Icons.MAP, enabled = chosen != null, disabledReason = tr("kami_claims.plots.select_first"), key = "free-map")) chosen?.let { app.openMapAt(it.x, it.z) }
     }
 
-    private fun outranks(id: String): Boolean {
-        val m = info?.members?.firstOrNull { it.id == id } ?: return true
-        val rank = rankOf(m.rank) ?: return true
-        return ClaimsStore.rank > rank
-    }
+    private fun outranks(id: String) = info?.members?.firstOrNull { it.id == id }?.let { ClaimsStore.outranks(it.rank) } ?: true
 
     private fun list(ui: Ui, r: Rect, plots: List<ClaimLine>, state: TableState<ClaimLine>, removable: Boolean) {
         val wide = !app.compact
-        val removeLock = lock("housing")
+        val removeLock = lock(Perm.HOUSING)
         val columns = plotColumns.of(Format.locale, wide, removable, removeLock) { val removeTip = tr("kami_claims.plots.remove")
         val mapTip = tr("kami_claims.nav.map")
         listOfNotNull(

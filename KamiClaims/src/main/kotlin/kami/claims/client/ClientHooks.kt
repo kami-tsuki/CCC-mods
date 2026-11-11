@@ -2,6 +2,7 @@ package kami.claims.client
 
 import com.mojang.blaze3d.platform.InputConstants
 import kami.claims.client.admin.CountryAdminSection
+import kami.claims.client.admin.PressAdminSection
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.personal.ClaimsPersonal
 import kami.claims.client.app.ResearchPins
@@ -13,7 +14,9 @@ import kami.claims.client.compat.xaero.XaeroClaims
 import kami.libs.jei.KamiJei
 import kami.claims.client.map.MiniMap
 import kami.claims.client.store.ClaimsStore
+import kami.claims.client.store.ClientNews
 import kami.claims.client.store.ClientResearch
+import kami.claims.net.Act
 import kami.claims.net.DefsView
 import kami.claims.net.StateView
 import kami.claims.client.world.BlockHint
@@ -66,6 +69,7 @@ object ClientHooks {
         Modules.register(AppModule("country", "kami_libs.common.country", Icons.FLAG, 10) { openApp() })
         ClaimsPersonal.register()
         CountryAdminSection.register()
+        PressAdminSection.register()
         XaeroClaims.register()
         JadeClient.register()
         FreecamGuard.register()
@@ -82,14 +86,14 @@ object ClientHooks {
         FORGE_BUS.addListener<RenderHighlightEvent.Block> { BlockHint.highlight(it) }
         FORGE_BUS.addListener<CustomizeGuiOverlayEvent.BossEventProgress> { hideWarBar(it) }
         FORGE_BUS.addListener<RenderLevelStageEvent> { Borders.renderWalls(it) }
-        FORGE_BUS.addListener<RenderNameTagEvent> { if (VisibilityState.isHidden(it.entity.uuid)) it.setCanRender(TriState.FALSE) else NameTags.render(it) }
+        FORGE_BUS.addListener<RenderNameTagEvent> { if (it.entity is net.minecraft.world.entity.player.Player && VisibilityState.isHidden(it.entity.uuid)) it.setCanRender(TriState.FALSE) else NameTags.render(it) }
         FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingIn> {
             applyPrefs()
             VisibilityState.clear()
             NameTags.clear()
-            ClaimsStore.watch(emptyList(), force = true)
+            if (hasClaimsChannel()) ClaimsStore.watch(emptyList(), force = true)
         }
-        FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> { TerrainCache.clear(); ClientResearch.clear(); ClaimsStore.clear(); opening.done(); MiniMap.clear(); Hud.reset(); VisibilityState.clear(); NameTags.clear(); ClientClaims.war = 0; FreecamGuard.clear() }
+        FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> { ClaimsApp.logout(); TerrainCache.clear(); ClientResearch.clear(); ClientNews.clear(); ClaimsStore.clear(); opening.done(); MiniMap.clear(); Hud.reset(); VisibilityState.clear(); NameTags.clear(); ClientClaims.clear(); FreecamGuard.clear() }
     }
 
     private fun hideWarBar(e: CustomizeGuiOverlayEvent.BossEventProgress) = runCatching {
@@ -111,14 +115,16 @@ object ClientHooks {
         while (borders.consumeClick()) if (mc.screen == null) Borders.cycle()
         ClaimsStore.tick()
         Borders.tick()
-        if (mc.player != null && ++ticks % 1200 == 0 && mc.screen == null) ClaimsStore.watch(Hud.idleWatch(), force = true)
+        if (mc.player != null && ++ticks % 1200 == 0 && mc.screen == null) Hud.idleWatch().takeIf { it.isNotEmpty() }?.let { ClaimsStore.watch(it, force = true) }
     }
 
-    fun request(name: String, vararg args: String) = ClaimsStore.quiet(name, *args)
+    private fun hasClaimsChannel() = Minecraft.getInstance().connection?.hasChannel(Act.type) == true
+
+    fun request(name: String, vararg args: String) { if (hasClaimsChannel()) ClaimsStore.quiet(name, *args) }
 
     fun openApp(wait: Boolean = false) {
         request("open")
-        if (wait || ClaimsStore.snap == null) return opening.start()
+        if (wait || ClaimsStore.snap == null) return if (hasClaimsChannel()) opening.start() else opening.fail()
         opening.done()
         echoUntil = System.currentTimeMillis() + ECHO_MS
         if (!ClaimsApp.instance.isOpen) ClaimsApp.open()
@@ -156,6 +162,8 @@ object ClientHooks {
     fun researchDefs(defs: DefsView) = ClientResearch.receive(defs)
 
     fun researchState(state: StateView) = ClientResearch.receive(state)
+
+    fun news(kind: String, json: String) = ClientNews.receive(kind, json)
 
     private const val ECHO_MS = 10_000L
 }

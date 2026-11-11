@@ -104,6 +104,7 @@ object KamiEconomy {
             task("Discord market", Config.s.marketTickInterval, 15) { DiscordMarket.tick() }
             task("Market broadcast", Config.s.marketTickInterval, 20) { Net.broadcastOpen(server) }
             task("Auctions", Config.s.auctionCheckIntervalTicks) { Auctions.sweep() }
+            task("Deliveries", Config.s.auctionCheckIntervalTicks, 5) { server.playerList.players.forEach { deliver(it) } }
             task("Vendors", HOUSEKEEPING_TICKS) { VendorRegistry.recheck(server) }
         }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { (it.entity as? ServerPlayer)?.let { p -> deliver(p, login = true); Net.sendFullPrices(p); Net.sendVariants(p); WatchSync.send(p) } }

@@ -9,7 +9,6 @@ import kami.claims.now
 import kami.claims.research.Capacity
 import kami.claims.research.Buffs
 import kami.claims.research.Features
-import kami.claims.research.Levels
 import kami.claims.war.WarLocks
 import kami.libs.text.Phrase
 import kami.libs.util.Time.HOUR_MS
@@ -131,7 +130,7 @@ object Planner {
         }
         val borderTax = Buffs.tax(c)
         val delta = cells.filter { it.outcome == Outcome.RETYPE }.sumOf { cell ->
-            val cl = Realm.index[cell.key]!!
+            val cl = Realm.index[cell.key] ?: return@sumOf 0.0
             val current = Buffs.price(c, cl, borderTax)
             if (cl.free) 0.0 else (cell.price + current - Realm.price(cl)).toDouble() / cell.period - current.toDouble() / Realm.period(cl)
         }

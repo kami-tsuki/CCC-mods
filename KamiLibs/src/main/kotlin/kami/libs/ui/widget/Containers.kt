@@ -10,6 +10,7 @@ import kami.libs.ui.core.Stack
 import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
+import kami.libs.ui.style.Metrics
 import kami.libs.ui.style.Icon
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
@@ -23,7 +24,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 private const val EASE_SPEED = 18f
-private const val SECTION_ROW_H = 13
+private val SECTION_ROW_H: Int get() = Metrics.sectionRowH
 
 class ScrollState {
     var offset = 0.0
@@ -44,38 +45,49 @@ internal fun Ui.ease(s: ScrollState) {
     if (abs(s.target - s.offset) < 0.5) s.offset = s.target
 }
 
+private const val BAR_W = 4
+const val SCROLL_GUTTER = BAR_W + 2
+private const val BAR_HIT = BAR_W + 2
+
 fun Ui.scroll(key: Any, r: Rect, contentHeight: Int, draw: (Rect) -> Unit): ScrollState {
     val s = remember("scroll:$key") { ScrollState() }
     s.content = contentHeight
     s.view = r.h
     s.reveal?.let { y -> if (y < s.target || y > s.target + r.h - 20) s.target = (y - 20).toDouble(); s.reveal = null }
+    s.center?.let { s.target = (it - r.h / 2).toDouble(); s.center = null }
     ease(s)
     val bar = s.max > 0
-    val content = Rect(r.x, r.y - s.offset.toInt(), r.w - if (bar) 4 else 0, max(contentHeight, r.h))
+    val content = Rect(r.x, r.y - s.offset.toInt(), r.w - if (bar) SCROLL_GUTTER else 0, max(contentHeight, r.h))
     clip(r) { draw(content) }
     val w = wheelIf(r) { if (it > 0) s.target > 0 else s.target < s.max }
-    if (w != 0.0) s.target = (s.target - w * 24).coerceIn(0.0, s.max.toDouble())
-    if (bar) {
-        val track = Rect(r.right - 3, r.y + 1, 2, r.h - 2)
-        val thumbH = max(12, track.h * r.h / max(1, contentHeight))
-        val thumbY = track.y + ((track.h - thumbH) * (s.offset / s.max)).toInt()
-        val thumb = Rect(track.x, thumbY, 2, thumbH)
-        val id = id("scrollbar:$key")
-        val hover = hovering(track.grow(2))
-        if (hover) cursor = Cursor.HAND
-        if (pressed(track.grow(2)) != null) active = id
-        if (active == id && isDown()) {
-            val f = ((mouseY - track.y - thumbH / 2).toDouble() / max(1, track.h - thumbH)).coerceIn(0.0, 1.0)
-            s.target = f * s.max
-            s.offset = s.target
-        }
-        Draw.fill(g, track, Palette.alpha(Palette.border, 0x60))
-        Draw.fill(g, thumb, if (hover || active == id) Palette.textSecondary else Palette.textMuted)
+    if (w != 0.0) s.target = (s.target - w * ScrollMath.wheelStep(contentHeight, r.h)).coerceIn(0.0, s.max.toDouble())
+    if (!bar) return s
+    val track = Rect(r.right - BAR_W - 1, r.y + 1, BAR_W, r.h - 2)
+    val thumbH = ScrollMath.thumbLength(track.h, r.h, contentHeight)
+    val thumb = Rect(track.x, track.y + ScrollMath.thumbPos(track.h, thumbH, s.offset, s.max), BAR_W, thumbH)
+    val hit = Rect(r.right - BAR_HIT, r.y, BAR_HIT, r.h)
+    val id = id("scrollbar:$key")
+    val grab = remember("grab:$key") { intArrayOf(0) }
+    val hover = hovering(hit)
+    if (hover) cursor = Cursor.HAND
+    pressed(hit)?.let {
+        active = id
+        val onThumb = it.y >= thumb.y && it.y < thumb.bottom
+        grab[0] = if (onThumb) it.y - thumb.y else thumbH / 2
+        if (!onThumb) s.target = ScrollMath.offsetAt((it.y - track.y - grab[0]).toDouble(), track.h, thumbH, s.max)
     }
+    if (active == id && isDown()) {
+        s.target = ScrollMath.offsetAt((mouseY - track.y - grab[0]).toDouble(), track.h, thumbH, s.max)
+        s.offset = s.target
+    }
+    val strong = hover || active == id
+    val fade = if (strong || hovering(r)) 1f else 0.45f
+    Draw.fill(g, track, Palette.alpha(Palette.border, (0x60 * fade).toInt()))
+    Draw.fill(g, thumb, Palette.alpha(if (strong) Palette.textSecondary else Palette.textMuted, (0xFF * fade).toInt()))
     return s
 }
 
-const val CARD_HEADER_H = 16
+val CARD_HEADER_H: Int get() = Metrics.cardHeaderH
 
 fun Ui.panel(r: Rect, sunken: Boolean = false) = Draw.sprite(g, if (sunken) Sprites.SUNKEN else Sprites.PANEL, r)
 
@@ -94,7 +106,7 @@ fun Ui.card(r: Rect, title: String? = null, icon: Icon? = null, severity: Severi
     var x = r.x + 5
     icon?.let { x += Draw.leadIcon(g, it, x, header.centerY) }
     val titleColor = severity?.color ?: Palette.text
-    val textY = header.y + (header.h - 8) / 2 + 1
+    val textY = Draw.textY(header) + 1
     val trailingReserve = (trailing?.let { Draw.width(it) + 8 } ?: 0) + if (help != null) 14 else 0
     val shownTitle = Draw.fit(title, (r.w - (x - r.x) - trailingReserve - 6).coerceAtLeast(20), TextStyle.HEADING)
     Draw.text(g, shownTitle, x, textY, TextStyle.HEADING, titleColor)
@@ -142,7 +154,7 @@ fun Ui.subTabs(r: Rect, tabs: List<TabItem>, selected: Int, key: Any = "tabs"): 
         val badgeW = badgeText?.let { max(10, Draw.width(it) + 5) } ?: 0
         val textW = (cell.right - tx - if (badgeW > 0) badgeW + 4 else 6).coerceAtLeast(6)
         val label = Draw.fit(t.label, textW)
-        Draw.text(g, label, tx, cell.y + (cell.h - 8) / 2, when {
+        Draw.text(g, label, tx, Draw.textY(cell), when {
             !usable -> Palette.textDisabled
             i == selected -> Palette.text
             else -> Palette.textMuted

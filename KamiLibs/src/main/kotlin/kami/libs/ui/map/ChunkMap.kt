@@ -80,7 +80,7 @@ class ChunkMap(var zoom: Float = 12f) {
             ui.g.blit(tile.bind(), dest.x, dest.y, dest.w, dest.h, 0f, 0f, tiles * 16, tiles * 16, tiles * 16, tiles * 16)
         }
         if (grid && zoom >= 8) {
-            val line = Palette.alpha(0x000000, 0x1A)
+            val line = Palette.alpha(Palette.washDark, 0x1A)
             for (x in xs) Draw.vline(ui.g, sx(x.toDouble()), r.y, r.h, line)
             for (z in zs) Draw.hline(ui.g, r.x, sz(z.toDouble()), r.w, line)
             ui.g.flush()

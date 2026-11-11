@@ -1,5 +1,6 @@
 package kami.claims
 
+import kami.claims.gov.PRESIDENT
 import kami.claims.research.*
 import kami.claims.service.Service
 import kami.claims.war.Stakes
@@ -20,7 +21,8 @@ class BankFlowTest : WithDb() {
     private fun country(name: String, treasury: Long = 10_000): Country {
         val c = Country(name, created = now() - 10 * Config.s.dayMillis, level = 100, treasury = treasury)
         Realm.data.countries[c.id] = c
-        Realm.join(c, "${name}_p", Rank.PRESIDENT)
+        c.mixed()
+        Realm.join(c, "${name}_p", PRESIDENT)
         return c
     }
 

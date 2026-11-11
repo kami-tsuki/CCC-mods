@@ -34,7 +34,7 @@ class Site(
     private val leanX: Double,
     private val leanZ: Double
 ) {
-    private val shape = ore.deposit!!.shape
+    private val shape = requireNotNull(ore.deposit) { "ore ${ore.id} has no deposit" }.shape
     private val warpAmplitude = shape.warp * (semiLength + semiWidth + semiThickness) / 3.0
     private val warpFrequency = 1.0 / shape.warpScale
     private val pipeTaper = shape.taper.coerceIn(0.0, 0.95)
@@ -59,7 +59,7 @@ class Site(
         val hz = extent(2) + abs(leanZ) * lean
         minX = (x - hx).toInt() - 1
         maxX = (x + hx).toInt() + 1
-        val limit = ore.deposit!!.limit
+        val limit = requireNotNull(ore.deposit) { "ore ${ore.id} has no deposit" }.limit
         minY = max((y - hy).toInt() - 1, limit?.get(0) ?: Int.MIN_VALUE)
         maxY = min((y + hy).toInt() + 1, limit?.get(1) ?: Int.MAX_VALUE)
         minZ = (z - hz).toInt() - 1

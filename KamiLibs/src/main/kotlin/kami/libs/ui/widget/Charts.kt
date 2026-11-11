@@ -59,7 +59,7 @@ fun Ui.lineChart(r: Rect, series: List<Series>, labels: List<String>, format: (L
         return
     }
     var lo = min(minV, if (zeroLine) 0 else minV).toDouble()
-    var hi = maxV.toDouble()
+    var hi = max(maxV, if (zeroLine) 0 else maxV).toDouble()
     if (hi <= lo) hi = lo + 1
     val step = niceStep(hi - lo, 4)
     lo = floor(lo / step) * step
@@ -77,7 +77,7 @@ fun Ui.lineChart(r: Rect, series: List<Series>, labels: List<String>, format: (L
     }
     labels.takeIf { it.isNotEmpty() }?.let { ls ->
         val every = max(1, ceil(ls.size / (plot.w / 40.0)).toInt())
-        ls.forEachIndexed { i, l -> if (i % every == 0 && i < count) Draw.text(g, l, (px(i) - Draw.width(l) / 2).coerceIn(plot.x, plot.right - Draw.width(l)), plot.bottom + 4, Palette.textMuted) }
+        ls.forEachIndexed { i, l -> if (i % every == 0 && i < count) Draw.text(g, l, (px(i) - Draw.width(l) / 2).coerceIn(plot.x, max(plot.x, plot.right - Draw.width(l))), plot.bottom + 4, Palette.textMuted) }
     }
     series.forEach { s ->
         if (s.area) {

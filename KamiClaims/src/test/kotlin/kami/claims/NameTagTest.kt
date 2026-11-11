@@ -12,8 +12,8 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class NameTagTest {
-    private fun tag(country: String? = "Rome", rank: Int = -1, cls: Int = -1, level: Int = 0, color: Int = 0xFF0000) =
-        TagView(UUID.randomUUID(), country, color, rank, cls, level)
+    private fun tag(country: String? = "Rome", rank: String = "", cls: Int = -1, level: Int = 0, color: Int = 0xFF0000) =
+        TagView(UUID.randomUUID(), country, color, rank, 0x5B9BD5, cls, level)
 
     @Test
     fun privacy() {
@@ -28,11 +28,11 @@ class NameTagTest {
     fun rows() {
         assertEquals(listOf(RowKind.NOMAD), TagRows.rows(tag(country = null)).map { it.kind })
         assertEquals(listOf(RowKind.COUNTRY, RowKind.LEVEL), TagRows.rows(tag(level = 3)).map { it.kind })
-        val r = TagRows.rows(tag(rank = Rank.OFFICER.ordinal, cls = SkillClass.MINER.ordinal, level = 7))
+        val r = TagRows.rows(tag(rank = "officer", cls = SkillClass.MINER.ordinal, level = 7))
         assertEquals(listOf(RowKind.RANK, RowKind.CLASS), r.map { it.kind })
         assertEquals(listOf("officer", "miner"), r.map { it.text })
         assertEquals(7, r[1].level)
-        assertEquals(1, TagRows.rows(tag(rank = 99, cls = 99)).size)
+        assertEquals(1, TagRows.rows(tag(cls = 99)).size)
     }
 
     @Test

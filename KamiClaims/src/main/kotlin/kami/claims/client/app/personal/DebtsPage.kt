@@ -3,6 +3,7 @@ package kami.claims.client.app.personal
 import kami.claims.client.app.ClientLocks
 import kami.claims.client.app.Dialogs
 import kami.claims.client.store.ClaimsStore
+import kami.claims.gov.Perm
 import kami.claims.client.store.ClientResearch
 import kami.claims.net.HomeLine
 import kami.claims.net.Info
@@ -49,7 +50,7 @@ class DebtsPage(private val host: KamiApp) : Page() {
             val stack = Stack(area.x, area.y, area.w, 6)
             rent(ui, stack, view.homes, view.funds)
             val info = ClaimsStore.info
-            if (info != null && !Personal.viewing && ClientLocks.cap("withdraw") == null) country(ui, stack, info)
+            if (info != null && !Personal.viewing && ClaimsStore.holds(Perm.WITHDRAW)) country(ui, stack, info)
             scrollHeight = stack.bottom - area.y
         }
     }
@@ -107,11 +108,7 @@ class DebtsPage(private val host: KamiApp) : Page() {
         }
         ui.section(stack, tr("kami_claims.warpage.debts"), info.warDebts.size.toString())
         if (info.warDebts.isEmpty()) Draw.text(ui.g, tr("kami_claims.warpage.debts.none"), stack.x, stack.take(Draw.LINE).y, Palette.textMuted)
-        val chief = when {
-            ClaimsStore.delegated -> tr("kami_claims.warpage.own_only")
-            info.rank.equals("president", true) -> null
-            else -> tr("kami_claims.warpage.president_only")
-        }
+        val chief = if (ClaimsStore.delegated) tr("kami_claims.warpage.own_only") else ClientLocks.perm(Perm.WAR)
         info.warDebts.forEach { (to, amount) ->
             val row = Row(stack.take(CONTROL_H), 4)
             val pay = minOf(amount, info.treasury)

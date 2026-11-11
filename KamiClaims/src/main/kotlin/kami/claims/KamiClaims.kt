@@ -2,18 +2,24 @@ package kami.claims
 
 import kami.libs.util.toUuidOrNull
 import kami.claims.admin.AdminCountries
+import kami.claims.admin.AdminNews
 import kami.claims.admin.ClaimStats
 import kami.claims.client.ClientHooks
 import kami.claims.compat.DynamicTrees
 import kami.claims.compat.JadeServer
+import kami.claims.compat.Sophisticated
 import kami.claims.compat.Tacz
 import kami.claims.discord.CountryChannels
+import kami.claims.gov.Permissions
+import kami.claims.gov.RankActions
+import kami.claims.gov.Standing
 import kami.claims.discord.DiscordClaims
 import kami.claims.command.ClaimsCommands
 import kami.claims.net.Net
 import kami.claims.net.ResearchSync
 import kami.claims.net.Sync
 import kami.claims.service.Work
+import kami.claims.service.CraftCredit
 import kami.claims.war.NameTagSync
 import kami.claims.war.NameTagTeams
 import kami.claims.war.Online
@@ -24,7 +30,6 @@ import kami.claims.war.WarBar
 import kami.claims.war.Wars
 import kami.claims.research.Boosts
 import kami.claims.research.Features
-import kami.claims.research.Gate
 import kami.claims.research.Goals
 import kami.claims.research.Levels
 import kami.claims.research.Listeners
@@ -33,6 +38,8 @@ import kami.claims.research.RecipeContext
 import kami.claims.research.Research
 import kami.claims.research.Structures
 import kami.claims.research.TreeFelling
+import kami.claims.press.News
+import kami.claims.press.NewsReports
 import kami.claims.service.Upkeep
 import kami.claims.social.Mail
 import kami.claims.social.Perms
@@ -51,6 +58,7 @@ import kami.libs.claims.Locks
 import kami.libs.claims.Relation
 import kami.claims.service.Diplomacy
 import kami.claims.service.Gifts
+import kami.claims.service.Housing
 import kami.claims.service.View
 import kami.libs.config.Configs
 import kami.libs.log.Log
@@ -111,14 +119,14 @@ object KamiClaims {
                 }
 
                 override fun isBanished(player: UUID, country: String): Boolean =
-                    Realm.data.countries[country]?.outsiders?.get(player.toString()) == Rank.BANISHED
+                    Realm.data.countries[country]?.outsiders?.get(player.toString()) == Standing.BANISHED
 
                 override fun countryOf(player: UUID): String? = Realm.of(player.toString())?.id
 
                 override fun hostile(a: String, b: String): Boolean = Wars.enemies(a, b)
 
                 override fun citizenship(player: UUID): Citizenship? = Realm.of(player.toString())?.let { c ->
-                    Citizenship(c.id, c.name, c.color, Realm.country(c.parent)?.name, c.rank(player.toString())?.name ?: Rank.CITIZEN.name)
+                    Citizenship(c.id, c.name, c.color, Realm.country(c.parent)?.name, Permissions.rankOf(c, player.toString())?.name.orEmpty())
                 }
 
                 override fun country(id: String): CountryInfo? = Realm.live(id)?.let { info(it) }
@@ -182,9 +190,12 @@ object KamiClaims {
         FORGE_BUS.addListener<PermissionGatherEvent.Nodes> { Perms.register(it) }
         ClaimsCommands.register()
         AdminCountries.register()
+        AdminNews.register()
         FORGE_BUS.addListener<BlockEvent.BreakEvent>(EventPriority.LOWEST) { Guard.onBreakCredit(it) }
         Listeners.register()
+        CraftCredit.register()
         Tacz.register()
+        Sophisticated.register()
         Sky.register()
         DynamicTrees.register()
         WealthSources.register()
@@ -210,7 +221,12 @@ object KamiClaims {
             PositionSync.reset()
             FreecamSync.reset()
         }
-        FORGE_BUS.addListener<ServerStoppedEvent>(EventPriority.LOWEST) { RealmDb.unload() }
+        FORGE_BUS.addListener<ServerStoppedEvent>(EventPriority.LOWEST) {
+            RealmDb.unload()
+            Realm.reset(Data())
+            RankActions.reset()
+            Housing.resetMails()
+        }
         FORGE_BUS.addListener<ServerTickEvent.Post> {
             val t = it.server.tickCount
             val players = it.server.playerList.players
@@ -233,6 +249,7 @@ object KamiClaims {
             task("Upkeep", 1200) { Upkeep.tick(it.server) }
             task("War", 1200) { Wars.tick() }
             task("Discord rooms", 200) { CountryChannels.tick() }
+            task("Press", 1200) { NewsReports.tick() }
         }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { (it.entity as? ServerPlayer)?.let { p -> touch(p); Mail.deliver(p); Online.login(p); runCatching { NameTagTeams.sync(p) }.onFailure { e -> LOG.error("Nametags failed", e) }; runCatching { WarBar.tick(listOf(p)) }.onFailure { e -> LOG.error("War bar failed", e) } } }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { (it.entity as? ServerPlayer)?.let { p -> touch(p); Guard.forget(p); Net.forget(p); Structures.forget(p); Online.logout(p); WarBar.forget(p); PositionSync.forget(p); FreecamSync.forget(p); NameTagSync.forget(p) } }

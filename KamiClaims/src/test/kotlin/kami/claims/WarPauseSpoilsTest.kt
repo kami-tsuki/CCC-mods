@@ -1,5 +1,6 @@
 package kami.claims
 
+import kami.claims.gov.PRESIDENT
 import kami.claims.war.Spoils
 import kami.claims.war.War
 import kami.claims.war.WarOffer
@@ -19,7 +20,7 @@ class WarPauseSpoilsTest : WithDb() {
     private fun country(name: String): Country {
         val c = Country(name, created = now() - 10 * day, level = 100, treasury = 100_000)
         Realm.data.countries[c.id] = c
-        c.members["${name}_p"] = Member(Rank.PRESIDENT, since = now() - 1000)
+        c.members["${name}_p"] = Member(PRESIDENT, since = now() - 1000)
         return c
     }
 

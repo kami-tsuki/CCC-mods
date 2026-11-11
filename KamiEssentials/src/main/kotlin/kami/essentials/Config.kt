@@ -130,7 +130,7 @@ data class DiscordSettings(
 )
 
 private val DEFAULT_SKILL_XP = mapOf(
-    "ore" to 6.0, "stone" to 0.2, "log" to 1.2, "crop" to 1.0, "breed" to 2.0, "fish" to 4.0, "kill" to 0.4, "craft" to 8.0,
+    "ore" to 6.0, "stone" to 0.2, "log" to 1.2, "crop" to 3.0, "breed" to 2.0, "fish" to 4.0, "kill" to 0.4, "craft" to 8.0,
     "deposit" to 6.0, "trade" to 9.0, "deal" to 3.0, "smelt" to 3.0
 )
 

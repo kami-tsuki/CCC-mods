@@ -32,7 +32,7 @@ object LangAudit {
     fun load(file: Path): Map<String, String> =
         Json.parseToJsonElement(file.readText()).jsonObject.mapValues { it.value.jsonPrimitive.content }
 
-    fun referencedKeys(sourceDir: Path): Set<String> {
+    internal fun referencedKeys(sourceDir: Path): Set<String> {
         if (!Files.exists(sourceDir)) return emptySet()
         val sources = Files.walk(sourceDir).use { s -> s.filter { it.extension == "kt" }.map { it.readText() }.toList() }.joinToString("\n")
         return keyLiteral.findAll(sources).map { it.groupValues[1] }.filterNot { fileName.containsMatchIn(it) }.toSet() +

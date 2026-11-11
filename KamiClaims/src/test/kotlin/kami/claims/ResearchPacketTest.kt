@@ -41,7 +41,7 @@ class ResearchPacketTest {
         assertTrue(defs.trees.flatMap { it.nodes }.any { it.requires.isNotEmpty() && it.conditions.isNotEmpty() })
         val foundations = defs.trees.first { it.id == "metallurgy" }.nodes
         assertTrue(foundations.first { it.id == "iron_crushing" }.anyRequires.isEmpty())
-        assertEquals(1, foundations.first { it.id == "iron_deco" }.hiddenRequires.size)
+        assertEquals(1, defs.trees.first { it.id == "buffs" }.nodes.first { it.id == "treasury_1" }.hiddenExternal.size)
         val washing = foundations.first { it.id == "iron_washing" }
         assertEquals(1, washing.requires.size)
         assertEquals(2, washing.conditions.size)

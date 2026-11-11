@@ -36,6 +36,7 @@ object Naming {
         Realm.changed()
         ResearchSync.refresh(country)
         Mail.broadcast(country, Phrase.of("kami_claims.mail.renamed", v(old), v(name)), Tone.INFO)
+        Announce.fire("renamed", country, mapOf("country" to name, "old" to old))
         return Phrase.of("kami_claims.done.renamed", v(name))
     }
 }

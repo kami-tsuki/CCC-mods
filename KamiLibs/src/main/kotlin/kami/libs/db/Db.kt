@@ -76,7 +76,9 @@ object Db {
         Files.createDirectories(path.parent)
         try {
             connect(path).use { c -> Migrator.run(Session(c), path, world) }
-            state = Open(path, Writer(connect(path)), reading(path), reading(path), reading(path), reading(path, "PRAGMA temp_store=FILE"))
+            val readers = listOf(reading(path), reading(path), reading(path), reading(path, "PRAGMA temp_store=FILE"))
+            state = Open(path, Writer(connect(path)), readers[0], readers[1], readers[2], readers[3])
+            SavePoint.discardUnsaved()
         } catch (e: Throwable) {
             log.error("{}", e.message, e)
             throw e
@@ -87,9 +89,7 @@ object Db {
     fun close() {
         val s = state ?: return
         state = null
-        runCatching { s.reader.close() }
-        runCatching { s.scanner.close() }
-        runCatching { s.viewer.close() }
+        listOf(s.reader, s.scanner, s.viewer).forEach { reader -> synchronized(reader) { runCatching { reader.close() } } }
         interrupt(s.probe)
         synchronized(s.probe) { runCatching { s.probe.close() } }
         s.writer.close()

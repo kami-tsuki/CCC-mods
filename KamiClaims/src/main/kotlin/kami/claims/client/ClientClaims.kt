@@ -4,9 +4,8 @@ import kami.claims.client.hud.TaxHudMode
 import kami.claims.client.compat.xaero.ClaimData
 import kami.claims.client.compat.xaero.chunkKey
 import kami.claims.service.View
-import kami.libs.config.KamiConfig
-import kami.libs.config.Section
-import kami.libs.log.Log
+import kami.libs.config.Configs
+import kami.libs.ui.settings.ClientSettings
 import kami.libs.ui.app.NavPrefs
 import kami.libs.xaero.XaeroMaps
 import java.util.concurrent.ConcurrentHashMap
@@ -33,7 +32,6 @@ class Prefs(
     var mapLayers: MutableSet<String> = mutableSetOf("borders", "labels", "markers", "grid"),
     var terrain: Boolean = true,
     var terrainCacheMb: Int = 256,
-    var holdSeconds: Float = 1.5f,
     var tourDone: Boolean = false,
     var skipClaimConfirm: Boolean = false,
     var dismissed: MutableSet<String> = mutableSetOf(),
@@ -49,52 +47,13 @@ class Prefs(
     var taxCondDue: Boolean = false,
     var taxDueHours: Int = 12,
     var taxCondLapse: Boolean = true,
-    var taxLapseDays: Int = 3
+    var taxLapseDays: Int = 3,
+    var pressAutosave: Boolean = true
 ) : NavPrefs
 
 object ClientClaims : ClaimData {
-    private val config = KamiConfig(
-        "claims", Prefs(),
-        listOf(
-            Section(
-                "client.json", "Settings of this game client for the country screen, the map, borders and the HUD. The settings page in game changes them too.",
-                mapOf(
-                    "overlay" to "Show claims on Xaero's maps.",
-                    "hud" to "Show the territory HUD.",
-                    "claimable" to "Mark plots you could claim on the claims map.",
-                    "borderMode" to "Border display in the world: OFF, AUTO (near borders and when blocked), ALWAYS or BUILDER.",
-                    "borderDensity" to "Most border particles per second.",
-                    "borderLines" to "Draw borders as thin walls instead of particles.",
-                    "blockHints" to "Color the block outline red when you can't build there and amber across your border.",
-                    "hudBorderDistance" to "Show the distance to the nearest border in the HUD.",
-                    "worldToasts" to "Show warnings like debt as small notifications while playing.",
-                    "mapMode" to "Map mode the claims map opens with.",
-                    "mapLayers" to "Map layers that are switched on.",
-                    "terrain" to "Draw terrain from explored chunks on the claims map.",
-                    "terrainCacheMb" to "Most disk space for the map terrain cache, in megabytes.",
-                    "holdSeconds" to "Seconds to hold a button for dangerous actions.",
-                    "tourDone" to "The guided tour was finished or skipped.",
-                    "skipClaimConfirm" to "Skip claim confirmation when the treasury lasts 7+ days.",
-                    "dismissed" to "Alerts you dismissed.",
-                    "hiddenSteps" to "The goals checklist is hidden.",
-                    "denialTips" to "How often the border tip was shown after a blocked action.",
-                    "railCollapsed" to "The sidebar is collapsed to icons.",
-                    "collapsedGroups" to "Navigation groups you collapsed.",
-                    "warDisplay" to "Where the war status shows: NONE, BOSS (boss bar), HUD or BOTH.",
-                    "taxHud" to "Tax timer HUD: OFF, ALWAYS or IMPORTANT (only when a condition below is met).",
-                    "taxCondDebt" to "Tax timer counts unpaid rent debt as important.",
-                    "taxCondPrepaid" to "Tax timer counts low prepaid rent as important.",
-                    "taxPrepaidDays" to "Prepaid rent at or below this many days of rent is important.",
-                    "taxCondDue" to "Tax timer counts a rent bill that is due soon as important.",
-                    "taxDueHours" to "Rent due within this many hours is important.",
-                    "taxCondLapse" to "Tax timer counts claims that will soon lapse as important.",
-                    "taxLapseDays" to "Claims lapsing within this many days are important."
-                )
-            )
-        ),
-        legacy = "kami_claims_client.json", reloadable = false
-    )
-    val prefs: Prefs by lazy { config.load(); config.value }
+    private val section by lazy { ClientSettings.register("mods.claims", Prefs.serializer(), Prefs(), legacy = Configs.dir("claims").resolve("client.json")) }
+    val prefs: Prefs get() = section.value
 
     private class Snapshot(
         val dims: List<String>, val types: List<String>, val countries: List<View.CountryView>, val rev: Int,
@@ -113,9 +72,7 @@ object ClientClaims : ClaimData {
     var war = 0
     var viewingAs = ""
 
-    private val log = Log.of("claims")
-
-    fun savePrefs() = runCatching { config.save(prefs) }.onFailure { log.warn("Could not save client.json: {}", it.message) }
+    fun savePrefs() = ClientSettings.save()
 
     fun finishTour() {
         prefs.tourDone = true
@@ -129,6 +86,13 @@ object ClientClaims : ClaimData {
         p.reserved.forEach { held.getOrNull(it.dim)?.add(key(it.x, it.z)) }
         snap = Snapshot(p.dims, p.types, p.countries, p.rev, built, held)
         war = p.war
+        XaeroMaps.refresh()
+    }
+
+    fun clear() {
+        snap = Snapshot(emptyList(), emptyList(), emptyList(), -1, emptyList(), emptyList())
+        war = 0
+        viewingAs = ""
         XaeroMaps.refresh()
     }
 

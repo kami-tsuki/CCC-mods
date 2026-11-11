@@ -3,8 +3,8 @@ package kami.claims.discord
 import kami.claims.Config
 import kami.claims.Country
 import kami.claims.KamiClaims
-import kami.claims.Rank
 import kami.claims.Realm
+import kami.claims.gov.Permissions
 import kami.claims.Tenancy
 import kami.claims.now
 import kami.claims.research.Loans
@@ -25,7 +25,6 @@ import java.util.UUID
 object DiscordClaims {
     private const val CHOICES = 25
     private const val MAX_PLOTS = 5
-    private const val MAX_WARS = 2
 
     fun register() {
         Mc.add(SlashCommand("country", "Show a country", listOf(SlashOption("name", "Country name, defaults to your own", required = false, complete = ::names)), public = true, run = ::country))
@@ -43,7 +42,7 @@ object DiscordClaims {
     private fun section(player: UUID, locale: String): List<EmbedField> {
         val id = player.toString()
         val c = Realm.of(id) ?: return emptyList()
-        val rank = c.rank(id)?.let { DiscordText.get(KamiClaims.ID, locale, "kami_claims.rank.${it.name.lowercase()}") }
+        val rank = Permissions.rankOf(c, id)?.name
         val fields = mutableListOf(EmbedField(text(locale, "field.country"), listOfNotNull(DiscordFormat.country(c.name), rank).joinToString(" · ")))
         if (View.privileged(c, id)) fields += EmbedField(text(locale, "field.treasury"), DiscordFormat.moneyFull(c.treasury))
         return fields
@@ -99,7 +98,7 @@ object DiscordClaims {
         val fields = mutableListOf<EmbedField>()
         if (plots.isNotEmpty()) fields += DiscordFormat.wide(text(locale, "plots"), plots.take(MAX_PLOTS).joinToString("\n"))
         var owed = rentDebt
-        val own = Realm.of(me)?.takeIf { (it.rank(me) ?: Rank.BANISHED) >= Rank.OFFICER }
+        val own = Realm.of(me)?.takeIf { me in Permissions.nonCitizens(it) }
         if (own != null) {
             if (own.loans.isNotEmpty()) {
                 val overdue = own.loans.sumOf { it.overdue }

@@ -4,9 +4,9 @@ import kami.claims.Realm
 import kami.libs.progress.ProgressEvent
 import kami.claims.world.Placed
 import net.minecraft.core.BlockPos
+import kami.libs.mc.ItemSpec
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.server.level.ServerPlayer
-import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.Level
 import net.neoforged.bus.api.EventPriority
 import net.neoforged.neoforge.common.util.FakePlayer
@@ -28,8 +28,6 @@ object Listeners {
     }
 
     private fun countable(entity: Any?) = (entity as? ServerPlayer)?.let { !it.isCreative && !it.isSpectator } == true
-
-    private fun id(stack: ItemStack) = BuiltInRegistries.ITEM.getKey(stack.item).toString()
 
     @JvmStatic
     fun treeGrew(level: Level, pos: BlockPos) {
@@ -64,10 +62,10 @@ object Listeners {
             if (countable(it.source.entity)) report(it.source.entity, Kinds.KILL, BuiltInRegistries.ENTITY_TYPE.getKey(it.entity.type).toString())
         }
         FORGE_BUS.addListener<BlockGrowFeatureEvent>(EventPriority.LOWEST) { (it.level as? Level)?.let { level -> treeGrew(level, it.pos) } }
-        FORGE_BUS.addListener<PlayerEvent.ItemCraftedEvent> { report(it.entity, Kinds.CRAFT, id(it.crafting), it.crafting.count.toLong()) }
-        FORGE_BUS.addListener<PlayerEvent.ItemSmeltedEvent> { report(it.entity, Kinds.SMELT, id(it.smelting), it.smelting.count.toLong()) }
+        FORGE_BUS.addListener<PlayerEvent.ItemCraftedEvent> { report(it.entity, Kinds.CRAFT, ItemSpec.id(it.crafting), it.crafting.count.toLong()) }
+        FORGE_BUS.addListener<PlayerEvent.ItemSmeltedEvent> { report(it.entity, Kinds.SMELT, ItemSpec.id(it.smelting), it.smelting.count.toLong()) }
         FORGE_BUS.addListener<PlayerEnchantItemEvent> { report(it.entity, Kinds.ENCHANT, "") }
-        FORGE_BUS.addListener<PlayerDestroyItemEvent> { report(it.entity, Kinds.BREAK_ITEM, id(it.original)) }
+        FORGE_BUS.addListener<PlayerDestroyItemEvent> { report(it.entity, Kinds.BREAK_ITEM, ItemSpec.id(it.original)) }
         FORGE_BUS.addListener<PlayerEvent.PlayerChangedDimensionEvent> { event ->
             (event.entity as? ServerPlayer)?.let { Progress.visited(it, event.to.location().toString()) }
         }

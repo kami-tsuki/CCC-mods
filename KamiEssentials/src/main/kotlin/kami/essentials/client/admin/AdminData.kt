@@ -7,7 +7,6 @@ import kami.libs.ui.app.segmentWidth
 import kami.libs.ui.core.Flow
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Ui
-import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Palette
 import kami.libs.ui.text.partyLabel
 import kami.libs.ui.style.Severity
@@ -21,7 +20,16 @@ import kami.libs.ui.widget.textOrder
 import kami.libs.ui.widget.PlayerNames
 import kami.libs.ui.widget.avatar
 import kami.libs.ui.widget.secret
+import kami.libs.ui.app.Paged
+import kami.libs.ui.style.Metrics
+import kami.libs.ui.widget.CONTROL_H
+import kami.libs.ui.widget.TABLE_HEADER_H
+import kami.libs.ui.widget.TABLE_ROW_H
 import net.minecraft.client.Minecraft
+
+private const val MIN_VISIBLE_ROWS = 6
+
+internal fun pagedHeight(p: Paged<*>, extra: Int = 0) = Metrics.cardHeaderH + 10 + extra + TABLE_HEADER_H + p.rows.size.coerceIn(MIN_VISIBLE_ROWS, kami.libs.admin.Page.SIZE) * TABLE_ROW_H + CONTROL_H + 4
 
 internal object AdminData {
     private val names = HashMap<String, String>()

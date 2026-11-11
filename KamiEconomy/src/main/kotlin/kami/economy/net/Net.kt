@@ -473,7 +473,9 @@ object Net {
         val buyNow = args.getOrNull(3)?.toIntOrNull()?.takeIf { it > 0 }
         if (qty <= 0 || startPrice <= 0) return Phrase.of("kami_economy.action.invalid_listing") to false
         if (!Config.s.validPrice(startPrice) || (buyNow != null && !Config.s.validPrice(buyNow))) return outOfRange()
-        val stack = p.inventory.items.firstOrNull { !it.isEmpty && Blacklist.itemId(it) == item && it.count >= qty && Blacklist.classify(it) != Classification.BLOCKED }
+        val slot = args.getOrNull(4)?.toIntOrNull()
+        val stack = p.inventory.items.filterIndexed { index, _ -> slot == null || index == slot }
+            .firstOrNull { !it.isEmpty && Blacklist.itemId(it) == item && it.count >= qty && Blacklist.classify(it) != Classification.BLOCKED }
             ?: return Phrase.of("kami_economy.action.not_enough_items", qty) to false
         if (Limits.auctionFull(me)) return Limits.auctionDenial(me) to false
         val taken = stack.copyWithCount(qty)

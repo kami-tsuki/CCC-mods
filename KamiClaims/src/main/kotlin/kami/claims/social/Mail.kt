@@ -3,13 +3,14 @@ package kami.claims.social
 import kami.libs.util.toUuidOrNull
 import kami.claims.*
 import kami.claims.discord.CountryChannels
+import kami.claims.gov.Perm
+import kami.claims.gov.Permissions
 import kami.libs.chat.Chat
 import kami.libs.chat.Tone
 import kami.libs.chat.tell
 import kami.libs.text.Phrase
 import net.minecraft.server.level.ServerPlayer
 import net.neoforged.neoforge.server.ServerLifecycleHooks
-import java.util.UUID
 
 object Mail {
     val chat = Chat.of("claims")
@@ -30,7 +31,9 @@ object Mail {
         CountryChannels.event(c, text, tone)
     }
 
-    fun officers(c: Country, text: Phrase, tone: Tone = Tone.INFO) = c.members.filterValues { it.rank >= Rank.OFFICER }.keys.forEach { direct(it, text, tone) }
+    fun holders(c: Country, perm: Perm, text: Phrase, tone: Tone = Tone.INFO) = c.members.keys.filter { Permissions.holds(c, it, perm) }.forEach { direct(it, text, tone) }
+
+    fun officers(c: Country, text: Phrase, tone: Tone = Tone.INFO) = holders(c, Perm.INVITE, text, tone)
 
     fun deliver(p: ServerPlayer) {
         val id = p.stringUUID

@@ -3,20 +3,16 @@ package kami.claims.client.app.pages
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ClaimsPage
 import kami.claims.client.store.ClientResearch
-import kami.claims.net.CategoryView
 import kami.claims.net.NodeView
 import kami.claims.net.TreeView
 import kami.claims.research.NodeState
-import kami.libs.text.Phrase
 import kami.libs.text.SearchQuery
 import kami.libs.ui.anim.transition
 import kami.libs.ui.app.Route
 import kami.libs.ui.core.Memo
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Row
-import kami.libs.ui.core.Stack
 import kami.libs.ui.core.Ui
-import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr
@@ -33,13 +29,11 @@ class ResearchPage(app: ClaimsApp) : ClaimsPage(app) {
     private val cache = HashMap<String, List<TechNode>>()
     private val bands = HashMap<String, TechBands>()
     private val lanes = HashMap<String, Map<Int, String>>()
-    private val chips = HashMap<String, CategoryChips>()
     private var tabs: List<TabItem>? = null
     private val selectedIndex = Memo()
     private val currentIndex = Memo()
     private val search = TextState()
     private var treeIndex = 0
-    private var category: String? = null
     private var selected: String? = null
     private var matches: List<String> = emptyList()
     private var matchIndex = 0
@@ -47,11 +41,14 @@ class ResearchPage(app: ClaimsApp) : ClaimsPage(app) {
     private var cachedTicking = true
     private val completed = ArrayList<String>()
 
-    override fun opened(route: Route) {
+    init {
         subscribe(
             ClientResearch.listen { invalidate() },
-            ClientResearch.onChange { change -> if (app.isOpen) completed += change.completed }
+            ClientResearch.onChange { change -> if (app.isOpen && app.route.page == "research") completed += change.completed }
         )
+    }
+
+    override fun opened(route: Route) {
         invalidate()
         route.focus?.let { jump(it) }
     }
@@ -65,7 +62,6 @@ class ResearchPage(app: ClaimsApp) : ClaimsPage(app) {
         bands.clear()
         lanes.clear()
         cache.clear()
-        chips.clear()
         tabs = null
     }
 
@@ -81,15 +77,14 @@ class ResearchPage(app: ClaimsApp) : ClaimsPage(app) {
         var main = if (drawer) r else r.dropRight(SIDE_W, 6)
         if (trees.size > 1) {
             val items = tabs ?: trees.map { TabItem(it.label().resolve(), Icons.TREE, ResearchGraph.available(it)) }.also { tabs = it }
-            ui.subTabs(main.top(CONTROL_H), items, treeIndex, "research-trees")?.let { treeIndex = it }
+            ui.subTabs(main.top(CONTROL_H), items, treeIndex, "research-trees")?.let { if (it != treeIndex) { treeIndex = it; selected = null; drawerOpen = false } }
             main = main.dropTop(CONTROL_H + 4)
         }
         main = ui.filterBar(main, "research:filter") { bar -> toolbar(ui, bar) }
         val tree = trees[treeIndex]
-        main = categoryChips(ui, main, tree)
         val ticking = !nobodyOnline
         if (ticking != cachedTicking) { cachedTicking = ticking; invalidate() }
-        val nodes = cache.getOrPut(tree.id) { ResearchGraph.nodes(tree, matches.toSet(), category, ticking) }
+        val nodes = cache.getOrPut(tree.id) { ResearchGraph.nodes(tree, matches.toSet(), ticking) }
         val state = views.getOrPut(tree.id) { TechTreeState() }
         val index = nodeIndex(selectedIndex, tree, selected)
         ui.techTree(main, nodes, state, index.takeIf { it >= 0 }, "research-tree", bands.getOrPut(tree.id) { ResearchGraph.bands(tree) }, lanes.getOrPut(tree.id) { ResearchGraph.lanes(tree) })?.let { selected = tree.nodes[it].key; drawerOpen = true }
@@ -116,28 +111,6 @@ class ResearchPage(app: ClaimsApp) : ClaimsPage(app) {
         completed.removeAll { key -> tree.nodes.indexOfFirst { it.key == key }.takeIf { it >= 0 }?.also(state::burst) != null }
     }
 
-    private fun categoryChips(ui: Ui, area: Rect, tree: TreeView): Rect {
-        if (tree.categories.size < 2) return area
-        if (category != null && tree.categories.none { it.id == category }) { category = null; invalidate() }
-        val entry = chips.getOrPut(tree.id) { buildChips(tree) }
-        val stack = Stack(area.x, area.y, area.w, CHIP_GAP)
-        ui.chipFlow(stack, entry.chips, "research-categories")?.let {
-            category = entry.categories.getOrNull(it - 1)?.id.takeIf { id -> id != category }
-            invalidate()
-        }
-        return area.dropTop(stack.bottom - area.y)
-    }
-
-    private fun buildChips(tree: TreeView): CategoryChips {
-        val categories = tree.categories.sortedBy { it.order }
-        val all = ChipSpec(tr("kami_claims.research.category.all"), Palette.brass, selected = category == null)
-        val specs = listOf(all) + categories.map {
-            val label = Phrase.or("kami_claims.research.category.${it.id}", it.title).resolve()
-            ChipSpec("$label ${ResearchGraph.availableIn(tree, it.id)}", if (it.id == category) Palette.brass else Palette.textSecondary, selected = it.id == category)
-        }
-        return CategoryChips(categories, specs)
-    }
-
     private fun nodeIndex(memo: Memo, tree: TreeView, key: String?) = memo.of(tree, key) { tree.nodes.indexOfFirst { it.key == key } }
 
     private fun toolbar(ui: Ui, bar: Rect) {
@@ -152,6 +125,7 @@ class ResearchPage(app: ClaimsApp) : ClaimsPage(app) {
         if (ui.iconButton(row.take(CONTROL_H), Icons.LOCATE, tip, enabled = located != null, key = "research-current")) {
             located?.let { views[tree.id]?.center(it) }
             selected = current
+            drawerOpen = true
         }
         val result = ui.textField(row.take(minOf(SEARCH_W, bar.w / 2)), search, tr("kami_claims.research.search"), Icons.SEARCH, key = "research-search", clearable = true)
         if (result.changed) { matches = find(search.text); matchIndex = 0; cache.clear(); matches.firstOrNull()?.let { jump(it) } }
@@ -183,10 +157,7 @@ class ResearchPage(app: ClaimsApp) : ClaimsPage(app) {
     }
 }
 
-private class CategoryChips(val categories: List<CategoryView>, val chips: List<ChipSpec>)
-
 private const val SIDE_W = 216
-private const val CHIP_GAP = 3
 private const val SEARCH_W = 170
 private const val COMPACT_W = 480
 private const val DRAWER_MARGIN = 40

@@ -12,10 +12,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class XaeroMinimapCaveMixin {
     @Inject(method = "getEffectiveCaveModeAllowed", at = @At("HEAD"), cancellable = true, require = 0, remap = false)
     private static void kami$fairCave(CallbackInfoReturnable<Boolean> cir) {
-        try {
-            if (MixinHooks.caveBlocked()) cir.setReturnValue(false);
-        } catch (Throwable t) {
-            MixinHooks.fail(t);
-        }
+        MixinHooks.fairCave(cir);
     }
 }

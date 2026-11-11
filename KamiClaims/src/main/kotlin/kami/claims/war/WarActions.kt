@@ -2,9 +2,9 @@ package kami.claims.war
 
 import kami.claims.Country
 import kami.claims.Key
-import kami.claims.Rank
 import kami.claims.Realm
 import kami.claims.Config
+import kami.claims.gov.Perm
 import kami.claims.now
 import kami.claims.service.Fail
 import kami.claims.service.NeedsConfirm
@@ -21,7 +21,7 @@ object WarActions {
     private const val MAX_RECT = 256L
 
     fun act(p: ServerPlayer, name: String, a: List<String>): Phrase {
-        val c = Service.need(p, Rank.PRESIDENT)
+        val c = Service.need(p, Perm.WAR)
         val confirmed = a.lastOrNull() == "confirm"
         val args = if (confirmed) a.dropLast(1) else a
         return when (name) {

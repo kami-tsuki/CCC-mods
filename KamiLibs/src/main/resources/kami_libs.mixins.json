@@ -3,7 +3,7 @@
   "minVersion": "0.8",
   "package": "kami.libs.mixin",
   "compatibilityLevel": "JAVA_21",
-  "mixins": ["BankAccountAccess", "PlayerListSaveMixin"],
+  "mixins": ["NumismaticsBankAccountMixin", "PlayerListSaveMixin"],
   "client": ["XaeroHighlighterRegistryMixin", "XaeroRadarListMixin", "XaeroMinimapCaveMixin", "XaeroWorldMapCaveMixin", "XaeroInfoDisplaysMixin", "XaeroGuiMapMixin"],
   "injectors": { "defaultRequire": 0 }
 }

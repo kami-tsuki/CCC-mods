@@ -19,7 +19,7 @@ object Names {
 
     fun color(c: Citizenship) = c.color.takeIf { it != 0 } ?: Theme.ACCENT
 
-    fun title(rank: String): MutableComponent = Phrase.or("kami_claims.rank.${rank.lowercase()}", rank.lowercase().replaceFirstChar(Char::uppercase)).component()
+    fun title(rank: String): MutableComponent = Phrase.or("kami_claims.rank.${rank.lowercase()}", rank).component()
 
     fun stat(p: ServerPlayer, stat: ResourceLocation) = p.stats.getValue(Stats.CUSTOM.get(stat))
 
@@ -75,7 +75,7 @@ object Names {
     }
 
     fun rankTag(c: Citizenship, hover: Boolean = true): MutableComponent {
-        val label = Phrase.or("kami_claims.rank.${c.rank.lowercase()}", c.rank.lowercase().replaceFirstChar(Char::uppercase))
+        val label = Phrase.or("kami_claims.rank.${c.rank.lowercase()}", c.rank)
         val tag = Component.literal("[").append(label.component()).append("]").withColor(color(c))
         if (!hover) return tag
         val card = lines(

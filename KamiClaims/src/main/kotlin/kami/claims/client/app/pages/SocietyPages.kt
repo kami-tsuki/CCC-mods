@@ -1,32 +1,35 @@
 package kami.claims.client.app.pages
 
 import kami.libs.ui.core.Memo
-import kami.claims.client.app.rankOf
 import kami.libs.text.SearchQuery
 import kami.libs.ui.text.trn
 import kami.libs.ui.text.tr
-import kami.claims.Rank
+import kami.claims.gov.CITIZEN
+import kami.claims.gov.PRESIDENT
+import kami.claims.gov.Perm
+import kami.claims.client.app.rankLine
+import kami.claims.client.app.tint
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ClientLocks
-import kami.claims.client.app.capacityLine
 import kami.claims.research.Capacity
 import kami.claims.client.app.ClaimsPage
 import kami.libs.ui.app.Consequence
 import kami.claims.client.app.Dialogs
 import kami.claims.client.app.Illustrations
+import kami.libs.ui.widget.MasterDetail
 import kami.claims.client.app.Vocabulary
 import kami.claims.client.store.ClaimsStore
-import kami.claims.net.JobLine
 import kami.claims.net.Info
 import kami.claims.net.Mem
+import java.util.concurrent.TimeUnit
 import kami.claims.client.store.ClientResearch
+import kami.claims.client.store.restricted
 import kami.libs.ui.core.Stack
 import kami.libs.ui.app.Callout
 import kami.libs.ui.app.Route
 import kami.libs.ui.core.Flow
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Row
-import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
@@ -41,7 +44,6 @@ import kotlin.math.max
 class CitizensPage(app: ClaimsApp) : ClaimsPage(app) {
     private val memberColumns = Memo()
     private val citizenTabs = Memo()
-    private val rankOptionsMemo = Memo()
     override val title get() = tr("kami_claims.nav.citizens")
     override val help get() = listOf(
         Callout("citizens:tabs", tr("kami_claims.citizens.help.tabs"), tr("kami_claims.citizens.help.tabs.desc")),
@@ -50,24 +52,21 @@ class CitizensPage(app: ClaimsApp) : ClaimsPage(app) {
     )
     private var tab = 0
     private var details = false
+    private val layout = MasterDetail(0.42, 170, 240)
     private val table = TableState<Mem>()
     private val search = TextState()
     private val invite = TextState()
-    private val jobText = HashMap<List<String>, String>()
-    private var jobLocale: Any? = null
     private val plotLimits = HashMap<String, NumberState>()
 
     override fun opened(route: Route) {
-        jobText.clear()
         if (route.focus == "requests") tab = 1
     }
 
     override fun draw(ui: Ui, r: Rect) {
         val info = info ?: return
-        if (jobLocale !== Format.locale) { jobText.clear(); jobLocale = Format.locale }
         val tabs = r.top(CONTROL_H)
         ui.anchor("citizens:tabs", tabs)
-        val staff = lock("invite")
+        val staff = lock(Perm.INVITE)
         ui.subTabs(tabs, citizenTabs.of(info.members.size, info.requests.size, info.invitesSent.size, staff, Format.locale) { listOf(
             TabItem(tr("kami_libs.common.members"), Icons.PEOPLE, info.members.size, Severity.NEUTRAL),
             TabItem(tr("kami_claims.citizens.tab.requests"), Icons.INVITE, info.requests.size, Severity.INFO, staff),
@@ -83,17 +82,19 @@ class CitizensPage(app: ClaimsApp) : ClaimsPage(app) {
 
     private fun members(ui: Ui, r: Rect) {
         val info = info ?: return
-        val profileW = if (app.compact) 0 else (r.w * 0.42).toInt().coerceIn(170, 240)
-        val left = r.dropRight(profileW, if (profileW > 0) 8 else 0)
+        layout.draw(ui, r, app.compact, table.selected, { memberList(ui, it, info) }, { profile(ui, it, info.members.firstOrNull { m -> m.id in table.selected } ?: info.members.firstOrNull { m -> m.id == snap.me }) })
+    }
+
+    private fun memberList(ui: Ui, left: Rect, info: Info) {
         var rows: List<Mem> = emptyList()
         val tableRect = ui.filterBar(left, "citizens:filters") { barRect ->
             val bar = Row(barRect, 6)
             ui.searchField(bar.take(140), search, tr("kami_claims.citizens.search"), key = "mem-search")
             val inviteLabel = tr("kami_libs.common.invite")
             if (app.compact) {
-                if (ui.edgeButton(bar, inviteLabel, Icons.INVITE, ButtonStyle.PRIMARY, can("invite"), lock("invite"), pending = pending("invite"), key = "invite-open")) Dialogs.invite(app, invite)
+                if (ui.edgeButton(bar, inviteLabel, Icons.INVITE, ButtonStyle.PRIMARY, can(Perm.INVITE), lock(Perm.INVITE), pending = pending("invite"), key = "invite-open")) Dialogs.invite(app, invite)
             } else {
-                val invited = ui.edgeButton(bar, inviteLabel, Icons.INVITE, ButtonStyle.PRIMARY, can("invite") && invite.text.length >= 3, lock("invite") ?: tr("kami_claims.field.player.disabled"), pending = pending("invite"), key = "invite-go")
+                val invited = ui.edgeButton(bar, inviteLabel, Icons.INVITE, ButtonStyle.PRIMARY, can(Perm.INVITE) && invite.text.length >= 3, lock(Perm.INVITE) ?: tr("kami_claims.field.player.disabled"), pending = pending("invite"), key = "invite-go")
                 ui.playerField(bar.takeFromRight(120), invite, offline = { ClaimsStore.snap?.names.orEmpty() }, query = { ClaimsStore.quiet("names", it) }, key = "invite-name")
                 if (invited) {
                     act("invite", invite.text, key = "invite")
@@ -103,23 +104,24 @@ class CitizensPage(app: ClaimsApp) : ClaimsPage(app) {
             rows = ui.filtered("citizens-filtered", listOf(search.text, info.members)) { SearchQuery.parse(search.text).let { q -> info.members.filter { q.matches(it.name) } } }
         }
         ui.anchor("citizens:table", tableRect)
-        ui.table(tableRect, memberColumns.of(Format.locale) { listOf(
+        val peopleHidden = info.restricted(Perm.VIEW_PEOPLE)
+        ui.table(tableRect, memberColumns.of(Format.locale, peopleHidden, info.restricted(Perm.VIEW_JOBS)) { listOf(
             Column<Mem>(tr("kami_libs.common.name"), -1, sort = textOrder { it.name }) { _, c, m ->
                 avatar(m.id, c.x, c.y + 1, 12, m.online)
-                fitText(c.x + 16, c.y + 3, c.w - 16, m.name)
+                fitText(c.x + 16, c.y + 3, c.w - 16, m.name, if (m.id == ClaimsStore.info?.successionMark()) Palette.brass else Palette.text)
             },
-            Column<Mem>(tr("kami_libs.common.rank"), 84, sort = compareBy { Vocabulary.rankOrder.indexOf(it.rank) }) { _, c, m ->
-                val look = Vocabulary.rank(m.rank)
-                val x = c.x + Draw.leadIcon(g, look.icon, c.x, c.centerY) + 2
-                fitText(x, c.y + 3, c.right - x, look.label, look.color)
+            Column<Mem>(tr("kami_libs.common.rank"), 96, sort = compareBy { ClaimsStore.info?.rankLine(it.rank)?.position ?: Int.MAX_VALUE }) { _, c, m ->
+                val line = ClaimsStore.info?.rankLine(m.rank)
+                val color = line?.tint ?: Palette.textMuted
+                Draw.fill(g, Rect(c.x, c.centerY - 3, 6, 6), color)
+                fitText(c.x + 10, c.y + 3, c.w - 10, line?.name ?: "-", color)
             },
             Column<Mem>(tr("kami_libs.common.job"), 100, sort = compareBy { it.jobs.size }) { _, c, m ->
-                if (m.jobs.isEmpty()) Draw.text(g, "-", c.x, c.y + 3, Palette.textMuted)
-                else fitText(c.x, c.y + 3, c.w, jobText.getOrPut(m.jobs) { m.jobs.joinToString(", ") { Vocabulary.job(it) } }, Palette.textSecondary)
+                if (peopleHidden || m.jobs.isEmpty()) Draw.text(g, "-", c.x, c.y + 3, Palette.textMuted)
+                else fitText(c.x, c.y + 3, c.w, m.jobs.joinToString(", ") { jobName(it) }, Palette.textSecondary)
             },
-            Column<Mem>(tr("kami_claims.citizens.col.seen"), 60, Align.RIGHT, compareBy { -it.seen }) { _, c, m -> Draw.textRight(g, if (m.online) tr("kami_libs.common.online") else Format.ago(m.seen), c.right, c.y + 3, if (m.online) Palette.success else Palette.textMuted) }
+            Column<Mem>(tr("kami_claims.citizens.col.seen"), 60, Align.RIGHT, compareBy { -it.seen }) { _, c, m -> if (peopleHidden) Draw.textRight(g, "-", c.right, c.y + 3, Palette.textMuted) else Draw.textRight(g, if (m.online) tr("kami_libs.common.online") else Format.ago(m.seen), c.right, c.y + 3, if (m.online) Palette.success else Palette.textMuted) }
         ) }, rows, table, { it.id })
-        if (profileW > 0) profile(ui, r.right(profileW), rows.firstOrNull { it.id in table.selected } ?: info.members.firstOrNull { it.id == snap.me })
     }
 
     private fun profile(ui: Ui, r: Rect, m: Mem?) {
@@ -127,37 +129,42 @@ class CitizensPage(app: ClaimsApp) : ClaimsPage(app) {
         if (m == null) return
         val info = info ?: return
         val f = ui.sidePanel(r, 4, 8)
+        val peopleHidden = info.restricted(Perm.VIEW_PEOPLE)
         val head = f.take(26)
         header(ui, m, head)
-        val rank = rankOf(m.rank) ?: Rank.CITIZEN
-        ui.property(f.take(11), tr("kami_claims.nav.plots"), if (m.plotLimit > 0) tr("kami_libs.format.ratio", m.plotsHeld, m.plotLimit) else Format.number(m.plotsHeld))
+        ui.property(f.take(11), tr("kami_claims.nav.plots"), if (peopleHidden) "-" else if (m.plotLimit > 0) tr("kami_libs.format.ratio", m.plotsHeld, m.plotLimit) else Format.number(m.plotsHeld))
         val me = m.id == snap.me
-        val myRank = ClaimsStore.rank
+        val president = m.rank == PRESIDENT
+        val below = ClaimsStore.outranks(m.rank)
         f.skip(2)
-        val targets = listOf(Rank.CITIZEN, Rank.OFFICER, Rank.CHANCELLOR)
-        val rankLock = lock("rank") ?: when {
+        val targets = info.ranks.filter { it.id != m.rank && ClaimsStore.outranks(it.id) }
+        val rankLock = lock(Perm.ASSIGN_RANKS) ?: when {
             me -> tr("kami_claims.citizens.rank.disabled.self")
-            rank >= myRank -> tr("kami_claims.citizens.rank.disabled.higher")
+            !below -> hierarchyLock(m, "kami_claims.citizens.rank.disabled.higher")
+            targets.isEmpty() -> tr("kami_claims.citizens.rank.disabled.none")
             else -> null
         }
-        val rankChoices = rankOptionsMemo.of(rank, myRank, rankLock, m.id, info.members, ClientResearch.state, Format.locale) { targets.map { t ->
-            Option(t, Vocabulary.rank(t.name).label, Vocabulary.rank(t.name).icon, lock = ClientLocks.rank(t, rank), disabledReason = rankLock ?: if (t >= myRank) tr("kami_claims.citizens.rank.disabled.above") else if (t == Rank.CHANCELLOR && info.members.any { it.rank == "chancellor" && it.id != m.id }) tr("kami_claims.error.one_chancellor") else null)
-        } }
-        ui.segmented(f.take(CONTROL_H), rankChoices, rank, key = "rank:${m.id}")?.let { next -> rankDialog(m, rank, next) }
+        ui.select(f.take(CONTROL_H), targets.map { Option(it.id, it.name, null, null, it.tint) }, null, info.rankLine(m.rank)?.name.orEmpty(), rankLock == null, rankLock, key = "rank:${m.id}")
+            ?.let { id -> info.rankLine(id)?.let { RankDialogs.assign(app, info, m, it) } }
         f.skip(2)
-        jobs(ui, f, m, info)
+        succession(ui, f, m, info)
+        if (peopleHidden) restrictedHint(ui, f, Perm.VIEW_PEOPLE) else jobs(ui, f, m, info)
         f.skip(2)
         if (ui.disclosure(f.take(12), tr("kami_libs.common.details"), details, key = "cit-details")) details = !details
         if (details) {
             ui.property(f.take(11), tr("kami_claims.citizens.since"), if (m.since > 0) Format.ago(m.since) else "-")
-            quotas(ui, f, m, info)
-            plotLimit(ui, f, m, info)
+            if (!peopleHidden) {
+                if (!info.restricted(Perm.VIEW_JOBS)) quotas(ui, f, m, info)
+                plotLimit(ui, f, m, info)
+            }
         }
         val rest = f.rest
         var y = rest.bottom - CONTROL_H
-        val memberLock = lock("members") ?: if (me) tr("kami_claims.citizens.member.disabled.self") else if (rank >= myRank) tr("kami_claims.citizens.member.disabled.higher") else null
+        val memberRule = if (me) tr("kami_claims.citizens.member.disabled.self") else if (!below) hierarchyLock(m, "kami_claims.citizens.member.disabled.higher") else null
+        val kickLock = lock(Perm.KICK) ?: memberRule
+        val banishLock = lock(Perm.BANISH) ?: memberRule
         if (me && !info.delegated) {
-            val presidentAlone = rank == Rank.PRESIDENT && info.members.size > 1
+            val presidentAlone = president && info.members.size > 1
             if (ui.button(Rect(rest.x, y, rest.w, CONTROL_H), tr("kami_claims.citizens.leave", info.name), Icons.BACK, ButtonStyle.DANGER, !presidentAlone, tr("kami_claims.error.transfer_first"), key = "leave")) {
                 Dialogs.confirm(app, tr("kami_claims.citizens.leave.confirm.title", info.name), null, Icons.BACK, listOfNotNull(
                     if (info.members.size == 1) Consequence(tr("kami_claims.citizens.leave.last"), Severity.DANGER) else null,
@@ -165,7 +172,7 @@ class CitizensPage(app: ClaimsApp) : ClaimsPage(app) {
                 ), tr("kami_claims.citizens.leave.action"), "leave", if (info.members.size == 1) arrayOf("confirm") else emptyArray(), danger = true, hold = true, typed = if (info.members.size == 1) info.name else null)
             }
             y -= CONTROL_H + 3
-            if (rank == Rank.PRESIDENT) {
+            if (president) {
                 if (ui.button(Rect(rest.x, y, rest.w, CONTROL_H), tr("kami_claims.citizens.disband"), Icons.DANGER, ButtonStyle.DANGER, key = "disband")) {
                     Dialogs.confirm(app, tr("kami_claims.common.disband_x", info.name), null, Icons.DANGER, listOf(
                         Consequence(tr("kami_claims.citizens.disband.land", trn("kami_claims.unit.chunk", info.chunks)), Severity.DANGER),
@@ -178,41 +185,75 @@ class CitizensPage(app: ClaimsApp) : ClaimsPage(app) {
             return
         }
         val half = (rest.w - 4) / 2
-        if (ui.button(Rect(rest.x, y, half, CONTROL_H), tr("kami_libs.common.remove"), Icons.BACK, ButtonStyle.DANGER, memberLock == null, memberLock, key = "kick:${m.id}")) {
+        if (ui.button(Rect(rest.x, y, half, CONTROL_H), tr("kami_libs.common.remove"), Icons.BACK, ButtonStyle.DANGER, kickLock == null, kickLock, key = "kick:${m.id}")) {
             Dialogs.confirm(app, tr("kami_claims.citizens.kick.confirm.title", m.name), info.name, Icons.BACK, listOf(
                 Consequence(tr("kami_claims.citizens.kick.loses", m.name), Severity.DANGER)
             ), tr("kami_libs.common.remove"), "kick", arrayOf(m.id), danger = true, hold = true)
         }
-        if (ui.lockedButton(Rect(rest.x + half + 4, y, half, CONTROL_H), tr("kami_claims.citizens.banish"), ClientLocks.feature("banish"), Icons.BAN, ButtonStyle.DANGER, memberLock == null, memberLock, key = "ban:${m.id}")) {
+        if (ui.lockedButton(Rect(rest.x + half + 4, y, half, CONTROL_H), tr("kami_claims.citizens.banish"), ClientLocks.feature("banish"), Icons.BAN, ButtonStyle.DANGER, banishLock == null, banishLock, key = "ban:${m.id}")) {
             Dialogs.confirm(app, tr("kami_claims.citizens.banish.confirm.title", m.name), info.name, Icons.BAN, listOf(
                 Consequence(tr("kami_claims.citizens.banish.locked", m.name), Severity.DANGER),
                 Consequence(tr("kami_claims.citizens.banish.lift"), Severity.WARNING)
             ), tr("kami_claims.citizens.banish"), "banish", arrayOf(m.id), danger = true, hold = true)
         }
         y -= CONTROL_H + 3
-        if (myRank == Rank.PRESIDENT && !info.delegated) {
+        if (ClaimsStore.myRank?.id == PRESIDENT && !info.delegated) {
             if (ui.button(Rect(rest.x, y, rest.w, CONTROL_H), tr("kami_claims.citizens.president"), Icons.CROWN, key = "pres:${m.id}")) {
                 Dialogs.confirm(app, tr("kami_claims.citizens.president.confirm.title", m.name), null, Icons.CROWN, listOf(
                     Consequence(tr("kami_claims.citizens.president.rights", m.name), Severity.DANGER),
-                    Consequence(tr("kami_claims.citizens.president.you", Vocabulary.rank(if (rank >= Rank.OFFICER) rank.name else Rank.OFFICER.name).label), Severity.WARNING),
+                    Consequence(tr("kami_claims.citizens.president.you", info.rankLine(CITIZEN)?.name.orEmpty()), Severity.WARNING),
                     Consequence(tr("kami_claims.citizens.president.final"), Severity.DANGER)
                 ), tr("kami_claims.citizens.president.action"), "president", arrayOf(m.id, "confirm"), danger = true, hold = true, typed = m.name)
             }
         }
     }
 
+    private fun succession(ui: Ui, f: Flow, m: Mem, info: Info) {
+        val gov = info.government?.takeUnless { info.delegated } ?: return
+        when (gov.leadership) {
+            "elected" -> {
+                val voted = gov.myVote == m.id
+                if (voted) ui.property(f.take(11), tr("kami_claims.citizens.vote.yours"), m.name, Palette.brass)
+                if (ui.button(f.take(CONTROL_H), tr("kami_claims.citizens.vote"), Icons.CROWN, enabled = !voted, disabledReason = tr("kami_claims.citizens.vote.disabled.voted"), pending = pending("vote_president"), key = "vote:${m.id}")) act("vote_president", m.id)
+            }
+            "hereditary", "appointed" -> {
+                val isHeir = gov.heir == m.id
+                if (isHeir) ui.property(f.take(11), tr("kami_claims.citizens.heir"), m.name, Palette.brass)
+                val lock = when {
+                    ClaimsStore.myRank?.id != PRESIDENT || info.delegated -> tr("kami_claims.gov.lock.president")
+                    m.id == snap.me -> tr("kami_claims.citizens.heir.disabled.self")
+                    gov.leadership == "hereditary" && !isHeir && tooNewForHeir(m) -> tr("kami_claims.citizens.heir.disabled.age", HEIR_MIN_DAYS)
+                    else -> null
+                }
+                if (ui.button(f.take(CONTROL_H), tr(if (isHeir) "kami_claims.citizens.heir.clear" else "kami_claims.citizens.heir.set"), Icons.CROWN, enabled = lock == null, disabledReason = lock, pending = pending("heir_set"), key = "heir:${m.id}")) act("heir_set", if (isHeir) "" else m.id)
+            }
+            "seized" -> f.take(Draw.paragraph(ui.g, tr("kami_claims.citizens.seized"), f.rest.x, f.rest.y, f.rest.w))
+        }
+        f.skip(2)
+    }
+
+    private fun tooNewForHeir(m: Mem) = m.since > 0 && System.currentTimeMillis() - m.since < TimeUnit.DAYS.toMillis(HEIR_MIN_DAYS.toLong())
+
+    private fun Info.successionMark() = government?.let { if (it.leadership == "elected") it.myVote else it.heir }.orEmpty()
+
+    private fun hierarchyLock(m: Mem, key: String) = if (m.rank.isEmpty()) ClientLocks.perm(Perm.VIEW_PEOPLE) else tr(key)
+
+    private fun jobName(id: String) = info?.jobSpecs?.firstOrNull { it.id == id }?.name ?: if (info?.restricted(Perm.VIEW_JOBS) == true) tr("kami_claims.citizens.job.hidden") else id
+
+    private fun restrictedHint(ui: Ui, f: Flow, perm: Perm) {
+        ui.fitText(f.rest.x, f.rest.y + 2, f.rest.w, ClientLocks.perm(perm) ?: "", Palette.textMuted)
+        f.skip(14)
+    }
+
     private fun jobs(ui: Ui, f: Flow, m: Mem, info: Info) {
         ui.section(f.take(14), tr("kami_claims.cap.jobs"), Vocabulary.ratio(m.jobs.size, info.jobSlots))
-        val jobLock = lock("jobs")
+        val jobLock = lock(Perm.ASSIGN_JOBS)
         if (m.jobs.isEmpty()) {
             Draw.text(ui.g, tr("kami_claims.citizens.no_job"), f.rest.x, f.rest.y + 2, Palette.textMuted)
             f.skip(14)
         } else {
-            val chips = ui.filtered("job-chips:${m.id}", listOf(m.jobs, jobLock == null, Format.locale, info.jobList)) {
-                m.jobs.map { name ->
-                    val type = info.jobList.firstOrNull { it.name == name }?.type
-                    ChipSpec(Vocabulary.job(name), Palette.textSecondary, if (jobLock == null) Icons.CROSS else type?.let { Vocabulary.type(it).icon })
-                }
+            val chips = ui.filtered("job-chips:${m.id}", listOf(m.jobs, jobLock == null, Format.locale, info.jobSpecs)) {
+                m.jobs.map { ChipSpec(jobName(it), Palette.textSecondary, if (jobLock == null) Icons.CROSS else null) }
             }
             val rest = f.rest
             val stack = Stack(rest.x, rest.y, rest.w, 3)
@@ -221,12 +262,9 @@ class CitizensPage(app: ClaimsApp) : ClaimsPage(app) {
             if (clicked != null && jobLock == null) act("job_remove", m.id, m.jobs[clicked], key = "job")
         }
         val full = m.jobs.size >= info.jobSlots
-        val options = ui.filtered("job-options:${m.id}", listOf(m.jobs, Format.locale, info.jobList, ClientResearch.state)) {
-            info.jobList.filter { it.name !in m.jobs }.map { j ->
-                val lock = ClientLocks.claimType(j.type)
-                val type = Vocabulary.type(j.type)
-                Option(j.name, Vocabulary.job(j.name), type.icon, tr("kami_claims.citizens.job.desc", type.label, Format.money(j.pay.toLong()), Format.number(j.quota)), lock = lock,
-                    disabledReason = lock?.let { tr("kami_claims.citizens.job.needs", Vocabulary.job(j.name), type.label, ClientResearch.unlockLevel(ClientLocks.CLAIM_TYPE + j.type) ?: 0) })
+        val options = ui.filtered("job-options:${m.id}", listOf(m.jobs, Format.locale, info.jobSpecs)) {
+            info.jobSpecs.filter { it.id !in m.jobs && it.assignment != CONTRACT }.map { j ->
+                Option(j.id, j.name, null, tr("kami_claims.citizens.job.desc", Format.money(j.pay.toLong()), Format.number(j.quota)), Palette.opaque(j.color))
             }
         }
         val reason = jobLock ?: if (full) ClientLocks.raise(Capacity.JOB_SLOTS)?.reason ?: tr("kami_claims.citizens.job.full") else null
@@ -236,21 +274,21 @@ class CitizensPage(app: ClaimsApp) : ClaimsPage(app) {
     }
 
     private fun quotas(ui: Ui, f: Flow, m: Mem, info: Info) {
-        m.jobs.forEach { name ->
-            val quota = info.jobList.firstOrNull { it.name == name }?.quota ?: return@forEach
-            val done = m.progress[name] ?: 0
+        m.jobs.forEach { id ->
+            val spec = info.jobSpecs.firstOrNull { it.id == id } ?: return@forEach
+            val done = m.progress[id] ?: 0
             val row = f.take(10)
-            ui.fitText(row.x, row.y + 1, 64, Vocabulary.job(name), Palette.textSecondary)
-            ui.progress(Rect(row.x + 68, row.y + 3, row.w - 68 - 44, 4), done.toDouble() / max(1, quota), if (done >= quota) Palette.success else Palette.brass)
-            Draw.textRight(ui.g, "$done/$quota", row.right, row.y + 1, Palette.textMuted)
+            ui.fitText(row.x, row.y + 1, 64, spec.name, Palette.textSecondary)
+            ui.progress(Rect(row.x + 68, row.y + 3, row.w - 68 - 44, 4), done.toDouble() / max(1, spec.quota), if (done >= spec.quota) Palette.success else Palette.brass)
+            Draw.textRight(ui.g, "$done/${spec.quota}", row.right, row.y + 1, Palette.textMuted)
         }
     }
 
     private fun plotLimit(ui: Ui, f: Flow, m: Mem, info: Info) {
         ui.fieldLabel(f.take(9), tr("kami_claims.citizens.plots.limit"))
-        val editLock = lock("tax")
+        val editLock = lock(Perm.PLOTS)
         val state = plotLimits.getOrPut(m.id) { NumberState(m.plotLimit.toLong()) }
-        val fallback = info.rankPlots[m.rank] ?: 0
+        val fallback = info.rankLine(m.rank)?.plots ?: 0
         val r = f.take(CONTROL_H)
         val label = tr("kami_claims.citizens.plots.reset")
         val bw = buttonWidth(label, Icons.UNDO)
@@ -265,21 +303,12 @@ class CitizensPage(app: ClaimsApp) : ClaimsPage(app) {
     private fun header(ui: Ui, m: Mem, r: Rect) {
         ui.avatar(m.id, r.x, r.y, 24, m.online)
         ui.fitText(r.x + 30, r.y + 2, r.w - 30, m.name, style = TextStyle.HEADING)
-        val look = Vocabulary.rank(m.rank)
-        ui.fitText(r.x + 30, r.y + 13, r.w - 30, look.label + " · " + if (m.online) tr("kami_libs.common.online") else Format.ago(m.seen), look.color)
-    }
-
-    private fun rankDialog(m: Mem, from: Rank, to: Rank) {
-        if (from == to) return
-        val caps = snap.caps
-        fun rights(r: Rank) = caps.filter { (_, min) -> rankOf(min)?.let { r >= it } == true }.keys
-        val gained = rights(to) - rights(from)
-        val lost = rights(from) - rights(to)
-        val up = to > from
-        Dialogs.confirm(app, tr(if (up) "kami_claims.citizens.promote.confirm.title" else "kami_claims.citizens.demote.confirm.title", m.name, Vocabulary.rank(to.name).label), null, Vocabulary.rank(to.name).icon,
-            gained.map { Consequence(tr("kami_claims.citizens.rank.gains", Vocabulary.caps[it]?.description ?: it), Severity.WARNING) } +
-                lost.map { Consequence(tr("kami_claims.citizens.rank.loses", Vocabulary.caps[it]?.description ?: it)) },
-            tr(if (up) "kami_claims.citizens.promote" else "kami_claims.citizens.demote"), "rank", arrayOf(m.id, to.name.lowercase()))
+        val rank = info?.rankLine(m.rank)
+        ui.fitText(r.x + 30, r.y + 13, r.w - 30, rank?.name.orEmpty() + " · " + when {
+            info?.restricted(Perm.VIEW_PEOPLE) == true -> "-"
+            m.online -> tr("kami_libs.common.online")
+            else -> Format.ago(m.seen)
+        }, rank?.tint ?: Palette.textMuted)
     }
 
     private fun requests(ui: Ui, r: Rect) {
@@ -302,7 +331,7 @@ class CitizensPage(app: ClaimsApp) : ClaimsPage(app) {
                 ui.fitText(row.x + 26, row.y + 5, textW, m.name, style = TextStyle.HEADING)
                 val citizenship = ClaimsStore.players.firstOrNull { it.id == m.id }?.citizenships?.firstOrNull { it.via.isEmpty() }
                 ui.fitText(row.x + 26, row.y + 15, textW, citizenship?.let { tr("kami_claims.citizens.member_of", it.country) } ?: tr("kami_libs.common.no_country"), Palette.textMuted)
-                val staff = lock("invite")
+                val staff = lock(Perm.INVITE)
                 val actions = Row(Rect(row.x, row.y + 4, row.w - 6, CONTROL_H))
                 if (ui.edgeButton(actions, deny, enabled = staff == null, disabledReason = staff, key = "deny:${m.id}")) act("deny", m.id, key = "deny:${m.id}")
                 if (ui.edgeButton(actions, approve, Icons.CHECK, ButtonStyle.PRIMARY, staff == null, staff, pending = pending("approve:${m.id}"), key = "approve:${m.id}")) act("approve", m.id, key = "approve:${m.id}")
@@ -327,112 +356,5 @@ class CitizensPage(app: ClaimsApp) : ClaimsPage(app) {
     }
 }
 
-class JobsPage(app: ClaimsApp) : ClaimsPage(app) {
-    private val jobColumns = Memo()
-    override val title get() = tr("kami_claims.nav.jobs")
-    override val help get() = listOf(
-        Callout("jobs:cards", tr("kami_claims.nav.jobs"), tr("kami_claims.jobs.help.cards.desc")),
-        Callout("jobs:payroll", tr("kami_claims.jobs.budget"), tr("kami_claims.jobs.help.budget.desc"))
-    )
-    private val edits = HashMap<String, Triple<NumberState, NumberState, NumberState>>()
-    private val table = TableState<JobLine>()
-
-    override fun draw(ui: Ui, r: Rect) {
-        val info = info ?: return
-        val payroll = r.bottom(22)
-        ui.anchor("jobs:payroll", payroll)
-        val cap = info.income * snap.jobShare / 100
-        val over = info.jobs > cap
-        Draw.text(ui.g, tr("kami_claims.jobs.budget"), payroll.x, payroll.y + 1, TextStyle.LABEL)
-        Draw.textRight(ui.g, tr("kami_libs.format.of", Format.number(info.jobs), Format.perDay(Format.money(cap))), payroll.right, payroll.y + 1, if (over) Palette.danger else Palette.textMuted)
-        ui.progress(Rect(payroll.x, payroll.y + 13, payroll.w, 5), info.jobs.toDouble() / max(1, cap), if (over) Palette.danger else Palette.brass)
-        val cards = r.dropBottom(22, 8)
-        ui.anchor("jobs:cards", cards)
-        if (info.jobList.isEmpty()) {
-            ui.emptyState(cards, tr("kami_claims.jobs.empty.title"), tr("kami_claims.jobs.empty.desc"), Illustrations.JOBS)
-            return
-        }
-        val lockReason = lock("jobs")
-        val selected = info.jobList.firstOrNull { it.name in table.selected } ?: info.jobList.first()
-        val editor = cards.bottom(48)
-        val tableRect = cards.dropBottom(48, 8)
-        ui.table(tableRect, jobColumns.of(info.members, app.compact, Format.locale) { listOf(
-            Column<JobLine>(tr("kami_libs.common.job"), -1, sort = textOrder { Vocabulary.job(it.name) }) { _, c, j ->
-                val look = Vocabulary.type(j.type)
-                val x = c.x + Draw.leadIcon(g, look.icon, c.x, c.centerY) + 2
-                fitText(x, c.y + 3, c.right - x, Vocabulary.job(j.name))
-            },
-            Column<JobLine>(tr("kami_claims.jobs.field.pay"), 56, Align.RIGHT, compareBy { it.pay }) { _, c, j -> Draw.textRight(g, Format.money(j.pay.toLong()), c.right, c.y + 3, Palette.text) },
-            Column<JobLine>(tr("kami_claims.jobs.field.quota"), 46, Align.RIGHT, compareBy { it.quota }) { _, c, j -> Draw.textRight(g, Format.number(j.quota), c.right, c.y + 3, Palette.textSecondary) },
-            Column<JobLine>(tr("kami_claims.jobs.field.days"), 36, Align.RIGHT, compareBy { it.period }) { _, c, j -> Draw.textRight(g, Format.number(j.period), c.right, c.y + 3, Palette.textMuted) },
-            Column<JobLine>(tr("kami_claims.common.workers"), 52, Align.RIGHT, compareBy { j -> info.members.count { j.name in it.jobs } }) { _, c, j ->
-                val n = info.members.count { j.name in it.jobs }
-                Draw.textRight(g, if (n == 0) "-" else Format.number(n), c.right, c.y + 3, if (n == 0) Palette.textMuted else Palette.textSecondary)
-            }
-        ).let { if (app.compact) it.filter { c -> c.title != tr("kami_claims.jobs.field.days") } else it } }, info.jobList, table, { it.name }, key = "jobs-table")
-        jobEditor(ui, editor, selected, lockReason)
-    }
-
-    private fun jobEditor(ui: Ui, r: Rect, j: JobLine, lockReason: String?) {
-        val state = edits.getOrPut(j.name) { Triple(NumberState(j.pay.toLong()), NumberState(j.quota.toLong()), NumberState(j.period.toLong())) }
-        val dirty = state.first.value != j.pay.toLong() || state.second.value != j.quota.toLong() || state.third.value != j.period.toLong()
-        if (!dirty) { state.first.sync(j.pay.toLong()); state.second.sync(j.quota.toLong()); state.third.sync(j.period.toLong()) }
-        val head = r.top(14)
-        ui.fitText(head.x, head.y + 2, head.w / 2, Vocabulary.job(j.name), Palette.textMuted, TextStyle.LABEL)
-        if (dirty) {
-            val actions = Row(Rect(head.x, head.y - 2, head.w, 16))
-            val saved = ui.edgeButton(actions, tr("kami_libs.common.save"), Icons.SAVE, ButtonStyle.PRIMARY, pending = pending("job_set:${j.name}"), key = "save:${j.name}")
-            if (ui.edgeButton(actions, tr("kami_libs.common.undo"), key = "undo:${j.name}")) edits.remove(j.name)
-            if (saved) act("job_edit", j.name, state.first.value.toString(), state.second.value.toString(), state.third.value.toString(), key = "job_set:${j.name}")
-        }
-        val cols = r.dropTop(16).columns(3, 6)
-        val max = (limits?.maxJobPay ?: 100).toLong()
-        ui.fieldLabel(cols[0].top(9), tr("kami_claims.jobs.field.pay"))
-        ui.numberField(Rect(cols[0].x, cols[0].y + 10, cols[0].w, CONTROL_H), state.first, 0L, max, enabled = lockReason == null, key = "${j.name}:0")
-        ui.fieldLabel(cols[1].top(9), tr("kami_claims.jobs.field.quota"))
-        ui.numberField(Rect(cols[1].x, cols[1].y + 10, cols[1].w, CONTROL_H), state.second, 0L, 100_000L, enabled = lockReason == null, key = "${j.name}:1")
-        ui.fieldLabel(cols[2].top(9), tr("kami_claims.jobs.field.days"))
-        ui.numberField(Rect(cols[2].x, cols[2].y + 10, cols[2].w, CONTROL_H), state.third, 1L, 30L, enabled = lockReason == null, key = "${j.name}:2")
-    }
-}
-
-class RanksPage(app: ClaimsApp) : ClaimsPage(app) {
-    override val title get() = tr("kami_claims.nav.ranks")
-    override val help get() = listOf(Callout("ranks:matrix", tr("kami_claims.ranks.help.matrix"), tr("kami_claims.ranks.help.matrix.desc")))
-
-    override fun draw(ui: Ui, r: Rect) {
-        val info = info ?: return
-        ui.anchor("ranks:matrix", r)
-        val ranks = Vocabulary.rankOrder
-        val labelW = (r.w * 0.45).toInt()
-        val colW = (r.w - labelW) / ranks.size
-        val head = r.top(34)
-        ranks.forEachIndexed { i, rank ->
-            val c = Rect(head.x + labelW + i * colW, head.y, colW, head.h)
-            val look = Vocabulary.rank(rank)
-            if (rank == info.rank) Draw.fill(ui.g, Rect(c.x, r.y, c.w, r.h - 12), Palette.alpha(Palette.brass, 0x18))
-            Draw.icon(ui.g, look.icon, c.centerX - 8, c.y)
-            Draw.text(ui.g, look.label, c.centerX - Draw.width(look.label) / 2, c.y + 17, look.color)
-            val count = info.members.count { it.rank == rank }
-            Draw.text(ui.g, Format.number(count), c.centerX - Draw.width(Format.number(count)) / 2, c.y + 26, Palette.textMuted)
-            ui.tooltip("rank:$rank", c, look.description)
-        }
-        Vocabulary.caps.entries.forEachIndexed { row, (cap, look) ->
-            val y = r.y + 38 + row * MATRIX_ROW_H
-            val line = Rect(r.x, y, r.w, MATRIX_ROW_H)
-            if (row % 2 == 0) Draw.fill(ui.g, line, Palette.alpha(0x000000, 0x0C))
-            val labelX = r.x + 2 + Draw.leadIcon(ui.g, look.icon, r.x + 2, line.centerY) + 2
-            ui.fitText(labelX, y + 4, r.x + labelW - labelX - 4, look.label)
-            ui.tooltip("cap:$cap", line.left(labelW), Tip.text(look.description, look.label))
-            val min = snap.caps[cap]?.let(::rankOf) ?: Rank.PRESIDENT
-            ranks.forEachIndexed { i, rank ->
-                val ok = (rankOf(rank) ?: Rank.BANISHED) >= min
-                Draw.icon(ui.g, if (ok) Icons.CHECK else Icons.REMOVE, Rect(r.x + labelW + i * colW, y, colW, MATRIX_ROW_H))
-            }
-        }
-        val footerX = r.x + 2 + Draw.leadIcon(ui.g, Icons.LOCK, r.x + 2, r.bottom - 5) + 2
-        Draw.text(ui.g, tr("kami_claims.ranks.footer", Vocabulary.rank(info.rank).label), footerX, r.bottom - 9, Palette.textMuted)
-    }
-}
-
-private const val MATRIX_ROW_H = 16
+private const val CONTRACT = "contract"
+private const val HEIR_MIN_DAYS = 7

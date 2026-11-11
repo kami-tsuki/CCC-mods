@@ -52,8 +52,8 @@ object Talk {
         e.isCanceled = true
         when {
             admin -> admin(p, e.rawText)
-            country -> country(p, e.rawText)
             Vanish.active(p) -> invisible(p)
+            country -> country(p, e.rawText)
             Mutes.silenced(p) -> Unit
             else -> {
                 val body = body(e.rawText, p)

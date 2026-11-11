@@ -136,7 +136,7 @@
             "tradePolicy": {},
             "research": {
                 "done": {
-                    "technology:crafting_table": 1790973493216,
+                    "technology:workbench": 1790973493216,
                     "metallurgy:stone_tools": 1791046433577
                 },
                 "queue": [],

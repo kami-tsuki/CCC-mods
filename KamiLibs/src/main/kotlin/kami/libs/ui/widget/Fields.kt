@@ -36,9 +36,10 @@ class TextState(initial: String = "") {
     val hasSelection get() = cursor != anchor
 
     fun insert(s: String, limit: Int, allow: (Char) -> Boolean): Boolean {
-        val clean = s.filter { it >= ' ' && allow(it) }
-        if (clean.isEmpty() && !hasSelection) return false
         val sel = selection
+        val room = (limit - (text.length - (sel.last - sel.first + 1))).coerceAtLeast(0)
+        val clean = s.filter { it >= ' ' && allow(it) }.take(room)
+        if (clean.isEmpty() && (s.isNotEmpty() || !hasSelection)) return false
         val next = text.substring(0, sel.first) + clean + text.substring(sel.last + 1)
         if (next.length > limit) return false
         text = next
@@ -141,7 +142,7 @@ fun Ui.textField(
     if (cursorX - state.scroll > inner.w - 2) state.scroll = cursorX - inner.w + 2
     if (cursorX - state.scroll < 0) state.scroll = cursorX
     clip(inner) {
-        val ty = r.y + (r.h - 8) / 2
+        val ty = Draw.textY(r)
         if (state.text.isEmpty() && !focused) Draw.text(g, Draw.fit(placeholder, inner.w), inner.x, ty, Palette.textMuted)
         if (focused && state.hasSelection) {
             val a = Draw.font.width(state.text.substring(0, state.selection.first)) - state.scroll
@@ -151,7 +152,7 @@ fun Ui.textField(
         Draw.text(g, state.text, inner.x - state.scroll, ty, if (enabled) Palette.text else Palette.textDisabled)
         if (focused && (wallMillis / 500) % 2 == 0L) Draw.vline(g, inner.x + cursorX - state.scroll, ty - 1, 10, Palette.text)
     }
-    suffix?.let { Draw.text(g, it, r.right - suffixW, r.y + (r.h - 8) / 2, Palette.textMuted) }
+    suffix?.let { Draw.text(g, it, r.right - suffixW, Draw.textY(r), Palette.textMuted) }
     if (showClear) {
         val c = clearRect
         if (hovering(c)) cursor = Cursor.HAND

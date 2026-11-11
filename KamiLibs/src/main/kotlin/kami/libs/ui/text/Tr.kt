@@ -3,12 +3,15 @@ package kami.libs.ui.text
 import kami.libs.economy.Flow
 import kami.libs.text.Phrase
 import kami.libs.ui.style.Format
+import kami.libs.ui.style.ThemeFamily
 import net.minecraft.locale.Language
 import java.util.IllegalFormatException
 
 object Translations {
     var lookup: (String) -> String? = { key -> Language.getInstance().takeIf { it.has(key) }?.getOrDefault(key) }
 }
+
+val ThemeFamily.label: String get() = tr("kami_libs.theme.$id").takeIf { !it.startsWith("kami_libs.theme.") } ?: name
 
 val Flow.label: String get() = tr("kami_libs.flow.${name.lowercase()}")
 

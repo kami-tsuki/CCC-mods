@@ -4,7 +4,7 @@ import kami.economy.LOG
 import kami.economy.Vendor
 import kami.economy.now
 import kami.libs.compat.Refl
-import net.minecraft.core.registries.BuiltInRegistries
+import kami.libs.mc.ItemSpec
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.block.entity.BlockEntity
 import java.util.UUID
@@ -21,7 +21,7 @@ object NumismaticsVendors {
         v.country = country
         val owner = checkNotNull(ownerField) { "vendor owner field unavailable" }.get(be)
         v.owner = (owner as? UUID)?.toString() ?: ""
-        v.item = if (filter.isEmpty || Refl.call(be, "filterActsSpecial") == true) "" else BuiltInRegistries.ITEM.getKey(filter.item).toString()
+        v.item = if (filter.isEmpty || Refl.call(be, "filterActsSpecial") == true) "" else ItemSpec.id(filter)
         v.count = filter.count.coerceAtLeast(1)
         v.price = Refl.call(be, "getTotalPrice") as Int
         v.sell = (Refl.call(be, "getMode") as Enum<*>).name == "SELL"

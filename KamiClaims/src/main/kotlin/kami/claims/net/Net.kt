@@ -3,6 +3,7 @@ package kami.claims.net
 import kami.libs.text.Phrase
 import kami.claims.*
 import kami.claims.economy.Bank
+import kami.claims.gov.Perm
 import kami.claims.service.Fail
 import kami.claims.service.NeedsConfirm
 import kami.claims.service.Oversight
@@ -37,7 +38,7 @@ private fun <T : CustomPacketPayload> codec(write: (FriendlyByteBuf, T) -> Unit,
 
 private fun FriendlyByteBuf.count(max: Int) = readVarInt().also { require(it in 0..max) { "list too long" } }
 
-val Act = ActPayload.channel(net, maxArgs = 8, maxArg = 4096, withCountry = true)
+val Act = ActPayload.channel(net, maxArgs = 16, maxArg = 4096, withCountry = true)
 val Snapshot = SnapshotPayload.channel(net, maxBytes = 1_048_576)
 
 class Denied(val action: String, val x: Int, val y: Int, val z: Int, val owner: String, val color: Int, val type: String, val reason: String, val borderDistance: Int) : CustomPacketPayload {
@@ -160,6 +161,7 @@ object Net {
         r.playToClient(PositionsPacket.TYPE, PositionsPacket.CODEC) { p, _ -> ClientHooks.positions(p.data) }
         r.playToClient(NameTagsPacket.TYPE, NameTagsPacket.CODEC) { p, _ -> ClientHooks.nameTags(p.tags) }
         r.playToClient(FreecamPacket.TYPE, FreecamPacket.CODEC) { p, _ -> ClientHooks.freecam(p.state) }
+        r.playToClient(NewsPacket.TYPE, NewsPacket.CODEC) { p, _ -> ClientHooks.news(p.kind, p.json) }
     }
 
     fun canOpen(p: ServerPlayer) = p.connection.hasChannel(Snapshot.type)
@@ -231,6 +233,7 @@ object Net {
         pushQueue.remove(p.uuid)
         openSig.remove(p.uuid)
         ResearchSync.forget(p)
+        NewsNet.forget(p)
         openPlayers.remove(p.uuid)
         Sync.forget(p)
     }
@@ -254,7 +257,7 @@ object Net {
         val tick = p.server.tickCount
         if (!lastPreview.ready(p.uuid, tick)) return answer(p, "preview", a.rid)
         val own = Realm.of(p.stringUUID)
-        val target = (if (a.asCountry.isBlank()) own else Realm.country(a.asCountry)?.takeIf { it === own || Oversight.granted(it, p, Cap.CLAIM) })
+        val target = (if (a.asCountry.isBlank()) own else Realm.country(a.asCountry)?.takeIf { it === own || Oversight.granted(it, p, Perm.CLAIM) })
             ?: return send(p, Reply(rid = a.rid))
         val kind = a.name.removePrefix("preview_")
         val type = a.args.getOrNull(0).orEmpty()
@@ -298,7 +301,7 @@ object Net {
                 answer(p, a.name, a.rid)
             }
             "preview_claim", "preview_unclaim", "preview_type" -> preview(p, a)
-            else -> perform(p, a)
+            else -> if (a.name.startsWith("news_")) NewsNet.handle(p, a) else perform(p, a)
         }
     }
 

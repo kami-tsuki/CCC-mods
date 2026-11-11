@@ -1,5 +1,6 @@
 package kami.claims
 
+import kami.claims.gov.PRESIDENT
 import kami.claims.research.*
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -9,7 +10,8 @@ class ProgressXpTest : WithDb() {
     private fun country(): Country {
         val c = Country("alpha", treasury = 1000)
         Realm.data.countries[c.id] = c
-        Realm.join(c, "alpha_p", Rank.PRESIDENT)
+        c.mixed()
+        Realm.join(c, "alpha_p", PRESIDENT)
         return c
     }
 

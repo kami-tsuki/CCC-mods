@@ -1,5 +1,6 @@
 package kami.claims
 
+import kami.claims.gov.PRESIDENT
 import kami.claims.service.Outcome
 import kami.claims.service.Planner
 import kotlin.test.Test
@@ -13,7 +14,8 @@ class PlannerTest {
         Realm.reset(Data())
         val c = Country("planland", treasury = treasury, level = 5)
         Realm.data.countries[c.id] = c
-        Realm.join(c, "p1", Rank.PRESIDENT)
+        c.mixed()
+        Realm.join(c, "p1", PRESIDENT)
         (0 until owned).forEach { i -> Realm.add(Claim(c.id, dim, i, 0, "civic", at = i.toLong(), since = 0, capital = i == 0)) }
         Realm.refreshFree(c)
         return c

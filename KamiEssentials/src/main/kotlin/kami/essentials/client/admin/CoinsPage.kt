@@ -1,5 +1,6 @@
 package kami.essentials.client.admin
 
+import kami.libs.ui.style.Metrics
 import kami.libs.economy.CoinAlert
 import kami.libs.economy.CoinPlayer
 import kami.libs.economy.CoinSourceTotal
@@ -23,11 +24,6 @@ import kami.libs.ui.text.tr
 import kami.libs.ui.widget.*
 
 private const val BANNER_H = 30
-private const val CHART_H = 140
-private const val TABLE_H = 260
-private const val UNEXPLAINED_H = 220
-private const val GAP = 6
-private const val REFRESH_MS = 30_000L
 private val RANGES = listOf(7, 30, 90)
 private val SORTS = listOf("net", "deposited", "withdrawn", "last")
 
@@ -41,7 +37,7 @@ internal class CoinsPage(private val app: AdminApp) : Page() {
     override val title get() = tr("kami_essentials.admin.nav.coins")
     private var range = RANGES.first()
     private var sort = SORTS.first()
-    private val summary = Remote("coins.summary", CoinSummary.serializer(), REFRESH_MS) { listOf(range.toString()) }
+    private val summary = Remote("coins.summary", CoinSummary.serializer(), Metrics.REFRESH_SLOW_MS) { listOf(range.toString()) }
     private val players = Paged("coins.players", CoinPlayer.serializer()) { listOf(sort) }
     private val unexplained = Paged("money.unexplained", UnexplainedAccount.serializer()) { emptyList() }
     private val unexplainedTable = TableState<UnexplainedAccount>()
@@ -53,20 +49,22 @@ internal class CoinsPage(private val app: AdminApp) : Page() {
         val s = summary.data ?: summary.latest
         if (s == null && summary.error != null && !summary.loading) return ui.remoteFailed(r, summary, "coins")
         val severity = s?.let { coinSeverity(it.alert) }
-        val height = (if (severity != null) BANNER_H + GAP else 0) + CONTROL_H + STAT_TILE_H + CHART_H + TABLE_H + UNEXPLAINED_H + GAP * 5
+        val tableH = pagedHeight(players, CONTROL_H + 4)
+        val unexplainedH = pagedHeight(unexplained)
+        val height = (if (severity != null) BANNER_H + Metrics.gap else 0) + CONTROL_H + STAT_TILE_H + Metrics.chartH + tableH + unexplainedH + Metrics.gap * 5
         ui.scroll("coins", r, height) { c ->
-            val st = Stack(c.x, c.y, c.w, GAP)
+            val st = Stack(c.x, c.y, c.w, Metrics.gap)
             if (s != null && severity != null) ui.banner(st.take(BANNER_H), severity, tr("kami_libs.coins.alert.${s.alert.name.lowercase()}"), tr(s.reason), key = "coins-banner")
             ui.choice(st.take(CONTROL_H), RANGES.map { Option(it, tr("kami_libs.range.${it}d")) }, range, "coins-range")?.let { range = it }
             val kpiBox = st.take(STAT_TILE_H)
             kpis(ui, kpiBox, s)
-            val charts = st.take(CHART_H)
-            val (chartBox, sourceBox) = charts.columns(listOf(1.6f, 1f), GAP)
+            val charts = st.take(Metrics.chartH)
+            val (chartBox, sourceBox) = charts.columns(listOf(1.6f, 1f), Metrics.gap)
             chart(ui, chartBox, s)
             sources(ui, sourceBox, s)
             if (s != null && summary.data == null) ui.staleVeil(Rect(kpiBox.x, kpiBox.y, kpiBox.w, charts.bottom - kpiBox.y), summary.loading)
-            playerTable(ui, st.take(TABLE_H))
-            unexplainedCard(ui, st.take(UNEXPLAINED_H))
+            playerTable(ui, st.take(tableH))
+            unexplainedCard(ui, st.take(unexplainedH))
         }
     }
 

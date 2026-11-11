@@ -1,6 +1,27 @@
 package kami.claims
 
+import kami.claims.gov.Assignment
+import kami.claims.gov.Contract
+import kami.claims.gov.JobScope
+import kami.claims.gov.Labour
+import kami.claims.gov.Land
+import kami.claims.gov.Leadership
+import kami.claims.gov.Levers
+import kami.claims.gov.Membership
+import kami.claims.gov.PayModel
+import kami.claims.gov.Perm
+import kami.claims.gov.PresetId
+import kami.claims.gov.Presets
+import kami.claims.gov.ProvinceRule
+import kami.claims.gov.RankStructure
+import kami.claims.gov.Sector
+import kami.claims.gov.Standing
+import kami.claims.gov.TaskKind
+import kami.claims.gov.TaxStyle
+import kami.claims.gov.TreasuryControl
 import kami.claims.war.War
+import kami.claims.world.PlacedLog
+import kami.libs.config.Configs
 import kami.libs.db.Db
 import kami.libs.db.Legacy
 import kami.libs.db.Migration
@@ -12,10 +33,13 @@ import kami.libs.db.Verify
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.util.IdentityHashMap
 
 object RealmDb {
@@ -70,7 +94,7 @@ object RealmDb {
             v.cs.map { (id, c) -> listOf(id, c.name, c.treasury, c.pending, split(Country.serializer(), c, COUNTRY_COLS)) }
         },
         Table("claims_member", listOf("country", "player"), listOf("rank", "data")) { v ->
-            v.cs.flatMap { (id, c) -> c.members.map { (p, m) -> listOf(id, p, m.rank.name, split(Member.serializer(), m, setOf("rank"))) } }
+            v.cs.flatMap { (id, c) -> c.members.map { (p, m) -> listOf(id, p, m.rank, split(Member.serializer(), m, setOf("rank"))) } }
         },
         Table("claims_ledger", listOf("country", "seq"), listOf("at", "kind", "amount", "balance", "actor", "note")) { v ->
             v.q.ledger.assign(v.cs.flatMap { (id, c) -> c.ledger.map { id to it } }) { it.second }
@@ -94,53 +118,139 @@ object RealmDb {
         Table("claims_state", listOf("id"), listOf("day", "schema", "war_clock")) { v -> listOf(listOf(0, v.d.day, v.d.schema, v.d.warClock)) }
     )
 
+    private val placed = Table<View>("claims_placed", listOf("dim", "pos"), listOf("placer", "seq")) { PlacedLog.rows() }
+
     private var seqs: Seqs? = null
 
     private val schema = Migration("claims", 1, "schema", legacy = listOf(FILE), ddl = ddl) { world ->
-        val d = Legacy.read(world, FILE, Data.serializer()) ?: Data(schema = Data.CURRENT)
+        val d = Legacy.read(world, FILE, JsonObject.serializer())?.let(::legacyData) ?: Data(schema = Data.CURRENT)
         Realm.reset(d)
         val v = View(d, Seqs())
         tables.forEach { it.insert(this, v) }
         return@Migration { verify(this, d) }
     }
 
-    fun register() = Migrations.register("claims", listOf(schema), after = listOf("libs"))
+    private val placedBlocks = Migration("claims", 2, "placed", ddl = listOf(
+        "CREATE TABLE claims_placed (dim TEXT NOT NULL, pos INTEGER NOT NULL, placer TEXT NOT NULL, seq INTEGER NOT NULL, PRIMARY KEY (dim, pos))"
+    ))
+
+    private val news = Migration("claims", 3, "news", ddl = listOf(
+        "CREATE TABLE news_article (id INTEGER PRIMARY KEY, kind TEXT NOT NULL, country_id TEXT, country_name TEXT NOT NULL, involved TEXT NOT NULL, title TEXT NOT NULL, subtitle TEXT NOT NULL, body TEXT NOT NULL, authors TEXT NOT NULL, refs TEXT NOT NULL, template_key TEXT NOT NULL, template_args TEXT NOT NULL, created INTEGER NOT NULL, dedupe TEXT, deleted_by TEXT, deleted_at INTEGER, deleted_reason TEXT, corrected_note TEXT, discord TEXT NOT NULL)",
+        "CREATE INDEX news_article_created ON news_article (created)",
+        "CREATE INDEX news_article_country ON news_article (country_id, created)",
+        "CREATE UNIQUE INDEX news_article_dedupe ON news_article (dedupe) WHERE dedupe IS NOT NULL",
+        "CREATE TABLE news_draft (id INTEGER PRIMARY KEY, country_id TEXT NOT NULL, title TEXT NOT NULL, subtitle TEXT NOT NULL, body TEXT NOT NULL, contributors TEXT NOT NULL, lock_holder TEXT, lock_until INTEGER NOT NULL, lock_since INTEGER NOT NULL, updated INTEGER NOT NULL)",
+        "CREATE INDEX news_draft_country ON news_draft (country_id)",
+        "CREATE TABLE news_state (key TEXT PRIMARY KEY, value TEXT NOT NULL)"
+    ))
+
+    fun register() = Migrations.register("claims", listOf(schema, placedBlocks, news), after = listOf("libs"))
 
     fun load(): Data {
         val q = Seqs()
-        val d = Db.read { read(this, q) }
+        val d = Db.read { read(this, q).also { readPlaced(this) } }
         seqs = q
-        View(d, q).let { v -> tables.forEach { it.prime(v) } }
+        View(d, q).let { v -> (tables + placed).forEach { it.prime(v) } }
         SavePoint.register("claims.realm") { sync(Realm.data) }
         return d
     }
 
     fun unload() {
         seqs = null
+        PlacedLog.reset()
+        kami.claims.press.NewsStore.reset()
     }
 
     fun sync(d: Data): (Session.() -> Unit)? {
         val q = seqs ?: return null
         val v = View(d, q)
-        return SavePoint.join(tables.map { it.sync(v) })
+        return SavePoint.join((tables + placed).map { it.sync(v) })
     }
 
     private fun <T> split(s: KSerializer<T>, v: T, drop: Set<String>) =
         JsonObject(Db.encode(s, v).jsonObject - drop).toString()
 
-    private fun <T> join(s: KSerializer<T>, data: String, vararg cols: Pair<String, JsonElement>): T =
-        Db.json.decodeFromJsonElement(s, JsonObject(Db.json.parseToJsonElement(data).jsonObject + cols))
+    private fun <T> join(s: KSerializer<T>, data: String, vararg cols: Pair<String, JsonElement>, prepare: (JsonObject) -> JsonObject = { it }): T =
+        Db.json.decodeFromJsonElement(s, JsonObject(prepare(Db.json.parseToJsonElement(data).jsonObject) + cols))
+
+    private val knownPerms = Perm.entries.map { it.name }.toSet()
+    private val knownTasks = TaskKind.entries.map { it.name }.toSet()
+    private val knownStandings = Standing.entries.map { it.name }.toSet()
+    private val knownClaimants = Claimant.entries.map { it.name }.toSet()
+    private val knownJobChoices = mapOf(
+        "scope" to JobScope.entries.map { it.name }.toSet(),
+        "payModel" to PayModel.entries.map { it.name }.toSet(),
+        "assignment" to Assignment.entries.map { it.name }.toSet()
+    )
+
+    private inline fun <reified T : Enum<T>> names() = enumValues<T>().map { it.name }.toSet()
+
+    private val leverChoices = mapOf(
+        "labour" to names<Labour>(), "land" to names<Land>(), "taxes" to names<TaxStyle>(), "treasury" to names<TreasuryControl>(),
+        "leadership" to names<Leadership>(), "ranks" to names<RankStructure>(), "provinces" to names<ProvinceRule>(), "membership" to names<Membership>()
+    )
+
+    private fun knownOnly(list: JsonElement, known: Set<String>) = JsonArray(list.jsonArray.filter { it.jsonPrimitive.content in known })
+
+    private fun JsonElement.mapObject(change: (String, JsonElement) -> JsonElement) = JsonObject(jsonObject.mapValues { (key, value) -> change(key, value) })
+
+    private fun withoutRemovedConstants(country: JsonObject): JsonObject = country.mapObject { key, value ->
+        when (key) {
+            "overlordPerms" -> knownOnly(value, knownPerms)
+            "outsiders" -> JsonObject(value.jsonObject.filterValues { it.jsonPrimitive.content in knownStandings })
+            "groups" -> JsonObject(value.jsonObject.filterKeys { it in knownClaimants }).mapObject { _, perms -> knownOnly(perms, knownPerms) }
+            "ranks" -> JsonArray(value.jsonArray.map { rank -> rank.mapObject { field, x -> if (field == "perms") knownOnly(x, knownPerms) else x } })
+            "jobDefs" -> value.mapObject { _, job -> withoutRemovedJobConstants(job.jsonObject) }
+            "government" -> sanitisedGovernment(value.jsonObject)
+            "contracts" -> JsonArray(value.jsonArray.filter { decodable(Contract.serializer(), it) })
+            "sectors" -> JsonObject(value.jsonObject.filterValues { decodable(Sector.serializer(), it) })
+            else -> value
+        }
+    }.let { JsonObject(it.filter { (key, value) -> lenient[key]?.invoke(value) != false }) }
+
+    private val lenient = mapOf<String, (JsonElement) -> Boolean>(
+        "payBudget" to { decodable(DaySpend.serializer(), it) }, "withdrawn" to { decodable(DaySpend.serializer(), it) },
+        "creditLedger" to { decodable(CreditLedger.serializer(), it) }, "withdrawals" to { decodable(ListSerializer(WithdrawalRequest.serializer()), it) }
+    )
+
+    private fun <T> decodable(serializer: KSerializer<T>, element: JsonElement) = runCatching { Db.json.decodeFromJsonElement(serializer, element) }.isSuccess
+
+    private fun sanitisedGovernment(government: JsonObject): JsonObject {
+        val preset = PresetId.entries.firstOrNull { it.name == government["preset"]?.jsonPrimitive?.content } ?: PresetId.MIXED
+        val stored = government["levers"]?.jsonObject.orEmpty()
+        val levers = Db.encode(Levers.serializer(), Presets.levers(preset)).jsonObject.mapValues { (field, default) ->
+            stored[field]?.takeIf { it.jsonPrimitive.content in leverChoices.getValue(field) } ?: default
+        }
+        return JsonObject(government + mapOf("preset" to JsonPrimitive(preset.name), "levers" to JsonObject(levers)))
+    }
+
+    private fun legacyData(raw: JsonObject): Data = Configs.json().decodeFromJsonElement(
+        Data.serializer(),
+        raw.mapObject { key, value -> if (key == "countries") value.mapObject { _, country -> withoutRemovedConstants(country.jsonObject) } else value }
+    )
+
+    private fun withoutRemovedJobConstants(job: JsonObject) = JsonObject(
+        job.filter { (field, x) -> knownJobChoices[field]?.contains(x.jsonPrimitive.content) != false }
+            .mapValues { (field, x) -> if (field == "tasks") JsonArray(x.jsonArray.filter { it.jsonObject["kind"]?.jsonPrimitive?.content in knownTasks }) else x }
+    )
+
+    private fun ledgerKind(name: String) = LedgerKind.entries.firstOrNull { it.name == name } ?: LedgerKind.ADJUST
+
+    private fun readPlaced(s: Session) {
+        PlacedLog.reset()
+        s.query("SELECT dim, pos, placer, seq FROM claims_placed ORDER BY seq") { r -> PlacedLog.restore(r.string("dim"), r.long("pos"), r.string("placer"), r.long("seq")) }
+    }
 
     private fun read(s: Session, q: Seqs): Data {
         val countries = s.query("SELECT id, name, treasury, pending, data FROM claims_country ORDER BY rowid") { r ->
             r.string("id") to join(Country.serializer(), r.string("data"),
-                "name" to JsonPrimitive(r.string("name")), "treasury" to JsonPrimitive(r.long("treasury")), "pending" to JsonPrimitive(r.long("pending")))
+                "name" to JsonPrimitive(r.string("name")), "treasury" to JsonPrimitive(r.long("treasury")), "pending" to JsonPrimitive(r.long("pending")), prepare = ::withoutRemovedConstants)
         }.toMap(LinkedHashMap())
         s.query("SELECT country, player, rank, data FROM claims_member ORDER BY rowid") { r ->
             countries.getValue(r.string("country")).members[r.string("player")] = join(Member.serializer(), r.string("data"), "rank" to JsonPrimitive(r.string("rank")))
         }
         s.query("SELECT country, seq, at, kind, amount, balance, actor, note FROM claims_ledger ORDER BY seq") { r ->
-            val e = LedgerEntry(r.long("at"), LedgerKind.valueOf(r.string("kind")), r.long("amount"), r.long("balance"), r.stringOrNull("actor"), r.string("note"))
+            val e = LedgerEntry(r.long("at"), ledgerKind(r.string("kind")), r.long("amount"), r.long("balance"), r.stringOrNull("actor"), r.string("note"))
             q.ledger.load(e, r.long("seq"))
             countries.getValue(r.string("country")).ledger += e
         }

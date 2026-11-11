@@ -1,5 +1,6 @@
 package kami.claims.client.hud
 
+import kami.claims.client.app.runway
 import kami.claims.net.HomeLine
 import kotlinx.serialization.Serializable
 
@@ -9,7 +10,7 @@ enum class TaxHudMode { OFF, ALWAYS, IMPORTANT }
 class TaxInputs(val homes: List<HomeLine>, val receivedAt: Long, val now: Long, val treasury: Long, val net: Long, val hasCountry: Boolean)
 
 class TaxRows(val hasHomes: Boolean, val debt: Long, val prepaid: Long, val prepaidDays: Long?, val rentDueIn: Long?, val hasLapse: Boolean, val claimsDays: Long?, val lowestPrepaidDays: Long? = null) {
-    val empty get() = !hasHomes && !hasLapse
+    val empty get() = !hasHomes && !hasLapse && debt <= 0
 }
 
 class TaxConditions(
@@ -25,7 +26,7 @@ object TaxTimer {
         val due = i.homes.filter { it.nextBill > 0 }.minOfOrNull { maxOf(0L, i.receivedAt + it.nextBill - i.now) }
         return TaxRows(
             i.homes.isNotEmpty(), i.homes.sumOf { it.debt }, prepaid, if (rent > 0) prepaid / rent else null, due,
-            i.hasCountry, if (i.hasCountry && i.net < 0) i.treasury / -i.net else null,
+            i.hasCountry, if (i.hasCountry) runway(i.treasury, i.net) else null,
             i.homes.filter { it.rent > 0 }.minOfOrNull { it.credit / it.rent }
         )
     }

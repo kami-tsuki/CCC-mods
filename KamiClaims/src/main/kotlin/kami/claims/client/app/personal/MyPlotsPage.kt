@@ -156,7 +156,7 @@ class MyPlotsPage(private val host: KamiApp) : Page() {
             val roleLabel = tr("kami_claims.role.$role")
             val nameW = minOf(96, row.w - Draw.width(roleLabel) - 34).coerceAtLeast(0)
             ui.fitText(row.x, row.y + 3, nameW, name, Palette.text)
-            ui.chip(row.x + nameW + 4, row.y, roleLabel, Vocabulary.rank(if (role == "household") "citizen" else role).color)
+            ui.chip(row.x + nameW + 4, row.y, roleLabel, Vocabulary.standing(role).color)
             val key = "plot_untrust:$name"
             if (!Personal.viewing && ui.iconButton(Rect(row.right - 16, row.y - 1, 16, 16), Icons.REMOVE, tr("kami_libs.common.remove_x", name), !ClaimsStore.isPending(key), key = "untrust:$name"))
                 Dialogs.confirm(host, tr("kami_claims.plots.untrust.title", name), tr("kami_claims.home.where", c.country, c.x, c.z), Icons.REMOVE,

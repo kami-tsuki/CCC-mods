@@ -6,7 +6,6 @@ import kami.libs.net.ActPayload
 import kami.libs.net.Packets
 import kami.libs.net.SnapshotPayload
 import net.minecraft.server.level.ServerPlayer
-import net.neoforged.neoforge.network.PacketDistributor
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
 
 object AdminNet {
@@ -26,8 +25,8 @@ object AdminNet {
     }
 
     internal fun reply(p: ServerPlayer, r: AdminReply) {
-        val json = Db.json.encodeToString(AdminReply.serializer(), r).takeIf { it.length <= MAX_REPLY && it.toByteArray(Charsets.UTF_8).size <= MAX_REPLY }
-            ?: Db.json.encodeToString(AdminReply.serializer(), AdminReply(false, error = "kami_libs.admin.too_large", rid = r.rid))
-        PacketDistributor.sendToPlayer(p, replies(json))
+        if (!replies.send(p, encode(r))) replies.send(p, encode(AdminReply(false, error = "kami_libs.admin.too_large", rid = r.rid)))
     }
+
+    private fun encode(r: AdminReply) = Db.json.encodeToString(AdminReply.serializer(), r)
 }

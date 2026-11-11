@@ -9,6 +9,7 @@ import kami.claims.research.NodeState
 import kami.libs.ui.widget.Lock
 import kami.libs.ui.core.Tip
 import kami.libs.ui.graph.Cell
+import kami.libs.ui.graph.TechLayout
 import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
@@ -18,18 +19,20 @@ import kami.libs.ui.widget.TechBands
 import kami.libs.ui.widget.TechNode
 
 object ResearchGraph {
-    fun nodes(tree: TreeView, matches: Set<String>, category: String?, ticking: Boolean): List<TechNode> {
+    fun nodes(tree: TreeView, matches: Set<String>, ticking: Boolean): List<TechNode> {
         val groups = tree.categories.sortedBy { it.order }.withIndex().associate { (i, c) -> c.id to i }
-        return tree.nodes.map { techNode(it, groups[it.category] ?: 0, it.key in matches, category != null && it.category != category, ticking) }
+        return tree.nodes.map { techNode(it, groups[it.category] ?: 0, it.key in matches, ticking) }
     }
 
     fun lanes(tree: TreeView) = tree.categories.sortedBy { it.order }.withIndex().associate { (i, c) -> i to Phrase.or("kami_claims.research.category.${c.id}", c.title).resolve() }
 
-    fun bands(tree: TreeView) = TechBands(tree.nodes.map { it.level.coerceAtLeast(1) }.distinct().associateWith { tr("kami_libs.lock.ui.level", it) }, ClientResearch.state.level)
+    private val ERAS = intArrayOf(1, 11, 31, 76, 151, 251)
+
+    private fun era(level: Int) = TechLayout.era(level.coerceAtLeast(1), ERAS)
+
+    fun bands(tree: TreeView) = TechBands(tree.nodes.map { era(it.level) }.distinct().associateWith { tr("kami_libs.lock.ui.level", it) }, era(ClientResearch.state.level))
 
     fun available(tree: TreeView) = ClientResearch.state.available.count { it.startsWith("${tree.id}:") }
-
-    fun availableIn(tree: TreeView, category: String) = tree.nodes.count { it.category == category && it.key in ClientResearch.state.available }
 
     private var labelTrees: List<TreeView>? = null
     private val labels = HashMap<String, String>()
@@ -42,7 +45,7 @@ object ResearchGraph {
         }
     }
 
-    private fun techNode(node: NodeView, group: Int, highlight: Boolean, filteredOut: Boolean, ticking: Boolean): TechNode {
+    private fun techNode(node: NodeView, group: Int, highlight: Boolean, ticking: Boolean): TechNode {
         val status = ClientResearch.status(node.key)
         val locked = node.level > ClientResearch.state.level
         val queued = ClientResearch.queued(node.key)
@@ -60,9 +63,9 @@ object ResearchGraph {
             dashed = node.anyRequires.toSet(),
             hidden = node.hiddenRequires.toSet(),
             done = status == NodeStatus.DONE,
-            dim = status == NodeStatus.LOCKED || filteredOut,
+            dim = status == NodeStatus.LOCKED,
             status = ResearchLook.icon(status),
-            band = node.level.coerceAtLeast(1),
+            band = era(node.level),
             group = group,
             badge = if (visible.isEmpty()) null else Icons.CHAIN,
             item = stackOf(node.icon),

@@ -1,9 +1,8 @@
 package kami.essentials.client.admin
 
-import kami.libs.config.KamiConfig
-import kami.libs.config.Section
-import kami.libs.log.Log
+import kami.libs.config.Configs
 import kami.libs.ui.app.NavPrefs
+import kami.libs.ui.settings.ClientSettings
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -13,22 +12,8 @@ class AdminPrefsData(
 ) : NavPrefs
 
 object AdminPrefs {
-    private val config = KamiConfig(
-        "essentials", AdminPrefsData(),
-        listOf(
-            Section(
-                "admin.json", "Settings of this game client for the admin screen.",
-                mapOf(
-                    "railCollapsed" to "The sidebar is collapsed to icons.",
-                    "collapsedGroups" to "Navigation groups you collapsed."
-                )
-            )
-        ),
-        reloadable = false
-    )
-    val prefs: AdminPrefsData by lazy { config.load(); config.value }
+    private val section by lazy { ClientSettings.register("mods.essentials.admin", AdminPrefsData.serializer(), AdminPrefsData(), Configs.dir("essentials").resolve("admin.json")) }
+    val prefs: AdminPrefsData get() = section.value
 
-    private val log = Log.of("essentials")
-
-    fun save() = runCatching { config.save(prefs) }.onFailure { log.warn("Could not save admin.json: {}", it.message) }
+    fun save() = ClientSettings.save()
 }

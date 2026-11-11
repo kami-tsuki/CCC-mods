@@ -1,13 +1,17 @@
 package kami.claims.client.app.pages
 
 import kami.libs.ui.core.Memo
+import kami.claims.gov.Perm
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ClaimsPage
 import kami.claims.client.app.Dialogs
+import kami.claims.client.app.Finance
 import kami.claims.client.app.Illustrations
 import kami.claims.client.app.Vocabulary
+import kami.claims.client.app.runway
 import kami.claims.client.store.ClaimsStore
 import kami.libs.text.SearchQuery
+import kami.claims.net.Info
 import kami.claims.net.LedgerLine
 import kami.libs.ui.app.Callout
 import kami.libs.ui.app.Route
@@ -29,6 +33,11 @@ import kotlin.math.max
 import net.minecraft.client.Minecraft
 import kami.libs.ui.text.noteLabel
 
+private const val KPI_H = 44
+private const val SECTION_GAP = 6
+internal const val CARD_HEAD_H = 24
+private const val WHATIF_H = 110
+
 class BudgetPage(app: ClaimsApp) : ClaimsPage(app) {
     override val title get() = tr("kami_claims.nav.budget")
     override val sections = listOf("history")
@@ -45,33 +54,43 @@ class BudgetPage(app: ClaimsApp) : ClaimsPage(app) {
     override fun actions(ui: Ui, r: Rect) {
         val row = Row(r)
         if (ui.edgeButton(row, tr("kami_libs.common.deposit"), Icons.DEPOSIT, ButtonStyle.PRIMARY, key = "b-dep")) Dialogs.money(app, true)
-        if (ui.edgeButton(row, tr("kami_libs.common.withdraw"), Icons.WITHDRAW, enabled = can("withdraw"), disabledReason = lock("withdraw"), key = "b-wd")) Dialogs.money(app, false)
+        val budgetBound = info?.government?.treasury == "budget"
+        val reason = lock(Perm.WITHDRAW) ?: tr("kami_claims.error.budget_bound").takeIf { budgetBound }
+        if (ui.edgeButton(row, tr("kami_libs.common.withdraw"), Icons.WITHDRAW, enabled = reason == null, disabledReason = reason, key = "b-wd")) Dialogs.money(app, false)
     }
+
+    private fun pendingHeight(info: Info) = if (info.withdrawals.isEmpty()) 0 else SECTION_GAP + withdrawalsHeight(info)
 
     override fun draw(ui: Ui, r: Rect) {
         val info = info ?: return
-        val tributeIn = info.provinces.sumOf { Vocabulary.tributeEstimate(it.mode, it.amount, it.income) }
-        val tributeOut = if (info.parent.isEmpty()) 0L else Vocabulary.tributeEstimate(info.taxMode, info.taxAmount, info.income + info.pendingDeposits)
-        val income = info.income + tributeIn
-        val spending = info.upkeep + info.jobs + tributeOut
-        val net = income - spending
-        ui.kpiRow(r.top(44), listOf(
+        val minH = KPI_H + 2 * SECTION_GAP + 2 * CARD_HEAD_H + 5 * (TABLE_ROW_H + 1) + 11 * (info.provinces.size + info.breakdown.size) + WHATIF_H + pendingHeight(info)
+        ui.scroll("budget", r, minH) { area -> body(ui, area.withHeight(max(area.h, minH)), info) }
+    }
+
+    private fun body(ui: Ui, r: Rect, info: Info) {
+        val finance = Finance.of(info)
+        val tributeIn = finance.tributeIn
+        val tributeOut = finance.tributeOut
+        val income = finance.income
+        val spending = finance.spending
+        val net = finance.net
+        ui.kpiRow(r.top(KPI_H), listOf(
             KpiTile(tr("kami_claims.budget.income_day"), Format.number(income), Icons.INCOME, Palette.success),
             KpiTile(tr("kami_claims.budget.spending_day"), Format.number(spending), Icons.EXPENSE, Palette.danger),
             KpiTile(tr("kami_claims.kpi.net"), Format.signed(net), Icons.SCALES, if (net >= 0) Palette.success else Palette.danger),
             KpiTile(tr("kami_claims.help.term.runway"), app.runwayText(info.treasury, net), Icons.CLOCK, app.runwayColor(info.treasury, net))
         ), key = "budget-kpi")
-        val rest = r.dropTop(50)
+        val rest = r.dropTop(KPI_H + SECTION_GAP)
         val (left, right) = rest.columns(2, 6)
-        val lf = Flow(left, 6)
-        val inc = lf.take(24 + 2 * (TABLE_ROW_H + 1) + info.provinces.size * 11)
+        val lf = Flow(left, SECTION_GAP)
+        val inc = lf.take(CARD_HEAD_H + 2 * (TABLE_ROW_H + 1) + info.provinces.size * 11)
         ui.anchor("budget:income", inc)
         val ib = ui.card(inc, tr("kami_libs.common.income"), Icons.INCOME)
         val fi = Flow(ib, 1)
         line(ui, fi.take(TABLE_ROW_H), Icons.HOUSE, tr("kami_claims.ledger.plot_tax"), tr("kami_libs.format.times", trn("kami_claims.unit.plot", info.claimList.count { it.owner.isNotEmpty() }), Format.money(info.citizenRent.toLong())), info.income, Palette.success)
         line(ui, fi.take(TABLE_ROW_H), Icons.CHAIN, tr("kami_claims.ledger.tribute_in"), trn("kami_claims.unit.province", info.provinces.size), tributeIn, Palette.success)
         info.provinces.forEach { p -> sub(ui, fi.take(10), p.name, Vocabulary.tribute(p.mode, p.amount), Vocabulary.tributeEstimate(p.mode, p.amount, p.income)) }
-        val spend = lf.take(24 + 3 * (TABLE_ROW_H + 1) + info.breakdown.size * 11)
+        val spend = lf.take(CARD_HEAD_H + 3 * (TABLE_ROW_H + 1) + info.breakdown.size * 11)
         ui.anchor("budget:spending", spend)
         val sb = ui.card(spend, tr("kami_claims.budget.spending"), Icons.EXPENSE)
         val fs = Flow(sb, 1)
@@ -79,6 +98,7 @@ class BudgetPage(app: ClaimsApp) : ClaimsPage(app) {
         info.breakdown.sortedByDescending { it.perDay }.forEach { b -> sub(ui, fs.take(10), Vocabulary.type(b.type).label, trn("kami_claims.unit.chunk", b.count), b.perDay.toLong(), Vocabulary.type(b.type).color) }
         line(ui, fs.take(TABLE_ROW_H), Icons.TOOL, tr("kami_claims.ledger.job_pay"), tr("kami_claims.budget.wages.detail", Format.percent(snap.jobShare / 100.0), Format.money(info.income * snap.jobShare / 100)), info.jobs, Palette.danger)
         line(ui, fs.take(TABLE_ROW_H), Icons.CHAIN, tr("kami_claims.ledger.tribute_out"), info.parent.ifEmpty { tr("kami_claims.budget.independent") }, tributeOut, Palette.danger)
+        if (info.withdrawals.isNotEmpty()) withdrawalsCard(ui, lf.take(pendingHeight(info) - SECTION_GAP), info)
         val what = lf.remaining()
         ui.anchor("budget:whatif", what)
         val wb = ui.card(what, tr("kami_claims.budget.whatif"), Icons.SEARCH, help = tr("kami_claims.budget.whatif.help"))
@@ -101,7 +121,7 @@ class BudgetPage(app: ClaimsApp) : ClaimsPage(app) {
         if (loaded == null) ui.skeleton(fb.dropBottom(12))
         else ui.lineChart(fb.dropBottom(12), listOf(Series(tr("kami_libs.flow.treasury"), history + info.treasury + forecast(info.treasury, net, 30), Palette.money, true, history.size)),
             recent.map { tr("kami_claims.chart.day", Format.number(it.day)) } + tr("kami_libs.common.today") + List(30) { tr("kami_libs.time.in", Format.days(it + 1L)) }, key = "forecast")
-        val summary = if (net >= 0) tr("kami_claims.budget.forecast.grows", Format.money(net * 30)) else tr("kami_claims.budget.forecast.empty", Format.days(info.treasury / -net))
+        val summary = runway(info.treasury, net)?.let { tr("kami_claims.budget.forecast.empty", Format.days(it)) } ?: tr("kami_claims.budget.forecast.grows", Format.money(net * 30))
         ui.fitText(fb.x, fb.bottom - 9, fb.w, summary, if (net >= 0) Palette.success else Palette.warning)
         val flows = rf.remaining()
         val flowBody = ui.card(flows, tr("kami_claims.budget.flows"), Icons.SCALES, help = tr("kami_claims.budget.flows.help"))

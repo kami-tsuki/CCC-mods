@@ -52,7 +52,7 @@ class TunnelTest {
                     ex.sendResponseHeaders(200, 100)
                     ex.responseBody.write("{\"id\"".toByteArray())
                     ex.responseBody.flush()
-                    Thread.sleep(13_000)
+                    Thread.sleep(3_000)
                 }
                 next.first != 200 -> ex.sendResponseHeaders(next.first, -1)
                 else -> {
@@ -74,6 +74,7 @@ class TunnelTest {
     @AfterTest
     fun tearDown() {
         Tunnel.stop()
+        Tunnel.bodyLimitS = 10L
         server.stop(0)
         Db.close()
         world.toFile().deleteRecursively()
@@ -125,10 +126,11 @@ class TunnelTest {
 
     @Test
     fun aBodyThatStallsDoesNotPinTheTunnel() {
+        Tunnel.bodyLimitS = 1L
         jobs.add(0 to "")
         jobs.add(200 to job("0123456789abcdef", "keys"))
         Tunnel.start(keys())
-        assertTrue(replies.poll(25, TimeUnit.SECONDS)!!.startsWith("/v1/reply/0123456789abcdef "))
+        assertTrue(replies.poll(10, TimeUnit.SECONDS)!!.startsWith("/v1/reply/0123456789abcdef "))
     }
 
     @Test

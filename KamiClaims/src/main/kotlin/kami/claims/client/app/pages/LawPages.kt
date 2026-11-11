@@ -12,7 +12,8 @@ import kami.libs.ui.core.Memo
 import kami.libs.ui.style.Icon
 import kami.claims.client.store.ClaimsStore
 import kami.claims.research.Tokens
-import kami.claims.Rank
+import kami.claims.gov.PRESIDENT
+import kami.claims.gov.Perm
 import kami.claims.Action
 import kami.claims.ruleLocked
 import kami.claims.client.app.Look
@@ -40,7 +41,7 @@ import kami.libs.ui.text.trn
 import kami.libs.ui.widget.*
 import org.lwjgl.glfw.GLFW
 
-private fun Ui.applyBar(r: Rect, changes: Int, summary: String, enabled: Boolean, reason: String?, pending: Boolean, key: String, onApply: () -> Unit, onDiscard: () -> Unit) {
+fun Ui.applyBar(r: Rect, changes: Int, summary: String, enabled: Boolean, reason: String?, pending: Boolean, key: String, onApply: () -> Unit, onDiscard: () -> Unit) {
     if (changes == 0) return
     Draw.fill(g, r, Palette.alpha(Palette.brass, 0x28))
     Draw.outline(g, r, Palette.alpha(Palette.brass, 0x90))
@@ -50,7 +51,7 @@ private fun Ui.applyBar(r: Rect, changes: Int, summary: String, enabled: Boolean
     val row = Row(Rect(r.x, r.y + 4, r.w - 4, CONTROL_H))
     if (edgeButton(row, tr("kami_libs.common.apply"), Icons.SAVE, ButtonStyle.PRIMARY, enabled, reason, pending = pending, key = "$key:apply")) onApply()
     if (edgeButton(row, tr("kami_libs.common.discard"), Icons.UNDO, key = "$key:discard")) onDiscard()
-    if (input.takeKey(GLFW.GLFW_KEY_S) { it.ctrl } != null && enabled) onApply()
+    if (input.takeKey(GLFW.GLFW_KEY_S) { it.ctrl } != null && enabled && !pending) onApply()
 }
 
 private val ACTIONS = listOf("break", "place", "interact", "container")
@@ -76,11 +77,12 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
     private fun current(t: TypeLine, field: String) = staged[key(t.name, field)] ?: raw(t, field)
     private fun original(t: TypeLine, field: String) = raw(t, field)
 
-    override fun leaving(next: Route): Boolean {
-        if (staged.isEmpty()) return true
-        app.toast(Severity.WARNING, tr("kami_claims.law.unsaved"), tr("kami_claims.law.unsaved.desc"))
-        return false
+    private fun submit() {
+        act("rules", staged.entries.joinToString(";") { (k, v) -> "$k:$v" }, key = "rules")
+        staged.clear()
     }
+
+    override fun leaving(next: Route) = guardLeave(next, staged.isNotEmpty(), if (can(Perm.CHUNK_RULES)) ::submit else null, discard = staged::clear) && super.leaving(next)
 
     override fun actionsWidth() = Draw.width(tr("kami_claims.law.preset.label")) + 158
 
@@ -89,7 +91,7 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
         val presets = listOf("private" to Icons.LOCK, "workers" to Icons.TOOL, "public" to Icons.SCALES, "default" to Icons.UNDO).map { (id, icon) -> Option(id, tr("kami_claims.law.preset.$id"), icon, tr("kami_claims.law.preset.$id.desc")) }
         val box = r.right(130)
         Draw.textRight(ui.g, tr("kami_claims.law.preset.label"), box.x - 4, r.y + 4, Palette.textMuted)
-        ui.select(box, presets, null, tr("kami_claims.law.preset.placeholder"), can("rules"), lock("rules"), key = "preset")?.let { preset -> applyPreset(preset) }
+        ui.select(box, presets, null, tr("kami_claims.law.preset.placeholder"), can(Perm.CHUNK_RULES), lock(Perm.CHUNK_RULES), key = "preset")?.let { preset -> applyPreset(preset) }
     }
 
     private fun applyPreset(preset: String) {
@@ -112,7 +114,7 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
     }
 
     override fun draw(ui: Ui, r: Rect) {
-        val editable = can("rules")
+        val editable = can(Perm.CHUNK_RULES)
         val bottom = r.bottom(EXPLAIN_H + if (staged.isEmpty()) 0 else 28)
         val grid = r.dropBottom(bottom.h, 6)
         ui.anchor("protect:grid", grid)
@@ -122,10 +124,7 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
         val bar = bottom.dropTop(EXPLAIN_H - 2)
         ui.anchor("protect:apply", bar)
         ui.applyBar(bar, staged.size, staged.entries.take(3).joinToString(" · ") { (k, v) -> "${Vocabulary.type(k.substringBefore(':')).label} ${fieldLabel(k.substringAfter(':'))} → ${valueLabel(v)}" },
-            editable, lock("rules"), pending("rules"), "rules", {
-                act("rules", staged.entries.joinToString(";") { (k, v) -> "$k:$v" }, key = "rules")
-                staged.clear()
-            }, { staged.clear() })
+            editable, lock(Perm.CHUNK_RULES), pending("rules"), "rules", ::submit, staged::clear)
     }
 
     private fun legend(ui: Ui, r: Rect) {
@@ -175,7 +174,7 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
                 val y = area.y + row * RULE_H
                 val line = Rect(area.x, y, area.w, RULE_H - 1)
                 if (focusCell?.first == t.name) Draw.fill(ui.g, line, Palette.alpha(Palette.brass, 0x14))
-                else if (row % 2 == 1) Draw.fill(ui.g, line, Palette.alpha(0x000000, 0x0C))
+                else if (row % 2 == 1) Draw.fill(ui.g, line, Palette.alpha(Palette.sunken, 0x60))
                 val look = Vocabulary.type(t.name)
                 val labelX = line.x + 2 + Draw.leadIcon(ui.g, look.icon, line.x + 2, line.centerY) + 2
                 ui.fitText(labelX, y + 5, line.x + labelW - labelX - 4, look.label, look.color)
@@ -185,7 +184,7 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
                     val value = current(t, a)
                     val changed = staged.containsKey(key(t.name, a))
                     val fixed = locked(t.name, a)
-                    ui.select(cell, Vocabulary.accessOptions(), value, enabled = editable && !fixed, disabledReason = if (fixed) tr("kami_claims.law.locked") else lock("rules"), key = "cell:${t.name}:$a", menuWidth = 220)?.let {
+                    ui.select(cell, Vocabulary.accessOptions(), value, enabled = editable && !fixed, disabledReason = if (fixed) tr("kami_claims.law.locked") else lock(Perm.CHUNK_RULES), key = "cell:${t.name}:$a", menuWidth = 220)?.let {
                         stage(t, a, it)
                         focusCell = t.name to a
                     }
@@ -197,7 +196,7 @@ class ProtectionPage(app: ClaimsApp) : ClaimsPage(app) {
                     val cell = Rect(line.x + labelW + actions.size * actionW + i * 34 + 5, y + 2, 26, SMALL_H)
                     val on = current(t, f) == "true"
                     val fixed = f == "machines"
-                    ui.toggle(cell, on, "", editable && !fixed, if (fixed) tr("kami_claims.law.machines_locked") else lock("rules"), tr("kami_libs.format.pair", Vocabulary.flags[i].second.label, tr(if (on) "kami_libs.common.on" else "kami_libs.common.off")), key = "flag:${t.name}:$f")?.let {
+                    ui.toggle(cell, on, "", editable && !fixed, if (fixed) tr("kami_claims.law.machines_locked") else lock(Perm.CHUNK_RULES), tr("kami_libs.format.pair", Vocabulary.flags[i].second.label, tr(if (on) "kami_libs.common.on" else "kami_libs.common.off")), key = "flag:${t.name}:$f")?.let {
                         stage(t, f, it.toString())
                         focusCell = t.name to f
                     }
@@ -247,12 +246,10 @@ class PlotLawPage(app: ClaimsApp) : ClaimsPage(app) {
         Callout("plotlaw:chain", tr("kami_claims.common.rent_debt"), tr("kami_claims.law.help.chain.desc"))
     )
     private val cats = OfferRows.CATS
-    private val ranks = listOf("citizen", "officer", "chancellor", "president")
     private val guests = listOf("parent", "province", "allied", "random")
     private val features = mapOf("parent" to "plots:family", "province" to "plots:family", "allied" to "plots:allies", "random" to "plots:public")
     private val rents = cats.associateWith { NumberState(0) }
     private val open = HashMap<String, Boolean>()
-    private val rankLimits = ranks.associateWith { NumberState(0) }
     private val guestLimits = guests.associateWith { NumberState(0) }
     private val debtLimit = NumberState(0)
     private val moveOut = NumberState(0)
@@ -262,19 +259,18 @@ class PlotLawPage(app: ClaimsApp) : ClaimsPage(app) {
     private var limitsExpanded = false
     private val looks = Memo()
 
-    private class Look(val labels: Map<String, String>, val ranks: Map<String, String>, val locks: Map<String, Lock>)
+    private class Look(val labels: Map<String, String>, val locks: Map<String, Lock>)
 
     private fun rent(info: Info, cat: String) = (info.offer.rent[cat] ?: 0).toLong()
     private fun isOpen(info: Info, cat: String) = cat == "citizen" || cat in info.offer.open
 
     private fun offerChanges(info: Info) = cats.count { rents.getValue(it).value != rent(info, it) || open[it] != isOpen(info, it) }
     private fun limitChanges(info: Info) =
-        ranks.count { rankLimits.getValue(it).value != (info.rankPlots[it] ?: 0).toLong() } + guests.count { guestLimits.getValue(it).value != (info.guestPlots[it] ?: 0).toLong() }
+        guests.count { guestLimits.getValue(it).value != (info.guestPlots[it] ?: 0).toLong() }
     private fun lawChanges(info: Info) = (if (debtLimit.value != info.rentDebtLimit) 1 else 0) + (if (moveOut.value != info.moveOutDays.toLong()) 1 else 0)
 
     private fun load(info: Info) {
         cats.forEach { rents.getValue(it).sync(rent(info, it)); open[it] = isOpen(info, it) }
-        ranks.forEach { rankLimits.getValue(it).sync((info.rankPlots[it] ?: 0).toLong()) }
         guests.forEach { guestLimits.getValue(it).sync((info.guestPlots[it] ?: 0).toLong()) }
         debtLimit.sync(info.rentDebtLimit)
         moveOut.sync(info.moveOutDays.toLong())
@@ -282,7 +278,6 @@ class PlotLawPage(app: ClaimsApp) : ClaimsPage(app) {
 
     private fun discard(info: Info) {
         cats.forEach { rents.getValue(it).commit(rent(info, it)); open[it] = isOpen(info, it) }
-        ranks.forEach { rankLimits.getValue(it).commit((info.rankPlots[it] ?: 0).toLong()) }
         guests.forEach { guestLimits.getValue(it).commit((info.guestPlots[it] ?: 0).toLong()) }
         debtLimit.commit(info.rentDebtLimit)
         moveOut.commit(info.moveOutDays.toLong())
@@ -296,18 +291,17 @@ class PlotLawPage(app: ClaimsApp) : ClaimsPage(app) {
         val changes = offerChanges + limitChanges + lawChanges
         if (!synced || changes == 0) { load(info); synced = true }
         val look = looks.of(info.offer.levels, Format.locale) {
-            Look(cats.associateWith { tr("kami_claims.claimant.$it") }, ranks.associateWith { Vocabulary.rank(it).label },
+            Look(cats.associateWith { tr("kami_claims.claimant.$it") },
                 features.mapNotNull { (cat, id) -> info.offer.levels[cat]?.let { cat to Lock.level(it, ClientLocks.featureName(id)) } }.toMap())
         }
         val ceiling = ClientResearch.state.max(Capacity.PLOTS).toLong()
-        val offerReason = lock("housing")
+        val offerReason = lock(Perm.HOUSING)
         val offerEdit = offerReason == null
-        val limitEdit = can("tax")
+        val limitEdit = can(Perm.PLOTS)
+        val lawEdit = can(Perm.TAXES)
         val content = r.dropBottom(34, 4)
         val offerOpen = cats.count { open[it] == true }
-        val wide = content.w >= 380
-        val group = LIMIT_SUB_H + 4 * ROW_H
-        val limitsBody = if (wide) group else 2 * group + 4
+        val limitsBody = LIMIT_SUB_H + 4 * ROW_H
         val total = 3 * SEC_H + 2 * SEC_GAP + (if (offerExpanded) cats.size * ROW_H + BODY_PAD else 0) + (if (rentExpanded) RENT_H + BODY_PAD else 0) + (if (limitsExpanded) limitsBody + BODY_PAD else 0)
         ui.scroll("housing", content, total) { area ->
             val col = Rect(area.x, area.y, area.w.coerceAtMost(MAX_W), area.h)
@@ -334,10 +328,10 @@ class PlotLawPage(app: ClaimsApp) : ClaimsPage(app) {
             if (rentExpanded) {
                 val cols = Rect(col.x, y + 2, col.w, 30).columns(2, 8)
                 ui.fieldLabel(cols[0].top(9), tr("kami_claims.law.debt_limit"))
-                ui.numberField(Rect(cols[0].x, cols[0].y + 10, cols[0].w, CONTROL_H), debtLimit, 0, 100_000, unit = Format.COIN, enabled = limitEdit, key = "debtlimit")
+                ui.numberField(Rect(cols[0].x, cols[0].y + 10, cols[0].w, CONTROL_H), debtLimit, 0, 100_000, unit = Format.COIN, enabled = lawEdit, key = "debtlimit")
                 ui.fieldLabel(cols[1].top(9), tr("kami_claims.law.move_out"))
-                ui.numberField(Rect(cols[1].x, cols[1].y + 10, cols[1].w, CONTROL_H), moveOut, 1, 30, enabled = limitEdit, key = "moveout")
-                if (!limitEdit) ui.tooltip("plotlaw:tip:law", Rect(col.x, y, col.w, RENT_H), lock("tax"))
+                ui.numberField(Rect(cols[1].x, cols[1].y + 10, cols[1].w, CONTROL_H), moveOut, 1, 30, enabled = lawEdit, key = "moveout")
+                if (!lawEdit) ui.tooltip("plotlaw:tip:law", Rect(col.x, y, col.w, RENT_H), lock(Perm.TAXES))
                 y += RENT_H + BODY_PAD
             }
             y += SEC_GAP
@@ -350,26 +344,29 @@ class PlotLawPage(app: ClaimsApp) : ClaimsPage(app) {
             y += SEC_H
             if (limitsExpanded) {
                 y += 2
-                val groups = if (wide) Rect(col.x, y, col.w, group).columns(2, 12) else listOf(Rect(col.x, y, col.w, group), Rect(col.x, y + group + 4, col.w, group))
-                val rankSec = ui.section(Rect(groups[0].x, groups[0].y, groups[0].w, 12), tr("kami_claims.law.limits.ranks"))
-                ranks.forEachIndexed { i, k ->
-                    limitRow(ui, Rect(rankSec.x, rankSec.y + i * ROW_H, rankSec.w, ROW_H - 2), look.ranks.getValue(k), null, null, rankLimits.getValue(k), ceiling, limitEdit, "plotlaw:rank:$k")
-                }
-                val guestSec = ui.section(Rect(groups[1].x, groups[1].y, groups[1].w, 12), tr("kami_claims.law.limits.guests"))
+                val guestSec = ui.section(Rect(col.x, y, col.w, 12), tr("kami_claims.law.limits.guests"))
                 guests.forEachIndexed { i, k ->
                     limitRow(ui, Rect(guestSec.x, guestSec.y + i * ROW_H, guestSec.w, ROW_H - 2), look.labels.getValue(k), OfferRows.ICONS.getValue(k), look.locks[k], guestLimits.getValue(k), ceiling, limitEdit, "plotlaw:guest:$k")
                 }
             }
         }
         val summary = if (changes == 0) "" else tr("kami_claims.law.housing.summary", Format.number(offerChanges), Format.number(limitChanges), Format.number(lawChanges))
-        ui.applyBar(r.bottom(28), changes, summary, offerEdit || limitEdit, null, pending("plot_law"), "plotlaw", {
-            cats.forEach { cat ->
-                if (rents.getValue(cat).value != rent(info, cat) || open[cat] != isOpen(info, cat)) act("plot_offer", cat, if (cat == "citizen" || open[cat] == true) "on" else "off", rents.getValue(cat).value.toString(), "default", key = "plot_offer:$cat")
-            }
-            ranks.forEach { k -> if (rankLimits.getValue(k).value != (info.rankPlots[k] ?: 0).toLong()) act("plot_limit", k, rankLimits.getValue(k).value.coerceIn(0, ceiling).toString(), key = "plot_limit:$k") }
-            guests.forEach { k -> if (guestLimits.getValue(k).value != (info.guestPlots[k] ?: 0).toLong()) act("plot_limit", k, guestLimits.getValue(k).value.coerceIn(0, ceiling).toString(), key = "plot_limit:$k") }
-            if (lawChanges > 0) act("plot_law", debtLimit.value.toString(), moveOut.value.toString(), key = "plot_law")
-        }, { discard(info) })
+        ui.applyBar(r.bottom(28), changes, summary, offerEdit || limitEdit || lawEdit, null, pending("plot_law"), "plotlaw", { submit(info) }, { discard(info) })
+    }
+
+    private fun submit(info: Info) {
+        val ceiling = ClientResearch.state.max(Capacity.PLOTS).toLong()
+        cats.forEach { cat ->
+            if (rents.getValue(cat).value != rent(info, cat) || open[cat] != isOpen(info, cat)) enqueue("plot_offer", cat, if (cat == "citizen" || open[cat] == true) "on" else "off", rents.getValue(cat).value.toString(), "default", key = "plot_offer:$cat")
+        }
+        guests.forEach { k -> if (guestLimits.getValue(k).value != (info.guestPlots[k] ?: 0).toLong()) enqueue("plot_limit", k, guestLimits.getValue(k).value.coerceIn(0, ceiling).toString(), key = "plot_limit:$k") }
+        if (lawChanges(info) > 0) enqueue("plot_law", debtLimit.value.toString(), moveOut.value.toString(), key = "plot_law")
+    }
+
+    override fun leaving(next: Route): Boolean {
+        val info = info ?: return super.leaving(next)
+        val dirty = synced && offerChanges(info) + limitChanges(info) + lawChanges(info) > 0
+        return guardLeave(next, dirty, if (can(Perm.HOUSING) || can(Perm.TAXES) || can(Perm.PLOTS)) { { submit(info) } } else null) { discard(info) } && super.leaving(next)
     }
 
     private fun head(ui: Ui, r: Rect, key: String, title: String, summary: String, changed: Boolean, expanded: Boolean, tip: String): Boolean {
@@ -393,7 +390,7 @@ class PlotLawPage(app: ClaimsApp) : ClaimsPage(app) {
             ui.fitText(x, row.y + 5, field.x - x - 4, label, Palette.text)
             ui.numberField(field, state, 0, ceiling, enabled = edit && gate == null, key = key)
         }
-        if (!edit) ui.tooltip("$key:tip", row, lock("tax"))
+        if (!edit) ui.tooltip("$key:tip", row, lock(Perm.PLOTS))
     }
 }
 
@@ -415,10 +412,21 @@ class IdentityPage(app: ClaimsApp) : ClaimsPage(app) {
     private var emblem = -1
     private var secondary = -1
 
+    private fun dirty(info: Info) = color >= 0 && (color != info.color || pattern != info.flag.pattern || emblem != info.flag.emblem || secondary != info.flag.secondary)
+
+    private fun save() {
+        act("flag", "%06x".format(color and 0xFFFFFF), pattern.toString(), emblem.toString(), "%06x".format(secondary and 0xFFFFFF), key = "flag")
+    }
+
+    override fun leaving(next: Route): Boolean {
+        val info = info ?: return super.leaving(next)
+        return guardLeave(next, dirty(info), if (can(Perm.CHUNK_RULES)) ::save else null) { color = -1 } && super.leaving(next)
+    }
+
     override fun draw(ui: Ui, r: Rect) {
         val info = info ?: return
         if (color < 0) { color = info.color; pattern = info.flag.pattern; emblem = info.flag.emblem; secondary = info.flag.secondary }
-        val editable = can("rules")
+        val editable = can(Perm.CHUNK_RULES)
         val (left, right) = r.columns(listOf(1f, 1.2f), 10)
         val lf = Flow(left, 6)
         val pb = ui.card(lf.take(left.h - NAME_CARD_H - 6), tr("kami_claims.identity.preview"), Icons.FLAG)
@@ -430,7 +438,7 @@ class IdentityPage(app: ClaimsApp) : ClaimsPage(app) {
         var sx = pb.x + (pb.w - sizes.sumOf { it.first + 8 }) / 2
         sizes.forEach { (w, h) -> Flags.draw(ui.g, Rect(sx, pb.y + 92, w, h), color, pattern, emblem, secondary); sx += w + 8 }
         if (pb.bottom - pb.y - 126 >= 20) MiniMap.draw(ui, Rect(pb.x, pb.y + 126, pb.w, pb.bottom - pb.y - 126), snap.px, snap.pz, 6, "identity")
-        val dirty = color != info.color || pattern != info.flag.pattern || emblem != info.flag.emblem || secondary != info.flag.secondary
+        val dirty = dirty(info)
         ui.scroll("identity-right", right, 66 + 66 + 78 + 64 + 18 + (if (dirty) 6 + CONTROL_H else 0)) { area -> identityControls(ui, area, editable, dirty) }
     }
 
@@ -455,9 +463,7 @@ class IdentityPage(app: ClaimsApp) : ClaimsPage(app) {
         }
         if (dirty) {
             val row = Row(f.take(CONTROL_H))
-            if (ui.edgeButton(row, tr("kami_claims.identity.save"), Icons.SAVE, ButtonStyle.PRIMARY, editable, lock("rules"), pending = pending("flag"), key = "save-flag")) {
-                act("flag", "%06x".format(color and 0xFFFFFF), pattern.toString(), emblem.toString(), "%06x".format(secondary and 0xFFFFFF), key = "flag")
-            }
+            if (ui.edgeButton(row, tr("kami_claims.identity.save"), Icons.SAVE, ButtonStyle.PRIMARY, editable, lock(Perm.CHUNK_RULES), pending = pending("flag"), key = "save-flag")) save()
             if (ui.edgeButton(row, tr("kami_libs.common.discard"), Icons.UNDO, key = "discard-flag")) color = -1
         }
     }
@@ -467,7 +473,7 @@ class IdentityPage(app: ClaimsApp) : ClaimsPage(app) {
         val offer = tokenOffer(Tokens.RENAME)
         val line = f.take(10)
         ui.fitText(line.x, line.y + 1, line.w, offer.text, offer.severity.color)
-        val president = ClaimsStore.rank == Rank.PRESIDENT
+        val president = ClaimsStore.myRank?.id == PRESIDENT
         if (ui.button(f.take(CONTROL_H), tr("kami_claims.common.rename_country"), Icons.EDIT, enabled = president, disabledReason = tr("kami_claims.identity.rename.president"), key = "rename")) Dialogs.rename(app)
     }
 
@@ -479,7 +485,7 @@ class IdentityPage(app: ClaimsApp) : ClaimsPage(app) {
     private fun pick(ui: Ui, r: Rect, chosen: Boolean, enabled: Boolean, tip: String, onPick: () -> Unit) {
         if (chosen) { Draw.outline(ui.g, r.grow(1), Palette.text); Draw.outline(ui.g, r.grow(2), Palette.brass) }
         if (ui.hovering(r) && enabled) { Draw.outline(ui.g, r, Palette.alpha(Palette.text, 0x90)); ui.cursor = Cursor.HAND }
-        ui.tooltip("pick:$tip", r, if (enabled) tip else lock("rules"))
+        ui.tooltip("pick:$tip", r, if (enabled) tip else lock(Perm.CHUNK_RULES))
         if (enabled && ui.pressed(r) != null) onPick()
     }
 }

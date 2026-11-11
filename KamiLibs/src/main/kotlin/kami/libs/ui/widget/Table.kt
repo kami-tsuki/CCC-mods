@@ -145,7 +145,7 @@ fun <T> Ui.table(
         val sortW = if (i == state.sortColumn) 10 else 0
         val title = Draw.fit(c.title.uppercase(), cell.w - sortW)
         val tx = if (c.align == Align.RIGHT) cell.right - Draw.width(title) - sortW else cell.x
-        Draw.text(g, title, tx, cell.y + (cell.h - 8) / 2, if (i == state.sortColumn) Palette.text else Palette.textMuted)
+        Draw.text(g, title, tx, Draw.textY(cell), if (i == state.sortColumn) Palette.text else Palette.textMuted)
         if (i == state.sortColumn) Draw.tintedIcon(g, if (state.descending) Icons.SORT_DOWN else Icons.SORT_UP, tx + Draw.width(title) - 3, cell.centerY - Draw.ICON / 2, Draw.ICON, Palette.textSecondary)
         (c.tip ?: c.title.uppercase().takeIf { it != title }?.let { c.title })?.let { tip -> tooltip("$key:h$i", cell, tip) }
         if (sortable && pressed(cell) != null) {
@@ -195,7 +195,7 @@ fun <T> Ui.table(
             Draw.fill(g, rr, when {
                 chosen -> Palette.selected
                 over -> Palette.hover
-                index % 2 == 1 -> Palette.alpha(0x000000, 0x0C)
+                index % 2 == 1 -> Palette.alpha(Palette.washDark, 0x0C)
                 else -> 0
             })
             Draw.hline(g, rr.x, rr.bottom - 1, rr.w, Palette.alpha(Palette.borderSubtle, 0xA0))

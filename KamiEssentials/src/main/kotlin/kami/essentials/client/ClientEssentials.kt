@@ -16,6 +16,12 @@ import kami.libs.ui.app.OpenWait
 import kami.libs.ui.app.registerOpenKey
 import kami.libs.ui.app.Personal
 import kami.libs.ui.app.Route
+import kami.libs.ui.hud.Anchor
+import kami.libs.ui.hud.BarColor
+import kami.libs.ui.hud.BarPrefs
+import kami.libs.ui.hud.HudBar
+import kami.libs.ui.hud.HudBars
+import kami.libs.ui.hud.HudPos
 import kami.libs.ui.style.Icons
 import kami.libs.ui.text.tr
 import kami.essentials.skills.SkillClient
@@ -27,7 +33,10 @@ import org.lwjgl.glfw.GLFW
 import thedarkcolour.kotlinforforge.neoforge.forge.FORGE_BUS
 
 object ClientEssentials {
+    private const val XP_BAR = "kami_essentials:xp"
+    private const val XP_REFRESH_TICKS = 300
     private var primed = false
+    private var xpTicks = 0
     private val wait = OpenWait({ tr("kami_essentials.module") }, { tr("kami_essentials.module") }, { tr("kami_essentials.personal.timeout") })
 
     fun init() {
@@ -41,9 +50,11 @@ object ClientEssentials {
         wait.register("kami_essentials")
         FORGE_BUS.addListener<ClientTickEvent.Post> {
             prime()
+            refreshXp()
             MotdRefresh.tick(Minecraft.getInstance())
         }
         BonusClient.register()
+        HudBars.register(HudBar(XP_BAR, { tr("kami_essentials.hud.xp") }, HudPos(Anchor.BOTTOM, 0, -48), BarPrefs(color = BarColor.GREEN), SkillClient::bar))
         FORGE_BUS.addListener<ClientPlayerNetworkEvent.LoggingOut> {
             primed = false
             SkillClient.update(null)
@@ -63,6 +74,11 @@ object ClientEssentials {
         Personal.sections.forEach { it.refresh("") }
         if (!app.ready) wait.start()
         request("open", Personal.subjectArg)
+    }
+
+    private fun refreshXp() {
+        val mc = Minecraft.getInstance()
+        if (primed && mc.screen == null && mc.player != null && ++xpTicks % XP_REFRESH_TICKS == 0 && HudBars.visible(XP_BAR)) request("open", Personal.subjectArg)
     }
 
     private fun prime() {

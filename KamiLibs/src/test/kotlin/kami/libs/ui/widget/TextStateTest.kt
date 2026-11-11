@@ -33,9 +33,11 @@ class TextStateTest {
     @Test
     fun insertRespectsLimitAndFilter() {
         val s = TextState("ab")
-        assertFalse(s.insert("cde", 4) { true })
+        assertTrue(s.insert("cde", 4) { true })
+        assertEquals("abcd", s.text)
+        assertFalse(s.insert("x", 4) { true })
         assertTrue(s.insert("1x2", 8) { it.isDigit() })
-        assertEquals("ab12", s.text)
+        assertEquals("abcd12", s.text)
     }
 
     @Test

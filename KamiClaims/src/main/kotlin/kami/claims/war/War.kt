@@ -15,6 +15,17 @@ enum class WarResult { ATTACKER, DEFENDER, PEACE, WHITE, WITHDRAWN }
 @Serializable
 data class ChunkRef(val dim: String, val x: Int, val z: Int) {
     val key get() = Key(dim, x, z)
+
+    fun wire() = "$dim:$x:$z"
+
+    companion object {
+        fun parse(text: String): ChunkRef? {
+            val parts = text.split(':')
+            val x = parts.getOrNull(parts.size - 2)?.toIntOrNull() ?: return null
+            val z = parts.last().toIntOrNull() ?: return null
+            return ChunkRef(parts.dropLast(2).joinToString(":"), x, z)
+        }
+    }
 }
 
 @Serializable

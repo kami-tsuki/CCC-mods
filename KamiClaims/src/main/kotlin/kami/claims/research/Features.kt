@@ -1,14 +1,12 @@
 package kami.claims.research
 
 import kami.claims.Country
-import kami.claims.Rank
 import kami.claims.service.Fail
 import kami.claims.service.Words
 import kami.libs.claims.Locks
 import kami.libs.text.Phrase
 
 object Features {
-    const val CHANCELLOR = "role:chancellor"
     const val BANISH = "banish"
     const val ALLIANCES = "alliances"
     const val EMBARGOES = "embargoes"
@@ -56,13 +54,5 @@ object Features {
 
     fun require(country: Country, id: String) {
         lockReason(country, id)?.let { throw Fail(it) }
-    }
-
-    fun requireRank(country: Country, rank: Rank) {
-        when (rank) {
-            Rank.CHANCELLOR -> require(country, CHANCELLOR)
-            Rank.OFFICER -> requireRoom(country, Capacity.OFFICERS, Levels.used(country, Capacity.OFFICERS))
-            else -> Unit
-        }
     }
 }

@@ -5,10 +5,14 @@ import kami.claims.client.app.ClaimsApp
 import kami.claims.client.store.ClaimsStore
 import kami.claims.client.app.ClaimsPage
 import kami.claims.client.app.Dialogs
+import kami.claims.client.app.Finance
 import kami.claims.client.app.HomesCard
 import kami.claims.client.app.Tenure
-import kami.claims.client.app.Vocabulary
+import kami.claims.client.app.rankLine
+import kami.claims.client.app.tint
 import kami.claims.client.store.ClientResearch
+import kami.claims.client.store.restricted
+import kami.claims.gov.Perm
 import kami.claims.net.DayLine
 import kami.claims.net.GoalLine
 import kami.claims.net.Info
@@ -54,15 +58,16 @@ class DashboardPage(app: ClaimsApp) : ClaimsPage(app) {
 
     override fun draw(ui: Ui, r: Rect) {
         val info = info ?: return
-        val net = info.income - info.upkeep - info.jobs
+        val net = Finance.of(info).net
         val loaded = ClaimsStore.history
         val history = loaded.orEmpty()
         val treasury = treasuryChart.of(history, info.treasury, net, Format.locale) { TreasuryChart(history, info.treasury, net) }
         val weekAgo = history.getOrNull(history.size - 8)?.treasury
         val debt = info.claimList.count { it.debt > 0 }
+        val historyHidden = info.restricted(Perm.TREASURY_VIEW)
         val tiles = listOf(
             KpiTile(tr("kami_libs.flow.treasury"), Format.number(ui.countUp("dashboard-treasury", info.treasury)), Icons.TREASURY, Palette.money,
-                trend = weekAgo?.let { Trend(info.treasury - it, tr("kami_claims.kpi.treasury.week", Format.signed(info.treasury - it))) }, sub = if (weekAgo == null && loaded != null) tr("kami_claims.kpi.treasury.no_history") else null,
+                trend = weekAgo?.let { Trend(info.treasury - it, tr("kami_claims.kpi.treasury.week", Format.signed(info.treasury - it))) }, sub = if (weekAgo == null && loaded != null && !historyHidden) tr("kami_claims.kpi.treasury.no_history") else null,
                 spark = treasury.spark, flashValue = info.treasury, tip = Tip(tr("kami_claims.kpi.net.title"), listOf(tr("kami_claims.kpi.net.tax", Format.signedMoney(info.income)) to Palette.success, tr("kami_claims.kpi.net.upkeep", Format.signedMoney(-info.upkeep)) to Palette.danger, tr("kami_claims.kpi.net.wages", Format.signedMoney(-info.jobs)) to Palette.danger)), onClick = { app.navigate(Route("budget")) }),
             KpiTile(tr("kami_claims.help.term.runway"), app.runwayText(info.treasury, net), Icons.CLOCK, app.runwayColor(info.treasury, net),
                 sub = tr("kami_claims.dashboard.runway.sub", Format.duration(info.nextBilling)), tip = Tip.text(tr("kami_claims.kpi.runway.tooltip"), tr("kami_claims.help.term.runway")), onClick = { app.navigate(Route("budget")) }),
@@ -81,7 +86,7 @@ class DashboardPage(app: ClaimsApp) : ClaimsPage(app) {
         val plots = plotsOf(info)
         val abroad = abroadMemo.of(snap.homes, info.name) { snap.homes.filter { it.country != info.name } }
         val goalsH = if (goals.isEmpty()) 0 else 24 + goals.size * GOAL_H
-        val meH = 24 + (2 + plots.size) * 12
+        val meH = 24 + (3 + plots.size) * 12
         val homesH = if (abroad.isEmpty()) 0 else homes.height(abroad)
         val progressH = if (ClientResearch.state.country.isNotEmpty()) progressCardHeight() else 0
         val boostH = boostCardHeight()
@@ -96,6 +101,7 @@ class DashboardPage(app: ClaimsApp) : ClaimsPage(app) {
         val homesB = Block(homesH) { homes.draw(ui, it, abroad, "dash-homes") }
         val progressB = Block(progressH) { ui.progressCard(it) }
         val boostB = Block(boostH) { ui.boostCard(it) }
+        val withdrawalsB = Block(if (can(Perm.WITHDRAW) && !can(Perm.TREASURY_VIEW)) withdrawalsHeight(info) else 0) { withdrawalsCard(ui, it, info) }
         val attentionB = Block(attentionH) { box ->
             ui.anchor("dashboard:attention", box)
             val body = ui.card(box, tr("kami_claims.dashboard.attention"), Icons.BELL, if (alerts.any { it.severity == "DANGER" }) Severity.DANGER else if (alerts.isNotEmpty()) Severity.WARNING else null, trailing = if (alerts.isEmpty()) null else Format.number(alerts.size))
@@ -107,14 +113,14 @@ class DashboardPage(app: ClaimsApp) : ClaimsPage(app) {
                 alerts.forEach { a -> y += app.alertCard(ui, Rect(area.x, y, area.w, 0), a) }
             }
         }
-        val chartB = Block(if (wide) CHART_MIN else CHART_NARROW) { box ->
+        val chartB = Block(if (historyHidden) 0 else if (wide) CHART_MIN else CHART_NARROW) { box ->
             ui.anchor("dashboard:chart", box)
             val cb = ui.card(box, tr("kami_claims.dashboard.chart", Format.days(history.size.coerceAtLeast(1).toLong())), Icons.STATS, help = tr("kami_claims.dashboard.chart.help"))
             if (loaded == null) ui.skeleton(cb) else ui.lineChart(cb, treasury.series, treasury.labels, key = "treasury-chart")
         }
-        val right = listOf(goalsB, meB, homesB, progressB, boostB).filter { it.h > 0 }
+        val right = listOf(withdrawalsB, goalsB, meB, homesB, progressB, boostB).filter { it.h > 0 }
         val rightH = right.sumOf { it.h + 6 }
-        val bodyH = if (wide) maxOf(attentionH + 6 + CHART_MIN, rightH) else (listOf(attentionB, goalsB, meB, progressB, boostB, homesB, chartB).filter { it.h > 0 }).sumOf { it.h + 6 }
+        val bodyH = if (wide) maxOf(attentionH + 6 + chartB.h, rightH) else (listOf(attentionB, withdrawalsB, goalsB, meB, progressB, boostB, homesB, chartB).filter { it.h > 0 }).sumOf { it.h + 6 }
         ui.scroll("dashboard", r, tilesH + 6 + bodyH) { c ->
             val tilesRect = c.top(tilesH)
             ui.anchor("dashboard:tiles", tilesRect)
@@ -127,12 +133,12 @@ class DashboardPage(app: ClaimsApp) : ClaimsPage(app) {
                 val (left, rightCol) = area.columns(listOf(1.35f, 1f), 6)
                 val lf = Flow(left, 6)
                 attentionB.draw(lf.take(attentionH))
-                chartB.draw(lf.remaining())
+                if (chartB.h > 0) chartB.draw(lf.remaining())
                 val rf = Flow(rightCol, 6)
                 right.forEach { it.draw(rf.take(it.h)) }
             } else {
                 val f = Flow(area, 6)
-                listOf(attentionB, goalsB, meB, progressB, boostB, homesB, chartB).filter { it.h > 0 }.forEach { it.draw(f.take(it.h)) }
+                listOf(attentionB, withdrawalsB, goalsB, meB, progressB, boostB, homesB, chartB).filter { it.h > 0 }.forEach { it.draw(f.take(it.h)) }
             }
         }
     }
@@ -172,11 +178,12 @@ class DashboardPage(app: ClaimsApp) : ClaimsPage(app) {
         val mine = info.members.firstOrNull { it.id == snap.me }
         val b = ui.card(box, tr("kami_libs.common.you"), Icons.PERSON)
         val flow = Flow(b, 1)
-        val rank = Vocabulary.rank(info.rank)
-        ui.property(flow.take(11), tr("kami_libs.common.rank"), rank.label, rank.color)
+        val rank = info.rankLine(info.rank)
+        ui.property(flow.take(11), tr("kami_libs.common.rank"), rank?.name ?: "-", rank?.tint ?: Palette.textMuted)
+        info.government?.let { ui.property(flow.take(11), tr("kami_claims.gov.title"), tr("kami_claims.preset.${it.preset}")) }
         val job = mine?.job?.takeIf { it.isNotEmpty() }
-        val jobLine = job?.let { j -> info.jobList.firstOrNull { it.name == j } }
-        ui.property(flow.take(11), tr("kami_libs.common.job"), if (job == null) tr("kami_libs.common.none") else "${Vocabulary.job(job)} · ${mine.done}/${jobLine?.quota ?: 0} · ${Format.money(jobLine?.pay?.toLong() ?: 0)}", if (job == null) Palette.textMuted else Palette.text)
+        val spec = job?.let { id -> info.jobSpecs.firstOrNull { it.id == id } }
+        ui.property(flow.take(11), tr("kami_libs.common.job"), if (job == null) tr("kami_libs.common.none") else "${spec?.name ?: job} · ${mine.done}/${spec?.quota ?: 0} · ${Format.money(spec?.pay?.toLong() ?: 0)}", if (job == null) Palette.textMuted else Palette.text)
         plots.forEach { ui.property(flow.take(11), it.label, it.text, it.color, key = it.key) }
     }
 }

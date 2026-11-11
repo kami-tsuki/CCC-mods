@@ -11,9 +11,9 @@ object ServerFacts {
         val access = server.registryAccess()
         val recipes = server.recipeManager.recipes.map { holder ->
             val result = runCatching { holder.value().getResultItem(access) }.getOrNull()?.takeUnless { it.isEmpty }
-            val outputs = result?.let { listOf(BuiltInRegistries.ITEM.getKey(it.item).toString()) }.orEmpty()
+            val outputs = result?.let { listOf(ItemSpec.id(it)) }.orEmpty()
             val display = result?.let { listOf(ItemSpec.spec(it)) }.orEmpty()
-            val inputs = runCatching { holder.value().ingredients.flatMap { ingredient -> ingredient.items.map { BuiltInRegistries.ITEM.getKey(it.item).toString() } }.distinct() }.getOrDefault(emptyList())
+            val inputs = runCatching { holder.value().ingredients.flatMap { ingredient -> ingredient.items.map { ItemSpec.id(it) } }.distinct() }.getOrDefault(emptyList())
             RecipeFact(holder.id().toString(), BuiltInRegistries.RECIPE_TYPE.getKey(holder.value().type).toString(), outputs, inputs, display, BuiltInRegistries.RECIPE_SERIALIZER.getKey(holder.value().serializer).toString())
         }
         return WorldFacts(

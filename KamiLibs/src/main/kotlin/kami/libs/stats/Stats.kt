@@ -59,7 +59,9 @@ object Stats {
 
     fun event(key: String, subject: String = "", obj: String = "", v: Long = 1, at: Long = System.currentTimeMillis()) {
         val k = routed(key, subject) ?: return
-        Db.write { exec("INSERT INTO libs_event (at, k, s, o, v) VALUES (?, ?, ?, ?, ?)", at, k, id(subject), id(obj), v) }
+        val s = id(subject)
+        val o = id(obj)
+        Db.write { exec("INSERT INTO libs_event (at, k, s, o, v) VALUES (?, ?, ?, ?, ?)", at, k, s, o, v) }
     }
 
     fun add(key: String, subject: String = "", obj: String = "", n: Long = 1) {

@@ -20,7 +20,6 @@ import kami.libs.ui.core.Memo
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Ui
-import kami.libs.ui.map.Viewport
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icons
@@ -44,7 +43,6 @@ import kami.libs.ui.widget.segmented
 import kotlin.math.max
 
 private const val SIDE_W = 190
-private const val DOUBLE_CLICK_MS = 350L
 private const val SCROLL_BAR = 4
 
 val skillsSection = PersonalSection(
@@ -64,21 +62,18 @@ class SkillsPage(private val app: PersonalApp) : Page() {
         Callout("skills:head", tr("kami_essentials.skill.help.level"), tr("kami_essentials.skill.help.level.desc")),
         Callout("skills:tree", tr("kami_essentials.skill.tree"), tr("kami_essentials.skill.help.tree.desc"))
     )
-    private val vp = Viewport(1.0, 0.33, 6.0)
+    private val graph = SkillMap.view()
     private val search = TextState()
-    private var fitted = false
     private var selected: Int? = null
     private var tab = "node"
     private val stateMemo = Memo()
     private val tipMemo = Memo()
-    private var lastClick = -1
-    private var lastClickAt = 0L
 
     private fun view(): SkillView? = app.snap?.skills
 
     private fun state(v: SkillView): NodeState = stateMemo.of(v, search.text) { SkillMap.state(v, search.text, ::searchText) }
 
-    private fun searchText(n: SkillNode) = n.title() + " " + n.effects.keys.joinToString(" ") { tr("kami_essentials.skill.name.$it") }
+    private fun searchText(n: SkillNode) = n.title() + " " + n.effects.keys.joinToString(" ") { nameText(it) }
 
     override fun draw(ui: Ui, r: Rect) {
         val v = view() ?: run { ui.emptyState(r, tr("kami_essentials.skill.off"), tr("kami_essentials.skill.off.body")); return }
@@ -105,30 +100,23 @@ class SkillsPage(private val app: PersonalApp) : Page() {
 
     private fun tree(ui: Ui, r: Rect, v: SkillView) {
         ui.panel(r, sunken = true)
-        vp.view = r
-        if (!fitted) { SkillMap.fit(vp); fitted = true }
-        vp.step(ui.dt, ui.reduceMotion)
         val s = state(v)
-        val hover = SkillMap.hit(ui, r, vp)
-        ui.clip(r.inset(1)) { SkillMap.draw(ui, r, vp, v, s, selected, hover?.id) }
-        if (hover != null) {
-            val t = tipMemo.of(hover.id, v) { tip(v, hover) }
-            ui.tooltip("skill:${hover.id}", Rect(ui.mouseX - 4, ui.mouseY - 4, 8, 8)) { t }
-            if (ui.pressed(r) != null) click(v, hover)
+        val pick = graph.frame(ui, r, selected ?: -1, "skill-tree") { SkillMap.draw(ui, r, it, v, s) }
+        val hover = graph.hovered
+        if (hover >= 0) {
+            val node = SkillTree.nodes[hover]
+            val t = tipMemo.of(hover, v) { tip(v, node) }
+            ui.tooltip("skill:$hover", Rect(ui.mouseX - 4, ui.mouseY - 4, 8, 8)) { t }
         }
-        vp.interact(ui, r, key = "skill-tree")
+        pick?.let { click(v, SkillTree.nodes[it.id], it.twice) }
     }
 
-    private fun click(v: SkillView, n: SkillNode) {
-        val now = System.currentTimeMillis()
-        val twice = lastClick == n.id && now - lastClickAt <= DOUBLE_CLICK_MS
-        lastClick = n.id
-        lastClickAt = now
+    private fun click(v: SkillView, n: SkillNode, twice: Boolean) {
         selected = n.id
         tab = "node"
         if (Personal.viewing) return
         if (v.cls == null && n.kind == NodeKind.START) pick(n.cls)
-        else if (twice && reason(v, n) == null) take(n)
+        else if (twice && reason(v, n) == null && (v.nodes[n.id] ?: 0) < n.ranks) take(n)
     }
 
     private fun take(n: SkillNode) = ClientEssentials.request("skill_take", n.id.toString())
@@ -159,7 +147,7 @@ class SkillsPage(private val app: PersonalApp) : Page() {
         if (n.alt >= 0) out += tr("kami_essentials.skill.alt", SkillTree.nodes[n.alt].title()) to (if (SkillTree.blocked(v.nodes, n)) Palette.danger else Palette.info)
         constellation(n)?.let { c ->
             val have = c.nodes.count { it in v.nodes }
-            out += tr("kami_essentials.skill.constellation", tr("kami_essentials.skill.name.${c.name}"), have, c.nodes.size) to if (have == c.nodes.size) Palette.success else Palette.info
+            out += tr("kami_essentials.skill.constellation", nameText(c.name), have, c.nodes.size) to if (have == c.nodes.size) Palette.success else Palette.info
             c.bonus.forEach { (k, x) -> out += effectLine(k, x) to Palette.textSecondary }
         }
         return out
@@ -239,7 +227,7 @@ class SkillsPage(private val app: PersonalApp) : Page() {
         SkillClass.entries.forEach { cls ->
             val row = f.take(CONTROL_H)
             if (ui.button(row, cls.label(), cls.icon(), enabled = !Personal.viewing, key = "skill-class-${cls.id}")) pick(cls)
-            Draw.fill(ui.g, Rect(row.x, row.y + 2, 2, row.h - 4), Palette.alpha(cls.color, 0xFF))
+            Draw.fill(ui.g, Rect(row.x, row.y + 2, 2, row.h - 4), Palette.opaque(cls.color))
         }
     }
 

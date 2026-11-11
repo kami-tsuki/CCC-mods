@@ -1,5 +1,6 @@
 package kami.claims
 
+import kami.claims.gov.PRESIDENT
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -20,7 +21,7 @@ class FreeChunksTest {
     private fun country(members: Int, lastActive: Long = now()): Country {
         val c = Country("freeland", lastActive = lastActive)
         Realm.data.countries[c.id] = c
-        repeat(members) { c.members["m$it"] = Member(Rank.PRESIDENT) }
+        repeat(members) { c.members["m$it"] = Member(PRESIDENT) }
         return c
     }
 

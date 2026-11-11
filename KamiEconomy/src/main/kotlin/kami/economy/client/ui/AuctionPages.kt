@@ -99,11 +99,13 @@ internal class AuctionsPage(app: MarketApp) : ListPage(app, "auctions") {
         val rows = data?.let { snap -> filtered(ui, "auctions:rows", snap.auctions.filter(::keep)) { ItemSearch.matches(query, stack(it), it.label) } }.orEmpty()
         val area = body(ui, r.dropTop(SMALL_H, 6))
         val selected = rows.firstOrNull { it.id in table.selected }
-        val tableArea = if (selected != null) area.dropRight(AUCTION_PANEL_W, 6) else area
-        ui.anchor("auctions:table", tableArea)
-        ui.table(tableArea, columns, rows, table, { it.id }, rowHeight = ROW_H, emptyText = tr("kami_economy.market.auctions.empty"), loading = loading)
-        ui.staleRows(tableArea, stale && rows.isNotEmpty())
-        selected?.let { panel(ui, area.right(AUCTION_PANEL_W), it) }
+        val split = ui.masterDetail(area, AUCTION_PANEL_W, selected != null) { table.selected.clear() }
+        split.list?.let { tableArea ->
+            ui.anchor("auctions:table", tableArea)
+            ui.table(tableArea, columns, rows, table, { it.id }, rowHeight = ROW_H, emptyText = tr("kami_economy.market.auctions.empty"), loading = loading)
+            ui.staleRows(tableArea, stale && rows.isNotEmpty())
+        }
+        selected?.let { a -> split.detail?.let { panel(ui, it, a) } }
     }
 
     private fun panel(ui: Ui, r: Rect, a: AuctionLine) {
@@ -197,10 +199,12 @@ internal class AuctionCreatePage(val app: MarketApp) : Page() {
         ui.fitText(r.x, r.y, r.w, tr("kami_economy.market.auction_only"), Palette.textSecondary)
         ui.searchField(r.dropTop(14).top(SMALL_H).left(SEARCH_MAX), box.text)
         val area = r.dropTop(14 + SMALL_H + 6)
-        val tableArea = if (selected != null) area.dropRight(AUCTION_PANEL_W + 20, 6) else area
-        ui.anchor("create:table", tableArea)
-        ui.table(tableArea, columns, rows, table, { it.slot }, rowHeight = ROW_H, emptyText = tr("kami_economy.create.empty"))
-        selected?.let { form(ui, area.right(AUCTION_PANEL_W + 20), it) }
+        val split = ui.masterDetail(area, AUCTION_PANEL_W + 20, selected != null) { table.selected.clear() }
+        split.list?.let { tableArea ->
+            ui.anchor("create:table", tableArea)
+            ui.table(tableArea, columns, rows, table, { it.slot }, rowHeight = ROW_H, emptyText = tr("kami_economy.create.empty"))
+        }
+        selected?.let { e -> split.detail?.let { form(ui, it, e) } }
     }
 
     private fun form(ui: Ui, r: Rect, e: Stored) {
@@ -231,7 +235,7 @@ internal class AuctionCreatePage(val app: MarketApp) : Page() {
             add(ReceiptLine(tr("kami_economy.market.auction.fee", app.snap.auctionFeePct), "", ReceiptKind.NOTE))
         }
         receiptDialog(app::open, tr("kami_economy.auction.receipt.list"), Icons.SCALES, lines, tr("kami_economy.market.auction.list")) {
-            app.request("auction_list", Blacklist.itemId(e.stack), e.stack.count.toString(), startPrice.toString(), buy.toString())
+            app.request("auction_list", Blacklist.itemId(e.stack), e.stack.count.toString(), startPrice.toString(), buy.toString(), e.slot.toString())
         }
     }
 }

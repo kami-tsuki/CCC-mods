@@ -2,7 +2,6 @@ package kami.claims.client.app.pages
 
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ClaimsPage
-import kami.claims.client.app.ClientLocks
 import kami.claims.client.app.Vocabulary
 import kami.claims.client.stackOf
 import kami.claims.client.store.ClientResearch
@@ -10,7 +9,6 @@ import kami.claims.net.NodeView
 import kami.claims.net.QueueView
 import kami.claims.research.Capacity
 import kami.claims.research.NodeState
-import kami.libs.ui.anim.countUp
 import kami.libs.ui.anim.spring
 import kami.libs.ui.app.Route
 import kami.libs.ui.core.Rect
@@ -21,8 +19,6 @@ import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
-import kami.libs.ui.style.Icon
-import kami.libs.ui.core.Tip
 import kami.libs.ui.style.Severity
 import kami.libs.ui.text.tr
 import kami.libs.ui.widget.*
@@ -114,7 +110,7 @@ class ResearchQueuePage(app: ClaimsApp) : ClaimsPage(app) {
         }
         val removeWhy = actions.removeReason(entry)
         if (ui.iconButton(line.iconSlot(), Icons.REMOVE, removeWhy ?: tr("kami_claims.research.action.remove"), enabled = removeWhy == null, key = "queue-remove:${node.key}")) actions.remove(node, entry)
-        if (ui.iconButton(line.iconSlot(), Icons.SORT_DOWN, tr("kami_claims.research.action.down"), enabled = index < waiting.lastIndex, key = "queue-down:${node.key}")) actions.move(node, queue.indexOf(waiting[index + 1]))
+        if (ui.iconButton(line.iconSlot(), Icons.SORT_DOWN, tr("kami_claims.research.action.down"), enabled = index in 0 until waiting.lastIndex, key = "queue-down:${node.key}")) actions.move(node, queue.indexOf(waiting[index + 1]))
         if (ui.iconButton(line.iconSlot(), Icons.SORT_UP, tr("kami_claims.research.action.up"), enabled = index > 0, key = "queue-up:${node.key}")) actions.move(node, queue.indexOf(waiting[index - 1]))
         val reason = actions.startReason(node, entry)
         val label = tr("kami_claims.research.action.start")

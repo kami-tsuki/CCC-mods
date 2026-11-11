@@ -5,6 +5,7 @@ import kami.claims.Country
 import kami.claims.Names
 import kami.claims.Realm
 import kami.claims.discord.CountryChannels
+import kami.claims.gov.Permissions
 import kami.libs.admin.Admin
 import kami.libs.admin.AdminCtx
 import kami.libs.db.Db
@@ -65,7 +66,7 @@ object AdminRooms {
 
     private fun row(server: MinecraftServer, c: Country): RoomRow {
         val actual = c.discordChannel.takeIf { it != 0L }?.let(DiscordApi::roomMembers)
-        val members = c.members.entries.sortedByDescending { it.value.rank }.map { (id, m) ->
+        val members = c.members.entries.sortedBy { Permissions.position(c, it.value.rank) }.map { (id, m) ->
             val link = id.toUuidOrNull()?.let(Links::get)
             val state = when {
                 link == null -> "unlinked"
@@ -74,7 +75,7 @@ object AdminRooms {
                 link.discordId in actual -> "in"
                 else -> "missing"
             }
-            RoomMember(id, Names.of(server, id), m.rank.name, link?.discordName.orEmpty(), state)
+            RoomMember(id, Names.of(server, id), Permissions.rank(c, m.rank)?.name.orEmpty(), link?.discordName.orEmpty(), state)
         }
         val wanted = members.mapNotNullTo(HashSet()) { m -> m.uuid.toUuidOrNull()?.let(Links::get)?.discordId?.takeIf { m.state != "banned" } }
         val strays = actual?.count { it !in wanted } ?: 0

@@ -1,9 +1,10 @@
 package kami.claims.social
 
-import kami.claims.Cap
 import kami.claims.KamiClaims
+import kami.claims.gov.Perm
+import kami.claims.gov.PermGroup
 import kami.libs.perm.PermissionSet
-
+import net.minecraft.server.level.ServerPlayer
 import net.neoforged.neoforge.server.permission.nodes.PermissionNode
 
 object Perms : PermissionSet(KamiClaims.ID) {
@@ -17,6 +18,8 @@ object Perms : PermissionSet(KamiClaims.ID) {
     val RESEARCH_BYPASS = node("research_bypass") { false }
     val RESEARCH_ADMIN = node("research_admin") { it?.hasPermissions(2) ?: true }
 
-    private val capNodes: Map<Cap, PermissionNode<Boolean>> = Cap.values().associateWith { node("cap.${it.name.lowercase()}") { true } }
-    fun capNode(cap: Cap): PermissionNode<Boolean> = capNodes.getValue(cap)
+    private val permNodes: Map<Perm, PermissionNode<Boolean>> = Perm.entries.associateWith { node("perm.${it.node}") { true } }
+    private val groupNodes: Map<PermGroup, PermissionNode<Boolean>> = PermGroup.entries.associateWith { node("group.${it.name.lowercase()}") { true } }
+
+    fun permitted(p: ServerPlayer, perm: Perm): Boolean = has(p, permNodes.getValue(perm)) && has(p, groupNodes.getValue(perm.group))
 }

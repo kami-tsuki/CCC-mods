@@ -9,8 +9,10 @@ import kami.claims.client.ClientClaims
 import kami.claims.client.ClientHooks
 import kami.claims.client.WarDisplay
 import kami.libs.ui.widget.Flags
+import kami.claims.client.app.Finance
 import kami.claims.client.app.Vocabulary
 import kami.claims.client.store.ClaimsStore
+import kami.claims.client.store.ClientResearch
 import kami.claims.client.world.AccessGuess
 import kami.claims.client.world.BlockHint
 import kami.claims.client.world.Borders
@@ -21,6 +23,10 @@ import kami.libs.ui.core.Dim
 import kami.libs.ui.core.Memo
 import kami.libs.ui.core.Rect
 import kami.libs.ui.hud.Anchor
+import kami.libs.ui.hud.BarData
+import kami.libs.ui.hud.BarPrefs
+import kami.libs.ui.hud.HudBar
+import kami.libs.ui.hud.HudBars
 import kami.libs.ui.hud.HudElement
 import kami.libs.ui.hud.HudLayout
 import kami.libs.ui.hud.HudOption
@@ -42,6 +48,7 @@ object Hud {
     private const val TERRITORY = "kami_claims:territory"
     private const val TOASTS = "kami_claims:toasts"
     private const val TAX = "kami_claims:tax"
+    private const val XP_BAR = "kami_claims:xp"
     private const val TAX_REFRESH_MS = 60_000L
     private const val MAX_FAILURES = 3
     private const val RETRY_MS = 5000L
@@ -51,6 +58,7 @@ object Hud {
         HudLayout.element(HudElement(TERRITORY, HudPos(Anchor.TOP), { tr("kami_claims.hud.sample_territory") }))
         HudLayout.element(HudElement(TOASTS, HudPos(Anchor.TOP_RIGHT, 0, 18), { tr("kami_claims.hud.sample_toast") }))
         HudLayout.element(HudElement(TAX, HudPos(Anchor.BOTTOM_LEFT), { taxSample().first().first }, lines = ::taxSample))
+        HudBars.register(HudBar(XP_BAR, { tr("kami_claims.hud.xp") }, HudPos(Anchor.TOP, 0, 18), BarPrefs(), ::countryBar))
         HudLayout.option(HudOption({ tr("kami_claims.hud.tax") }, listOf(
             TaxHudMode.OFF.name to { tr("kami_claims.hud.tax.off") },
             TaxHudMode.ALWAYS.name to { tr("kami_claims.hud.tax.always") },
@@ -120,7 +128,15 @@ object Hud {
         }
     }
 
-    fun reset() = failures.clear()
+    fun reset() {
+        failures.clear()
+        seenAlerts.clear()
+        toasts.clear()
+        banner = null
+        lastOwner = Int.MIN_VALUE
+        lastDim = ""
+        lastTaxRefresh = 0L
+    }
 
     private class TaxView(val lines: List<Pair<String, Int>>, val important: Boolean, val width: Int)
 
@@ -129,7 +145,7 @@ object Hud {
         return taxMemo.of(ClaimsStore.revision, Format.locale, now / 60_000, p.taxCondDebt, p.taxCondPrepaid, p.taxPrepaidDays, p.taxCondDue, p.taxDueHours, p.taxCondLapse, p.taxLapseDays) {
             val snap = ClaimsStore.snap
             val info = ClaimsStore.info?.takeIf { it.details }
-            val rows = snap?.let { TaxTimer.rows(TaxInputs(it.homes, ClaimsStore.receivedAt, now, info?.treasury ?: 0, info?.let { i -> i.income - i.upkeep - i.jobs } ?: 0, info != null)) }
+            val rows = snap?.let { TaxTimer.rows(TaxInputs(it.homes, ClaimsStore.receivedAt, now, info?.treasury ?: 0, info?.let { Finance.of(it).net } ?: 0, info != null)) }
             if (rows == null || rows.empty) null else {
                 val lines = taxLines(rows, p)
                 val cond = TaxConditions(p.taxCondDebt, p.taxCondPrepaid, p.taxPrepaidDays.toLong(), p.taxCondDue, p.taxDueHours.toLong(), p.taxCondLapse, p.taxLapseDays.toLong())
@@ -158,7 +174,15 @@ object Hud {
         tr("kami_claims.hud.tax.claims_last", trn("kami_claims.unit.day", 9)) to Palette.textSecondary
     )
 
-    fun idleWatch() = if (ClientClaims.prefs.taxHud == TaxHudMode.OFF) emptyList() else listOf("dashboard")
+    private fun countryBar(): BarData? {
+        val s = ClientResearch.state
+        if (s.ownCountry.isEmpty() || s.country != s.ownCountry) return null
+        val maxed = ClientResearch.atMaxLevel || !ClientResearch.xpTracked
+        val title = ClaimsStore.info?.takeIf { !it.delegated }?.name ?: tr("kami_claims.hud.xp")
+        return BarData(title, s.level, if (maxed) 1f else ClientResearch.xpFraction, s.xp - s.xpFloor, s.xpCeiling - s.xpFloor, maxed)
+    }
+
+    fun idleWatch() = if (ClientClaims.prefs.taxHud == TaxHudMode.OFF && !HudBars.visible(XP_BAR)) emptyList() else listOf("dashboard")
 
     private fun tax(g: GuiGraphics, dim: String, now: Long) {
         val mode = ClientClaims.prefs.taxHud

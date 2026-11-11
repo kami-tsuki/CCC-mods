@@ -1,6 +1,9 @@
 package kami.claims.client.app
 
-import kami.claims.Rank
+import kami.claims.gov.Perm
+import kami.claims.gov.PermGroup
+import kami.claims.net.Info
+import kami.claims.net.RankLine
 import kami.claims.TaxMode
 import kami.claims.tributeOwed
 import kami.libs.ui.style.Format
@@ -10,59 +13,77 @@ import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr
 import kami.libs.ui.text.trOr
 import kami.libs.ui.widget.Option
+import kami.libs.ui.widget.UiRisk
 import kotlin.math.abs
 
-class Look(private val key: String, val color: Int, val icon: Icon, private val fallback: String = key, private val fallbackDescription: String = "") {
+class Look(private val key: String, private val pick: () -> Int, val icon: Icon, private val fallback: String = key, private val fallbackDescription: String = "") {
+    constructor(key: String, color: Int, icon: Icon, fallback: String = key, fallbackDescription: String = "") : this(key, { color }, icon, fallback, fallbackDescription)
+
+    val color get() = pick()
     val label: String get() = trOr(key, fallback)
     val description: String get() = trOr("$key.desc", fallbackDescription)
 }
 
 object Vocabulary {
-    private fun type(id: String, color: Long, icon: Icon) = id to Look("kami_claims.chunk_type.$id", color.toInt(), icon)
+    private const val ADMIN_AUDIT_PREFIX = "admin_"
+
+    private fun type(id: String, icon: Icon) = id to Look("kami_claims.chunk_type.$id", { Palette.chunkType(id) ?: Palette.textMuted }, icon)
 
     private val types = mapOf(
-        type("civic", 0xFF5F6678, Icons.TOWN),
-        type("mining", 0xFFA8650F, Icons.PICKAXE),
-        type("farming", 0xFF4A8F2A, Icons.WHEAT),
-        type("forestry", 0xFF1F7A45, Icons.TREE),
-        type("factory", 0xFF2A6FD0, Icons.GEAR),
-        type("market", 0xFFB83F68, Icons.SCALES),
-        type("residential", 0xFF8A4FC8, Icons.HOUSE),
-        type("infrastructure", 0xFF5E6378, Icons.RAIL),
-        type("wilderness", 0xFF3F7A3B, Icons.PINE)
+        type("civic", Icons.TOWN),
+        type("mining", Icons.PICKAXE),
+        type("farming", Icons.WHEAT),
+        type("forestry", Icons.TREE),
+        type("factory", Icons.GEAR),
+        type("market", Icons.SCALES),
+        type("residential", Icons.HOUSE),
+        type("infrastructure", Icons.RAIL),
+        type("wilderness", Icons.PINE)
     )
 
     fun type(name: String): Look = types[name] ?: Look(
-        "kami_claims.chunk_type.$name", Palette.chart[abs(name.hashCode()) % Palette.chart.size], Icons.GENERIC,
+        "kami_claims.chunk_type.$name", Palette.chart.let { c -> if (c.isEmpty()) Palette.textMuted else c[abs(name.hashCode()) % c.size] }, Icons.GENERIC,
         name.replaceFirstChar { it.uppercase() }, tr("kami_claims.chunk_type.custom.desc")
     )
 
-    private fun rank(id: String, color: Long, icon: Icon) = id to Look("kami_claims.rank.$id", color.toInt(), icon)
+    fun standing(name: String): Look = when (name.lowercase()) {
+        "allied" -> Look("kami_claims.rank.allied", Palette.geoAlly, Icons.HANDSHAKE)
+        "banished" -> Look("kami_claims.rank.banished", Palette.danger, Icons.BAN)
+        else -> Look(name, Palette.textMuted, Icons.PERSON, name)
+    }
 
-    private val ranks = mapOf(
-        rank("president", 0xFFA87A00, Icons.CROWN),
-        rank("chancellor", 0xFF8A4FC8, Icons.SCROLL),
-        rank("officer", 0xFF2F68C8, Icons.SHIELD),
-        rank("citizen", 0xFF1E8A58, Icons.PERSON),
-        rank("allied", 0xFF0F78B0, Icons.HANDSHAKE),
-        rank("banished", 0xFFB02A2E, Icons.BAN)
+    private fun group(group: PermGroup, icon: Icon) = group to Look("kami_claims.perm_group.${group.name.lowercase()}", 0, icon)
+
+    private val groups = mapOf(
+        group(PermGroup.LAND, Icons.AREA),
+        group(PermGroup.TREASURY, Icons.TREASURY),
+        group(PermGroup.PEOPLE, Icons.PEOPLE),
+        group(PermGroup.RANKS, Icons.STAR),
+        group(PermGroup.JOBS, Icons.TOOL),
+        group(PermGroup.USE, Icons.HAND),
+        group(PermGroup.COUNTRY, Icons.FLAG),
+        group(PermGroup.NEWS, Icons.SCROLL)
     )
 
-    fun rank(name: String): Look = ranks[name.lowercase()] ?: Look("kami_claims.rank.${name.lowercase()}", Palette.textMuted, Icons.PERSON, name)
+    fun group(group: PermGroup): Look = groups.getValue(group)
 
-    val rankOrder = listOf("citizen", "officer", "chancellor", "president")
+    fun perm(perm: Perm): Look = Look("kami_claims.perm.${perm.node}", 0, group(perm.group).icon)
 
-    private fun access(id: String, color: Long, icon: Icon) = id to Look("kami_claims.access.$id", color.toInt(), icon)
+    fun risk(perm: Perm): UiRisk = UiRisk.valueOf(perm.risk.name)
+
+    private val accessIds = listOf("none", "officer", "assigned", "job", "worker", "citizen", "allied", "any")
+
+    private fun access(id: String, icon: Icon) = id to Look("kami_claims.access.$id", { Palette.mix(Palette.danger, Palette.success, accessIds.indexOf(id) / accessIds.lastIndex.toFloat()) }, icon)
 
     val access = listOf(
-        access("none", 0xFFB02A2E, Icons.BAN),
-        access("officer", 0xFFB85A1E, Icons.SHIELD),
-        access("assigned", 0xFFB0761A, Icons.PIN),
-        access("job", 0xFFA8680A, Icons.PICKAXE),
-        access("worker", 0xFF8A7418, Icons.TOOL),
-        access("citizen", 0xFF4A8F2A, Icons.PEOPLE),
-        access("allied", 0xFF0F78B0, Icons.HANDSHAKE),
-        access("any", 0xFF1E8A58, Icons.GLOBE)
+        access("none", Icons.BAN),
+        access("officer", Icons.SHIELD),
+        access("assigned", Icons.PIN),
+        access("job", Icons.PICKAXE),
+        access("worker", Icons.TOOL),
+        access("citizen", Icons.PEOPLE),
+        access("allied", Icons.HANDSHAKE),
+        access("any", Icons.GLOBE)
     )
 
     fun access(name: String) = access.firstOrNull { it.first == name }?.second ?: access.first().second
@@ -79,26 +100,6 @@ object Vocabulary {
     val flags = listOf(
         "machines" to Look("kami_claims.flag.machines", 0, Icons.GEAR),
         "fire" to Look("kami_claims.flag.fire", 0, Icons.FIRE)
-    )
-
-    private fun cap(id: String, icon: Icon) = id to Look("kami_claims.cap.$id", 0, icon)
-
-    val caps = linkedMapOf(
-        cap("claim", Icons.AREA),
-        cap("capital", Icons.CROWN),
-        cap("tax", Icons.TAX),
-        cap("rules", Icons.SHIELD),
-        cap("withdraw", Icons.WITHDRAW),
-        cap("invite", Icons.INVITE),
-        cap("members", Icons.PEOPLE),
-        cap("rank", Icons.STAR),
-        cap("jobs", Icons.TOOL),
-        cap("plot", Icons.HOUSE),
-        cap("housing", Icons.HOUSE),
-        cap("details", Icons.LEDGER),
-        cap("province", Icons.CHAIN),
-        cap("trade", Icons.SCALES),
-        cap("research", Icons.TREE)
     )
 
     private fun entry(id: String, icon: Icon) = id to Look("kami_claims.ledger.$id", 0, icon)
@@ -122,7 +123,13 @@ object Vocabulary {
 
     fun ledger(kind: String) = ledger[kind] ?: Look("kami_claims.ledger.$kind", 0, Icons.GENERIC, kind)
 
-    fun job(id: String) = trOr("kami_claims.job.$id", id)
+    fun job(id: String) = id.replaceFirstChar(Char::uppercase)
+
+    fun audit(action: String): String {
+        val code = action.removePrefix(ADMIN_AUDIT_PREFIX)
+        val label = trOr("kami_claims.audit.$code", code)
+        return if (code == action) label else tr("kami_claims.audit.admin_prefix", label)
+    }
 
     fun rate(price: Int, period: Int): String {
         val amount = Format.money(price.toLong())
@@ -168,4 +175,8 @@ object Vocabulary {
     fun ratio(a: Number, b: Number) = tr("kami_libs.format.ratio", Format.number(a.toLong()), Format.number(b.toLong()))
 }
 
-fun rankOf(name: String): Rank? = Rank.entries.firstOrNull { it.name.equals(name, true) }
+fun permsOf(names: Collection<String>): Set<Perm> = Perm.entries.filterTo(mutableSetOf()) { it.name in names }
+
+fun Info.rankLine(id: String): RankLine? = ranks.firstOrNull { it.id == id }
+
+val RankLine.tint get() = Palette.opaque(color)

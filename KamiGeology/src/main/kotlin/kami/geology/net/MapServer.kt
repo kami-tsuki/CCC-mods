@@ -144,7 +144,7 @@ object MapServer {
         val y0 = r.y0.coerceAtLeast(level.minBuildHeight)
         val y1 = r.y1.coerceAtMost(level.maxBuildHeight - 1)
         if (allowed(player)) {
-            if (r.cell !in 1..256 || r.w < 1 || r.h < 1 || r.w.toLong() * r.h > MAX_CELLS || y0 > y1) return
+            if (r.cell !in 1..256 || r.w < 1 || r.h < 1 || r.w.toLong() * r.h > MAX_CELLS || y0 > y1) return PacketDistributor.sendToPlayer(player, MapDone(r.seq, 0, 0, 0, 0))
         } else {
             val lock = scans[player.uuid]?.takeIf { it.expiresAt > System.currentTimeMillis() }
             if (lock == null) {
@@ -163,6 +163,7 @@ object MapServer {
                 PacketDistributor.sendToPlayer(player, MapDone(r.seq, 0, 0, 0, 0))
                 return
             }
+            scans[player.uuid] = ScanLock(lock.dimension, lock.x0, lock.z0, lock.w, lock.h, System.currentTimeMillis() + SCAN_LOCK_MS)
         }
         if (!world.withinBudget(r.w.toLong() * r.h * r.cell * r.cell)) {
             PacketDistributor.sendToPlayer(player, MapDone(r.seq, 0, 0, 0, 0))

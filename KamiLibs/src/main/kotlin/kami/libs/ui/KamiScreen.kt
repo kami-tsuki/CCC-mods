@@ -2,13 +2,14 @@ package kami.libs.ui
 
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Ui
+import kami.libs.ui.style.Palette
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
 import org.lwjgl.glfw.GLFW
 
 abstract class KamiScreen(title: Component) : Screen(title) {
-    protected open val dimColor: Int = 0xB0000000.toInt()
+    protected open val dimColor: Int get() = Palette.alpha(Palette.washDark, 0xB0)
     val ui = Ui()
 
     protected abstract fun draw(ui: Ui, r: Rect)

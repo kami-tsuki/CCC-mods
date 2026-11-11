@@ -21,7 +21,7 @@ object DiscordFormat {
     fun moneyFull(n: Number): String = String.format(Locale.ROOT, "%,d $SPUR", n.toLong())
 
     fun each(v: Double): String = when {
-        v <= 0 -> "0"
+        !v.isFinite() || v <= 0 -> "0"
         v < 0.01 -> java.math.BigDecimal(v).round(java.math.MathContext(2)).toPlainString()
         v < 10 -> trimmed(String.format(Locale.ROOT, "%.2f", v))
         v < 100 -> trimmed(String.format(Locale.ROOT, "%.1f", v))
@@ -33,8 +33,6 @@ object DiscordFormat {
 
     fun num(n: Long): String = Compact.of(n)
 
-    fun numFull(n: Long): String = String.format(Locale.ROOT, "%,d", n)
-
     fun pct(x: Double): String = trimmed(String.format(Locale.ROOT, "%.1f", x)) + "%"
 
     fun player(name: String): String = literal(name)
@@ -43,8 +41,6 @@ object DiscordFormat {
         names.take(max).joinToString(", ") { player(it) } + if (names.size > max) " +${names.size - max}" else ""
 
     fun country(name: String): String = "**${escape(name)}**"
-
-    fun date(ms: Long): String = "<t:${ms / 1000}:d>"
 
     fun fields(vararg entries: Pair<String, String>?): List<EmbedField> =
         entries.filterNotNull().filter { it.first.isNotBlank() && it.second.isNotBlank() }.map { EmbedField(it.first, it.second) }

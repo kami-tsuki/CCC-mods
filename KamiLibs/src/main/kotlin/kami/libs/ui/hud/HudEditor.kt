@@ -40,7 +40,7 @@ class HudEditor(private val parent: Screen?) : Screen(Component.literal(tr("kami
         addRenderableWidget(Button.builder(Component.literal(tr("kami_libs.common.done"))) { onClose() }.bounds(width / 2 + 2, height - 28, w, 20).build())
     }
 
-    override fun renderBackground(g: GuiGraphics, mx: Int, my: Int, delta: Float) = Draw.fill(g, Rect(0, 0, width, height), 0x30000000)
+    override fun renderBackground(g: GuiGraphics, mx: Int, my: Int, delta: Float) = Draw.fill(g, Rect(0, 0, width, height), Palette.alpha(Palette.washDark, 0x30))
 
     override fun render(g: GuiGraphics, mx: Int, my: Int, delta: Float) {
         super.render(g, mx, my, delta)
@@ -52,6 +52,7 @@ class HudEditor(private val parent: Screen?) : Screen(Component.literal(tr("kami
         val all = items()
         HudLayout.elements.values.forEach { e ->
             val b = all.first { it.id == e.id }.rect
+            e.draw?.let { return@forEach it(g, b) }
             Draw.sprite(g, Sprites.TOOLTIP, b)
             val rows = e.lines?.invoke()
             if (rows == null) Draw.text(g, e.sample(), b.x + 5, b.y + 4, e.color())

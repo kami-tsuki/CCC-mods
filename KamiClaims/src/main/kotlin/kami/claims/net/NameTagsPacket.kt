@@ -1,7 +1,6 @@
 package kami.claims.net
 
 import kami.claims.KamiClaims
-import kami.claims.Rank
 import kami.libs.net.Packets
 import kami.libs.skills.SkillClass
 import net.minecraft.network.FriendlyByteBuf
@@ -11,13 +10,14 @@ import kotlin.math.max
 
 private val net = Packets.forMod(KamiClaims.ID)
 
-data class TagView(val id: UUID, val country: String?, val color: Int, val rank: Int, val cls: Int, val level: Int)
+data class TagView(val id: UUID, val country: String?, val color: Int, val rank: String, val rankColor: Int, val cls: Int, val level: Int)
 
 class NameTagsPacket(val tags: Map<UUID, TagView>) : CustomPacketPayload {
     override fun type() = TYPE
 
     companion object {
         const val CAP = 64
+        private const val RANK_NAME = 32
         val TYPE = CustomPacketPayload.Type<NameTagsPacket>(net.id("nametags"))
         val CODEC = net.codec<NameTagsPacket>(::write, ::read)
 
@@ -26,7 +26,8 @@ class NameTagsPacket(val tags: Map<UUID, TagView>) : CustomPacketPayload {
             b.writeVarInt(v.tags.size)
             v.tags.values.forEach {
                 b.writeUUID(it.id); b.writeUtf(it.country ?: "", 64); b.writeInt(it.color)
-                b.writeByte(it.rank + 1); b.writeByte(it.cls + 1); b.writeVarInt(it.level)
+                b.writeUtf(it.rank, RANK_NAME); b.writeInt(it.rankColor)
+                b.writeByte(it.cls + 1); b.writeVarInt(it.level)
             }
         }
 
@@ -34,7 +35,7 @@ class NameTagsPacket(val tags: Map<UUID, TagView>) : CustomPacketPayload {
             val n = b.readVarInt()
             require(n in 0..CAP) { "list too long" }
             return NameTagsPacket(List(n) {
-                TagView(b.readUUID(), b.readUtf(64).ifEmpty { null }, b.readInt(), b.readUnsignedByte().toInt() - 1, b.readUnsignedByte().toInt() - 1, b.readVarInt())
+                TagView(b.readUUID(), b.readUtf(64).ifEmpty { null }, b.readInt(), b.readUtf(RANK_NAME), b.readInt(), b.readUnsignedByte().toInt() - 1, b.readVarInt())
             }.associateBy { it.id })
         }
     }
@@ -50,7 +51,7 @@ object TagRows {
     fun rows(t: TagView): List<TagRow> {
         val first = when {
             t.country == null -> TagRow(RowKind.NOMAD, "", GRAY)
-            t.rank >= 0 -> TagRow(RowKind.RANK, Rank.entries.getOrNull(t.rank)?.name?.lowercase() ?: "citizen", readable(t.color))
+            t.rank.isNotEmpty() -> TagRow(RowKind.RANK, t.rank, readable(t.rankColor))
             else -> TagRow(RowKind.COUNTRY, t.country, readable(t.color))
         }
         val second = when {

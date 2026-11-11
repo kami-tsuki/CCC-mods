@@ -1,5 +1,6 @@
 package kami.claims
 
+import kami.claims.gov.PRESIDENT
 import kami.claims.research.*
 import kami.claims.service.Planner
 import kami.libs.config.Configs
@@ -25,7 +26,8 @@ class LevelTest : WithDb() {
     private fun country(): Country {
         val c = Country("alpha", treasury = 1000)
         Realm.data.countries[c.id] = c
-        Realm.join(c, "alpha_p", Rank.PRESIDENT)
+        c.mixed()
+        Realm.join(c, "alpha_p", PRESIDENT)
         return c
     }
 
@@ -103,6 +105,28 @@ class LevelTest : WithDb() {
         Levels.award(c, 1)
         assertEquals(1150L, c.treasury)
         assertEquals(listOf(LedgerKind.LEVEL_REWARD, LedgerKind.LEVEL_REWARD), c.ledger.map { it.kind })
+    }
+
+    @Test
+    fun setLevelMovesBothWaysClampsAndNeverRepaysRewards() {
+        install(levels = config(
+            capacities = mapOf(Capacity.CHUNKS to 3),
+            rewards = mapOf(2 to listOf(MoneyReward(100)), 3 to listOf(MoneyReward(50), CapacityUnlock(Capacity.CHUNKS, 4)))
+        ))
+        val c = country()
+        assertEquals(3, Levels.setLevel(c, 3))
+        assertEquals(3, c.level)
+        assertEquals(200L, c.xp)
+        assertEquals(1150L, c.treasury)
+        assertEquals(7, Levels.capacity(c, Capacity.CHUNKS))
+        assertEquals(1, Levels.setLevel(c, 0))
+        assertEquals(1, c.level)
+        assertEquals(0L, c.xp)
+        assertEquals(3, c.rewardedLevel)
+        assertEquals(3, Levels.capacity(c, Capacity.CHUNKS))
+        assertEquals(20, Levels.setLevel(c, 999))
+        assertEquals(1150L, c.treasury)
+        assertEquals(19 * 100L, c.xp)
     }
 
     @Test

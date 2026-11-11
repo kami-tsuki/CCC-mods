@@ -241,6 +241,7 @@ object Matching {
         val washedOut = HashSet<Int>()
         val t = now()
         fills.forEachIndexed { idx, f ->
+            if (f.qty <= 0) return@forEachIndexed
             val lots = f.qty / f.lot.coerceAtLeast(1)
             if (f.market) {
                 Stocks.take(item, lots)

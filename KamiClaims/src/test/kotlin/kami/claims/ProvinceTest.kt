@@ -1,7 +1,8 @@
 package kami.claims
 
+import kami.claims.gov.PRESIDENT
+import kami.claims.gov.Standing
 import kami.claims.service.Provinces
-import kami.claims.service.Service
 import kami.claims.service.Upkeep
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -12,7 +13,8 @@ class ProvinceTest : WithDb() {
     private fun country(name: String, treasury: Long = 0): Country {
         val c = Country(name, treasury = treasury)
         Realm.data.countries[c.id] = c
-        Realm.join(c, "${name}_p", Rank.PRESIDENT)
+        c.mixed()
+        Realm.join(c, "${name}_p", PRESIDENT)
         return c
     }
 
@@ -22,14 +24,14 @@ class ProvinceTest : WithDb() {
     }
 
     @Test
-    fun percentTaxTransfersFromIncomeToParentTreasury() {
+    fun percentTaxIgnoresDeposits() {
         val (parent, child) = setup()
         Provinces.finalize(child, parent, TaxMode.PERCENT, 0.5)
         child.treasury = 100
         child.pending = 40
         Upkeep.process(1)
-        assertEquals(80L, child.treasury)
-        assertEquals(20L, parent.treasury)
+        assertEquals(100L, child.treasury)
+        assertEquals(0L, parent.treasury)
         assertEquals(0, child.provinceDebt)
     }
 
@@ -92,8 +94,8 @@ class ProvinceTest : WithDb() {
     fun formingAProvinceAutoAlliesMembersAcrossTheFamily() {
         val (parent, child) = setup()
         Provinces.finalize(child, parent, TaxMode.FLAT, 5.0)
-        assertEquals(Rank.ALLIED, parent.outsiders["childland_p"])
-        assertEquals(Rank.ALLIED, child.outsiders["parentland_p"])
+        assertEquals(Standing.ALLIED, parent.outsiders["childland_p"])
+        assertEquals(Standing.ALLIED, child.outsiders["parentland_p"])
         assertTrue("childland_p" in parent.autoAllies)
     }
 
@@ -113,9 +115,9 @@ class ProvinceTest : WithDb() {
     @Test
     fun explicitBanIsNotOverriddenByAutoAlly() {
         val (parent, child) = setup()
-        parent.outsiders["childland_p"] = Rank.BANISHED
+        parent.outsiders["childland_p"] = Standing.BANISHED
         Provinces.finalize(child, parent, TaxMode.FLAT, 5.0)
-        assertEquals(Rank.BANISHED, parent.outsiders["childland_p"])
+        assertEquals(Standing.BANISHED, parent.outsiders["childland_p"])
         assertTrue("childland_p" !in parent.autoAllies)
     }
 }

@@ -6,6 +6,7 @@ import net.dv8tion.jda.api.entities.WebhookClient
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.exceptions.ErrorResponseException
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException
+import net.dv8tion.jda.api.requests.RestAction
 import net.dv8tion.jda.api.requests.restaction.MessageCreateAction
 import net.dv8tion.jda.api.requests.restaction.WebhookMessageCreateAction
 import java.util.concurrent.Executors
@@ -167,7 +168,36 @@ internal object Outbox {
 
     private fun text(content: String) = Task({ it.sendMessage(content).setAllowedMentions(emptySet()) }, { it.sendMessage(content).setAllowedMentions(emptySet()) })
 
-    fun embed(embed: MessageEmbed) = Task({ it.sendMessageEmbeds(embed).setAllowedMentions(emptySet()) }, { it.sendMessageEmbeds(embed).setAllowedMentions(emptySet()) })
+    fun embed(embed: MessageEmbed, sent: (Long) -> Unit = {}) = Task({ it.sendMessageEmbeds(embed).setAllowedMentions(emptySet()) }, { it.sendMessageEmbeds(embed).setAllowedMentions(emptySet()) }, sent)
+
+    fun amend(channel: Channel, hook: (WebhookClient<Message>) -> RestAction<*>, plain: (MessageChannel) -> RestAction<*>, done: (Boolean) -> Unit = {}) {
+        Webhooks.get(channel) { client ->
+            if (client == null) return@get amendPlain(channel, plain, done)
+            try {
+                hook(client).queue({ done(true) }, { amendPlain(channel, plain, done) })
+            } catch (e: Exception) {
+                amendPlain(channel, plain, done)
+            }
+        }
+    }
+
+    private fun amendPlain(channel: Channel, plain: (MessageChannel) -> RestAction<*>, done: (Boolean) -> Unit) {
+        val target = Discord.jda?.getChannelById(MessageChannel::class.java, channel.id)
+        if (target == null) {
+            Discord.warnOnce("plain-$channel", "The $channel channel ${channel.id} was not found, cannot edit messages")
+            return done(false)
+        }
+        val fail = { e: Throwable ->
+            if (e is InsufficientPermissionException) Discord.warnOnce("amend-perm-$channel", "The bot cannot edit or delete messages in the $channel channel, give it Manage Messages: ${e.message}")
+            else sendFailed(e)
+            done(false)
+        }
+        try {
+            plain(target).queue({ done(true) }, fail)
+        } catch (e: Exception) {
+            fail(e)
+        }
+    }
 
     private fun send(lane: Lane, channel: Channel, task: Task, retry: Boolean, mine: Int) {
         Webhooks.get(channel) { client ->

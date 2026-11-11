@@ -3,9 +3,10 @@ package kami.claims.discord
 import kami.claims.Config
 import kami.claims.Country
 import kami.claims.NameRules
-import kami.claims.Rank
 import kami.claims.Realm
+import kami.claims.gov.Permissions
 import kami.claims.service.Announce
+import kami.claims.press.NewsDelivery
 import kami.claims.service.Words
 import kami.libs.chat.Theme
 import kami.libs.chat.Tone
@@ -27,11 +28,15 @@ object CountryChannels : DiscordFeature {
 
     val on get() = Config.s.countryChannels && DiscordApi.roomsOn
 
-    override fun onReady() = synced.clear()
+    override fun onReady() {
+        synced.clear()
+        NewsDelivery.flush()
+    }
 
     override fun onJoin(userId: Long) = synced.clear()
 
     fun tick() {
+        NewsDelivery.flush()
         if (!on) return
         val now = System.currentTimeMillis()
         Realm.data.countries.values.filter { !it.active && it.discordChannel != 0L }.forEach(::drop)
@@ -74,7 +79,7 @@ object CountryChannels : DiscordFeature {
         Realm.changed()
     }
 
-    private fun rank(c: Country, id: String) = Words.rank(c.members[id]?.rank ?: Rank.CITIZEN)
+    private fun rank(c: Country, id: String) = Words.v(Permissions.rankOf(c, id)?.name.orEmpty())
 
     fun resync(c: Country?) {
         if (c == null) {
@@ -111,8 +116,8 @@ object CountryChannels : DiscordFeature {
 
     fun event(c: Country, text: Phrase, tone: Tone) = post(c, DiscordText.phrase(text), if (tone == Tone.INFO) Theme.LINK else tone.mark)
 
-    fun post(c: Country, text: String, color: Int) {
-        if (on && c.discordChannel != 0L) DiscordApi.roomEvent(c.id, Embed(text, color))
+    fun post(c: Country, text: String, color: Int, card: Boolean = false) {
+        if (on && c.discordChannel != 0L) DiscordApi.roomEvent(c.id, Embed(text, color), card)
     }
 
     private fun names(list: List<Country>): Map<String, String> {

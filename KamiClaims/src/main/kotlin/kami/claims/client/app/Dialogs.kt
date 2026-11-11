@@ -4,11 +4,15 @@ import kami.libs.ui.text.tr
 import kami.claims.NameRules
 import kami.claims.rentSplit
 import kami.claims.client.store.ClaimsStore
+import kami.claims.client.store.Outcome
+import kami.claims.gov.WarnTier
 import kami.claims.net.HomeLine
 import kami.claims.net.Snap
 import kami.libs.ui.app.KamiApp
-import kami.libs.ui.app.Consequence
 import kami.libs.ui.app.Dialog
+import kami.libs.ui.app.DialogKind
+import kami.libs.ui.app.dialogButtons
+import kami.libs.ui.app.Consequence
 import kami.libs.ui.app.confirmDialog
 import kami.libs.ui.app.consequences
 import kami.claims.research.Tokens
@@ -17,7 +21,7 @@ import kami.libs.ui.widget.TextState
 import kami.libs.ui.widget.fieldHelp
 import kami.libs.ui.widget.fieldLabel
 import kami.libs.ui.widget.textField
-import kami.libs.ui.app.dialogButtons
+import kami.libs.ui.app.formDialog
 import kami.libs.ui.app.AmountPlan
 import kami.libs.ui.app.amountDialog
 import kami.libs.ui.core.Rect
@@ -28,6 +32,12 @@ import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
 import kami.libs.ui.widget.playerField
 import kami.libs.ui.widget.property
+import kami.libs.ui.widget.ButtonStyle
+import kami.libs.ui.widget.DIFF_ROW_H
+import kami.libs.ui.widget.DiffLine
+import kami.libs.ui.widget.checkbox
+import kami.libs.ui.widget.diffList
+import kami.libs.ui.widget.diffListHeight
 
 object Dialogs {
     fun gift(app: ClaimsApp, id: String, name: String) {
@@ -81,39 +91,31 @@ object Dialogs {
         else -> null
     }
 
-    fun invite(app: ClaimsApp, name: TextState) {
-        app.open(Dialog(tr("kami_libs.common.invite"), null, Icons.INVITE) { s ->
-            playerField(Rect(s.body.x, s.body.y, s.body.w, CONTROL_H), name, offline = { ClaimsStore.snap?.names.orEmpty() }, query = { ClaimsStore.quiet("names", it) }, key = "invite-dialog")
-            s.used = CONTROL_H + 4
-            dialogButtons(s, tr("kami_libs.common.invite"), name.text.length >= 3, tr("kami_claims.field.player.disabled")) {
-                ClaimsStore.send("invite", name.text, key = "invite")
-                name.set("")
-                s.close()
-            }
-        })
+    fun invite(app: ClaimsApp, name: TextState) = formDialog({ app.open(it) }, tr("kami_libs.common.invite"), null, Icons.INVITE, tr("kami_libs.common.invite"),
+        { name.text.length >= 3 }, { tr("kami_claims.field.player.disabled") }, { ClaimsStore.send("invite", name.text, key = "invite"); name.set("") }
+    ) { r ->
+        playerField(Rect(r.x, r.y, r.w, CONTROL_H), name, offline = { ClaimsStore.snap?.names.orEmpty() }, query = { ClaimsStore.quiet("names", it) }, key = "invite-dialog")
+        CONTROL_H
     }
 
     fun rename(app: ClaimsApp) {
         val name = TextState()
-        app.open(Dialog(tr("kami_claims.common.rename_country"), tr("kami_claims.rename.subtitle"), Icons.EDIT) { s ->
-            val snap = ClaimsStore.snap ?: return@Dialog
+        formDialog({ app.open(it) }, tr("kami_claims.common.rename_country"), tr("kami_claims.rename.subtitle"), Icons.EDIT, tr("kami_claims.rename.action"),
+            { name.error == null && name.text.isNotEmpty() && tokenOffer(Tokens.RENAME).affordable }, { name.error ?: tr("kami_claims.token.unaffordable") }, { ClaimsStore.send("rename", name.text, key = "rename") }
+        ) { r ->
+            val snap = ClaimsStore.snap ?: return@formDialog 0
             val max = snap.limits?.nameMax ?: 24
             name.error = nameError(name.text, snap)
             val offer = tokenOffer(Tokens.RENAME)
-            var y = s.body.y
-            fieldLabel(Rect(s.body.x, y, s.body.w, 9), tr("kami_claims.wizard.name"), "${name.text.length}/$max"); y += 11
-            textField(Rect(s.body.x, y, s.body.w, CONTROL_H), name, snap.info?.name.orEmpty(), Icons.FLAG, maxLength = max, allow = NameRules::allows, key = "rename-field", autoFocus = true)
+            var y = r.y
+            fieldLabel(Rect(r.x, y, r.w, 9), tr("kami_claims.wizard.name"), "${name.text.length}/$max"); y += 11
+            textField(Rect(r.x, y, r.w, CONTROL_H), name, snap.info?.name.orEmpty(), Icons.FLAG, maxLength = max, allow = NameRules::allows, key = "rename-field", autoFocus = true)
             name.touched = name.text.isNotEmpty()
             y += CONTROL_H + 2
-            fieldHelp(Rect(s.body.x, y, s.body.w, 9), name, tr("kami_claims.rename.desc")); y += 16
-            y += consequences(s.body.x, y, s.body.w, listOf(Consequence(offer.text, offer.severity), Consequence(tr("kami_claims.rename.keeps")))) + 4
-            s.used = y - s.body.y
-            val reason = name.error ?: tr("kami_claims.token.unaffordable")
-            dialogButtons(s, tr("kami_claims.rename.action"), name.error == null && name.text.isNotEmpty() && offer.affordable, reason) {
-                ClaimsStore.send("rename", name.text, key = "rename")
-                s.close()
-            }
-        })
+            fieldHelp(Rect(r.x, y, r.w, 9), name, tr("kami_claims.rename.desc")); y += 16
+            y += consequences(r.x, y, r.w, listOf(Consequence(offer.text, offer.severity), Consequence(tr("kami_claims.rename.keeps"))))
+            y - r.y
+        }
     }
 
     fun rentPayKey(h: HomeLine) = "rent_pay:${h.dim}|${h.x}|${h.z}"
@@ -147,8 +149,9 @@ object Dialogs {
                 val snap = ClaimsStore.snap ?: return@amountDialog null
                 val info = snap.info ?: return@amountDialog null
                 val max = if (deposit) snap.funds else info.treasury
-                val spend = info.upkeep + info.jobs - info.income
+                val spend = -Finance.of(info).net
                 val help = when {
+                    !deposit && info.government?.treasury == "council" -> tr("kami_claims.money.withdraw.council")
                     !deposit -> tr("kami_claims.money.withdraw.desc")
                     spend > 0 -> tr("kami_claims.money.deposit.desc_runway", Format.days((info.treasury + amount) / spend))
                     else -> tr("kami_claims.money.deposit.desc")
@@ -158,4 +161,85 @@ object Dialogs {
             send = { ClaimsStore.send(if (deposit) "deposit" else "withdraw", it.toString()) }
         ))
     }
+
+    fun review(app: KamiApp, title: String, subtitle: String?, icon: Icon, lines: List<DiffLine>, primary: String, onConfirm: () -> Unit) =
+        app.open(Dialog(title, subtitle, icon, width = REVIEW_W) { s ->
+            val height = diffListHeight(lines.size).coerceIn(DIFF_ROW_H * 2, REVIEW_MAX_H)
+            diffList(Rect(s.body.x, s.body.y, s.body.w, height), lines, "review")
+            s.used = height + 4
+            dialogButtons(s, primary) {
+                onConfirm()
+                s.close()
+            }
+        })
+
+    fun reset() {
+        batch.clear()
+        warningDialog?.close()
+        warningDialog = null
+    }
+
+    fun warnings(app: ClaimsApp, o: Outcome) {
+        ClaimsStore.hold(o.key) { warningDialog?.open == true }
+        if (warningDialog?.open != true) {
+            batch.clear()
+            warningDialog = buildWarningDialog().also(app::open)
+        }
+        batch += o
+    }
+
+    private fun buildWarningDialog(): Dialog {
+        val typed = TextState()
+        var understood = false
+        return Dialog(tr("kami_claims.warn.title"), tr("kami_claims.warn.subtitle"), Icons.WARNING, DialogKind.DESTRUCTIVE, WARNING_W) { s ->
+            val grants = grants()
+            val critical = grants.any { it.tier == WarnTier.CRITICAL }
+            val word = tr("kami_claims.warn.confirm_word")
+            var y = s.body.y + consequences(s.body.x, s.body.y, s.body.w, grants.map(::consequence)) + 4
+            if (critical) {
+                fieldLabel(Rect(s.body.x, y, s.body.w, 9), tr("kami_libs.dialog.type_to_confirm", word))
+                y += 11
+                textField(Rect(s.body.x, y, s.body.w, CONTROL_H), typed, word, key = "warn-typed", autoFocus = true)
+                y += CONTROL_H + 4
+            } else {
+                checkbox(Rect(s.body.x, y, s.body.w, CHECK_H), tr("kami_claims.warn.understood"), understood)?.let { understood = it }
+                y += CHECK_H + 4
+            }
+            s.used = y - s.body.y
+            val ready = if (critical) typed.text.equals(word, true) else understood
+            val reason = if (critical) tr("kami_libs.dialog.type_required", word) else tr("kami_claims.warn.tick_required")
+            dialogButtons(s, tr("kami_claims.warn.confirm"), ready, reason, primaryStyle = ButtonStyle.DANGER) {
+                batch.forEach { ClaimsStore.sendAs(it.viewingAs, it.name, (it.args + CONFIRM_ARG).toTypedArray(), it.key) }
+                s.close()
+            }
+        }
+    }
+
+    private fun grants() = batch
+        .flatMap { o -> o.confirm.map { Grant(o, it.substringBeforeLast(':'), WarnTier.entries.firstOrNull { tier -> tier.name == it.substringAfterLast(':') } ?: WarnTier.DANGER) } }
+        .distinctBy { it.key }
+        .sortedByDescending { it.tier }
+
+    private fun consequence(g: Grant): Consequence {
+        val holders = if (g.outcome.name in RANK_TARGET_ACTIONS) ClaimsStore.info?.ranks?.firstOrNull { it.id == g.outcome.args.firstOrNull() }?.members ?: 0 else 0
+        return Consequence(tr("kami_claims.warn.line", tr("kami_claims.warn.tier.${g.tier.name.lowercase()}"), tr("kami_claims.warn.${g.key}", holders)), g.tier.look)
+    }
 }
+
+private class Grant(val outcome: Outcome, val key: String, val tier: WarnTier)
+
+private val WarnTier.look get() = when (this) {
+    WarnTier.INFO -> Severity.INFO
+    WarnTier.CAUTION -> Severity.WARNING
+    WarnTier.DANGER, WarnTier.CRITICAL -> Severity.DANGER
+}
+
+private val batch = ArrayList<Outcome>()
+private var warningDialog: Dialog? = null
+
+private val RANK_TARGET_ACTIONS = setOf("rank_edit", "rank_perms", "rank_delete")
+private const val CONFIRM_ARG = "confirm"
+private const val REVIEW_W = 340
+private const val REVIEW_MAX_H = 150
+private const val WARNING_W = 320
+private const val CHECK_H = 14

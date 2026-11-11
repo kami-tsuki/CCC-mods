@@ -11,6 +11,8 @@ data class Lane(val id: Int, val firstRow: Int, val rows: Int)
 class Placement(val cells: List<Cell>, val bands: List<Band>, val lanes: List<Lane> = emptyList())
 
 object TechLayout {
+    fun era(level: Int, starts: IntArray): Int = starts.lastOrNull { it <= level } ?: starts.firstOrNull() ?: 0
+
     fun depths(parents: List<List<Int>>, bandOf: List<Int> = emptyList()): IntArray {
         fun band(node: Int) = bandOf.getOrElse(node) { 0 }
         val depth = IntArray(parents.size) { -1 }

@@ -13,20 +13,21 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 internal object HeatmapDraw {
-    val ramp = intArrayOf(0x440154, 0x3B528B, 0x21918C, 0x5EC962, 0xFDE725)
-    const val BRIGHT = 0xC0C8D0
-    val MAP_BG = 0xFF101216.toInt()
-    private const val GRID = 0x30FFFFFF
-    private const val AXIS = 0x70FFFFFF
+    val BRIGHT get() = Palette.text and 0xFFFFFF
+    val MAP_BG get() = Palette.sunken
+    private val GRID get() = Palette.alpha(Palette.text, 0x30)
+    private val AXIS get() = Palette.alpha(Palette.text, 0x70)
+
+    fun ramp() = intArrayOf(Palette.info, Palette.success, Palette.warning, Palette.danger).map { it and 0xFFFFFF }.toIntArray()
 
     fun abgr(rgb: Int) = 0xFF shl 24 or ((rgb and 0xFF) shl 16) or (rgb and 0xFF00) or ((rgb shr 16) and 0xFF)
 
     fun blend(base: Int, top: Int, t: Double): Int = Palette.mix(base, top, t.toFloat()) and 0xFFFFFF or (0xFF shl 24)
 
-    fun heatColor(t: Double): Int {
+    fun heatColor(t: Double, ramp: IntArray): Int {
         val scaled = t.coerceIn(0.0, 1.0) * (ramp.size - 1)
         val i = min(scaled.toInt(), ramp.size - 2)
-        return blend(0xFF000000.toInt() or ramp[i], ramp[i + 1], scaled - i) and 0xFFFFFF
+        return blend(Palette.opaque(ramp[i]), ramp[i + 1], scaled - i) and 0xFFFFFF
     }
 
     fun grid(g: GuiGraphics, view: Viewport, r: Rect) {
@@ -66,7 +67,7 @@ internal object HeatmapDraw {
         val player = Minecraft.getInstance().player ?: return
         val sx = view.screenX(player.x).roundToInt()
         val sy = view.screenY(player.z).roundToInt()
-        Draw.box(g, Rect(sx - 3, sy - 3, 7, 7), 0xFFFFFFFF.toInt(), 0xFF000000.toInt())
+        Draw.box(g, Rect(sx - 3, sy - 3, 7, 7), Palette.text, Palette.outline)
         Draw.text(g, tr("kami_libs.common.you"), sx + 6, sy - 4, Palette.tipText, shadow = true)
     }
 }

@@ -23,6 +23,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -65,6 +66,14 @@ class QuestsTest {
 
     private fun quest(amount: Int = 100, boosts: List<QuestBoost> = listOf(QuestBoost("xp", 10, 3))) =
         checkNotNull(Quests.spawn(QuestSpec(item, 2, amount, 6, lotPrice = 150, boosts = boosts), announce = false))
+
+    @Test
+    fun dishQuestsNeedAPlayerAtTheFoodLevel() {
+        assertTrue(QuestRoll.dishesOpen(emptyList(), 10))
+        assertTrue(QuestRoll.dishesOpen(listOf(3, null), 10))
+        assertTrue(QuestRoll.dishesOpen(listOf(3, 10), 10))
+        assertFalse(QuestRoll.dishesOpen(listOf(3, 9), 10))
+    }
 
     @Test
     fun pityMakesHigherRaritiesCertainAfterTheMaximum() {

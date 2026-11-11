@@ -11,7 +11,6 @@ import kami.libs.ui.core.Ui
 import kami.libs.ui.pin.PinWindow
 import kami.libs.ui.pin.Pins
 import kami.libs.ui.style.Draw
-import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr
@@ -54,7 +53,7 @@ object ResearchPins {
                 val line = stack.take(Draw.LINE)
                 Draw.text(ui.g, "XP", line.x, line.y, Palette.textMuted)
                 Draw.textRight(ui.g, Vocabulary.ratio(xp.coerceAtMost(need), need), line.right, line.y, Palette.textMuted)
-                Draw.thinBar(ui.g, stack.take(2), xp.toFloat() / need, Palette.brass)
+                Draw.thinBar(ui.g, stack.take(2), (xp.toFloat() / need).coerceIn(0f, 1f), Palette.brass)
             }
             ui.levelRequirements(stack, level)
         }

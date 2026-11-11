@@ -4,6 +4,7 @@ import kami.libs.ui.core.Memo
 import kami.libs.text.SearchQuery
 import kami.libs.ui.text.trn
 import kami.libs.ui.text.tr
+import kami.claims.gov.Perm
 import kami.claims.client.app.ClaimsApp
 import kami.claims.client.app.ClientLocks
 import kami.claims.client.app.ClaimsPage
@@ -12,6 +13,7 @@ import kami.libs.ui.app.Consequence
 import kami.claims.client.app.Dialogs
 import kami.libs.ui.widget.Flags
 import kami.claims.client.app.Illustrations
+import kami.libs.ui.widget.MasterDetail
 import kami.claims.client.app.Vocabulary
 import kami.claims.client.map.MiniMap
 import kami.claims.net.Line
@@ -19,7 +21,6 @@ import kami.claims.net.Mem
 import kami.claims.net.PlayerLine
 import kami.libs.ui.app.Callout
 import kami.libs.ui.app.Route
-import kami.libs.ui.core.Flow
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Row
 import kami.libs.ui.core.Ui
@@ -28,7 +29,6 @@ import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
-import kami.libs.ui.style.Sprites
 import kami.libs.ui.style.TextStyle
 import kami.libs.ui.widget.*
 
@@ -63,6 +63,7 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
     private val name = TextState()
     private val table = TableState<Mem>()
     private val countries = TableState<Line>()
+    private val layout = MasterDetail(0.45, 170, 240)
     private val tradeSearch = TextState()
     private var tradeStatus = ""
     private val memberSearch = TextState()
@@ -97,15 +98,14 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
         }
         val q = SearchQuery.parse(tradeSearch.text)
         val rows = all.filter { q.matches(it.name) && (tradeStatus.isEmpty() || tradeLabel(it) == tradeStatus) }
-        val detailW = if (app.compact) 0 else (body.w * 0.45).toInt().coerceIn(170, 240)
-        val list = body.dropRight(detailW, if (detailW > 0) 8 else 0)
-        ui.table(list, tradeColumns.of(Format.locale) { listOf(
-            countryColumn(),
-            Column.text<Line>(tr("kami_libs.common.status"), 80, color = { tradeColor(it) }) { tradeLabel(it) },
-            Column.text<Line>(tr("kami_claims.trade.tariff"), 50) { if (it.tariff > 0) Format.percent(it.tariff / 100.0) else "-" }
-        ) }, rows, countries, { it.name }, emptyText = tr("kami_claims.world.empty.countries"), loading = loading(ClaimsStore.WORLD))
-        ui.staleRows(list, stale(ClaimsStore.WORLD))
-        if (detailW > 0) (rows.firstOrNull { it.name in countries.selected } ?: rows.firstOrNull())?.let { tradeDetail(ui, body.right(detailW), it) }
+        layout.draw(ui, body, app.compact, countries.selected, { list ->
+            ui.table(list, tradeColumns.of(Format.locale) { listOf(
+                countryColumn(),
+                Column.text<Line>(tr("kami_libs.common.status"), 80, color = { tradeColor(it) }) { tradeLabel(it) },
+                Column.text<Line>(tr("kami_claims.trade.tariff"), 50) { if (it.tariff > 0) Format.percent(it.tariff / 100.0) else "-" }
+            ) }, rows, countries, { it.name }, emptyText = tr("kami_claims.world.empty.countries"), loading = loading(ClaimsStore.WORLD))
+            ui.staleRows(list, stale(ClaimsStore.WORLD))
+        }, { panel -> (rows.firstOrNull { it.name in countries.selected } ?: rows.firstOrNull())?.let { tradeDetail(ui, panel, it) } })
     }
 
     private fun tradeLabel(l: Line) = Vocabulary.trade(l.trade, l.alliance).second
@@ -121,7 +121,7 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
         ui.property(f.take(11), tr("kami_claims.warpage.fame"), l.fame?.let { WarPage.stars(it) } ?: tr("kami_claims.warpage.fame.hidden"), Palette.brass)
         if (l.atWar) f.take(11).let { Draw.text(ui.g, tr("kami_claims.warpage.at_war"), it.x, it.y, Palette.danger) }
         rating(ui, f.take(12), l)
-        val reason = lock("trade") ?: if (l.trade == "family") tr("kami_claims.trade.family") else null
+        val reason = lock(Perm.DIPLOMACY) ?: if (l.trade == "family") tr("kami_claims.trade.family") else null
         ui.section(f.take(14), tr("kami_claims.trade.alliance"))
         val row = Row(f.take(CONTROL_H), 4)
         when (l.alliance) {
@@ -187,7 +187,8 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
 
     private fun players(ui: Ui, r: Rect) {
         val info = info ?: return
-        val staff = lock("members")
+        val allyLock = lock(Perm.ALLIES)
+        val banishLock = lock(Perm.BANISH)
         val add = r.top(CONTROL_H)
         ui.anchor("relations:add", add)
         val row = Row(add, 6)
@@ -196,13 +197,13 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
         val ally = tr("kami_claims.relations.ally")
         val banish = tr("kami_claims.citizens.banish")
         val needName = tr("kami_claims.field.player.disabled")
-        if (ui.edgeButton(row, ally, Icons.HANDSHAKE, ButtonStyle.PRIMARY, staff == null && ready, staff ?: needName, left = true, key = "ally")) {
+        if (ui.edgeButton(row, ally, Icons.HANDSHAKE, ButtonStyle.PRIMARY, allyLock == null && ready, allyLock ?: needName, left = true, key = "ally")) {
             Dialogs.confirm(app, tr("kami_claims.relations.ally.confirm.title", name.text), null, Icons.HANDSHAKE, listOf(
                 Consequence(tr("kami_claims.relations.ally.rights", name.text)),
                 Consequence(tr("kami_claims.relations.ally.stays"))
             ), ally, "ally", arrayOf(name.text)) { name.set("") }
         }
-        if (ui.lockedButton(row.take(buttonWidth(banish, Icons.BAN)), banish, ClientLocks.feature("banish"), Icons.BAN, ButtonStyle.DANGER, staff == null && ready, staff ?: needName, key = "banish")) {
+        if (ui.lockedButton(row.take(buttonWidth(banish, Icons.BAN)), banish, ClientLocks.feature("banish"), Icons.BAN, ButtonStyle.DANGER, banishLock == null && ready, banishLock ?: needName, key = "banish")) {
             Dialogs.confirm(app, tr("kami_claims.citizens.banish.confirm.title", name.text), null, Icons.BAN, listOf(
                 Consequence(tr("kami_claims.relations.banish.locked", name.text), Severity.DANGER),
                 Consequence(tr("kami_claims.relations.banish.member"), Severity.WARNING)
@@ -211,13 +212,13 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
         val lists = r.dropTop(CONTROL_H + 6)
         ui.anchor("relations:lists", lists)
         if (info.relations.isEmpty()) {
-            ui.emptyState(lists, tr("kami_claims.relations.empty.title"), if (staff == null) tr("kami_claims.relations.empty.desc") else tr("kami_claims.lock.rank", Vocabulary.rank(minRank("members").name).label), Illustrations.DIPLOMACY)
+            ui.emptyState(lists, tr("kami_claims.relations.empty.title"), lock(Perm.INVITE) ?: tr("kami_claims.relations.empty.desc"), Illustrations.DIPLOMACY)
             return
         }
-        val ranks = info.relations.map { it.rank }.distinct().sortedBy { Vocabulary.rankOrder.indexOf(it) }
+        val ranks = info.relations.map { it.rank }.distinct().sorted()
         val tableArea = ui.filterBar(lists.dropBottom(26, 4), "relations:filters") { bar ->
             val row = Row(bar, 6)
-            ui.select(row.takeFromRight(120), rankOptions.of(ranks, Format.locale) { listOf(Option("", tr("kami_libs.common.all"))) + ranks.map { Option(it, Vocabulary.rank(it).label) } }, memberRank, key = "rel-rank")?.let { memberRank = it }
+            ui.select(row.takeFromRight(120), rankOptions.of(ranks, Format.locale) { listOf(Option("", tr("kami_libs.common.all"))) + ranks.map { Option(it, Vocabulary.standing(it).label) } }, memberRank, key = "rel-rank")?.let { memberRank = it }
             ui.searchField(row.rest, memberSearch, tr("kami_claims.citizens.search"), key = "rel-search")
         }
         val mq = SearchQuery.parse(memberSearch.text)
@@ -225,7 +226,7 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
         ui.table(tableArea, memberColumns.of(Format.locale) { listOf(
             playerColumn<Mem>({ it.id }, { it.name }, { it.online }),
             Column<Mem>(tr("kami_claims.relations.col.relation"), 120, sort = compareBy { it.rank }) { _, c, m ->
-                val look = Vocabulary.rank(m.rank)
+                val look = Vocabulary.standing(m.rank)
                 val x = c.x + Draw.leadIcon(g, look.icon, c.x, c.centerY) + 2
                 fitText(x, c.y + 3, c.right - x, if (m.auto) tr("kami_claims.relations.bloc", look.label) else look.label, look.color)
             }
@@ -233,7 +234,7 @@ class RelationsPage(app: ClaimsApp) : ClaimsPage(app) {
         val chosen = info.relations.firstOrNull { it.id in table.selected }
         val bar = r.bottom(22)
         val remove = tr("kami_claims.relations.remove")
-        val reason = staff ?: when {
+        val reason = lock(if (chosen?.rank == "banished") Perm.PARDON else Perm.ALLIES) ?: when {
             chosen == null -> tr("kami_claims.relations.select_first")
             chosen.auto -> tr("kami_claims.relations.remove.disabled.bloc")
             else -> null
@@ -259,6 +260,8 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
     private val search = TextState()
     private val countries = TableState<Line>()
     private val players = TableState<PlayerLine>()
+    private val layout = MasterDetail(0.4, 160, 230)
+    private val playerLayout = MasterDetail(0.4, 160, 230)
 
     override fun opened(route: Route) {
         route.focus?.takeIf { it.startsWith("country:") }?.let { countries.selected.clear(); countries.selected += it.substringAfter(":"); tab = 0 }
@@ -269,14 +272,10 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
             ui.subTabs(tabs.dropRight(160), worldTabs.of(ClaimsStore.countries.size, ClaimsStore.players.size, Format.locale) { listOf(TabItem(tr("kami_claims.help.countries"), Icons.FLAG, ClaimsStore.countries.size, Severity.NEUTRAL), TabItem(tr("kami_libs.common.players"), Icons.PEOPLE, ClaimsStore.players.size, Severity.NEUTRAL)) }, tab, "world-tabs")?.let { tab = it }
             ui.searchField(tabs.right(154), search, tr(if (tab == 0) "kami_claims.world.search.countries" else "kami_claims.world.search.players"), key = "world-search")
         }
-        val detailW = if (app.compact) 0 else (body.w * 0.4).toInt().coerceIn(160, 230)
-        val list = body.dropRight(detailW, if (detailW > 0) 8 else 0)
-        val detail = body.right(detailW)
-        ui.anchor("world:detail", detail)
         val q = SearchQuery.parse(search.text)
         if (tab == 0) {
             val rows = ClaimsStore.countries.filter { q.matches(it.name) }
-            ui.table(list, countryColumns.of(snap.admin, Format.locale) { listOf(
+            layout.draw(ui, body, app.compact, countries.selected, { list -> ui.table(list, countryColumns.of(snap.admin, Format.locale) { listOf(
                 countryColumn(),
                 Column.number<Line>(tr("kami_libs.common.level"), 40) { it.level.toLong() },
                 Column.number<Line>(tr("kami_claims.world.researched"), 64) { it.researched.toLong() },
@@ -287,15 +286,16 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
                 Column.text<Line>(tr("kami_claims.relations.col.relation"), 70, color = { relationColor(it.relation) }) { relationLabel(it.relation) }
             ) + listOfNotNull(Column.number<Line>(tr("kami_claims.kpi.power"), 44, format = { WarPage.power(it / 10.0) }) { l -> ((l.power ?: 0.0) * 10).toLong() }.takeIf { snap.admin }) }, rows, countries, { it.name }, emptyText = tr("kami_claims.world.empty.countries"), loading = loading(ClaimsStore.WORLD))
             ui.staleRows(list, stale(ClaimsStore.WORLD))
-            if (detailW > 0) rows.firstOrNull { it.name in countries.selected }?.let { country(ui, detail, it) }
+            }, { detail -> ui.anchor("world:detail", detail); rows.firstOrNull { it.name in countries.selected }?.let { country(ui, detail, it) } })
         } else {
             val rows = ClaimsStore.players.filter { q.matches(it.name) }
-            ui.table(list, playerColumns.of(Format.locale) { listOf(
-                playerColumn<PlayerLine>({ it.id }, { it.name }, { it.online }),
-                Column.text<PlayerLine>(tr("kami_libs.common.country"), 110, color = { if (it.citizenships.none { c -> c.via.isEmpty() }) Palette.textMuted else Palette.money }) { p -> p.citizenships.firstOrNull { it.via.isEmpty() }?.country ?: "-" }
-            ) }, rows, players, { it.id }, emptyText = tr("kami_claims.world.empty.players"), loading = loading(ClaimsStore.WORLD))
-            ui.staleRows(list, stale(ClaimsStore.WORLD))
-            if (detailW > 0) rows.firstOrNull { it.id in players.selected }?.let { player(ui, detail, it) }
+            playerLayout.draw(ui, body, app.compact, players.selected, { list ->
+                ui.table(list, playerColumns.of(Format.locale) { listOf(
+                    playerColumn<PlayerLine>({ it.id }, { it.name }, { it.online }),
+                    Column.text<PlayerLine>(tr("kami_libs.common.country"), 110, color = { if (it.citizenships.none { c -> c.via.isEmpty() }) Palette.textMuted else Palette.money }) { p -> p.citizenships.firstOrNull { it.via.isEmpty() }?.country ?: "-" }
+                ) }, rows, players, { it.id }, emptyText = tr("kami_claims.world.empty.players"), loading = loading(ClaimsStore.WORLD))
+                ui.staleRows(list, stale(ClaimsStore.WORLD))
+            }, { detail -> ui.anchor("world:detail", detail); rows.firstOrNull { it.id in players.selected }?.let { player(ui, detail, it) } })
         }
     }
 
@@ -326,11 +326,23 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
             y -= CONTROL_H + 3
         }
         if (info == null && l.relation != "banished") {
-            if (ui.button(Rect(rest.x, y, rest.w, CONTROL_H), tr("kami_claims.world.join"), Icons.INVITE, ButtonStyle.PRIMARY, pending = pending("join"), key = "join-country")) {
-                Dialogs.confirm(app, tr("kami_claims.world.join.confirm.title", l.name), null, Icons.INVITE, listOf(
-                    Consequence(tr("kami_claims.world.join.review", l.name)),
+            val open = l.membership == "open"
+            val invited = l.name in snap.invites
+            val label = tr(when {
+                invited -> "kami_claims.world.accept_invite"
+                open -> "kami_libs.common.join"
+                else -> "kami_claims.world.join"
+            })
+            val inviteOnly = l.membership == "invite"
+            if (ui.button(Rect(rest.x, y, rest.w, CONTROL_H), label, Icons.INVITE, ButtonStyle.PRIMARY, !inviteOnly || invited, tr("kami_claims.error.invite_only"), pending = pending(if (invited) "accept" else "join"), key = "join-country")) {
+                if (invited) Dialogs.confirm(app, tr("kami_claims.join.confirm.title", l.name), tr("kami_claims.join.confirm.subtitle"), Icons.PEOPLE, listOf(
+                    Consequence(tr("kami_claims.join.confirm.single")),
+                    Consequence(tr("kami_claims.join.confirm.laws"))
+                ), tr("kami_libs.common.join"), "accept", arrayOf(l.name))
+                else Dialogs.confirm(app, tr(if (open) "kami_claims.world.join.open.title" else "kami_claims.world.join.confirm.title", l.name), null, Icons.INVITE, listOf(
+                    Consequence(tr(if (open) "kami_claims.world.join.open.review" else "kami_claims.world.join.review", l.name)),
                     Consequence(tr("kami_claims.join.confirm.single"))
-                ), tr("kami_libs.common.send_request"), "join", arrayOf(l.name))
+                ), if (open) label else tr("kami_libs.common.send_request"), "join", arrayOf(l.name))
             }
         }
     }
@@ -345,7 +357,7 @@ class WorldPage(app: ClaimsApp) : ClaimsPage(app) {
         if (p.citizenships.isEmpty()) f.take(12).let { Draw.text(ui.g, tr("kami_libs.common.no_country"), it.x, it.y, Palette.textMuted) }
         p.citizenships.forEach { c ->
             val row = f.take(20)
-            val look = Vocabulary.rank(c.role)
+            val look = Vocabulary.standing(c.role)
             val x = row.x + Draw.leadIcon(ui.g, look.icon, row.x, row.y + 5) + 2
             ui.fitText(x, row.y, row.right - x, c.country, Palette.text)
             ui.fitText(x, row.y + 10, row.right - x, if (c.via.isNotEmpty()) tr("kami_claims.world.via", look.label, c.via) else look.label, look.color)

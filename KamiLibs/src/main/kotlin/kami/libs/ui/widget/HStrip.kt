@@ -66,7 +66,7 @@ private fun Ui.dragStrip(state: HStripState, r: Rect) {
 
 private fun Ui.scrollTrack(s: ScrollState, track: Rect) {
     Draw.fill(g, track, Palette.alpha(Palette.border, 0x60))
-    val thumbW = max(16, track.w * s.view / max(1, s.content))
-    val thumbX = track.x + ((track.w - thumbW) * (s.offset / s.max)).toInt()
+    val thumbW = ScrollMath.thumbLength(track.w, s.view, s.content, 16)
+    val thumbX = track.x + ScrollMath.thumbPos(track.w, thumbW, s.offset, s.max)
     Draw.fill(g, Rect(thumbX, track.y, thumbW, track.h), if (abs(s.target - s.offset) > 0.5) Palette.textSecondary else Palette.textMuted)
 }

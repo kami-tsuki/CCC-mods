@@ -37,6 +37,7 @@ import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icons
+import kami.libs.ui.style.Metrics
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
 import kami.libs.ui.style.TextStyle
@@ -50,7 +51,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 
-internal const val ROW_H = 18
+internal val ROW_H get() = Metrics.tableRowH
 private const val MAX_IDS = 28000
 private const val VIEW_CACHE = 24
 private const val DETAIL_CACHE = 16
@@ -163,9 +164,17 @@ class MarketApp private constructor() : KamiApp() {
 
     fun detail(item: String): Detail? = details[item]
 
+    private var importAt = 0L
+
     private fun importWatch(next: Snap) {
         val legacy = MarketPrefs.prefs.watch ?: return
-        if (legacy.isNotEmpty() && next.watch.isEmpty()) request("watch_import", legacy.distinct().joinToString(","))
+        val now = System.currentTimeMillis()
+        if (legacy.isNotEmpty() && next.watch.isEmpty()) {
+            if (now - importAt < IMPORT_RETRY_MS) return
+            importAt = now
+            request("watch_import", legacy.distinct().joinToString(","))
+            return
+        }
         MarketPrefs.prefs.watch = null
         MarketPrefs.save()
     }
@@ -207,12 +216,12 @@ class MarketApp private constructor() : KamiApp() {
         NavGroup(id = "sell", label = tr("kami_economy.nav.group.sell"), items = listOf(
             NavItem("instant", tr("kami_economy.nav.inventory"), Icons.CHEST),
             NavItem("infinite", tr("kami_economy.nav.infinite"), Icons.COIN),
-            NavItem("sell_orders", tr("kami_economy.nav.orders"), Icons.LEDGER, badge(false)),
-            NavItem("sell_vendors", tr("kami_economy.nav.vendors"), Icons.PEOPLE)
+            NavItem("sell_orders", tr("kami_economy.nav.sell_orders"), Icons.LEDGER, badge(false)),
+            NavItem("sell_vendors", tr("kami_economy.nav.sell_vendors"), Icons.PEOPLE)
         )),
         NavGroup(id = "buy", label = tr("kami_economy.nav.group.buy"), items = listOf(
-            NavItem("buy_orders", tr("kami_economy.nav.orders"), Icons.LEDGER, badge(true)),
-            NavItem("buy_vendors", tr("kami_economy.nav.vendors"), Icons.PEOPLE)
+            NavItem("buy_orders", tr("kami_economy.nav.buy_orders"), Icons.LEDGER, badge(true)),
+            NavItem("buy_vendors", tr("kami_economy.nav.buy_vendors"), Icons.PEOPLE)
         )),
         NavGroup(id = "auction", label = tr("kami_libs.common.auctions"), items = listOf(
             NavItem("auctions", tr("kami_libs.common.auctions"), Icons.SCALES),
@@ -264,8 +273,8 @@ class MarketApp private constructor() : KamiApp() {
             Callout("nav:my_orders", tr("kami_economy.nav.my_orders"), tr("kami_economy.tour.my_orders.desc")),
             Callout("nav:instant", tr("kami_economy.nav.inventory"), tr("kami_economy.tour.instant.desc")),
             Callout("nav:infinite", tr("kami_economy.nav.infinite"), tr("kami_economy.tour.infinite.desc")),
-            Callout("nav:sell_orders", tr("kami_economy.nav.orders"), tr("kami_economy.tour.sell_orders.desc")),
-            Callout("nav:buy_orders", tr("kami_economy.nav.orders"), tr("kami_economy.tour.buy_orders.desc")),
+            Callout("nav:sell_orders", tr("kami_economy.nav.sell_orders"), tr("kami_economy.tour.sell_orders.desc")),
+            Callout("nav:buy_orders", tr("kami_economy.nav.buy_orders"), tr("kami_economy.tour.buy_orders.desc")),
             Callout("nav:auctions", tr("kami_libs.common.auctions"), tr("kami_economy.tour.auctions.desc")),
             Callout("nav:settings", tr("kami_libs.common.settings"), tr("kami_economy.tour.settings.desc")),
             Callout("topbar", tr("kami_economy.tour.topbar"), tr("kami_economy.tour.topbar.desc")),
@@ -278,19 +287,25 @@ class MarketApp private constructor() : KamiApp() {
         var x = Draw.text(ui.g, tr("kami_libs.common.market"), r.x + 24, r.centerY - 4, TextStyle.HEADING) + 12
         ui.moneyRight(r.right - 8, r.centerY - 4, snap.funds)
         val limit = r.right - 90
-        x = chip(ui, x, r, tr("kami_economy.slots.orders"), snap.orderSlots, limit)
-        x = chip(ui, x, r, tr("kami_libs.common.auctions"), snap.auctionSlots, limit)
+        val chips = listOf(tr("kami_economy.slots.orders") to snap.orderSlots, tr("kami_libs.common.auctions") to snap.auctionSlots).filter { (_, slot) -> slot.max > 0 || slot.hint.isNotEmpty() }
+        val hidden = ArrayList<String>()
+        chips.forEach { (name, slot) ->
+            val next = chip(ui, x, r, name, slot, limit)
+            if (next == x) hidden += name else x = next
+        }
         if (snap.goal.isNotEmpty()) {
             val text = trJson(snap.goal) + if (snap.goalMax > 0) " ${snap.goalValue}/${snap.goalMax}" else ""
-            if (x + Draw.width(text, TextStyle.CAPTION) <= limit) Draw.text(ui.g, text, x, r.centerY - 4, TextStyle.CAPTION)
+            if (x + Draw.width(text, TextStyle.CAPTION) <= limit) Draw.text(ui.g, text, x, r.centerY - 4, TextStyle.CAPTION) else hidden += text
         }
+        if (hidden.isEmpty()) return
+        Draw.textRight(ui.g, "+${hidden.size}", limit, r.centerY - 4, Palette.textMuted)
+        ui.tooltip("topbar:more", Rect(limit - 24, r.y, 24, r.h), hidden.joinToString(", "))
     }
 
     fun slotLock(slot: Slot): Lock? =
         if (slot.used < slot.max || (slot.max <= 0 && slot.hint.isEmpty())) null else Lock(tr("kami_libs.format.used", slot.used, slot.max), slot.hint.takeIf { it.isNotEmpty() }?.let { trJson(it) })
 
     private fun chip(ui: Ui, x: Int, r: Rect, name: String, slot: Slot, limit: Int): Int {
-        if (slot.max <= 0 && slot.hint.isEmpty()) return x
         val lock = slotLock(slot)
         val text = "$name ${slot.used}/${slot.max}"
         val w = Draw.width(text) + 10 + if (lock != null) Draw.ICON - 1 else 0
@@ -301,11 +316,11 @@ class MarketApp private constructor() : KamiApp() {
 
     fun drops(): List<DropTarget> = if (route.page == "item") (page("item") as? ItemPage)?.drops().orEmpty() else emptyList()
 
-    fun openItem(item: String, side: String = "buy", kind: String = "instant") {
+    fun openItem(item: String, side: String? = null, kind: String = "instant") {
         val core = Variants.core(item)
         navigate(Route("item", buildMap {
             put("item", core)
-            put("side", side)
+            side?.let { put("side", it) }
             put("kind", kind)
             if (core != item) put("variant", item)
         }))
@@ -334,7 +349,7 @@ class MarketApp private constructor() : KamiApp() {
         tr("kami_economy.cancel.confirm"), danger = true
     ) { request(if (o.bid) "cancel_bid" else "cancel", o.item) }
 
-    override fun escape() = super.escape() || route.page == "item" && run { back(); true }
+    override fun escape() = super.escape() || route.page == "item" && run { val before = route; back(); route !== before }
 
     override fun closed() {
         super.closed()
@@ -345,6 +360,7 @@ class MarketApp private constructor() : KamiApp() {
         val instance by lazy { MarketApp() }
         val opening = OpenWait({ tr("kami_libs.common.loading") }, { tr("kami_economy.open.timeout") }, { tr("kami_libs.common.no_answer") })
         private const val SKIP_MS = 10_000L
+        private const val IMPORT_RETRY_MS = 5_000L
         private var skipUntil = 0L
 
         private fun showing() = (Minecraft.getInstance().screen as? AppScreen)?.app === instance

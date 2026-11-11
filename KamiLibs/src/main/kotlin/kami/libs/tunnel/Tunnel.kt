@@ -26,7 +26,7 @@ object Tunnel {
     private val POLL = Duration.ofSeconds(35)
     private val REPLY = Duration.ofSeconds(10)
     private const val POLL_LIMIT_S = 40L
-    private const val BODY_LIMIT_S = 10L
+    internal var bodyLimitS = 10L
     private const val RETRY_MIN = 1_000L
     private const val RETRY_MAX = 10_000L
     private const val MAX_JOB = 64 * 1024
@@ -86,7 +86,7 @@ object Tunnel {
         val res = await(http.sendAsync(request(keys, "/v1/next").GET().timeout(POLL).build(), HttpResponse.BodyHandlers.ofInputStream()), POLL_LIMIT_S)
         res.body().use { body ->
             when (res.statusCode()) {
-                200 -> answer(keys, await(CompletableFuture.supplyAsync { body.readNBytes(MAX_JOB + 1) }, BODY_LIMIT_S))
+                200 -> answer(keys, await(CompletableFuture.supplyAsync { body.readNBytes(MAX_JOB + 1) }, bodyLimitS))
                 204 -> Unit
                 else -> throw IOException("HTTP ${res.statusCode()}")
             }
@@ -100,6 +100,9 @@ object Tunnel {
     } catch (_: TimeoutException) {
         future.cancel(true)
         throw IOException("no answer within $seconds s")
+    } catch (e: InterruptedException) {
+        future.cancel(true)
+        throw e
     }
 
     private fun answer(keys: TunnelKeys, body: ByteArray) {

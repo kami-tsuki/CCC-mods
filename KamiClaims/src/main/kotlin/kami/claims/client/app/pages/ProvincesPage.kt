@@ -1,8 +1,9 @@
 package kami.claims.client.app.pages
 
 import kami.libs.ui.core.Memo
+import kami.claims.gov.Perm
+import kami.claims.service.Oversight
 import kami.claims.client.app.ClaimsApp
-import kami.claims.overlordRanks
 import kami.claims.client.app.ClientLocks
 import kami.claims.research.Capacity
 import kami.claims.client.app.ClaimsPage
@@ -25,11 +26,11 @@ import kami.libs.ui.app.wizardButtons
 import kami.libs.ui.core.Flow
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Row
-import kami.libs.ui.core.Tip
 import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icon
+import kami.libs.ui.style.Metrics
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
@@ -40,7 +41,6 @@ import kami.libs.ui.text.trn
 import kami.libs.ui.widget.*
 
 class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
-    private val accessOptions = Memo()
     private val provinceTabs = Memo()
     override val title get() = tr("kami_claims.nav.provinces")
     override val sections = listOf("world")
@@ -78,27 +78,30 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
     private fun overview(ui: Ui, r: Rect) {
         val info = info ?: return
         if (info.parent.isNotEmpty()) {
-            ui.anchor("provinces:status", r.top(250))
-            ui.scroll("provinces-parent", r, 256 + 80 + info.overlordAccess.size * ACCESS_H) { area ->
-                provinceStatus(ui, area.top(250))
-                access(ui, area.dropTop(256))
+            val size = ui.remember("provinces-parent-h") { IntArray(1) }
+            ui.scroll("provinces-parent", r, size[0]) { area ->
+                val statusH = statusHeight(area.w)
+                ui.anchor("provinces:status", area.top(statusH))
+                provinceStatus(ui, area.top(statusH))
+                access(ui, area.dropTop(statusH + 6).withHeight(ACCESS_MIN_H + ACCESS_ROWS * ACCESS_H))
+                size[0] = statusH + 6 + ACCESS_MIN_H + ACCESS_ROWS * ACCESS_H
             }
             return
         }
         if (info.provinces.isEmpty()) {
-            ui.anchor("provinces:status", r.top(120))
+            ui.anchor("provinces:status", r.top(EMPTY_STATUS_H))
             val start = ui.emptyState(r, tr("kami_claims.budget.independent"), tr("kami_claims.provinces.empty.desc"),
                 Illustrations.PROVINCE, tr("kami_claims.provinces.empty.action"), Icons.HANDSHAKE, "empty-provinces")
             if (start) tab = 2
             return
         }
         val tributes = info.provinces.sumOf { Vocabulary.tributeEstimate(it.mode, it.amount, it.income) }
-        val tiles = r.top(46).columns(4, 6)
+        val tiles = r.top(Metrics.tileH + 2).columns(4, 6)
         ui.statTile(tiles[0], tr("kami_claims.nav.provinces"), Format.number(info.provinces.size), Icons.CHAIN)
         ui.statTile(tiles[1], tr("kami_claims.provinces.tribute_day"), "≈ ${Format.number(tributes)}", Icons.INCOME, Palette.success)
         ui.statTile(tiles[2], tr("kami_claims.provinces.missed"), Format.number(info.provinces.sumOf { it.debt }), Icons.DEBT, if (info.provinces.any { it.debt > 0 }) Palette.danger else Palette.text)
         ui.statTile(tiles[3], tr("kami_claims.provinces.want_out"), Format.number(info.provinces.count { it.wantsIndependence }), Icons.BROKEN_CHAIN, if (info.provinces.any { it.wantsIndependence }) Palette.warning else Palette.text)
-        val rest = r.dropTop(52)
+        val rest = r.dropTop(Metrics.tileH + 8)
         val treeH = hierarchyHeight(rest.w, info.provinces.size).coerceAtMost(rest.h / 2)
         val tree = rest.top(treeH)
         ui.anchor("provinces:family", tree)
@@ -117,7 +120,6 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
 
     private fun countryOption(c: Line) = Option(c.name, c.name, null, tr("kami_libs.format.dot", trn("kami_claims.unit.citizen", c.members), trn("kami_claims.unit.chunk", c.chunks)), c.color)
 
-
     private fun provinceDetail(ui: Ui, r: Rect, p: ProvinceLine) {
         val inner = ui.card(r, p.name, Icons.CHAIN, if (p.wantsIndependence) Severity.WARNING else null, key = "province-card")
         val contentH = maxOf(5 * 13 + (if (p.wantsIndependence) 70 else 0), (3 + (if (p.wantsIndependence) 2 else 1) + (if (p.debt > 0) 1 else 0)) * (CONTROL_H + 3))
@@ -134,7 +136,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
                 f.take(ui.callout(f.rest, Severity.WARNING, tr("kami_claims.provinces.asks_independence", p.name, trn("kami_claims.unit.day", limits?.independenceCooldownDays ?: 3))))
             }
             val g = Flow(cols[1], 3)
-            val staff = lock("province")
+            val staff = lock(Perm.PROVINCES)
             fun action(label: String, icon: Icon, style: ButtonStyle = ButtonStyle.SECONDARY, key: String, run: () -> Unit) {
                 if (ui.button(g.take(CONTROL_H), label, icon, style, staff == null, staff, pending = pending(key), key = "prov-$key:${p.name}")) run()
             }
@@ -196,22 +198,18 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
     private fun access(ui: Ui, r: Rect) {
         val info = info ?: return
         val body = ui.card(r, tr("kami_claims.provinces.access.title", info.parent), Icons.SHIELD, key = "overlord-access")
-        val staff = lock("province")
+        val staff = lock(Perm.PROVINCES)
         val f = Flow(body, 3)
         ui.toggle(f.take(14), info.overlordManage, tr("kami_claims.provinces.access.manage", info.parent), staff == null, staff, tr("kami_claims.provinces.access.manage.tip", info.parent), key = "overlord-manage")
             ?.let { act("province_manage", if (it) "on" else "off") }
         f.take(Draw.paragraph(ui.g, tr(if (info.overlordManage) "kami_claims.provinces.access.hint" else "kami_claims.provinces.access.off"), f.rest.x, f.rest.y, f.rest.w, Palette.textMuted))
-        val options = accessOptions.of(overlordRanks, Format.locale) { listOf(Option("off", tr("kami_libs.common.off"), Icons.EYE, tr("kami_claims.provinces.access.read_only"))) +
-            overlordRanks.map { it.name.lowercase() }.map { id -> Vocabulary.rank(id).let { Option(id, it.label, it.icon, tr("kami_claims.provinces.access.rank", it.label)) } } }
-        val rows = info.overlordAccess.entries.toList()
-        ui.scroll("overlord-access", f.rest, rows.size * ACCESS_H) { area ->
-            rows.forEachIndexed { i, (cap, rank) ->
+        ui.scroll("overlord-access", f.rest, ACCESS_ROWS * ACCESS_H) { area ->
+            Oversight.grantable.forEachIndexed { i, perm ->
                 val row = Rect(area.x, area.y + i * ACCESS_H, area.w, ACCESS_H - 1)
-                if (i % 2 == 1) Draw.fill(ui.g, row, Palette.alpha(0x000000, 0x0C))
-                ui.fitText(row.x + 3, row.y + 5, row.w - ACCESS_SELECT_W - 8, tr("kami_claims.cap.$cap"), if (rank == "off") Palette.textMuted else Palette.text)
-                ui.tooltip("access:$cap", Rect(row.x, row.y, row.w - ACCESS_SELECT_W, row.h), Tip.text(tr("kami_claims.cap.$cap.desc"), tr("kami_claims.cap.$cap")))
-                ui.select(Rect(row.right - ACCESS_SELECT_W, row.y + 2, ACCESS_SELECT_W, SMALL_H), options, rank, enabled = staff == null, disabledReason = staff, key = "access-cell:$cap", menuWidth = 200)
-                    ?.let { act("province_access", cap, it, key = "province_access:$cap") }
+                if (i % 2 == 1) Draw.fill(ui.g, row, Palette.alpha(Palette.sunken, 0x60))
+                val look = Vocabulary.perm(perm)
+                ui.permissionRow(row.inset(3, 0), look.label, perm.name in info.overlordPerms, Vocabulary.risk(perm), look.description, staff, "access:${perm.name}")
+                    ?.let { act("province_access", perm.name, if (it) "on" else "off", key = "province_access:${perm.name}") }
             }
         }
     }
@@ -220,16 +218,16 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
         val info = info ?: return
         val body = ui.card(r, tr("kami_claims.provinces.status.title", info.parent), Icons.CHAIN, Severity.WARNING, key = "status")
         val f = Flow(body, 3)
-        val top = f.take(34)
+        val top = f.take(STATUS_HEAD_H)
         Flags.draw(ui.g, Rect(top.x, top.y + 2, 36, 26), info.parentColor, 0, 0, 0xFFFFFF)
         Draw.text(ui.g, tr("kami_claims.confirm.province.tribute", Vocabulary.tribute(info.taxMode, info.taxAmount)), top.x + 44, top.y + 4, TextStyle.HEADING)
         Draw.text(ui.g, tr("kami_claims.provinces.status.estimate", Format.perDay(Format.money(Vocabulary.tributeEstimate(info.taxMode, info.taxAmount, info.income + info.pendingDeposits))), info.provinceDebt, snap.maxProvinceDebt), top.x + 44, top.y + 16, if (info.provinceDebt > 0) Palette.danger else Palette.textMuted)
-        val cols = f.take(100).columns(2, 10)
+        val cols = f.take(rightsHeight(f.rest.w)).columns(2, 10)
         rightsList(ui, cols[0], tr("kami_claims.provinces.rights.may", info.parent), snap.rights, Palette.warning, Icons.WARNING)
         rightsList(ui, cols[1], tr("kami_claims.provinces.rights.keep"), snap.kept, Palette.success, Icons.CHECK)
         f.take(ui.callout(f.rest, Severity.DANGER, tr("kami_claims.confirm.province.bound", info.parent)))
         val row = f.take(CONTROL_H)
-        val staff = lock("province")
+        val staff = lock(Perm.PROVINCES)
         when {
             info.independenceRequested -> {
                 ui.statusPill(row.x, row.y + 4, tr("kami_claims.provinces.independence.pending", info.parent), Severity.WARNING)
@@ -246,6 +244,21 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
                 }
             }
         }
+    }
+
+    private fun rightsColumnW(w: Int) = (w - 10) / 2
+
+    private fun rightsHeight(w: Int): Int {
+        val textW = rightsColumnW(w) - 5 - Draw.ICON - 2 - 4
+        return maxOf(listHeight(snap.rights, textW), listHeight(snap.kept, textW))
+    }
+
+    private fun listHeight(items: List<String>, textW: Int) = 16 + items.sumOf { Draw.paragraphHeight(tr(it), textW) + 2 } + 2
+
+    private fun statusHeight(w: Int): Int {
+        val body = w - 10
+        val callout = Draw.paragraphHeight(tr("kami_claims.confirm.province.bound", info?.parent ?: ""), body - 24) + 8
+        return Metrics.cardHeaderH + 14 + STATUS_HEAD_H + 3 + rightsHeight(body) + 3 + callout + 3 + CONTROL_H + 3
     }
 
     private fun rightsList(ui: Ui, r: Rect, title: String, items: List<String>, color: Int, icon: Icon) {
@@ -272,7 +285,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
             Draw.text(ui.g, tr(if (o.answered) "kami_claims.alert.offer.answered" else "kami_claims.alert.offer.title", o.name), row.x + 36, row.y + 5, TextStyle.HEADING)
             Draw.text(ui.g, tr("kami_claims.provinces.offer.row", Vocabulary.tribute(o.mode, o.amount), trn("kami_claims.unit.citizen", o.members), Format.until(o.until)), row.x + 36, row.y + 17, Palette.textMuted)
             val review = tr("kami_claims.alert.offer.action")
-            if (ui.edgeButton(Rect(row.x, row.y + (OFFER_H - CONTROL_H) / 2, row.w - 6, CONTROL_H), review, Icons.SCROLL, ButtonStyle.PRIMARY, lock("province") == null, lock("province"), key = "review:${o.name}")) agreement(o)
+            if (ui.edgeButton(Rect(row.x, row.y + (OFFER_H - CONTROL_H) / 2, row.w - 6, CONTROL_H), review, Icons.SCROLL, ButtonStyle.PRIMARY, lock(Perm.PROVINCES) == null, lock(Perm.PROVINCES), key = "review:${o.name}")) agreement(o)
         }
         f.skip(6)
         ui.section(f.take(14), tr("kami_claims.provinces.offers.requests"), Format.number(info.provinceRequests.size))
@@ -284,7 +297,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
             Draw.sprite(ui.g, Sprites.CARD, row)
             ui.attention(row, app.isFocus("request:$name"))
             Flags.draw(ui.g, Rect(row.x + 6, row.y + 7, 22, 16), line?.color ?: 0x888888, line?.flag?.pattern ?: 0, line?.flag?.emblem ?: 0, line?.flag?.secondary ?: 0xFFFFFF)
-            val staff = lock("province") ?: hold()
+            val staff = lock(Perm.PROVINCES) ?: hold()
             val terms = tr("kami_claims.provinces.set_terms")
             val deny = tr("kami_libs.common.decline")
             val tw = buttonWidth(terms, Icons.PERCENT)
@@ -306,6 +319,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
             val limits = snap.limits
             val min = (limits?.tributeMin ?: 0.0) * 100
             val max = (limits?.tributeMax ?: 0.5) * 100
+            percent = percent.coerceIn(min, maxOf(min, max))
             var y = s.body.y
             fieldLabel(Rect(s.body.x, y, s.body.w, 9), tr("kami_claims.provinces.terms.type")); y += 11
             segmented(Rect(s.body.x, y, s.body.w, CONTROL_H), listOf(
@@ -389,7 +403,7 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
     private fun start(ui: Ui, r: Rect) {
         val info = info ?: return
         val cards = r.top(START_CARD_H).columns(2, 6)
-        val staff = lock("province")
+        val staff = lock(Perm.PROVINCES)
         val isProvince = info.parent.isNotEmpty()
         val a = ui.card(cards[0], tr("kami_claims.provinces.start.invite"), Icons.INVITE)
         Draw.paragraph(ui.g, tr("kami_claims.provinces.start.invite.desc"), a.x, a.y, a.w)
@@ -446,5 +460,8 @@ class ProvincesPage(app: ClaimsApp) : ClaimsPage(app) {
 
 private const val OFFER_H = 30
 private const val ACCESS_H = 20
-private const val ACCESS_SELECT_W = 96
+private val ACCESS_ROWS = Oversight.grantable.size
+private const val ACCESS_MIN_H = 80
+private const val EMPTY_STATUS_H = 120
+private const val STATUS_HEAD_H = 34
 private const val START_CARD_H = 112

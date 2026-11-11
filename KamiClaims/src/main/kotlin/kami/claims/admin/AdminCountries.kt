@@ -4,6 +4,9 @@ import kami.libs.util.toUuidOrNull
 import kami.claims.Country
 import kami.claims.Names
 import kami.claims.Realm
+import kami.claims.gov.AdminGovernance
+import kami.claims.gov.Permissions
+import kami.claims.research.Limits
 import kami.claims.research.Research
 import kami.claims.research.Tree
 import kami.claims.service.Fail
@@ -24,7 +27,6 @@ import kami.libs.db.Db
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import net.minecraft.server.MinecraftServer
-import java.util.UUID
 import kotlin.math.roundToInt
 
 object CountryRequests {
@@ -38,7 +40,24 @@ object CountryRequests {
     const val WAR_END = "countries.war_end"
     const val RESEARCH = "countries.research"
     const val RESEARCH_SCOPE = "countries.research_scope"
+    const val LEVEL = "countries.level"
     const val MONEY = "countries.money"
+    const val GOV_SET = "countries.gov_set"
+    const val RANK_CREATE = "countries.rank_admin_create"
+    const val RANK_EDIT = "countries.rank_admin_edit"
+    const val RANK_PERMS = "countries.rank_admin_perms"
+    const val RANK_PLOTS = "countries.rank_admin_plots"
+    const val RANK_MOVE = "countries.rank_admin_move"
+    const val RANK_DELETE = "countries.rank_admin_delete"
+    const val RANK_ASSIGN = "countries.rank_admin_assign"
+    const val GROUP_PERMS = "countries.group_admin_perms"
+    const val JOB_SAVE = "countries.job_admin_save"
+    const val JOB_DELETE = "countries.job_admin_delete"
+    const val JOB_ASSIGN = "countries.job_admin_assign"
+    const val JOB_REMOVE = "countries.job_admin_remove"
+    const val CONTRACT_CANCEL = "countries.contract_admin_cancel"
+    const val SECTOR_SAVE = "countries.sector_admin_save"
+    const val SECTOR_DELETE = "countries.sector_admin_delete"
 }
 
 object AdminCountries {
@@ -65,6 +84,7 @@ object AdminCountries {
         act(CountryRequests.WAR_END) { ctx, c, a -> CountryAdmin.endWar(c, a.text(0) ?: missing(ctx), ctx.reason) }
         act(CountryRequests.RESEARCH) { ctx, c, a -> CountryAdmin.research(c, a.text(0) ?: missing(ctx), a.getOrNull(1)) }
         act(CountryRequests.RESEARCH_SCOPE) { ctx, c, a -> CountryAdmin.researchScope(c, a.text(0) ?: missing(ctx), a.getOrNull(1).orEmpty(), a.getOrNull(2).orEmpty()) }
+        act(CountryRequests.LEVEL) { ctx, c, a -> CountryAdmin.level(c, a.long(0)?.takeIf { it in 1..Limits.MAX_LEVELS }?.toInt() ?: ctx.fail("kami_claims.admin.bad_amount", a.getOrNull(0).orEmpty())) }
         act(CountryRequests.MONEY) { ctx, c, a ->
             val give = when (a.text(0) ?: missing(ctx)) {
                 "give" -> true
@@ -74,11 +94,12 @@ object AdminCountries {
             val amount = a.long(1)?.takeIf { it in 1..CountryAdmin.MAX_MONEY } ?: ctx.fail("kami_claims.admin.bad_amount", a.getOrNull(1).orEmpty())
             CountryAdmin.money(c, give, amount, ctx.player.stringUUID)
         }
+        AdminGovernance.handlers.forEach { (name, run) -> act(name) { ctx, c, a -> run(c, ctx.player.stringUUID, a) } }
     }
 
     fun revision(c: Country): String = listOf(
         c.name, c.state, c.members.entries.sortedBy { it.key }.map { it.key to it.value.rank }, Realm.claimCount(c.id), c.parent, c.provinces.sorted(),
-        Wars.all(c).map { it.id to it.phase }, c.research.done.keys.sorted(), c.research.queue.map { it.node }
+        Wars.all(c).map { it.id to it.phase }, c.research.done.keys.sorted(), c.research.queue.map { it.node }, AdminGovernance.revision(c)
     ).toString().hashCode().toUInt().toString(16)
 
     fun fresh(c: Country, rev: String?) {
@@ -99,7 +120,7 @@ object AdminCountries {
     }
 
     private fun guard(ctx: AdminCtx, c: Country) {
-        val id = c.president()?.takeIf { it != ctx.player.stringUUID }?.toUuidOrNull() ?: return
+        val id = Permissions.president(c)?.takeIf { it != ctx.player.stringUUID }?.toUuidOrNull() ?: return
         if (!AdminPerms.outranks(ctx.player, Players.profile(ctx.player.server, id))) ctx.fail("kami_claims.admin.outranked")
     }
 
@@ -108,7 +129,7 @@ object AdminCountries {
     private fun missing(ctx: AdminCtx): Nothing = ctx.fail("kami_claims.error.missing_argument")
 
     private fun row(server: MinecraftServer, c: Country, fame: Double?) = CountryRow(
-        c.id, c.name, c.president(), c.president()?.let { Names.of(server, it) }.orEmpty(), c.members.size, Realm.claimCount(c.id), c.treasury,
+        c.id, c.name, Permissions.president(c), Permissions.president(c)?.let { Names.of(server, it) }.orEmpty(), c.members.size, Realm.claimCount(c.id), c.treasury,
         Research.level(c), Wars.all(c).size, Realm.country(c.parent)?.name, c.provinces.size, c.color, c.active,
         Power.score(c), c.reputation.roundToInt(), fame, Fame.count(c)
     )
@@ -127,13 +148,13 @@ object AdminCountries {
 
     private fun detail(server: MinecraftServer, c: Country): CountryDetail = CountryDetail(
         row(server, c, Fame.score(c)), revision(c), c.created,
-        c.members.entries.sortedByDescending { it.value.rank }.map { (id, m) -> MemberRow(id, Names.of(server, id), m.rank.name, m.since, m.seen) },
+        c.members.entries.sortedBy { Permissions.position(c, it.value.rank) }.map { (id, m) -> MemberRow(id, Names.of(server, id), Permissions.rank(c, m.rank)?.name.orEmpty(), m.rank, m.since, m.seen) },
         c.ledger.takeLast(LEDGER).asReversed().map { LedgerRow(it.at, it.kind.name, it.amount, it.balance, it.actor?.let { a -> Names.of(server, a) }, it.note) },
         Wars.all(c).map { w ->
             val attacker = c.id in w.attacker.countries
             WarRow(w.id, Wars.name((if (attacker) w.defender else w.attacker).main), w.phase.name, attacker)
         },
         c.provinces.mapNotNull { Realm.country(it)?.name },
-        summary(c)
+        summary(c), AdminGovernance.detail(server, c), c.xp, Research.defs.levels.top
     )
 }

@@ -15,7 +15,6 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
-import java.time.Instant
 
 class Built(val defs: ResearchDefs, val problems: List<String>)
 
@@ -63,28 +62,7 @@ object Validator {
         val known = trees.values.flatMap { tree -> tree.nodes.map { it.key } }.toSet()
         rewardProblems(levels, cleanGroups.keys, known).forEach { problems += "levels.json: $it" }
         problems += costProblems(levels, trees.values.flatMap { it.nodes })
-        migrationProblems(trees.values.flatMap { it.nodes }, known).forEach { problems += "migration: $it" }
         return Built(ResearchDefs(settings, cleanLevels(levels, problems), cleanGroups, trees), problems)
-    }
-
-    private fun migrationProblems(nodes: List<Node>, known: Set<String>): List<String> {
-        val claimed = nodes.flatMap { node -> node.replaces.map { it to node.key } }
-        val retired = claimed.map { it.first }.toSet()
-        return claimed.mapNotNull { (old, key) ->
-            when {
-                old == key -> "$key replaces itself"
-                old in known -> "$key replaces $old which still exists (node ids must never be reused after a replaces, the alias is rolled back)"
-                else -> null
-            }
-        } + claimed.groupBy({ it.first }, { it.second }).filterValues { it.size > 1 }.map { (old, keys) -> "$old is replaced by several nodes: ${keys.joinToString()}" } +
-            nodes.flatMap { node ->
-                node.grandfather.flatMap { rule ->
-                    listOfNotNull(
-                        if (runCatching { Instant.parse(rule.before) }.isFailure) "${node.key} grandfather: before \"${rule.before}\" is not an ISO instant" else null,
-                        if (rule.from.isEmpty()) "${node.key} grandfather: from is empty" else null
-                    ) + rule.from.filter { it !in known && it !in retired }.map { "${node.key} grandfather: unknown node $it" }
-                }
-            }
     }
 
     private fun treasuryCap(levels: LevelsConfig, level: Int) =

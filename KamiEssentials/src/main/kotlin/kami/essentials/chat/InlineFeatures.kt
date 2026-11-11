@@ -13,7 +13,7 @@ import kami.libs.economy.Coins
 import kami.libs.economy.Numismatics
 import kami.libs.menu.ItemPeek
 import net.minecraft.core.component.DataComponents
-import net.minecraft.core.registries.BuiltInRegistries
+import kami.libs.mc.ItemSpec
 import net.minecraft.nbt.NbtOps
 import net.minecraft.network.chat.ClickEvent
 import net.minecraft.network.chat.Component
@@ -253,7 +253,7 @@ object InlineFeatures {
     private fun itemName(stack: ItemStack): Component {
         stack.get(DataComponents.CUSTOM_NAME)?.let { return it.copy() }
         stack.get(DataComponents.ITEM_NAME)?.let { return it.copy() }
-        val id = BuiltInRegistries.ITEM.getKey(stack.item).toString()
+        val id = ItemSpec.id(stack)
         if (id.startsWith("tacz:")) {
             taczNameFromData(stack)?.let { return Component.literal(it) }
             return Component.translatable(stack.descriptionId)

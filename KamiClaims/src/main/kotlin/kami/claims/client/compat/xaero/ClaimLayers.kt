@@ -99,7 +99,7 @@ class WarChunkLayer(private val data: ClaimData) : ChunkLayer {
         if (kind == 0) return null
         val centre = fill(kind)
         val edge = edge(kind)
-        fun side(dx: Int, dz: Int) = if (data.at(dim, cx + dx, cz + dz)?.let(::kind) == kind) centre else edge
+        fun side(dx: Int, dz: Int) = if (data.at(dim, cx + dx, cz + dz)?.let { kind(it) } == kind) centre else edge
         return ChunkPaint(centre, side(0, -1), side(1, 0), side(0, 1), side(-1, 0))
     }
 

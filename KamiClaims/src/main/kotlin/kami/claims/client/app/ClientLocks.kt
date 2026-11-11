@@ -4,7 +4,7 @@ import kami.claims.client.app.pages.ResearchLook
 import kami.claims.client.store.ClaimsStore
 import kami.claims.client.store.ClientResearch
 import kami.claims.net.LevelView
-import kami.claims.Rank
+import kami.claims.gov.Perm
 import kami.claims.research.Capacity
 import kami.libs.ui.core.Memo
 import kami.libs.ui.core.Rect
@@ -21,14 +21,13 @@ import kami.libs.ui.widget.capacityLine
 
 object ClientLocks {
     const val CLAIM_TYPE = "claim_type:"
+    private val DELEGATED_VIEW = setOf(Perm.DETAILS, Perm.TREASURY_VIEW)
 
-    fun cap(cap: String): String? {
+    fun perm(perm: Perm): String? {
         val info = ClaimsStore.info ?: return tr("kami_claims.lock.no_country")
-        val snap = ClaimsStore.snap ?: return tr("kami_libs.common.loading")
-        if (info.delegated) return if (cap == "details" || cap in info.granted) null else tr("kami_claims.lock.read_only")
-        val min = snap.caps[cap]?.let(::rankOf) ?: Rank.PRESIDENT
-        if (ClaimsStore.rank < min) return tr("kami_claims.lock.rank", Vocabulary.rank(min.name).label)
-        return null
+        if (ClaimsStore.snap == null) return tr("kami_libs.common.loading")
+        if (perm.name in info.myPerms || info.delegated && perm in DELEGATED_VIEW) return null
+        return tr(if (info.delegated) "kami_claims.lock.read_only" else "kami_claims.lock.perm", Vocabulary.perm(perm).label)
     }
 
     fun featureName(id: String) =
@@ -88,13 +87,6 @@ object ClientLocks {
         fresh()
         if (cap in raises) return raises[cap]
         return computeRaise(cap).also { raises[cap] = it }
-    }
-
-    fun rank(target: Rank, current: Rank): Lock? = when {
-        target == current -> null
-        target == Rank.CHANCELLOR -> feature("role:chancellor")
-        target == Rank.OFFICER -> full(Capacity.OFFICERS)
-        else -> null
     }
 
     fun full(cap: Capacity): Lock? {

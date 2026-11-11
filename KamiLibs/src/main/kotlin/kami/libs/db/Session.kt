@@ -49,8 +49,8 @@ class Row internal constructor(private val rs: ResultSet) {
     fun stringOrNull(col: String): String? = rs.getString(col)
     fun longOrNull(col: String): Long? = rs.getLong(col).takeUnless { rs.wasNull() }
     fun intOrNull(col: String): Int? = rs.getInt(col).takeUnless { rs.wasNull() }
-    fun doubleOrNull(col: String): Double? = rs.getDouble(col).takeUnless { rs.wasNull() }
-    fun boolOrNull(col: String): Boolean? = rs.getBoolean(col).takeUnless { rs.wasNull() }
+    private fun doubleOrNull(col: String): Double? = rs.getDouble(col).takeUnless { rs.wasNull() }
+    private fun boolOrNull(col: String): Boolean? = rs.getBoolean(col).takeUnless { rs.wasNull() }
 
     internal fun value(col: String): Any? = rs.getObject(col)
 

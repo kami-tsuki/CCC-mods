@@ -41,11 +41,4 @@ class ColorsTest {
         assertEquals(12, Colors.nearestChatColor(0xFF6060))
         assertEquals(0, Colors.nearestChatColor(0x010101))
     }
-
-    @Test
-    fun waypointDiff() {
-        val d = Colors.diff(mapOf("a" to 1, "b" to 2, "c" to 3), mapOf("b" to 2, "c" to 9, "d" to 4))
-        assertEquals(setOf("a"), d.removed)
-        assertEquals(setOf("c", "d"), d.upserted)
-    }
 }

@@ -31,7 +31,7 @@ abstract class GridMenu(private val rows: Int, id: Int) : AbstractContainerMenu(
         for (c in 0..8) addSlot(Slot(inv, c, 8 + c * 18, 161 + shift))
     }
 
-    protected fun moveInto(stack: ItemStack, targets: List<Int>) = targets.any { moveItemStackTo(stack, it, it + 1, false) && stack.isEmpty }
+    private fun moveInto(stack: ItemStack, targets: List<Int>) = targets.any { moveItemStackTo(stack, it, it + 1, false) && stack.isEmpty }
 
     protected fun quickMove(player: Player, index: Int, targets: List<Int>): ItemStack {
         val slot = slots[index]

@@ -57,7 +57,7 @@ object Spoils {
         if (war.result != WarResult.WITHDRAWN && !war.silent) safe(war, "bill") { gain.debtors += WarDebt.bills(war) }
         val returned = mutableListOf<Country>()
         safe(war, "rebels") { returned += rebels(war) }
-        safe(war, "bind") { gain.debtors.forEach(WarDebt::bind) }
+        safe(war, "bind") { gain.debtors.forEach { WarDebt.bind(it, war.id) } }
         safe(war, "refresh") { (touched + returned).distinct().forEach { WarDebt.refresh(it) } }
         pair?.let { (winner, loser) ->
             tell(winner, "kami_claims.mail.war.outcome.won", loser, gain, Tone.OK)

@@ -1,5 +1,6 @@
 {
-  "title": "Tools & Armor",
+  "version": 2,
+  "title": "Gear",
   "scope": "any",
   "categories": [
     {
@@ -33,15 +34,27 @@
       "id": "leather_armor",
       "category": "armor",
       "icon": "minecraft:leather_chestplate",
-      "level": 5,
-      "cost": 0,
-      "time": "10m",
-      "requires": [],
+      "era": "stone",
+      "kind": "milestone",
+      "level": 7,
+      "cost": 12,
+      "time": "16m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "technology:mechanical_press"
+        }
+      ],
       "tasks": [
+        {
+          "type": "process",
+          "recipeType": "create:*",
+          "count": 4
+        },
         {
           "type": "deposit",
           "item": "minecraft:leather",
-          "count": 24
+          "count": 4
         }
       ],
       "unlocks": [
@@ -64,3397 +77,24 @@
       ]
     },
     {
-      "id": "goggles",
-      "category": "special",
-      "icon": "create:goggles",
-      "level": 7,
-      "cost": 0,
-      "time": "25m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "technology:wrench_goggles"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:plates/gold",
-          "count": 4
-        },
-        {
-          "type": "deposit",
-          "item": "#c:glass_blocks",
-          "count": 2
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "recipe",
-          "id": "create:crafting/kinetics/goggles"
-        }
-      ]
-    },
-    {
-      "id": "copper_tools",
-      "category": "tools",
-      "icon": "create_ironworks:copper_pickaxe",
-      "level": 8,
-      "cost": 0,
-      "time": "35m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "metallurgy:copper_compacting"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/copper",
-          "count": 24
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "recipe",
-          "id": "create_ironworks:tools/pickaxe/copper"
-        },
-        {
-          "type": "recipe",
-          "id": "create_ironworks:tools/axe/copper"
-        },
-        {
-          "type": "recipe",
-          "id": "create_ironworks:tools/shovel/copper"
-        },
-        {
-          "type": "recipe",
-          "id": "create_ironworks:tools/hoe/copper"
-        }
-      ]
-    },
-    {
-      "id": "copper_armor",
-      "category": "armor",
-      "icon": "create_ironworks:copper_armor_chestplate",
-      "level": 8,
-      "cost": 0,
-      "time": "35m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "copper_tools"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/copper",
-          "count": 48
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "recipe",
-          "id": "create_ironworks:armor/*/copper"
-        }
-      ]
-    },
-    {
-      "id": "cardboard_armor",
-      "category": "armor",
-      "icon": "create:cardboard_chestplate",
-      "level": 9,
-      "cost": 0,
-      "time": "40m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "technology:cardboard"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "create:cardboard",
-          "count": 16
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "recipe",
-          "id": "create:crafting/appliances/cardboard_helmet"
-        },
-        {
-          "type": "recipe",
-          "id": "create:crafting/appliances/cardboard_chestplate"
-        },
-        {
-          "type": "recipe",
-          "id": "create:crafting/appliances/cardboard_leggings"
-        },
-        {
-          "type": "recipe",
-          "id": "create:crafting/appliances/cardboard_boots"
-        }
-      ]
-    },
-    {
-      "id": "iron_tools",
-      "category": "tools",
-      "icon": "minecraft:iron_pickaxe",
-      "level": 10,
-      "cost": 0,
-      "time": "40m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "copper_tools"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:iron_compacting"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/iron",
-          "count": 32
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "recipe",
-          "id": "minecraft:iron_pickaxe"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:iron_axe"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:iron_shovel"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:iron_hoe"
-        }
-      ]
-    },
-    {
-      "id": "iron_armor",
-      "category": "armor",
-      "icon": "minecraft:iron_chestplate",
-      "level": 10,
-      "cost": 0,
-      "time": "40m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "iron_tools"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/iron",
-          "count": 64
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "recipe",
-          "id": "minecraft:iron_helmet"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:iron_chestplate"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:iron_leggings"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:iron_boots"
-        },
-        {
-          "type": "output",
-          "id": "legendary_monsters:fiery_boots"
-        },
-        {
-          "type": "output",
-          "id": "legendary_monsters:mossy_chestplate"
-        }
-      ]
-    },
-    {
-      "id": "gold_tools",
-      "category": "tools",
-      "icon": "minecraft:golden_pickaxe",
-      "level": 10,
-      "cost": 0,
-      "time": "40m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "iron_tools"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:gold_compacting"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/gold",
-          "count": 32
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "recipe",
-          "id": "minecraft:golden_pickaxe"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:golden_axe"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:golden_shovel"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:golden_hoe"
-        }
-      ]
-    },
-    {
-      "id": "gold_armor",
-      "category": "armor",
-      "icon": "minecraft:golden_chestplate",
-      "level": 10,
-      "cost": 0,
-      "time": "40m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "gold_tools"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/gold",
-          "count": 64
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "recipe",
-          "id": "minecraft:golden_helmet"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:golden_chestplate"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:golden_leggings"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:golden_boots"
-        }
-      ]
-    },
-    {
-      "id": "shield",
-      "category": "armor",
-      "icon": "minecraft:shield",
-      "level": 10,
-      "cost": 0,
-      "time": "40m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "iron_tools"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/iron",
-          "count": 8
-        },
-        {
-          "type": "deposit",
-          "item": "#minecraft:planks",
-          "count": 16
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "recipe",
-          "id": "minecraft:shield"
-        },
-        {
-          "type": "output",
-          "id": "endermanoverhaul:corrupted_shield"
-        },
-        {
-          "type": "output",
-          "id": "legendary_monsters:dinosaur_bone_shield"
-        }
-      ]
-    },
-    {
-      "id": "iron_hammer_paxel",
-      "category": "tools",
-      "icon": "create_ironworks:iron_hammer",
-      "level": 12,
-      "cost": 800,
-      "time": "55m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "iron_tools"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:iron_pressing"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/iron",
-          "count": 64
-        },
-        {
-          "type": "deposit",
-          "item": "#c:plates/iron",
-          "count": 16
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "create_ironworks:iron_hammer"
-        },
-        {
-          "type": "output",
-          "id": "create_ironworks:iron_paxel"
-        }
-      ]
-    },
-    {
-      "id": "gold_hammer_paxel",
-      "category": "tools",
-      "icon": "create_ironworks:gold_hammer",
-      "level": 12,
-      "cost": 800,
-      "time": "55m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "gold_tools"
-        },
-        {
-          "type": "node",
-          "id": "iron_hammer_paxel"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:gold_pressing"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/gold",
-          "count": 64
-        },
-        {
-          "type": "deposit",
-          "item": "#c:plates/gold",
-          "count": 16
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "create_ironworks:gold_hammer"
-        },
-        {
-          "type": "output",
-          "id": "create_ironworks:gold_paxel"
-        }
-      ]
-    },
-    {
-      "id": "lead_tools",
-      "category": "tools",
-      "icon": "tfmg:lead_pickaxe",
-      "level": 12,
-      "cost": 800,
-      "time": "55m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "copper_tools"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:lead_compacting"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/lead",
-          "count": 32
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "tfmg:lead_pickaxe"
-        },
-        {
-          "type": "output",
-          "id": "tfmg:lead_axe"
-        },
-        {
-          "type": "output",
-          "id": "tfmg:lead_shovel"
-        },
-        {
-          "type": "output",
-          "id": "tfmg:lead_hoe"
-        }
-      ]
-    },
-    {
-      "id": "turtle_helmet",
-      "category": "armor",
-      "icon": "minecraft:turtle_helmet",
-      "level": 14,
-      "cost": 1200,
-      "time": "1h20m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "iron_armor"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "minecraft:turtle_scute",
-          "count": 3
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "recipe",
-          "id": "minecraft:turtle_helmet"
-        }
-      ]
-    },
-    {
-      "id": "goggle_helmets",
-      "category": "special",
-      "icon": "creategoggles:goggle_iron_helmet",
-      "level": 12,
-      "cost": 1200,
-      "time": "1h20m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "goggles"
-        },
-        {
-          "type": "node",
-          "id": "iron_armor"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "create:goggles",
-          "count": 4
-        },
-        {
-          "type": "deposit",
-          "item": "#c:ingots/iron",
-          "count": 16
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "creategoggles:goggle_leather_helmet"
-        },
-        {
-          "type": "output",
-          "id": "creategoggles:goggle_cardboard_helmet"
-        },
-        {
-          "type": "output",
-          "id": "creategoggles:goggle_chainmail_helmet"
-        },
-        {
-          "type": "output",
-          "id": "creategoggles:goggle_iron_helmet"
-        },
-        {
-          "type": "output",
-          "id": "creategoggles:goggle_golden_helmet"
-        },
-        {
-          "type": "output",
-          "id": "creategoggles:goggle_turtle_helmet"
-        },
-        {
-          "type": "recipe",
-          "id": "creategoggles:crushing/leather_helmet"
-        },
-        {
-          "type": "recipe",
-          "id": "creategoggles:crushing/cardboard_helmet"
-        },
-        {
-          "type": "recipe",
-          "id": "creategoggles:crushing/chainmail_helmet"
-        },
-        {
-          "type": "recipe",
-          "id": "creategoggles:crushing/iron_helmet"
-        },
-        {
-          "type": "recipe",
-          "id": "creategoggles:crushing/golden_helmet"
-        },
-        {
-          "type": "recipe",
-          "id": "creategoggles:crushing/turtle_helmet"
-        },
-        {
-          "type": "output",
-          "id": "creategoggles:goggle_armor_trim_smithing_template"
-        },
-        {
-          "type": "recipe",
-          "id": "creategoggles:smithing_template_duplicate"
-        },
-        {
-          "type": "recipe",
-          "id": "creategoggles:smithing_template_single"
-        }
-      ]
-    },
-    {
-      "id": "bronze_tools",
-      "category": "tools",
-      "icon": "create_ironworks:bronze_pickaxe",
-      "level": 15,
-      "cost": 1300,
-      "time": "1h25m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "iron_tools"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:bronze"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/bronze",
-          "count": 32
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "create_ironworks:bronze_pickaxe"
-        },
-        {
-          "type": "output",
-          "id": "create_ironworks:bronze_axe"
-        },
-        {
-          "type": "output",
-          "id": "create_ironworks:bronze_shovel"
-        },
-        {
-          "type": "output",
-          "id": "create_ironworks:bronze_hoe"
-        }
-      ]
-    },
-    {
-      "id": "bronze_armor",
-      "category": "armor",
-      "icon": "create_ironworks:bronze_armor_chestplate",
-      "level": 15,
-      "cost": 1300,
-      "time": "1h25m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "bronze_tools"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/bronze",
-          "count": 64
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "create_ironworks:bronze_armor_*"
-        }
-      ]
-    },
-    {
-      "id": "bronze_hammer_paxel",
-      "category": "tools",
-      "icon": "create_ironworks:bronze_hammer",
-      "level": 15,
-      "cost": 1300,
-      "time": "1h25m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "bronze_tools"
-        },
-        {
-          "type": "node",
-          "id": "iron_hammer_paxel"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/bronze",
-          "count": 48
-        },
-        {
-          "type": "deposit",
-          "item": "#c:plates/bronze",
-          "count": 8
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "create_ironworks:bronze_hammer"
-        },
-        {
-          "type": "output",
-          "id": "create_ironworks:bronze_paxel"
-        }
-      ]
-    },
-    {
-      "id": "brass_tools",
-      "category": "tools",
-      "icon": "create_ironworks:brass_pickaxe",
-      "level": 18,
-      "cost": 2000,
-      "time": "2h5m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "metallurgy:brass"
-        },
-        {
-          "type": "node",
-          "id": "bronze_tools"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/brass",
-          "count": 32
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "create_ironworks:brass_pickaxe"
-        },
-        {
-          "type": "output",
-          "id": "create_ironworks:brass_axe"
-        },
-        {
-          "type": "output",
-          "id": "create_ironworks:brass_shovel"
-        },
-        {
-          "type": "output",
-          "id": "create_ironworks:brass_hoe"
-        }
-      ]
-    },
-    {
-      "id": "brass_armor",
-      "category": "armor",
-      "icon": "create_ironworks:brass_armor_chestplate",
-      "level": 18,
-      "cost": 2000,
-      "time": "2h5m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "brass_tools"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/brass",
-          "count": 64
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "create_ironworks:brass_armor_*"
-        }
-      ]
-    },
-    {
-      "id": "brass_hammer_paxel",
-      "category": "tools",
-      "icon": "create_ironworks:brass_hammer",
-      "level": 18,
-      "cost": 2000,
-      "time": "2h5m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "brass_tools"
-        },
-        {
-          "type": "node",
-          "id": "bronze_hammer_paxel"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/brass",
-          "count": 48
-        },
-        {
-          "type": "deposit",
-          "item": "#c:plates/brass",
-          "count": 8
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "create_ironworks:brass_hammer"
-        },
-        {
-          "type": "output",
-          "id": "create_ironworks:brass_paxel"
-        }
-      ]
-    },
-    {
-      "id": "copper_backtank",
-      "category": "special",
-      "icon": "create:copper_backtank",
-      "level": 20,
-      "cost": 3000,
-      "time": "3h",
-      "requires": [
-        {
-          "type": "node",
-          "id": "technology:portable_fluid_interface"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:storage_blocks/copper",
-          "count": 8
-        },
-        {
-          "type": "deposit",
-          "item": "create:andesite_alloy",
-          "count": 16
-        },
-        {
-          "type": "deposit",
-          "item": "create:shaft",
-          "count": 8
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "block",
-          "id": "create:copper_backtank"
-        },
-        {
-          "type": "recipe",
-          "id": "create:crafting/appliances/copper_backtank"
-        }
-      ]
-    },
-    {
-      "id": "armored_backtanks",
-      "category": "special",
-      "icon": "creategoggles:iron_backtank",
-      "level": 20,
-      "cost": 3000,
-      "time": "3h",
-      "requires": [
-        {
-          "type": "node",
-          "id": "copper_backtank"
-        },
-        {
-          "type": "node",
-          "id": "iron_armor"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:brass"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "create:copper_backtank",
-          "count": 2
-        },
-        {
-          "type": "deposit",
-          "item": "#c:ingots/iron",
-          "count": 16
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "creategoggles:leather_backtank"
-        },
-        {
-          "type": "output",
-          "id": "creategoggles:iron_backtank"
-        },
-        {
-          "type": "output",
-          "id": "creategoggles:golden_backtank"
-        },
-        {
-          "type": "output",
-          "id": "creategoggles:chainmail_backtank"
-        },
-        {
-          "type": "recipe",
-          "id": "creategoggles:crushing/leather_chestplate"
-        },
-        {
-          "type": "recipe",
-          "id": "creategoggles:crushing/iron_chestplate"
-        },
-        {
-          "type": "recipe",
-          "id": "creategoggles:crushing/golden_chestplate"
-        },
-        {
-          "type": "recipe",
-          "id": "creategoggles:crushing/chainmail_chestplate"
-        },
-        {
-          "type": "recipe",
-          "id": "creategoggles:modifier_remover"
-        }
-      ]
-    },
-    {
-      "id": "handheld_drill",
-      "category": "special",
-      "icon": "dndesires:handheld_drill",
-      "level": 22,
-      "cost": 3800,
-      "time": "3h25m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "iron_tools"
-        },
-        {
-          "type": "node",
-          "id": "technology:drill_saw"
-        },
-        {
-          "type": "node",
-          "id": "technology:precision_mechanism"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "create:mechanical_drill",
-          "count": 2
-        },
-        {
-          "type": "deposit",
-          "item": "create:precision_mechanism",
-          "count": 1
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "dndesires:handheld_drill"
-        },
-        {
-          "type": "output",
-          "id": "dndesires:handheld_saw"
-        }
-      ]
-    },
-    {
-      "id": "copper_diving_gear",
-      "category": "special",
-      "icon": "create:copper_diving_helmet",
-      "level": 23,
-      "cost": 4200,
-      "time": "3h35m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "copper_backtank"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/copper",
-          "count": 16
-        },
-        {
-          "type": "deposit",
-          "item": "#c:glass_blocks",
-          "count": 4
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "create:copper_diving_helmet"
-        },
-        {
-          "type": "output",
-          "id": "create:copper_diving_boots"
-        },
-        {
-          "type": "output",
-          "id": "creategoggles:goggle_diving_helmet"
-        },
-        {
-          "type": "recipe",
-          "id": "creategoggles:crushing/copper_diving_helmet"
-        }
-      ]
-    },
-    {
-      "id": "jetpack",
-      "category": "special",
-      "icon": "create_jetpack:jetpack",
-      "level": 24,
-      "cost": 4600,
-      "time": "3h50m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "copper_backtank"
-        },
-        {
-          "type": "node",
-          "id": "technology:precision_mechanism"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:brass"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "create:precision_mechanism",
-          "count": 4
-        },
-        {
-          "type": "deposit",
-          "item": "create:copper_backtank",
-          "count": 2
-        },
-        {
-          "type": "deposit",
-          "item": "create:brass_sheet",
-          "count": 8
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "block",
-          "id": "create_jetpack:jetpack"
-        },
-        {
-          "type": "output",
-          "id": "create_jetpack:jetpack"
-        }
-      ]
-    },
-    {
-      "id": "diamond_tools",
-      "category": "tools",
-      "icon": "minecraft:diamond_pickaxe",
-      "level": 25,
-      "cost": 5000,
-      "time": "4h",
-      "requires": [
-        {
-          "type": "node",
-          "id": "iron_tools"
-        },
-        {
-          "type": "node",
-          "id": "military:diamond_melee",
-          "hidden": true
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "minecraft:diamond",
-          "count": 16
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "recipe",
-          "id": "minecraft:diamond_pickaxe"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:diamond_axe"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:diamond_shovel"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:diamond_hoe"
-        },
-        {
-          "type": "recipe",
-          "id": "legendary_monsters:enderitium_axe"
-        },
-        {
-          "type": "recipe",
-          "id": "legendary_monsters:enderitium_hoe"
-        },
-        {
-          "type": "recipe",
-          "id": "legendary_monsters:enderitium_pickaxe"
-        },
-        {
-          "type": "recipe",
-          "id": "legendary_monsters:enderitium_shovel"
-        },
-        {
-          "type": "recipe",
-          "id": "legendary_monsters:enderitium_sword"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:diamond_block"
-        },
-        {
-          "type": "recipe",
-          "id": "stackedblocks:reverse/diamond_blocks"
-        },
-        {
-          "type": "recipe",
-          "id": "stackedblocksfarmersdelight:reverse/diamond_blocks"
-        }
-      ]
-    },
-    {
-      "id": "diamond_armor",
-      "category": "armor",
-      "icon": "minecraft:diamond_chestplate",
-      "level": 25,
-      "cost": 5000,
-      "time": "4h",
-      "requires": [
-        {
-          "type": "node",
-          "id": "diamond_tools"
-        },
-        {
-          "type": "node",
-          "id": "iron_armor"
-        },
-        {
-          "type": "node",
-          "id": "shield"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "minecraft:diamond",
-          "count": 32
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "recipe",
-          "id": "minecraft:diamond_helmet"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:diamond_chestplate"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:diamond_leggings"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:diamond_boots"
-        },
-        {
-          "type": "output",
-          "id": "legendary_monsters:atmospheric_boots"
-        },
-        {
-          "type": "output",
-          "id": "legendary_monsters:blastproof_helmet"
-        },
-        {
-          "type": "output",
-          "id": "legendary_monsters:chorus_mask"
-        },
-        {
-          "type": "output",
-          "id": "legendary_monsters:shulker_helmet"
-        },
-        {
-          "type": "output",
-          "id": "legendary_monsters:shulker_shield"
-        },
-        {
-          "type": "output",
-          "id": "legendary_monsters:frostbitten_shield"
-        },
-        {
-          "type": "output",
-          "id": "legendary_monsters:spiky_shield"
-        }
-      ]
-    },
-    {
-      "id": "diamond_hammer_paxel",
-      "category": "tools",
-      "icon": "create_ironworks:diamond_hammer",
-      "level": 25,
-      "cost": 5000,
-      "time": "4h",
-      "requires": [
-        {
-          "type": "node",
-          "id": "diamond_tools"
-        },
-        {
-          "type": "node",
-          "id": "iron_hammer_paxel"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "minecraft:diamond",
-          "count": 24
-        },
-        {
-          "type": "deposit",
-          "item": "#c:plates/iron",
-          "count": 8
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "create_ironworks:diamond_hammer"
-        },
-        {
-          "type": "output",
-          "id": "create_ironworks:diamond_paxel"
-        }
-      ]
-    },
-    {
-      "id": "diamond_backtank",
-      "category": "special",
-      "icon": "creategoggles:diamond_backtank",
-      "level": 25,
-      "cost": 5000,
-      "time": "4h",
-      "requires": [
-        {
-          "type": "node",
-          "id": "diamond_armor"
-        },
-        {
-          "type": "node",
-          "id": "armored_backtanks"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "minecraft:diamond",
-          "count": 16
-        },
-        {
-          "type": "deposit",
-          "item": "create:copper_backtank",
-          "count": 2
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "creategoggles:diamond_backtank"
-        },
-        {
-          "type": "recipe",
-          "id": "creategoggles:crushing/diamond_chestplate"
-        }
-      ]
-    },
-    {
-      "id": "diamond_goggle_helmet",
-      "category": "special",
-      "icon": "creategoggles:goggle_diamond_helmet",
-      "level": 25,
-      "cost": 5000,
-      "time": "4h",
-      "requires": [
-        {
-          "type": "node",
-          "id": "diamond_armor"
-        },
-        {
-          "type": "node",
-          "id": "goggle_helmets"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "minecraft:diamond",
-          "count": 16
-        },
-        {
-          "type": "deposit",
-          "item": "create:goggles",
-          "count": 4
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "creategoggles:goggle_diamond_helmet"
-        },
-        {
-          "type": "recipe",
-          "id": "creategoggles:crushing/diamond_helmet"
-        }
-      ]
-    },
-    {
-      "id": "aluminum_tools",
-      "category": "tools",
-      "icon": "tfmg:aluminum_pickaxe",
-      "level": 42,
-      "requires": [
-        {
-          "type": "node",
-          "id": "iron_tools"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:aluminum"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/aluminum",
-          "count": 32
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "tfmg:aluminum_pickaxe"
-        },
-        {
-          "type": "output",
-          "id": "tfmg:aluminum_axe"
-        },
-        {
-          "type": "output",
-          "id": "tfmg:aluminum_shovel"
-        },
-        {
-          "type": "output",
-          "id": "tfmg:aluminum_hoe"
-        }
-      ],
-      "cost": 15875,
-      "time": "7h20m"
-    },
-    {
-      "id": "steel_tools",
-      "category": "tools",
-      "icon": "create_ironworks:steel_pickaxe",
-      "level": 30,
-      "cost": 7500,
-      "time": "5h",
-      "requires": [
-        {
-          "type": "node",
-          "id": "metallurgy:steel"
-        },
-        {
-          "type": "node",
-          "id": "diamond_tools"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/steel",
-          "count": 48
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "create_ironworks:steel_pickaxe"
-        },
-        {
-          "type": "output",
-          "id": "create_ironworks:steel_axe"
-        },
-        {
-          "type": "output",
-          "id": "create_ironworks:steel_shovel"
-        },
-        {
-          "type": "output",
-          "id": "create_ironworks:steel_hoe"
-        },
-        {
-          "type": "output",
-          "id": "create_ironworks:steel_hammer"
-        },
-        {
-          "type": "output",
-          "id": "create_ironworks:steel_paxel"
-        }
-      ]
-    },
-    {
-      "id": "steel_armor",
-      "category": "armor",
-      "icon": "create_ironworks:steel_armor_chestplate",
-      "level": 30,
-      "cost": 7500,
-      "time": "5h",
-      "requires": [
-        {
-          "type": "node",
-          "id": "steel_tools"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/steel",
-          "count": 96
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "create_ironworks:steel_armor_*"
-        }
-      ]
-    },
-    {
-      "id": "anti_radiation_suit",
-      "category": "armor",
-      "icon": "createnuclear:default_anti_radiation_chestplate",
-      "level": 150,
-      "requires": [
-        {
-          "type": "node",
-          "id": "steel_armor"
-        },
-        {
-          "type": "node",
-          "id": "technology:reactor_casing"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/lead",
-          "count": 64
-        },
-        {
-          "type": "deposit",
-          "item": "minecraft:white_wool",
-          "count": 16
-        },
-        {
-          "type": "deposit",
-          "item": "createnuclear:graphite_rod",
-          "count": 2
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "recipe",
-          "id": "createnuclear:crafting/items/armors/*"
-        },
-        {
-          "type": "recipe",
-          "id": "createnuclear:crafting/crafting/*cloth*"
-        },
-        {
-          "type": "recipe",
-          "id": "createnuclear:shapeless/cloth/*"
-        }
-      ],
-      "cost": 52500,
-      "time": "12h30m"
-    },
-    {
-      "id": "portable_drill",
-      "category": "special",
-      "icon": "powergrid:portable_drill",
-      "level": 40,
-      "requires": [
-        {
-          "type": "node",
-          "id": "handheld_drill"
-        },
-        {
-          "type": "node",
-          "id": "steel_tools"
-        },
-        {
-          "type": "node",
-          "id": "technology:pg_basics"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "dndesires:handheld_drill",
-          "count": 1
-        },
-        {
-          "type": "deposit",
-          "item": "powergrid:electrical_gizmo",
-          "count": 2
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "powergrid:portable_drill"
-        },
-        {
-          "type": "output",
-          "id": "powergrid:portable_saw"
-        }
-      ],
-      "cost": 14400,
-      "time": "7h5m"
-    },
-    {
-      "id": "netherite_tools",
-      "category": "tools",
-      "icon": "minecraft:netherite_pickaxe",
-      "level": 40,
-      "cost": 14000,
-      "time": "7h5m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "metallurgy:netherite"
-        },
-        {
-          "type": "node",
-          "id": "steel_tools"
-        },
-        {
-          "type": "node",
-          "id": "technology:card_system",
-          "hidden": true
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "minecraft:netherite_ingot",
-          "count": 4
-        },
-        {
-          "type": "deposit",
-          "item": "minecraft:netherite_upgrade_smithing_template",
-          "count": 2
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "recipe",
-          "id": "minecraft:netherite_pickaxe_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:netherite_axe_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:netherite_shovel_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:netherite_hoe_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "create_ironworks:tools/pickaxe/netherite_steel"
-        },
-        {
-          "type": "recipe",
-          "id": "create_ironworks:tools/axe/netherite_steel"
-        },
-        {
-          "type": "recipe",
-          "id": "create_ironworks:tools/shovel/netherite_steel"
-        },
-        {
-          "type": "recipe",
-          "id": "create_ironworks:tools/hoe/netherite_steel"
-        },
-        {
-          "type": "output",
-          "id": "minecraft:netherite_axe"
-        },
-        {
-          "type": "output",
-          "id": "minecraft:netherite_hoe"
-        },
-        {
-          "type": "output",
-          "id": "minecraft:netherite_pickaxe"
-        },
-        {
-          "type": "output",
-          "id": "minecraft:netherite_shovel"
-        },
-        {
-          "type": "recipe",
-          "id": "create_things_and_misc:netheriteportablewithlecraft"
-        }
-      ]
-    },
-    {
-      "id": "netherite_armor",
-      "category": "armor",
-      "icon": "minecraft:netherite_chestplate",
-      "level": 40,
-      "cost": 14000,
-      "time": "7h5m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "netherite_tools"
-        },
-        {
-          "type": "node",
-          "id": "diamond_armor"
-        },
-        {
-          "type": "node",
-          "id": "steel_armor"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "minecraft:netherite_ingot",
-          "count": 8
-        },
-        {
-          "type": "deposit",
-          "item": "minecraft:netherite_upgrade_smithing_template",
-          "count": 4
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "recipe",
-          "id": "minecraft:netherite_helmet_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:netherite_chestplate_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:netherite_leggings_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:netherite_boots_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "create_ironworks:armor/*/netherite_steel"
-        },
-        {
-          "type": "recipe",
-          "id": "legendary_monsters:annihilator_boots"
-        },
-        {
-          "type": "recipe",
-          "id": "legendary_monsters:annihilator_chestplate"
-        },
-        {
-          "type": "recipe",
-          "id": "legendary_monsters:annihilator_helmet"
-        },
-        {
-          "type": "recipe",
-          "id": "legendary_monsters:annihilator_leggings"
-        },
-        {
-          "type": "output",
-          "id": "legendary_monsters:buckler_of_annihilation"
-        }
-      ]
-    },
-    {
-      "id": "netherite_hammer_paxel",
-      "category": "tools",
-      "icon": "create_ironworks:netherite_hammer",
-      "level": 40,
-      "cost": 14000,
-      "time": "7h5m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "netherite_tools"
-        },
-        {
-          "type": "node",
-          "id": "diamond_hammer_paxel"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "minecraft:netherite_ingot",
-          "count": 4
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "create_ironworks:netherite_hammer"
-        },
-        {
-          "type": "output",
-          "id": "create_ironworks:netherite_paxel"
-        }
-      ]
-    },
-    {
-      "id": "netherite_goggle_helmet",
-      "category": "special",
-      "icon": "creategoggles:goggle_netherite_helmet",
-      "level": 40,
-      "cost": 14000,
-      "time": "7h5m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "netherite_armor"
-        },
-        {
-          "type": "node",
-          "id": "diamond_goggle_helmet"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "minecraft:netherite_ingot",
-          "count": 2
-        },
-        {
-          "type": "deposit",
-          "item": "create:goggles",
-          "count": 4
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "creategoggles:goggle_netherite_helmet"
-        },
-        {
-          "type": "recipe",
-          "id": "creategoggles:crushing/netherite_helmet"
-        }
-      ]
-    },
-    {
-      "id": "netherite_diving",
-      "category": "special",
-      "icon": "create:netherite_diving_helmet",
-      "level": 42,
-      "cost": 15000,
-      "time": "7h20m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "copper_diving_gear"
-        },
-        {
-          "type": "node",
-          "id": "jetpack"
-        },
-        {
-          "type": "node",
-          "id": "netherite_armor"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "minecraft:netherite_ingot",
-          "count": 4
-        },
-        {
-          "type": "deposit",
-          "item": "minecraft:netherite_upgrade_smithing_template",
-          "count": 3
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "create:netherite_backtank"
-        },
-        {
-          "type": "output",
-          "id": "create:netherite_diving_helmet"
-        },
-        {
-          "type": "output",
-          "id": "create:netherite_diving_boots"
-        },
-        {
-          "type": "output",
-          "id": "create_jetpack:netherite_jetpack"
-        },
-        {
-          "type": "output",
-          "id": "creategoggles:goggle_netherite_diving_helmet"
-        }
-      ]
-    },
-    {
-      "id": "advanced_netherite_iron",
-      "category": "special",
-      "icon": "advancednetherite:netherite_iron_ingot",
-      "level": 105,
-      "requires": [
-        {
-          "type": "node",
-          "id": "netherite_armor"
-        },
-        {
-          "type": "node",
-          "id": "netherite_hammer_paxel"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:netherite_iron"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "advancednetherite:netherite_iron_ingot",
-          "count": 12
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_iron_pickaxe_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_iron_axe_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_iron_shovel_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_iron_hoe_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_iron_helmet_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_iron_chestplate_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_iron_leggings_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_iron_boots_smithing"
-        }
-      ],
-      "cost": 39000,
-      "time": "11h"
-    },
-    {
-      "id": "advanced_netherite_gold",
-      "category": "special",
-      "icon": "advancednetherite:netherite_gold_ingot",
-      "level": 205,
-      "requires": [
-        {
-          "type": "node",
-          "id": "advanced_netherite_iron"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:netherite_gold"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "advancednetherite:netherite_gold_ingot",
-          "count": 12
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_gold_pickaxe_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_gold_axe_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_gold_shovel_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_gold_hoe_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_gold_helmet_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_gold_chestplate_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_gold_leggings_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_gold_boots_smithing"
-        }
-      ],
-      "cost": 69275,
-      "time": "14h20m"
-    },
-    {
-      "id": "advanced_netherite_emerald",
-      "category": "special",
-      "icon": "advancednetherite:netherite_emerald_ingot",
-      "level": 305,
-      "requires": [
-        {
-          "type": "node",
-          "id": "advanced_netherite_gold"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:netherite_emerald"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "advancednetherite:netherite_emerald_ingot",
-          "count": 12
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_emerald_pickaxe_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_emerald_axe_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_emerald_shovel_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_emerald_hoe_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_emerald_helmet_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_emerald_chestplate_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_emerald_leggings_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_emerald_boots_smithing"
-        }
-      ],
-      "cost": 99775,
-      "time": "17h40m"
-    },
-    {
-      "id": "advanced_netherite_diamond",
-      "category": "special",
-      "icon": "advancednetherite:netherite_diamond_ingot",
-      "level": 405,
-      "requires": [
-        {
-          "type": "node",
-          "id": "advanced_netherite_emerald"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:netherite_diamond"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "advancednetherite:netherite_diamond_ingot",
-          "count": 12
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_diamond_pickaxe_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_diamond_axe_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_diamond_shovel_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_diamond_hoe_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_diamond_helmet_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_diamond_chestplate_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_diamond_leggings_smithing"
-        },
-        {
-          "type": "recipe",
-          "id": "advancednetherite:netherite_diamond_boots_smithing"
-        }
-      ],
-      "cost": 130275,
-      "time": "21h"
-    },
-    {
-      "id": "copper_hammer_paxel",
-      "category": "tools",
-      "icon": "create_ironworks:copper_hammer",
-      "level": 9,
-      "cost": 0,
-      "time": "40m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "copper_tools"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:copper_pressing"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/copper",
-          "count": 48
-        },
-        {
-          "type": "deposit",
-          "item": "#c:plates/copper",
-          "count": 8
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "create_ironworks:copper_hammer"
-        },
-        {
-          "type": "output",
-          "id": "create_ironworks:copper_paxel"
-        }
-      ]
-    },
-    {
-      "id": "respirators",
-      "category": "special",
-      "icon": "smog:respirator",
-      "level": 12,
-      "cost": 1300,
-      "time": "55m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "leather_armor"
-        },
-        {
-          "type": "node",
-          "id": "iron_armor"
-        },
-        {
-          "type": "node",
-          "id": "technology:smog_control",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:vt_signals",
-          "hidden": true
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "minecraft:leather",
-          "count": 16
-        },
-        {
-          "type": "deposit",
-          "item": "#minecraft:wool",
-          "count": 8
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "adpother:iron_respirator"
-        },
-        {
-          "type": "output",
-          "id": "smog:respirator"
-        },
-        {
-          "type": "output",
-          "id": "createbigcannons:gas_mask"
-        },
-        {
-          "type": "output",
-          "id": "adpother:iron_vacuum_tube"
-        },
-        {
-          "type": "output",
-          "id": "adpother:iron_vacuum_bag"
-        }
-      ]
-    },
-    {
-      "id": "rose_quartz_armor",
-      "category": "armor",
-      "icon": "create_ironworks:rose_quartz_armor_chestplate",
-      "level": 14,
-      "cost": 1775,
-      "time": "1h20m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "iron_armor"
-        },
-        {
-          "type": "node",
-          "id": "technology:rose_quartz"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "create:polished_rose_quartz",
-          "count": 48
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "create_ironworks:rose_quartz_armor_*"
-        }
-      ]
-    },
-    {
-      "id": "sticky_gear",
-      "category": "special",
-      "icon": "create_things_and_misc:sticky_boots_boots",
-      "level": 18,
-      "cost": 2925,
-      "time": "2h5m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "technology:chassis"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:brass"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "create:sticker",
-          "count": 4
-        },
-        {
-          "type": "deposit",
-          "item": "minecraft:slime_block",
-          "count": 4
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "create_things_and_misc:sticky_boots_boots"
-        }
-      ]
-    },
-    {
-      "id": "extended_wrench",
-      "category": "special",
-      "icon": "extendedwrenches:extended_wrench",
-      "level": 20,
-      "cost": 3600,
-      "time": "3h",
-      "requires": [
-        {
-          "type": "node",
-          "id": "technology:wrench_goggles"
-        },
-        {
-          "type": "node",
-          "id": "technology:deployer"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:brass"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:copper_pressing",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "goggle_helmets",
-          "hidden": true
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "create:wrench",
-          "count": 2
-        },
-        {
-          "type": "deposit",
-          "item": "#c:plates/brass",
-          "count": 8
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "mod",
-          "id": "extendedwrenches"
-        }
-      ]
-    },
-    {
-      "id": "sturdy_armor",
-      "category": "armor",
-      "icon": "create_ironworks:sturdy_armor_chestplate",
-      "level": 22,
-      "cost": 4350,
-      "time": "3h25m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "brass_armor"
-        },
-        {
-          "type": "node",
-          "id": "technology:sturdy_sheet"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "create:sturdy_sheet",
-          "count": 48
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "create_ironworks:sturdy_armor_*"
-        }
-      ]
-    },
-    {
-      "id": "spout_gun",
-      "category": "special",
-      "icon": "create_things_and_misc:spout_gun",
-      "level": 22,
-      "cost": 4350,
-      "time": "3h25m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "technology:fluid_handling"
-        },
-        {
-          "type": "node",
-          "id": "technology:precision_mechanism"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "create:spout",
-          "count": 2
-        },
-        {
-          "type": "deposit",
-          "item": "create:precision_mechanism",
-          "count": 2
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "create_things_and_misc:spout_gun*"
-        }
-      ]
-    },
-    {
-      "id": "advanced_respirators",
-      "category": "special",
-      "icon": "adpother:diamond_respirator",
-      "level": 25,
-      "cost": 5625,
-      "time": "4h",
-      "requires": [
-        {
-          "type": "node",
-          "id": "respirators"
-        },
-        {
-          "type": "node",
-          "id": "diamond_armor"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:gold_smelting",
-          "hidden": true
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "minecraft:diamond",
-          "count": 8
-        },
-        {
-          "type": "deposit",
-          "item": "#c:ingots/gold",
-          "count": 16
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "adpother:gold_respirator"
-        },
-        {
-          "type": "output",
-          "id": "adpother:diamond_respirator"
-        },
-        {
-          "type": "output",
-          "id": "adpother:gold_vacuum_tube"
-        },
-        {
-          "type": "output",
-          "id": "adpother:gold_vacuum_bag"
-        },
-        {
-          "type": "output",
-          "id": "adpother:diamond_vacuum_tube"
-        },
-        {
-          "type": "output",
-          "id": "adpother:diamond_vacuum_bag"
-        }
-      ]
-    },
-    {
-      "id": "tfmg_tools",
-      "category": "tools",
-      "icon": "tfmg:electricians_wrench",
-      "level": 44,
-      "cost": 17425,
-      "time": "7h20m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "aluminum_tools"
-        },
-        {
-          "type": "node",
-          "id": "steel_tools"
-        },
-        {
-          "type": "node",
-          "id": "technology:steel_mechanism"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:plates/aluminum",
-          "count": 16
-        },
-        {
-          "type": "deposit",
-          "item": "#c:plates/steel",
-          "count": 16
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "tfmg:oil_hammer"
-        }
-      ]
-    },
-    {
-      "id": "lab_gear",
-      "category": "special",
-      "icon": "createbigpharma:lab_coat",
-      "level": 62,
-      "cost": 26100,
-      "time": "9h34m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "leather_armor"
-        },
-        {
-          "type": "node",
-          "id": "technology:pharma_machines"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "minecraft:white_wool",
-          "count": 32
-        },
-        {
-          "type": "deposit",
-          "item": "createbigpharma:amber_glass",
-          "count": 8
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "createbigpharma:lab_goggles"
-        },
-        {
-          "type": "output",
-          "id": "createbigpharma:lab_coat"
-        },
-        {
-          "type": "output",
-          "id": "createbigpharma:lab_gloves"
-        },
-        {
-          "type": "output",
-          "id": "createbigpharma:lab_boots"
-        }
-      ]
-    },
-    {
-      "id": "iron_space_suit",
-      "category": "armor",
-      "icon": "northstar:iron_space_suit_chestpiece",
-      "level": 150,
-      "cost": 52500,
-      "time": "12h30m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "steel_armor"
-        },
-        {
-          "type": "node",
-          "id": "copper_backtank"
-        },
-        {
-          "type": "node",
-          "id": "technology:first_rocket"
-        },
-        {
-          "type": "node",
-          "id": "technology:nylon"
-        },
-        {
-          "type": "node",
-          "id": "technology:rubber"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#minecraft:wool",
-          "count": 16
-        },
-        {
-          "type": "deposit",
-          "item": "chemica:polyethylene_sheet",
-          "count": 16
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "recipe",
-          "id": "northstar:crafting/iron_space_suit_helmet"
-        },
-        {
-          "type": "recipe",
-          "id": "northstar:crafting/iron_space_suit_chestpiece"
-        },
-        {
-          "type": "recipe",
-          "id": "northstar:crafting/iron_space_suit_leggings"
-        },
-        {
-          "type": "recipe",
-          "id": "northstar:crafting/iron_space_suit_boots"
-        },
-        {
-          "type": "recipe",
-          "id": "northstar:crafting/durable_fabric"
-        }
-      ]
-    },
-    {
-      "id": "martian_gear",
-      "category": "armor",
-      "icon": "northstar:martian_steel_chestplate",
-      "level": 195,
-      "cost": 66225,
-      "time": "14h",
-      "requires": [
-        {
-          "type": "node",
-          "id": "iron_space_suit"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:martian_steel"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "visit",
-          "dimension": "northstar:mars"
-        },
-        {
-          "type": "deposit",
-          "item": "northstar:martian_steel_ingot",
-          "count": 48
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "recipe",
-          "id": "northstar:crafting/martian_pickaxe"
-        },
-        {
-          "type": "recipe",
-          "id": "northstar:crafting/martian_axe"
-        },
-        {
-          "type": "recipe",
-          "id": "northstar:crafting/martian_shovel"
-        },
-        {
-          "type": "recipe",
-          "id": "northstar:crafting/martian_hoe"
-        },
-        {
-          "type": "recipe",
-          "id": "northstar:crafting/martian_steel_helmet"
-        },
-        {
-          "type": "recipe",
-          "id": "northstar:crafting/martian_steel_chestplate"
-        },
-        {
-          "type": "recipe",
-          "id": "northstar:crafting/martian_steel_leggings"
-        },
-        {
-          "type": "recipe",
-          "id": "northstar:crafting/martian_steel_boots"
-        }
-      ]
-    },
-    {
-      "id": "martian_space_suit",
-      "category": "armor",
-      "icon": "northstar:martian_steel_space_suit_chestpiece",
-      "level": 200,
-      "cost": 67750,
-      "time": "14h10m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "martian_gear"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:plates/martian_steel",
-          "count": 32
-        },
-        {
-          "type": "deposit",
-          "item": "northstar:durable_fabric",
-          "count": 16
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "recipe",
-          "id": "northstar:crafting/martian_steel_space_suit_*"
-        }
-      ]
-    },
-    {
-      "id": "backpack",
-      "category": "backpacks",
-      "icon": "sophisticatedbackpacks:backpack",
-      "level": 16,
-      "cost": 2300,
-      "time": "1h25m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "leather_armor"
-        },
-        {
-          "type": "node",
-          "id": "iron_tools"
-        },
-        {
-          "type": "node",
-          "id": "technology:deployer"
-        },
-        {
-          "type": "node",
-          "id": "technology:drill_saw"
-        },
-        {
-          "type": "node",
-          "id": "technology:mechanical_press"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:iron_pressing"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "minecraft:leather",
-          "count": 32
-        },
-        {
-          "type": "deposit",
-          "item": "#minecraft:wool",
-          "count": 16
-        },
-        {
-          "type": "deposit",
-          "item": "sbrc:wax_resin",
-          "count": 8
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:backpack"
-        },
-        {
-          "type": "output",
-          "id": "sbrc:reinforced_leather_fabric"
-        },
-        {
-          "type": "output",
-          "id": "sbrc:leather_strap"
-        },
-        {
-          "type": "output",
-          "id": "sbrc:iron_buckle"
-        },
-        {
-          "type": "output",
-          "id": "sbrc:leather_strap_with_iron_buckle"
-        },
-        {
-          "type": "output",
-          "id": "sbrc:backpack_frame"
-        },
-        {
-          "type": "recipe",
-          "id": "sbrc:magnetic_clasp"
-        },
-        {
-          "type": "recipe",
-          "id": "powergrid:cutting/iron_wire_cutting"
-        },
-        {
-          "type": "recipe",
-          "id": "sophisticatedbackpacks:backpack_dye"
-        }
-      ]
-    },
-    {
-      "id": "backpack_tiers",
-      "category": "backpacks",
-      "icon": "sophisticatedbackpacks:iron_backpack",
-      "level": 18,
-      "cost": 2925,
-      "time": "2h5m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "backpack"
-        },
-        {
-          "type": "node",
-          "id": "iron_tools"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/copper",
-          "count": 16
-        },
-        {
-          "type": "deposit",
-          "item": "#c:ingots/iron",
-          "count": 16
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:copper_backpack"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:iron_backpack"
-        }
-      ]
-    },
-    {
-      "id": "gold_backpack",
-      "category": "backpacks",
-      "icon": "sophisticatedbackpacks:gold_backpack",
-      "level": 20,
-      "cost": 3600,
-      "time": "3h",
-      "requires": [
-        {
-          "type": "node",
-          "id": "backpack_tiers"
-        },
-        {
-          "type": "node",
-          "id": "gold_tools"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:ingots/gold",
-          "count": 24
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:gold_backpack"
-        }
-      ]
-    },
-    {
-      "id": "diamond_backpack",
-      "category": "backpacks",
-      "icon": "sophisticatedbackpacks:diamond_backpack",
-      "level": 26,
-      "cost": 6075,
-      "time": "4h",
-      "requires": [
-        {
-          "type": "node",
-          "id": "gold_backpack"
-        },
-        {
-          "type": "node",
-          "id": "diamond_tools"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "minecraft:diamond",
-          "count": 16
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:diamond_backpack"
-        }
-      ]
-    },
-    {
-      "id": "netherite_backpack",
-      "category": "backpacks",
-      "icon": "sophisticatedbackpacks:netherite_backpack",
-      "level": 42,
-      "cost": 15875,
-      "time": "7h20m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "diamond_backpack"
-        },
-        {
-          "type": "node",
-          "id": "netherite_tools"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "minecraft:netherite_ingot",
-          "count": 2
-        },
-        {
-          "type": "deposit",
-          "item": "minecraft:netherite_upgrade_smithing_template",
-          "count": 1
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:netherite_backpack"
-        }
-      ]
-    },
-    {
-      "id": "backpack_upgrades",
-      "category": "backpacks",
-      "icon": "sophisticatedbackpacks:upgrade_base",
-      "level": 18,
-      "cost": 2925,
-      "time": "2h5m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "backpack"
-        },
-        {
-          "type": "node",
-          "id": "technology:pistons"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:stonecutter",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:vt_pistons",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:vt_scribe",
-          "hidden": true
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:strings",
-          "count": 32
-        },
-        {
-          "type": "deposit",
-          "item": "create:iron_sheet",
-          "count": 16
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:upgrade_base"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:pickup_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:filter_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:crafting_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:stonecutter_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:compacting_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:deposit_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:restock_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:jukebox_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:smelting_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:smoking_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:blasting_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:tool_swapper_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:stack_downgrade_tier_1"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:stack_downgrade_tier_2"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:stack_downgrade_tier_3"
-        }
-      ]
-    },
-    {
-      "id": "backpack_utility_upgrades",
-      "category": "backpacks",
-      "icon": "sophisticatedbackpacks:magnet_upgrade",
-      "level": 22,
-      "cost": 4350,
-      "time": "3h25m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "backpack_upgrades"
-        },
-        {
-          "type": "node",
-          "id": "military:brew_amplifiers",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:gold_smelting",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:vt_pistons",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:vt_workshop",
-          "hidden": true
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "minecraft:ender_pearl",
-          "count": 8
-        },
-        {
-          "type": "deposit",
-          "item": "#c:storage_blocks/redstone",
-          "count": 4
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:magnet_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:void_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:refill_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:feeding_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:mob_catcher_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:alchemy_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:smithing_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:tank_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:pump_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:battery_upgrade"
-        }
-      ]
-    },
-    {
-      "id": "backpack_advanced_upgrades",
-      "category": "backpacks",
-      "icon": "sophisticatedbackpacks:advanced_magnet_upgrade",
-      "level": 28,
-      "cost": 7050,
-      "time": "4h30m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "backpack_utility_upgrades"
-        },
-        {
-          "type": "node",
-          "id": "diamond_tools"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:gold_smelting",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:vt_hopper",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:vt_workshop",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:vt_observer",
-          "hidden": true
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "minecraft:diamond",
-          "count": 16
-        },
-        {
-          "type": "deposit",
-          "item": "#c:ingots/gold",
-          "count": 32
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:advanced_*"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:auto_*"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:xp_pump_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:anvil_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedcore:ender_linker"
-        }
-      ]
-    },
-    {
-      "id": "backpack_stack_1",
-      "category": "backpacks",
-      "icon": "sophisticatedbackpacks:stack_upgrade_tier_1",
-      "level": 20,
-      "cost": 3600,
-      "time": "3h",
-      "requires": [
-        {
-          "type": "node",
-          "id": "backpack_upgrades"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:storage_blocks/copper",
-          "count": 8
-        },
-        {
-          "type": "deposit",
-          "item": "#c:storage_blocks/iron",
-          "count": 8
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:stack_upgrade_starter_tier"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:stack_upgrade_tier_1"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:stack_upgrade_*_to_tier_1_conversion"
-        }
-      ]
-    },
-    {
-      "id": "backpack_stack_2",
-      "category": "backpacks",
-      "icon": "sophisticatedbackpacks:stack_upgrade_tier_2",
-      "level": 30,
-      "cost": 8100,
-      "time": "5h",
-      "requires": [
-        {
-          "type": "node",
-          "id": "backpack_stack_1"
-        },
-        {
-          "type": "node",
-          "id": "diamond_backpack"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:netherite",
-          "hidden": true
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:storage_blocks/gold",
-          "count": 8
-        },
-        {
-          "type": "deposit",
-          "item": "#c:storage_blocks/diamond",
-          "count": 4
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:stack_upgrade_tier_2"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:stack_upgrade_tier_3"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:stack_upgrade_*_to_tier_2_conversion"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:stack_upgrade_*_to_tier_3_conversion"
-        }
-      ]
-    },
-    {
-      "id": "backpack_stack_3",
-      "category": "backpacks",
-      "icon": "sophisticatedbackpacks:stack_upgrade_tier_4",
-      "level": 50,
-      "cost": 22500,
-      "time": "6h40m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "backpack_stack_2"
-        },
-        {
-          "type": "node",
-          "id": "netherite_backpack"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "#c:storage_blocks/netherite",
-          "count": 2
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:stack_upgrade_tier_4"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:stack_upgrade_*_to_tier_4_conversion"
-        }
-      ]
-    },
-    {
-      "id": "backpack_inception",
-      "category": "backpacks",
-      "icon": "sophisticatedbackpacks:inception_upgrade",
-      "level": 60,
-      "cost": 25500,
-      "time": "9h30m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "backpack_advanced_upgrades"
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "minecraft:nether_star",
-          "count": 1
-        },
-        {
-          "type": "kill",
-          "entity": "minecraft:wither",
-          "count": 1
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:inception_upgrade"
-        }
-      ]
-    },
-    {
-      "id": "backpack_everlasting",
-      "category": "backpacks",
-      "icon": "sophisticatedbackpacks:everlasting_upgrade",
-      "level": 100,
-      "cost": 37500,
-      "time": "10h50m",
-      "requires": [
-        {
-          "type": "node",
-          "id": "backpack_inception"
-        },
-        {
-          "type": "node",
-          "id": "technology:vt_respawn",
-          "hidden": true
-        }
-      ],
-      "tasks": [
-        {
-          "type": "deposit",
-          "item": "minecraft:nether_star",
-          "count": 4
-        },
-        {
-          "type": "deposit",
-          "item": "minecraft:end_crystal",
-          "count": 4
-        }
-      ],
-      "unlocks": [
-        {
-          "type": "output",
-          "id": "sophisticatedbackpacks:everlasting_upgrade"
-        }
-      ]
-    },
-    {
       "id": "wooden_storage",
       "category": "storage",
       "icon": "sophisticatedstorage:chest",
-      "level": 5,
-      "cost": 0,
-      "time": "10m",
+      "era": "stone",
+      "kind": "milestone",
+      "level": 7,
+      "cost": 12,
+      "time": "16m",
       "requires": [],
       "tasks": [
         {
-          "type": "deposit",
-          "item": "#minecraft:planks",
-          "count": 64
+          "type": "craft",
+          "output": "minecraft:chest",
+          "count": 4
         },
         {
           "type": "deposit",
-          "item": "sbrc:wax_resin",
+          "item": "#minecraft:planks",
           "count": 4
         }
       ],
@@ -3498,12 +138,76 @@
       ]
     },
     {
+      "id": "goggles",
+      "category": "special",
+      "icon": "create:goggles",
+      "era": "stone",
+      "kind": "milestone",
+      "level": 9,
+      "cost": 19,
+      "time": "24m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "technology:wrench_goggles"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "create:wrench",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "#c:plates/gold",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "create:crafting/kinetics/goggles"
+        }
+      ]
+    },
+    {
+      "id": "copper_armor",
+      "category": "armor",
+      "icon": "create_ironworks:copper_armor_chestplate",
+      "era": "stone",
+      "kind": "detail",
+      "level": 10,
+      "cost": 7,
+      "time": "15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "copper_tools"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "smelt",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "create_ironworks:armor/*/copper"
+        }
+      ]
+    },
+    {
       "id": "copper_storage",
       "category": "storage",
       "icon": "sophisticatedstorage:copper_chest",
-      "level": 8,
-      "cost": 0,
-      "time": "35m",
+      "era": "stone",
+      "kind": "detail",
+      "level": 10,
+      "cost": 7,
+      "time": "15m",
       "requires": [
         {
           "type": "node",
@@ -3511,14 +215,14 @@
         },
         {
           "type": "node",
-          "id": "metallurgy:copper_compacting"
+          "id": "metallurgy:copper_smelting"
         }
       ],
       "tasks": [
         {
-          "type": "deposit",
-          "item": "#c:ingots/copper",
-          "count": 32
+          "type": "place",
+          "block": "minecraft:furnace",
+          "count": 2
         }
       ],
       "unlocks": [
@@ -3553,12 +257,96 @@
       ]
     },
     {
+      "id": "copper_tools",
+      "category": "tools",
+      "icon": "create_ironworks:copper_pickaxe",
+      "era": "stone",
+      "kind": "milestone",
+      "level": 10,
+      "cost": 24,
+      "time": "30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:copper_smelting"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "minecraft:furnace",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:copper_ingot",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "create_ironworks:tools/pickaxe/copper"
+        },
+        {
+          "type": "recipe",
+          "id": "create_ironworks:tools/axe/copper"
+        },
+        {
+          "type": "recipe",
+          "id": "create_ironworks:tools/shovel/copper"
+        },
+        {
+          "type": "recipe",
+          "id": "create_ironworks:tools/hoe/copper"
+        }
+      ]
+    },
+    {
+      "id": "copper_hammer_paxel",
+      "category": "tools",
+      "icon": "create_ironworks:copper_hammer",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 12,
+      "cost": 9,
+      "time": "17m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "copper_tools"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:copper_processing"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "break_item",
+          "count": 3
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create_ironworks:copper_hammer"
+        },
+        {
+          "type": "output",
+          "id": "create_ironworks:copper_paxel"
+        }
+      ]
+    },
+    {
       "id": "iron_storage",
       "category": "storage",
       "icon": "sophisticatedstorage:iron_chest",
-      "level": 10,
-      "cost": 0,
-      "time": "40m",
+      "era": "early_industry",
+      "kind": "milestone",
+      "level": 13,
+      "cost": 33,
+      "time": "37m",
       "requires": [
         {
           "type": "node",
@@ -3566,14 +354,19 @@
         },
         {
           "type": "node",
-          "id": "metallurgy:iron_compacting"
+          "id": "metallurgy:iron_smelting"
         }
       ],
       "tasks": [
         {
+          "type": "craft",
+          "output": "sophisticatedstorage:copper_chest",
+          "count": 8
+        },
+        {
           "type": "deposit",
-          "item": "#c:ingots/iron",
-          "count": 32
+          "item": "sophisticatedstorage:copper_barrel",
+          "count": 8
         }
       ],
       "unlocks": [
@@ -3608,12 +401,243 @@
       ]
     },
     {
+      "id": "gold_armor",
+      "category": "armor",
+      "icon": "minecraft:golden_chestplate",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 14,
+      "cost": 11,
+      "time": "20m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gold_tools"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "process",
+          "recipeType": "create:*",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "minecraft:golden_helmet"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:golden_chestplate"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:golden_leggings"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:golden_boots"
+        }
+      ]
+    },
+    {
+      "id": "gold_tools",
+      "category": "tools",
+      "icon": "minecraft:golden_pickaxe",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 14,
+      "cost": 11,
+      "time": "20m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "iron_tools"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:gold_smelting"
+        },
+        {
+          "type": "node",
+          "id": "technology:mechanical_press"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "process",
+          "recipeType": "create:*",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "minecraft:golden_pickaxe"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:golden_axe"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:golden_shovel"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:golden_hoe"
+        }
+      ]
+    },
+    {
+      "id": "iron_armor",
+      "category": "armor",
+      "icon": "minecraft:iron_chestplate",
+      "era": "early_industry",
+      "kind": "milestone",
+      "level": 14,
+      "cost": 36,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "iron_tools"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "smelt",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:stone_pickaxe",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "minecraft:iron_helmet"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:iron_chestplate"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:iron_leggings"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:iron_boots"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:fiery_boots"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:mossy_chestplate"
+        }
+      ]
+    },
+    {
+      "id": "iron_tools",
+      "category": "tools",
+      "icon": "minecraft:iron_pickaxe",
+      "era": "early_industry",
+      "kind": "milestone",
+      "level": 14,
+      "cost": 36,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "copper_tools"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:iron_smelting"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "break_item",
+          "count": 3
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:stone_axe",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "minecraft:iron_pickaxe"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:iron_axe"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:iron_shovel"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:iron_hoe"
+        }
+      ]
+    },
+    {
+      "id": "shield",
+      "category": "armor",
+      "icon": "minecraft:shield",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 14,
+      "cost": 11,
+      "time": "20m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "iron_tools"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "minecraft:furnace",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "minecraft:shield"
+        },
+        {
+          "type": "output",
+          "id": "endermanoverhaul:corrupted_shield"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:dinosaur_bone_shield"
+        }
+      ]
+    },
+    {
       "id": "gold_storage",
       "category": "storage",
       "icon": "sophisticatedstorage:gold_chest",
-      "level": 12,
-      "cost": 1300,
-      "time": "55m",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 17,
+      "cost": 15,
+      "time": "24m",
       "requires": [
         {
           "type": "node",
@@ -3621,14 +645,14 @@
         },
         {
           "type": "node",
-          "id": "metallurgy:gold_compacting"
+          "id": "metallurgy:gold_smelting"
         }
       ],
       "tasks": [
         {
-          "type": "deposit",
-          "item": "#c:ingots/gold",
-          "count": 32
+          "type": "place",
+          "block": "minecraft:furnace",
+          "count": 4
         }
       ],
       "unlocks": [
@@ -3663,167 +687,294 @@
       ]
     },
     {
-      "id": "diamond_storage",
-      "category": "storage",
-      "icon": "sophisticatedstorage:diamond_chest",
-      "level": 25,
-      "cost": 5625,
-      "time": "4h",
+      "id": "lead_tools",
+      "category": "tools",
+      "icon": "tfmg:lead_pickaxe",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 17,
+      "cost": 15,
+      "time": "24m",
       "requires": [
         {
           "type": "node",
-          "id": "gold_storage"
+          "id": "copper_tools"
         },
         {
           "type": "node",
-          "id": "diamond_tools"
+          "id": "metallurgy:lead_smelting"
         }
       ],
       "tasks": [
         {
-          "type": "deposit",
-          "item": "minecraft:diamond",
-          "count": 16
+          "type": "craft",
+          "output": "minecraft:furnace",
+          "count": 8
         }
       ],
       "unlocks": [
         {
           "type": "output",
-          "id": "sophisticatedstorage:diamond_chest"
+          "id": "tfmg:lead_pickaxe"
         },
         {
           "type": "output",
-          "id": "sophisticatedstorage:diamond_barrel"
+          "id": "tfmg:lead_axe"
         },
         {
           "type": "output",
-          "id": "sophisticatedstorage:limited_diamond_barrel_1"
+          "id": "tfmg:lead_shovel"
         },
         {
           "type": "output",
-          "id": "sophisticatedstorage:limited_diamond_barrel_2"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedstorage:limited_diamond_barrel_3"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedstorage:limited_diamond_barrel_4"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedstorage:*_to_diamond_tier_upgrade"
+          "id": "tfmg:lead_hoe"
         }
       ]
     },
     {
-      "id": "shulker_storage",
-      "category": "storage",
-      "icon": "sophisticatedstorage:shulker_box",
-      "level": 45,
-      "cost": 18225,
-      "time": "8h",
+      "id": "gold_hammer_paxel",
+      "category": "tools",
+      "icon": "create_ironworks:gold_hammer",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 18,
+      "cost": 17,
+      "time": "26m",
       "requires": [
         {
           "type": "node",
-          "id": "diamond_storage"
+          "id": "gold_tools"
+        },
+        {
+          "type": "node",
+          "id": "iron_hammer_paxel"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:gold_processing"
         }
       ],
       "tasks": [
         {
-          "type": "deposit",
-          "item": "minecraft:shulker_shell",
-          "count": 4
+          "type": "break_item",
+          "count": 3
         }
       ],
       "unlocks": [
         {
           "type": "output",
-          "id": "sophisticatedstorage:shulker_box"
+          "id": "create_ironworks:gold_hammer"
         },
         {
           "type": "output",
-          "id": "sophisticatedstorage:copper_shulker_box"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedstorage:iron_shulker_box"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedstorage:gold_shulker_box"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedstorage:diamond_shulker_box"
-        },
-        {
-          "type": "recipe",
-          "id": "sophisticatedstorage:*_shulker_box_to_sophisticated"
-        },
-        {
-          "type": "recipe",
-          "id": "minecraft:shulker_box_from_vanilla_shulker_box"
+          "id": "create_ironworks:gold_paxel"
         }
       ]
     },
     {
-      "id": "netherite_storage",
-      "category": "storage",
-      "icon": "sophisticatedstorage:netherite_chest",
-      "level": 45,
-      "cost": 18225,
-      "time": "8h",
+      "id": "iron_hammer_paxel",
+      "category": "tools",
+      "icon": "create_ironworks:iron_hammer",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 18,
+      "cost": 17,
+      "time": "26m",
       "requires": [
         {
           "type": "node",
-          "id": "shulker_storage"
+          "id": "iron_tools"
         },
         {
           "type": "node",
-          "id": "netherite_tools"
+          "id": "metallurgy:iron_pressing"
         }
       ],
       "tasks": [
         {
-          "type": "deposit",
-          "item": "minecraft:netherite_ingot",
-          "count": 4
+          "type": "craft",
+          "output": "create:mechanical_press",
+          "count": 8
         }
       ],
       "unlocks": [
         {
           "type": "output",
-          "id": "sophisticatedstorage:netherite_chest"
+          "id": "create_ironworks:iron_hammer"
         },
         {
           "type": "output",
-          "id": "sophisticatedstorage:netherite_barrel"
+          "id": "create_ironworks:iron_paxel"
+        }
+      ]
+    },
+    {
+      "id": "respirators",
+      "category": "special",
+      "icon": "smog:respirator",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 18,
+      "cost": 17,
+      "time": "26m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "leather_armor"
+        },
+        {
+          "type": "node",
+          "id": "iron_armor"
+        },
+        {
+          "type": "node",
+          "id": "technology:smog_control"
+        },
+        {
+          "type": "node",
+          "id": "technology:vt_signals"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "process",
+          "recipeType": "create:pressing",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "adpother:iron_respirator"
         },
         {
           "type": "output",
-          "id": "sophisticatedstorage:limited_netherite_barrel_1"
+          "id": "smog:respirator"
         },
         {
           "type": "output",
-          "id": "sophisticatedstorage:limited_netherite_barrel_2"
+          "id": "createbigcannons:gas_mask"
         },
         {
           "type": "output",
-          "id": "sophisticatedstorage:limited_netherite_barrel_3"
+          "id": "adpother:iron_vacuum_tube"
         },
         {
           "type": "output",
-          "id": "sophisticatedstorage:limited_netherite_barrel_4"
+          "id": "adpother:iron_vacuum_bag"
+        }
+      ]
+    },
+    {
+      "id": "goggle_helmets",
+      "category": "special",
+      "icon": "creategoggles:goggle_iron_helmet",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 19,
+      "cost": 18,
+      "time": "28m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "goggles"
+        },
+        {
+          "type": "node",
+          "id": "iron_armor"
+        },
+        {
+          "type": "node",
+          "id": "leather_armor"
+        },
+        {
+          "type": "node",
+          "id": "gold_armor"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "legendary_monsters:fiery_boots",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "creategoggles:goggle_leather_helmet"
         },
         {
           "type": "output",
-          "id": "sophisticatedstorage:netherite_shulker_box"
+          "id": "creategoggles:goggle_chainmail_helmet"
         },
         {
           "type": "output",
-          "id": "sophisticatedstorage:*_to_netherite_tier_upgrade"
+          "id": "creategoggles:goggle_iron_helmet"
+        },
+        {
+          "type": "output",
+          "id": "creategoggles:goggle_golden_helmet"
+        },
+        {
+          "type": "recipe",
+          "id": "creategoggles:crushing/leather_helmet"
+        },
+        {
+          "type": "recipe",
+          "id": "creategoggles:crushing/chainmail_helmet"
+        },
+        {
+          "type": "recipe",
+          "id": "creategoggles:crushing/iron_helmet"
+        },
+        {
+          "type": "recipe",
+          "id": "creategoggles:crushing/golden_helmet"
+        },
+        {
+          "type": "output",
+          "id": "creategoggles:goggle_armor_trim_smithing_template"
+        },
+        {
+          "type": "recipe",
+          "id": "creategoggles:smithing_template_duplicate"
+        },
+        {
+          "type": "recipe",
+          "id": "creategoggles:smithing_template_single"
+        }
+      ]
+    },
+    {
+      "id": "rose_quartz_armor",
+      "category": "armor",
+      "icon": "create_ironworks:rose_quartz_armor_chestplate",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 20,
+      "cost": 20,
+      "time": "30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "iron_armor"
+        },
+        {
+          "type": "node",
+          "id": "technology:rose_quartz"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "smelt",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create_ironworks:rose_quartz_armor_*"
         }
       ]
     },
@@ -3831,9 +982,11 @@
       "id": "storage_upgrades",
       "category": "storage",
       "icon": "sophisticatedstorage:upgrade_base",
-      "level": 14,
-      "cost": 1775,
-      "time": "1h20m",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 20,
+      "cost": 20,
+      "time": "30m",
       "requires": [
         {
           "type": "node",
@@ -3841,47 +994,29 @@
         },
         {
           "type": "node",
-          "id": "technology:mechanical_press"
-        },
-        {
-          "type": "node",
           "id": "technology:pistons"
         },
         {
           "type": "node",
-          "id": "metallurgy:stonecutter",
-          "hidden": true
+          "id": "technology:vt_workshop"
         },
         {
           "type": "node",
-          "id": "metallurgy:iron_pressing",
-          "hidden": true
+          "id": "technology:vt_pistons"
         },
         {
           "type": "node",
-          "id": "technology:vt_pistons",
-          "hidden": true
+          "id": "technology:vt_hopper"
         },
         {
           "type": "node",
-          "id": "technology:vt_hopper",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:vt_scribe",
-          "hidden": true
+          "id": "metallurgy:stonecutter"
         }
       ],
       "tasks": [
         {
-          "type": "deposit",
-          "item": "create:iron_sheet",
-          "count": 16
-        },
-        {
-          "type": "deposit",
-          "item": "sbrc:wax_resin",
+          "type": "craft",
+          "output": "sophisticatedstorage:iron_chest",
           "count": 8
         }
       ],
@@ -3953,96 +1088,76 @@
       ]
     },
     {
-      "id": "storage_utility_upgrades",
-      "category": "storage",
-      "icon": "sophisticatedstorage:magnet_upgrade",
-      "level": 22,
-      "cost": 4350,
-      "time": "3h25m",
+      "id": "turtle_helmet",
+      "category": "armor",
+      "icon": "minecraft:turtle_helmet",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 20,
+      "cost": 20,
+      "time": "30m",
       "requires": [
         {
           "type": "node",
-          "id": "storage_upgrades"
-        },
-        {
-          "type": "node",
-          "id": "military:brew_amplifiers",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "backpack_utility_upgrades",
-          "hidden": true
+          "id": "goggle_helmets"
         }
       ],
       "tasks": [
         {
-          "type": "deposit",
-          "item": "minecraft:ender_pearl",
+          "type": "process",
+          "recipeType": "create:*",
           "count": 8
         }
       ],
       "unlocks": [
         {
-          "type": "output",
-          "id": "sophisticatedstorage:magnet_upgrade"
+          "type": "recipe",
+          "id": "minecraft:turtle_helmet"
         },
         {
           "type": "output",
-          "id": "sophisticatedstorage:void_upgrade"
+          "id": "creategoggles:goggle_turtle_helmet"
         },
         {
-          "type": "output",
-          "id": "sophisticatedstorage:feeding_upgrade"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedstorage:alchemy_upgrade"
+          "type": "recipe",
+          "id": "creategoggles:crushing/turtle_helmet"
         }
       ]
     },
     {
-      "id": "storage_advanced_upgrades",
+      "id": "storage_in_motion",
       "category": "storage",
-      "icon": "sophisticatedstorage:advanced_magnet_upgrade",
-      "level": 28,
-      "cost": 7050,
-      "time": "4h30m",
+      "icon": "sophisticatedstorageinmotion:storage_minecart",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 22,
+      "cost": 25,
+      "time": "34m",
       "requires": [
         {
           "type": "node",
-          "id": "storage_utility_upgrades"
+          "id": "iron_storage"
         },
         {
           "type": "node",
-          "id": "diamond_storage"
+          "id": "technology:vt_rails"
         },
         {
           "type": "node",
-          "id": "technology:vt_hopper",
-          "hidden": true
+          "id": "technology:mechanical_press"
         }
       ],
       "tasks": [
         {
-          "type": "deposit",
-          "item": "minecraft:diamond",
-          "count": 16
-        },
-        {
-          "type": "deposit",
-          "item": "#c:ingots/gold",
-          "count": 32
+          "type": "process",
+          "recipeType": "create:*",
+          "count": 8
         }
       ],
       "unlocks": [
         {
-          "type": "output",
-          "id": "sophisticatedstorage:advanced_*"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedstorage:auto_*"
+          "type": "mod",
+          "id": "sophisticatedstorageinmotion"
         }
       ]
     },
@@ -4050,28 +1165,21 @@
       "id": "storage_stack_1",
       "category": "storage",
       "icon": "sophisticatedstorage:stack_upgrade_tier_1",
-      "level": 15,
-      "cost": 2025,
-      "time": "1h25m",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 22,
+      "cost": 25,
+      "time": "34m",
       "requires": [
         {
           "type": "node",
           "id": "storage_upgrades"
-        },
-        {
-          "type": "node",
-          "id": "copper_storage"
         }
       ],
       "tasks": [
         {
-          "type": "deposit",
-          "item": "#minecraft:logs",
-          "count": 32
-        },
-        {
-          "type": "deposit",
-          "item": "#c:storage_blocks/copper",
+          "type": "craft",
+          "output": "sophisticatedstorage:upgrade_base",
           "count": 8
         }
       ],
@@ -4099,129 +1207,864 @@
       ]
     },
     {
-      "id": "storage_stack_2",
-      "category": "storage",
-      "icon": "sophisticatedstorage:stack_upgrade_tier_3",
-      "level": 30,
-      "cost": 8100,
-      "time": "5h",
+      "id": "bronze_armor",
+      "category": "armor",
+      "icon": "create_ironworks:bronze_armor_chestplate",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 23,
+      "cost": 28,
+      "time": "37m",
       "requires": [
         {
           "type": "node",
-          "id": "storage_stack_1"
+          "id": "bronze_tools"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "smelt",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create_ironworks:bronze_armor_*"
+        }
+      ]
+    },
+    {
+      "id": "bronze_hammer_paxel",
+      "category": "tools",
+      "icon": "create_ironworks:bronze_hammer",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 23,
+      "cost": 28,
+      "time": "37m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "bronze_tools"
         },
         {
           "type": "node",
-          "id": "diamond_storage"
+          "id": "iron_hammer_paxel"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "break_item",
+          "count": 3
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create_ironworks:bronze_hammer"
+        },
+        {
+          "type": "output",
+          "id": "create_ironworks:bronze_paxel"
+        }
+      ]
+    },
+    {
+      "id": "bronze_tools",
+      "category": "tools",
+      "icon": "create_ironworks:bronze_pickaxe",
+      "era": "early_industry",
+      "kind": "milestone",
+      "level": 23,
+      "cost": 93,
+      "time": "1h14m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "iron_tools"
         },
         {
           "type": "node",
-          "id": "metallurgy:netherite",
-          "hidden": true
+          "id": "metallurgy:bronze"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "create:empty_blaze_burner",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "#c:ingots/bronze",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create_ironworks:bronze_pickaxe"
+        },
+        {
+          "type": "output",
+          "id": "create_ironworks:bronze_axe"
+        },
+        {
+          "type": "output",
+          "id": "create_ironworks:bronze_shovel"
+        },
+        {
+          "type": "output",
+          "id": "create_ironworks:bronze_hoe"
+        }
+      ]
+    },
+    {
+      "id": "cardboard_armor",
+      "category": "armor",
+      "icon": "create:cardboard_chestplate",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 23,
+      "cost": 28,
+      "time": "37m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "technology:cardboard_packaging"
+        },
+        {
+          "type": "node",
+          "id": "goggle_helmets"
         }
       ],
       "tasks": [
         {
           "type": "deposit",
-          "item": "#c:storage_blocks/gold",
+          "item": "create:cardboard",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "create:crafting/appliances/cardboard_helmet"
+        },
+        {
+          "type": "recipe",
+          "id": "create:crafting/appliances/cardboard_chestplate"
+        },
+        {
+          "type": "recipe",
+          "id": "create:crafting/appliances/cardboard_leggings"
+        },
+        {
+          "type": "recipe",
+          "id": "create:crafting/appliances/cardboard_boots"
+        },
+        {
+          "type": "recipe",
+          "id": "create:crafting/appliances/cardboard_sword"
+        },
+        {
+          "type": "output",
+          "id": "creategoggles:goggle_cardboard_helmet"
+        },
+        {
+          "type": "recipe",
+          "id": "creategoggles:crushing/cardboard_helmet"
+        }
+      ]
+    },
+    {
+      "id": "backpack",
+      "category": "backpacks",
+      "icon": "sophisticatedbackpacks:backpack",
+      "era": "early_industry",
+      "kind": "milestone",
+      "level": 25,
+      "cost": 110,
+      "time": "1h25m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "leather_armor"
+        },
+        {
+          "type": "node",
+          "id": "iron_tools"
+        },
+        {
+          "type": "node",
+          "id": "technology:deployer"
+        },
+        {
+          "type": "node",
+          "id": "technology:drill_saw"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "create:deployer",
           "count": 8
         },
         {
           "type": "deposit",
-          "item": "#c:storage_blocks/diamond",
+          "item": "minecraft:leather",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:backpack"
+        },
+        {
+          "type": "output",
+          "id": "sbrc:reinforced_leather_fabric"
+        },
+        {
+          "type": "output",
+          "id": "sbrc:leather_strap"
+        },
+        {
+          "type": "output",
+          "id": "sbrc:iron_buckle"
+        },
+        {
+          "type": "output",
+          "id": "sbrc:leather_strap_with_iron_buckle"
+        },
+        {
+          "type": "output",
+          "id": "sbrc:backpack_frame"
+        },
+        {
+          "type": "recipe",
+          "id": "sbrc:magnetic_clasp"
+        },
+        {
+          "type": "recipe",
+          "id": "powergrid:cutting/iron_wire_cutting"
+        },
+        {
+          "type": "recipe",
+          "id": "sophisticatedbackpacks:backpack_dye"
+        }
+      ]
+    },
+    {
+      "id": "packing_tape",
+      "category": "storage",
+      "icon": "sophisticatedstorage:packing_tape",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 25,
+      "cost": 34,
+      "time": "42m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "wooden_storage"
+        },
+        {
+          "type": "node",
+          "id": "technology:deployer"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "place",
+          "block": "create:deployer",
           "count": 4
         }
       ],
       "unlocks": [
         {
           "type": "output",
-          "id": "sophisticatedstorage:stack_upgrade_tier_3"
+          "id": "sophisticatedstorage:packing_tape"
         },
         {
           "type": "output",
-          "id": "sophisticatedstorage:stack_upgrade_tier_4"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedstorage:stack_upgrade_*_to_tier_3_conversion"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedstorage:stack_upgrade_*_to_tier_4_conversion"
+          "id": "sophisticatedstorage:super_packing_tape"
         }
       ]
     },
     {
-      "id": "storage_stack_3",
-      "category": "storage",
-      "icon": "sophisticatedstorage:stack_upgrade_tier_5",
-      "level": 50,
-      "cost": 22500,
-      "time": "6h40m",
+      "id": "sticky_gear",
+      "category": "special",
+      "icon": "create_things_and_misc:sticky_boots_boots",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 27,
+      "cost": 40,
+      "time": "49m",
       "requires": [
         {
           "type": "node",
-          "id": "storage_stack_2"
+          "id": "technology:chassis"
         },
         {
           "type": "node",
-          "id": "netherite_storage"
+          "id": "metallurgy:brass"
         }
       ],
       "tasks": [
         {
-          "type": "deposit",
-          "item": "#c:storage_blocks/netherite",
-          "count": 2
+          "type": "process",
+          "recipeType": "create:pressing",
+          "count": 8
         }
       ],
       "unlocks": [
         {
           "type": "output",
-          "id": "sophisticatedstorage:stack_upgrade_tier_5"
-        },
-        {
-          "type": "output",
-          "id": "sophisticatedstorage:stack_upgrade_*_to_tier_5_conversion"
+          "id": "create_things_and_misc:sticky_boots_boots"
         }
       ]
     },
     {
-      "id": "sophisticated_omega",
-      "category": "storage",
-      "icon": "sophisticatedstorage:stack_upgrade_omega_tier",
-      "level": 200,
-      "cost": 67750,
-      "time": "14h10m",
+      "id": "brass_armor",
+      "category": "armor",
+      "icon": "create_ironworks:brass_armor_chestplate",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 28,
+      "cost": 44,
+      "time": "52m",
       "requires": [
         {
           "type": "node",
-          "id": "backpack_stack_3"
-        },
-        {
-          "type": "node",
-          "id": "storage_stack_3"
-        },
-        {
-          "type": "node",
-          "id": "backpack_everlasting"
+          "id": "brass_tools"
         }
       ],
       "tasks": [
         {
+          "type": "smelt",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create_ironworks:brass_armor_*"
+        }
+      ]
+    },
+    {
+      "id": "brass_hammer_paxel",
+      "category": "tools",
+      "icon": "create_ironworks:brass_hammer",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 28,
+      "cost": 44,
+      "time": "52m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "brass_tools"
+        },
+        {
+          "type": "node",
+          "id": "bronze_hammer_paxel"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "break_item",
+          "count": 3
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create_ironworks:brass_hammer"
+        },
+        {
+          "type": "output",
+          "id": "create_ironworks:brass_paxel"
+        }
+      ]
+    },
+    {
+      "id": "brass_tools",
+      "category": "tools",
+      "icon": "create_ironworks:brass_pickaxe",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 28,
+      "cost": 44,
+      "time": "52m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:brass"
+        },
+        {
+          "type": "node",
+          "id": "bronze_tools"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "create_ironworks:bronze_pickaxe",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create_ironworks:brass_pickaxe"
+        },
+        {
+          "type": "output",
+          "id": "create_ironworks:brass_axe"
+        },
+        {
+          "type": "output",
+          "id": "create_ironworks:brass_shovel"
+        },
+        {
+          "type": "output",
+          "id": "create_ironworks:brass_hoe"
+        }
+      ]
+    },
+    {
+      "id": "backpack_tiers",
+      "category": "backpacks",
+      "icon": "sophisticatedbackpacks:iron_backpack",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 29,
+      "cost": 47,
+      "time": "56m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "backpack"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "trade",
+          "count": 3
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:copper_backpack"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:iron_backpack"
+        }
+      ]
+    },
+    {
+      "id": "backpack_upgrades",
+      "category": "backpacks",
+      "icon": "sophisticatedbackpacks:upgrade_base",
+      "era": "early_industry",
+      "kind": "milestone",
+      "level": 29,
+      "cost": 160,
+      "time": "1h52m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "backpack"
+        },
+        {
+          "type": "node",
+          "id": "storage_upgrades"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "create:deployer",
+          "count": 8
+        },
+        {
           "type": "deposit",
-          "item": "#c:storage_blocks/netherite",
+          "item": "#c:strings",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:upgrade_base"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:pickup_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:filter_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:crafting_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:stonecutter_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:compacting_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:deposit_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:restock_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:jukebox_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:smelting_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:smoking_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:blasting_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:tool_swapper_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:stack_downgrade_tier_1"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:stack_downgrade_tier_2"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:stack_downgrade_tier_3"
+        }
+      ]
+    },
+    {
+      "id": "fxnt_storage",
+      "category": "storage",
+      "icon": "fxntstorage:storage_box",
+      "era": "early_industry",
+      "kind": "milestone",
+      "level": 30,
+      "cost": 170,
+      "time": "2h0m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "copper_storage"
+        },
+        {
+          "type": "node",
+          "id": "technology:item_vault"
+        },
+        {
+          "type": "node",
+          "id": "technology:sensors_displays"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "create:content_observer",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:stockpile_switch",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "fxntstorage:storage_box"
+        },
+        {
+          "type": "output",
+          "id": "fxntstorage:*_storage_trim"
+        },
+        {
+          "type": "output",
+          "id": "fxntstorage:cardboard_storage_box"
+        },
+        {
+          "type": "output",
+          "id": "fxntstorage:andesite_storage_box"
+        },
+        {
+          "type": "output",
+          "id": "fxntstorage:weathered_storage_box"
+        },
+        {
+          "type": "output",
+          "id": "fxntstorage:passer_block"
+        }
+      ]
+    },
+    {
+      "id": "copper_backtank",
+      "category": "special",
+      "icon": "create:copper_backtank",
+      "era": "steel_chemistry",
+      "kind": "milestone",
+      "level": 32,
+      "cost": 200,
+      "time": "2h6m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "technology:fluid_interface"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "create:portable_fluid_interface",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "#c:storage_blocks/copper",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create:copper_backtank"
+        },
+        {
+          "type": "recipe",
+          "id": "create:crafting/appliances/copper_backtank"
+        }
+      ]
+    },
+    {
+      "id": "extended_wrench",
+      "category": "special",
+      "icon": "extendedwrenches:extended_wrench",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 32,
+      "cost": 59,
+      "time": "1h3m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "technology:deployer"
+        },
+        {
+          "type": "node",
+          "id": "goggle_helmets"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "process",
+          "recipeType": "create:pressing",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "mod",
+          "id": "extendedwrenches"
+        }
+      ]
+    },
+    {
+      "id": "armored_backtanks",
+      "category": "special",
+      "icon": "creategoggles:iron_backtank",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 33,
+      "cost": 64,
+      "time": "1h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "copper_backtank"
+        },
+        {
+          "type": "node",
+          "id": "iron_armor"
+        },
+        {
+          "type": "node",
+          "id": "leather_armor"
+        },
+        {
+          "type": "node",
+          "id": "gold_armor"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "create:portable_fluid_interface",
           "count": 16
         }
       ],
       "unlocks": [
         {
           "type": "output",
-          "id": "sophisticatedbackpacks:stack_upgrade_omega_tier"
+          "id": "creategoggles:leather_backtank"
         },
         {
           "type": "output",
-          "id": "sophisticatedstorage:stack_upgrade_omega_tier"
+          "id": "creategoggles:iron_backtank"
+        },
+        {
+          "type": "output",
+          "id": "creategoggles:golden_backtank"
+        },
+        {
+          "type": "output",
+          "id": "creategoggles:chainmail_backtank"
+        },
+        {
+          "type": "recipe",
+          "id": "creategoggles:crushing/leather_chestplate"
+        },
+        {
+          "type": "recipe",
+          "id": "creategoggles:crushing/iron_chestplate"
+        },
+        {
+          "type": "recipe",
+          "id": "creategoggles:crushing/golden_chestplate"
+        },
+        {
+          "type": "recipe",
+          "id": "creategoggles:crushing/chainmail_chestplate"
+        },
+        {
+          "type": "recipe",
+          "id": "creategoggles:modifier_remover"
+        }
+      ]
+    },
+    {
+      "id": "backpack_stack_1",
+      "category": "backpacks",
+      "icon": "sophisticatedbackpacks:stack_upgrade_tier_1",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 33,
+      "cost": 64,
+      "time": "1h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "backpack_upgrades"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "trade",
+          "count": 6
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:stack_upgrade_starter_tier"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:stack_upgrade_tier_1"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:stack_upgrade_*_to_tier_1_conversion"
+        }
+      ]
+    },
+    {
+      "id": "numismatics_basics",
+      "category": "storage",
+      "icon": "numismatics:vendor",
+      "era": "steel_chemistry",
+      "kind": "milestone",
+      "level": 33,
+      "cost": 210,
+      "time": "2h9m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gold_storage"
+        },
+        {
+          "type": "node",
+          "id": "technology:sturdy_sheet"
+        },
+        {
+          "type": "node",
+          "id": "technology:precision_mechanism"
+        },
+        {
+          "type": "node",
+          "id": "technology:brass_curios"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "place",
+          "block": "create:sequenced_gearshift",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:brass_ingot",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "numismatics:vendor"
+        },
+        {
+          "type": "output",
+          "id": "numismatics:salepoint"
+        },
+        {
+          "type": "output",
+          "id": "numismatics:andesite_depositor"
+        },
+        {
+          "type": "output",
+          "id": "numismatics:brass_depositor"
+        },
+        {
+          "type": "output",
+          "id": "numismatics:banking_guide"
         }
       ]
     },
@@ -4229,9 +2072,11 @@
       "id": "storage_network",
       "category": "storage",
       "icon": "sophisticatedstorage:controller",
-      "level": 20,
-      "cost": 3600,
-      "time": "3h",
+      "era": "steel_chemistry",
+      "kind": "milestone",
+      "level": 33,
+      "cost": 210,
+      "time": "2h9m",
       "requires": [
         {
           "type": "node",
@@ -4240,28 +2085,18 @@
         {
           "type": "node",
           "id": "technology:redstone_circuits"
-        },
-        {
-          "type": "node",
-          "id": "technology:vt_signals",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:vt_redstone",
-          "hidden": true
         }
       ],
       "tasks": [
         {
-          "type": "deposit",
-          "item": "minecraft:comparator",
-          "count": 4
+          "type": "craft",
+          "output": "create:pulse_repeater",
+          "count": 16
         },
         {
           "type": "deposit",
-          "item": "minecraft:ender_pearl",
-          "count": 4
+          "item": "minecraft:comparator",
+          "count": 16
         }
       ],
       "unlocks": [
@@ -4296,166 +2131,763 @@
       ]
     },
     {
-      "id": "packing_tape",
-      "category": "storage",
-      "icon": "sophisticatedstorage:packing_tape",
-      "level": 16,
-      "cost": 2300,
-      "time": "1h25m",
+      "id": "gold_backpack",
+      "category": "backpacks",
+      "icon": "sophisticatedbackpacks:gold_backpack",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 34,
+      "cost": 69,
+      "time": "1h6m",
       "requires": [
         {
           "type": "node",
-          "id": "wooden_storage"
+          "id": "backpack_tiers"
         },
         {
           "type": "node",
-          "id": "technology:deployer"
+          "id": "gold_tools"
         }
       ],
       "tasks": [
         {
-          "type": "deposit",
-          "item": "minecraft:paper",
-          "count": 32
+          "type": "craft",
+          "output": "sophisticatedbackpacks:copper_backpack",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:gold_backpack"
+        }
+      ]
+    },
+    {
+      "id": "handheld_drill",
+      "category": "special",
+      "icon": "dndesires:handheld_drill",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 37,
+      "cost": 87,
+      "time": "1h11m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "iron_tools"
         },
         {
-          "type": "deposit",
-          "item": "sbrc:wax_resin",
+          "type": "node",
+          "id": "technology:drill_saw"
+        },
+        {
+          "type": "node",
+          "id": "technology:precision_mechanism"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "process",
+          "recipeType": "create:pressing",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "dndesires:handheld_drill"
+        },
+        {
+          "type": "output",
+          "id": "dndesires:handheld_saw"
+        }
+      ]
+    },
+    {
+      "id": "spout_gun",
+      "category": "special",
+      "icon": "create_things_and_misc:spout_gun",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 37,
+      "cost": 87,
+      "time": "1h11m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "technology:fluid_handling"
+        },
+        {
+          "type": "node",
+          "id": "technology:precision_mechanism"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "process",
+          "recipeType": "create:pressing",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create_things_and_misc:spout_gun*"
+        }
+      ]
+    },
+    {
+      "id": "sturdy_armor",
+      "category": "armor",
+      "icon": "create_ironworks:sturdy_armor_chestplate",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 37,
+      "cost": 87,
+      "time": "1h11m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "brass_armor"
+        },
+        {
+          "type": "node",
+          "id": "technology:sturdy_sheet"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "process",
+          "recipeType": "create:*",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create_ironworks:sturdy_armor_*"
+        }
+      ]
+    },
+    {
+      "id": "backpack_utility_upgrades",
+      "category": "backpacks",
+      "icon": "sophisticatedbackpacks:magnet_upgrade",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 38,
+      "cost": 93,
+      "time": "1h13m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "backpack_upgrades"
+        },
+        {
+          "type": "node",
+          "id": "military:brew_amplifiers"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "trade",
+          "count": 6
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:magnet_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:void_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:refill_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:feeding_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:mob_catcher_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:alchemy_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:smithing_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:tank_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:pump_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:battery_upgrade"
+        }
+      ]
+    },
+    {
+      "id": "storage_utility_upgrades",
+      "category": "storage",
+      "icon": "sophisticatedstorage:magnet_upgrade",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 38,
+      "cost": 93,
+      "time": "1h13m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "backpack_utility_upgrades"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "place",
+          "block": "minecraft:brewing_stand",
           "count": 8
         }
       ],
       "unlocks": [
         {
           "type": "output",
-          "id": "sophisticatedstorage:packing_tape"
+          "id": "sophisticatedstorage:magnet_upgrade"
         },
         {
           "type": "output",
-          "id": "sophisticatedstorage:super_packing_tape"
+          "id": "sophisticatedstorage:void_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:feeding_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:alchemy_upgrade"
         }
       ]
     },
     {
-      "id": "storage_in_motion",
-      "category": "storage",
-      "icon": "sophisticatedstorageinmotion:storage_minecart",
-      "level": 15,
-      "cost": 2025,
-      "time": "1h25m",
+      "id": "copper_diving_gear",
+      "category": "special",
+      "icon": "create:copper_diving_helmet",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 39,
+      "cost": 100,
+      "time": "1h15m",
       "requires": [
         {
           "type": "node",
-          "id": "iron_storage"
+          "id": "copper_backtank"
         },
         {
           "type": "node",
-          "id": "technology:vt_rails",
-          "hidden": true
+          "id": "goggles"
         }
       ],
       "tasks": [
         {
-          "type": "deposit",
-          "item": "minecraft:minecart",
-          "count": 2
+          "type": "process",
+          "output": "create:portable_fluid_interface",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create:copper_diving_helmet"
+        },
+        {
+          "type": "output",
+          "id": "create:copper_diving_boots"
+        },
+        {
+          "type": "output",
+          "id": "creategoggles:goggle_diving_helmet"
+        },
+        {
+          "type": "recipe",
+          "id": "creategoggles:crushing/copper_diving_helmet"
+        }
+      ]
+    },
+    {
+      "id": "jetpack",
+      "category": "special",
+      "icon": "create_jetpack:jetpack",
+      "era": "steel_chemistry",
+      "kind": "milestone",
+      "level": 40,
+      "cost": 360,
+      "time": "2h33m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "copper_backtank"
+        },
+        {
+          "type": "node",
+          "id": "technology:precision_mechanism"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "create:sequenced_gearshift",
+          "count": 16
         },
         {
           "type": "deposit",
-          "item": "#minecraft:boats",
-          "count": 2
+          "item": "create:precision_mechanism",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "block",
+          "id": "create_jetpack:jetpack"
+        },
+        {
+          "type": "output",
+          "id": "create_jetpack:jetpack"
+        }
+      ]
+    },
+    {
+      "id": "diamond_armor",
+      "category": "armor",
+      "icon": "minecraft:diamond_chestplate",
+      "era": "steel_chemistry",
+      "kind": "milestone",
+      "level": 41,
+      "cost": 390,
+      "time": "2h37m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "diamond_tools"
+        },
+        {
+          "type": "node",
+          "id": "iron_armor"
+        },
+        {
+          "type": "node",
+          "id": "shield"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "smelt",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:diamond",
+          "count": 3
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "minecraft:diamond_helmet"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:diamond_chestplate"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:diamond_leggings"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:diamond_boots"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:atmospheric_boots"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:blastproof_helmet"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:chorus_mask"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:shulker_helmet"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:shulker_shield"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:frostbitten_shield"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:spiky_shield"
+        }
+      ]
+    },
+    {
+      "id": "diamond_tools",
+      "category": "tools",
+      "icon": "minecraft:diamond_pickaxe",
+      "era": "steel_chemistry",
+      "kind": "milestone",
+      "level": 41,
+      "cost": 390,
+      "time": "2h37m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "iron_tools"
+        },
+        {
+          "type": "node",
+          "id": "military:diamond_melee"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "break_item",
+          "count": 5
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:diamond",
+          "count": 3
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "minecraft:diamond_pickaxe"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:diamond_axe"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:diamond_shovel"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:diamond_hoe"
+        },
+        {
+          "type": "recipe",
+          "id": "legendary_monsters:enderitium_axe"
+        },
+        {
+          "type": "recipe",
+          "id": "legendary_monsters:enderitium_hoe"
+        },
+        {
+          "type": "recipe",
+          "id": "legendary_monsters:enderitium_pickaxe"
+        },
+        {
+          "type": "recipe",
+          "id": "legendary_monsters:enderitium_shovel"
+        },
+        {
+          "type": "recipe",
+          "id": "legendary_monsters:enderitium_sword"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:diamond_block"
+        },
+        {
+          "type": "recipe",
+          "id": "stackedblocks:reverse/diamond_blocks"
+        },
+        {
+          "type": "recipe",
+          "id": "stackedblocksfarmersdelight:reverse/diamond_blocks"
+        }
+      ]
+    },
+    {
+      "id": "diamond_hammer_paxel",
+      "category": "tools",
+      "icon": "create_ironworks:diamond_hammer",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 42,
+      "cost": 130,
+      "time": "1h20m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "diamond_tools"
+        },
+        {
+          "type": "node",
+          "id": "iron_hammer_paxel"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "minecraft:diamond_sword",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create_ironworks:diamond_hammer"
+        },
+        {
+          "type": "output",
+          "id": "create_ironworks:diamond_paxel"
+        }
+      ]
+    },
+    {
+      "id": "diamond_storage",
+      "category": "storage",
+      "icon": "sophisticatedstorage:diamond_chest",
+      "era": "steel_chemistry",
+      "kind": "milestone",
+      "level": 42,
+      "cost": 420,
+      "time": "2h41m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gold_storage"
+        },
+        {
+          "type": "node",
+          "id": "diamond_tools"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "minecraft:diamond_sword",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:diamond",
+          "count": 3
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:diamond_chest"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:diamond_barrel"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:limited_diamond_barrel_1"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:limited_diamond_barrel_2"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:limited_diamond_barrel_3"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:limited_diamond_barrel_4"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:*_to_diamond_tier_upgrade"
+        }
+      ]
+    },
+    {
+      "id": "advanced_respirators",
+      "category": "special",
+      "icon": "adpother:diamond_respirator",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 43,
+      "cost": 140,
+      "time": "1h22m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "respirators"
+        },
+        {
+          "type": "node",
+          "id": "diamond_armor"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "process",
+          "recipeType": "create:pressing",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "adpother:gold_respirator"
+        },
+        {
+          "type": "output",
+          "id": "adpother:diamond_respirator"
+        },
+        {
+          "type": "output",
+          "id": "adpother:gold_vacuum_tube"
+        },
+        {
+          "type": "output",
+          "id": "adpother:gold_vacuum_bag"
+        },
+        {
+          "type": "output",
+          "id": "adpother:diamond_vacuum_tube"
+        },
+        {
+          "type": "output",
+          "id": "adpother:diamond_vacuum_bag"
+        }
+      ]
+    },
+    {
+      "id": "diamond_backtank",
+      "category": "special",
+      "icon": "creategoggles:diamond_backtank",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 43,
+      "cost": 140,
+      "time": "1h22m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "diamond_armor"
+        },
+        {
+          "type": "node",
+          "id": "armored_backtanks"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "minecraft:diamond_sword",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "creategoggles:diamond_backtank"
+        },
+        {
+          "type": "recipe",
+          "id": "creategoggles:crushing/diamond_chestplate"
+        }
+      ]
+    },
+    {
+      "id": "vibrant_vaults",
+      "category": "storage",
+      "icon": "create_vibrant_vaults:basic_shipping_container",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 43,
+      "cost": 140,
+      "time": "1h22m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gold_storage"
+        },
+        {
+          "type": "node",
+          "id": "technology:precision_mechanism"
+        },
+        {
+          "type": "node",
+          "id": "technology:stock_logistics"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "process",
+          "recipeType": "create:*",
+          "count": 16
         }
       ],
       "unlocks": [
         {
           "type": "mod",
-          "id": "sophisticatedstorageinmotion"
+          "id": "create_vibrant_vaults"
         }
       ]
     },
     {
-      "id": "fxnt_storage",
-      "category": "storage",
-      "icon": "fxntstorage:storage_box",
-      "level": 18,
-      "cost": 2000,
-      "time": "2h",
+      "id": "diamond_goggle_helmet",
+      "category": "special",
+      "icon": "creategoggles:goggle_diamond_helmet",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 44,
+      "cost": 150,
+      "time": "1h24m",
       "requires": [
         {
           "type": "node",
-          "id": "copper_storage"
+          "id": "diamond_armor"
         },
         {
           "type": "node",
-          "id": "technology:chute",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:vt_hopper",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:item_vault",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:andesite_casing",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:iron_deco",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:iron_smelting",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:sensors_displays",
-          "hidden": true
+          "id": "goggle_helmets"
         }
       ],
       "tasks": [
         {
           "type": "deposit",
-          "item": "#c:ingots/iron",
-          "count": 24
-        },
-        {
-          "type": "deposit",
-          "item": "minecraft:barrel",
-          "count": 8
+          "item": "minecraft:diamond_helmet",
+          "count": 2
         }
       ],
       "unlocks": [
         {
           "type": "output",
-          "id": "fxntstorage:storage_box"
+          "id": "creategoggles:goggle_diamond_helmet"
         },
         {
-          "type": "output",
-          "id": "fxntstorage:*_storage_trim"
-        },
-        {
-          "type": "output",
-          "id": "fxntstorage:cardboard_storage_box"
-        },
-        {
-          "type": "output",
-          "id": "fxntstorage:andesite_storage_box"
-        },
-        {
-          "type": "output",
-          "id": "fxntstorage:weathered_storage_box"
-        },
-        {
-          "type": "output",
-          "id": "fxntstorage:passer_block"
+          "type": "recipe",
+          "id": "creategoggles:crushing/diamond_helmet"
         }
       ]
     },
@@ -4463,118 +2895,42 @@
       "id": "fxnt_network",
       "category": "storage",
       "icon": "fxntstorage:storage_controller",
-      "level": 25,
-      "cost": 5625,
-      "time": "4h",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 44,
+      "cost": 150,
+      "time": "1h24m",
       "requires": [
+        {
+          "type": "node",
+          "id": "technology:extendo_wand"
+        },
         {
           "type": "node",
           "id": "fxnt_storage"
         },
         {
           "type": "node",
-          "id": "gold_storage"
+          "id": "technology:smart_chute"
         },
         {
           "type": "node",
-          "id": "metallurgy:brass"
+          "id": "technology:schematics"
         },
         {
           "type": "node",
-          "id": "technology:brass_casing",
-          "hidden": true
+          "id": "technology:vt_pistons"
         },
         {
           "type": "node",
-          "id": "technology:copper_casing",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:iron_deco",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:item_vault",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:schematics",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:transmitter",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:smart_chute",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:extendo_wand",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:deployer",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:brass_hand",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "military:iron_melee",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "iron_tools",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:electron_tubes",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:sensors_displays",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:vt_pistons",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:vt_signals",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:vt_scribe",
-          "hidden": true
+          "id": "technology:vt_workshop"
         }
       ],
       "tasks": [
         {
-          "type": "deposit",
-          "item": "create:brass_ingot",
-          "count": 32
-        },
-        {
-          "type": "deposit",
-          "item": "minecraft:diamond",
-          "count": 8
+          "type": "craft",
+          "output": "create:extendo_grip",
+          "count": 16
         }
       ],
       "unlocks": [
@@ -4601,10 +2957,6 @@
         {
           "type": "output",
           "id": "fxntstorage:storage_interface_filtered"
-        },
-        {
-          "type": "output",
-          "id": "fxntstorage:storage_box_*_upgrade"
         },
         {
           "type": "output",
@@ -4640,10 +2992,6 @@
         },
         {
           "type": "output",
-          "id": "fxntstorage:backpack_jukebox_upgrade"
-        },
-        {
-          "type": "output",
           "id": "fxntstorage:backpack_magnet_upgrade"
         },
         {
@@ -4660,11 +3008,375 @@
         },
         {
           "type": "output",
-          "id": "fxntstorage:backpack_toolswap_upgrade"
+          "id": "fxntstorage:*_simple_storage_box"
         },
         {
           "type": "output",
-          "id": "fxntstorage:*_simple_storage_box"
+          "id": "fxntstorage:storage_box_*_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "fxntstorage:backpack_jukebox_upgrade"
+        }
+      ]
+    },
+    {
+      "id": "numismatics_banking",
+      "category": "storage",
+      "icon": "numismatics:bank_terminal",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 44,
+      "cost": 150,
+      "time": "1h24m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "numismatics_basics"
+        },
+        {
+          "type": "node",
+          "id": "diamond_storage"
+        },
+        {
+          "type": "node",
+          "id": "technology:sensors_displays"
+        },
+        {
+          "type": "node",
+          "id": "technology:redstone_circuits"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "place",
+          "block": "create:pulse_repeater",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "numismatics:bank_terminal"
+        },
+        {
+          "type": "output",
+          "id": "numismatics:*_card"
+        },
+        {
+          "type": "mod",
+          "id": "numismaticsutils"
+        }
+      ]
+    },
+    {
+      "id": "diamond_backpack",
+      "category": "backpacks",
+      "icon": "sophisticatedbackpacks:diamond_backpack",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 46,
+      "cost": 170,
+      "time": "1h29m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "gold_backpack"
+        },
+        {
+          "type": "node",
+          "id": "diamond_tools"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "minecraft:diamond_sword",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:diamond_backpack"
+        }
+      ]
+    },
+    {
+      "id": "backpack_advanced_upgrades",
+      "category": "backpacks",
+      "icon": "sophisticatedbackpacks:advanced_magnet_upgrade",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 48,
+      "cost": 200,
+      "time": "1h33m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "backpack_utility_upgrades"
+        },
+        {
+          "type": "node",
+          "id": "diamond_tools"
+        },
+        {
+          "type": "node",
+          "id": "technology:vt_observer"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "trade",
+          "count": 6
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:advanced_*"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:auto_*"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:xp_pump_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:anvil_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedcore:ender_linker"
+        }
+      ]
+    },
+    {
+      "id": "storage_advanced_upgrades",
+      "category": "storage",
+      "icon": "sophisticatedstorage:advanced_magnet_upgrade",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 48,
+      "cost": 200,
+      "time": "1h33m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "storage_utility_upgrades"
+        },
+        {
+          "type": "node",
+          "id": "diamond_storage"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "process",
+          "recipeType": "create:*",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:advanced_*"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:auto_*"
+        }
+      ]
+    },
+    {
+      "id": "storage_stack_2",
+      "category": "storage",
+      "icon": "sophisticatedstorage:stack_upgrade_tier_3",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 49,
+      "cost": 210,
+      "time": "1h35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "storage_stack_1"
+        },
+        {
+          "type": "node",
+          "id": "diamond_storage"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:netherite"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "place",
+          "block": "create:brass_casing",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:stack_upgrade_tier_3"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:stack_upgrade_tier_4"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:stack_upgrade_*_to_tier_3_conversion"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:stack_upgrade_*_to_tier_4_conversion"
+        }
+      ]
+    },
+    {
+      "id": "backpack_stack_2",
+      "category": "backpacks",
+      "icon": "sophisticatedbackpacks:stack_upgrade_tier_2",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 50,
+      "cost": 230,
+      "time": "1h38m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "backpack_stack_1"
+        },
+        {
+          "type": "node",
+          "id": "diamond_backpack"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:netherite"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "sophisticatedbackpacks:diamond_backpack",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:stack_upgrade_tier_2"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:stack_upgrade_tier_3"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:stack_upgrade_*_to_tier_2_conversion"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:stack_upgrade_*_to_tier_3_conversion"
+        }
+      ]
+    },
+    {
+      "id": "steel_tools",
+      "category": "tools",
+      "icon": "create_ironworks:steel_pickaxe",
+      "era": "steel_chemistry",
+      "kind": "milestone",
+      "level": 50,
+      "cost": 760,
+      "time": "3h16m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:steel"
+        },
+        {
+          "type": "node",
+          "id": "diamond_tools"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "break_item",
+          "count": 5
+        },
+        {
+          "type": "deposit",
+          "item": "#c:ingots/steel",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create_ironworks:steel_pickaxe"
+        },
+        {
+          "type": "output",
+          "id": "create_ironworks:steel_axe"
+        },
+        {
+          "type": "output",
+          "id": "create_ironworks:steel_shovel"
+        },
+        {
+          "type": "output",
+          "id": "create_ironworks:steel_hoe"
+        },
+        {
+          "type": "output",
+          "id": "create_ironworks:steel_hammer"
+        },
+        {
+          "type": "output",
+          "id": "create_ironworks:steel_paxel"
+        }
+      ]
+    },
+    {
+      "id": "steel_armor",
+      "category": "armor",
+      "icon": "create_ironworks:steel_armor_chestplate",
+      "era": "steel_chemistry",
+      "kind": "milestone",
+      "level": 51,
+      "cost": 800,
+      "time": "3h20m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "steel_tools"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "process",
+          "recipeType": "create:*",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "#c:ingots/steel",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create_ironworks:steel_armor_*"
         }
       ]
     },
@@ -4672,84 +3384,42 @@
       "id": "fxnt_advanced",
       "category": "storage",
       "icon": "fxntstorage:hardened_storage_box",
-      "level": 40,
-      "cost": 14400,
-      "time": "7h5m",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 58,
+      "cost": 320,
+      "time": "1h59m",
       "requires": [
-        {
-          "type": "node",
-          "id": "fxnt_network"
-        },
         {
           "type": "node",
           "id": "steel_tools"
         },
         {
           "type": "node",
-          "id": "technology:railways",
-          "hidden": true
+          "id": "fxnt_network"
         },
         {
           "type": "node",
-          "id": "technology:windmill",
-          "hidden": true
+          "id": "copper_diving_gear"
         },
         {
           "type": "node",
-          "id": "copper_diving_gear",
-          "hidden": true
+          "id": "technology:railways"
         },
         {
           "type": "node",
-          "id": "technology:drill_saw",
-          "hidden": true
+          "id": "technology:steam_whistle"
         },
         {
           "type": "node",
-          "id": "technology:transmitter",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:flywheel",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:depot",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:sensors_displays",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:item_vault",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:fluid_handling",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:precision_mechanism",
-          "hidden": true
+          "id": "technology:drill_saw"
         }
       ],
       "tasks": [
         {
-          "type": "deposit",
-          "item": "#c:ingots/steel",
-          "count": 32
-        },
-        {
-          "type": "deposit",
-          "item": "minecraft:diamond",
-          "count": 24
+          "type": "craft",
+          "output": "create_ironworks:steel_pickaxe",
+          "count": 16
         }
       ],
       "unlocks": [
@@ -4788,208 +3458,1276 @@
         {
           "type": "output",
           "id": "fxntstorage:backpack_workshop_upgrade"
+        },
+        {
+          "type": "output",
+          "id": "fxntstorage:backpack_toolswap_upgrade"
         }
       ]
     },
     {
-      "id": "vibrant_vaults",
-      "category": "storage",
-      "icon": "create_vibrant_vaults:basic_shipping_container",
-      "level": 25,
-      "cost": 5625,
-      "time": "4h",
+      "id": "netherite_tools",
+      "category": "tools",
+      "icon": "minecraft:netherite_pickaxe",
+      "era": "steel_chemistry",
+      "kind": "milestone",
+      "level": 58,
+      "cost": 1100,
+      "time": "3h58m",
       "requires": [
         {
           "type": "node",
-          "id": "gold_storage"
+          "id": "metallurgy:netherite"
         },
         {
           "type": "node",
-          "id": "metallurgy:brass"
+          "id": "steel_tools"
         },
         {
           "type": "node",
-          "id": "technology:precision_mechanism",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:transmitter",
-          "hidden": true
+          "id": "technology:stock_logistics"
         }
       ],
       "tasks": [
         {
-          "type": "deposit",
-          "item": "create:brass_ingot",
-          "count": 24
+          "type": "craft",
+          "output": "create_ironworks:steel_pickaxe",
+          "count": 16
         },
         {
           "type": "deposit",
-          "item": "minecraft:diamond",
-          "count": 8
+          "item": "minecraft:netherite_ingot",
+          "count": 2
         }
       ],
       "unlocks": [
         {
-          "type": "mod",
-          "id": "create_vibrant_vaults"
+          "type": "recipe",
+          "id": "minecraft:netherite_pickaxe_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:netherite_axe_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:netherite_shovel_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:netherite_hoe_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "create_ironworks:tools/pickaxe/netherite_steel"
+        },
+        {
+          "type": "recipe",
+          "id": "create_ironworks:tools/axe/netherite_steel"
+        },
+        {
+          "type": "recipe",
+          "id": "create_ironworks:tools/shovel/netherite_steel"
+        },
+        {
+          "type": "recipe",
+          "id": "create_ironworks:tools/hoe/netherite_steel"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:netherite_axe"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:netherite_hoe"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:netherite_pickaxe"
+        },
+        {
+          "type": "output",
+          "id": "minecraft:netherite_shovel"
+        },
+        {
+          "type": "recipe",
+          "id": "create_things_and_misc:netheriteportablewithlecraft"
         }
       ]
     },
     {
-      "id": "numismatics_basics",
-      "category": "storage",
-      "icon": "numismatics:vendor",
-      "level": 20,
-      "cost": 3600,
-      "time": "3h",
+      "id": "netherite_armor",
+      "category": "armor",
+      "icon": "minecraft:netherite_chestplate",
+      "era": "steel_chemistry",
+      "kind": "milestone",
+      "level": 59,
+      "cost": 1100,
+      "time": "4h4m",
       "requires": [
         {
           "type": "node",
-          "id": "gold_storage"
+          "id": "netherite_tools"
         },
         {
           "type": "node",
-          "id": "metallurgy:brass"
+          "id": "diamond_armor"
         },
         {
           "type": "node",
-          "id": "technology:sturdy_sheet",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:brass_casing",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:electron_tubes",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:precision_mechanism",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:brass_curios",
-          "hidden": true
+          "id": "steel_armor"
         }
       ],
       "tasks": [
         {
-          "type": "deposit",
-          "item": "create:brass_ingot",
+          "type": "smelt",
           "count": 16
         },
         {
           "type": "deposit",
-          "item": "#c:ingots/gold",
+          "item": "minecraft:netherite_ingot",
+          "count": 2
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "minecraft:netherite_helmet_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:netherite_chestplate_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:netherite_leggings_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:netherite_boots_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "create_ironworks:armor/*/netherite_steel"
+        },
+        {
+          "type": "recipe",
+          "id": "legendary_monsters:annihilator_boots"
+        },
+        {
+          "type": "recipe",
+          "id": "legendary_monsters:annihilator_chestplate"
+        },
+        {
+          "type": "recipe",
+          "id": "legendary_monsters:annihilator_helmet"
+        },
+        {
+          "type": "recipe",
+          "id": "legendary_monsters:annihilator_leggings"
+        },
+        {
+          "type": "output",
+          "id": "legendary_monsters:buckler_of_annihilation"
+        }
+      ]
+    },
+    {
+      "id": "netherite_hammer_paxel",
+      "category": "tools",
+      "icon": "create_ironworks:netherite_hammer",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 59,
+      "cost": 330,
+      "time": "2h2m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "netherite_tools"
+        },
+        {
+          "type": "node",
+          "id": "diamond_hammer_paxel"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "break_item",
+          "count": 5
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create_ironworks:netherite_hammer"
+        },
+        {
+          "type": "output",
+          "id": "create_ironworks:netherite_paxel"
+        }
+      ]
+    },
+    {
+      "id": "portable_drill",
+      "category": "special",
+      "icon": "powergrid:portable_drill",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 59,
+      "cost": 330,
+      "time": "2h2m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "handheld_drill"
+        },
+        {
+          "type": "node",
+          "id": "steel_tools"
+        },
+        {
+          "type": "node",
+          "id": "technology:pg_basics"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "create_ironworks:steel_pickaxe",
           "count": 16
         }
       ],
       "unlocks": [
         {
           "type": "output",
-          "id": "numismatics:vendor"
+          "id": "powergrid:portable_drill"
         },
         {
           "type": "output",
-          "id": "numismatics:salepoint"
-        },
-        {
-          "type": "output",
-          "id": "numismatics:andesite_depositor"
-        },
-        {
-          "type": "output",
-          "id": "numismatics:brass_depositor"
-        },
-        {
-          "type": "output",
-          "id": "numismatics:banking_guide"
+          "id": "powergrid:portable_saw"
         }
       ]
     },
     {
-      "id": "numismatics_banking",
-      "category": "storage",
-      "icon": "numismatics:bank_terminal",
-      "level": 25,
-      "cost": 5625,
-      "time": "4h",
+      "id": "netherite_goggle_helmet",
+      "category": "special",
+      "icon": "creategoggles:goggle_netherite_helmet",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 60,
+      "cost": 350,
+      "time": "2h5m",
       "requires": [
         {
           "type": "node",
-          "id": "numismatics_basics"
+          "id": "netherite_armor"
         },
+        {
+          "type": "node",
+          "id": "diamond_goggle_helmet"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "process",
+          "output": "minecraft:netherite_helmet",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "creategoggles:goggle_netherite_helmet"
+        },
+        {
+          "type": "recipe",
+          "id": "creategoggles:crushing/netherite_helmet"
+        }
+      ]
+    },
+    {
+      "id": "netherite_backpack",
+      "category": "backpacks",
+      "icon": "sophisticatedbackpacks:netherite_backpack",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 63,
+      "cost": 400,
+      "time": "2h14m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "diamond_backpack"
+        },
+        {
+          "type": "node",
+          "id": "netherite_tools"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "trade",
+          "count": 6
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:netherite_backpack"
+        }
+      ]
+    },
+    {
+      "id": "netherite_diving",
+      "category": "special",
+      "icon": "create:netherite_diving_helmet",
+      "era": "steel_chemistry",
+      "kind": "milestone",
+      "level": 64,
+      "cost": 1400,
+      "time": "4h35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "copper_diving_gear"
+        },
+        {
+          "type": "node",
+          "id": "jetpack"
+        },
+        {
+          "type": "node",
+          "id": "netherite_armor"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "legendary_monsters:buckler_of_annihilation",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "minecraft:netherite_ingot",
+          "count": 2
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "create:netherite_backtank"
+        },
+        {
+          "type": "output",
+          "id": "create:netherite_diving_helmet"
+        },
+        {
+          "type": "output",
+          "id": "create:netherite_diving_boots"
+        },
+        {
+          "type": "output",
+          "id": "create_jetpack:netherite_jetpack"
+        },
+        {
+          "type": "output",
+          "id": "creategoggles:goggle_netherite_diving_helmet"
+        }
+      ]
+    },
+    {
+      "id": "aluminum_tools",
+      "category": "tools",
+      "icon": "tfmg:aluminum_pickaxe",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 65,
+      "cost": 430,
+      "time": "2h21m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "iron_tools"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:aluminum"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "tfmg:electrode_holder",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "tfmg:aluminum_pickaxe"
+        },
+        {
+          "type": "output",
+          "id": "tfmg:aluminum_axe"
+        },
+        {
+          "type": "output",
+          "id": "tfmg:aluminum_shovel"
+        },
+        {
+          "type": "output",
+          "id": "tfmg:aluminum_hoe"
+        }
+      ]
+    },
+    {
+      "id": "tfmg_tools",
+      "category": "tools",
+      "icon": "tfmg:electricians_wrench",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 67,
+      "cost": 470,
+      "time": "2h28m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "steel_tools"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:aluminum"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "break_item",
+          "count": 5
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "tfmg:oil_hammer"
+        }
+      ]
+    },
+    {
+      "id": "shulker_storage",
+      "category": "storage",
+      "icon": "sophisticatedstorage:shulker_box",
+      "era": "steel_chemistry",
+      "kind": "milestone",
+      "level": 68,
+      "cost": 1600,
+      "time": "5h3m",
+      "requires": [
         {
           "type": "node",
           "id": "diamond_storage"
-        },
-        {
-          "type": "node",
-          "id": "technology:precision_mechanism",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:iron_deco",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:electron_tubes",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:gold_pressing",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:sensors_displays",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:transmitter",
-          "hidden": true
-        },
-        {
-          "type": "node",
-          "id": "technology:redstone_circuits",
-          "hidden": true
         }
       ],
       "tasks": [
         {
-          "type": "deposit",
-          "item": "minecraft:diamond",
+          "type": "place",
+          "block": "create:blaze_burner",
           "count": 8
         },
         {
           "type": "deposit",
-          "item": "create:precision_mechanism",
+          "item": "minecraft:shulker_shell",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:shulker_box"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:copper_shulker_box"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:iron_shulker_box"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:gold_shulker_box"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:diamond_shulker_box"
+        },
+        {
+          "type": "recipe",
+          "id": "sophisticatedstorage:*_shulker_box_to_sophisticated"
+        },
+        {
+          "type": "recipe",
+          "id": "minecraft:shulker_box_from_vanilla_shulker_box"
+        }
+      ]
+    },
+    {
+      "id": "netherite_storage",
+      "category": "storage",
+      "icon": "sophisticatedstorage:netherite_chest",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 69,
+      "cost": 510,
+      "time": "2h35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "shulker_storage"
+        },
+        {
+          "type": "node",
+          "id": "netherite_tools"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "sophisticatedstorage:shulker_box",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:netherite_chest"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:netherite_barrel"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:limited_netherite_barrel_1"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:limited_netherite_barrel_2"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:limited_netherite_barrel_3"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:limited_netherite_barrel_4"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:netherite_shulker_box"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:*_to_netherite_tier_upgrade"
+        }
+      ]
+    },
+    {
+      "id": "backpack_stack_3",
+      "category": "backpacks",
+      "icon": "sophisticatedbackpacks:stack_upgrade_tier_4",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 73,
+      "cost": 600,
+      "time": "2h51m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "backpack_stack_2"
+        },
+        {
+          "type": "node",
+          "id": "netherite_backpack"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "sophisticatedbackpacks:netherite_backpack",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:stack_upgrade_tier_4"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:stack_upgrade_*_to_tier_4_conversion"
+        }
+      ]
+    },
+    {
+      "id": "storage_stack_3",
+      "category": "storage",
+      "icon": "sophisticatedstorage:stack_upgrade_tier_5",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 73,
+      "cost": 600,
+      "time": "2h51m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "storage_stack_2"
+        },
+        {
+          "type": "node",
+          "id": "netherite_storage"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "place",
+          "block": "create:stock_link",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:stack_upgrade_tier_5"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:stack_upgrade_*_to_tier_5_conversion"
+        }
+      ]
+    },
+    {
+      "id": "backpack_inception",
+      "category": "backpacks",
+      "icon": "sophisticatedbackpacks:inception_upgrade",
+      "era": "advanced",
+      "kind": "detail",
+      "level": 83,
+      "cost": 920,
+      "time": "3h14m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "backpack_advanced_upgrades"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "trade",
+          "count": 12
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:inception_upgrade"
+        }
+      ]
+    },
+    {
+      "id": "lab_gear",
+      "category": "special",
+      "icon": "createbigpharma:lab_coat",
+      "era": "advanced",
+      "kind": "detail",
+      "level": 93,
+      "cost": 1400,
+      "time": "3h33m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "technology:pharma_lab"
+        },
+        {
+          "type": "node",
+          "id": "technology:sr_ash_ceramics"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "process",
+          "recipeType": "create:pressing",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "createbigpharma:lab_goggles"
+        },
+        {
+          "type": "output",
+          "id": "createbigpharma:lab_coat"
+        },
+        {
+          "type": "output",
+          "id": "createbigpharma:lab_gloves"
+        },
+        {
+          "type": "output",
+          "id": "createbigpharma:lab_boots"
+        }
+      ]
+    },
+    {
+      "id": "backpack_everlasting",
+      "category": "backpacks",
+      "icon": "sophisticatedbackpacks:everlasting_upgrade",
+      "era": "advanced",
+      "kind": "detail",
+      "level": 131,
+      "cost": 3900,
+      "time": "5h2m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "backpack_inception"
+        },
+        {
+          "type": "node",
+          "id": "technology:vt_respawn"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "sophisticatedbackpacks:inception_upgrade",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:everlasting_upgrade"
+        }
+      ]
+    },
+    {
+      "id": "advanced_netherite_iron",
+      "category": "special",
+      "icon": "advancednetherite:netherite_iron_ingot",
+      "era": "advanced",
+      "kind": "milestone",
+      "level": 139,
+      "cost": 15000,
+      "time": "10h50m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:netherite_iron"
+        },
+        {
+          "type": "node",
+          "id": "netherite_armor"
+        },
+        {
+          "type": "node",
+          "id": "netherite_hammer_paxel"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "process",
+          "recipeType": "create:pressing",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "advancednetherite:netherite_iron_ingot",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_iron_pickaxe_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_iron_axe_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_iron_shovel_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_iron_hoe_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_iron_helmet_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_iron_chestplate_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_iron_leggings_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_iron_boots_smithing"
+        }
+      ]
+    },
+    {
+      "id": "anti_radiation_suit",
+      "category": "armor",
+      "icon": "createnuclear:default_anti_radiation_chestplate",
+      "era": "late",
+      "kind": "detail",
+      "level": 194,
+      "cost": 11000,
+      "time": "8h8m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "technology:electrolyzer"
+        },
+        {
+          "type": "node",
+          "id": "technology:distillery"
+        },
+        {
+          "type": "node",
+          "id": "technology:latex_rubber"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "process",
+          "recipeType": "create:*",
+          "count": 64
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "createnuclear:crafting/items/armors/*"
+        },
+        {
+          "type": "recipe",
+          "id": "createnuclear:crafting/crafting/*cloth*"
+        },
+        {
+          "type": "recipe",
+          "id": "createnuclear:shapeless/cloth/*"
+        }
+      ]
+    },
+    {
+      "id": "iron_space_suit",
+      "category": "armor",
+      "icon": "northstar:iron_space_suit_chestpiece",
+      "era": "late",
+      "kind": "milestone",
+      "level": 198,
+      "cost": 40000,
+      "time": "16h44m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "steel_armor"
+        },
+        {
+          "type": "node",
+          "id": "technology:polymers"
+        },
+        {
+          "type": "node",
+          "id": "technology:carbon_fiber"
+        },
+        {
+          "type": "node",
+          "id": "copper_backtank"
+        },
+        {
+          "type": "node",
+          "id": "technology:nylon"
+        },
+        {
+          "type": "node",
+          "id": "technology:plastics"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "process",
+          "recipeType": "create:compacting",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "#minecraft:wool",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "northstar:crafting/iron_space_suit_helmet"
+        },
+        {
+          "type": "recipe",
+          "id": "northstar:crafting/iron_space_suit_chestpiece"
+        },
+        {
+          "type": "recipe",
+          "id": "northstar:crafting/iron_space_suit_leggings"
+        },
+        {
+          "type": "recipe",
+          "id": "northstar:crafting/iron_space_suit_boots"
+        },
+        {
+          "type": "recipe",
+          "id": "northstar:crafting/durable_fabric"
+        }
+      ]
+    },
+    {
+      "id": "martian_gear",
+      "category": "tools",
+      "icon": "northstar:martian_steel_chestplate",
+      "era": "late",
+      "kind": "milestone",
+      "level": 236,
+      "cost": 69000,
+      "time": "21h47m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:martian_steel"
+        },
+        {
+          "type": "node",
+          "id": "iron_space_suit"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "process",
+          "recipeType": "create:pressing",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "northstar:martian_steel_ingot",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "northstar:crafting/martian_pickaxe"
+        },
+        {
+          "type": "recipe",
+          "id": "northstar:crafting/martian_axe"
+        },
+        {
+          "type": "recipe",
+          "id": "northstar:crafting/martian_shovel"
+        },
+        {
+          "type": "recipe",
+          "id": "northstar:crafting/martian_hoe"
+        },
+        {
+          "type": "recipe",
+          "id": "northstar:crafting/martian_steel_helmet"
+        },
+        {
+          "type": "recipe",
+          "id": "northstar:crafting/martian_steel_chestplate"
+        },
+        {
+          "type": "recipe",
+          "id": "northstar:crafting/martian_steel_leggings"
+        },
+        {
+          "type": "recipe",
+          "id": "northstar:crafting/martian_steel_boots"
+        }
+      ]
+    },
+    {
+      "id": "sophisticated_omega",
+      "category": "storage",
+      "icon": "sophisticatedstorage:stack_upgrade_omega_tier",
+      "era": "late",
+      "kind": "detail",
+      "level": 238,
+      "cost": 21000,
+      "time": "11h3m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "backpack_stack_3"
+        },
+        {
+          "type": "node",
+          "id": "storage_stack_3"
+        },
+        {
+          "type": "node",
+          "id": "backpack_everlasting"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "sophisticatedbackpacks:everlasting_upgrade",
+          "count": 64
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "output",
+          "id": "sophisticatedbackpacks:stack_upgrade_omega_tier"
+        },
+        {
+          "type": "output",
+          "id": "sophisticatedstorage:stack_upgrade_omega_tier"
+        }
+      ]
+    },
+    {
+      "id": "martian_space_suit",
+      "category": "armor",
+      "icon": "northstar:martian_steel_space_suit_chestpiece",
+      "era": "late",
+      "kind": "detail",
+      "level": 246,
+      "cost": 24000,
+      "time": "11h40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "martian_gear"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "process",
+          "recipeType": "create:*",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "northstar:crafting/martian_steel_space_suit_*"
+        }
+      ]
+    },
+    {
+      "id": "advanced_netherite_gold",
+      "category": "special",
+      "icon": "advancednetherite:netherite_gold_ingot",
+      "era": "endgame",
+      "kind": "milestone",
+      "level": 258,
+      "cost": 90000,
+      "time": "24h0m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:netherite_gold"
+        },
+        {
+          "type": "node",
+          "id": "advanced_netherite_iron"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "process",
+          "recipeType": "create:pressing",
+          "count": 6
+        },
+        {
+          "type": "deposit",
+          "item": "advancednetherite:netherite_gold_ingot",
+          "count": 6
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_gold_pickaxe_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_gold_axe_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_gold_shovel_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_gold_hoe_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_gold_helmet_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_gold_chestplate_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_gold_leggings_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_gold_boots_smithing"
+        }
+      ]
+    },
+    {
+      "id": "advanced_netherite_emerald",
+      "category": "special",
+      "icon": "advancednetherite:netherite_emerald_ingot",
+      "era": "endgame",
+      "kind": "milestone",
+      "level": 353,
+      "cost": 200000,
+      "time": "24h0m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:netherite_emerald"
+        },
+        {
+          "type": "node",
+          "id": "advanced_netherite_gold"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "process",
+          "recipeType": "create:pressing",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "advancednetherite:netherite_emerald_ingot",
           "count": 4
         }
       ],
       "unlocks": [
         {
-          "type": "output",
-          "id": "numismatics:bank_terminal"
+          "type": "recipe",
+          "id": "advancednetherite:netherite_emerald_pickaxe_smithing"
         },
         {
-          "type": "output",
-          "id": "numismatics:*_card"
+          "type": "recipe",
+          "id": "advancednetherite:netherite_emerald_axe_smithing"
         },
         {
-          "type": "mod",
-          "id": "numismaticsutils"
+          "type": "recipe",
+          "id": "advancednetherite:netherite_emerald_shovel_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_emerald_hoe_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_emerald_helmet_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_emerald_chestplate_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_emerald_leggings_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_emerald_boots_smithing"
+        }
+      ]
+    },
+    {
+      "id": "advanced_netherite_diamond",
+      "category": "special",
+      "icon": "advancednetherite:netherite_diamond_ingot",
+      "era": "endgame",
+      "kind": "milestone",
+      "level": 385,
+      "cost": 260000,
+      "time": "24h0m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:netherite_diamond"
+        },
+        {
+          "type": "node",
+          "id": "advanced_netherite_emerald"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "process",
+          "recipeType": "create:pressing",
+          "count": 4
+        },
+        {
+          "type": "deposit",
+          "item": "advancednetherite:netherite_diamond_ingot",
+          "count": 4
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_diamond_pickaxe_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_diamond_axe_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_diamond_shovel_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_diamond_hoe_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_diamond_helmet_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_diamond_chestplate_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_diamond_leggings_smithing"
+        },
+        {
+          "type": "recipe",
+          "id": "advancednetherite:netherite_diamond_boots_smithing"
         }
       ]
     }

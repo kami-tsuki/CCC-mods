@@ -16,6 +16,7 @@ import net.neoforged.neoforge.attachment.AttachmentType
 import net.neoforged.neoforge.registries.DeferredRegister
 import net.neoforged.neoforge.registries.NeoForgeRegistries
 import java.util.function.Supplier
+import kotlin.math.abs
 
 @Serializable
 class Line(val key: String, val side: Int, val price: Long, val unit: Double = 0.0, val spread: Double = 0.0, val demand: Double = 1.0, val extra: Double = 0.0, val spec: String = "") {
@@ -34,6 +35,8 @@ object Quotes {
     private val attachments = DeferredRegister.create(NeoForgeRegistries.Keys.ATTACHMENT_TYPES, KamiEconomy.ID)
     private val codec: Codec<Quote> = Codec.STRING.xmap({ runCatching { Db.json.decodeFromString<Quote>(it) }.getOrElse { Quote() } }, { Db.json.encodeToString(it) })
     private val type = attachments.register("villager_quote", Supplier { AttachmentType.builder(Supplier { Quote() }).serialize(codec).build() })
+
+    private const val DRIFT_LIMIT = 0.1
 
     fun register(bus: IEventBus) = attachments.register(bus)
 
@@ -59,7 +62,14 @@ object Quotes {
 
     private fun signature(o: MerchantOffer) = "${spec(o.baseCostA)}|${spec(o.costB)}|${spec(o.result)}"
 
-    private fun Line.valid(o: MerchantOffer, retry: Boolean) = (priced || !retry) && key == signature(o)
+    private fun Line.valid(o: MerchantOffer, retry: Boolean) = (priced || !retry) && key == signature(o) && !drifted(o)
+
+    private fun Line.drifted(o: MerchantOffer): Boolean {
+        if (unit <= 0.0) return false
+        val m = order(o) as? Mapped.Order ?: return false
+        val fresh = VillagerCourses.unit(Specs.of(m.goods.stack), m.side, m.emeralds.toDouble() / m.goods.count) ?: return false
+        return abs(fresh / unit - 1) > DRIFT_LIMIT
+    }
 
     private fun emerald(o: MerchantOffer) = listOf(o.baseCostA, o.costB, o.result).any { !it.isEmpty && Specs.emeralds(ItemSpec.id(it), 1) != null }
 

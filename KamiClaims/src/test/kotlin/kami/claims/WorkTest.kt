@@ -1,5 +1,7 @@
 package kami.claims
 
+import kami.claims.gov.CITIZEN
+import kami.claims.gov.PRESIDENT
 import kami.claims.research.Capacity
 import kami.claims.research.Levels
 import kami.claims.service.Work
@@ -17,7 +19,8 @@ class WorkTest : WithDb() {
     @BeforeTest
     fun setup() {
         val data = Data()
-        c = Country("Test", members = mutableMapOf("p" to Member(Rank.CITIZEN), "boss" to Member(Rank.OFFICER)))
+        c = Country("Test", members = mutableMapOf("p" to Member(CITIZEN), "boss" to Member(PRESIDENT)))
+        c.mixed()
         data.countries[c.id] = c
         listOf("mining", "mining", "factory").forEachIndexed { i, t -> data.claims += Claim(c.id, dim, i, 0, t) }
         Realm.reset(data)
@@ -32,22 +35,20 @@ class WorkTest : WithDb() {
     private fun claim(x: Int) = Realm.at(dim, x, 0)!!
 
     @Test
-    fun accessNeedsAnAssignment() {
+    fun jobCoversOnlyChunksOfItsType() {
         Work.give(c, "p", "miner")
-        assertFalse(Work.fits(c, claim(0), "p"))
-        claim(0).workers += "p"
-        assertTrue(Work.fits(c, claim(0), "p"))
-        assertFalse(Work.fits(c, claim(1), "p"))
-        assertEquals(1, Work.matching(c, "p", claim(0)).size)
-        assertEquals(1, Work.matching(c, "p", claim(1)).size)
+        assertTrue(Work.holds(c, "p", claim(0)))
+        assertTrue(Work.holds(c, "p", claim(1)))
+        assertFalse(Work.holds(c, "p", claim(2)))
+        assertTrue(Work.covers(c, claim(0), "p", Action.BREAK))
+        assertFalse(Work.covers(c, claim(0), "p", Action.PLACE))
     }
 
     @Test
     fun noCrossTypeAccess() {
         Work.give(c, "p", "miner")
         claim(2).workers += "p"
-        assertFalse(Work.fits(c, claim(2), "p"))
-        assertTrue(Work.matching(c, "p", claim(2)).isEmpty())
+        assertFalse(Work.covers(c, claim(2), "p", Action.BREAK))
     }
 
     @Test
@@ -55,13 +56,13 @@ class WorkTest : WithDb() {
         Work.give(c, "p", "miner")
         Work.give(c, "p", "worker")
         listOf(0, 1, 2).forEach { claim(it).workers += "p" }
-        Work.take(c, "p", "miner")
+        Work.drop(c, "p", "miner")
         assertEquals(setOf("p"), claim(2).workers)
         assertTrue(claim(0).workers.isEmpty() && claim(1).workers.isEmpty())
-        Work.forget(c, "p")
+        Work.forget(c, "p", Leave.KICK)
         assertTrue(claim(2).workers.isEmpty())
         claim(1).workers += "p"
-        Work.retyped(claim(1))
+        Work.retyped(c, claim(1))
         assertTrue(claim(1).workers.isEmpty())
     }
 

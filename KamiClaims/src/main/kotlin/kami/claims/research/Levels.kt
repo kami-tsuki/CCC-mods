@@ -1,7 +1,6 @@
 package kami.claims.research
 
 import kami.claims.Country
-import kami.claims.Rank
 import kami.claims.LedgerKind
 import kami.claims.Realm
 import kami.claims.economy.Treasury
@@ -157,7 +156,8 @@ object Levels {
         Capacity.RESEARCH_SLOTS -> Queue.researching(country)
         Capacity.QUEUE_SLOTS -> Queue.waiting(country)
         Capacity.TREASURY -> country.treasury.coerceIn(0, Int.MAX_VALUE.toLong()).toInt()
-        Capacity.OFFICERS -> country.members.values.count { it.rank == Rank.OFFICER }
+        Capacity.RANKS -> country.ranks.size
+        Capacity.SECTORS -> country.sectors.size
         Capacity.FREE_CHUNKS -> Realm.claimsView(country.id).count { it.free }
         Capacity.PLOTS -> Realm.claimsView(country.id).filter { it.owner != null }.groupingBy { it.owner }.eachCount().values.maxOrNull() ?: 0
         Capacity.JOB_SLOTS -> country.members.values.maxOfOrNull { it.jobs.size } ?: 0
@@ -194,6 +194,20 @@ object Levels {
     fun award(country: Country, xp: Long) {
         Stats.add("xp.gain", "c:${country.id}", "admin", xp)
         apply(country, xp)
+    }
+
+    fun setLevel(country: Country, level: Int): Int {
+        val config = Research.defs.levels
+        val target = level.coerceIn(1, config.top)
+        country.level = target
+        country.xp = config.xpFor(target)
+        country.xpFrac.clear()
+        settleRewards(country)
+        forget(country.id)
+        Realm.changed(false)
+        ResearchSync.refresh(country)
+        ResearchSync.touch(country)
+        return target
     }
 
     private fun apply(country: Country, xp: Long) {

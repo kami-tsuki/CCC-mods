@@ -10,11 +10,15 @@ import kami.claims.net.Denied
 import kami.claims.net.Net
 import kami.claims.research.Gate
 import kami.claims.research.RecipeFilter
+import kami.claims.service.Credit
 import kami.claims.service.Housing
+import kami.claims.service.Scope
 import kami.claims.service.View
 import kami.claims.service.Work
 import kami.libs.text.Phrase
-import kami.libs.util.RecentSet
+import kami.claims.gov.Perm
+import kami.claims.gov.Permissions
+import kami.claims.gov.Standing
 import kami.claims.social.Perms
 import kami.claims.war.Bill
 import kami.claims.war.Reputation
@@ -22,6 +26,8 @@ import kami.claims.war.WarGuard
 import kami.claims.war.Wars
 
 import net.minecraft.core.BlockPos
+import net.minecraft.core.component.DataComponents
+import net.minecraft.world.item.alchemy.PotionContents
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.network.chat.Component
@@ -72,6 +78,14 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.FireChargeItem
 import net.minecraft.world.item.FlintAndSteelItem
 import net.minecraft.world.item.SolidBucketItem
+import net.minecraft.world.item.SpawnEggItem
+import net.minecraft.world.item.ShearsItem
+import net.minecraft.world.item.LeadItem
+import net.minecraft.world.item.HoneycombItem
+import net.minecraft.world.item.DyeItem
+import net.minecraft.world.item.DiggerItem
+import net.minecraft.world.item.BrushItem
+import net.minecraft.world.item.BoneMealItem
 import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.HitResult
@@ -98,11 +112,10 @@ import net.neoforged.neoforge.event.level.ExplosionEvent
 import net.neoforged.neoforge.event.level.PistonEvent
 
 object Guard {
-    private const val REMEMBERED_PLACEMENTS = 65536
-    private val tags = HashMap<String, TagKey<Block>>()
-    private val paidPlaces =RecentSet<Pair<String, Long>>(REMEMBERED_PLACEMENTS)
     private val last = HashMap<String, Key?>()
     private val lastDenied = HashMap<String, Pair<Pair<Action, Key>, Long>>()
+    private val nodeCache = HashMap<java.util.UUID, HashMap<Perm, Pair<Long, Boolean>>>()
+    private const val NODE_CACHE_MS = 5000L
     private val hierarchy = object : ClassValue<Set<String>>() {
         override fun computeValue(type: Class<*>) = generateSequence(type) { it.superclass }.mapTo(HashSet()) { it.name }
     }
@@ -121,14 +134,15 @@ object Guard {
     private val wildBlocks: TagKey<Block> by lazy { TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("kami_claims", "wild_blocked")) }
     private val wildEntities: TagKey<EntityType<*>> by lazy { TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath("kami_claims", "wild_blocked")) }
     private const val BOAT_OWNER = "kami_claims_owner"
+    private const val SPLASH_REACH = 4.0
+    private const val SPLASH_HEIGHT = 2.0
     private const val DT_SAPLING = "com.dtteam.dynamictrees.block.sapling.DynamicSaplingBlock"
     private const val DT_SEED = "com.dtteam.dynamictrees.item.Seed"
 
     fun reset() {
-        paidPlaces.clear()
-        Placed.reset()
         last.clear()
         lastDenied.clear()
+        nodeCache.clear()
     }
 
     private val dims = java.util.concurrent.ConcurrentHashMap<net.minecraft.resources.ResourceKey<Level>, String>()
@@ -141,17 +155,29 @@ object Guard {
 
     private fun access(c: Country, cl: Claim, a: Action) = c.rules[cl.type]?.get(a)?.takeUnless { ruleLocked(cl.type, a) } ?: cl.def?.rule?.access?.get(a) ?: Access.NONE
 
-    private fun granted(a: Access, c: Country, cl: Claim, who: String): Boolean {
-        val rank = c.rank(who)?.takeUnless { Realm.of(who)?.let { Wars.enemies(c.id, it.id) } == true } ?: return a == Access.ANY
-        return when (a) {
-            Access.NONE -> false
-            Access.ANY -> true
-            Access.ALLIED -> rank >= Rank.ALLIED
-            Access.CITIZEN -> rank >= Rank.CITIZEN
-            Access.ASSIGNED -> rank >= Rank.OFFICER || Work.fits(c, cl, who)
-            Access.JOB -> rank >= Rank.OFFICER || c.members[who]?.let { Work.holds(it, cl.type) } == true
-            Access.WORKER -> rank >= Rank.OFFICER || c.members[who]?.jobs?.isNotEmpty() == true
-            Access.OFFICER -> rank >= Rank.OFFICER
+    private val usePerm = mapOf(Action.BREAK to Perm.BREAK, Action.PLACE to Perm.PLACE, Action.INTERACT to Perm.INTERACT, Action.CONTAINER to Perm.CONTAINERS)
+
+    private fun nodeAllowed(p: Player, perm: Perm): Boolean {
+        if (p !is ServerPlayer) return true
+        val now = System.currentTimeMillis()
+        val cached = nodeCache.getOrPut(p.uuid) { HashMap() }
+        cached[perm]?.takeIf { now - it.first < NODE_CACHE_MS }?.let { return it.second }
+        return Perms.permitted(p, perm).also { cached[perm] = now to it }
+    }
+
+    private fun granted(a: Access, c: Country, cl: Claim, p: Player, action: Action): Boolean {
+        if (a == Access.NONE) return false
+        val who = p.stringUUID
+        val enemy = Realm.of(who)?.let { Wars.enemies(c.id, it.id) } == true
+        if (enemy || who !in c.members) return a == Access.ANY || (a == Access.ALLIED && !enemy && usePerm.getValue(action) in Permissions.outsiderPerms(c, who))
+        if (a == Access.ANY) return true
+        val perm = usePerm.getValue(action)
+        val use = (Permissions.holds(c, who, perm) && nodeAllowed(p, perm)) || Permissions.holds(c, who, Perm.BYPASS_RULES)
+        return use && when (a) {
+            Access.OFFICER -> Permissions.holds(c, who, Perm.CHUNK_RULES)
+            Access.JOB, Access.WORKER -> Work.covers(c, cl, who, action)
+            Access.ASSIGNED -> who in cl.workers && Work.covers(c, cl, who, action)
+            else -> true
         }
     }
 
@@ -171,10 +197,10 @@ object Guard {
             if (action == Action.PLACE) block?.defaultBlockState()?.hasBlockEntity() != true else block == null || !container(level, pos)
         if (raidable) return true
         val me = p.stringUUID
-        val banned = c.outsiders[me] == Rank.BANISHED
-        if (cl.tenant != null) return Housing.plotAccess(cl, me, action, banned)
+        val banned = c.outsiders[me] == Standing.BANISHED
+        if (cl.tenant != null) return !Wars.enemy(me, c) && Housing.plotAccess(cl, me, action, banned)
         if (banned) return false
-        return granted(access(c, cl, action), c, cl, me)
+        return granted(access(c, cl, action), c, cl, p, action)
     }
 
     private fun container(level: LevelAccessor, pos: BlockPos): Boolean {
@@ -194,27 +220,35 @@ object Guard {
         return false
     }
 
+    fun reaches(level: LevelAccessor, pos: BlockPos, who: Player, action: Action) = allowed(level, pos, who, action) || who is ServerPlayer && Perms.has(who, Perms.BYPASS)
+
+    fun blocked(who: Entity, pos: BlockPos, action: Action) = who is ServerPlayer && who !is FakePlayer && !reaches(who.level(), pos, who, action)
+
     private fun verb(a: Action) = Phrase.of("kami_claims.guard.verb.${a.name.lowercase()}")
+
+    private fun knows(p: Player, c: Country) = Scope.of(p.stringUUID, p is ServerPlayer && Perms.has(p, Perms.ADMIN))(c.id)
 
     fun reason(level: LevelAccessor, pos: BlockPos, p: Player, action: Action): Phrase {
         val dim = dim(level) ?: return Phrase.of("kami_claims.guard.denied.here")
         val cl = Realm.index[key(dim, pos)]
         val c = cl?.let { Realm.data.countries[it.country] } ?: return Phrase.of("kami_claims.guard.denied.nomansland", verb(action))
         val me = p.stringUUID
-        val banned = c.outsiders[me] == Rank.BANISHED
+        val banned = c.outsiders[me] == Standing.BANISHED
         if (cl.tenant != null) {
             val member = me == cl.owner || cl.roles[me] == Role.HOUSEHOLD
             return when {
                 cl.state == Tenancy.MOVING_OUT && member -> Phrase.of("kami_claims.guard.denied.plot_no_place")
                 banned && me != cl.owner -> Phrase.of("kami_claims.error.you_banished", c.name)
+                !knows(p, c) -> Phrase.of("kami_claims.guard.denied.here")
                 cl.state == Tenancy.MOVING_OUT -> Phrase.of("kami_claims.guard.denied.plot_moving_out", Names.of(p.server, cl.owner!!))
                 else -> Phrase.of("kami_claims.guard.denied.plot", Names.of(p.server, cl.owner!!))
             }
         }
         if (banned) return Phrase.of("kami_claims.error.you_banished", c.name)
+        if (!knows(p, c)) return Phrase.of("kami_claims.guard.denied.here")
         val type = Phrase.or("kami_claims.chunk_type.${cl.type}", cl.type)
         val access = access(c, cl, action)
-        val unassigned = access == Access.ASSIGNED && c.members[me]?.let { Work.holds(it, cl.type) } == true && me !in cl.workers
+        val unassigned = access == Access.ASSIGNED && me in c.members && Work.covers(c, cl, me, action) && me !in cl.workers
         return Phrase.of(if (unassigned) "kami_claims.guard.denied.job_unassigned" else "kami_claims.guard.denied.access.${access.name.lowercase()}", c.name, verb(action), type)
     }
 
@@ -232,7 +266,7 @@ object Guard {
         ).filter { (k, _) -> Realm.index[k]?.country == here }.minOfOrNull { it.second } ?: -1
     }
 
-    private fun explain(p: ServerPlayer, level: LevelAccessor, pos: BlockPos, action: Action) {
+    fun explain(p: ServerPlayer, level: LevelAccessor, pos: BlockPos, action: Action) {
         val dim = dim(level) ?: return
         val spot = action to key(dim, pos)
         val now = System.currentTimeMillis()
@@ -243,31 +277,8 @@ object Guard {
         val cl = Realm.index[key(dim, pos)]
         val c = cl?.let { Realm.data.countries[it.country] }
         val distance = borderDistance(dim, pos, p.blockPosition())
-        if (Net.canOpen(p)) Net.deny(p, Denied(action.name.lowercase(), pos.x, pos.y, pos.z, c?.name ?: "", c?.let { View.color(it) } ?: -1, cl?.type ?: "", text.json(), distance))
+        if (Net.canOpen(p)) Net.deny(p, Denied(action.name.lowercase(), pos.x, pos.y, pos.z, c?.name ?: "", c?.let { View.color(it) } ?: -1, cl?.takeIf { c != null && knows(p, c) }?.type ?: "", text.json(), distance))
         else p.bar(Chat.bar(Tone.BAD, (if (distance > 0) Phrase.of("kami_claims.guard.denied.border", text, Phrase.plural("kami_claims.unit.block", distance.toLong())) else text).component()))
-    }
-
-    private fun matches(state: BlockState, spec: String) =
-        if (spec.startsWith("#")) state.`is`(tags.getOrPut(spec) { TagKey.create(Registries.BLOCK, ResourceLocation.parse(spec.drop(1))) })
-        else id(state.block) == spec
-
-    private fun credit(p: ServerPlayer, pos: BlockPos, action: Action, state: BlockState) {
-        val dim = dim(p.level())!!
-        val cl = Realm.index[key(dim, pos)] ?: return
-        val spot = dim to pos.asLong()
-        val repeat = when (action) {
-            Action.PLACE -> paidPlaces.remove(spot).also { paidPlaces.add(spot); Placed.mark(dim, pos, p.stringUUID) }
-            else -> Placed.contains(dim, pos) && state.block !is CropBlock
-        }
-        if (repeat) return
-        val me = p.stringUUID
-        val c = Realm.data.countries[cl.country] ?: return
-        val crop = state.block as? CropBlock
-        if (crop != null && !crop.isMaxAge(state)) return
-        Work.matching(c, me, cl).forEach { (cfg, job) ->
-            if (action !in cfg.actions || (cfg.blocks.isNotEmpty() && cfg.blocks.none { matches(state, it) })) return@forEach
-            job.progress++
-        }
     }
 
     fun onBreak(e: BlockEvent.BreakEvent) {
@@ -277,7 +288,7 @@ object Guard {
     fun onBreakCredit(e: BlockEvent.BreakEvent) {
         val p = e.player as? ServerPlayer ?: return
         if (p is FakePlayer) return
-        credit(p, e.pos, Action.BREAK, e.state)
+        Credit.block(p, e.pos, Action.BREAK, e.state)
         if (!Wars.fighting()) return
         val dim = dim(e.level)?.takeIf { it in Config.s.dimensionSet } ?: return
         val cl = Realm.index[key(dim, e.pos)] ?: return
@@ -295,7 +306,7 @@ object Guard {
         } else if (!temporary(e.level, e.pos, e.placedBlock, e.blockSnapshot.state, player)) {
             e.isCanceled = true
             player?.let { resync(it, e.pos) }
-        } else player?.let { credit(it, e.pos, Action.PLACE, e.placedBlock) }
+        } else player?.let { Credit.block(it, e.pos, Action.PLACE, e.placedBlock) }
     }
 
     private fun temporary(level: LevelAccessor, pos: BlockPos, state: BlockState, replaced: BlockState, player: ServerPlayer?): Boolean {
@@ -343,6 +354,14 @@ object Guard {
         return true
     }
 
+    private fun altersBlocks(item: Item) = item is DiggerItem || item is ShearsItem || item is BoneMealItem || item is SpawnEggItem || item is HoneycombItem || item is BrushItem || item is DyeItem
+
+    private fun entityAction(target: Entity, item: Item) = when {
+        stash(target) -> Action.CONTAINER
+        item is ShearsItem || item is LeadItem || item is DyeItem || item is SpawnEggItem -> Action.BREAK
+        else -> Action.INTERACT
+    }
+
     fun onUse(e: PlayerInteractEvent.RightClickBlock) {
         val level = e.level
         if (level.isClientSide) return
@@ -356,6 +375,11 @@ object Guard {
             return
         }
         val item = e.itemStack.item
+        if (altersBlocks(item) && !check(level, e.pos, e.entity, Action.BREAK, state.block)) {
+            e.isCanceled = true
+            (e.entity as? ServerPlayer)?.let { resync(it, e.pos) }
+            return
+        }
         if (item is BlockItem || item is HangingEntityItem || item is ArmorStandItem || plantType(item) != null) return guardPlacing(e, state)
         val empty = item is BucketItem && item.content == Fluids.EMPTY
         val ignites = item is FlintAndSteelItem || item is FireChargeItem
@@ -415,7 +439,7 @@ object Guard {
             return
         }
         val wild = target.type.`is`(wildEntities) && unclaimed(e.level, target.blockPosition())
-        if (wild || !check(e.level, target.blockPosition(), e.entity, Action.INTERACT, null, !stash(target))) e.isCanceled = true
+        if (wild || !check(e.level, target.blockPosition(), e.entity, entityAction(target, e.itemStack.item), null, !stash(target))) e.isCanceled = true
     }
 
     @JvmStatic
@@ -440,7 +464,19 @@ object Guard {
         if (breakDenied(e.entity, e.target)) e.isCanceled = true
     }
 
+    private fun splashHarmsProtected(potion: ThrownPotion): Boolean {
+        val thrower = culprit(potion)?.takeUnless { it is FakePlayer } ?: return false
+        val harmful = potion.item.getOrDefault(DataComponents.POTION_CONTENTS, PotionContents.EMPTY).allEffects.any { !it.effect.value().isBeneficial }
+        return harmful && potion.level().getEntitiesOfClass(Player::class.java, potion.boundingBox.inflate(SPLASH_REACH, SPLASH_HEIGHT, SPLASH_REACH)).any { it !== thrower && !pvpAllowed(thrower, it) }
+    }
+
     fun onProjectile(e: ProjectileImpactEvent) {
+        val potion = e.projectile as? ThrownPotion
+        if (potion != null && !potion.level().isClientSide && splashHarmsProtected(potion)) {
+            e.isCanceled = true
+            potion.discard()
+            return
+        }
         val target = (e.rayTraceResult as? EntityHitResult)?.entity ?: return
         if (target is Player) {
             if (target.level().isClientSide) return
@@ -587,7 +623,7 @@ object Guard {
 
     fun announce(p: ServerPlayer) {
         if (!Config.s.notify) return
-        val dim = dim(p.level())!!
+        val dim = dim(p.level()) ?: return
         val k = if (dim in Config.s.dimensionSet) key(dim, p.blockPosition()) else null
         val id = p.stringUUID
         if (last.containsKey(id) && last[id] == k) return
@@ -596,10 +632,11 @@ object Guard {
         val to = k?.let { Realm.index[it] }
         if (k == null || Net.canOpen(p)) return
         val name = to?.let { Realm.data.countries[it.country]?.name }
-        val detail = to?.let { cl ->
+        val visible = to?.takeIf { cl -> Realm.data.countries[cl.country]?.let { knows(p, it) } == true }
+        val detail = visible?.let { cl ->
             val type = Phrase.or("kami_claims.chunk_type.${cl.type}", cl.type)
             cl.owner?.let { o -> Phrase.of("kami_libs.format.dot", type, Names.of(p.server, o)) } ?: type
-        }?.component() ?: Phrase.of("kami_claims.guard.no_building").component()
+        }?.component() ?: if (to != null) Component.empty() else Phrase.of("kami_claims.guard.no_building").component()
         val nomansland = Phrase.of("kami_claims.help.term.nomansland").component()
         if (Config.s.titles && from?.country != to?.country) {
             p.connection.send(ClientboundSetTitlesAnimationPacket(8, 40, 12))
@@ -608,5 +645,5 @@ object Guard {
         } else p.bar(Msg().apply { if (name == null) add(nomansland, Theme.MUTED) else { text(name, Theme.ACCENT); muted("  "); add(detail, Theme.MUTED) } }.out)
     }
 
-    fun forget(p: ServerPlayer) { last.remove(p.stringUUID); lastDenied.remove(p.stringUUID); Effects.forget(p) }
+    fun forget(p: ServerPlayer) { last.remove(p.stringUUID); lastDenied.remove(p.stringUUID); nodeCache.remove(p.uuid); Effects.forget(p) }
 }

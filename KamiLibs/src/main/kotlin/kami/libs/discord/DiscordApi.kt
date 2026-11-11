@@ -2,15 +2,20 @@ package kami.libs.discord
 
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.JDA
+import net.dv8tion.jda.api.entities.MessageEmbed
 import net.minecraft.server.MinecraftServer
 import java.util.UUID
 
 internal const val MESSAGE_MAX = 2000
+internal const val NEWS_MAX = 4096
 
 internal enum class DiscordState { OFF, CONNECTING, READY, DISABLED }
 
 class Post(val name: String, val avatar: String, val text: String, val mentions: Set<Long> = emptySet())
-class Embed(val text: String, val color: Int, val icon: String? = null, val author: String? = null)
+class Embed(
+    val text: String, val color: Int, val icon: String? = null, val author: String? = null,
+    val title: String? = null, val footer: String? = null, val timestamp: java.time.Instant? = null
+)
 class Attachment(val name: String, val url: String)
 class Inbound(
     val userId: Long, val userName: String, val text: String, val overflow: Boolean, val full: String,
@@ -66,6 +71,8 @@ object DiscordApi {
 
     val marketOn: Boolean get() = ready && Discord.marketId != 0L
 
+    val newsOn: Boolean get() = ready && Discord.newsId != 0L
+
     val broken: Boolean get() = !configured && KeyFile.broken
 
     fun register(feature: DiscordFeature) {
@@ -96,13 +103,63 @@ object DiscordApi {
         }) { id -> Discord.post { sent(id) } })
     }
 
-    private fun event(channel: Outbox.Channel, embed: Embed) {
-        val text = Sanitize.outbound(embed.text).take(1024)
-        if (text.isBlank()) return
+    val newsConfigured: Boolean get() = configured && keys.newsChannelId.toLongOrNull() != null
+
+    fun news(embeds: List<Embed>, onSent: (List<Long>) -> Unit = {}) = Discord.guard("news") {
+        val id = Discord.newsId
+        if (Discord.active && id != 0L) postNews(Outbox.Channel.of(id), embeds.mapNotNull { build(it, NEWS_MAX, Sanitize::card) }, onSent)
+    }
+
+    fun editNews(ids: List<Long>, embeds: List<Embed>, onSent: (List<Long>) -> Unit = {}) = Discord.guard("news-edit") {
+        val id = Discord.newsId
+        if (!ready || id == 0L) return@guard
+        val channel = Outbox.Channel.of(id)
+        val built = embeds.mapNotNull { build(it, NEWS_MAX, Sanitize::card) }
+        val keep = ids.take(built.size)
+        keep.forEachIndexed { i, mid ->
+            val e = built[i]
+            Outbox.amend(channel, { it.editMessageEmbedsById(mid, e) }, { it.editMessageEmbedsById(mid, e) })
+        }
+        ids.drop(built.size).forEach { mid -> Outbox.amend(channel, { it.deleteMessageById(mid) }, { it.deleteMessageById(mid) }) }
+        val extra = built.drop(keep.size)
+        if (extra.isNotEmpty()) postNews(channel, extra) { onSent(keep + it) }
+        else if (ids.size != keep.size) Discord.post { onSent(keep) }
+    }
+
+    fun deleteNews(ids: List<Long>) = Discord.guard("news-delete") {
+        val id = Discord.newsId
+        if (!ready || id == 0L) return@guard
+        val channel = Outbox.Channel.of(id)
+        ids.forEach { mid -> Outbox.amend(channel, { it.deleteMessageById(mid) }, { it.deleteMessageById(mid) }) }
+    }
+
+    private fun postNews(channel: Outbox.Channel, built: List<MessageEmbed>, onSent: (List<Long>) -> Unit) {
+        val got = ArrayList<Long>()
+        built.forEach { e ->
+            Outbox.submit(channel, Outbox.embed(e) { id ->
+                val snapshot = synchronized(got) { got += id; got.toList() }
+                Discord.post { onSent(snapshot) }
+            })
+        }
+    }
+
+    private fun event(channel: Outbox.Channel, embed: Embed, max: Int = 1024, clean: (String) -> String = Sanitize::outbound) {
+        Outbox.submit(channel, Outbox.embed(build(embed, max, clean) ?: return))
+    }
+
+    private fun build(embed: Embed, max: Int, clean: (String) -> String): MessageEmbed? {
+        val text = clean(embed.text).take(max)
+        val title = embed.title?.let { Sanitize.card(it).replace('\n', ' ').take(256) }?.takeIf { it.isNotBlank() }
+        if (text.isBlank() && title == null) return null
         val icon = embed.icon?.takeIf { it.startsWith("http") && it.length <= 2000 }
         val author = embed.author?.let(Sanitize::name)
-        val built = EmbedBuilder().setColor(embed.color).setDescription(text).also { if (author != null) it.setAuthor(author, null, icon) }.build()
-        Outbox.submit(channel, Outbox.embed(built))
+        return EmbedBuilder().setColor(embed.color).also { b ->
+            if (text.isNotBlank()) b.setDescription(text)
+            if (title != null) b.setTitle(title)
+            embed.footer?.let { Sanitize.card(it).take(2048) }?.takeIf { it.isNotBlank() }?.let { b.setFooter(it) }
+            embed.timestamp?.let { b.setTimestamp(it) }
+            if (author != null) b.setAuthor(author, null, icon)
+        }.build()
     }
 
     val roomsOn: Boolean get() = ready && Rooms.categoryId != 0L
@@ -129,9 +186,9 @@ object DiscordApi {
         if (Discord.active) chat(Outbox.Channel.of(id), post, sent)
     }
 
-    fun roomEvent(key: String, embed: Embed) = Discord.guard("room-event") {
+    fun roomEvent(key: String, embed: Embed, card: Boolean = false) = Discord.guard("room-event") {
         val id = Rooms.byKey[key] ?: return@guard
-        if (Discord.active) event(Outbox.Channel.of(id), embed)
+        if (Discord.active) event(Outbox.Channel.of(id), embed, clean = if (card) Sanitize::card else Sanitize::outbound)
     }
 
     fun market(card: Card): Boolean {

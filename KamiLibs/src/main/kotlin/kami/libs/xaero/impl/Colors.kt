@@ -46,9 +46,4 @@ object Colors {
         }
         return best
     }
-
-    class Diff(val removed: Set<String>, val upserted: Set<String>)
-
-    fun diff(old: Map<String, Int>, new: Map<String, Int>) =
-        Diff(old.keys - new.keys, new.filter { (k, v) -> old[k] != v }.keys)
 }

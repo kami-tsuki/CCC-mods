@@ -223,7 +223,12 @@ internal class PlayerPage(private val app: AdminApp) : Page() {
     }
 
     private fun overview(ui: Ui, r: Rect, d: PlayerDetail) {
-        val (left, right) = r.columns(2, 8)
+        val narrow = r.w < NARROW_W
+        ui.scroll("player-overview", r, if (narrow) INFO_H * 2 + 8 else INFO_H) { c -> overviewCards(ui, c, d, narrow) }
+    }
+
+    private fun overviewCards(ui: Ui, c: Rect, d: PlayerDetail, narrow: Boolean) {
+        val (left, right) = if (narrow) c.top(INFO_H * 2 + 8).rows(2, 8) else c.columns(2, 8)
         val a = Flow(ui.card(left.top(INFO_H), tr("kami_libs.common.details"), Icons.PERSON), 2)
         ui.secretProperty(a.take(PROP_H), tr("kami_essentials.admin.uuid"), d.row.uuid)
         ui.prop(a, tr("kami_libs.common.name"), d.row.name, copy = true)
@@ -328,7 +333,7 @@ internal class PlayerPage(private val app: AdminApp) : Page() {
 
     private fun inventory(ui: Ui, r: Rect, d: PlayerDetail) {
         val lock = lock(d)
-        r.top(64).columns(2, 8).forEachIndexed { i, cell ->
+        (if (r.w < NARROW_W) r.top(136).rows(2, 8) else r.top(64).columns(2, 8)).forEachIndexed { i, cell ->
             val ender = i == 1
             val label = tr(if (ender) "kami_essentials.inline.ender_chest" else "kami_essentials.inline.inventory")
             val (viewBox, editBox) = ui.card(cell, label, if (ender) Icons.CHEST else Icons.PERSON).top(CONTROL_H).columns(2, 6)
@@ -340,7 +345,7 @@ internal class PlayerPage(private val app: AdminApp) : Page() {
     }
 
     private fun network(ui: Ui, r: Rect, d: PlayerDetail) {
-        val (left, right) = r.columns(listOf(1f, 1.4f), 8)
+        val (left, right) = if (r.w < NARROW_W) r.rows(2, 8) else r.columns(listOf(1f, 1.4f), 8)
         val f = Flow(ui.card(left, tr("kami_essentials.admin.tab.network"), Icons.GLOBE), 2)
         d.lastIp?.let { ui.secretProperty(f.take(PROP_H), tr("kami_essentials.admin.last_ip"), it) }
         d.knownIps?.forEachIndexed { i, ip -> ui.secretProperty(f.take(PROP_H), if (i == 0) tr("kami_essentials.admin.known_ips") else "", ip, Palette.textSecondary) }

@@ -26,6 +26,7 @@ import kami.libs.ui.anim.pulse
 import kami.libs.ui.anim.spring
 import kami.libs.ui.anim.tween
 import kami.libs.ui.anim.transition
+import kami.libs.ui.UiPrefs
 import kami.libs.ui.core.Flow
 import kami.libs.ui.core.Rect
 import kami.libs.ui.core.Tip
@@ -33,9 +34,27 @@ import kami.libs.ui.core.Ui
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
 import kami.libs.ui.style.Icons
+import kami.libs.ui.style.Metrics
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
+import kami.libs.ui.style.Sprites
 import kami.libs.ui.style.TextStyle
+import kami.libs.ui.style.Theme
+import kami.libs.ui.style.ThemeDef
+import kami.libs.ui.style.Variant
+import kami.libs.ui.text.label
+import kami.libs.ui.text.tr
+import kami.libs.press.Doc
+import kami.libs.press.Markup
+import kami.libs.ui.press.Article
+import kami.libs.ui.press.EditorState
+import kami.libs.ui.press.FlagLook
+import kami.libs.ui.press.Inserter
+import kami.libs.ui.press.NewsData
+import kami.libs.ui.press.Newsprint
+import kami.libs.ui.press.PriceStamp
+import kami.libs.ui.press.markupEditor
+import kami.libs.ui.press.newsprintView
 import kami.libs.ui.widget.*
 import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.Component
@@ -43,12 +62,12 @@ import net.minecraft.network.chat.Component
 class Gallery : KamiApp() {
     override val home = Route("buttons")
     private val pages = mapOf(
-        "buttons" to ButtonsPage(this), "inputs" to InputsPage(), "display" to DisplayPage(), "data" to DataPage(), "tree" to TreePage(), "strip" to StripPage(), "motion" to MotionPage(this), "overlays" to OverlaysPage(this)
+        "buttons" to ButtonsPage(this), "inputs" to InputsPage(), "display" to DisplayPage(), "data" to DataPage(), "tree" to TreePage(), "strip" to StripPage(), "motion" to MotionPage(this), "overlays" to OverlaysPage(this), "themes" to ThemesPage(), "press" to PressPage()
     )
 
     override fun buildNav() = listOf(
         NavGroup("Controls", listOf(NavItem("buttons", "Buttons", Icons.CURSOR), NavItem("inputs", "Inputs", Icons.EDIT, { NavBadge(2, Severity.INFO) }))),
-        NavGroup("Content", listOf(NavItem("display", "Display", Icons.DASHBOARD), NavItem("data", "Data", Icons.STATS), NavItem("tree", "Tech tree", Icons.TREE), NavItem("strip", "Strip", Icons.SORT_DOWN), NavItem("motion", "Motion", Icons.CLOCK))),
+        NavGroup("Content", listOf(NavItem("display", "Display", Icons.DASHBOARD), NavItem("data", "Data", Icons.STATS), NavItem("tree", "Tech tree", Icons.TREE), NavItem("strip", "Strip", Icons.SORT_DOWN), NavItem("motion", "Motion", Icons.CLOCK), NavItem("themes", "Themes", Icons.BRUSH), NavItem("press", "Press", Icons.SCROLL))),
         NavGroup("Layers", listOf(NavItem("overlays", "Overlays", Icons.LAYERS), NavItem("locked", "Locked page", Icons.LOCK, lock = { "Example of a page you cannot open yet" })))
     )
 
@@ -296,7 +315,7 @@ private class MotionPage(val app: Gallery) : Page() {
     }
 
     private fun curvesColumn(ui: Ui, f: Flow) {
-        ui.toggle(f.take(14), ui.reduceMotion, "Reduce motion", key = "reduce")?.let { ui.reduceMotion = it }
+        ui.toggle(f.take(14), ui.reduceMotion, "Reduce motion", key = "reduce")?.let { UiPrefs.prefs.reduceMotion = it }
         ui.section(f.take(14), "Curves")
         if (ui.button(f.take(CONTROL_H).left(80), "Play", key = "play")) flip = !flip
         curves.forEach { (name, curve) ->
@@ -352,4 +371,65 @@ private class MotionPage(val app: Gallery) : Page() {
         val lane = f.take(24)
         ui.flowDots(lane.x + 4, lane.y + 4, lane.centerX, lane.right - 4, lane.bottom - 4, Palette.info)
     }
+}
+
+private class ThemesPage : Page() {
+    override val title = "Themes"
+
+    override fun draw(ui: Ui, r: Rect) {
+        val defs = Theme.families().flatMap { family -> listOfNotNull(family.light, family.dark).map { family.label to it } }
+        val columns = maxOf(1, (r.w + CELL_GAP) / (CELL_W + CELL_GAP))
+        val rows = (defs.size + columns - 1) / columns
+        ui.scroll("gallery:themes", r, rows * (CELL_H + CELL_GAP)) { c ->
+            c.grid(columns, CELL_H, defs.size, CELL_GAP).forEachIndexed { i, cell -> swatch(ui, cell, defs[i].second, defs[i].first) }
+        }
+    }
+
+    private fun swatch(ui: Ui, r: Rect, def: ThemeDef, name: String) = Palette.withTheme(def) {
+        val mode = tr(if (def.variant == Variant.DARK) "kami_libs.gallery.themes.dark" else "kami_libs.gallery.themes.light")
+        Draw.sprite(ui.g, Sprites.WINDOW, r)
+        Draw.text(ui.g, "$name · $mode", r.x + 6, r.y + 6, TextStyle.HEADING)
+        val row = Rect(r.x + 6, r.y + 20, r.w - 12, Metrics.controlH).columns(2, 6)
+        Draw.sprite(ui.g, Sprites.Look.PRIMARY.of(false, false, true), row[0])
+        Draw.textCentered(ui.g, "OK", row[0], Palette.textInverse)
+        Draw.sprite(ui.g, Sprites.input(focused = true, invalid = false, enabled = true, hovered = false), row[1])
+        val bar = Rect(r.x + 6, r.bottom - 14, r.w - 12, 6)
+        Draw.sprite(ui.g, Sprites.TRACK, bar)
+        Draw.tinted(ui.g, Sprites.FILL, bar.withWidth(bar.w * 2 / 3), Palette.brass)
+    }
+
+    private companion object {
+        const val CELL_W = 170
+        const val CELL_H = 64
+        const val CELL_GAP = 8
+    }
+}
+
+private class PressPage : Page() {
+    override val title = "Press"
+    private val editor = EditorState(
+        "# Harvest festival\nThe **annual** harvest festival opens on _Saturday_ with a market of {c:green}fresh crops{/c}.\n\n> Prices are expected to rise.\n- Iron {price:minecraft:iron_ingot}\n- Wheat {item:minecraft:wheat}\n---\n^ Signed, the editors"
+    )
+    private val data = NewsData(flag = { FlagLook(0xC0392B, 1, 2, 0xF1C40F) }, price = { PriceStamp("12.5", "Nov 11") })
+    private var autosave = true
+
+    override fun draw(ui: Ui, r: Rect) {
+        val (left, right) = r.columns(2, 12)
+        val inserts = listOf(
+            Inserter("Price", Icons.COIN) { it("{price:minecraft:iron_ingot}") },
+            Inserter("Flag", Icons.FLAG) { it("{flag:ashland}") },
+            Inserter("Head", Icons.PERSON) { it("{head:00000000-0000-0000-0000-000000000000}") },
+            Inserter("Item", Icons.CHEST) { it("{item:minecraft:diamond}") },
+            Inserter("Icon", Icons.STAR) { it("{icon:star}") }
+        )
+        ui.markupEditor(left, editor, "press-editor", inserts = inserts, colorHint = { if (it.free) null else "1 dye per 150 characters" }, article = this::article, statusHeight = 16) { s ->
+            Draw.text(g, "${editor.text.length}/${editor.limit}", s.x, s.y + 4, Palette.textMuted)
+            toggle(Rect(s.right - 90, s.y, 90, 14), autosave, "Autosave")?.let { autosave = it }
+        }
+        val head = Newsprint.mastheadHeight(right.w, "Kami Courier", "Vol. 1")
+        Newsprint.masthead(ui.g, right.top(head), "Kami Courier", "Vol. 1")
+        ui.newsprintView(right.dropTop(head), article(Markup.parse(editor.text)), "press-view")
+    }
+
+    private fun article(doc: Doc) = Article("Harvest festival", "Market notes", doc, Newsprint.signature("Nov 11", "Ashland", listOf("Kami")), data)
 }

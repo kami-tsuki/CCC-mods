@@ -1,38 +1,31 @@
 package kami.claims.service
 
-import kami.claims.Cap
-import kami.claims.Config
 import kami.claims.Country
-import kami.claims.Rank
 import kami.claims.Realm
+import kami.claims.gov.Perm
+import kami.claims.gov.Permissions
 import kami.claims.social.Perms
 import net.minecraft.server.level.ServerPlayer
 
 object Oversight {
-    val actingRank = Rank.PRESIDENT
-    val grantable = listOf(Cap.CLAIM, Cap.CAPITAL, Cap.TAX, Cap.RULES, Cap.JOBS, Cap.HOUSING, Cap.RESEARCH, Cap.TRADE, Cap.INVITE, Cap.WITHDRAW)
+    val grantable = setOf(
+        Perm.CLAIM, Perm.UNCLAIM, Perm.CHUNK_TYPE, Perm.CAPITAL, Perm.CHUNK_RULES, Perm.TAXES, Perm.PLOTS, Perm.HOUSING,
+        Perm.ASSIGN_JOBS, Perm.DEFINE_JOBS, Perm.ASSIGN_CHUNKS, Perm.SCOPE_JOBS, Perm.SECTORS, Perm.RESEARCH, Perm.TRADE
+    )
 
-    private fun overlordRank(c: Country, p: ServerPlayer): Rank? =
-        Realm.of(p.stringUUID)?.takeIf { c.parent == it.id }?.let { Service.rankOf(it, p) }
+    private fun delegating(c: Country, p: ServerPlayer): Country? =
+        Realm.of(p.stringUUID)?.takeIf { c.parent == it.id && Permissions.holds(it, p.stringUUID, Perm.DELEGATED) }
 
-    private fun granted(c: Country, rank: Rank, cap: Cap): Boolean =
-        c.overlordManage && cap in grantable && c.overlordCaps[cap]?.let { rank >= it } == true
+    fun granted(c: Country, p: ServerPlayer, perm: Perm): Boolean =
+        c.overlordManage && perm in grantable && perm in c.overlordPerms &&
+            delegating(c, p)?.let { Permissions.holds(it, p.stringUUID, perm) } == true
 
-    fun granted(c: Country, p: ServerPlayer, cap: Cap): Boolean = overlordRank(c, p)?.let { granted(c, it, cap) } == true
+    fun may(c: Country, p: ServerPlayer, perm: Perm): Boolean =
+        if (p.stringUUID in c.members) Permissions.holds(c, p.stringUUID, perm) else granted(c, p, perm)
 
-    fun may(c: Country, p: ServerPlayer, cap: Cap): Boolean =
-        if (p.stringUUID in c.members) Config.s.can(Service.rankOf(c, p), cap) else granted(c, p, cap)
+    fun perms(c: Country, p: ServerPlayer): List<Perm> = grantable.filter { granted(c, p, it) }
 
-    fun caps(c: Country, p: ServerPlayer): List<String> {
-        val rank = overlordRank(c, p) ?: return emptyList()
-        return grantable.filter { granted(c, rank, it) }.map { it.name.lowercase() }
-    }
+    fun canView(c: Country, p: ServerPlayer): Boolean = Perms.has(p, Perms.ADMIN) || delegating(c, p) != null
 
-    fun canView(c: Country, p: ServerPlayer): Boolean {
-        if (Perms.has(p, Perms.ADMIN)) return true
-        val rank = overlordRank(c, p) ?: return false
-        return rank >= Rank.CHANCELLOR || grantable.any { granted(c, rank, it) }
-    }
-
-    fun canManage(c: Country): Boolean = c.overlordManage && c.overlordCaps.isNotEmpty()
+    fun canManage(c: Country): Boolean = c.overlordManage && c.overlordPerms.isNotEmpty()
 }

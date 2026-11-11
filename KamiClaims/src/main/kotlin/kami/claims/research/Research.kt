@@ -8,10 +8,14 @@ import kami.libs.config.Jsonc
 import kami.libs.log.Log
 import kami.libs.text.Phrase
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import net.minecraft.server.MinecraftServer
 import net.neoforged.neoforge.server.ServerLifecycleHooks
 import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 
 object Research {
     var defs = ResearchDefs.EMPTY
@@ -21,7 +25,7 @@ object Research {
     private val log = Log.of("research")
     private val folder by lazy { ConfigFolder(Configs.dir("claims").resolve("research"), "Reload with /kami reload claims") }
 
-    fun level(country: Country) = country.level.coerceAtLeast(1)
+    fun level(country: Country) = country.level.coerceIn(1, defs.levels.top)
 
     fun available(country: Country): List<Node> = defs.treesFor(country).flatMap { it.nodes }.filter { node ->
         node.key !in country.research.done && country.research.queue.none { it.node == node.key } && Penalty.hard(node).all { it.met(country) }
@@ -30,12 +34,7 @@ object Research {
     fun reload(): String? {
         load(folder)
         ServerLifecycleHooks.getCurrentServer()?.let(::resolve)
-        val migrated = ResearchMigration.last
-        val text = if (defs.settings.migrations == MigrationMode.DRY_RUN) "kami_claims.research.reload.dry_run" else "kami_claims.research.reload.migrated"
-        return listOfNotNull(
-            if (problems.isEmpty()) null else Phrase.of("kami_claims.research.reload.problems", problems.size).resolve(),
-            if (migrated.isEmpty()) null else Phrase.of(text, migrated.size, migrated.map { it.country }.distinct().size).resolve()
-        ).joinToString(". ").ifEmpty { null }
+        return if (problems.isEmpty()) null else Phrase.of("kami_claims.research.reload.problems", problems.size).resolve()
     }
 
     fun resolve(server: MinecraftServer) {
@@ -71,27 +70,38 @@ object Research {
         }.onFailure { log.warn("Could not write the upgraded levels.json: {}", it.message) }
     }
 
-    private fun warnCustomTrees(trees: Map<String, TreeFile>) {
-        val json = Configs.json()
-        val custom = trees.filter { (id, file) ->
-            Defaults.trees[id]?.let { runCatching { json.encodeToString(TreeFile.serializer(), it) != json.encodeToString(TreeFile.serializer(), file) }.getOrDefault(false) } == true
-        }.keys
-        if (custom.isNotEmpty()) log.warn("Research trees {} differ from the bundled defaults, the legacy task signatures and costs may not match and queued progress may be remapped wrongly", custom)
+    var treesCurrent = true
+        internal set
+
+    internal fun replaceStale(dir: Path, bundled: Map<String, TreeFile>): Boolean {
+        var ok = true
+        bundled.forEach { (name, tree) ->
+            val path = dir.resolve("$name.json")
+            if (tree.version <= 0 || !Files.exists(path)) return@forEach
+            val parsed = runCatching { Configs.json().parseToJsonElement(Jsonc.read(path)).jsonObject }.getOrNull() ?: return@forEach
+            val stored = parsed["version"]?.jsonPrimitive?.intOrNull ?: 0
+            if (stored >= tree.version) return@forEach
+            val backup = dir.resolve("$name.json.v$stored.bak")
+            runCatching { Files.move(path, backup, StandardCopyOption.REPLACE_EXISTING) }
+                .onSuccess { log.warn("Tree {} is version {} but {} is bundled, replaced it, the old file is kept as {}", name, stored, tree.version, backup.fileName) }
+                .onFailure { ok = false; log.error("Tree {} is version {} but {} is bundled and the file could not be replaced: {}", name, stored, tree.version, it.message) }
+        }
+        return ok
     }
 
     fun load(folder: ConfigFolder): List<String> {
         folder.startLoad()
+        treesCurrent = replaceStale(folder.root.resolve("trees"), Defaults.trees)
         val settings = folder.file("research.json", ResearchSettings.serializer(), ResearchSettings(), Docs.settings, "Research settings")
         val stored = folder.file("levels.json", LevelsConfig.serializer(), LevelsConfig(version = LevelDefaults.VERSION), Docs.levels, "Country levels and capacities")
         val levels = LevelDefaults.upgrade(stored)
         if (levels !== stored) persistLevels(folder, levels, stored.version)
         val groups = folder.files("groups", Group.serializer(), Defaults.groups, Docs.group, "Research group")
         val trees = folder.files("trees", TreeFile.serializer(), Defaults.trees, Docs.tree, "Research tree")
-        warnCustomTrees(trees)
         val built = Validator.build(settings, levels, groups, trees, defs.trees, Defaults.trees)
         defs = built.defs
-        ResearchMigration.run()
-        if (defs.settings.migrations != MigrationMode.APPLY) Queue.dropOrphans()
+        ResearchReset.run()
+        Queue.dropOrphans()
         Levels.advanceAll()
         loadProblems = folder.problems + built.problems
         problems = loadProblems

@@ -94,8 +94,6 @@ class KamiConfig<T : Any>(
 
     val loaded: T by lazy { load(); value }
 
-    fun saveQuietly(v: T = value) { runCatching { save(v) }.onFailure { log.warn("Could not save {}: {}", Configs.path(mod), it.message) } }
-
     @Synchronized
     fun save(v: T = value) {
         value = v

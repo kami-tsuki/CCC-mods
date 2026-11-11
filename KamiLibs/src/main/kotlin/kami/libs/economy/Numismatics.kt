@@ -4,7 +4,7 @@ import dev.ithundxr.createnumismatics.Numismatics as Nu
 import dev.ithundxr.createnumismatics.content.backend.BankAccount
 import net.minecraft.server.level.ServerPlayer
 import net.neoforged.neoforge.server.ServerLifecycleHooks
-import kami.libs.mixin.BankAccountAccess
+import kami.libs.mixin.NumismaticsBankAccountMixin
 import java.util.UUID
 
 object Numismatics {
@@ -12,7 +12,7 @@ object Numismatics {
 
     fun balance(id: UUID): Long = Nu.BANK.getAccount(id)?.let(::total) ?: 0
 
-    private fun total(account: BankAccount): Long = account.balance + (account as BankAccountAccess).`kami$additional`()
+    private fun total(account: BankAccount): Long = account.balance + (account as NumismaticsBankAccountMixin).`kami$additional`()
 
     fun deduct(id: UUID, amount: Int): Int {
         if (amount <= 0) return 0

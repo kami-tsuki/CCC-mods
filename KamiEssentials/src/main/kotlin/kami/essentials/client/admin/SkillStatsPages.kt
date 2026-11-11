@@ -1,6 +1,8 @@
 package kami.essentials.client.admin
 
+import kami.libs.ui.style.Metrics
 import kami.essentials.client.label
+import kami.essentials.client.nameText
 import kami.essentials.skills.SkillClassStat
 import kami.essentials.skills.SkillIssue
 import kami.essentials.skills.SkillPlayer
@@ -45,7 +47,6 @@ import kami.libs.ui.widget.stackedBar
 import kami.libs.ui.widget.table
 import kotlin.math.min
 
-private const val REFRESH_MS = 15_000L
 private const val BAR_H = 12
 private const val LABEL_W = 56
 private const val MILLI = 1000.0
@@ -56,7 +57,6 @@ private fun clsLabel(id: String) = SkillClass.of(id)?.label() ?: id
 
 private fun clsColor(id: String) = SkillClass.of(id)?.let { Palette.opaque(it.color) } ?: Palette.textMuted
 
-private fun nameText(name: String) = tr("kami_essentials.skill.name.$name")
 
 private fun nodeText(key: String) = key.split('|').let { if (it.size < 2) key else tr("kami_libs.format.paren", nameText(it[1]), clsLabel(it[0])) }
 
@@ -142,7 +142,7 @@ internal class SkillStatsPage : Page() {
     private val xp = SkillClass.entries.map { it to board.counted("skill.xp.cls", obj = it.id) }
     private val members = SkillClass.entries.map { it to board.series("skill.g.class", "max", it.id) }
     private val means = SkillClass.entries.map { it to board.series("skill.g.avg", "avg", it.id) }
-    private val remote = Remote("skills.stats", SkillStatsDto.serializer(), REFRESH_MS) { listOf(range.from?.toString().orEmpty()) }
+    private val remote = Remote("skills.stats", SkillStatsDto.serializer(), Metrics.REFRESH_MS) { listOf(range.from?.toString().orEmpty()) }
     private val tileMemo = Memo()
     private val cardMemo = Memo()
 
@@ -209,7 +209,7 @@ internal class PlayerSkills(private val uuid: String) {
     private val range = TimeRange("player-skills:range")
     private val board = StatBoard(range)
     private val xp = board.counted("skill.xp.cls", "p:$uuid")
-    private val remote = Remote("skills.player", SkillPlayer.serializer(), REFRESH_MS) { listOf(uuid, range.from?.toString().orEmpty()) }
+    private val remote = Remote("skills.player", SkillPlayer.serializer(), Metrics.REFRESH_MS) { listOf(uuid, range.from?.toString().orEmpty()) }
     private val tileMemo = Memo()
     private val cardMemo = Memo()
     private val nodeTable = TableState<SkillRow>()

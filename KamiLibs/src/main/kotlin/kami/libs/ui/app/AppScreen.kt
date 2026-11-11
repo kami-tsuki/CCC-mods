@@ -15,9 +15,10 @@ open class AppScreen(val app: KamiApp, title: Component) : Screen(title) {
     }
 
     override fun mouseClicked(mx: Double, my: Double, button: Int): Boolean {
+        val modalOpen = app.dialogOpen || app.help != null || app.tour != null
         when (button) {
-            GLFW.GLFW_MOUSE_BUTTON_4 -> app.back()
-            GLFW.GLFW_MOUSE_BUTTON_5 -> app.forward()
+            GLFW.GLFW_MOUSE_BUTTON_4 -> if (!modalOpen) app.back()
+            GLFW.GLFW_MOUSE_BUTTON_5 -> if (!modalOpen) app.forward()
             else -> app.ui.input.press(mx.toInt(), my.toInt(), button)
         }
         return true
@@ -52,6 +53,10 @@ open class AppScreen(val app: KamiApp, title: Component) : Screen(title) {
     override fun charTyped(c: Char, mods: Int): Boolean {
         app.ui.input.char(c)
         return true
+    }
+
+    override fun onClose() {
+        if (app.canClose()) super.onClose()
     }
 
     override fun removed() {

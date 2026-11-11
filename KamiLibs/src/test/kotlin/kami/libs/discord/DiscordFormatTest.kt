@@ -1,9 +1,12 @@
 package kami.libs.discord
 
+import java.util.Locale
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class DiscordFormatTest {
+    private fun numFull(n: Long) = String.format(Locale.ROOT, "%,d", n)
+
     @Test
     fun moneyIsCompactAndExactVariantKeepsDigits() {
         assertEquals("999 ¤", DiscordFormat.money(999))
@@ -26,7 +29,7 @@ class DiscordFormatTest {
     @Test
     fun numbersAndPercent() {
         assertEquals("1.2M", DiscordFormat.num(1_234_567))
-        assertEquals("1,234,567", DiscordFormat.numFull(1_234_567))
+        assertEquals("1,234,567", numFull(1_234_567))
         assertEquals("12.3%", DiscordFormat.pct(12.3))
         assertEquals("5%", DiscordFormat.pct(5.0))
     }

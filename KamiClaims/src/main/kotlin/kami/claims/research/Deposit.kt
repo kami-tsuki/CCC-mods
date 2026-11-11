@@ -5,7 +5,7 @@ import kami.claims.service.Service
 import kami.libs.skills.SkillClass
 import kami.libs.skills.Skills
 import net.minecraft.core.component.DataComponents
-import net.minecraft.core.registries.BuiltInRegistries
+import kami.libs.mc.ItemSpec
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.item.ItemStack
 import kotlin.math.ln
@@ -26,7 +26,7 @@ object Deposit {
         val wanted = left
         val inventory = player.inventory
         for (stack in inventory.items) {
-            if (stack.isEmpty || stack.isDamaged || hasContents(stack) || !task.accepts(BuiltInRegistries.ITEM.getKey(stack.item).toString())) continue
+            if (stack.isEmpty || stack.isDamaged || hasContents(stack) || !task.accepts(ItemSpec.id(stack))) continue
             val moved = min(left, stack.count.toLong())
             stack.shrink(moved.toInt())
             left -= moved

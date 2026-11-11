@@ -1,5 +1,7 @@
 package kami.claims
 
+import kami.claims.gov.PRESIDENT
+import kami.claims.gov.CITIZEN
 import kami.claims.research.*
 import kami.claims.service.Fail
 import kami.libs.config.Configs
@@ -44,7 +46,8 @@ class QueueTest : WithDb() {
     private fun country(name: String, treasury: Long = 1000, parent: Country? = null): Country {
         val c = Country(name, treasury = treasury)
         Realm.data.countries[c.id] = c
-        Realm.join(c, "${name}_p", Rank.PRESIDENT)
+        c.mixed()
+        Realm.join(c, "${name}_p", PRESIDENT)
         if (parent != null) { c.parent = parent.id; parent.provinces += c.id }
         return c
     }
@@ -315,7 +318,7 @@ class QueueTest : WithDb() {
     @Test
     fun playerLeavingKeepsTheCountryUnlocks() {
         val c = country("alpha")
-        Realm.join(c, "second", Rank.CITIZEN)
+        Realm.join(c, "second", CITIZEN)
         Queue.grant(c, "t:a")
         Realm.leave(c, "second", Leave.LEAVE)
         assertTrue("t:a" in c.research.done)

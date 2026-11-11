@@ -1,5 +1,8 @@
 package kami.claims
 
+import kami.claims.gov.PRESIDENT
+import kami.claims.gov.CITIZEN
+import kami.claims.gov.Standing
 import kami.claims.net.Sync
 import kami.claims.service.View
 import kotlin.test.Test
@@ -16,8 +19,9 @@ class ViewTest {
         Realm.reset(Data())
         val c = Country("Land").also { it.level = 30; it.treasury = 999 }
         Realm.data.countries[c.id] = c
-        Realm.join(c, "boss", Rank.PRESIDENT)
-        Realm.join(c, "cit", Rank.CITIZEN)
+        c.mixed()
+        Realm.join(c, "boss", PRESIDENT)
+        Realm.join(c, "cit", CITIZEN)
         return c to Claim(c.id, dim, 0, 0, "residential").also { Realm.add(it) }
     }
 
@@ -136,7 +140,8 @@ class ViewTest {
     private fun two(): Triple<Country, Country, Claim> {
         val (a, cl) = land()
         val b = Country("Other").also { it.level = 30; Realm.data.countries[it.id] = it }
-        Realm.join(b, "bob", Rank.PRESIDENT)
+        b.mixed()
+        Realm.join(b, "bob", PRESIDENT)
         val far = Claim(b.id, dim, 5, 5, "residential").also { Realm.add(it) }
         return Triple(a, b, far).also { cl.capital = true }
     }
@@ -146,7 +151,7 @@ class ViewTest {
     @Test
     fun alliedOutsiderGetsNoTypeOrCapital() {
         val (a, _, _) = two()
-        a.outsiders["bob"] = Rank.ALLIED
+        a.outsiders["bob"] = Standing.ALLIED
         val e = entry(View.build("bob"), a.name, 0, 0)
         assertTrue(has(e.flags, View.ALLY))
         assertFalse(has(e.flags, View.CAPITAL))
@@ -156,7 +161,7 @@ class ViewTest {
     @Test
     fun onlyRealAlliancesGetAllianceFlag() {
         val (a, b, _) = two()
-        a.outsiders["bob"] = Rank.ALLIED
+        a.outsiders["bob"] = Standing.ALLIED
         assertFalse(has(entry(View.build("bob"), a.name, 0, 0).flags, View.ALLIANCE))
         b.alliances += a.id
         assertTrue(has(entry(View.build("bob"), a.name, 0, 0).flags, View.ALLIANCE))
@@ -208,7 +213,8 @@ class ViewTest {
         a.safeChunks += kami.claims.war.ChunkRef(dim, 0, 0)
         val stakes = kami.claims.war.Stakes(chunks = listOf(kami.claims.war.ChunkRef(dim, 5, 5)))
         val third = Country("Third").also { Realm.data.countries[it.id] = it }
-        Realm.join(third, "tom", Rank.PRESIDENT)
+        third.mixed()
+        Realm.join(third, "tom", PRESIDENT)
         Realm.data.wars += kami.claims.war.War("w", kami.claims.war.WarKind.REGULAR, kami.claims.war.WarSide(a.id), kami.claims.war.WarSide(b.id), 0L, stakes = stakes)
         Realm.changed()
         assertTrue(has(entry(View.build("boss"), a.name, cl.x, cl.z).flags, View.SAFE))

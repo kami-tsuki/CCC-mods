@@ -3,6 +3,7 @@ package kami.essentials.admin
 import kami.essentials.vanish.Vanish
 import kami.libs.stats.Staff
 import kami.libs.stats.Stats
+import kami.libs.mc.ItemSpec
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.damagesource.DamageSource
@@ -50,10 +51,10 @@ object Activity {
             if (!e.isCanceled) player(e.entity)?.let { Stats.add("block.place", id(it), BuiltInRegistries.BLOCK.getKey(e.placedBlock.block).toString()) }
         }
         FORGE_BUS.addListener<PlayerEvent.ItemCraftedEvent> { e ->
-            player(e.entity)?.let { Stats.add("craft.item", id(it), BuiltInRegistries.ITEM.getKey(e.crafting.item).toString(), e.crafting.count.toLong()) }
+            player(e.entity)?.let { Stats.add("craft.item", id(it), ItemSpec.id(e.crafting), e.crafting.count.toLong()) }
         }
         FORGE_BUS.addListener<PlayerEvent.ItemSmeltedEvent> { e ->
-            player(e.entity)?.let { Stats.add("craft.smelt", id(it), BuiltInRegistries.ITEM.getKey(e.smelting.item).toString(), e.smelting.count.toLong()) }
+            player(e.entity)?.let { Stats.add("craft.smelt", id(it), ItemSpec.id(e.smelting), e.smelting.count.toLong()) }
         }
     }
 

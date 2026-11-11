@@ -3,10 +3,14 @@ package kami.claims.command
 import kami.claims.*
 import kami.claims.admin.CountryAdmin
 import kami.claims.admin.CountryRequests
+import kami.claims.gov.JobScope
+import kami.claims.gov.Perm
+import kami.claims.gov.Permissions
 import kami.claims.net.Net
 import kami.claims.net.Sync
 import kami.claims.service.Housing
 import kami.claims.service.NeedsConfirm
+import kami.claims.service.Scope
 import kami.claims.service.Words
 import kami.claims.service.Words.chunks
 import kami.claims.service.Words.count
@@ -53,14 +57,17 @@ private fun color(c: Country?) = c?.color?.takeIf { it != 0 } ?: Theme.ACCENT
 
 private fun Ctx.status(c: Country) {
     val server = source.server
+    val viewer = me()
+    val full = Scope.of(viewer.stringUUID, Perms.has(viewer, Perms.ADMIN))(c.id)
     val claims = Realm.claims(c.id)
     val sum = Upkeep.summary(c)
-    val leader = c.president()?.let { Phrase.value(Names.of(server, it)) } ?: Phrase.value(Phrase.of("kami_claims.status.nobody"))
+    val leader = Permissions.president(c)?.let { Phrase.value(Names.of(server, it)) } ?: Phrase.value(Phrase.of("kami_claims.status.nobody"))
     msg {
         text(c.name, color(c))
         muted("  ")
         add(Phrase.of("kami_claims.status.led_by", leader, count("kami_claims.unit.member", c.members.size)), Theme.MUTED)
     }
+    if (!full) return
     row { add(Phrase.of("kami_claims.status.treasury", money(c.treasury), Phrase.value(sum.runway(c.treasury))), Theme.MUTED) }
     row {
         add(Text.msg("kami_claims.status.daily",
@@ -78,6 +85,7 @@ private fun Ctx.status(c: Country) {
 private fun Ctx.map(p: ServerPlayer) {
     val o = Service.here(p)
     val legend = linkedSetOf<String>()
+    val scope = Scope.of(p.stringUUID, Perms.has(p, Perms.ADMIN))
     msg { add(Phrase.of("kami_claims.nav.map"), Theme.VALUE); muted("  "); add(Phrase.of("kami_claims.status.map.hint"), Theme.MUTED) }
     (-4..4).forEach { dz ->
         row {
@@ -86,7 +94,7 @@ private fun Ctx.map(p: ServerPlayer) {
                 when {
                     dx == 0 && dz == 0 -> value("◆")
                     cl == null -> text("▪", 0x3A3A42)
-                    else -> { legend += cl.country; text(if (cl.capital) "◈" else "■", color(Realm.country(cl.country))) }
+                    else -> { legend += cl.country; text(if (cl.capital && scope(cl.country)) "◈" else "■", color(Realm.country(cl.country))) }
                 }
             }
         }
@@ -167,7 +175,12 @@ private fun Node.countryMembership(countries: () -> Collection<String>): Node {
         .then(target("banish"))
         .then(target("ally"))
         .then(target("clear"))
-        .then(lit("rank").then(player().then(word("rank") { listOf("citizen", "officer", "chancellor") }.does { it.run("rank", it.who(), it.text("rank")) })))
+        .then(lit("rank")
+            .then(lit("list").does { ctx ->
+                val c = Service.home(ctx.me())
+                c.ranks.forEach { r -> ctx.row { value(r.name); muted("  ${r.id}  ${Permissions.holders(c, r.id)}") } }
+            })
+            .then(lit("set").then(player().then(arg("rank", StringArgumentType.word()).does { it.run("rank_assign", it.who(), it.text("rank")) }))))
         .then(lit("president").then(player().does { it.run("president", it.who()) }.then(lit("confirm").does { it.run("president", it.who(), "confirm") })))
 }
 
@@ -189,49 +202,46 @@ private fun Node.countryTreasury(types: () -> Collection<String>): Node =
     .then(lit("rule").requires { Perms.has(it, Perms.CLAIM) }.then(word("type", types).then(word("field") { Action.values().map { it.name.lowercase() } + "fire" }
         .then(word("value") { Access.values().map { it.name.lowercase() } + listOf("true", "false") }.does { it.run("rule", it.text("type"), it.text("field"), it.text("value")) }))))
 
-private fun Node.countryJobs(jobs: () -> Collection<String>): Node =
+private fun Node.countryJobs(): Node =
     then(lit("job").requires { Perms.has(it, Perms.JOBS) }
         .then(lit("list").does { ctx ->
-            val c = Service.home(ctx.me())
+            val me = ctx.me()
+            val c = Service.home(me)
+            if (!Permissions.holds(c, me.stringUUID, Perm.VIEW_JOBS)) fail(Phrase.of("kami_claims.error.permission"))
             ctx.info(Phrase.of("kami_claims.jobs.title", Phrase.value(c.name)))
-            s.jobs.keys.forEach { j ->
-                c.job(j)?.let { def ->
-                    ctx.row {
-                        add(Words.job(j))
-                        muted("  ")
-                        add(Phrase.of("kami_claims.jobs.row", money(def.pay), num(def.quota), Words.days(def.period), Words.type(s.jobs.getValue(j).type)), Theme.MUTED)
-                    }
+            c.jobDefs.values.forEach { def ->
+                ctx.row {
+                    add(Words.v(def.name))
+                    muted("  ")
+                    add(Phrase.of("kami_claims.jobs.row", money(def.pay), num(def.quota), Words.days(def.period), if (def.scope == JobScope.TYPE) Words.type(def.scopeRef) else Words.v(def.scope.name.lowercase())), Theme.MUTED)
                 }
             }
             c.members.forEach { (id, m) ->
                 m.jobs.forEach { (job, state) ->
                     ctx.row {
                         text("• ${Names.of(ctx.source.server, id)} ")
-                        add(Phrase.of("kami_claims.jobs.member", Words.job(job), num(state.progress)), Theme.MUTED)
-                        val zone = Realm.claimsView(c.id).count { id in it.workers && it.type == s.jobs[job]?.type }
+                        add(Phrase.of("kami_claims.jobs.member", Words.v(c.jobDefs[job]?.name ?: job), num(state.progress)), Theme.MUTED)
+                        val zone = Realm.claimsView(c.id).count { id in it.workers && it.type == c.jobDefs[job]?.scopeRef }
                         if (zone > 0) { muted(" · "); add(Phrase.of("kami_claims.jobs.zone", chunks(zone)), Theme.MUTED) }
                     }
                 }
             }
         })
-        .then(lit("set").then(word("job", jobs).then(word("field") { listOf("pay", "quota", "period") }
-            .then(arg("value", IntegerArgumentType.integer(0)).does { it.run("job_set", it.text("job"), it.text("field"), IntegerArgumentType.getInteger(it, "value").toString()) }))))
-        .then(lit("add").then(player().then(word("job", jobs).does { it.run("job_add", it.who(), it.text("job")) })))
-        .then(lit("remove").then(player().then(word("job", jobs).does { it.run("job_remove", it.who(), it.text("job")) })))
+        .then(lit("add").then(player().then(arg("job", StringArgumentType.word()).does { it.run("job_add", it.who(), it.text("job")) })))
+        .then(lit("remove").then(player().then(arg("job", StringArgumentType.word()).does { it.run("job_remove", it.who(), it.text("job")) })))
         .then(lit("assign").then(player().does { it.run("assign", it.who()) }))
         .then(lit("unassign").then(player().does { it.run("unassign", it.who()) })))
 
 private fun Node.countryCmd(): Node {
     val countries = { Realm.data.countries.values.map { it.id } }
     val types = { s.types.keys }
-    val jobs = { s.jobs.keys }
 
     return requires { Perms.has(it, Perms.USE) }
         .countryCore(countries)
         .countryMembership(countries)
         .countryLand(types)
         .countryTreasury(types)
-        .countryJobs(jobs)
+        .countryJobs()
         .then(provinceCmd(countries))
         .then(warCmd(countries))
 }
@@ -287,7 +297,7 @@ private fun plotCmd(): Node =
             .then(word("group") { Claimant.values().map { it.name.lowercase() } }.then(word("state") { listOf("on", "off") }
                 .then(arg("rent", IntegerArgumentType.integer(-1)).does { it.run("plot_offer", it.text("group"), it.text("state"), IntegerArgumentType.getInteger(it, "rent").toString()) }
                     .then(lit("default").does { it.run("plot_offer", it.text("group"), it.text("state"), IntegerArgumentType.getInteger(it, "rent").toString(), "default") })))))
-        .then(lit("limit").then(word("target") { Rank.values().filter { it >= Rank.CITIZEN }.map { it.name.lowercase() } + Claimant.values().filter { it != Claimant.CITIZEN }.map { it.name.lowercase() } }
+        .then(lit("limit").then(word("target") { Claimant.values().filter { it != Claimant.CITIZEN }.map { it.name.lowercase() } }
             .then(arg("amount", IntegerArgumentType.integer(-1)).does { it.run("plot_limit", it.text("target"), IntegerArgumentType.getInteger(it, "amount").toString()) })))
         .then(lit("law").then(arg("debt", IntegerArgumentType.integer(0)).then(arg("moveout", IntegerArgumentType.integer(1, 30)).does {
             it.run("plot_law", IntegerArgumentType.getInteger(it, "debt").toString(), IntegerArgumentType.getInteger(it, "moveout").toString())
@@ -299,7 +309,7 @@ private fun plotCmd(): Node =
             val cl = Realm.index[Service.here(p)]?.takeIf { it.owner != null } ?: fail(Phrase.of("kami_claims.error.plot_free"))
             val c = Realm.data.countries.getValue(cl.country)
             val me = p.stringUUID
-            val staff = c.members[me]?.let { it.rank >= Config.s.min(Cap.HOUSING) } == true
+            val staff = Permissions.holds(c, me, Perm.HOUSING)
             if (cl.owner != me && cl.roles[me] != Role.HOUSEHOLD && !staff) ctx.info(Phrase.of("kami_claims.plot.info.taken"))
             else {
                 ctx.info(Phrase.of("kami_claims.plot.info", Phrase.value(Names.of(ctx.source.server, cl.owner!!)), Words.rate(Housing.rate(c, cl), 1), money(cl.rentDebt), money(c.rentDebtLimit)))

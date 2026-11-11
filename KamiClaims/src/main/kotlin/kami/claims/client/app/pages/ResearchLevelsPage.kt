@@ -51,11 +51,14 @@ class ResearchLevelsPage(app: ClaimsApp) : ClaimsPage(app) {
 
     private fun freshLocale() = localeSeen.of(Format.locale) { cardRewards.clear(); unlockedNodes.clear() }
 
-    override fun opened(route: Route) {
+    init {
         subscribe(
             ClientResearch.listen { cardRewards.clear(); unlockedNodes.clear() },
-            ClientResearch.onChange { change -> if (change.leveledUp && app.isOpen) levelUp = true }
+            ClientResearch.onChange { change -> if (change.leveledUp && app.isOpen && app.route.page == "levels") levelUp = true }
         )
+    }
+
+    override fun opened(route: Route) {
         cardRewards.clear()
         unlockedNodes.clear()
         popTrigger = 0L
@@ -97,7 +100,7 @@ class ResearchLevelsPage(app: ClaimsApp) : ClaimsPage(app) {
 
     private fun strip(ui: Ui, r: Rect, levels: List<LevelView>, cardH: Int, compact: Boolean) {
         val state = ClientResearch.state
-        val width = PAD * 2 + levels.size * CARD_W + (levels.size - 1) * CARD_GAP
+        val width = PAD * 2 + levels.size * CARD_W + (levels.size - 1).coerceAtLeast(0) * CARD_GAP
         val celebrate = levelUp
         if (celebrate) { levelUp = false; centered = false; popTrigger++ }
         val scroll = ui.hstrip("levels-strip", r, width, CARD_W + CARD_GAP, snap = true) { area ->

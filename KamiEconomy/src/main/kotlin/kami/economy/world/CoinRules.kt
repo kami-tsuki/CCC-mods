@@ -16,6 +16,7 @@ import kami.libs.db.Rows
 import kami.libs.db.SavePoint
 import kami.libs.economy.CoinReturn
 import kami.libs.economy.Numismatics
+import kami.libs.mc.ItemSpec
 import kami.libs.text.Phrase
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.core.registries.BuiltInRegistries
@@ -134,17 +135,15 @@ object CoinRules {
             slot < 0 -> null
             else -> return
         }
-        target?.item?.takeIf(::isCoin)?.let { KeptCoins.add(p.uuid, id(it), it.count) }
+        target?.item?.takeIf(::isCoin)?.let { KeptCoins.add(p.uuid, ItemSpec.id(it), it.count) }
         if (!isCoin(stack)) return
         val allowed = if (target == null) !dropBlocked else accepts(target)
-        val n = if (allowed) KeptCoins.take(p.uuid, id(stack), stack.count) else 0
+        val n = if (allowed) KeptCoins.take(p.uuid, ItemSpec.id(stack), stack.count) else 0
         if (n < stack.count) notify(p, "creative")
         stack.count = n
     }
 
     private fun accepts(slot: Slot) = acceptsCoins(slot.container is Inventory, slot.javaClass.name, (slot as? GridGateAccessor)?.kamiMenu()?.javaClass?.name)
-
-    private fun id(stack: ItemStack) = BuiltInRegistries.ITEM.getKey(stack.item).toString()
 
     private fun restrict(e: RegisterCommandsEvent) = ROOTS.forEach { root ->
         val node = e.dispatcher.root.getChild(root) ?: return@forEach
@@ -170,7 +169,7 @@ object CoinRules {
 
     private fun death(e: LivingDropsEvent) {
         val p = e.entity as? ServerPlayer ?: return
-        e.drops.removeIf { d -> isCoin(d.item).also { if (it) KeptCoins.add(p.uuid, id(d.item), d.item.count) } }
+        e.drops.removeIf { d -> isCoin(d.item).also { if (it) KeptCoins.add(p.uuid, ItemSpec.id(d.item), d.item.count) } }
     }
 
     private fun holder(e: PlayerInteractEvent, target: Entity): Boolean {
@@ -194,13 +193,13 @@ object CoinRules {
     internal fun keep(owner: UUID, stack: ItemStack) {
         if (stack.isEmpty) return
         Numismatics.online(owner)?.let { return keep(it, stack) }
-        KeptCoins.add(owner, id(stack), stack.count)
+        KeptCoins.add(owner, ItemSpec.id(stack), stack.count)
     }
 
     private fun keep(p: ServerPlayer, stack: ItemStack) {
         val rest = stow(p, stack)
         if (rest.isEmpty) return
-        KeptCoins.add(p.uuid, id(rest), rest.count)
+        KeptCoins.add(p.uuid, ItemSpec.id(rest), rest.count)
         notify(p, "owed")
     }
 

@@ -2,6 +2,8 @@ package kami.claims.client.map
 
 import kami.libs.ui.text.tr
 import kami.claims.client.app.ClientLocks
+import kami.claims.gov.Perm
+import kami.claims.gov.SectorRules
 import kami.claims.net.ClaimLine
 import kami.claims.client.ClientClaims
 import kami.libs.ui.widget.Flags
@@ -52,6 +54,7 @@ private class Cells {
 }
 
 private const val MAX_COUNT = 99
+private const val SECTOR_LABEL_ZOOM = 6
 
 private inline fun each(claims: Map<Long, View.Entry>?, xs: IntRange, zs: IntRange, f: (Int, Int, View.Entry) -> Unit) {
     if (claims == null || claims.isEmpty()) return
@@ -77,28 +80,38 @@ private inline fun eachKey(keys: Set<Long>?, xs: IntRange, zs: IntRange, f: (Int
 
 object ClaimsLayer {
     private var debtRevision = -1
+    private var refreshDim = ""
+    private val placed = ArrayList<Rect>()
     private val debt = Cells()
     private val rentDebt = Cells()
     private val staffed = Cells()
-    private var jobTypes: Set<String> = emptySet()
     private var officer = false
     private var priceByType: Map<String, Double> = emptyMap()
     private var topPrice = 1.0
     private val counts = Array(MAX_COUNT + 1) { it.toString() }
     private val overflow = "$MAX_COUNT+"
 
-    private fun refresh() {
-        if (debtRevision == ClaimsStore.revision) return
+    private fun refresh(dim: String) {
+        if (debtRevision == ClaimsStore.revision && refreshDim == dim) return
         debtRevision = ClaimsStore.revision
+        refreshDim = dim
         val snap = ClaimsStore.snap
-        jobTypes = snap?.types?.filter { it.job.isNotEmpty() }?.map { it.name }?.toSet().orEmpty()
         priceByType = snap?.types?.associate { it.name to it.price.toDouble() / max(1, it.period) }.orEmpty()
         topPrice = priceByType.values.maxOrNull()?.takeIf { it > 0 } ?: 1.0
-        officer = ClaimsStore.info != null && ClientLocks.cap("jobs") == null
-        val lines = ClaimsStore.info?.claimList.orEmpty()
+        officer = ClientLocks.perm(Perm.ASSIGN_CHUNKS) == null
+        val info = ClaimsStore.info
+        val lines = info?.claimList.orEmpty()
         debt.fill(lines) { if (it.debt > 0) it.debt else -1 }
         rentDebt.fill(lines) { if (it.rentDebt > 0) 0 else -1 }
-        staffed.fill(lines) { if (it.type in jobTypes) it.workers else -1 }
+        val active = info?.jobSpecs.orEmpty().filter { it.active }
+        val countryJob = active.any { it.scope == "country" }
+        val typeRefs = active.filter { it.scope == "type" }.mapTo(HashSet()) { it.scopeRef }
+        val sectorRefs = active.filter { it.scope == "sector" }.mapTo(HashSet()) { it.scopeRef }
+        val sectorCells = HashSet<Long>()
+        SectorShapes.of(dim).forEach { if (it.line.id in sectorRefs && !it.line.fragmented) sectorCells += it.cells }
+        staffed.fill(lines) { line ->
+            if (countryJob && line.type in SectorRules.workTypes || line.type in typeRefs || ClientClaims.key(line.x, line.z) in sectorCells) line.workers else -1
+        }
     }
 
     private fun fill(mode: MapMode, e: View.Entry): Int {
@@ -128,7 +141,7 @@ object ClaimsLayer {
     }
 
     fun draw(ui: Ui, map: ChunkMap, dim: String, mode: MapMode, layers: Set<String>, you: Pair<Int, Int>?) {
-        refresh()
+        refresh(dim)
         val g = ui.g
         val xs = map.visibleX()
         val zs = map.visibleZ()
@@ -156,8 +169,11 @@ object ClaimsLayer {
         }
         if ("work" in layers) work(ui, map, claims, xs, zs)
         if ("borders" in layers || mode == MapMode.TERRAIN) borders(ui, map, claims, xs, zs)
+        if ("sectors" in layers) sectors(ui, map, dim, xs, zs)
         if ("markers" in layers && zoom >= 8) markers(ui, map, claims, xs, zs)
+        placed.clear()
         if ("labels" in layers && zoom <= 16) labels(ui, map, dim, claims, xs, zs)
+        if ("sectors" in layers && zoom >= SECTOR_LABEL_ZOOM) sectorLabels(ui, map, dim, xs, zs)
         you?.let { (x, z) ->
             val r = map.cell(x, z)
             if (zoom >= 10) Draw.head(g, ClaimsStore.snap?.me ?: "", r.centerX - 4, r.centerY - 4, 8)
@@ -172,7 +188,8 @@ object ClaimsLayer {
             val flags = e.flags
             val mine = flags and View.ASSIGNED != 0
             val offer = flags and View.OFFER != 0
-            val staff = officer && ClientClaims.typeName(e) in jobTypes
+            val count = if (officer) staffed.get(ClientClaims.key(x, z)) else -1
+            val staff = count >= 0
             if (!mine && !offer && !staff) return@each
             val r = map.cell(x, z)
             if (mine) {
@@ -183,10 +200,9 @@ object ClaimsLayer {
                 if (zoom >= 12) Draw.marker(g, Icons.ADD, r.centerX, r.centerY)
             }
             if (!staff || zoom < 8) return@each
-            val n = staffed.get(ClientClaims.key(x, z)).takeIf { it >= 0 } ?: return@each
-            if (n == 0) Draw.hatch(g, r, Palette.alpha(Palette.warning, 0x50), 4)
+            if (count == 0) Draw.hatch(g, r, Palette.alpha(Palette.warning, 0x50), 4)
             else {
-                val label = if (n <= MAX_COUNT) counts[n] else overflow
+                val label = if (count <= MAX_COUNT) counts[count] else overflow
                 val w = Draw.width(label) + 4
                 Draw.fill(g, Rect(r.right - w - 1, r.y + 1, w, 10), Palette.alpha(0x0C0E12, 0xC8))
                 Draw.text(g, label, r.right - w + 1, r.y + 2, Palette.tipText)
@@ -223,6 +239,47 @@ object ClaimsLayer {
         }
     }
 
+    private fun sectors(ui: Ui, map: ChunkMap, dim: String, xs: IntRange, zs: IntRange) {
+        val g = ui.g
+        val thick = if (map.zoom >= 12) 2 else 1
+        SectorShapes.of(dim).forEach { s ->
+            val dashed = s.line.fragmented
+            val color = Palette.opaque(if (dashed) Palette.mix(s.line.color, Palette.warning, 0.6f) else s.line.color)
+            val inset = s.inset * thick
+            val edges = s.edges
+            var i = 0
+            while (i < edges.size) {
+                val x = edges[i]
+                val z = edges[i + 1]
+                val side = edges[i + 2]
+                i += 3
+                if (x !in xs || z !in zs || dashed && (x + z + side) and 1 == 1) continue
+                val r = map.cell(x, z)
+                Draw.fill(g, when (side) {
+                    0 -> Rect(r.x, r.y + inset, r.w, thick)
+                    1 -> Rect(r.x, r.bottom - inset - thick, r.w, thick)
+                    2 -> Rect(r.x + inset, r.y, thick, r.h)
+                    else -> Rect(r.right - inset - thick, r.y, thick, r.h)
+                }, color)
+            }
+        }
+        g.flush()
+    }
+
+    private fun sectorLabels(ui: Ui, map: ChunkMap, dim: String, xs: IntRange, zs: IntRange) {
+        SectorShapes.of(dim).forEach { s ->
+            val (x, z) = ChunkCells.cell(s.anchor)
+            if (x !in xs || z !in zs) return@forEach
+            val w = Draw.width(s.line.name) + 14
+            val box = Rect(map.sx(x + 0.5) - w / 2, map.sz(z + 0.5) - 6, w, 13)
+            if (placed.any { p -> p.intersect(box).let { it.w > 0 && it.h > 0 } } || !map.view.contains(box.centerX, box.centerY)) return@forEach
+            placed += box
+            Draw.fill(ui.g, box, Palette.alpha(0x0C0E12, 0xB0))
+            Draw.fill(ui.g, Rect(box.x + 2, box.y + 3, 5, 7), Palette.opaque(s.line.color))
+            Draw.text(ui.g, s.line.name, box.x + 10, box.y + 3, Palette.tipText)
+        }
+    }
+
     private var labelRev = -1
     private var labelDim = ""
     private var labelBounds = IntRange.EMPTY to IntRange.EMPTY
@@ -244,7 +301,6 @@ object ClaimsLayer {
     }
 
     private fun labels(ui: Ui, map: ChunkMap, dim: String, claims: Map<Long, View.Entry>?, xs: IntRange, zs: IntRange) {
-        val placed = ArrayList<Rect>()
         labelSums(dim, claims, xs, zs).forEach { (idx, acc) ->
             if (acc[2] < 3) return@forEach
             val country = ClientClaims.countries.getOrNull(idx) ?: return@forEach

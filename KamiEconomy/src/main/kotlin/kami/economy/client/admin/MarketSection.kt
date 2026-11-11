@@ -8,7 +8,6 @@ import kami.libs.ui.app.AdminSection
 import kami.libs.ui.app.AdminSections
 import kami.libs.ui.app.NavItem
 import kami.libs.ui.core.Tip
-import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr

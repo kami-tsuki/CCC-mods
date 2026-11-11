@@ -1,5 +1,6 @@
 package kami.economy.client.ui
 
+import kami.libs.ui.style.Metrics
 import kami.economy.LOG
 import kami.economy.client.admin.MarketSection
 import kami.economy.client.MarketLink
@@ -29,7 +30,6 @@ import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 import kotlin.math.roundToLong
 
-private const val CHART_H = 132
 private const val HEAD_H = 30
 private const val PILLS_W = 112
 private const val BOOK_ROW = 11
@@ -38,6 +38,7 @@ private const val BOOK_MID = 4
 private const val VENDOR_ROWS = 8
 private const val TICKET_H = 440
 private const val TICKET_W = 190
+private const val COMPACT_W = 440
 
 internal class ItemPage(val app: MarketApp) : Page() {
     private enum class Span(val arg: String, val pattern: String) {
@@ -50,6 +51,10 @@ internal class ItemPage(val app: MarketApp) : Page() {
         }
     }
 
+    private enum class Pane(val label: String) { CHART("kami_economy.item.pane.chart"), TRADE("kami_economy.item.pane.trade") }
+
+    private val paneOptions by localized { Pane.entries.map { Option(it, tr(it.label)) } }
+    private var pane = Pane.CHART
     private var item = ""
     private var span = Span.of(MarketPrefs.prefs.chartRange)
     private var style = ChartStyle.CANDLE
@@ -88,6 +93,7 @@ internal class ItemPage(val app: MarketApp) : Page() {
         val next = route.param("item") ?: return
         item = next
         vendorsOpen = false
+        pane = if (route.param("side") != null) Pane.TRADE else Pane.CHART
         ticket.open(next, route.param("side") != "sell", route.param("kind") == "order", route.param("variant").orEmpty())
         fetch()
     }
@@ -136,9 +142,17 @@ internal class ItemPage(val app: MarketApp) : Page() {
             KpiTile(tr("kami_economy.market.sell_now"), d?.let { Format.money(sp(it.sell.toLong())) }, color = Palette.money, sub = lotSub, tip = d?.takeIf { it.sell > 0 }?.let { Tip.text(tr("kami_economy.kpi.sell", lotShown), source(it.sellServer)) } ?: Tip.text(tr("kami_economy.kpi.sell", 1)))
         ), key = "item-kpi")
         val main = r.dropTop(76 + qh)
-        val ticketW = if (main.w < 440) main.w * 5 / 12 else TICKET_W
-        left(ui, main.dropRight(ticketW, 8), d)
-        val right = main.right(ticketW)
+        if (main.w < COMPACT_W) {
+            ui.segmented(main.top(SMALL_H), paneOptions, pane, key = "pane")?.let { pane = it }
+            val body = main.dropTop(SMALL_H, 4)
+            if (pane == Pane.CHART) left(ui, body, d) else ticketPane(ui, body, d)
+        } else {
+            left(ui, main.dropRight(TICKET_W, 8), d)
+            ticketPane(ui, main.right(TICKET_W), d)
+        }
+    }
+
+    private fun ticketPane(ui: Ui, right: Rect, d: Detail?) {
         ui.anchor("item:ticket", right)
         val actRect = right.bottom(CONTROL_H)
         val act = arrayOfNulls<Act>(1)
@@ -162,8 +176,8 @@ internal class ItemPage(val app: MarketApp) : Page() {
         val candles = ui.filtered("chart:history:${ticket.shown}", d?.chart?.candles ?: emptyList<Any>()) {
             d?.chart?.candles.orEmpty().map { Ohlc(it.open * factor, it.high * factor, it.low * factor, it.close * factor, it.volume.toDouble(), it.at) }
         }
-        ui.scroll("item-left", r, HEAD_H + 4 + CHART_H + 8 + 12 + rows + vendorH) { c ->
-            val chart = Rect(c.x, c.y + HEAD_H + 4, c.w, CHART_H)
+        ui.scroll("item-left", r, HEAD_H + 4 + Metrics.chartH + 8 + 12 + rows + vendorH) { c ->
+            val chart = Rect(c.x, c.y + HEAD_H + 4, c.w, Metrics.chartH)
             ui.anchor("item:chart", chart)
             val open = d?.chart?.open?.toDouble()?.takeIf { it > 0 }?.let { it * factor }
             val ready = d != null && (!waiting || spans[item] == span)

@@ -1,7 +1,9 @@
 package kami.claims.war
 
 import kami.claims.Config
+import kami.claims.KamiClaims
 import kami.claims.Country
+import kami.claims.gov.Permissions
 import kami.claims.LedgerKind
 import kami.claims.Realm
 import kami.claims.TradePolicy
@@ -37,11 +39,13 @@ object Wars {
 
     fun enemies(a: String, b: String) = a != b && Realm.data.wars.any { w -> w.active && w.side(a)?.let { b in w.opponent(it).countries } == true }
 
+    fun enemy(player: String, c: Country) = Realm.of(player)?.let { enemies(it.id, c.id) } == true
+
     fun combatant(war: War, c: Country, uuid: String) = c.id in war.countries && (c.members[uuid]?.since ?: Long.MAX_VALUE) < war.declaredAt
 
     fun imposed(a: String, b: String) = Realm.data.wars.any { it.active && "$a|$b" in it.embargoes }
 
-    internal fun pairUntil(a: Country, b: Country) = listOfNotNull(a.warPairs[b.id], a.president()?.let { b.warPairsBy[it] }).maxOrNull() ?: 0L
+    internal fun pairUntil(a: Country, b: Country) = listOfNotNull(a.warPairs[b.id], Permissions.president(a)?.let { b.warPairsBy[it] }).maxOrNull() ?: 0L
 
     fun pending(c: Country) = Realm.data.wars.filter { it.phase == WarPhase.DECLARATION && it.defender.main == c.id }
 
@@ -57,6 +61,7 @@ object Wars {
         WarDebt.escrow(attacker, LedgerKind.WAR_STAKE, -stakes.money, target.name)
         Joining.snapshot(war)
         Realm.data.wars += war
+        Joining.levy(war)
         Stats.event("war.declare", "c:${attacker.id}", "c:${target.id}")
         attacker.warDeclared.removeAll { it < t - s.feeDoublingDays * day }
         attacker.warDeclared += t
@@ -65,7 +70,7 @@ object Wars {
         attacker.warPairs.values.removeAll { it <= t }
         attacker.warPairs[target.id] = until
         target.warPairsBy.values.removeAll { it <= t }
-        attacker.president()?.let { target.warPairsBy[it] = until }
+        Permissions.president(attacker)?.let { target.warPairsBy[it] = until }
         tell(target.id, Phrase.of("kami_claims.mail.war.declared", v(attacker.name), hours(war.phaseEnds - t)), Tone.WARN)
         if (stakes.vassal && kind == WarKind.REGULAR) target.parent?.let {
             tell(it, Phrase.of("kami_claims.mail.war.province_target", v(attacker.name), v(target.name)), Tone.WARN)
@@ -138,12 +143,13 @@ object Wars {
         return Phrase.of("kami_claims.done.war.capitulated", v(name(winner.main)))
     }
 
-    internal fun end(war: War, result: WarResult) {
+    internal fun end(war: War, result: WarResult, announce: Boolean = true) {
         war.result = result
         Stats.event("war.end", "c:${war.attacker.main}", "c:${war.defender.main}", result.ordinal.toLong())
         war.offer = null
         war.extendedDays = 0
         if (result == WarResult.WITHDRAWN) return close(war)
+        if (announce && war.phase != WarPhase.SETTLEMENT) announceEnd(war)
         war.phase = WarPhase.SETTLEMENT
         war.phaseEnds = now() + s.settlementDays * day
         Realm.changed()
@@ -217,7 +223,7 @@ object Wars {
                 val msg = Phrase.of("kami_claims.mail.war.silence", v(name(war.defender.main)), v(name(war.attacker.main)))
                 mail(war.sides.map { it.main }, msg, Tone.WARN)
                 war.silent = true
-                end(war, WarResult.ATTACKER)
+                end(war, WarResult.ATTACKER, announce = false)
             }
             WarPhase.PREPARATION, WarPhase.CEASEFIRE -> {
                 war.phase = WarPhase.WAR
@@ -228,7 +234,7 @@ object Wars {
                 val msg = Phrase.of("kami_claims.mail.war.started", v(name(war.attacker.main)), v(name(war.defender.main)))
                 mail(war.sides.map { it.main }, msg, Tone.BAD)
                 Realm.country(war.attacker.main)?.let {
-                    val vars = mapOf("country" to it.name, "other" to name(war.defender.main), "phase" to "war")
+                    val vars = mapOf("country" to it.name, "other" to name(war.defender.main), "phase" to "war", "warId" to war.id)
                     Announce.fire("warPhase", it, vars, mapOf("phase" to Phrase.of("kami_claims.war.phase.war")))
                 }
                 Realm.changed()
@@ -240,20 +246,25 @@ object Wars {
 
     internal fun close(war: War, cooldown: Boolean = true) {
         val t = now()
+        val announced = war.phase == WarPhase.SETTLEMENT
         war.phase = WarPhase.ENDED
         war.phaseEnds = 0
         war.endedAt = t
         val mains = war.sides.mapNotNull { Realm.country(it.main) }
-        lift(war)
-        Reputation.ended(war)
+        runCatching { lift(war) }.onFailure { KamiClaims.LOG.error("War lift failed", it) }
+        runCatching { Reputation.ended(war) }.onFailure { KamiClaims.LOG.error("War reputation failed", it) }
         Spoils.apply(war)
         if (cooldown) mains.filter { war.result != WarResult.WITHDRAWN || it.id == war.defender.main }.forEach { it.warCooldownUntil = t + s.cooldownDays * day }
         val msg = Phrase.of("kami_claims.mail.war.ended", v(name(war.attacker.main)), v(name(war.defender.main)))
         mail(mains.map { it.id }, msg)
-        val (result, local) = outcome(war)
-        val vars = mapOf("country" to name(war.attacker.main), "other" to name(war.defender.main), "result" to result)
-        mains.firstOrNull()?.let { Announce.fire("warEnded", it, vars, mapOf("result" to local)) }
+        if (!announced) announceEnd(war)
         Realm.changed()
+    }
+
+    private fun announceEnd(war: War) {
+        val (result, local) = outcome(war)
+        val vars = mapOf("country" to name(war.attacker.main), "other" to name(war.defender.main), "result" to result, "code" to (war.result?.name?.lowercase() ?: "white"))
+        (Realm.country(war.attacker.main) ?: Realm.country(war.defender.main))?.let { Announce.fire("warEnded", it, vars, mapOf("result" to local)) }
     }
 
     private fun lift(war: War) = war.embargoes.forEach { e ->

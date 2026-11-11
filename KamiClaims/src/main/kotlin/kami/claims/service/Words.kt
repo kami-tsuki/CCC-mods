@@ -1,7 +1,9 @@
 package kami.claims.service
 
 import kami.claims.Claimant
-import kami.claims.Rank
+import kami.claims.Country
+import kami.claims.gov.Perm
+import kami.claims.gov.Permissions
 import kami.claims.TaxMode
 import kami.libs.text.Phrase
 import kami.libs.ui.style.Format
@@ -14,12 +16,14 @@ object Words {
     fun days(n: Number) = count("kami_claims.unit.day", n)
     fun chunks(n: Number) = count("kami_claims.unit.chunk", n)
     fun type(id: String) = Phrase.or("kami_claims.chunk_type.$id", id.replaceFirstChar(Char::uppercase)).asValue()
-    fun job(id: String) = Phrase.or("kami_claims.job.$id", id).asValue()
+    fun job(name: String): Phrase = v(name)
     fun feature(id: String): Phrase =
         if (id.startsWith("claim_type:")) Phrase.of("kami_claims.feature.claim_type", type(id.substringAfter(':'))).asValue()
         else Phrase.of("kami_claims.feature.${id.replace(':', '.')}").asValue()
 
-    fun rank(r: Rank) = Phrase.of("kami_claims.rank.${r.name.lowercase()}").asValue()
+    fun rank(c: Country, id: String): Phrase = v(Permissions.rank(c, id)?.name ?: id)
+
+    fun perm(perm: Perm): Phrase = Phrase.of("kami_claims.perm.${perm.node}").asValue()
 
     fun claimant(c: Claimant): Phrase = Phrase.of("kami_claims.claimant.${c.name.lowercase()}").asValue()
 

@@ -11,6 +11,8 @@
     "DispenserTransferMixin",
     "DropperTransferMixin",
     "TfmgSparkMixin",
+    "SophisticatedMagnetMixin",
+    "SophisticatedLinkerMixin",
     "research.LevelMixin",
     "research.ServerLevelMixin",
     "research.PacketListenerMixin",

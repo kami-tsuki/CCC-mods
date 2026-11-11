@@ -1,5 +1,6 @@
 package kami.essentials.client.admin
 
+import kami.libs.ui.style.Metrics
 import kami.libs.economy.WealthDay
 import kami.libs.ui.app.Page
 import kami.libs.ui.app.STAT_TILE_H
@@ -19,12 +20,9 @@ import kami.libs.ui.widget.*
 import kotlinx.serialization.builtins.ListSerializer
 import kami.libs.economy.Flow as MoneyFlow
 
-private const val CARD_H = 130
 private const val FLOW_H = 220
 private const val FLOW_CHART_H = 56
-private const val GAP = 6
 private const val SCROLLBAR_W = 4
-private const val REFRESH_MS = 10_000L
 private const val GINI_SCALE = 1000.0
 private val RANGES = listOf(30, 90, 365)
 
@@ -37,7 +35,7 @@ internal class EconomyPage : Page() {
     private var range = RANGES.first()
     private var picked: Int? = null
     private val history = Remote("wealth.history", ListSerializer(WealthDay.serializer())) { listOf(range.toString()) }
-    private val live = Remote("wealth.live", WealthDay.serializer(), REFRESH_MS)
+    private val live = Remote("wealth.live", WealthDay.serializer(), Metrics.REFRESH_MS)
     private val table = TableState<FlowRow>()
 
     override fun draw(ui: Ui, r: Rect) {
@@ -53,18 +51,18 @@ internal class EconomyPage : Page() {
         val stale = history.data == null
         val foot = tr("kami_essentials.admin.economy.footnote")
         val footH = Draw.paragraphHeight(foot, r.w - SCROLLBAR_W) + 2
-        val height = CONTROL_H + STAT_TILE_H + CARD_H * 2 + FLOW_H + footH + GAP * 5
+        val height = CONTROL_H + STAT_TILE_H + Metrics.cardH * 2 + FLOW_H + footH + Metrics.gap * 5
         ui.scroll("economy", r, height) { c ->
-            val s = Stack(c.x, c.y, c.w, GAP)
+            val s = Stack(c.x, c.y, c.w, Metrics.gap)
             ui.choice(s.take(CONTROL_H), RANGES.map { Option(it, tr("kami_libs.range.${it}d")) }, range, "eco-range")?.let {
                 range = it
                 picked = null
             }
             kpis(ui, s.take(STAT_TILE_H), now)
-            val (supplyBox, shareBox) = s.take(CARD_H).columns(listOf(1.4f, 1f), GAP)
+            val (supplyBox, shareBox) = s.take(Metrics.cardH).columns(listOf(1.4f, 1f), Metrics.gap)
             supplyChart(ui, supplyBox, days, stale)
             share(ui, shareBox, now)
-            val (topBox, bracketBox) = s.take(CARD_H).columns(2, GAP)
+            val (topBox, bracketBox) = s.take(Metrics.cardH).columns(2, Metrics.gap)
             val top = ui.card(topBox, tr("kami_essentials.admin.economy.top"), Icons.CROWN)
             if (now == null) ui.skeleton(top)
             else ui.barChart(top, now.top.map { it.amount.coerceAtLeast(0) }, emptyList(), now.top.map { it.name }, format = { Format.money(it) }, key = "eco-top")
@@ -73,7 +71,7 @@ internal class EconomyPage : Page() {
             else ui.barChart(brackets, now.brackets.map { it.count.toLong() }, emptyList(), now.brackets.map {
                 if (it.max <= 0) Format.money(0) else tr("kami_essentials.admin.economy.bracket", Format.number(it.min), Format.number(it.max))
             }, key = "eco-brackets")
-            val (giniBox, flowBox) = s.take(FLOW_H).columns(2, GAP)
+            val (giniBox, flowBox) = s.take(FLOW_H).columns(2, Metrics.gap)
             giniChart(ui, giniBox, days, stale)
             flows(ui, flowBox, days ?: now?.let(::listOf))
             Draw.paragraph(ui.g, foot, c.x, s.take(footH).y + 2, c.w, Palette.textMuted)
@@ -106,7 +104,7 @@ internal class EconomyPage : Page() {
         val body = ui.card(r, tr("kami_libs.common.share"), Icons.PERCENT)
         if (d == null) {
             ui.skeleton(body.left(body.h))
-            ui.skeletonLines(body.dropLeft(body.h, GAP), 5)
+            ui.skeletonLines(body.dropLeft(body.h, Metrics.gap), 5)
             return
         }
         val slices = listOf(
@@ -117,7 +115,7 @@ internal class EconomyPage : Page() {
             Slice(tr("kami_essentials.bank.group"), d.bank.coerceAtLeast(0), Palette.chart[0])
         )
         ui.donut(body.left(body.h), slices, Format.number(slices.sumOf { it.value }), key = "eco-donut")
-        val side = body.dropLeft(body.h, GAP)
+        val side = body.dropLeft(body.h, Metrics.gap)
         val legend = ui.legend(side.x, side.y, side.w, slices.map { it.color to it.label })
         ui.stackedBar(Rect(side.x, side.y + legend + 4, side.w, 10), slices, key = "eco-stack")
         val props = Stack(side.x, side.y + legend + 20, side.w, 0)

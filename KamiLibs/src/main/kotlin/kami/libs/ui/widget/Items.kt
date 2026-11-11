@@ -30,7 +30,7 @@ private fun Ui.drawStack(r: Rect, stack: ItemStack) {
 fun Ui.itemCycle(r: Rect, tag: String, key: Any): Boolean {
     val stacks = tagMembers(tag)
     if (r.h >= SLOT_MIN) panel(r, sunken = true)
-    if (hovering(r)) Draw.fill(g, r.inset(1), Palette.alpha(0xFFFFFF, 0x60))
+    if (hovering(r)) Draw.fill(g, r.inset(1), Palette.alpha(Palette.washLight, 0x60))
     if (stacks.isNotEmpty()) drawStack(r, stacks[((wallMillis / CYCLE_MS) % stacks.size).toInt()])
     tooltip(key, r) { Tip.text(tr("kami_libs.item.tag_members", stacks.size), tag) }
     return pressed(r) != null
@@ -56,6 +56,6 @@ fun Ui.specCell(c: Rect, spec: String, stack: ItemStack, name: String, key: Stri
 
 private fun Ui.cellName(c: Rect, name: String, color: Int) {
     val shown = Draw.fit(name, c.w - c.h - 4)
-    Draw.text(g, shown, c.x + c.h + 4, c.y + (c.h - 8) / 2, color)
+    Draw.text(g, shown, c.x + c.h + 4, Draw.textY(c), color)
     if (shown != name) tooltip("name:${c.x},${c.y}", c.dropLeft(c.h)) { Tip.text(name) }
 }

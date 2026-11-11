@@ -10,7 +10,6 @@ import net.minecraft.world.level.WorldGenLevel
 import net.minecraft.world.level.chunk.ChunkAccess
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.synth.ImprovedNoise
-import kotlin.math.PI
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max

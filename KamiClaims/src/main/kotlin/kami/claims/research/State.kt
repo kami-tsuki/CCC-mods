@@ -22,9 +22,7 @@ class QueueEntry(
     var penaltyMs: Long = 0,
     var queuedAt: Long = 0,
     var startedAt: Long = 0,
-    var paidCost: Long = -1,
-    val sigs: MutableList<String> = mutableListOf(),
-    val targets: MutableList<Long> = mutableListOf()
+    var paidCost: Long = -1
 )
 
 @Serializable
@@ -74,7 +72,6 @@ class ResearchState(
     val done: MutableMap<String, Long> = mutableMapOf(),
     val queue: MutableList<QueueEntry> = mutableListOf(),
     val visited: MutableSet<String> = mutableSetOf(),
-    val retired: MutableMap<String, Long> = mutableMapOf(),
-    val migrations: MutableMap<String, Long> = mutableMapOf(),
-    val parked: MutableList<QueueEntry> = mutableListOf()
+    val parked: MutableList<QueueEntry> = mutableListOf(),
+    var treeVersion: Int = 0
 )

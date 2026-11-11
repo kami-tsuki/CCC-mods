@@ -1,0 +1,49 @@
+{
+  "id": "vista",
+  "family": "vista",
+  "name": "Vista",
+  "base": "light",
+  "variant": "light",
+  "color": {
+    "bg.canvas": "#DCE6F4",
+    "bg.surface": "#EEF4FC",
+    "bg.raised": "#F6FAFF",
+    "bg.sunken": "#C4D4EA",
+    "bg.field": "#FFFFFF",
+    "bg.hover": "#D9EAFB",
+    "bg.selected": "#A8CCF0",
+    "bg.overlay": "#EAF2FCF4",
+    "bevel.light": "#FFFFFF",
+    "bevel.dark": "#8FA8C8",
+    "bevel.inset_dark": "#6E88AE",
+    "bevel.outline": "#5B7DA8",
+    "border.subtle": "#B8CCE4",
+    "border.default": "#8FA9C9",
+    "border.strong": "#4A6A94",
+    "border.brass": "#0B5CAD",
+    "text.primary": "#10243E",
+    "text.secondary": "#2B4467",
+    "text.muted": "#435B7D",
+    "text.link": "#0B5CAD",
+    "sem.focus": "#0B5CAD",
+    "sem.info": "#0B5CAD",
+    "cat.chunk.farming": "#468728",
+    "cat.chunk.infrastructure": "#6C799C",
+    "cat.rank.president": "#996F00"
+  },
+  "shape": {
+    "radius": "3",
+    "bevel": "glass",
+    "shadow": "2",
+    "glow": "1",
+    "focus": "2",
+    "control": "1.06"
+  },
+  "sound": {
+    "click": "minecraft:block.amethyst_block.chime 1.6 0.3",
+    "hover": "minecraft:block.amethyst_block.hit 2.0 0.08",
+    "toggle": "minecraft:block.amethyst_block.chime 1.9 0.25",
+    "open": "minecraft:block.amethyst_cluster.place 1.4 0.4",
+    "close": "minecraft:block.amethyst_cluster.place 1.0 0.3"
+  }
+}

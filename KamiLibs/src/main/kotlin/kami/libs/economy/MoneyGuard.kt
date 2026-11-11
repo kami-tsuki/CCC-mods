@@ -16,6 +16,7 @@ import kami.libs.db.Session
 import kami.libs.log.Log
 import kami.libs.text.Phrase
 import kami.libs.util.Time
+import kami.libs.util.toUuidOrNull
 import kami.libs.util.Time.DAY_MS
 import kotlinx.serialization.Serializable
 import net.minecraft.server.MinecraftServer
@@ -160,7 +161,7 @@ object MoneyGuard {
         chatted.clear()
         Db.read {
             query("SELECT account, player, total, last, count, alerted FROM libs_unexplained") {
-                totals[UUID.fromString(it.string("account"))] = Total(it.bool("player"), it.long("total"), it.long("last"), it.long("count"), it.long("alerted"))
+                totals[it.string("account").toUuidOrNull() ?: return@query] = Total(it.bool("player"), it.long("total"), it.long("last"), it.long("count"), it.long("alerted"))
             }
         }
         rows.prime(rows())

@@ -1,12 +1,12 @@
 package kami.claims
 
+import kami.claims.gov.PRESIDENT
 import kami.claims.economy.Treasury
 import kami.claims.research.Capacity
 import kami.claims.research.LevelsConfig
 import kami.claims.research.Research
 import kami.claims.research.ResearchDefs
 import kami.claims.research.ResearchSettings
-import kami.claims.service.Alerts
 import kami.claims.service.Fail
 import kami.claims.service.Provinces
 import kami.claims.service.Upkeep
@@ -43,7 +43,8 @@ class AgreementTest : WithDb() {
     private fun country(name: String, treasury: Long = 0): Country {
         val c = Country(name, treasury = treasury)
         Realm.data.countries[c.id] = c
-        Realm.join(c, "${name}_p", Rank.PRESIDENT)
+        c.mixed()
+        Realm.join(c, "${name}_p", PRESIDENT)
         return c
     }
 

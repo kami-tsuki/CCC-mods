@@ -35,9 +35,12 @@ class OpenWait(private val label: () -> String, private val failTitle: () -> Str
 
     fun tick() {
         if (since == 0L || System.currentTimeMillis() - since < timeoutMs) return
+        fail()
+    }
+
+    fun fail() {
         since = 0
-        val mc = Minecraft.getInstance()
-        SystemToast.addOrUpdate(mc.toasts, SystemToast.SystemToastId.PERIODIC_NOTIFICATION, Component.literal(failTitle()), Component.literal(failBody()))
+        SystemToast.addOrUpdate(Minecraft.getInstance().toasts, SystemToast.SystemToastId.PERIODIC_NOTIFICATION, Component.literal(failTitle()), Component.literal(failBody()))
     }
 
     fun render(g: GuiGraphics) {

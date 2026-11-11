@@ -34,7 +34,7 @@ fun Ui.secret(r: Rect, value: String, key: Any? = null, color: Int = Palette.tex
     val t = r.dropRight(COPY_W, 2)
     val s = if (open) Draw.fit(value, t.w) else MASK
     val x = if (align == Align.RIGHT) t.right - Draw.width(s) else t.x
-    Draw.text(g, s, x, r.y + (r.h - 8) / 2, if (open) color else Palette.textMuted)
+    Draw.text(g, s, x, Draw.textY(r), if (open) color else Palette.textMuted)
     if (hovering(t)) cursor = Cursor.HAND
     tooltip("$k:show", t, if (open) value.takeIf { s != it } else tr("kami_libs.secret.reveal"))
     if (pressed(t) != null && !ids.remove(id)) ids += id

@@ -126,8 +126,9 @@ class UiLogicTest {
     @Test
     fun textRespectsLimit() {
         val t = TextState("abc")
-        assertEquals(false, t.insert("defg", 5) { true })
-        assertEquals("abc", t.text)
+        assertEquals(true, t.insert("defg", 5) { true })
+        assertEquals("abcde", t.text)
+        assertEquals(false, t.insert("x", 5) { true })
     }
 
     @Test

@@ -1,5 +1,6 @@
 package kami.claims
 
+import kami.claims.gov.PRESIDENT
 import kami.claims.research.*
 import kami.claims.service.Fail
 import kami.claims.war.War
@@ -40,7 +41,8 @@ class LoansTest : WithDb() {
         today = 0
         val c = Country("lender", treasury = treasury)
         Realm.data.countries[c.id] = c
-        Realm.join(c, "p1", Rank.PRESIDENT)
+        c.mixed()
+        Realm.join(c, "p1", PRESIDENT)
         done.forEach { c.research.done["t:$it"] = 0 }
         return c
     }

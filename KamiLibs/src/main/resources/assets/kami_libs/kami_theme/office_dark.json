@@ -1,0 +1,52 @@
+{
+  "id": "office_dark",
+  "family": "office",
+  "name": "Office",
+  "base": "dark",
+  "variant": "dark",
+  "color": {
+    "bg.canvas": "#1F1F1F",
+    "bg.surface": "#292929",
+    "bg.raised": "#333333",
+    "bg.sunken": "#141414",
+    "bg.field": "#1B1B1B",
+    "bg.hover": "#3D3D3D",
+    "bg.selected": "#0F3A66",
+    "bg.overlay": "#292929F8",
+    "bevel.light": "#3D3D3D",
+    "bevel.dark": "#141414",
+    "bevel.inset_dark": "#0A0A0A",
+    "bevel.outline": "#424242",
+    "border.subtle": "#333333",
+    "border.default": "#4A4A4A",
+    "border.strong": "#8A8A8A",
+    "border.brass": "#479EF5",
+    "text.link": "#6CB8FF",
+    "cat.chunk.civic": "#7F879A",
+    "cat.chunk.mining": "#BF7311",
+    "cat.chunk.farming": "#4E972C",
+    "cat.chunk.forestry": "#279B57",
+    "cat.chunk.factory": "#4D88DB",
+    "cat.chunk.market": "#CA6587",
+    "cat.chunk.residential": "#A172D3",
+    "cat.chunk.wilderness": "#4D9648",
+    "cat.rank.president": "#AD7E00",
+    "cat.rank.chancellor": "#A172D3",
+    "cat.rank.officer": "#5787D8",
+    "cat.rank.citizen": "#219760",
+    "cat.rank.allied": "#128ED1",
+    "cat.rank.banished": "#D85D61"
+  },
+  "shape": {
+    "radius": "2",
+    "bevel": "none",
+    "shadow": "1",
+    "underline_tabs": "true"
+  },
+  "sound": {
+    "click": "minecraft:block.wooden_button.click_on 1.3 0.3",
+    "toggle": "minecraft:block.lever.click 1.2 0.25",
+    "open": "minecraft:item.book.page_turn 1.4 0.5",
+    "close": "minecraft:item.book.page_turn 1.1 0.4"
+  }
+}

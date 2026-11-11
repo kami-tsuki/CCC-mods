@@ -23,6 +23,7 @@ import kami.libs.ui.core.Ui
 import kami.libs.ui.map.Viewport
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Icons
+import kami.libs.ui.style.Metrics
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.TextStyle
 import kami.libs.ui.text.tr
@@ -46,24 +47,26 @@ import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
 import net.neoforged.neoforge.network.PacketDistributor
 import org.lwjgl.glfw.GLFW
-import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
 private const val PANEL = 160
-private const val TOP = 22
-private const val ROW = 11
-private const val LAYER_H = 68
-private const val FILTER_H = 66
-private const val ORES_MIN_H = 130
-private const val LEGEND_H = 29
+private val TOP get() = Metrics.topbarH
+private val ROW get() = Metrics.px(11)
+private val LAYER_H get() = Metrics.px(68)
+private val FILTER_H get() = Metrics.px(66)
+private val ORES_MIN_H get() = Metrics.px(130)
+private val LEGEND_H get() = Metrics.px(29)
 private const val MAX_CELLS = 150_000
 private const val DEBOUNCE_MS = 120L
 private const val REBUILD_MS = 90L
 private const val DEFAULT_THRESHOLD = 80
 private const val LOCK_FILL = 0.92
+private const val MIN_ZOOM = 0.5
+private const val MAX_ZOOM = 12.0
+private const val WORLD_LIMIT = 30_000_000.0
 private val MARKS = intArrayOf(1, 10, 100, 1000, 10000)
 
 class HeatmapScreen(private val info: OpenMap) : KamiScreen(Component.translatable("kami_geology.map.title")) {
@@ -92,20 +95,23 @@ class HeatmapScreen(private val info: OpenMap) : KamiScreen(Component.translatab
         }
     }
     private val layersExpected = info.ores.size + 1
-    private val view = Viewport(4.0, 0.5, 12.0).apply {
+    private val prefs = GeologyPrefs.prefs
+    private val view = Viewport(if (locked) 4.0 else (prefs.zoom.takeIf { it.isFinite() } ?: 4.0).coerceIn(MIN_ZOOM, MAX_ZOOM), MIN_ZOOM, MAX_ZOOM).apply {
         cx = info.x.toDouble()
         cz = info.z.toDouble()
         locked = this@HeatmapScreen.locked
+        if (this@HeatmapScreen.locked) limit(info.lockX0!!.toDouble(), info.lockZ0!!.toDouble(), info.lockW!!.toDouble(), info.lockH!!.toDouble())
+        else limit(-WORLD_LIMIT, -WORLD_LIMIT, 2 * WORLD_LIMIT, 2 * WORLD_LIMIT)
     }
 
     private var yMin = info.minY
     private var yMax = info.maxY
     private var threshold = DEFAULT_THRESHOLD
-    private var deposits = true
-    private var scatter = true
-    private var grid = true
-    private var tint = true
-    private var mode = Mode.ORES
+    private var deposits = prefs.deposits
+    private var scatter = prefs.scatter
+    private var grid = prefs.grid
+    private var tint = prefs.tint
+    private var mode = Mode.entries.firstOrNull { it.name == prefs.mode } ?: Mode.ORES
 
     private var tile: Tile? = null
     private var incoming: Tile? = null
@@ -127,6 +133,13 @@ class HeatmapScreen(private val info: OpenMap) : KamiScreen(Component.translatab
     private var probeLines: List<String>? = null
 
     override fun removed() {
+        prefs.deposits = deposits
+        prefs.scatter = scatter
+        prefs.grid = grid
+        prefs.tint = tint
+        prefs.mode = mode.name
+        if (!locked) prefs.zoom = view.unitsPerPx
+        GeologyPrefs.save()
         Minecraft.getInstance().textureManager.release(texId)
         texture = null
         super.removed()
@@ -153,9 +166,7 @@ class HeatmapScreen(private val info: OpenMap) : KamiScreen(Component.translatab
 
     private fun recenter() {
         val player = Minecraft.getInstance().player ?: return
-        view.cx = player.x
-        view.cz = player.z
-        changed()
+        view.glide(player.x, player.z)
     }
 
     override fun tick() {
@@ -175,10 +186,10 @@ class HeatmapScreen(private val info: OpenMap) : KamiScreen(Component.translatab
 
     private fun sendRequest() {
         if (locked) {
-            val x0 = info.lockX0!!
-            val z0 = info.lockZ0!!
-            val w = info.lockW!!
-            val h = info.lockH!!
+            val x0 = info.lockX0 ?: return
+            val z0 = info.lockZ0 ?: return
+            val w = info.lockW ?: return
+            val h = info.lockH ?: return
             incoming = Tile(x0, z0, 1, w, h, info.ores.size)
             layersDone = 0
             finished = null
@@ -186,23 +197,12 @@ class HeatmapScreen(private val info: OpenMap) : KamiScreen(Component.translatab
             PacketDistributor.sendToServer(MapRequest(++seq, x0, z0, 1, w, h, yMin, yMax))
             return
         }
-        val bpp = view.unitsPerPx
-        val vw = view.view.w.toDouble()
-        val vh = view.view.h.toDouble()
-        var cell = 2
-        while (cell < bpp) cell *= 2
-        while (cell < 256 && (vw * bpp / cell + 5) * (vh * bpp / cell + 5) > MAX_CELLS) cell *= 2
-        val halfW = vw * bpp / 2 + cell * 2
-        val halfH = vh * bpp / 2 + cell * 2
-        val x0 = Math.floorDiv(floor(view.cx - halfW).toInt(), cell) * cell
-        val z0 = Math.floorDiv(floor(view.cz - halfH).toInt(), cell) * cell
-        val w = (ceil(view.cx + halfW).toInt() - x0) / cell + 1
-        val h = (ceil(view.cz + halfH).toInt() - z0) / cell + 1
-        incoming = Tile(x0, z0, cell, w, h, info.ores.size)
+        val g = HeatmapModel.grid(view.cx, view.cz, view.view.w.toDouble(), view.view.h.toDouble(), view.unitsPerPx, MAX_CELLS)
+        incoming = Tile(g.x0, g.z0, g.cell, g.w, g.h, info.ores.size)
         layersDone = 0
         finished = null
         computing = true
-        PacketDistributor.sendToServer(MapRequest(++seq, x0, z0, cell, w, h, yMin, yMax))
+        PacketDistributor.sendToServer(MapRequest(++seq, g.x0, g.z0, g.cell, g.w, g.h, yMin, yMax))
     }
 
     fun onLayer(p: MapLayer) {
@@ -275,41 +275,34 @@ class HeatmapScreen(private val info: OpenMap) : KamiScreen(Component.translatab
         }
 
         val floor = max(1, threshold)
-        val level = IntArray(n)
-        if (mode == Mode.ORES) {
-            for (k in 0 until n) if (dominant[k].toInt() != 0) {
-                val v = Heatmap.encode(sum[k] * 256.0)
-                if (v >= floor) level[k] = v
-            }
-        }
+        val level = HeatmapModel.levels(sum, dominant, floor, mode == Mode.ORES)
 
         val existing = texture?.pixels
         val image = if (existing != null && existing.width == t.w && existing.height == t.h) existing else NativeImage(NativeImage.Format.RGBA, t.w, t.h, false)
         val heat = enabled.count { it } == 1
-        val span = max(1, 255 - floor).toDouble()
+        val ramp = HeatmapDraw.ramp()
         val background = HeatmapDraw.MAP_BG
         for (j in 0 until t.h) for (i in 0 until t.w) {
             val k = j * t.w + i
             var color = background
             val p = if (province != null) (province[k].toInt() and 0xFF) - 1 else -1
             if (p in provinceColors.indices) {
-                color = if (mode == Mode.PROVINCES) 0xFF000000.toInt() or provinceColors[p] else if (tint) blend(color, provinceColors[p], 0.10) else color
+                color = if (mode == Mode.PROVINCES) Palette.opaque(provinceColors[p]) else if (tint) blend(color, provinceColors[p], 0.10) else color
             }
             val v = level[k]
             if (v > 0) {
                 val o = dominant[k].toInt() - 1
-                val t01 = ((v - floor) / span).coerceIn(0.0, 1.0)
+                val t01 = HeatmapModel.heat(v, floor)
                 var alpha = 0.55 + 0.45 * t01
                 if (hoverOre >= 0 && o != hoverOre) alpha *= 0.25
-                var ore = if (heat) HeatmapDraw.heatColor(t01) else oreColors[o]
-                val edge = (i == 0 || level[k - 1] == 0) || (i == t.w - 1 || level[k + 1] == 0) || (j == 0 || level[k - t.w] == 0) || (j == t.h - 1 || level[k + t.w] == 0)
-                if (edge) ore = blend(0xFF000000.toInt() or ore, 0x000000, 0.45) and 0xFFFFFF
+                var ore = if (heat) HeatmapDraw.heatColor(t01, ramp) else oreColors[o]
+                if (HeatmapModel.edge(level, i, j, t.w, t.h)) ore = Palette.darken(ore, 0.45f) and 0xFFFFFF
                 color = blend(color, ore, alpha)
             }
             image.setPixelRGBA(i, j, HeatmapDraw.abgr(color))
         }
         if (image === existing) {
-            texture!!.upload()
+            texture?.upload()
         } else {
             val created = DynamicTexture(image)
             Minecraft.getInstance().textureManager.register(texId, created)
@@ -354,7 +347,7 @@ class HeatmapScreen(private val info: OpenMap) : KamiScreen(Component.translatab
         if (ui.iconButton(row.takeFromRight(size), Icons.ADD, tr("kami_geology.map.zoom_in.tooltip"), !locked, key = "zoom-in", disabledReason = lockedReason)) zoom(0.8)
         row.takeFromRight(8)
         val area = row.remaining()
-        val textY = area.y + (area.h - 8) / 2
+        val textY = Draw.textY(area)
         val titleW = Draw.text(g, title.string, area.x, textY, TextStyle.HEADING) - area.x
         val dimEnd = ui.fitText(area.x + titleW + 8, textY, area.w / 3, info.dimension, Palette.textMuted)
         val done = finished
@@ -374,7 +367,10 @@ class HeatmapScreen(private val info: OpenMap) : KamiScreen(Component.translatab
         val g = ui.g
         val resized = view.view != r
         if (view.interact(ui, r) || (resized && tile != null)) changed()
-        if (locked) view.fit(info.lockX0!!.toDouble(), info.lockZ0!!.toDouble(), info.lockW!!.toDouble(), info.lockH!!.toDouble(), LOCK_FILL)
+        val before = view.cx + view.cz + view.unitsPerPx
+        if (locked && resized) view.fit(info.lockX0!!.toDouble(), info.lockZ0!!.toDouble(), info.lockW!!.toDouble(), info.lockH!!.toDouble(), LOCK_FILL)
+        view.step(ui.dt, ui.reduceMotion)
+        if (view.cx + view.cz + view.unitsPerPx != before && !locked) changed()
         val t = tile
         ui.clip(r) {
             Draw.fill(g, r, HeatmapDraw.MAP_BG)
@@ -508,7 +504,7 @@ class HeatmapScreen(private val info: OpenMap) : KamiScreen(Component.translatab
                     ui.tooltip("ore:$i", row, tr("kami_geology.map.ore.tooltip"))
                     if (ui.pressed(row) != null) toggleOre(i, ui.input.shift || ui.input.ctrl)
                 }
-                Draw.box(ui.g, Rect(row.x + 2, row.y + 1, 8, 8), if (enabled[i]) Palette.opaque(oreColors[i]) else Palette.raised, 0xFF000000.toInt())
+                Draw.box(ui.g, Rect(row.x + 2, row.y + 1, 8, 8), if (enabled[i]) Palette.opaque(oreColors[i]) else Palette.raised, Palette.outline)
                 val total = if (enabled[i] && totals[i] > 0f) GeoText.compact(totals[i].toDouble()) else ""
                 Draw.textRight(ui.g, total, row.right - 2, row.y + 1, Palette.textMuted)
                 ui.fitText(row.x + 14, row.y + 1, row.w - 16 - Draw.width(total) - 4, GeoText.oreLabel(ore.id), if (enabled[i]) Palette.text else Palette.textMuted, key = "ore:$i")
@@ -533,7 +529,7 @@ class HeatmapScreen(private val info: OpenMap) : KamiScreen(Component.translatab
     private fun legend(ui: Ui, r: Rect) {
         val single = enabled.count { it } == 1
         val floor = max(1, threshold)
-        val colors = if (single) HeatmapDraw.ramp.map { Palette.opaque(it) }
+        val colors = if (single) HeatmapDraw.ramp().map { Palette.opaque(it) }
         else listOf(0.55, 1.0).map { blend(HeatmapDraw.MAP_BG, HeatmapDraw.BRIGHT, it) }
         ui.gradientLegend(
             r, colors, floor.toDouble(), 255.0,

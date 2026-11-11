@@ -16,26 +16,14 @@ object Skin {
 
     fun paintTinted(g: GuiGraphics, id: ResourceLocation, r: Rect, color: Int): Boolean {
         if (id !in solids) return false
-        Draw.fill(g, r, color)
+        Painters.solid(g, r, color)
         return true
     }
 
-    private fun box(id: ResourceLocation, fill: () -> Int, border: () -> Int) { painters[id] = { g, r -> Draw.box(g, r, fill(), border()) } }
+    private fun box(id: ResourceLocation, fill: () -> Int, border: () -> Int) { painters[id] = { g, r -> Painters.body(g, r, fill(), border()) } }
     private fun paint(id: ResourceLocation, painter: (GuiGraphics, Rect) -> Unit) { painters[id] = painter }
-    private fun bevel(id: ResourceLocation, fill: () -> Int, topLeft: () -> Int, bottomRight: () -> Int, outline: () -> Int = { 0 }) {
-        painters[id] = { g, r -> bevelPaint(g, r, fill(), topLeft(), bottomRight(), outline()) }
-    }
-
-    private fun bevelPaint(g: GuiGraphics, r: Rect, fill: Int, topLeft: Int, bottomRight: Int, outline: Int) {
-        if (r.isEmpty) return
-        var b = r
-        if (outline ushr 24 != 0) { Draw.outline(g, r, outline); b = r.inset(1) }
-        if (b.isEmpty) return
-        if (fill ushr 24 != 0) Draw.fill(g, b, fill)
-        Draw.hline(g, b.x, b.y, b.w, topLeft)
-        Draw.vline(g, b.x, b.y, b.h, topLeft)
-        Draw.hline(g, b.x, b.bottom - 1, b.w, bottomRight)
-        Draw.vline(g, b.right - 1, b.y, b.h, bottomRight)
+    private fun bevel(id: ResourceLocation, fill: () -> Int, topLeft: () -> Int, bottomRight: () -> Int, outline: () -> Int = { 0 }, elevated: Boolean = false, scan: Boolean = false) {
+        painters[id] = { g, r -> Painters.surface(g, r, fill(), topLeft(), bottomRight(), outline(), elevated, scan) }
     }
 
     private fun button(
@@ -62,18 +50,18 @@ object Skin {
     }
 
     init {
-        bevel(Sprites.WINDOW, { Palette.canvas }, { Palette.bevelLight }, { Palette.bevelDark }, { Palette.outline })
+        bevel(Sprites.WINDOW, { Palette.canvas }, { Palette.bevelLight }, { Palette.bevelDark }, { Palette.outline }, scan = true)
         box(Sprites.PANEL, { Palette.surface }, { Palette.border })
         bevel(Sprites.SUNKEN, { Palette.sunken }, { Palette.bevelInsetDark }, { Palette.bevelLight })
         bevel(Sprites.CARD, { Palette.raised }, { Palette.bevelLight }, { Palette.border })
         bevel(Sprites.CARD_HOVER, { Palette.hover }, { Palette.bevelLight }, { Palette.bevelDark })
         paint(Sprites.TOPBAR) { g, r -> Draw.fill(g, r, Palette.surface); Draw.hline(g, r.x, r.bottom - 1, r.w, Palette.border) }
         paint(Sprites.SIDEBAR) { g, r -> Draw.fill(g, r, Palette.surface); Draw.vline(g, r.right - 1, r.y, r.h, Palette.border) }
-        bevel(Sprites.TOOLTIP, { Palette.overlay }, { Palette.bevelLight }, { Palette.bevelDark }, { Palette.outline })
-        bevel(Sprites.POPOVER, { Palette.overlay }, { Palette.bevelLight }, { Palette.bevelDark }, { Palette.outline })
-        bevel(Sprites.MODAL, { Palette.canvas }, { Palette.bevelLight }, { Palette.bevelDark }, { Palette.outline })
-        bevel(Sprites.MODAL_DANGER, { Palette.canvas }, { Palette.bevelLight }, { Palette.bevelDark }, { Palette.danger })
-        bevel(Sprites.TOAST, { Palette.overlay }, { Palette.bevelLight }, { Palette.bevelDark }, { Palette.outline })
+        bevel(Sprites.TOOLTIP, { Palette.overlay }, { Palette.bevelLight }, { Palette.bevelDark }, { Palette.outline }, elevated = true)
+        bevel(Sprites.POPOVER, { Palette.overlay }, { Palette.bevelLight }, { Palette.bevelDark }, { Palette.outline }, elevated = true)
+        bevel(Sprites.MODAL, { Palette.canvas }, { Palette.bevelLight }, { Palette.bevelDark }, { Palette.outline }, elevated = true, scan = true)
+        bevel(Sprites.MODAL_DANGER, { Palette.canvas }, { Palette.bevelLight }, { Palette.bevelDark }, { Palette.danger }, elevated = true, scan = true)
+        bevel(Sprites.TOAST, { Palette.overlay }, { Palette.bevelLight }, { Palette.bevelDark }, { Palette.outline }, elevated = true)
         paint(Sprites.HAZARD) { g, r -> Draw.fill(g, r, Palette.alpha(Palette.danger, 0x30)); Draw.hline(g, r.x, r.bottom - 1, r.w, Palette.danger) }
 
         button(Sprites.Look.SECONDARY, { Palette.raised }, { Palette.hover }, { Palette.mix(Palette.raised, Palette.sunken, 0.5f) }, { Palette.bevelLight }, { Palette.bevelDark }, { Palette.surface }, { Palette.borderSubtle })
@@ -85,13 +73,16 @@ object Skin {
 
         bevel(Sprites.input(focused = false, invalid = false, enabled = true, hovered = false), { Palette.field }, { Palette.bevelInsetDark }, { Palette.bevelLight }, { Palette.border })
         bevel(Sprites.input(focused = false, invalid = false, enabled = true, hovered = true), { Palette.field }, { Palette.bevelInsetDark }, { Palette.bevelLight }, { Palette.borderStrong })
-        bevel(Sprites.input(focused = true, invalid = false, enabled = true, hovered = false), { Palette.field }, { Palette.bevelInsetDark }, { Palette.bevelLight }, { Palette.focus })
+        paint(Sprites.input(focused = true, invalid = false, enabled = true, hovered = false)) { g, r ->
+            Painters.surface(g, r, Palette.field, Palette.bevelInsetDark, Palette.bevelLight, Palette.focus, elevated = true)
+            Painters.focusRing(g, r, Palette.focus)
+        }
         bevel(Sprites.input(focused = false, invalid = true, enabled = true, hovered = false), { Palette.field }, { Palette.bevelInsetDark }, { Palette.bevelLight }, { Palette.danger })
         box(Sprites.input(focused = false, invalid = false, enabled = false, hovered = false), { Palette.surface }, { Palette.borderSubtle })
 
         bevel(Sprites.CHECKBOX, { Palette.field }, { Palette.bevelInsetDark }, { Palette.bevelLight }, { Palette.borderStrong })
-        paint(Sprites.CHECKBOX_ON) { g, r -> Draw.box(g, r, Palette.brass, Palette.brass); check(g, r, Palette.textInverse) }
-        paint(Sprites.CHECKBOX_MIXED) { g, r -> Draw.box(g, r, Palette.brass, Palette.brass); Draw.fill(g, Rect(r.x + 3, r.centerY - 1, r.w - 6, 2), Palette.textInverse) }
+        paint(Sprites.CHECKBOX_ON) { g, r -> Painters.body(g, r, Palette.brass, Palette.brass); check(g, r, Palette.textInverse) }
+        paint(Sprites.CHECKBOX_MIXED) { g, r -> Painters.body(g, r, Palette.brass, Palette.brass); Draw.fill(g, Rect(r.x + 3, r.centerY - 1, r.w - 6, 2), Palette.textInverse) }
         bevel(Sprites.RADIO, { Palette.field }, { Palette.bevelInsetDark }, { Palette.bevelLight }, { Palette.borderStrong })
         paint(Sprites.RADIO_ON) { g, r -> Draw.box(g, r, Palette.field, Palette.brass); Draw.fill(g, r.inset(3), Palette.brass) }
         bevel(Sprites.TOGGLE, { Palette.sunken }, { Palette.bevelInsetDark }, { Palette.bevelLight }, { Palette.borderStrong })
@@ -100,8 +91,8 @@ object Skin {
         bevel(Sprites.TRACK, { Palette.sunken }, { Palette.bevelInsetDark }, { Palette.bevelLight })
         box(Sprites.SCROLL_THUMB, { Palette.border }, { 0 })
         paint(Sprites.TAB) { _, _ -> }
-        paint(Sprites.TAB_ACTIVE) { g, r -> Draw.fill(g, r, Palette.raised) }
+        paint(Sprites.TAB_ACTIVE) { g, r -> Painters.tab(g, r, Palette.brass, Palette.raised) }
         bevel(Sprites.KEYCAP, { Palette.raised }, { Palette.bevelLight }, { Palette.bevelDark }, { Palette.borderStrong })
-        listOf(Sprites.FILL, Sprites.CHIP, Sprites.BADGE).forEach { id -> solids += id; paint(id) { g, r -> Draw.fill(g, r, Palette.text) } }
+        listOf(Sprites.FILL, Sprites.CHIP, Sprites.BADGE).forEach { id -> solids += id; paint(id) { g, r -> Painters.solid(g, r, Palette.text) } }
     }
 }

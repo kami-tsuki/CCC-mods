@@ -35,7 +35,7 @@ class PersonalApp private constructor() : KamiApp() {
 
     private fun offline(): String? = if (Personal.viewing) tr("kami_essentials.personal.read_only") else if (snap == null) tr("kami_essentials.prefs.offline") else null
 
-    override fun buildNav() = listOf(NavGroup(id = "overview", label = tr("kami_libs.common.overview"), items = listOf(NavItem("dashboard", tr("kami_libs.common.dashboard"), Icons.DASHBOARD)))) +
+    override fun buildNav() = listOf(NavGroup(id = "overview", label = tr("kami_libs.common.overview"), items = listOf(NavItem("dashboard", tr("kami_essentials.bank.group"), Icons.DASHBOARD)))) +
         Personal.sections.mapNotNull { s -> s.items().takeIf { it.isNotEmpty() }?.let { NavGroup(id = s.id, label = tr(s.group()), items = it) } } +
         listOf(
             NavGroup(id = "client", label = tr("kami_essentials.nav.group.client"), items = listOf(NavItem("interface", tr("kami_libs.common.interface"), Icons.BRUSH))),
@@ -51,19 +51,21 @@ class PersonalApp private constructor() : KamiApp() {
         "chat" -> ChatPage(this)
         "player" -> PlayerPage(this)
         "discord" -> DiscordPage(this)
-        else -> Personal.sections.firstOrNull { id.startsWith(it.id + ".") }?.create(this, id) ?: DashboardPage(this)
+        else -> sectionOf(id)?.create(this, id) ?: DashboardPage(this)
     }
+
+    private fun sectionOf(page: String) = Personal.sections.firstOrNull { page == it.id || page.startsWith(it.id + ".") }
 
     override fun autoRefresh() {
         ClientEssentials.request("open", Personal.subjectArg)
-        Personal.sections.firstOrNull { route.page.startsWith(it.id + ".") }?.refresh(route.page)
+        sectionOf(route.page)?.refresh(route.page)
     }
 
     override fun beforeFrame() {
         val page = route.page
         if (page == lastPage) return
         lastPage = page
-        Personal.sections.firstOrNull { page.startsWith(it.id + ".") }?.refresh(page)
+        sectionOf(page)?.refresh(page)
     }
 
     override fun topBar(ui: Ui, r: Rect) {

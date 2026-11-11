@@ -2,8 +2,8 @@ package kami.claims.war
 
 import kami.claims.Config
 import kami.claims.Country
-import kami.claims.Rank
 import kami.claims.Realm
+import kami.claims.gov.Permissions
 import kami.claims.net.NameTagsPacket
 import kami.claims.net.TagView
 import kami.claims.service.View
@@ -60,8 +60,8 @@ object NameTagSync {
 
     private fun view(vc: Country?, t: ServerPlayer, tc: Country?): TagView {
         val sk = Skills.profile(t.uuid)
-        val rank = if (tc != null && tc === vc) (tc.members[t.stringUUID]?.rank ?: Rank.CITIZEN).ordinal else -1
-        return TagView(t.uuid, tc?.name, tc?.let(View::color) ?: 0, rank, sk?.cls?.ordinal ?: -1, sk?.level ?: 0)
+        val rank = tc?.takeIf { it === vc }?.let { Permissions.rankOf(it, t.stringUUID) }
+        return TagView(t.uuid, tc?.name, tc?.let(View::color) ?: 0, rank?.name.orEmpty(), rank?.color ?: 0, sk?.cls?.ordinal ?: -1, sk?.level ?: 0)
     }
 
     fun forget(p: ServerPlayer) {

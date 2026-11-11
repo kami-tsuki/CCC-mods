@@ -22,19 +22,19 @@ SERVER = os.path.join(ROOT, 'Test-Server-NeoForge-1.21.1')
 TREES = ['metallurgy', 'technology', 'tools_armor', 'military', 'buffs']
 CACHE_VERSION = 2
 SMELTING = {'minecraft:smelting', 'minecraft:blasting', 'minecraft:smoking', 'minecraft:campfire_cooking'}
-IGNORE_PRODUCERS = {'technology:wood_building', 'technology:crafting_table'}
+IGNORE_PRODUCERS = {'technology:carpentry', 'technology:workbench'}
 
 OWNER = {
-    'technology:crafting_table', 'technology:wood_building', 'technology:andesite_casing', 'technology:hand_crank',
+    'technology:workbench', 'technology:carpentry', 'technology:andesite_casing', 'technology:hand_crank',
     'technology:shafts_cogs', 'technology:water_wheel', 'technology:millstone', 'technology:belt',
     'technology:crushing_wheels', 'technology:gearbox', 'technology:mechanical_press', 'technology:large_water_wheel',
-    'technology:propeller_whisk', 'technology:encased_fan', 'technology:chain_drives', 'technology:windmill',
+    'technology:basin_mixer', 'technology:encased_fan', 'technology:chain_drives', 'technology:windmill',
     'technology:blaze_burner', 'technology:copper_casing', 'technology:fluid_basics', 'technology:chain_conveyor',
-    'technology:fluid_handling', 'technology:hose_pulley', 'technology:portable_fluid_interface',
-    'technology:steam_engine', 'technology:brass_hand', 'technology:steam_whistle', 'technology:copper_table_cover',
+    'technology:fluid_handling', 'technology:fluid_handling', 'technology:fluid_interface',
+    'technology:steam_engine', 'technology:brass_casing', 'technology:steam_whistle', 'technology:chain_conveyor',
     'technology:deployer', 'technology:transmitter', 'technology:precision_mechanism', 'tools_armor:copper_backtank',
-    'tools_armor:copper_diving_gear', 'technology:potato_cannon', 'technology:mixer',
-    'metallurgy:andesite_alloy_iron', 'metallurgy:andesite_alloy_zinc', 'metallurgy:brass', 'metallurgy:iron_pressing',
+    'tools_armor:copper_diving_gear', 'technology:fluid_interface', 'technology:basin_mixer',
+    'metallurgy:andesite_alloy', 'metallurgy:andesite_alloy', 'metallurgy:brass', 'metallurgy:iron_pressing',
 }
 
 HARNESS = r"""

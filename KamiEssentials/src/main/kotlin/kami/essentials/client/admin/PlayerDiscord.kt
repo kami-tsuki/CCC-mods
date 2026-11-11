@@ -1,5 +1,6 @@
 package kami.essentials.client.admin
 
+import kami.libs.ui.style.Metrics
 import kami.essentials.admin.DiscordDetail
 import kami.essentials.admin.DiscordEvent
 import kami.essentials.admin.PlayerDetail
@@ -27,12 +28,10 @@ import kami.libs.ui.widget.secretProperty
 import kami.libs.ui.widget.skeleton
 import kami.libs.ui.widget.table
 
-private const val REFRESH_MS = 10_000L
 private const val CARD_W = 190
-private const val GAP = 6
 
 internal class PlayerDiscord(private val app: AdminApp, private val uuid: String) {
-    private val remote = Remote("players.discord", DiscordDetail.serializer(), REFRESH_MS) { listOf(uuid) }
+    private val remote = Remote("players.discord", DiscordDetail.serializer(), Metrics.REFRESH_MS) { listOf(uuid) }
     private val table = TableState<DiscordEvent>()
 
     private fun yes(v: Boolean) = tr(if (v) "kami_essentials.admin.discord.yes" else "kami_essentials.admin.discord.no")
@@ -51,7 +50,7 @@ internal class PlayerDiscord(private val app: AdminApp, private val uuid: String
             if (remote.error != null && !remote.loading) ui.remoteFailed(r, remote, "player-discord") else ui.skeleton(r)
             return
         }
-        val row = Row(r.top(CONTROL_H), GAP)
+        val row = Row(r.top(CONTROL_H), Metrics.gap)
         fun action(label: String, icon: Icon, reason: String?, danger: Boolean, act: String, title: String) {
             if (ui.edgeButton(row, label, icon, if (danger) ButtonStyle.DANGER else ButtonStyle.SECONDARY, reason == null, reason, pending = adminPending(act, listOf(uuid)), left = true, key = "discord:$act"))
                 app.adminConfirmAct(title, act, listOf(uuid), danger)
@@ -64,7 +63,7 @@ internal class PlayerDiscord(private val app: AdminApp, private val uuid: String
                 "players.discord.resync", tr("kami_essentials.admin.discord.resync.title", d.row.name)
             )
         }
-        val body = r.dropTop(CONTROL_H + GAP)
+        val body = r.dropTop(CONTROL_H + Metrics.gap)
         val cards = buildList<(Rect) -> Unit> {
             add { link(ui, it, x) }
             if (x.linked) add { guild(ui, it, x) }
@@ -73,10 +72,10 @@ internal class PlayerDiscord(private val app: AdminApp, private val uuid: String
         val cols = cardColumns(body.w, CARD_W, cards.size)
         val rows = cards.chunked(cols)
         rows.forEachIndexed { i, line ->
-            Rect(body.x, body.y + i * (INFO_H + GAP), body.w, INFO_H).columns(cols, GAP).let { cells -> line.forEachIndexed { j, draw -> draw(cells[j]) } }
+            Rect(body.x, body.y + i * (INFO_H + Metrics.gap), body.w, INFO_H).columns(cols, Metrics.gap).let { cells -> line.forEachIndexed { j, draw -> draw(cells[j]) } }
         }
         ui.table(
-            body.dropTop(rows.size * (INFO_H + GAP)),
+            body.dropTop(rows.size * (INFO_H + Metrics.gap)),
             listOf(
                 Column.number<DiscordEvent>(tr("kami_libs.common.when"), 56, format = { Format.ago(it) }) { it.at },
                 Column.text<DiscordEvent>(tr("kami_essentials.admin.discord.event"), 70) { kind(it) },

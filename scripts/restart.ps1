@@ -1,4 +1,4 @@
-param([string]$Instance, [string]$Server, [string]$Prism = "$env:LOCALAPPDATA\Programs\PrismLauncher\prismlauncher.exe", [switch]$NoBuild)
+param([string]$Instance, [string]$Server, [string]$Prism = "$env:LOCALAPPDATA\Programs\PrismLauncher\prismlauncher.exe", [switch]$NoBuild, [switch]$NewWorld)
 . (Join-Path $PSScriptRoot "props.ps1")
 if (-not $Instance) { $Instance = $Props.deploy_instance_dir }
 if (-not $Server) { $Server = $Props.deploy_server_dir }
@@ -10,6 +10,8 @@ Get-CimInstance Win32_Process | Where-Object {
     ($_.Name -eq 'cmd.exe' -and $_.CommandLine -match 'run\.bat')
 } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 Start-Sleep -Seconds 2 
+
+if ($NewWorld) { & (Join-Path $PSScriptRoot 'new-world.ps1') -Instance $Instance -Server $Server }
 
 Write-Host "Syncing server with the client instance (mods, config, kubejs, chatplus)..."
 & (Join-Path $PSScriptRoot 'sync-server.ps1') -Instance $Instance -Server $Server | Out-Null

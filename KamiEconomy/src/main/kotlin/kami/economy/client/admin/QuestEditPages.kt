@@ -12,6 +12,7 @@ import kami.economy.quest.PickFactor
 import kami.economy.quest.QuestBoost
 import kami.libs.admin.Admin
 import kami.libs.claims.Boost
+import kami.libs.ui.app.leaveGuard
 import kami.libs.ui.app.KamiApp
 import kami.libs.ui.app.Page
 import kami.libs.ui.app.Remote
@@ -33,10 +34,8 @@ import kami.libs.ui.style.Icons
 import kami.libs.ui.style.Palette
 import kami.libs.ui.style.Severity
 import kami.libs.ui.text.tr
-import kami.libs.ui.widget.Align
 import kami.libs.ui.widget.ButtonStyle
 import kami.libs.ui.widget.CONTROL_H
-import kami.libs.ui.widget.Column
 import kami.libs.ui.widget.NumberState
 import kami.libs.ui.widget.Option
 import kami.libs.ui.widget.TableState
@@ -246,6 +245,8 @@ internal class QuestPreviewPage(private val app: KamiApp) : Page() {
     }
 }
 
+private const val NARROW_W = 300
+
 private class Spec(val name: String, val wide: Boolean, val get: (QuestSettings) -> String, val set: (QuestSettings, String) -> QuestSettings?)
 
 private fun pair(t: String): List<Int>? = t.split('-').map { it.trim().toIntOrNull() ?: return null }.takeIf { it.size == 2 }
@@ -314,6 +315,16 @@ internal class QuestSettingsPage(private val app: KamiApp) : Page() {
         return if (ok) s.copy(enabled = enabled) else null
     }
 
+    private fun dirty(): Boolean {
+        val s = seen ?: return false
+        if (texts.isEmpty()) return false
+        return enabled != s.enabled || SPECS.any { texts[it.name]?.let { t -> t.text.trim() != it.get(s).trim() } ?: false }
+    }
+
+    private val guard = leaveGuard(app)
+
+    override fun leaving(next: Route) = guard.allow(next, dirty()) { seen?.let(::fill) }
+
     override fun actionsWidth() = buttonWidth(tr("kami_libs.common.save"), Icons.CHECK)
 
     override fun actions(ui: Ui, r: Rect) {
@@ -342,8 +353,9 @@ internal class QuestSettingsPage(private val app: KamiApp) : Page() {
             var y = c.y
             ui.checkbox(Rect(c.x, y, c.w, 12), q("set.enabled"), enabled, key = "quest-set:enabled")?.let { enabled = it }
             y += 18
-            SPECS.filter { !it.wide }.chunked(2).forEach { pair ->
-                val cols = Rect(c.x, y, c.w, 11 + CONTROL_H).columns(2, 8)
+            val per = if (c.w < NARROW_W) 1 else 2
+            SPECS.filter { !it.wide }.chunked(per).forEach { pair ->
+                val cols = Rect(c.x, y, c.w, 11 + CONTROL_H).columns(per, 8)
                 pair.forEachIndexed { i, sp ->
                     val t = texts[sp.name] ?: return@forEachIndexed
                     ui.fieldLabel(cols[i].top(9), q("set.${sp.name}"))

@@ -1,6 +1,7 @@
 package kami.libs.xaero.impl
 
 import java.util.UUID
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable
 
 object MixinHooks {
     private val radar = Guard("radar hook")
@@ -15,6 +16,15 @@ object MixinHooks {
 
     @JvmStatic
     fun caveBlocked(): Boolean = cave.call(false) { Registry.fairPlayActive().also { Registry.caveHooked = true } }
+
+    @JvmStatic
+    fun fairCave(cir: CallbackInfoReturnable<Boolean>) {
+        try {
+            if (caveBlocked()) cir.setReturnValue(false)
+        } catch (t: Throwable) {
+            fail(t)
+        }
+    }
 
     @JvmStatic
     fun attach(target: Any) = WorldMapAdapter.attach(target)

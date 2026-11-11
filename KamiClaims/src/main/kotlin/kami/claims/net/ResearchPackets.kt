@@ -2,7 +2,6 @@ package kami.claims.net
 
 import kami.libs.claims.Boost as BoostLimits
 import kami.claims.KamiClaims
-import kami.claims.research.Boosts
 import kami.claims.research.Capacity
 import kami.claims.research.Limits.MAX_CATEGORIES
 import kami.claims.research.Limits.MAX_COUNTERS

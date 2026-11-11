@@ -15,6 +15,7 @@ import kami.claims.client.app.Illustrations
 import kami.libs.ui.app.consequences
 import kami.claims.client.map.MiniMap
 import kami.claims.client.store.ClaimsStore
+import kami.claims.gov.PresetId
 import kami.libs.ui.app.Callout
 import kami.libs.ui.app.Dialog
 import kami.libs.ui.app.DialogKind
@@ -37,6 +38,21 @@ class WelcomePage(app: ClaimsApp) : ClaimsPage(app) {
     override val title get() = tr("kami_claims.nav.welcome")
     override val needsCountry = false
     private val homes = HomesCard(app)
+    private var wizard: Dialog? = null
+    private var createError: String? = null
+    private var tour = true
+
+    init {
+        subscribe(ClaimsStore.onOutcome {
+            if (it.key != CREATE_KEY) return@onOutcome
+            if (it.ok) {
+                ClientClaims.prefs.tourDone = !tour
+                ClientClaims.savePrefs()
+                wizard?.close()
+            } else createError = it.message
+        })
+    }
+
     override val sections = listOf("world")
     override val help get() = listOf(
         Callout("welcome:found", tr("kami_claims.welcome.help.found"), tr("kami_claims.welcome.help.found.desc")),
@@ -45,6 +61,13 @@ class WelcomePage(app: ClaimsApp) : ClaimsPage(app) {
     )
 
     override fun draw(ui: Ui, r: Rect) {
+        val homesH = if (snap.homes.isEmpty()) 0 else homes.height(snap.homes)
+        val below = HEAD_H + 6 + if (homesH > 0) homesH + 6 else 0
+        val total = below + choiceH + 8 + 13 + if (snap.invites.isEmpty()) 14 else snap.invites.size * (inviteH + 4)
+        ui.scroll("welcome", r, total) { content(ui, it, homesH, below) }
+    }
+
+    private fun content(ui: Ui, r: Rect, homesH: Int, below: Int) {
         val head = r.top(HEAD_H)
         Draw.sprite(ui.g, Illustrations.NOMANSLAND, Rect(head.x, head.y, 32, 32))
         Draw.text(ui.g, tr("kami_libs.common.no_country"), head.x + 40, head.y + 4, TextStyle.TITLE)
@@ -52,16 +75,14 @@ class WelcomePage(app: ClaimsApp) : ClaimsPage(app) {
         val shownDesc = Draw.fit(desc, head.w - 40)
         Draw.text(ui.g, shownDesc, head.x + 40, head.y + 18, Palette.textSecondary)
         if (shownDesc != desc) ui.tooltip("welcome-desc", head, desc)
-        val homesH = if (snap.homes.isEmpty()) 0 else homes.height(snap.homes)
         if (homesH > 0) homes.draw(ui, r.dropTop(HEAD_H + 6).top(homesH), snap.homes, "welcome-homes")
-        val below = HEAD_H + 6 + if (homesH > 0) homesH + 6 else 0
-        val cards = r.dropTop(below).top(CHOICE_H).columns(2, 6)
+        val cards = r.dropTop(below).top(choiceH).columns(2, 6)
         ui.anchor("welcome:found", cards[0])
         ui.anchor("welcome:join", cards[1])
         choice(ui, cards[0], Illustrations.FOUND, tr("kami_claims.welcome.found.title"), listOf(tr("kami_claims.wizard.confirm.free", trn("kami_claims.unit.chunk", snap.freeChunks)), tr("kami_claims.welcome.found.president")), tr("kami_claims.welcome.found.action"), "found") { openWizard() }
         val countries = ClaimsStore.countries.size
         choice(ui, cards[1], Illustrations.CITIZENS, tr("kami_claims.welcome.join.title"), listOf(tr("kami_claims.welcome.join.count", trn("kami_claims.unit.country", countries)), tr("kami_claims.welcome.join.jobs")), tr("kami_claims.welcome.join.action"), "join") { app.navigate(Route("world")) }
-        val list = r.dropTop(below + CHOICE_H + 8)
+        val list = r.dropTop(below + choiceH + 8)
         ui.anchor("welcome:invites", list)
         val body = ui.section(list.top(14), tr("kami_claims.welcome.invites"), Format.number(snap.invites.size))
         if (snap.invites.isEmpty()) {
@@ -71,7 +92,7 @@ class WelcomePage(app: ClaimsApp) : ClaimsPage(app) {
         var y = body.y
         snap.invites.forEach { name ->
             val line = ClaimsStore.countries.firstOrNull { it.name == name }
-            val row = Rect(body.x, y, body.w, 24)
+            val row = Rect(body.x, y, body.w, inviteH)
             Draw.sprite(ui.g, Sprites.CARD, row)
             Flags.draw(ui.g, Rect(row.x + 6, row.y + 6, 16, 12), line?.color ?: 0x888888, line?.flag?.pattern ?: 0, line?.flag?.emblem ?: 0, line?.flag?.secondary ?: 0xFFFFFF)
             Draw.text(ui.g, name, row.x + 28, row.y + 3, TextStyle.HEADING)
@@ -88,7 +109,7 @@ class WelcomePage(app: ClaimsApp) : ClaimsPage(app) {
                 ), tr("kami_libs.common.join"), "accept", arrayOf(name))
             }
             if (ui.button(Rect((row.right - 124).coerceAtLeast(row.x), row.y + 3, 56, 18), tr("kami_libs.common.view"), key = "view:$name")) app.navigate(Route("world", focus = "country:$name"))
-            y += 28
+            y += inviteH + 4
         }
     }
 
@@ -109,9 +130,11 @@ class WelcomePage(app: ClaimsApp) : ClaimsPage(app) {
 
     private fun openWizard() {
         val name = TextState()
-        var tour = true
-        app.open(Dialog(tr("kami_claims.welcome.found.title"), tr("kami_claims.wizard.subtitle"), Icons.FLAG, DialogKind.CONFIRM, 380,
-            listOf(tr("kami_claims.wizard.step.location"), tr("kami_libs.common.name"), tr("kami_claims.common.rules"), tr("kami_libs.common.confirm"))) { s ->
+        tour = true
+        var preset = PresetId.MIXED
+        createError = null
+        val dialog = Dialog(tr("kami_claims.welcome.found.title"), tr("kami_claims.wizard.subtitle"), Icons.FLAG, DialogKind.CONFIRM, 380,
+            listOf(tr("kami_claims.wizard.step.location"), tr("kami_libs.common.name"), tr("kami_claims.wizard.step.government"), tr("kami_claims.common.rules"), tr("kami_libs.common.confirm"))) { s ->
             val snap = ClaimsStore.snap ?: return@Dialog
             val b = s.body
             val limits = snap.limits
@@ -143,6 +166,13 @@ class WelcomePage(app: ClaimsApp) : ClaimsPage(app) {
                     s.used = y - b.y
                 }
                 2 -> {
+                    var y = b.y
+                    fieldLabel(Rect(b.x, y, b.w, 9), tr("kami_claims.wizard.preset")); y += 11
+                    select(Rect(b.x, y, b.w, CONTROL_H), PresetDetail.options(), preset, key = "wizard-preset")?.let { preset = it }; y += CONTROL_H + 4
+                    y += PresetDetail.draw(this, b.x, y, b.w, preset, false)
+                    s.used = y - b.y
+                }
+                3 -> {
                     val cards = listOf(
                         Triple(Icons.AREA, tr("kami_claims.kpi.land"), tr("kami_claims.wizard.rules.land", trn("kami_claims.unit.chunk", snap.freeChunks))),
                         Triple(Icons.TREASURY, tr("kami_libs.flow.treasury"), tr("kami_claims.wizard.rules.treasury")),
@@ -165,27 +195,32 @@ class WelcomePage(app: ClaimsApp) : ClaimsPage(app) {
                     Draw.text(g, tr("kami_claims.wizard.capital_at", snap.px, snap.pz), b.x + 44, y + 15, Palette.textMuted); y += 34
                     y += consequences(b.x, y, b.w, listOf(
                         Consequence(tr("kami_claims.wizard.confirm.president", name.text), Severity.SUCCESS),
+                        Consequence(tr("kami_claims.wizard.confirm.preset", PresetDetail.name(preset))),
                         Consequence(tr("kami_claims.wizard.confirm.free", trn("kami_claims.unit.chunk", snap.freeChunks)), Severity.SUCCESS),
                         Consequence(tr("kami_claims.wizard.confirm.upkeep")),
                         Consequence(tr("kami_claims.wizard.confirm.single"))
                     ))
+                    createError?.let { callout(Rect(b.x, y + 4, b.w, 30), Severity.DANGER, it); y += 34 }
                     s.used = y - b.y + 4
                 }
             }
             val reason = when (s.step) {
                 0 -> problem
                 1 -> name.error
-                else -> null
+                else -> tr("kami_claims.wizard.creating").takeIf { pending(CREATE_KEY) }
             }
             wizardButtons(s, if (name.text.isEmpty()) tr("kami_claims.wizard.finish.default") else tr("kami_claims.wizard.finish", name.text), reason == null, reason) {
-                ClaimsStore.send("create", name.text, key = "create")
-                ClientClaims.prefs.tourDone = !tour
-                ClientClaims.savePrefs()
-                s.close()
+                createError = null
+                ClaimsStore.send("create", name.text, preset.key, key = CREATE_KEY)
             }
-        })
+        }
+        wizard = dialog
+        app.open(dialog)
     }
 }
 
+private const val CREATE_KEY = "create"
 private const val HEAD_H = 34
-private const val CHOICE_H = 76
+private const val CHOICE_MIN_H = 76
+private val choiceH get() = maxOf(CHOICE_MIN_H, 20 + 2 * TABLE_ROW_H + CONTROL_H + 12)
+private val inviteH get() = maxOf(24, CONTROL_H + 6)

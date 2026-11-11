@@ -1,10 +1,10 @@
 package kami.geology.client
 
 import kami.geology.net.GuideData
-import kotlinx.serialization.json.Json
+import kami.libs.config.Configs
 
 object Guide {
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = Configs.json()
     private val listeners = ArrayList<() -> Unit>()
 
     var data = GuideData(emptyList(), emptyList())

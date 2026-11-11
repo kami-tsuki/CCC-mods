@@ -84,7 +84,7 @@ class WorldContext(val level: ServerLevel, val settings: Settings) {
     }
 
     private fun cell(ore: Ore, cx: Int, cz: Int): Site? = cached(Hash.of(ore.salt, cx.toLong(), cz.toLong())) {
-        val deposit = ore.deposit!!
+        val deposit = requireNotNull(ore.deposit) { "ore ${ore.id} has no deposit" }
         val rng = Rng(Hash.of(seed, ore.salt, cx.toLong(), cz.toLong()))
         if (!rng.chance((deposit.chance * ore.maxWeight).coerceAtMost(1.0))) return@cached null
         val spacing = deposit.spacing
@@ -101,8 +101,8 @@ class WorldContext(val level: ServerLevel, val settings: Settings) {
     }
 
     private fun derived(ore: Ore, parent: Site): Site? = cached(Hash.of(ore.salt, parent.id, 1L)) {
-        val deposit = ore.deposit!!
-        val anchor = deposit.anchor!!
+        val deposit = requireNotNull(ore.deposit) { "ore ${ore.id} has no deposit" }
+        val anchor = requireNotNull(deposit.anchor) { "ore ${ore.id} has no anchor" }
         if (anchor.tiers.isNotEmpty() && parent.tier.name !in anchor.tiers) return@cached null
         val rng = Rng(Hash.of(seed, ore.salt, parent.id))
         if (!rng.chance(anchor.chance)) return@cached null
@@ -112,7 +112,7 @@ class WorldContext(val level: ServerLevel, val settings: Settings) {
     }
 
     private fun build(ore: Ore, rng: Rng, x: Double, y: Double, z: Double): Site {
-        val deposit = ore.deposit!!
+        val deposit = requireNotNull(ore.deposit) { "ore ${ore.id} has no deposit" }
         val shape = deposit.shape
         var pick = rng.double() * deposit.tiers.sumOf { it.weight }
         val tier = deposit.tiers.firstOrNull { pick -= it.weight; pick < 0.0 } ?: deposit.tiers.last()

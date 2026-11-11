@@ -1,7 +1,7 @@
 package kami.claims.net
 
 import kami.libs.claims.Boost as BoostLimits
-import kami.claims.Cap
+import kami.claims.gov.Perm
 import kami.claims.Config
 import kami.claims.Country
 import kami.claims.Realm
@@ -10,7 +10,6 @@ import kami.claims.research.Limits.MAX_COUNTERS
 import kami.claims.research.Limits.MAX_LINKS
 import kami.claims.research.Limits.MAX_UNLOCKS
 import kami.claims.service.Oversight
-import kami.claims.service.Service
 import kami.claims.social.Perms
 import kami.libs.log.Log
 import net.minecraft.server.MinecraftServer
@@ -111,21 +110,27 @@ object ResearchSync {
         val base = shown?.let { c -> built.getOrPut(c.id) { build(c) } } ?: StateView.NONE
         val ownBase = own?.let { c -> built.getOrPut(c.id) { build(c) } }
         val state = base.copy(
-            canManage = shown != null && Perms.has(p, Perms.capNode(Cap.RESEARCH)) && Oversight.may(shown, p, Cap.RESEARCH),
+            canManage = shown != null && Perms.permitted(p, Perm.RESEARCH) && Oversight.may(shown, p, Perm.RESEARCH),
             ownCountry = ownBase?.country.orEmpty(), ownLevel = ownBase?.level ?: 0, ownDone = ownBase?.done.orEmpty()
         )
         PacketDistributor.sendToPlayer(p, ResearchStatePacket(state))
         sentCountry[p.uuid] = Sent(view, ownId)
     }
 
-    private fun pushDefs(p: ServerPlayer) {
+    private fun pushDefs(p: ServerPlayer): Boolean {
         val packet = defsPacket ?: ResearchDefsPacket(ResearchWire.encodeDefs(defs())).also { defsPacket = it }
-        if (packet.data.size <= MAX_DEFS_BYTES) return PacketDistributor.sendToPlayer(p, packet)
+        if (fits(packet.data.size)) {
+            PacketDistributor.sendToPlayer(p, packet)
+            return true
+        }
         if (oversizeLogged != defsRev) {
             oversizeLogged = defsRev
             log.error("Research defs are {} bytes, over the {} byte packet budget; clients get no research data", packet.data.size, MAX_DEFS_BYTES)
         }
+        return false
     }
+
+    internal fun fits(bytes: Int) = bytes <= MAX_DEFS_BYTES
 
     internal fun defs() = DefsView(Research.defs.trees.values.map(::tree), IdExtras.encode(Gate.resolution), levels(Research.defs.levels))
 
@@ -166,11 +171,12 @@ object ResearchSync {
     }
 
     private fun tree(tree: Tree): TreeView {
-        val index = tree.nodes.withIndex().associate { (i, n) -> n.key to i }
+        val nodes = tree.nodes
+        val index = nodes.withIndex().associate { (i, n) -> n.key to i }
         return TreeView(
             tree.id, tree.title, tree.scope,
             tree.categories.map { CategoryView(it.id, it.title, it.icon, it.order) },
-            tree.nodes.map { node(tree, it, index) }
+            nodes.map { node(tree, it, index) }
         )
     }
 

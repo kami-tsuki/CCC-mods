@@ -59,7 +59,7 @@ class Dialog(
     private var bodyHeight = 60
     private var focusCleared = false
 
-    fun close() { open = false }
+    fun close() { if (open) UiSound.close(); open = false }
 
     fun draw(ui: Ui, screen: Rect) {
         staleReason = stale()

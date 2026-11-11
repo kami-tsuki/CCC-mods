@@ -92,6 +92,9 @@ object Draw {
     const val ICON = 14
     private const val NATIVE = 16
 
+    fun textY(y: Int, h: Int) = y + (h - 8) / 2
+    fun textY(r: Rect) = textY(r.y, r.h)
+
     fun fill(g: GuiGraphics, r: Rect, color: Int) { if (!r.isEmpty) g.fill(r.x, r.y, r.right, r.bottom, color) }
     fun hline(g: GuiGraphics, x: Int, y: Int, w: Int, color: Int) = g.fill(x, y, x + w, y + 1, color)
     fun vline(g: GuiGraphics, x: Int, y: Int, h: Int, color: Int) = g.fill(x, y, x + 1, y + h, color)
@@ -220,13 +223,17 @@ object Draw {
 
     fun fit(text: String, width: Int, style: TextStyle = TextStyle.BODY): String {
         if (width(text, style) <= width) return text
+        if (width <= 0) return ""
         var lo = 0
         var hi = text.length
         while (lo < hi) {
             val mid = (lo + hi + 1) ushr 1
             if (width(text.substring(0, mid) + "…", style) <= width) lo = mid else hi = mid - 1
         }
-        return text.substring(0, lo) + "…"
+        if (lo > 0) return text.substring(0, lo) + "…"
+        var keep = text.length
+        while (keep > 0 && width(text.substring(0, keep), style) > width) keep--
+        return text.substring(0, keep)
     }
 
     fun wrap(text: String, width: Int): List<FormattedCharSequence> = font.split(Component.literal(text), max(10, width))

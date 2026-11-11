@@ -7,7 +7,6 @@ import kami.libs.ui.app.Remote
 import kami.libs.ui.app.StatBoard
 import kami.libs.ui.app.chartCard
 import kami.libs.ui.app.TimeRange
-import kami.libs.ui.app.statChartCard
 import kami.libs.ui.app.statPage
 import kami.libs.ui.app.statTopCard
 import kami.libs.ui.app.topCard
@@ -20,13 +19,11 @@ import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr
 import kami.libs.ui.widget.KpiTile
 
-private const val REFRESH_MS = 15_000L
-
 internal class MarketStatsPage : Page() {
     override val title get() = tr("kami_libs.common.statistics")
     private val range = TimeRange("market-stats:range")
     private val board = StatBoard(range)
-    private val watch = Remote("market.watch", WatchStats.serializer(), REFRESH_MS)
+    private val watch = Remote("market.watch", WatchStats.serializer(), 15_000L)
     private val watched = board.counted("market.watch")
     private val trades = board.counted("market.trade")
     private val volume = board.counted("market.volume")

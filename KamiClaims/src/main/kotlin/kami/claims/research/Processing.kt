@@ -2,6 +2,7 @@ package kami.claims.research
 
 import kami.claims.Realm
 import net.minecraft.core.RegistryAccess
+import kami.libs.mc.ItemSpec
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.crafting.Recipe
@@ -23,6 +24,6 @@ object Processing {
     private fun done(recipe: Recipe<*>, result: ItemStack) {
         val country = Realm.country(RecipeContext.countryId()) ?: return
         val type = BuiltInRegistries.RECIPE_TYPE.getKey(recipe.type)?.toString() ?: return
-        Progress.processed(country, type, BuiltInRegistries.ITEM.getKey(result.item).toString())
+        Progress.processed(country, type, ItemSpec.id(result))
     }
 }

@@ -3,6 +3,9 @@ package kami.libs.discord
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.channel.concrete.Category
+import net.dv8tion.jda.api.exceptions.ErrorResponseException
+import net.dv8tion.jda.api.exceptions.InsufficientPermissionException
+import net.dv8tion.jda.api.requests.ErrorResponse
 import java.util.EnumSet
 
 internal object Rooms {
@@ -13,7 +16,11 @@ internal object Rooms {
         Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MESSAGE_HISTORY, Permission.MESSAGE_ATTACH_FILES, Permission.MESSAGE_EMBED_LINKS,
         Permission.MESSAGE_ADD_REACTION, Permission.CREATE_PUBLIC_THREADS, Permission.CREATE_PRIVATE_THREADS, Permission.MESSAGE_SEND_IN_THREADS, Permission.MANAGE_THREADS
     )
+    private val HIDDEN: EnumSet<Permission> = EnumSet.of(Permission.VIEW_CHANNEL)
     private val SELF: EnumSet<Permission> = EnumSet.of(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MESSAGE_HISTORY, Permission.MESSAGE_EMBED_LINKS, Permission.MANAGE_WEBHOOKS)
+
+    @Volatile private var creating = false
+    private val badRoles = java.util.concurrent.ConcurrentHashMap<Long, Set<Long>>()
 
     @Volatile var byKey: Map<String, Long> = emptyMap()
         private set
@@ -57,24 +64,38 @@ internal object Rooms {
         val current = channel.memberPermissionOverrides.filter { it.idLong != self }.associateBy { it.idLong }
         val manager = channel.manager
         var changed = false
+        val staff = staff(guild)
+        val keep = setOfNotNull(guild.publicRole.idLong, staff?.idLong)
+        val skip = badRoles[channelId].orEmpty()
+        val removed = channel.rolePermissionOverrides.filter { it.idLong !in keep && it.idLong !in skip && it.allowed.contains(Permission.VIEW_CHANNEL) }.map { it.idLong }
+        removed.forEach { manager.removePermissionOverride(it); changed = true }
+        if (channel.getPermissionOverride(guild.publicRole)?.denied?.contains(Permission.VIEW_CHANNEL) != true) { manager.putRolePermissionOverride(guild.publicRole.idLong, emptySet(), HIDDEN); changed = true }
+        if (staff != null && channel.getPermissionOverride(staff)?.allowed != MEMBER) { manager.putRolePermissionOverride(staff.idLong, MEMBER, emptySet()); changed = true }
         current.keys.filterNot { it in members }.forEach { manager.removePermissionOverride(it); changed = true }
         members.filter { id -> current[id].let { it == null || it.allowed != MEMBER || it.denied.isNotEmpty() } }.forEach { manager.putMemberPermissionOverride(it, MEMBER, emptySet()); changed = true }
         if (!changed) return done(channel.idLong)
-        manager.queue({ Discord.post { done(channel.idLong) } }) { warn("members", it) }
+        manager.queue({ Discord.post { done(channel.idLong) } }) {
+            if (removed.isNotEmpty() && denied(it)) badRoles.merge(channelId, removed.toSet()) { a, b -> a + b }
+            warn("members", it)
+        }
     }
 
     fun delete(channelId: Long) {
         if (channelId == 0L) return
+        badRoles.remove(channelId)
         Webhooks.invalidate(Outbox.Channel.of(channelId))
         Outbox.forget(Outbox.Channel.of(channelId))
         Discord.guild()?.getTextChannelById(channelId)?.delete()?.queue(null) { warn("delete", it) }
     }
 
     private fun create(guild: Guild, name: String, members: Set<Long>, done: (Long) -> Unit) = category(guild) { category ->
-        val action = category.createTextChannel(name).syncPermissionOverrides().addMemberPermissionOverride(guild.selfMember.idLong, SELF, emptySet())
+        val action = category.createTextChannel(name).addRolePermissionOverride(guild.publicRole.idLong, emptySet(), HIDDEN).addMemberPermissionOverride(guild.selfMember.idLong, SELF, emptySet())
+        staff(guild)?.let { action.addRolePermissionOverride(it.idLong, MEMBER, emptySet()) }
         members.forEach { action.addMemberPermissionOverride(it, MEMBER, emptySet()) }
         action.queue({ Discord.post { done(it.idLong) } }) { warn("create", it) }
     }
+
+    private fun staff(guild: Guild) = Discord.connected.adminRoleId.toLongOrNull()?.let(guild::getRoleById)
 
     private fun category(guild: Guild, use: (Category) -> Unit) {
         val base = guild.getCategoryById(categoryId) ?: return Discord.warnOnce("rooms-category", "The country category $categoryId was not found, country channels are off")
@@ -82,8 +103,17 @@ internal object Rooms {
         val overflow = guild.categories.mapNotNull { c -> c.name.takeIf { it.startsWith(prefix) }?.removePrefix(prefix)?.toIntOrNull()?.let { it to c } }.sortedBy { it.first }
         val free = (listOf(base) + overflow.map { it.second }).firstOrNull { it.channels.size < CATEGORY_MAX }
         if (free != null) return use(free)
-        base.createCopy().setName("$prefix${(overflow.maxOfOrNull { it.first } ?: 1) + 1}").queue(use) { warn("category", it) }
+        if (creating) return
+        creating = true
+        try {
+            base.createCopy().setName("$prefix${(overflow.maxOfOrNull { it.first } ?: 1) + 1}").queue({ creating = false; use(it) }) { creating = false; warn("category", it) }
+        } catch (e: Exception) {
+            creating = false
+            throw e
+        }
     }
+
+    private fun denied(e: Throwable) = e is InsufficientPermissionException || (e as? ErrorResponseException)?.errorResponse == ErrorResponse.MISSING_PERMISSIONS
 
     private fun warn(kind: String, e: Throwable) = Discord.warnOnce("rooms-$kind-${e.javaClass.simpleName}", "Country channel $kind failed: ${e.message}")
 }

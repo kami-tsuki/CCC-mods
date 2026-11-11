@@ -11,6 +11,7 @@ import kami.claims.economy.Treasury
 import kami.claims.research.Features
 import kami.claims.research.Progress
 import kami.claims.now
+import kami.claims.gov.Perm
 import kami.claims.service.Words.v
 import kami.claims.social.Mail
 import kami.claims.war.Reputation
@@ -47,7 +48,7 @@ object Diplomacy {
     fun creditTariff(c: Country, amount: Long, payer: String = "", note: String = ""): Long {
         if (amount <= 0) return 0
         val applied = Treasury.move(c, LedgerKind.TARIFF, amount, payer.ifEmpty { null }, note)
-        Realm.changed()
+        Realm.changed(false)
         runCatching { Progress.report(c, "taxes", "", applied) }.onFailure { KamiClaims.LOG.error("Tariff progress failed for country ${c.id}", it) }
         return applied
     }
@@ -70,7 +71,7 @@ object Diplomacy {
         mutual(c, target)
         if (target.id in c.allianceOffers) return accept(c, target)
         target.allianceOffers[c.id] = now() + Config.s.inviteDays * Config.s.dayMillis
-        Mail.officers(target, Phrase.of("kami_claims.mail.alliance_offer", v(c.name)))
+        Mail.holders(target, Perm.DIPLOMACY, Phrase.of("kami_claims.mail.alliance_offer", v(c.name)))
         return Phrase.of("kami_claims.done.alliance_offered", v(target.name))
     }
 
@@ -90,7 +91,7 @@ object Diplomacy {
         Progress.report(c, "alliance", from.id, 1, "alliance:${from.id}")
         Progress.report(from, "alliance", c.id, 1, "alliance:${c.id}")
         Realm.syncAllies()
-        Mail.officers(from, Phrase.of("kami_claims.mail.alliance_accepted", v(c.name)))
+        Mail.holders(from, Perm.DIPLOMACY, Phrase.of("kami_claims.mail.alliance_accepted", v(c.name)))
         Announce.fire("allianceFormed", c, mapOf("country" to c.name, "other" to from.name))
         return Phrase.of("kami_claims.done.alliance_formed", v(from.name))
     }
@@ -113,7 +114,7 @@ object Diplomacy {
         b.alliances.remove(a.id)
         ResearchSync.refresh(a)
         ResearchSync.refresh(b)
-        Mail.officers(b, Phrase.of("kami_claims.mail.alliance_ended", v(a.name)), Tone.WARN)
+        Mail.holders(b, Perm.DIPLOMACY, Phrase.of("kami_claims.mail.alliance_ended", v(a.name)), Tone.WARN)
         Announce.fire("allianceEnded", a, mapOf("country" to a.name, "other" to b.name))
     }
 
@@ -122,7 +123,7 @@ object Diplomacy {
         if (pct !in 0..MAX_TARIFF || pct % TARIFF_STEP != 0) throw Fail("kami_claims.error.tariff_step", v(TARIFF_STEP), v(MAX_TARIFF))
         if (policy(c, target).tariffPct != pct) Reputation.policy(c, target)
         store(c, target, TradePolicy(pct, policy(c, target).embargo))
-        Mail.officers(target, Phrase.of("kami_claims.mail.tariff", v(c.name), v(pct)))
+        Mail.holders(target, Perm.TRADE, Phrase.of("kami_claims.mail.tariff", v(c.name), v(pct)))
         return Phrase.of("kami_claims.done.tariff", v(target.name), v(pct))
     }
 
@@ -137,7 +138,7 @@ object Diplomacy {
         Reputation.policy(c, target)
         store(c, target, TradePolicy(previous.tariffPct, on))
         if (on) target.allianceOffers.remove(c.id)
-        Mail.officers(target, Phrase.of(if (on) "kami_claims.mail.embargo_on" else "kami_claims.mail.embargo_off", v(c.name)), if (on) Tone.WARN else Tone.INFO)
+        Mail.holders(target, Perm.TRADE, Phrase.of(if (on) "kami_claims.mail.embargo_on" else "kami_claims.mail.embargo_off", v(c.name)), if (on) Tone.WARN else Tone.INFO)
         Announce.fire(if (on) "embargoOn" else "embargoOff", c, mapOf("country" to c.name, "other" to target.name))
         return done
     }

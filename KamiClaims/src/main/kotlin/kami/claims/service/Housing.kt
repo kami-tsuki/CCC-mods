@@ -1,6 +1,12 @@
 package kami.claims.service
 
 import kami.claims.*
+import kami.claims.gov.CITIZEN
+import kami.claims.gov.Perm
+import kami.claims.gov.Land
+import kami.claims.gov.Permissions
+import kami.claims.gov.Standing
+import kami.claims.gov.TaxStyle
 import kami.claims.economy.Bank
 import kami.claims.economy.Treasury
 import kami.claims.research.Capacity
@@ -14,6 +20,7 @@ import kami.claims.service.Words.num
 import kami.claims.service.Words.v
 import kami.claims.social.Mail
 import kami.claims.war.WarGuard
+import kami.claims.war.Wars
 import kami.libs.chat.Tone
 import kami.libs.economy.Flow
 import kami.libs.economy.ServerParty
@@ -24,12 +31,13 @@ import kami.libs.text.Phrase
 import java.util.UUID
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 import kami.libs.economy.CountryParty
 import kami.libs.economy.Statement
 
 enum class PlotBlock(val key: String) {
     COUNTRY("unknown_country"), TYPE("plot_type"), TAKEN("plot_taken"), BANISHED("you_banished"), LOCKED("plot_locked"),
-    RANK("rank"), LEVEL("plot_not_offered"), OFFER("plot_not_offered"), LIMIT("plot_limit"), ADJACENT("plot_adjacent");
+    ENEMY("plot_enemy"), PERMISSION("missing_permission"), LEVEL("plot_not_offered"), OFFER("plot_not_offered"), LIMIT("plot_limit"), ADJACENT("plot_adjacent");
 
     val wire get() = name.lowercase()
 }
@@ -39,8 +47,15 @@ object Housing {
     const val RESIDENTIAL = "residential"
 
     const val CREDIT_DAYS = 30
+    private const val PRIVATE_LAND_FACTOR = 0.75
+    private const val TRIBUTE_FACTOR = 1.25
+    private const val BRACKET_STEP = 0.1
+    private const val MAX_TIER = 5
+    const val RANK_DELAY_DAYS = 3
 
-    internal var pay: (String, Int, String, String) -> Boolean = { id, n, country, note -> Bank.take(UUID.fromString(id), n, Flow.RENT, CountryParty(country).key, note) }
+    private val rentMailed = HashMap<Key, Pair<Long, Int>>()
+
+    internal var pay:(String, Int, String, String) -> Boolean = { id, n, country, note -> Bank.take(UUID.fromString(id), n, Flow.RENT, CountryParty(country).key, note) }
     internal var give: (String, Int, String) -> Boolean = { id, n, country -> Bank.give(UUID.fromString(id), n, Flow.REFUND, CountryParty(country).key, "kami_libs.note.refund") }
 
     val features = mapOf(
@@ -54,7 +69,33 @@ object Housing {
 
     fun effective(cl: Claim): Claimant = if (cl.state == Tenancy.REMOVED) Claimant.RANDOM else cl.category ?: Claimant.CITIZEN
 
-    fun rate(c: Country, cl: Claim): Int = rent(c, cl, effective(cl))
+    fun levy(c: Country, category: Claimant, tenantId: String?, at: Long = now()): Double {
+        val levers = c.government.levers
+        val land = when (levers.land) {
+            Land.STATE, Land.COMMUNAL -> return 0.0
+            Land.PRIVATE -> PRIVATE_LAND_FACTOR
+            Land.LEASE -> 1.0
+        }
+        if (category != Claimant.CITIZEN) return land
+        val tax = when (levers.taxes) {
+            TaxStyle.NONE -> return 0.0
+            TaxStyle.FLAT -> 1.0
+            TaxStyle.BRACKETS -> 1 + BRACKET_STEP * tier(c, tenantId, at)
+            TaxStyle.TRIBUTE -> TRIBUTE_FACTOR
+        }
+        return land * tax
+    }
+
+    internal fun taxedRank(c: Country, m: Member, at: Long = now()): String =
+        m.rankPrev?.takeIf { at - m.rankAt < RANK_DELAY_DAYS * Config.s.dayMillis && Permissions.rank(c, it) != null } ?: m.rank
+
+    private fun tier(c: Country, tenantId: String?, at: Long): Int =
+        tenantId?.let { c.members[it] }?.let { (Permissions.position(c, CITIZEN) - Permissions.position(c, taxedRank(c, it, at))).coerceIn(0, MAX_TIER) } ?: 0
+
+    fun price(c: Country, cl: Claim, category: Claimant, tenantId: String?, at: Long = now()): Int =
+        (rent(c, cl, category) * levy(c, category, tenantId, at)).roundToInt().coerceAtLeast(0)
+
+    fun rate(c: Country, cl: Claim, at: Long = now()): Int = price(c, cl, effective(cl), cl.owner, at)
 
     fun income(c: Country): Long = Realm.claims(c.id).filter { it.owner != null && it.state != Tenancy.MOVING_OUT }.sumOf { rate(c, it).toLong() }
 
@@ -80,14 +121,14 @@ object Housing {
 
     fun category(c: Country, id: String): Claimant? {
         if (id in c.members) return Claimant.CITIZEN
-        if (c.outsiders[id] == Rank.BANISHED) return null
+        if (c.outsiders[id] == Standing.BANISHED) return null
         val home = Realm.of(id)
         if (home != null && home.id != c.id) when {
             c.parent == home.id -> return Claimant.PARENT
             home.parent == c.id || (c.parent != null && c.parent == home.parent) -> return Claimant.PROVINCE
             home.id in c.alliances -> return Claimant.ALLIED
         }
-        return if (c.outsiders[id] == Rank.ALLIED && id !in c.autoAllies) Claimant.ALLIED else Claimant.RANDOM
+        return if (c.outsiders[id] == Standing.ALLIED && id !in c.autoAllies) Claimant.ALLIED else Claimant.RANDOM
     }
 
     fun offer(c: Country, cl: Claim): Offer = cl.offer ?: c.offer
@@ -96,21 +137,21 @@ object Housing {
         cat == Claimant.CITIZEN || (cat in offer(c, cl).open && features[cat]?.let { Features.unlocked(c, it) } != false)
 
     fun limit(c: Country, id: String): Int {
-        val own = c.playerPlots[id] ?: c.members[id]?.let { c.rankPlots[it.rank] } ?: c.guestPlots[category(c, id) ?: Claimant.RANDOM]
+        val own = c.playerPlots[id] ?: Permissions.rankOf(c, id)?.plots ?: c.guestPlots[category(c, id) ?: Claimant.RANDOM]
         return min(Levels.capacity(c, Capacity.PLOTS), own ?: 0)
     }
 
     fun blocker(c: Country, cl: Claim, id: String, held: Collection<Key> = Realm.held(c.id)[id].orEmpty()): PlotBlock? {
         val cat = category(c, id)
         val feature = cat?.let { features[it] }
-        val rank = c.members[id]?.rank
         return when {
             !c.active -> PlotBlock.COUNTRY
             !cl.plot -> PlotBlock.TYPE
             tenanted(cl) -> PlotBlock.TAKEN
             cat == null -> PlotBlock.BANISHED
+            Wars.enemy(id, c) -> PlotBlock.ENEMY
             (c.reclaimLocks[id] ?: 0) > now() -> PlotBlock.LOCKED
-            rank != null && !Config.s.can(rank, Cap.PLOT) -> PlotBlock.RANK
+            id in c.members && !Permissions.holds(c, id, Perm.PLOTS) -> PlotBlock.PERMISSION
             feature != null && !Features.unlocked(c, feature) -> PlotBlock.LEVEL
             cat != Claimant.CITIZEN && cat !in offer(c, cl).open -> PlotBlock.OFFER
             held.size >= limit(c, id) -> PlotBlock.LIMIT
@@ -128,7 +169,7 @@ object Housing {
             val args: Array<Any> = when (block) {
                 PlotBlock.BANISHED -> arrayOf(v(c.name))
                 PlotBlock.LOCKED -> arrayOf(days(max(1L, ((c.reclaimLocks[id] ?: 0) - now()) / Config.s.dayMillis + 1)))
-                PlotBlock.RANK -> arrayOf(Words.rank(Config.s.min(Cap.PLOT)))
+                PlotBlock.PERMISSION -> arrayOf(Words.perm(Perm.PLOTS))
                 PlotBlock.LIMIT -> arrayOf(num(held.size), num(limit(c, id)))
                 else -> emptyArray()
             }
@@ -187,19 +228,25 @@ object Housing {
         c.reclaimLocks[cl.owner!!] = cl.until + c.moveOutDays * Config.s.dayMillis
     }
 
-    fun checkRemove(c: Country, cl: Claim, actor: Rank): String {
+    fun checkRemove(c: Country, cl: Claim, actor: String?): String {
         val owner = cl.owner ?: throw Fail("kami_claims.error.plot_free")
         if (cl.state == Tenancy.MOVING_OUT) throw Fail("kami_claims.error.plot_moving")
-        if ((c.rank(owner) ?: Rank.BANISHED) >= actor) throw Fail("kami_claims.error.rank_below")
+        if (actor != null && owner in c.members && !Permissions.outranks(c, actor, owner)) throw Fail("kami_claims.error.rank_below")
         return owner
     }
 
-    private fun repriced(c: Country, cl: Claim?, change: () -> Unit) {
+    fun repriced(c: Country, cl: Claim? = null, change: () -> Unit) {
         val plots = Realm.claims(c.id).filter { it.owner != null && it.state != Tenancy.MOVING_OUT && (cl == null || it === cl) }
-        val before = plots.associateWith { rate(c, it) }
+        val settled = now() + RANK_DELAY_DAYS * Config.s.dayMillis
+        val before = plots.associateWith { rate(c, it, settled) }
         change()
-        plots.forEach { if (rate(c, it) != before[it]) Mail.direct(it.owner!!, Phrase.of("kami_claims.mail.plot_rent", coords(it), money(rate(c, it))), Tone.WARN) }
+        val day = today()
+        rentMailed.values.removeIf { it.first < day }
+        plots.filter { rate(c, it, settled) != before[it] && rentMailed.put(it.key, day to rate(c, it, settled))?.second != rate(c, it, settled) }
+            .forEach { Mail.direct(it.owner!!, Phrase.of("kami_claims.mail.plot_rent", coords(it), money(rate(c, it, settled))), Tone.WARN) }
     }
+
+    fun resetMails() = rentMailed.clear()
 
     fun reset(c: Country, cl: Claim) = repriced(c, cl) { cl.offer = null }
 

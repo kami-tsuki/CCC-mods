@@ -1,5 +1,6 @@
 package kami.claims
 
+import kami.claims.gov.PRESIDENT
 import kami.claims.admin.AdminCountries
 import kami.claims.admin.CountryAdmin
 import kami.claims.service.Fail
@@ -14,7 +15,8 @@ class AdminCountriesTest : WithDb() {
     private fun country(name: String, treasury: Long = 1_000): Country {
         val c = Country(name, treasury = treasury)
         Realm.data.countries[c.id] = c
-        Realm.join(c, "${name}_p", Rank.PRESIDENT)
+        c.mixed()
+        Realm.join(c, "${name}_p", PRESIDENT)
         return c
     }
 
