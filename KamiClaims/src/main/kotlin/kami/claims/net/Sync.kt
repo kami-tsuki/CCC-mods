@@ -95,7 +95,7 @@ import kotlin.math.roundToInt
 )
 @Serializable class SafeLine(val dim: String, val x: Int, val z: Int)
 @Serializable class StakeLine(val chunks: Int = 0, val money: Long = 0, val vassal: Boolean = false, val provinces: List<String> = emptyList())
-@Serializable class OfferTerms(val stakes: StakeLine? = null, val ceasefireDays: Int = 0, val peace: Boolean = false, val extendDays: Int = 0, val billPct: Int? = null)
+@Serializable class OfferTerms(val stakes: StakeLine? = null, val ceasefireDays: Int = 0, val peace: Boolean = false, val extendDays: Int = 0, val billPct: Int? = null, val at: Long = 0)
 @Serializable class WarLine(
     val id: String, val kind: String, val phase: String, val ends: Long, val attacker: String, val defender: String,
     val joinedA: List<String> = emptyList(), val joinedD: List<String> = emptyList(), val side: String = "", val stakes: StakeLine = StakeLine(),
@@ -417,7 +417,7 @@ object Sync {
             WarLine(
                 w.id, w.kind.name.lowercase(), w.phase.name.lowercase(), w.phaseEnds, Wars.name(w.attacker.main), Wars.name(w.defender.main),
                 w.attacker.joined.map(Wars::name), w.defender.joined.map(Wars::name), sideOf(w, c.id), stakes(w.stakes),
-                o?.let { OfferTerms(it.stakes?.let { st -> stakes(st) }, it.ceasefireDays, it.peace, it.extendDays, it.billPct) }, o?.let { Wars.name(it.from) }.orEmpty(),
+                o?.let { OfferTerms(it.stakes?.let { st -> stakes(st) }, it.ceasefireDays, it.peace, it.extendDays, it.billPct, it.at) }, o?.let { Wars.name(it.from) }.orEmpty(),
                 w.attacker.exhaustion, w.defender.exhaustion, if (party) w.attacker.bill.values.sum() else 0, if (party) w.defender.bill.values.sum() else 0,
                 if (party) w.fee else 0, if (party) w.escrow else 0, w.ceasefires, w.extendedDays, w.result?.name?.lowercase().orEmpty(), sides.isNotEmpty(), sides
             )

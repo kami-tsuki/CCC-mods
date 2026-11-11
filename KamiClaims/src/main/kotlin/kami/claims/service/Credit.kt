@@ -8,12 +8,15 @@ import kami.claims.gov.TaskSpec
 import kami.claims.world.Placed
 import kami.libs.util.RecentSet
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
+import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.tags.TagKey
 import net.minecraft.world.item.Item
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.CocoaBlock
 import net.minecraft.world.level.block.CropBlock
@@ -35,13 +38,27 @@ object Credit {
         TaskKind.CHOP to "#minecraft:logs"
     )
     private val paidPlaces = RecentSet<Pair<String, Long>>(8192)
-    private val blockTags = HashMap<String, TagKey<Block>>()
-    private val itemTags = HashMap<String, TagKey<Item>>()
+    private val dims = java.util.concurrent.ConcurrentHashMap<ResourceKey<Level>, String>()
+
+    private class Spec<T : Any>(val id: ResourceLocation, val tag: TagKey<T>?)
+    private class Filter<T : Any>(val blank: Boolean, val specs: List<Spec<T>>)
+
+    private val blockFilters = HashMap<String, Filter<Block>>()
+    private val itemFilters = HashMap<String, Filter<Item>>()
 
     fun reset() = paidPlaces.clear()
 
+    fun dimOf(level: Level): String = level.dimension().let { key -> dims.getOrPut(key) { key.location().toString() } }
+
+    private fun <T : Any> parse(raw: String, registry: ResourceKey<Registry<T>>): Filter<T> {
+        val entries = raw.split(',').map { it.trim() }.filter { it.isNotEmpty() }
+        return Filter(entries.isEmpty(), entries.mapNotNull { spec ->
+            ResourceLocation.tryParse(spec.removePrefix("#"))?.let { Spec(it, if (spec.startsWith("#")) TagKey.create(registry, it) else null) }
+        })
+    }
+
     fun block(p: ServerPlayer, pos: BlockPos, action: Action, state: BlockState) {
-        val dim = p.level().dimension().location().toString()
+        val dim = dimOf(p.level())
         if (action == Action.PLACE) Placed.mark(dim, pos, p.stringUUID)
         if (!earnsCredit(p)) return
         val cl = Realm.at(dim, pos.x shr 4, pos.z shr 4) ?: return
@@ -83,7 +100,7 @@ object Credit {
 
     private fun heldAt(p: ServerPlayer, count: Int): Pair<CreditLedger, List<Pair<Job, JobSpec>>>? {
         if (!earnsCredit(p) || count <= 0) return null
-        val cl = Realm.at(p.level().dimension().location().toString(), p.blockPosition().x shr 4, p.blockPosition().z shr 4) ?: return null
+        val cl = Realm.at(dimOf(p.level()), p.blockPosition().x shr 4, p.blockPosition().z shr 4) ?: return null
         val c = Realm.data.countries[cl.country] ?: return null
         return ledgerOf(c) to Work.held(c, p.stringUUID, cl)
     }
@@ -127,30 +144,18 @@ object Credit {
         return granted
     }
 
-    private fun entries(task: TaskSpec) = task.filter.ifBlank { blankBlockFilters[task.kind].orEmpty() }.split(',').map { it.trim() }.filter { it.isNotEmpty() }
-
     private fun blockMatches(task: TaskSpec, state: BlockState): Boolean {
-        val entries = entries(task)
-        if (entries.isEmpty()) return task.kind == TaskKind.BUILD
-        return entries.any { specMatches(it, state) }
-    }
-
-    private fun specMatches(spec: String, state: BlockState): Boolean {
-        val id = ResourceLocation.tryParse(spec.removePrefix("#")) ?: return false
-        return if (spec.startsWith("#")) state.`is`(blockTags.bounded(spec) { TagKey.create(Registries.BLOCK, id) })
-        else BuiltInRegistries.BLOCK.getKey(state.block) == id
+        val raw = task.filter.ifBlank { blankBlockFilters[task.kind].orEmpty() }
+        val filter = blockFilters.bounded(raw) { parse(raw, Registries.BLOCK) }
+        if (filter.blank) return task.kind == TaskKind.BUILD
+        return filter.specs.any { spec -> spec.tag?.let { state.`is`(it) } ?: (BuiltInRegistries.BLOCK.getKey(state.block) == spec.id) }
     }
 
     private fun itemMatches(task: TaskSpec, itemId: String): Boolean {
-        val entries = task.filter.split(',').map { it.trim() }.filter { it.isNotEmpty() }
-        return entries.isEmpty() || entries.any { itemSpecMatches(it, itemId) }
-    }
-
-    private fun itemSpecMatches(spec: String, itemId: String): Boolean {
-        val wanted = ResourceLocation.tryParse(spec.removePrefix("#")) ?: return false
+        val filter = itemFilters.bounded(task.filter) { parse(task.filter, Registries.ITEM) }
+        if (filter.blank) return true
         val item = ResourceLocation.tryParse(itemId) ?: return false
-        if (!spec.startsWith("#")) return wanted == item
-        return BuiltInRegistries.ITEM.get(item).builtInRegistryHolder().`is`(itemTags.bounded(spec) { TagKey.create(Registries.ITEM, wanted) })
+        return filter.specs.any { spec -> spec.tag?.let { BuiltInRegistries.ITEM.get(item).builtInRegistryHolder().`is`(it) } ?: (spec.id == item) }
     }
 }
 

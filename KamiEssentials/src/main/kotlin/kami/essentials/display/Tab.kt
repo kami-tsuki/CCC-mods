@@ -19,7 +19,8 @@ object Tab {
     private var countTick = -1
     private var hidden = 0
     private val names = HashMap<UUID, Component>()
-    private val footers = HashMap<UUID, Pair<Component, Component>>()
+    private data class Footer(val title: String, val online: Int, val ping: Int, val tps: String)
+    private val footers = HashMap<UUID, Footer>()
 
     fun forget(id: UUID) {
         names.remove(id)
@@ -36,13 +37,13 @@ object Tab {
         val ids = players.mapTo(HashSet()) { it.uuid }
         names.keys.retainAll(ids)
         footers.keys.retainAll(ids)
-        val header = header()
+        val tps = tpsText(server)
         players.forEach { p ->
             val name = if (on) Names.player(p, hover = false) else Component.empty()
             if (names.put(p.uuid, name) != name) p.refreshTabListName()
             if (on) {
-                val next = header to footer(server, p)
-                if (footers.put(p.uuid, next) != next) p.connection.send(ClientboundTabListPacket(next.first, next.second))
+                val next = Footer(Config.s.tabTitle, online(server, p), (p.connection.latency() + 5) / 10 * 10, tps)
+                if (footers.put(p.uuid, next) != next) p.connection.send(ClientboundTabListPacket(header(next.title), footer(next)))
             } else if (shown) p.connection.send(ClientboundTabListPacket(Component.empty(), Component.empty()))
         }
         if (!on) footers.clear()
@@ -62,14 +63,14 @@ object Tab {
 
     fun tpsText(server: MinecraftServer): String = String.format(Locale.ROOT, "%.1f", tps(server))
 
-    private fun header(): Component = Component.literal("\n  ${Config.s.tabTitle}  \n").withColor(Theme.ACCENT).withStyle(ChatFormatting.BOLD)
+    private fun header(title: String): Component = Component.literal("\n  $title  \n").withColor(Theme.ACCENT).withStyle(ChatFormatting.BOLD)
 
-    private fun footer(server: MinecraftServer, p: ServerPlayer): Component = Component.literal("\n")
-        .append(pair("kami_libs.common.online", online(server, p).toString()))
+    private fun footer(f: Footer): Component = Component.literal("\n")
+        .append(pair("kami_libs.common.online", f.online.toString()))
         .append(Component.literal("   ·   ").withColor(Theme.MUTED))
-        .append(pair("kami_essentials.sidebar.ping", "${p.connection.latency()} ms"))
+        .append(pair("kami_essentials.sidebar.ping", "${f.ping} ms"))
         .append(Component.literal("   ·   ").withColor(Theme.MUTED))
-        .append(pair("kami_essentials.sidebar.tps", tpsText(server)))
+        .append(pair("kami_essentials.sidebar.tps", f.tps))
         .append("\n")
 
     private fun pair(key: String, value: String) =

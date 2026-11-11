@@ -20,7 +20,7 @@ import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 
 object Admin {
-    private class Handler(val level: AdminPerms.Level, val needsReason: Boolean, val async: Boolean, val run: (AdminCtx, List<String>) -> JsonElement)
+    private class Handler(val level: AdminPerms.Level, val needsReason: Boolean, val async: Boolean, val audited: Boolean, val run: (AdminCtx, List<String>) -> JsonElement)
 
     private const val PER_SECOND = 20
     private const val QUEUE = 64
@@ -36,10 +36,11 @@ object Admin {
 
     val level get() = AdminClient.level
 
-    fun view(name: String, async: Boolean = false, handler: (ctx: AdminCtx, args: List<String>) -> JsonElement) = register(name, AdminPerms.Level.VIEW, false, async, handler)
+    fun view(name: String, async: Boolean = false, audited: Boolean = false, handler: (ctx: AdminCtx, args: List<String>) -> JsonElement) =
+        register(name, AdminPerms.Level.VIEW, false, async, audited, handler)
 
     fun act(name: String, needsReason: Boolean = true, handler: (ctx: AdminCtx, args: List<String>) -> JsonElement) =
-        register(name, AdminPerms.Level.MANAGE, needsReason, false, handler)
+        register(name, AdminPerms.Level.MANAGE, needsReason, false, true, handler)
 
     fun request(name: String, args: List<String> = emptyList(), reason: String? = null, onReply: (AdminReply) -> Unit = {}) =
         AdminClient.request(name, args, reason, onReply)
@@ -51,8 +52,8 @@ object Admin {
         return JsonObject(if (audit.isEmpty()) m else m + (AUDIT to JsonObject(audit.mapValues { JsonPrimitive(it.value) })))
     }
 
-    internal fun register(name: String, level: AdminPerms.Level, needsReason: Boolean, async: Boolean = false, handler: (AdminCtx, List<String>) -> JsonElement) {
-        handlers[name] = Handler(level, needsReason, async, handler)
+    internal fun register(name: String, level: AdminPerms.Level, needsReason: Boolean, async: Boolean = false, audited: Boolean = false, handler: (AdminCtx, List<String>) -> JsonElement) {
+        handlers[name] = Handler(level, needsReason, async, audited, handler)
     }
 
     internal fun forget(id: UUID) {
@@ -130,7 +131,7 @@ object Admin {
             AdminReply(false, error = "kami_libs.admin.error")
         }
         if (acting && reply.ok) Staff.mark(p)
-        if (acting) audit(p, name, target, reason.orEmpty(), extra + args.withIndex().associate { "${it.index}" to it.value }.minus(extra.keys), reply.ok)
+        if (h.audited) audit(p, name, target, reason.orEmpty(), extra + args.withIndex().associate { "${it.index}" to it.value }.minus(extra.keys), reply.ok)
         return reply
     }
 

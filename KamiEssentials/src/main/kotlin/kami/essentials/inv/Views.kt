@@ -36,7 +36,7 @@ object Views {
         val label = notes.fold(base) { out, note -> Phrase.of("kami_libs.format.paren", out, note) }
         val title = label.component()
         data?.viewers?.add(viewer)
-        val opened = viewer.openMenu(SimpleMenuProvider({ id, inv, _ -> ViewMenu(id, inv, source, layout, edit, valid) { data?.let { Offline.release(it, viewer) } } }, title))
+        val opened = viewer.openMenu(SimpleMenuProvider({ id, inv, _ -> ViewMenu(id, inv, source, if (what == "inventory" && data != null) layout.map { if (data.pinned(it)) -1 else it }.toIntArray() else layout, edit, valid) { data?.let { Offline.release(it, viewer) } } }, title))
         if (opened.isEmpty) return data?.let { Offline.release(it, viewer) } ?: Unit
         if (live !== viewer) viewer.tell(Talk.chat.info(Phrase.of("kami_essentials.views.opened", label.asValue())))
     }

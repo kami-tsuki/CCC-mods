@@ -103,6 +103,7 @@ object LavaWalk {
                 untrack(level, pos)
             }
         }
+        tracked.values.removeIf { it.isEmpty() }
     }
 
     private fun load(e: ChunkEvent.Load) {
@@ -117,7 +118,10 @@ object LavaWalk {
         val level = chunk.level as? ServerLevel ?: return
         val map = tracked[level.dimension()]
         val keys = map?.keys?.filter { BlockPos.getX(it) shr 4 == chunk.pos.x && BlockPos.getZ(it) shr 4 == chunk.pos.z }.orEmpty()
-        map?.keys?.removeAll(keys.toSet())
+        if (keys.isNotEmpty()) {
+            map!!.keys.removeAll(keys.toSet())
+            if (map.isEmpty()) tracked.remove(level.dimension())
+        }
         revert(chunk, keys + (chunk.getExistingDataOrNull(persisted)?.toLongArray()?.asList() ?: emptyList()))
     }
 

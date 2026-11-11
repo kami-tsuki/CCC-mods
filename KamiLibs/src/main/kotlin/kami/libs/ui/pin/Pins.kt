@@ -21,6 +21,8 @@ import net.minecraft.client.gui.GuiGraphics
 import java.nio.file.Files
 
 abstract class PinWindow(val id: String, val maxItems: Int = 1, val width: Int = 140, val height: Int = 70) {
+    val scope = "pin:$id"
+
     abstract fun title(items: List<String>): String
 
     abstract fun draw(ui: Ui, r: Rect, items: List<String>, editing: Boolean)
@@ -106,8 +108,8 @@ object Pins {
     fun preview(ui: Ui) = windows.values.forEach { window(ui, it, false) }
 
     private fun window(ui: Ui, w: PinWindow, editing: Boolean) {
-        val items = items(w.id)
         if (!visible(w)) return
+        val items = items(w.id)
         if (editing) follow(ui, w)
         val r = rect(w, ui.screen)
         val g = ui.g
@@ -116,7 +118,7 @@ object Pins {
         val bar = r.top(TITLE_H)
         ui.fitText(r.x + 3, r.y + 2, bar.w - 6 - if (editing) TITLE_H else 0, w.title(items), Palette.textMuted)
         val body = r.dropTop(TITLE_H).inset(3, 0, 3, 3)
-        ui.scope("pin:${w.id}") {
+        ui.scope(w.scope) {
             ui.clip(body) { w.draw(ui, body, items, editing) }
             if (editing) handles(ui, w, r, bar)
         }

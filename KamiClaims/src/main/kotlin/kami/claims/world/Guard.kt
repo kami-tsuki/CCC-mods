@@ -538,14 +538,16 @@ object Guard {
         val level = e.level
         val dim = dim(level)?.takeIf { it in Config.s.dimensionSet } ?: return
         val helper = e.structureHelper ?: return
-        if ((helper.toPush + helper.toDestroy).any { TempBlocks.at(dim, it) }) return run { e.isCanceled = true }
+        val push = helper.toPush
+        val destroy = helper.toDestroy
+        if (push.any { TempBlocks.at(dim, it) } || destroy.any { TempBlocks.at(dim, it) }) return run { e.isCanceled = true }
         val war = Wars.fighting()
         if (!Config.s.pistonProtection && !war) return
         val origin = Realm.index[key(dim, e.pos)]
-        val pushed = helper.toPush + helper.toPush.map { it.relative(helper.pushDirection) }
-        val moved = if (e.pistonMoveType.isExtend) pushed + helper.toDestroy + e.faceOffsetPos else pushed
-        val crossesShield = war && WarGuard.shielded(origin).let { s -> moved.any { WarGuard.shielded(Realm.index[key(dim, it)]) != s } }
-        if (crossesShield || Config.s.pistonProtection && moved.any { val target = Realm.index[key(dim, it)]; target?.country != origin?.country || target?.tenant != origin?.tenant }) e.isCanceled = true
+        val extend = e.pistonMoveType.isExtend
+        fun moved(test: (BlockPos) -> Boolean) = push.any { test(it) || test(it.relative(helper.pushDirection)) } || extend && (destroy.any(test) || test(e.faceOffsetPos))
+        val crossesShield = war && WarGuard.shielded(origin).let { s -> moved { WarGuard.shielded(Realm.index[key(dim, it)]) != s } }
+        if (crossesShield || Config.s.pistonProtection && moved { val target = Realm.index[key(dim, it)]; target?.country != origin?.country || target?.tenant != origin?.tenant }) e.isCanceled = true
     }
 
     fun fireAllowed(level: LevelAccessor, pos: BlockPos): Boolean {

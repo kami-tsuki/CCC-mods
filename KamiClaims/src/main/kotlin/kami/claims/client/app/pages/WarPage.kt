@@ -111,7 +111,7 @@ class WarPage(app: ClaimsApp) : ClaimsPage(app) {
             y -= CONTROL_H + 3
         }
         fun confirm(action: String, label: String, icon: Icon, vararg lines: Consequence, danger: Boolean = true) =
-            Dialogs.confirm(app, label, tr("kami_claims.warpage.versus", w.attacker, w.defender), icon, lines.toList(), label, action, arrayOf(enemy, "confirm"), danger = danger, hold = danger)
+            Dialogs.confirm(app, label, tr("kami_claims.warpage.versus", w.attacker, w.defender), icon, lines.toList(), label, action, if (action == "war_accept") arrayOf(enemy, w.offer?.at.toString(), "confirm") else arrayOf(enemy, "confirm"), danger = danger, hold = danger)
         w.joinSides.forEach { side ->
             val ally = if (side == "attacker") w.attacker else w.defender
             if (info.wars.count { it.canJoin && (it.attacker == ally || it.defender == ally) } > 1) return@forEach

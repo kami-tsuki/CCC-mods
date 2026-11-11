@@ -9,8 +9,21 @@ object Palette {
     internal var atlas: Map<String, Int> = emptyMap()
     private var scoped: Resolved? = null
 
+    private class Hit(val theme: Resolved, val over: Map<String, Int>, val atlas: Map<String, Int>, val value: Int)
+
     class Token(val name: String) {
-        operator fun getValue(owner: Any?, property: KProperty<*>): Int = value(name)
+        private var hit: Hit? = null
+
+        operator fun getValue(owner: Any?, property: KProperty<*>): Int {
+            val theme = active()
+            val over = vision.of(theme.def.variant)
+            val map = atlas
+            val h = hit
+            if (h != null && h.theme === theme && h.over === over && h.atlas === map) return h.value
+            val v = over[name] ?: map[name] ?: theme.values.getValue(name)
+            hit = Hit(theme, over, map, v)
+            return v
+        }
     }
 
     private fun token(name: String) = Token(name)

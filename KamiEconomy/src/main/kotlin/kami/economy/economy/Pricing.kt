@@ -17,10 +17,33 @@ object Pricing {
         Market.dirty = true
     }
 
+    class Asks(val items: Set<String>, private val prices: Map<String, Int>) {
+        fun of(item: String): Int? = prices[item]
+    }
+
+    private var asks: Asks? = null
+    private var asksRevision = -1L
+    private var asksStatus = -1L
+
+    fun asks(): Asks {
+        asks?.takeIf { asksRevision == Market.revision && asksStatus == TradeStatus.rev }?.let { return it }
+        val items = Market.data.books.keys + Stocks.items()
+        return Asks(items, items.mapNotNull { i -> Matching.anyAsk(i)?.let { i to it } }.toMap()).also {
+            asks = it
+            asksRevision = Market.revision
+            asksStatus = TradeStatus.rev
+        }
+    }
+
+    fun invalidate() {
+        asks = null
+    }
+
     fun tick() {
         if (Market.data.books.values.map { record(it) }.any { it }) Market.dirty = true
         Stocks.prune()
         Pegs.tick()
+        invalidate()
     }
 
     private fun record(book: Book): Boolean {

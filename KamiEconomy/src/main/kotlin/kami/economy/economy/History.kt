@@ -58,6 +58,9 @@ private class Tier(val period: Long, val retention: () -> Int) {
     val done = ArrayDeque<Bucket>()
     var acc: Bucket? = null
     var start = 0L
+    private val added = ArrayList<Bucket>()
+    private val removed = ArrayList<Long>()
+    private var rescaled = false
 
     fun restore(list: List<Bucket>, acc: Bucket?, start: Long) {
         done.addAll(list)
@@ -71,7 +74,8 @@ private class Tier(val period: Long, val retention: () -> Int) {
         if (current == null || start != periodStart) {
             if (current != null) {
                 done.addLast(current)
-                while (done.size > retention()) done.removeFirst()
+                added.add(current)
+                while (done.size > retention()) removed.add(done.removeFirst().at)
             }
             acc = tick
             start = periodStart
@@ -85,6 +89,16 @@ private class Tier(val period: Long, val retention: () -> Int) {
         done.clear()
         done.addAll(scaled)
         acc = acc?.scaled(f)
+        rescaled = true
+    }
+
+    fun drain(item: String, index: Int, rows: MutableList<List<Any?>>, gone: MutableList<List<Any?>>) {
+        val dropped = removed.toHashSet()
+        (if (rescaled) done.toList() else added.filter { it.at !in dropped }).mapTo(rows) { HistoryTables.bucketRow(item, index, it) }
+        removed.mapTo(gone) { HistoryTables.bucketKey(item, index, it) }
+        added.clear()
+        removed.clear()
+        rescaled = false
     }
 
     fun list() = done.toList() + listOfNotNull(acc)
@@ -110,6 +124,7 @@ private class Track {
 
 object History {
     private val tracks = HashMap<String, Track>()
+    private val dirty = HashSet<String>()
     private var attached = false
 
     fun load() {
@@ -117,6 +132,7 @@ object History {
         HistoryTables.all.forEach { it.prime(data) }
         attached = true
         tracks.clear()
+        dirty.clear()
         data.items.forEach { (item, h) ->
             val t = Track()
             t.five.restore(h.five, h.fiveAcc, h.fiveStart)
@@ -130,25 +146,37 @@ object History {
         attached = false
     }
 
+    internal fun full() = HistoryData(tracks.mapValuesTo(LinkedHashMap()) { (_, t) ->
+        ItemHistory(
+            t.five.done.toMutableList(), t.hourly.done.toMutableList(), t.daily.done.toMutableList(),
+            t.five.acc, t.five.start, t.hourly.acc, t.hourly.start, t.daily.acc, t.daily.start
+        )
+    })
+
     internal fun changes(): List<(Session.() -> Unit)?> {
         if (!attached) return emptyList()
-        val data = HistoryData(tracks.mapValuesTo(LinkedHashMap()) { (_, t) ->
-            ItemHistory(
-                t.five.done.toMutableList(), t.hourly.done.toMutableList(), t.daily.done.toMutableList(),
-                t.five.acc, t.five.start, t.hourly.acc, t.hourly.start, t.daily.acc, t.daily.start
-            )
-        })
-        return HistoryTables.all.map { it.sync(data) }
+        val items = ArrayList<List<Any?>>()
+        val rows = ArrayList<List<Any?>>()
+        val gone = ArrayList<List<Any?>>()
+        dirty.forEach { item ->
+            val t = tracks[item] ?: return@forEach
+            items.add(HistoryTables.itemRow(item, t.five.acc, t.five.start, t.hourly.acc, t.hourly.start, t.daily.acc, t.daily.start))
+            t.tiers.forEachIndexed { i, tier -> tier.drain(item, i, rows, gone) }
+        }
+        dirty.clear()
+        return listOf(HistoryTables.itemTable.delta(items, emptyList(), ::full), HistoryTables.bucketTable.delta(rows, gone, ::full))
     }
 
     fun record(item: String, open: Double, high: Double, low: Double, close: Double, volume: Long) {
         val now = System.currentTimeMillis()
         val bucket = Bucket(open, high, low, close, volume, now)
         tracks.getOrPut(item) { Track() }.tiers.forEach { it.fold(bucket, now) }
+        dirty.add(item)
     }
 
     fun scale(item: String, f: Double) {
         tracks[item]?.tiers?.forEach { it.scale(f) }
+        if (tracks.containsKey(item)) dirty.add(item)
     }
 
     fun change(item: String, now: Long): Int {

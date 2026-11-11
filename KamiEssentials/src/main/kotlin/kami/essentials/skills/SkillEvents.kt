@@ -11,6 +11,7 @@ import kami.libs.mc.ItemSpec
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.core.Direction
+import net.minecraft.world.level.ChunkPos
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.TickTask
@@ -97,11 +98,14 @@ import net.neoforged.neoforge.event.level.BlockDropsEvent
 import net.neoforged.neoforge.event.level.BlockEvent
 import net.neoforged.neoforge.event.level.ExplosionEvent
 import net.neoforged.neoforge.event.level.PistonEvent
+import net.neoforged.neoforge.event.TagsUpdatedEvent
 import net.neoforged.neoforge.registries.DeferredRegister
 import net.neoforged.neoforge.registries.NeoForgeRegistries
 import thedarkcolour.kotlinforforge.neoforge.forge.FORGE_BUS
 import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
+import java.util.Optional
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import java.util.function.Supplier
 import kotlin.math.floor
 import kotlin.math.max
@@ -152,7 +156,7 @@ object SkillEvents {
             if (kind(e.placedBlock) in marked) mark(level, e.pos, true)
         }
         FORGE_BUS.addListener<PistonEvent.Pre>(EventPriority.LOWEST) { pushed(it) }
-        FORGE_BUS.addListener<ExplosionEvent.Detonate> { e -> (e.level as? ServerLevel)?.let { level -> e.affectedBlocks.forEach { mark(level, it, false) } } }
+        FORGE_BUS.addListener<ExplosionEvent.Detonate> { e -> (e.level as? ServerLevel)?.let { level -> unmark(level, e.affectedBlocks) } }
         FORGE_BUS.addListener<BlockEvent.BreakEvent>(EventPriority.LOWEST) { broken(it) }
         FORGE_BUS.addListener<BlockDropsEvent>(::drops)
         FORGE_BUS.addListener<PlayerEvent.BreakSpeed>(::speed)
@@ -194,6 +198,7 @@ object SkillEvents {
             }
             if (press > 0) roll(p, press).takeIf { it > 0 }?.let { n -> e.crafting.copyWithCount(n).let { if (!p.addItem(it)) p.drop(it, false) } }
         }
+        FORGE_BUS.addListener<TagsUpdatedEvent> { kinds.clear() }
         Bonus.register()
     }
 
@@ -254,7 +259,11 @@ object SkillEvents {
         return state.getValue(age) >= age.possibleValues.max()
     }
 
-    private fun kind(state: BlockState): Kind? = when {
+    private val kinds = ConcurrentHashMap<Block, Optional<Kind>>()
+
+    private fun kind(state: BlockState): Kind? = kinds.computeIfAbsent(state.block) { Optional.ofNullable(classify(state)) }.orElse(null)
+
+    private fun classify(state: BlockState): Kind? = when {
         state.`is`(Tags.Blocks.ORES) -> Kind.ORE
         log(state) -> Kind.LOG
         crop(state) -> Kind.CROP
@@ -289,6 +298,16 @@ object SkillEvents {
         val chunk = level.getChunkAt(pos)
         val set = if (on) chunk.getData(placed) else chunk.getExistingDataOrNull(placed) ?: return
         if (if (on) set.add(pos.asLong()) else set.remove(pos.asLong())) chunk.setUnsaved(true)
+    }
+
+    private fun unmark(level: ServerLevel, blocks: List<BlockPos>) {
+        for ((key, group) in blocks.groupBy { ChunkPos.asLong(it) }) {
+            val chunk = level.getChunk(ChunkPos.getX(key), ChunkPos.getZ(key))
+            val set = chunk.getExistingDataOrNull(placed) ?: continue
+            var changed = false
+            for (pos in group) changed = set.remove(pos.asLong()) || changed
+            if (changed) chunk.setUnsaved(true)
+        }
     }
 
     private fun broken(e: BlockEvent.BreakEvent) {
@@ -626,6 +645,7 @@ object SkillEvents {
 
     fun reset() {
         windUsed.clear()
+        kinds.clear()
     }
 
     fun forget(p: ServerPlayer) {

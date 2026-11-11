@@ -8,6 +8,7 @@ import kami.libs.chat.Tone
 import kami.libs.economy.Flow
 import kami.libs.economy.MoneyGuard
 import kami.libs.economy.PlayerParty
+import kami.libs.economy.ServerBank
 import kami.libs.text.Phrase
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
@@ -38,7 +39,7 @@ object Gifts {
         lastSent.values.removeIf { t - it > COOLDOWN_MS }
         if (open.keys.count { it.first == p.uuid } >= MAX_OPEN) throw Fail("kami_claims.error.gift.pending")
         if (amount <= 0) throw Fail("kami_claims.money.disabled.range", Words.money(Bank.funds(p.uuid)))
-        if (Bank.funds(p.uuid) < amount) throw Fail("kami_claims.loans.reason.funds", Words.money(amount))
+        if (Bank.funds(p.uuid) < amount + open.filterKeys { it.first == p.uuid }.values.sumOf { it.amount.toLong() }) throw Fail("kami_claims.loans.reason.funds", Words.money(amount))
         if (live(Pair(p.uuid, receiver)) != null) throw Fail("kami_claims.error.gift.pending")
         lastSent[p.uuid] = t
         open[Pair(p.uuid, receiver)] = Gift(amount, t)
@@ -52,7 +53,9 @@ object Gifts {
         val sender = Names.of(p.server, from.toString())
         val moved = MoneyGuard.explained("transfer") {
             if (!Bank.take(from, gift.amount, Flow.TRANSFER, PlayerParty(p.uuid).key)) return@explained false
-            if (!Bank.give(p.uuid, gift.amount, Flow.TRANSFER, PlayerParty(from).key)) Bank.give(from, gift.amount, Flow.TRANSFER, PlayerParty(p.uuid).key)
+            if (!Bank.give(p.uuid, gift.amount, Flow.TRANSFER, PlayerParty(from).key) && !Bank.give(from, gift.amount, Flow.TRANSFER, PlayerParty(p.uuid).key)) {
+                ServerBank.collect(PlayerParty(from), gift.amount.toLong(), Flow.TRANSFER, "gift refund failed")
+            }
             true
         }
         if (!moved) {

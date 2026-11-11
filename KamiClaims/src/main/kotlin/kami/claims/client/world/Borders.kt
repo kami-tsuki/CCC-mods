@@ -7,6 +7,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.particles.DustParticleOptions
 import net.minecraft.network.chat.Component
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.LightLayer
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.phys.BlockHitResult
@@ -37,12 +38,19 @@ object Borders {
         val p = ClientClaims.prefs
         p.borderMode = BorderMode.entries[(p.borderMode.ordinal + 1) % BorderMode.entries.size]
         ClientClaims.savePrefs()
+        wantedNow = wanted()
         val mode = p.borderMode.name.lowercase()
         Minecraft.getInstance().gui.setOverlayMessage(Component.translatable("kami_claims.border_mode.toast", Component.translatable("kami_claims.border_mode.$mode"), Component.translatable("kami_claims.border_mode.$mode.desc")), false)
     }
 
     private val cached = HashMap<Int, List<Edge>>()
     private val grounds = HashMap<Edge, FloatArray>()
+    private var wantedNow = 0
+    private var lastLevel: Level? = null
+    private var nearEdges: List<Edge>? = null
+    private var nearX = 0
+    private var nearZ = 0
+    private var nearValue: Pair<Edge, Int>? = null
     private val shown = HashMap<Int, List<Edge>>()
     private var shownX = 0
     private var shownZ = 0
@@ -109,8 +117,16 @@ object Borders {
 
     fun nearest(radius: Int = 8): Pair<Edge, Int>? {
         val player = Minecraft.getInstance().player ?: return null
-        val edge = edges(radius).minByOrNull { distance(it, player.blockX, player.blockZ) } ?: return null
-        return edge to distance(edge, player.blockX, player.blockZ)
+        val list = edges(radius)
+        val px = player.blockX
+        val pz = player.blockZ
+        if (list !== nearEdges || px != nearX || pz != nearZ) {
+            nearEdges = list
+            nearX = px
+            nearZ = pz
+            nearValue = list.minByOrNull { distance(it, px, pz) }?.let { it to distance(it, px, pz) }
+        }
+        return nearValue
     }
 
     private fun aimingAcross(): Boolean {
@@ -136,15 +152,26 @@ object Borders {
         }
     }
 
+    private fun syncLevel(level: Level) {
+        if (level === lastLevel) return
+        lastLevel = level
+        wantedNow = 0
+        visibleUntil = 0
+        lastRev = -1
+        grounds.clear()
+    }
+
     fun tick() {
         val mc = Minecraft.getInstance()
         val level = mc.level ?: return
         val player = mc.player ?: return
         if (mc.isPaused) return
+        syncLevel(level)
         tick++
         if (tick % 5 != 0) return
         val now = System.currentTimeMillis()
         val radius = wanted()
+        wantedNow = radius
         val budget = ClientClaims.prefs.borderDensity / 4
         var spent = 0
         val eye = player.eyeY
@@ -202,14 +229,35 @@ object Borders {
         return spent
     }
 
+    private fun runs(level: Level, edge: Edge, horizontal: Boolean): FloatArray {
+        val length = if (horizontal) edge.x1 - edge.x0 else edge.z1 - edge.z0
+        val out = ArrayList<Float>()
+        var start = 0
+        var height = 0
+        for (i in 0..length) {
+            val h = if (i < length) level.getHeight(Heightmap.Types.MOTION_BLOCKING, if (horizontal) edge.x0 + i else edge.x0, if (horizontal) edge.z0 else edge.z0 + i) else -1
+            if (i == 0) { height = h; continue }
+            if (h == height) continue
+            out += start.toFloat(); out += i.toFloat(); out += height.toFloat()
+            start = i
+            height = h
+        }
+        return out.toFloatArray()
+    }
+
     fun renderWalls(e: RenderLevelStageEvent) {
         if (e.stage != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) return
         val prefs = ClientClaims.prefs
         if (!prefs.borderLines && prefs.borderMode != BorderMode.BUILDER) return
-        val radius = wanted()
-        if (radius == 0) return
         val mc = Minecraft.getInstance()
         val level = mc.level ?: return
+        syncLevel(level)
+        val radius = when (prefs.borderMode) {
+            BorderMode.OFF -> 0
+            BorderMode.ALWAYS, BorderMode.BUILDER -> 24
+            BorderMode.AUTO -> wantedNow
+        }
+        if (radius == 0) return
         val cam = e.camera.position
         val pose = e.poseStack
         pose.pushPose()
@@ -219,30 +267,29 @@ object Borders {
         val m = pose.last().pose()
         edges(radius).forEach { edge ->
             val horizontal = edge.z0 == edge.z1
-            val length = if (horizontal) edge.x1 - edge.x0 else edge.z1 - edge.z0
             val r = (edge.color shr 16) and 255
             val g = (edge.color shr 8) and 255
             val b = edge.color and 255
-            val heights = grounds.getOrPut(edge) {
-                FloatArray(length) { i -> level.getHeight(Heightmap.Types.MOTION_BLOCKING, if (horizontal) edge.x0 + i else edge.x0, if (horizontal) edge.z0 else edge.z0 + i).toFloat() }
-            }
-            for (i in 0 until length) {
-                val x0 = (if (horizontal) edge.x0 + i else edge.x0).toFloat()
-                val z0 = (if (horizontal) edge.z0 else edge.z0 + i).toFloat()
-                val x1 = if (horizontal) x0 + 1 else x0
-                val z1 = if (horizontal) z0 else z0 + 1
-                val ground = heights[i]
+            val alpha = if (edge.blocked) 0x50 else 0x30
+            if (!level.chunkSource.hasChunk(edge.x0 shr 4, edge.z0 shr 4)) return@forEach
+            val runs = grounds.getOrPut(edge) { runs(level, edge, horizontal) }
+            for (k in runs.indices step 3) {
+                val start = runs[k].toInt()
+                val end = runs[k + 1].toInt()
+                val ground = runs[k + 2]
                 val top = ground + 4f
-                val alpha = if (edge.blocked) 0x50 else 0x30
+                val x0 = (if (horizontal) edge.x0 + start else edge.x0).toFloat()
+                val z0 = (if (horizontal) edge.z0 else edge.z0 + start).toFloat()
+                val x1 = if (horizontal) (edge.x0 + end).toFloat() else x0
+                val z1 = if (horizontal) z0 else (edge.z0 + end).toFloat()
                 vc.addVertex(m, x0, ground, z0).setColor(r, g, b, alpha)
                 vc.addVertex(m, x1, ground, z1).setColor(r, g, b, alpha)
                 vc.addVertex(m, x1, top, z1).setColor(r, g, b, 0)
                 vc.addVertex(m, x0, top, z0).setColor(r, g, b, 0)
-                val line = 0.06f
                 vc.addVertex(m, x0, ground, z0).setColor(r, g, b, 0xD0)
                 vc.addVertex(m, x1, ground, z1).setColor(r, g, b, 0xD0)
-                vc.addVertex(m, x1, ground + line, z1).setColor(r, g, b, 0xD0)
-                vc.addVertex(m, x0, ground + line, z0).setColor(r, g, b, 0xD0)
+                vc.addVertex(m, x1, ground + 0.06f, z1).setColor(r, g, b, 0xD0)
+                vc.addVertex(m, x0, ground + 0.06f, z0).setColor(r, g, b, 0xD0)
             }
         }
         buffers.endBatch(RenderType.debugQuads())

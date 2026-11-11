@@ -10,6 +10,7 @@ import net.minecraft.world.damagesource.DamageSource
 import net.minecraft.world.damagesource.DamageTypes
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
+import net.minecraft.world.level.block.Block
 import net.neoforged.bus.api.EventPriority
 import net.neoforged.neoforge.common.util.FakePlayer
 import net.neoforged.neoforge.event.entity.EntityTeleportEvent
@@ -32,6 +33,8 @@ object Activity {
 
     private val joined = ConcurrentHashMap<UUID, Long>()
     private val tracks = HashMap<UUID, Track>()
+    private val subjects = ConcurrentHashMap<UUID, String>()
+    private val blocks = ConcurrentHashMap<Block, String>()
 
     fun register() {
         Staff.hidden += { Vanish.active(it) }
@@ -45,10 +48,10 @@ object Activity {
         FORGE_BUS.addListener<LivingDamageEvent.Post> { runCatching { damage(it) } }
         FORGE_BUS.addListener<EntityTeleportEvent>(EventPriority.LOWEST) { if (!it.isCanceled) player(it.entity)?.let(::jumped) }
         FORGE_BUS.addListener<BlockEvent.BreakEvent>(EventPriority.LOWEST) { e ->
-            if (!e.isCanceled) player(e.player)?.let { Stats.add("block.mine", id(it), BuiltInRegistries.BLOCK.getKey(e.state.block).toString()) }
+            if (!e.isCanceled) player(e.player)?.let { Stats.add("block.mine", id(it), blockId(e.state.block)) }
         }
         FORGE_BUS.addListener<BlockEvent.EntityPlaceEvent>(EventPriority.LOWEST) { e ->
-            if (!e.isCanceled) player(e.entity)?.let { Stats.add("block.place", id(it), BuiltInRegistries.BLOCK.getKey(e.placedBlock.block).toString()) }
+            if (!e.isCanceled) player(e.entity)?.let { Stats.add("block.place", id(it), blockId(e.placedBlock.block)) }
         }
         FORGE_BUS.addListener<PlayerEvent.ItemCraftedEvent> { e ->
             player(e.entity)?.let { Stats.add("craft.item", id(it), ItemSpec.id(e.crafting), e.crafting.count.toLong()) }
@@ -67,9 +70,12 @@ object Activity {
 
     fun logout(p: ServerPlayer) {
         tracks.remove(p.uuid)
-        val at = joined.remove(p.uuid) ?: return
-        Stats.event("session.logout", id(p), v = System.currentTimeMillis() - at)
-        online(p)
+        val at = joined.remove(p.uuid)
+        if (at != null) {
+            Stats.event("session.logout", id(p), v = System.currentTimeMillis() - at)
+            online(p)
+        }
+        subjects.remove(p.uuid)
     }
 
     private fun settled() = ServerLifecycleHooks.getCurrentServer()?.takeIf { it.tickCount >= SETTLED_TICKS }
@@ -126,7 +132,9 @@ object Activity {
 
     private fun player(e: Entity?) = (e as? ServerPlayer)?.takeUnless { it is FakePlayer }
 
-    private fun id(p: ServerPlayer) = "p:${p.uuid}"
+    private fun id(p: ServerPlayer) = subjects.computeIfAbsent(p.uuid) { "p:$it" }
+
+    private fun blockId(b: Block) = blocks.computeIfAbsent(b) { BuiltInRegistries.BLOCK.getKey(it).toString() }
 
     private fun typeId(t: EntityType<*>) = BuiltInRegistries.ENTITY_TYPE.getKey(t).toString()
 

@@ -24,4 +24,7 @@ class Table<T>(private val name: String, keys: List<String>, columns: List<Strin
     fun prime(value: T) = diff.prime(map(value))
 
     fun sync(value: T): (Session.() -> Unit)? = diff.diff(map(value))
+
+    fun delta(changed: List<List<Any?>>, removed: List<List<Any?>>, full: () -> T): (Session.() -> Unit)? =
+        diff.delta(changed.associateBy { it.take(width) }, removed, { map(full()) })
 }

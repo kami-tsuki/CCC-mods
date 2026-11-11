@@ -11,8 +11,10 @@ object Counters {
 
     fun event(country: Country, kind: String, subject: String, amount: Long) {
         if (amount <= 0) return
+        val keys = Research.defs.counterKeys
         country.counters.merge(kind, amount, Long::plus)
-        if (subject.isNotBlank()) country.counters.merge("$kind:$subject", amount, Long::plus)
-        if (kind in Research.defs.counterKeys || "$kind:$subject" in Research.defs.counterKeys) ResearchSync.refresh(country)
+        val detail = if (subject.isBlank()) null else "$kind:$subject"
+        if (detail != null) country.counters.merge(detail, amount, Long::plus)
+        if (kind in keys || detail in keys) ResearchSync.refresh(country)
     }
 }

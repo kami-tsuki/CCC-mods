@@ -78,7 +78,7 @@ object AdminServer {
             encode(ListSerializer(NameRow.serializer()), rows)
         }
         Admin.view("server.dashboard") { ctx, _ -> encode(Dashboard.serializer(), ServerStats.snapshot(ctx.player.server, ctx.level)) }
-        Admin.view("players.inventory") { ctx, a -> inventory(ctx, a, false) }
+        Admin.view("players.inventory", audited = true) { ctx, a -> inventory(ctx, a, false) }
 
         Admin.act("players.ban") { ctx, a ->
             val server = ctx.player.server

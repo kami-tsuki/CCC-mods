@@ -161,6 +161,7 @@ object ClaimsStore {
         keyHolds.removeAll { !it.open() }
         if (subject.isNotEmpty() && !Personal.viewing) subject("")
         if (gap > 0) gap-- else queue.removeFirstOrNull()?.let { sendAs(it.viewingAs, it.name, it.args, it.key) }
+        if (pending.isEmpty()) return
         val now = System.currentTimeMillis()
         val expired = pending.filterValues { now - it.since > 6000 }
         expired.keys.forEach { pending.remove(it) }

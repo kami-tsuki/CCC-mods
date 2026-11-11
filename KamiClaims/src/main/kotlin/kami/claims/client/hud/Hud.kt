@@ -103,16 +103,17 @@ object Hud {
         if (mc.options.hideGui || mc.screen != null) return
         val dim = Dim.current()
         val now = System.currentTimeMillis()
-        if (ClientClaims.active(dim) && ClientClaims.prefs.hud) guarded("territory") { territory(g, dim, player.blockX, player.blockZ, now) }
-        guarded("tax") { tax(g, dim, now) }
-        guarded("crosshair") { crosshair(g, dim) }
-        guarded("toasts") { toasts(g, now) }
-        if (ClientClaims.prefs.warDisplay.let { it == WarDisplay.HUD || it == WarDisplay.BOTH }) guarded("war") { war(g, now) }
+        val prefs = ClientClaims.prefs
+        val active = ClientClaims.active(dim)
+        if (active && prefs.hud) guarded("territory", now) { territory(g, dim, player.blockX, player.blockZ, now) }
+        if (active && prefs.taxHud != TaxHudMode.OFF) guarded("tax", now) { tax(g, dim, now) }
+        if (active && prefs.blockHints) guarded("crosshair", now) { crosshair(g, dim) }
+        if (toasts.isNotEmpty()) guarded("toasts", now) { toasts(g, now) }
+        if (prefs.warDisplay.let { it == WarDisplay.HUD || it == WarDisplay.BOTH }) guarded("war", now) { war(g, now) }
     }
 
-    private fun guarded(section: String, block: () -> Unit) {
+    private fun guarded(section: String, now: Long, block: () -> Unit) {
         val failure = failures[section]
-        val now = System.currentTimeMillis()
         if (failure != null && failure.count >= MAX_FAILURES) {
             if (now - failure.at < RETRY_MS) return
             failure.count = 0

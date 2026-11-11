@@ -181,7 +181,7 @@ object Draw {
     private val widths = Array(4) { object : LinkedHashMap<String, Int>(256, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Int>) = size > WIDTH_CACHE
     } }
-    fun clearWidths() = widths.forEach { it.clear() }
+    fun clearWidths() { widths.forEach { it.clear() }; fits.clear() }
 
     fun width(text: String, style: TextStyle = TextStyle.BODY): Int {
         val cache = widths[(if (style.bold) 1 else 0) + (if (style.upper) 2 else 0)]
@@ -221,9 +221,22 @@ object Draw {
     fun textCentered(g: GuiGraphics, text: String, r: Rect, color: Int = Palette.text, style: TextStyle = TextStyle.BODY) =
         text(g, text, r.x + (r.w - width(text, style)) / 2, r.y + (r.h - 8 * style.scale) / 2, style, color)
 
+    private const val FIT_CACHE = 512
+    private class FitKey(val text: String, val width: Int, val style: TextStyle) {
+        override fun equals(other: Any?) = other is FitKey && width == other.width && style == other.style && text == other.text
+        override fun hashCode() = (text.hashCode() * 31 + width) * 31 + style.hashCode()
+    }
+    private val fits = object : LinkedHashMap<FitKey, String>(128, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<FitKey, String>) = size > FIT_CACHE
+    }
+
     fun fit(text: String, width: Int, style: TextStyle = TextStyle.BODY): String {
         if (width(text, style) <= width) return text
         if (width <= 0) return ""
+        return fits.getOrPut(FitKey(text, width, style)) { truncate(text, width, style) }
+    }
+
+    private fun truncate(text: String, width: Int, style: TextStyle): String {
         var lo = 0
         var hi = text.length
         while (lo < hi) {

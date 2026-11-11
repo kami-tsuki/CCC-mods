@@ -25,6 +25,8 @@ import kami.libs.ui.hud.HudPos
 import kami.libs.ui.style.Icons
 import kami.libs.ui.text.tr
 import kami.essentials.skills.SkillClient
+import kami.essentials.skills.SkillTree
+import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen
 import net.minecraft.client.Minecraft
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent
 import net.neoforged.neoforge.client.event.ClientTickEvent
@@ -37,9 +39,11 @@ object ClientEssentials {
     private const val XP_REFRESH_TICKS = 300
     private var primed = false
     private var xpTicks = 0
+    private var motdOpen = false
     private val wait = OpenWait({ tr("kami_essentials.module") }, { tr("kami_essentials.module") }, { tr("kami_essentials.personal.timeout") })
 
     fun init() {
+        Thread({ SkillTree.nodes }, "kami-skilltree").apply { isDaemon = true }.start()
         Modules.register(AppModule(Personal.MODULE, "kami_essentials.module", Icons.PERSON, 0) { open() })
         Personal.register(bankSection)
         Personal.register(skillsSection)
@@ -51,7 +55,10 @@ object ClientEssentials {
         FORGE_BUS.addListener<ClientTickEvent.Post> {
             prime()
             refreshXp()
-            MotdRefresh.tick(Minecraft.getInstance())
+            val mc = Minecraft.getInstance()
+            val listing = mc.screen is JoinMultiplayerScreen
+            if (listing || motdOpen) MotdRefresh.tick(mc)
+            motdOpen = listing
         }
         BonusClient.register()
         HudBars.register(HudBar(XP_BAR, { tr("kami_essentials.hud.xp") }, HudPos(Anchor.BOTTOM, 0, -48), BarPrefs(color = BarColor.GREEN), SkillClient::bar))

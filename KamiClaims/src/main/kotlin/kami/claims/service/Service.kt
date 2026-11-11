@@ -594,8 +594,7 @@ object Service {
         if (n < 1) throw Fail(Phrase.of("kami_claims.error.amount"), "AMOUNT")
         if (c.treasury < n) throw Fail(Phrase.of("kami_claims.error.treasury_short", money(c.treasury)), "FUNDS")
         Council.gate(c, p.stringUUID, n.toLong())?.let { return it }
-        if (!Bank.give(p.uuid, n, Flow.TREASURY, CountryParty(c.id).key, "kami_libs.note.withdraw")) throw Fail("kami_claims.error.payout")
-        Treasury.move(c, LedgerKind.WITHDRAW, -n.toLong(), p.stringUUID, Statement.note("kami_libs.note.withdraw"))
+        Council.payout(c, p.uuid, n.toLong())
         return Phrase.of("kami_claims.done.withdrew", money(n))
     }
 

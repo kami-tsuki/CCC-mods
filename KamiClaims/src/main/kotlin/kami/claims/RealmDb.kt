@@ -121,6 +121,8 @@ object RealmDb {
     private val placed = Table<View>("claims_placed", listOf("dim", "pos"), listOf("placer", "seq")) { PlacedLog.rows() }
 
     private var seqs: Seqs? = null
+    private var placedRev = -1L
+    private var placedDrops = -1L
 
     private val schema = Migration("claims", 1, "schema", legacy = listOf(FILE), ddl = ddl) { world ->
         val d = Legacy.read(world, FILE, JsonObject.serializer())?.let(::legacyData) ?: Data(schema = Data.CURRENT)
@@ -151,6 +153,8 @@ object RealmDb {
         val d = Db.read { read(this, q).also { readPlaced(this) } }
         seqs = q
         View(d, q).let { v -> (tables + placed).forEach { it.prime(v) } }
+        placedRev = PlacedLog.rev
+        placedDrops = Db.dropCount
         SavePoint.register("claims.realm") { sync(Realm.data) }
         return d
     }
@@ -164,7 +168,17 @@ object RealmDb {
     fun sync(d: Data): (Session.() -> Unit)? {
         val q = seqs ?: return null
         val v = View(d, q)
-        return SavePoint.join((tables + placed).map { it.sync(v) })
+        return SavePoint.join(tables.map { it.sync(v) } + placedSync(v))
+    }
+
+    private fun placedSync(v: View): (Session.() -> Unit)? {
+        val rev = PlacedLog.rev
+        val drops = Db.dropCount
+        if (rev == placedRev && drops == placedDrops) return null
+        return placed.sync(v).also {
+            placedRev = rev
+            placedDrops = drops
+        }
     }
 
     private fun <T> split(s: KSerializer<T>, v: T, drop: Set<String>) =

@@ -69,7 +69,7 @@ object KamiEconomy {
             CoinProtection.expect()
             Soft.expect(Mods.SOPHISTICATED_CORE, "net.p3pp3rf1y.sophisticatedcore.inventory.InventoryHandler", "isItemValid", "insertItem", "insertItemOnlyToSlot")
             Soft.expect(Mods.SOPHISTICATED_CORE, "net.p3pp3rf1y.sophisticatedcore.common.gui.StorageContainerMenuBase", "clicked", "handleOverflow", "doClick", "mergeItemStack")
-            Configs.onReload("economy") { if (Notify.server != null) { Market.reindex(); Starters.push() }; null }
+            Configs.onReload("economy") { Pricing.invalidate(); if (Notify.server != null) { Market.reindex(); Starters.push() }; null }
             MarketApi.register(EconomyProvider)
             ItemSpec.resolver(EnchantBooks::stack)
             it.enqueueWork { MarketDisplay.bind() }

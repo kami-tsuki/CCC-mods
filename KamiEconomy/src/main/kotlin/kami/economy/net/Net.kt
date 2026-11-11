@@ -20,6 +20,7 @@ import kami.economy.economy.Ledger
 import kami.economy.economy.Limits
 import kami.economy.economy.Matching
 import kami.economy.economy.Notify
+import kami.economy.economy.Pricing
 import kami.economy.economy.Stocks
 import kami.economy.economy.Variant
 import kami.economy.economy.Variants
@@ -159,9 +160,9 @@ object Net {
     }
 
     private fun allPrices(): List<PriceEntry> {
-        val items = (Market.data.books.keys + Stocks.items()).distinct().filter { Variants.of(it) == null }
-        return items.mapNotNull { item ->
-            val price = Matching.anyAsk(item) ?: Stocks.course(item).takeIf { it >= 1.0 }?.let { Math.round(it).coerceAtMost(Int.MAX_VALUE.toLong()).toInt() } ?: return@mapNotNull null
+        val asks = Pricing.asks()
+        return asks.items.filter { Variants.of(it) == null }.mapNotNull { item ->
+            val price = asks.of(item) ?: Stocks.course(item).takeIf { it >= 1.0 }?.let { Math.round(it).coerceAtMost(Int.MAX_VALUE.toLong()).toInt() } ?: return@mapNotNull null
             PriceEntry(item, price, Config.s.lotOf(item))
         }
     }

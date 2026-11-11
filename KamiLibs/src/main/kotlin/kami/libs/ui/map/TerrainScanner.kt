@@ -10,6 +10,8 @@ import thedarkcolour.kotlinforforge.neoforge.forge.FORGE_BUS
 object TerrainScanner {
     private val queue = LinkedHashSet<Long>()
     private const val MAX_QUEUE = 1024
+    private const val TICK_NANOS = 3_000_000L
+    private const val MIN_CHUNKS = 2
     private var ticks = 0
     private var ring = 0
 
@@ -32,17 +34,18 @@ object TerrainScanner {
         if (ticks % 600 == 0) TerrainCache.flush(4)
         if (ticks % 12_000 == 0) TerrainCache.trimDisk()
         val dim = level.dimension().location().toString()
-        var budget = 6
+        val start = System.nanoTime()
         val iterator = queue.iterator()
         val retry = ArrayList<Long>()
-        while (budget > 0 && iterator.hasNext()) {
+        var done = 0
+        while (iterator.hasNext()) {
             val pos = ChunkPos(iterator.next())
             iterator.remove()
             val chunk = level.chunkSource.getChunk(pos.x, pos.z, false) ?: continue
             if (chunk.isEmpty) continue
             if (!TerrainCache.ready(dim, pos.x, pos.z)) { retry += pos.toLong(); continue }
             TerrainCache.put(dim, pos.x, pos.z, TerrainSampler.sample(level, chunk))
-            budget--
+            if (++done >= MIN_CHUNKS && System.nanoTime() - start >= TICK_NANOS) break
         }
         retry.forEach(::enqueue)
     }

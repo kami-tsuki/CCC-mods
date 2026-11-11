@@ -123,6 +123,7 @@ object SkillServer : SkillProvider {
         carried.clear()
         backfilled.clear()
         buckets.clear()
+        subjects.clear()
         bucketHour = 0
         SkillEvents.reset()
         Bonus.reset()
@@ -144,6 +145,11 @@ object SkillServer : SkillProvider {
     fun all(): Map<UUID, SkillState> = states
 
     fun owners(): IntArray = IntArray(SkillTree.nodes.size).also { out -> states.values.forEach { s -> s.nodes.keys.forEach { if (it in out.indices) out[it]++ } } }
+
+    private val subjects = HashMap<UUID, String>()
+    private val playtime = HashMap<String, String>()
+
+    private fun subject(id: UUID) = subjects.getOrPut(id) { "p:$id" }
 
     private fun tag(s: SkillState) = s.cls?.id ?: "none"
 
@@ -200,10 +206,11 @@ object SkillServer : SkillProvider {
         s.carry += gain * MILLI
         val milli = s.carry.toLong()
         s.carry -= milli
-        val who = "p:${p.uuid}"
-        if (whole > 0) Stats.add("skill.active", who, tag(s), whole)
-        Stats.add("skill.xp.src", who, "${tag(s)}:playtime", milli)
-        Stats.add("skill.xp.cls", who, tag(s), milli)
+        val who = subject(p.uuid)
+        val t = tag(s)
+        if (whole > 0) Stats.add("skill.active", who, t, whole)
+        Stats.add("skill.xp.src", who, playtime.computeIfAbsent(t) { "$it:playtime" }, milli)
+        Stats.add("skill.xp.cls", who, t, milli)
         s.dirty = true
         levelCheck(p, s)
     }
@@ -225,7 +232,7 @@ object SkillServer : SkillProvider {
         val fade = min(fade(local, full.toLong()), fade(total, full * 4L))
         val bonus = (if (s.cls == g.cls) Config.s.skills.classBonus else 0.0) + Effects.capped(Effects.CLASS_XP, s.values[Effects.CLASS_XP] ?: 0.0)
         val potential = g.xp * (1 + bonus)
-        val who = "p:${g.player}"
+        val who = subject(g.player)
         val src = "${tag(s)}:${g.source}"
         Stats.add("skill.xp.lost", who, src, (potential * (1 - fade) * MILLI).roundToLong())
         if (fade <= 0.0) return
@@ -245,7 +252,7 @@ object SkillServer : SkillProvider {
         if (s.level <= before) return
         p.displayClientMessage(Component.translatable("kami_essentials.skill.level_up", s.level), false)
         p.level().playSound(null, p.blockPosition(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 0.6f, 1.2f)
-        for (level in before + 1..s.level) Stats.event("skill.level", "p:${p.uuid}", "${tag(s)}:$level", s.active)
+        for (level in before + 1..s.level) Stats.event("skill.level", subject(p.uuid), "${tag(s)}:$level", s.active)
         Net.push(p)
     }
 
@@ -307,12 +314,12 @@ object SkillServer : SkillProvider {
         if (s.cls != null) return "kami_essentials.skill.error.class_set"
         s.cls = cls
         s.nodes[SkillTree.starts.getValue(cls)] = 1
-        Stats.event("skill.class", "p:${p.uuid}", cls.id)
+        Stats.event("skill.class", subject(p.uuid), cls.id)
         return null
     }
 
     private fun track(key: String, p: ServerPlayer, node: SkillNode, rank: Int) {
-        Stats.event(key, "p:${p.uuid}", "${node.name}|${node.kind.name.lowercase()}|${node.cls.id}", rank.toLong())
+        Stats.event(key, subject(p.uuid), "${node.name}|${node.kind.name.lowercase()}|${node.cls.id}", rank.toLong())
         Stats.add(key, "", "${node.cls.id}|${node.name}")
     }
 
@@ -382,7 +389,7 @@ object SkillServer : SkillProvider {
         s.active += seconds
         s.xp += xp
         s.dirty = true
-        Stats.add("skill.xp.src", "p:${p.uuid}", "${tag(s)}:backfill", (xp * MILLI).roundToLong())
+        Stats.add("skill.xp.src", subject(p.uuid), "${tag(s)}:backfill", (xp * MILLI).roundToLong())
         p.displayClientMessage(Component.translatable("kami_essentials.skill.backfill", seconds / 3600, xp.roundToLong()), false)
         levelCheck(p, s)
         Net.push(p)

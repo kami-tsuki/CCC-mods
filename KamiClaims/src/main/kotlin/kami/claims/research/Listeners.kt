@@ -1,6 +1,7 @@
 package kami.claims.research
 
 import kami.claims.Realm
+import kami.claims.service.Credit
 import kami.libs.progress.ProgressEvent
 import kami.claims.world.Placed
 import net.minecraft.core.BlockPos
@@ -47,7 +48,7 @@ object Listeners {
         FORGE_BUS.addListener<ServerTickEvent.Post> { Buffs.tick(it.server) }
         FORGE_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { Buffs.forget(it.entity.uuid) }
         FORGE_BUS.addListener<BlockEvent.BreakEvent>(EventPriority.LOWEST) {
-            val wasPlaced = Placed.remove(it.player.level().dimension().location().toString(), it.pos)
+            val wasPlaced = Placed.remove(Credit.dimOf(it.player.level()), it.pos)
             if (!countable(it.player) || wasPlaced) return@addListener
             report(it.player, Kinds.MINE, BuiltInRegistries.BLOCK.getKey(it.state.block).toString())
             if (TreeFelling.isTree(it.state)) (it.player as? ServerPlayer)?.let { p -> TreeFelling.broke(p, it.pos) { who -> report(who, Kinds.FELL, "") } }
@@ -55,7 +56,7 @@ object Listeners {
         FORGE_BUS.addListener<BlockEvent.EntityPlaceEvent>(EventPriority.LOWEST) {
             val player = it.entity as? ServerPlayer ?: return@addListener
             if (!countable(player)) return@addListener
-            Placed.mark(player.level().dimension().location().toString(), it.pos)
+            if (player is FakePlayer) Placed.mark(Credit.dimOf(player.level()), it.pos)
             report(player, Kinds.PLACE, BuiltInRegistries.BLOCK.getKey(it.placedBlock.block).toString())
         }
         FORGE_BUS.addListener<LivingDeathEvent>(EventPriority.LOWEST) {

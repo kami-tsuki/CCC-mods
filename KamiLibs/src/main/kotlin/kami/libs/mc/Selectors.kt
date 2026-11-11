@@ -28,9 +28,20 @@ object Selectors {
 }
 
 object RegistryTags {
+    private const val CACHE = 1024
+    private val parsed = java.util.concurrent.ConcurrentHashMap<String, ResourceLocation>()
+
+    private fun parse(tag: String): ResourceLocation? {
+        parsed[tag]?.let { return it }
+        val location = ResourceLocation.tryParse(tag) ?: return null
+        if (parsed.size >= CACHE) parsed.clear()
+        parsed[tag] = location
+        return location
+    }
+
     fun <T : Any> contains(registry: Registry<T>, tag: String, id: String): Boolean {
         val location = ResourceLocation.tryParse(id) ?: return false
-        val key = TagKey.create(registry.key(), ResourceLocation.tryParse(tag) ?: return false)
+        val key = TagKey.create(registry.key(), parse(tag) ?: return false)
         return registry.getHolder(location).map { it.`is`(key) }.orElse(false)
     }
 }

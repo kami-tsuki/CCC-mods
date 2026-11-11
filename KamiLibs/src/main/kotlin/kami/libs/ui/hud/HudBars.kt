@@ -1,8 +1,10 @@
 package kami.libs.ui.hud
 
 import kami.libs.ui.UiPrefs
+import kami.libs.ui.core.Memo
 import kami.libs.ui.core.Rect
 import kami.libs.ui.style.Draw
+import kami.libs.ui.style.Format
 import kami.libs.ui.style.Palette
 import kami.libs.ui.text.tr
 import kami.libs.util.Compact
@@ -48,6 +50,9 @@ object HudBars {
 
     private val bars = LinkedHashMap<String, HudBar>()
     private val eased = HashMap<String, Eased>()
+    private val memos = HashMap<String, Memo>()
+
+    private class Texts(val label: String, val labelWidth: Int, val title: String)
 
     fun register(bar: HudBar) {
         bars[bar.id] = bar
@@ -74,7 +79,7 @@ object HudBars {
         }
     }
 
-    fun reset() = eased.clear()
+    fun reset() { eased.clear(); memos.clear() }
 
     private fun prefs(bar: HudBar) = HudLayout.bars.getOrPut(bar.id) { bar.preset.copy() }
 
@@ -105,10 +110,15 @@ object HudBars {
         val color = p.color.color()
         val fraction = if (live) ease(bar.id, d) else d.fraction
         val track = if (p.layout == BarLayout.LABEL) Rect(r.x, r.bottom - p.thickness.px - 2, r.w, p.thickness.px + 2) else r
-        val text = label(d, p)
+        val texts = memos.getOrPut(bar.id) { Memo() }.of(d.level, (d.fraction * 100).toInt(), d.value, d.max, d.maxed, d.hint, d.title, p.text, p.layout, r.w, Format.locale) {
+            val text = label(d, p)
+            val width = Draw.width(text)
+            Texts(text, width, if (p.layout == BarLayout.LABEL) Draw.fit(d.title, r.w - width - 8) else "")
+        }
+        val text = texts.label
         if (p.layout == BarLayout.LABEL) {
-            Draw.text(g, Draw.fit(d.title, r.w - Draw.width(text) - 8), r.x + 1, r.y + 1, Palette.textSecondary, true)
-            Draw.text(g, text, r.right - Draw.width(text) - 1, r.y + 1, Palette.text, true)
+            Draw.text(g, texts.title, r.x + 1, r.y + 1, Palette.textSecondary, true)
+            Draw.text(g, text, r.right - texts.labelWidth - 1, r.y + 1, Palette.text, true)
         }
         Draw.fill(g, track, Palette.alpha(Palette.washDark, 0xB0))
         Draw.outline(g, track, Palette.alpha(Palette.mix(color, Palette.border, 0.5f), 0xE0))

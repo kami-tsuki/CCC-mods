@@ -13,16 +13,24 @@ internal object HistoryTables {
 
     private fun acc(r: Row, col: String) = r.stringOrNull(col)?.let { Db.json.decodeFromString(Bucket.serializer(), it) }
 
-    val all = listOf(
-        Table<HistoryData>("eco_history_item", listOf("item"), listOf("five_acc", "five_start", "hour_acc", "hour_start", "day_acc", "day_start")) { d ->
-            d.items.map { (k, h) -> listOf(k, acc(h.fiveAcc), h.fiveStart, acc(h.hourAcc), h.hourStart, acc(h.dayAcc), h.dayStart) }
-        },
-        Table<HistoryData>("eco_history", listOf("item", "tier", "at"), listOf("open", "high", "low", "close", "volume")) { d ->
-            d.items.flatMap { (k, h) ->
-                listOf(h.five, h.hourly, h.daily).flatMapIndexed { tier, list -> list.map { listOf(k, tier, it.at, it.open, it.high, it.low, it.close, it.volume) } }
-            }
+    fun itemRow(item: String, fiveAcc: Bucket?, fiveStart: Long, hourAcc: Bucket?, hourStart: Long, dayAcc: Bucket?, dayStart: Long): List<Any?> =
+        listOf(item, acc(fiveAcc), fiveStart, acc(hourAcc), hourStart, acc(dayAcc), dayStart)
+
+    fun bucketKey(item: String, tier: Int, at: Long): List<Any?> = listOf(item, tier, at)
+
+    fun bucketRow(item: String, tier: Int, b: Bucket): List<Any?> = listOf(item, tier, b.at, b.open, b.high, b.low, b.close, b.volume)
+
+    val itemTable = Table<HistoryData>("eco_history_item", listOf("item"), listOf("five_acc", "five_start", "hour_acc", "hour_start", "day_acc", "day_start")) { d ->
+        d.items.map { (k, h) -> itemRow(k, h.fiveAcc, h.fiveStart, h.hourAcc, h.hourStart, h.dayAcc, h.dayStart) }
+    }
+
+    val bucketTable = Table<HistoryData>("eco_history", listOf("item", "tier", "at"), listOf("open", "high", "low", "close", "volume")) { d ->
+        d.items.flatMap { (k, h) ->
+            listOf(h.five, h.hourly, h.daily).flatMapIndexed { tier, list -> list.map { bucketRow(k, tier, it) } }
         }
-    )
+    }
+
+    val all = listOf(itemTable, bucketTable)
 
     fun read(s: Session): HistoryData {
         val buckets = s.query("SELECT * FROM eco_history ORDER BY rowid") { r ->

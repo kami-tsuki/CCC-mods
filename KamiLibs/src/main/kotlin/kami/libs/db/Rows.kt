@@ -12,9 +12,11 @@ class Rows<K>(table: String, private val keys: List<String>, columns: List<Strin
     private val stored = "SELECT ${keys.joinToString()} FROM $table"
     private var last: Map<K, List<Any?>> = emptyMap()
     private var seen = Writer.drops
+    private var owned = false
 
     fun prime(rows: Map<K, List<Any?>>) {
         last = rows.toMap()
+        owned = false
         seen = Writer.drops
     }
 
@@ -27,6 +29,7 @@ class Rows<K>(table: String, private val keys: List<String>, columns: List<Strin
         val changed = if (full) all else rows.filter { (k, v) -> !same(last[k], v) }.values.toList()
         val gone = last.filterKeys { it !in rows }.values.map { it.take(keys.size) }
         last = rows
+        owned = false
         if (full) return {
             batch(delete, stale(all))
             batch(upsert, changed)
@@ -35,6 +38,26 @@ class Rows<K>(table: String, private val keys: List<String>, columns: List<Strin
         return {
             batch(delete, gone)
             batch(upsert, changed)
+        }
+    }
+
+    fun delta(rows: Map<K, List<Any?>>, removed: Collection<K>, full: () -> Map<K, List<Any?>>): (Session.() -> Unit)? {
+        if (Writer.drops != seen) return diff(full())
+        require(rows.values.all { it.size == width }) { "rows must hold the key columns followed by the value columns" }
+        val changed = rows.filter { (k, v) -> !same(last[k], v) }
+        val gone = removed.filter { it in last && it !in rows }
+        if (changed.isEmpty() && gone.isEmpty()) return null
+        val goneKeys = gone.map { last.getValue(it).take(keys.size) }
+        if (!owned) {
+            last = HashMap(last)
+            owned = true
+        }
+        val own = last as MutableMap<K, List<Any?>>
+        gone.forEach { own.remove(it) }
+        own.putAll(changed)
+        return {
+            batch(delete, goneKeys)
+            batch(upsert, changed.values.toList())
         }
     }
 

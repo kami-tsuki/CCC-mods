@@ -210,7 +210,7 @@ private fun ChatChannelStyle.sane() = copy(
 
 private fun Settings.sane() = copy(
     tradeDistance = tradeDistance.coerceAtLeast(-2),
-    tradeConfirmSeconds = tradeConfirmSeconds.coerceIn(0, 30),
+    tradeConfirmSeconds = tradeConfirmSeconds.coerceIn(2, 30),
     tradeRequestSeconds = tradeRequestSeconds.coerceIn(10, 600),
     tradeXpDaily = tradeXpDaily.coerceIn(0, 1000),
     tradeXpMinValue = tradeXpMinValue.coerceAtLeast(0),
@@ -250,7 +250,7 @@ private val sections = listOf(
         "trade.json", "Player trading (/trade).",
         mapOf(
             "tradeDistance" to "Max distance: -1 anywhere, -2 same dimension, else blocks.",
-            "tradeConfirmSeconds" to "Countdown after both accept; any change stops it.",
+            "tradeConfirmSeconds" to "Countdown (2-30) after both accept; any change stops it.",
             "tradeRequestSeconds" to "Seconds a request stays open.",
             "tradeXpDaily" to "Max trades per player per rolling 24 h that give XP/progress.",
             "tradeXpMinValue" to "Min market value of each side's offer for a trade to give XP/progress."

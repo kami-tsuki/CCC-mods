@@ -44,7 +44,7 @@ object Effects {
     fun forget(p: ServerPlayer) { watching.remove(p.uuid) }
 
     fun borders(p: ServerPlayer) {
-        if (p.uuid !in watching) return
+        if (p.uuid !in watching || p.server.tickCount % 20 >= 10) return
         val level = p.level() as? ServerLevel ?: return
         val dim = level.dimension().location().toString()
         val cx = p.chunkPosition().x
@@ -55,7 +55,7 @@ object Effects {
             EDGES.forEach { (dx, dz) ->
                 if (owner(x + dx, z + dz) == o) return@forEach
                 val fixed = if (dx != 0) x * 16.0 + (if (dx > 0) 16 else 0) else z * 16.0 + (if (dz > 0) 16 else 0)
-                for (i in 0..15) {
+                for (i in 0..15 step 2) {
                     val px = if (dx != 0) fixed else x * 16.0 + i + 0.5
                     val pz = if (dx != 0) z * 16.0 + i + 0.5 else fixed
                     val ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, px.toInt(), pz.toInt())
@@ -64,7 +64,7 @@ object Effects {
                     var y = ground.toDouble()
                     while (y <= top) {
                         if (kotlin.math.abs(y - p.y) < 12) level.sendParticles(p, particle, false, px, y + 0.2, pz, 1, 0.0, 0.0, 0.0, 0.0)
-                        y += 1.5
+                        y += 2.0
                     }
                 }
             }

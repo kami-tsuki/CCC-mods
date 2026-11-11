@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 object Sidebar {
     private const val NAME = "kami_sidebar"
+    private const val REFRESH_TICKS = 40
 
     val LINES: Map<String, (ServerPlayer) -> Component> = linkedMapOf(
         "country" to { p -> Names.citizenship(p.uuid)?.let { Component.literal(it.name).withColor(Names.color(it)) } ?: none() },
@@ -45,7 +46,7 @@ object Sidebar {
         "tps" to { p -> value(Tab.tpsText(p.server)) },
     )
 
-    private class View(val title: String, val foreign: Objective?, val keys: List<String>, val values: List<Component?>, val lines: List<Component>)
+    private class View(val title: String, val foreign: Objective?, val keys: List<String>, val values: List<Component?>, val lines: List<Component>, val sig: Int)
 
     private val views = ConcurrentHashMap<UUID, View>()
     private val board = Scoreboard()
@@ -57,13 +58,28 @@ object Sidebar {
         if (!show) hide(p)
     }
 
-    fun tick(server: MinecraftServer) = server.playerList.players.forEach { p -> if (enabled(p)) draw(p) else hide(p) }
+    fun tick(server: MinecraftServer) {
+        val full = server.tickCount % REFRESH_TICKS == 0
+        val global = 31 * (31 * Config.s.sidebarLines.hashCode() + Config.s.sidebarTitle.hashCode()) + Store.ids(Flag.INVISIBLE).hashCode()
+        server.playerList.players.forEach { p ->
+            if (!enabled(p)) hide(p)
+            else {
+                val sig = signature(p, global)
+                if (full || views[p.uuid]?.sig != sig) draw(p, sig)
+            }
+        }
+    }
 
     fun forget(p: ServerPlayer) {
         views.remove(p.uuid)
     }
 
-    private fun draw(p: ServerPlayer) {
+    private fun signature(p: ServerPlayer, global: Int): Int {
+        val c = Names.citizenship(p.uuid) ?: return global
+        return 31 * (31 * global + c.country.hashCode()) + c.rank.hashCode()
+    }
+
+    private fun draw(p: ServerPlayer, sig: Int) {
         val title = Config.s.sidebarTitle
         val view = views[p.uuid]
         val foreign = p.server.scoreboard.getDisplayObjective(DisplaySlot.SIDEBAR)
@@ -86,7 +102,7 @@ object Sidebar {
             if (old.size != lines.size || old.getOrNull(i) != line) p.connection.send(ClientboundSetScorePacket("$i", NAME, lines.size - i, Optional.of(line), Optional.empty()))
         }
         (lines.size until old.size).forEach { p.connection.send(ClientboundResetScorePacket("$it", NAME)) }
-        views[p.uuid] = View(title, foreign, keys, values.toList(), lines)
+        views[p.uuid] = View(title, foreign, keys, values.toList(), lines, sig)
     }
 
     private fun hide(p: ServerPlayer) {

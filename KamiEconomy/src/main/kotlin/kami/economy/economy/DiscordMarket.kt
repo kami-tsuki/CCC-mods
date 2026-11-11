@@ -100,9 +100,10 @@ object DiscordMarket {
             alerts.clear()
             return
         }
-        val all = items()
+        val asks = Pricing.asks()
+        val all = asks.items
         if (!seeded) {
-            all.forEach { i -> Matching.bestAsk(i, "")?.let { last[i] = it } }
+            all.forEach { i -> asks.of(i)?.let { last[i] = it } }
             seeded = true
             index = null
             lastFlush = now
@@ -113,7 +114,7 @@ object DiscordMarket {
             indexSize = all.size
             index = null
         }
-        val crossedNow = all.mapNotNull { watch(it, now) }
+        val crossedNow = all.mapNotNull { watch(it, asks.of(it), now) }
         if (crossedNow.isNotEmpty()) collect(crossedNow)
         if (pending.isNotEmpty() && due(lastFlush, now, FLUSH_MINUTES)) flush(now)
         if (alerts.isNotEmpty()) sendAlerts(now)
@@ -125,8 +126,8 @@ object DiscordMarket {
 
     private fun items(): Set<String> = Market.data.books.keys + Stocks.items()
 
-    private fun watch(item: String, now: Long): Move? {
-        val price = Matching.bestAsk(item, "") ?: return null
+    private fun watch(item: String, ask: Int?, now: Long): Move? {
+        val price = ask ?: return null
         val prev = last[item]
         if (prev == null) {
             last[item] = price

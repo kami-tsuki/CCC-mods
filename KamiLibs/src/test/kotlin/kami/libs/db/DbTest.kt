@@ -57,6 +57,19 @@ class DbTest {
     }
 
     @Test
+    fun rowsDeltaWritesOnlyChangedRows() {
+        Db.open(file)
+        val rows = Rows<String>("t_item", listOf("id"), listOf("qty"))
+        rows.prime(mapOf("a" to listOf("a", 1), "b" to listOf("b", 2), "c" to listOf("c", 3)))
+        Db.write { exec("INSERT INTO t_item (id, qty) VALUES ('a', 1), ('b', 2), ('c', 3)") }
+        assertEquals(null, rows.delta(mapOf("a" to listOf("a", 1)), emptyList()) { error("full") })
+        rows.delta(mapOf("a" to listOf("a", 9)), listOf("c", "zzz")) { error("full") }?.let(Db::write)
+        Db.flush()
+        assertEquals(listOf("a" to 9, "b" to 2), Db.read { query("SELECT id, qty FROM t_item ORDER BY id") { it.string("id") to it.int("qty") } })
+        assertEquals(null, rows.delta(mapOf("a" to listOf("a", 9)), listOf("c")) { error("full") })
+    }
+
+    @Test
     fun durableIsVisibleOnReturn() {
         Db.open(file)
         Db.durable { exec("INSERT INTO t_item (id, qty) VALUES (?, ?)", "d", 1) }

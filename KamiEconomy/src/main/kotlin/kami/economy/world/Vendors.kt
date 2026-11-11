@@ -7,6 +7,7 @@ import kami.libs.claims.ClaimsApi
 import kami.libs.claims.FeatureIds
 import kami.libs.claims.Locks
 import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.resources.ResourceLocation
 import kami.libs.chat.Chat
 import kami.libs.chat.Tone
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent
@@ -17,14 +18,17 @@ object Vendors {
 
     private fun isVendorLike(id: String) = id in MARKET_ONLY || (id.startsWith("create:") && id.endsWith("_table_cloth"))
 
-    fun onUse(e: PlayerInteractEvent.RightClickBlock) {
-        val id = BuiltInRegistries.BLOCK.getKey(e.level.getBlockState(e.pos).block).toString()
+    private val creative by lazy { BuiltInRegistries.BLOCK.getOptional(ResourceLocation.parse(CREATIVE_VENDOR)).orElse(null) }
+    private val vendorLike by lazy { BuiltInRegistries.BLOCK.entrySet().filter { isVendorLike(it.key.location().toString()) }.mapTo(HashSet()) { it.value } }
 
-        if (id == CREATIVE_VENDOR && !Config.s.allowCreativeVendors) {
+    fun onUse(e: PlayerInteractEvent.RightClickBlock) {
+        val block = e.level.getBlockState(e.pos).block
+
+        if (block === creative && !Config.s.allowCreativeVendors) {
             deny(e, Phrase.of("kami_economy.vendor.creative_off"))
             return
         }
-        if (!isVendorLike(id) || !ClaimsApi.present) return
+        if (block !in vendorLike || !ClaimsApi.present) return
 
         val dim = e.level.dimension().location().toString()
         val info = ClaimsApi.at(dim, e.pos.x shr 4, e.pos.z shr 4)

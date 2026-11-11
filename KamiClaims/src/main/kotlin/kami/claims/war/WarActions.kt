@@ -147,8 +147,9 @@ object WarActions {
 
     private fun accept(c: Country, a: List<String>, confirmed: Boolean): Phrase {
         val war = between(c, partner(a))
+        val o = war.offer?.takeIf { it.from != c.id } ?: throw Fail("kami_claims.error.war.offer.none")
+        if (a.getOrNull(1)?.toLongOrNull() != o.at) throw Fail("kami_claims.error.war.offer.changed")
         if (!confirmed) {
-            val o = war.offer?.takeIf { it.from != c.id } ?: throw Fail("kami_claims.error.war.offer.none")
             Negotiation.check(c, war, o)
             throw NeedsConfirm(listOf(Phrase.of("kami_claims.confirm.war_accept", v(Wars.opponent(war, c).name), Negotiation.terms(war, o))))
         }

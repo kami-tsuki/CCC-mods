@@ -75,8 +75,17 @@ object Council {
         if (Wars.involved(c) || c.warDebts.isNotEmpty()) throw Fail("kami_claims.error.withdraw_war")
         if (c.treasury < request.amount) throw Fail(Phrase.of("kami_claims.error.treasury_short", money(c.treasury)), "FUNDS")
         ensureDaily(c, request.amount)
-        if (!Bank.give(UUID.fromString(request.requester), request.amount.toInt(), Flow.TREASURY, CountryParty(c.id).key, "kami_libs.note.withdraw")) throw Fail("kami_claims.error.payout")
-        Treasury.move(c, LedgerKind.WITHDRAW, -request.amount, request.requester, Statement.note("kami_libs.note.withdraw"))
+        payout(c, UUID.fromString(request.requester), request.amount)
+    }
+
+    fun payout(c: Country, to: UUID, amount: Long) {
+        val day = now() / Config.s.dayMillis
+        Treasury.move(c, LedgerKind.WITHDRAW, -amount, to.toString(), Statement.note("kami_libs.note.withdraw"))
+        val paid = runCatching { Bank.give(to, amount.toInt(), Flow.TREASURY, CountryParty(c.id).key, "kami_libs.note.withdraw") }.getOrDefault(false)
+        if (paid) return
+        Treasury.move(c, LedgerKind.ADJUST, amount, to.toString(), Statement.note("kami_libs.note.withdraw"), capped = false)
+        c.withdrawn.add(day, -amount)
+        throw Fail("kami_claims.error.payout")
     }
 
     private fun withdrawnToday(c: Country) = c.withdrawn.total(now() / Config.s.dayMillis)

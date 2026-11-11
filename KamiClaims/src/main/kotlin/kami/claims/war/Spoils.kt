@@ -9,6 +9,7 @@ import kami.claims.LedgerKind
 import kami.claims.Realm
 import kami.claims.TaxMode
 import kami.claims.economy.Treasury
+import kami.claims.gov.Audit
 import kami.claims.tributeOwed
 import kami.claims.research.Capacity
 import kami.claims.research.Features
@@ -70,7 +71,10 @@ object Spoils {
     }
 
     private fun safe(war: War, what: String, block: () -> Unit) {
-        runCatching(block).onFailure { KamiClaims.LOG.error("War ${war.id} settlement step $what failed", it) }
+        runCatching(block).onFailure {
+            KamiClaims.LOG.error("War ${war.id} settlement step $what failed, needs admin repair", it)
+            listOf(war.attacker.main, war.defender.main).mapNotNull(Realm::country).forEach { c -> Audit.record(c, "system", "war_settle_failed", war.id, what) }
+        }
     }
 
     private fun rebels(war: War): List<Country> {

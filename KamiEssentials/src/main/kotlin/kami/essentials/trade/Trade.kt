@@ -20,6 +20,7 @@ class Trade(val players: List<ServerPlayer>) {
         private set
     var open = true
         private set
+    private var changedAt = 0L
 
     init {
         offers.forEach { it.addListener { changed() } }
@@ -38,13 +39,9 @@ class Trade(val players: List<ServerPlayer>) {
 
     fun toggle(side: Int) {
         if (!open) return
+        if (!accepted[side] && System.currentTimeMillis() - changedAt < SETTLE_MS) return
         accepted[side] = !accepted[side]
         countdown = if (accepted.all { it }) Config.s.tradeConfirmSeconds * 20 else -1
-        if (countdown == 0) {
-            if (players.any { it.hasDisconnected() || !it.isAlive }) cancel(null, Phrase.of("kami_essentials.trade.reason.player_left"))
-            else if (!Trades.inRange(players[0], players[1])) cancel(null, Phrase.of("kami_essentials.trade.reason.distance"))
-            else finish()
-        }
     }
 
     fun tick() {
@@ -74,6 +71,7 @@ class Trade(val players: List<ServerPlayer>) {
 
     private fun changed() {
         if (!open) return
+        changedAt = System.currentTimeMillis()
         accepted.fill(false)
         countdown = -1
     }
@@ -100,6 +98,10 @@ class Trade(val players: List<ServerPlayer>) {
         players.forEachIndexed { side, p ->
             p.tell(Talk.chat.ok(Phrase.of("kami_essentials.trade.done", Phrase.value(name(1 - side)), Phrase.value(items[1 - side].sumOf { it.count }), Phrase.value(items[side].sumOf { it.count }))))
         }
+    }
+
+    private companion object {
+        const val SETTLE_MS = 400L
     }
 
     private fun differ(items: List<List<ItemStack>>) = items[0].map { it.item }.toSet() != items[1].map { it.item }.toSet()

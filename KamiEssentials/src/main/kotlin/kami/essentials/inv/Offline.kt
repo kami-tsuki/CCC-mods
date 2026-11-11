@@ -49,6 +49,8 @@ class Offline private constructor(val id: UUID, private val server: MinecraftSer
         enderchest.addListener { dirty = true; flush() }
     }
 
+    fun pinned(slot: Int) = kept.any { it.first == slot }
+
     fun flush() {
         if (!live || !dirty) return
         dirty = false
@@ -59,7 +61,7 @@ class Offline private constructor(val id: UUID, private val server: MinecraftSer
                 val stack = inventory.getItem(i)
                 if (!stack.isEmpty) items.add(stack.save(server.registryAccess(), CompoundTag().apply { putByte("Slot", raw(i).toByte()) }))
             }
-            kept.forEach { (at, item) -> if (at == null || inventory.getItem(at).isEmpty) items.add(item.copy()) }
+            kept.forEach { (_, item) -> items.add(item.copy()) }
             tag.put("Inventory", items)
             tag.put("EnderItems", enderchest.createTag(server.registryAccess()))
             NbtUtils.addCurrentDataVersion(tag)

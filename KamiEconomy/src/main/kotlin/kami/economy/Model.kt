@@ -3,6 +3,7 @@ package kami.economy
 import kami.economy.economy.Blacklist
 import kami.economy.economy.Catalog
 import kami.economy.economy.Ledger
+import kami.economy.economy.Pricing
 import kami.economy.economy.Stocks
 import kami.economy.economy.VariantScan
 import kami.economy.economy.Variants
@@ -104,10 +105,12 @@ object Market {
         data.books.keys.removeAll { k -> data.books.getValue(k).let { it.sells.isEmpty() && it.buys.isEmpty() } && Stocks.good(k) == null && !Blacklist.sellable(k) }
         Ledger.recover()
         foldVariants()
+        Pricing.invalidate()
     }
 
     fun unload() {
         attached = false
+        Pricing.invalidate()
         Ledger.detach()
         Quests.unload()
         TradeStatus.unload()
