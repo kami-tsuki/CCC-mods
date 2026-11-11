@@ -6,6 +6,7 @@ import kami.claims.Country
 import kami.claims.DayStat
 import kami.claims.LedgerEntry
 import kami.claims.LedgerKind
+import kami.claims.LendState
 import kami.claims.Realm
 import kami.claims.now
 import kami.claims.research.Capacity
@@ -20,7 +21,8 @@ import kami.libs.economy.ServerParty
 import kami.libs.stats.Stats
 
 object Treasury {
-    fun room(c: Country): Long = (Levels.capacity(c, Capacity.TREASURY) - c.treasury).coerceAtLeast(0)
+    fun room(c: Country): Long =
+        (Levels.capacity(c, Capacity.TREASURY) - c.treasury - c.lendOffers.filter { it.state == LendState.ACTIVE }.sumOf { it.amount }).coerceAtLeast(0)
 
     fun move(
         c: Country, kind: LedgerKind, delta: Long, actor: String? = null, note: String = "", capped: Boolean = true,

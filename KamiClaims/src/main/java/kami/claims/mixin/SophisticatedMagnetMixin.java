@@ -1,6 +1,5 @@
 package kami.claims.mixin;
 
-import kami.claims.Action;
 import kami.claims.KamiClaims;
 import kami.claims.world.Guard;
 import net.minecraft.world.entity.Entity;
@@ -18,7 +17,7 @@ public abstract class SophisticatedMagnetMixin {
     @Inject(method = "canNotPickup", at = @At("HEAD"), cancellable = true, require = 0)
     private void kami$claimedPickup(Entity pickup, Entity carrier, CallbackInfoReturnable<Boolean> cir) {
         try {
-            if (Guard.INSTANCE.blocked(carrier, pickup.blockPosition(), Action.INTERACT)) cir.setReturnValue(true);
+            if (!Guard.INSTANCE.carried(carrier, pickup.blockPosition())) cir.setReturnValue(true);
         } catch (Throwable t) {
             if (!kami$warned) {
                 kami$warned = true;

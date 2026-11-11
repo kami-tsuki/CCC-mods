@@ -89,8 +89,8 @@ class Trade(val players: List<ServerPlayer>) {
         val items = offers.map { it.removeAllItems() }
         players.forEachIndexed { side, p -> give(p, items[1 - side]) }
         end()
-        if (items.none { it.isEmpty() } && differ(items) && ClaimsApi.neutralForeign(players[0].uuid, players[1].uuid) && Trades.claimXp(players[0].uuid, players[1].uuid)) {
-            val value = items.minOf { side -> side.sumOf { MarketApi.value(it) } }
+        val value = items.minOf { side -> side.sumOf { MarketApi.value(it) } }
+        if (items.none { it.isEmpty() } && value >= Config.s.tradeXpMinValue && differ(items) && ClaimsApi.neutralForeign(players[0].uuid, players[1].uuid) && Trades.claimXp(players[0].uuid, players[1].uuid)) {
             val count = items.sumOf { list -> list.sumOf { it.count } }.toLong()
             players.forEach {
                 KamiProgress.post(it, "trade", "", count)

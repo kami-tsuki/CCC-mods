@@ -66,8 +66,8 @@ object SkillStats {
     fun register() {
         Admin.view("skills.stats", async = true) { ctx, a -> encode(SkillStatsDto.serializer(), global(ctx.onServer { live() }, a.long(0))) }
         Admin.view("skills.player", async = true) { ctx, a ->
-            val id = AdminServer.target(ctx, a)
-            encode(SkillPlayer.serializer(), player(id, ctx.onServer { own(id) }, a.long(1)))
+            val (id, own) = ctx.onServer { AdminServer.target(ctx, a).let { it to own(it) } }
+            encode(SkillPlayer.serializer(), player(id, own, a.long(1)))
         }
     }
 

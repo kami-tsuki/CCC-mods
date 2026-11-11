@@ -3137,6 +3137,7 @@
   "kami_claims.unit.hour.other": "%s Stunden",
   "kami_claims.error.fame.range": "Bewertung 0,5 bis 5 Sterne in halben Schritten.",
   "kami_claims.error.fame.own": "Du kannst deinen eigenen Staat nicht bewerten.",
+  "kami_claims.error.fame.citizen": "Nur Bürger eines Staates können Staaten bewerten.",
   "kami_claims.error.fame.playtime": "Du brauchst %s Stunden Spielzeit, um einen Staat zu bewerten.",
   "kami_claims.error.fame.cooldown": "Du kannst diese Bewertung in %s wieder ändern.",
   "kami_claims.error.war.self": "Du kannst deinem eigenen Staat keinen Krieg erklären.",

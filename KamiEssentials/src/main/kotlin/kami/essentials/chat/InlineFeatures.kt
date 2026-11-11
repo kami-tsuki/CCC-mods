@@ -267,9 +267,15 @@ object InlineFeatures {
         return keys.firstNotNullOfOrNull { key -> tag.getString(key).takeIf { it.isNotBlank() } }
     }
 
-    private fun link(url: String, color: Int): Component = Component.literal(url).withStyle {
-        it.withColor(color).withUnderlined(true).withClickEvent(ClickEvent(ClickEvent.Action.OPEN_URL, url))
-            .withHoverEvent(HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.msg("kami_essentials.inline.link").withColor(Config.s.inlineStyle.textColor)))
+    private val hidden = Regex("[\\p{Cf}\\p{Cc}]")
+
+    private fun link(raw: String, color: Int): Component {
+        val url = raw.replace(hidden, "")
+        if (!url.startsWith("https://") || url.length <= 8) return Component.literal(url).withColor(Config.s.inlineStyle.textColor)
+        return Component.literal(url).withStyle {
+            it.withColor(color).withUnderlined(true).withClickEvent(ClickEvent(ClickEvent.Action.OPEN_URL, url))
+                .withHoverEvent(HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.msg("kami_essentials.inline.link").withColor(Config.s.inlineStyle.textColor)))
+        }
     }
 
     private fun legacyBody(text: String): Component {

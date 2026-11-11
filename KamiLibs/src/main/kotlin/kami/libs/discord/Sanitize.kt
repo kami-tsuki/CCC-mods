@@ -14,13 +14,15 @@ internal object Sanitize {
     private val roleMention = Regex("<@&(\\d+)>")
     private val heading = Regex("(?m)^(\\s*)(#|-#)")
     private val inlineHeading = Regex("(?<=\n)(\\s*)(#|-#)")
+    private val open = Regex("<(@(\\d+)>)?")
     private val brackets = Regex("[\\[\\]]")
 
     fun inbound(text: String): String = emoji.replace(text) { ":${it.groupValues[1]}:" }.replace(whitespace, " ").replace(stripped, "").trim()
 
     fun cap(text: String, max: Int): Pair<String, Boolean> = if (text.length <= max) text to false else text.take(max) to true
 
-    fun outbound(text: String): String = mentions(Templates.outsideCode(clean(text), ::escape))
+    fun outbound(text: String, allowed: Set<Long> = emptySet()): String =
+        mentions(Templates.outsideCode(clean(text)) { part, lineStart -> angle(escape(part, lineStart), allowed) })
 
     fun card(text: String): String = mentions(clean(text))
 
@@ -28,6 +30,10 @@ internal object Sanitize {
         .replace("@everyone", "@${ZWSP}everyone")
         .replace("@here", "@${ZWSP}here")
         .replace(roleMention) { "<@$ZWSP&${it.groupValues[1]}>" }
+
+    private fun angle(text: String, allowed: Set<Long>) = open.replace(text) {
+        if (it.groupValues[2].toLongOrNull()?.let(allowed::contains) == true) it.value else "<$ZWSP${it.groupValues[1]}"
+    }
 
     private fun escape(part: String, lineStart: Boolean) = MarkdownSanitizer.escape(part).replace(if (lineStart) heading else inlineHeading, "$1$ZWSP$2").replace(brackets, "\\\\$0")
 

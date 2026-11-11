@@ -98,6 +98,7 @@ data class DiscordConsole(
     val enabled: Boolean = true,
     val commandBlocks: Boolean = false,
     val flushSeconds: Int = 3,
+    val safe: List<String> = listOf("kami", "claims", "economy", "essentials", "discord", "geology", "library", "gamemode", "tp", "teleport", "give", "time", "weather", "kick", "ban", "pardon", "op", "deop", "whitelist", "difficulty", "gamerule", "effect", "summon", "kill", "clear", "setblock", "fill", "stop", "save-all", "list"),
     val redact: List<String> = listOf("msg", "tell", "w", "r", "teammsg", "tm", "login", "register", "changepassword", "countrychat", "cc", "adminchat", "ac", "reply"),
 )
 
@@ -156,6 +157,8 @@ data class Settings(
     val tradeDistance: Int = 16,
     val tradeConfirmSeconds: Int = 3,
     val tradeRequestSeconds: Int = 60,
+    val tradeXpDaily: Int = 12,
+    val tradeXpMinValue: Long = 100,
     val chat: Boolean = true,
     val joinLeave: Boolean = true,
     val deaths: Boolean = true,
@@ -209,6 +212,8 @@ private fun Settings.sane() = copy(
     tradeDistance = tradeDistance.coerceAtLeast(-2),
     tradeConfirmSeconds = tradeConfirmSeconds.coerceIn(0, 30),
     tradeRequestSeconds = tradeRequestSeconds.coerceIn(10, 600),
+    tradeXpDaily = tradeXpDaily.coerceIn(0, 1000),
+    tradeXpMinValue = tradeXpMinValue.coerceAtLeast(0),
     sidebarLines = sidebarLines.filter { it.isEmpty() || it in Sidebar.LINES }.take(15),
     inlineGeneral = inlineGeneral.copy(
         actionTtlSeconds = inlineGeneral.actionTtlSeconds.coerceIn(10, 3600),
@@ -246,7 +251,9 @@ private val sections = listOf(
         mapOf(
             "tradeDistance" to "Max distance: -1 anywhere, -2 same dimension, else blocks.",
             "tradeConfirmSeconds" to "Countdown after both accept; any change stops it.",
-            "tradeRequestSeconds" to "Seconds a request stays open."
+            "tradeRequestSeconds" to "Seconds a request stays open.",
+            "tradeXpDaily" to "Max trades per player per rolling 24 h that give XP/progress.",
+            "tradeXpMinValue" to "Min market value of each side's offer for a trade to give XP/progress."
         )
     ),
     Section(
@@ -320,7 +327,8 @@ private val sections = listOf(
             "discord.console.enabled" to "Post executed commands to the console channel.",
             "discord.console.commandBlocks" to "Include command block commands.",
             "discord.console.flushSeconds" to "Seconds between batches (1-30).",
-            "discord.console.redact" to "Commands whose arguments are hidden in the console log (names without the leading slash).",
+            "discord.console.safe" to "Root commands logged with arguments; every other command is logged as its root name only (names without the leading slash).",
+            "discord.console.redact" to "Subcommands whose arguments are hidden even under a safe root (names without the leading slash).",
             "discord.status" to "Bot presence and channel topic.",
             "discord.status.presence" to "Presence text. Placeholders: {online} {max}.",
             "discord.status.presenceDebounceSeconds" to "Seconds between presence updates (min 15).",

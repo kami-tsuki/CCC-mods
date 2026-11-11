@@ -18,6 +18,7 @@ import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.entity.Mob
 import net.minecraft.world.entity.player.Player
 
 object Vanish {
@@ -42,6 +43,7 @@ object Vanish {
             it.connection.send(if (on) ClientboundPlayerInfoRemovePacket(listOf(p.uuid)) else ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(listOf(p)))
         }
         retrack(p)
+        if (on) p.serverLevel().getEntitiesOfClass(Mob::class.java, p.boundingBox.inflate(64.0)) { it.target === p }.forEach { it.target = null }
         Bot.presenceDirty()
         if (on) Feed.leave(p, Phrase.of("kami_essentials.vanish.now_invisible")) else Feed.join(p, Phrase.of("kami_essentials.vanish.visible_again"))
         p.tell(Talk.chat.ok(Phrase.of(if (on) "kami_essentials.vanish.on" else "kami_essentials.vanish.off")))

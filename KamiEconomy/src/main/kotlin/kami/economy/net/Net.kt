@@ -241,7 +241,11 @@ object Net {
             "price_info" -> a.args.getOrNull(0)?.takeIf { it.length <= 128 && (Variants.of(it) != null || known(it)) && priceInfo.allow(p.uuid) }?.let { PacketDistributor.sendToPlayer(p, Sync.priceInfo(p, it)) }
             "jei" -> if (jeiLimit.allow(p.uuid)) PacketDistributor.sendToPlayer(p, Sync.jei(p))
             "quote" -> {
-                Sync.quote(p, a.args.getOrNull(0) ?: "", a.args.getOrNull(1) ?: "", a.args.getOrNull(2)?.toIntOrNull() ?: 0, a.args.getOrNull(3)?.toIntOrNull() ?: 0)
+                val qty = a.args.getOrNull(2)?.toIntOrNull() ?: 0
+                val price = a.args.getOrNull(3)?.toIntOrNull() ?: 0
+                val item = a.args.getOrNull(1) ?: ""
+                val ok = item.length <= 128 && Config.s.validAmount(qty) && (price == 0 || Config.s.validPrice(price))
+                Sync.quote(p, a.args.getOrNull(0) ?: "", if (ok) item else "", if (ok) qty else 0, if (ok) price else 0)
                 send(p)
             }
             else -> {

@@ -307,6 +307,7 @@ object Loans {
         val total = LoanTerms.total(offer.amount, effective(offer, lender, country))
         if (total != expectedTotal) throw Fail("kami_claims.loans.error.terms_changed")
         val perDay = LoanTerms.perDay(total, offer.termDays)
+        if (offer.amount > Treasury.room(country)) throw Fail("kami_claims.error.treasury_full", Words.money(Treasury.room(country)))
         Treasury.move(country, LedgerKind.LOAN_IN, offer.amount, actor, id, counterparty = CountryParty(lender.id))
         offer.state = LendState.LENT
         offer.borrower = country.id

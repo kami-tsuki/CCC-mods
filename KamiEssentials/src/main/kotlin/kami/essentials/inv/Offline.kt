@@ -45,8 +45,8 @@ class Offline private constructor(val id: UUID, private val server: MinecraftSer
             if (stack.isEmpty) kept += at to item else inventory.setItem(at!!, stack)
         }
         enderchest.fromTag(tag.getList("EnderItems", Tag.TAG_COMPOUND.toInt()), server.registryAccess())
-        inventory.addListener { dirty = true }
-        enderchest.addListener { dirty = true }
+        inventory.addListener { dirty = true; flush() }
+        enderchest.addListener { dirty = true; flush() }
     }
 
     fun flush() {

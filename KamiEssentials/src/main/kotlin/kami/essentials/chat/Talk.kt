@@ -34,7 +34,7 @@ object Talk {
     val chat = Chat.of("essentials")
     private val partner = ConcurrentHashMap<UUID, UUID>()
     private const val BLURPLE = 0x5865F2
-    private val SPEECH = setOf("me", "teammsg", "tm")
+    private val SPEECH = setOf("say", "me", "msg", "tell", "w", "teammsg", "tm")
 
     fun onChat(e: ServerChatEvent) {
         val p = e.player
@@ -79,7 +79,7 @@ object Talk {
         to.tell(dm(sender, you, text, from).withStyle { it.withClickEvent(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/r ")).withHoverEvent(hover(Phrase.of("kami_essentials.talk.reply"))) })
         if (!Store[Flag.QUIET_DM, to.uuid]) to.playNotifySound(SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.4f, 1.6f)
         from?.tell(dm(you, Names.player(to), text, from))
-        KamiEssentials.LOG.info("{} -> {}: {}", from?.gameProfile?.name ?: "Server", to.gameProfile.name, text)
+        KamiEssentials.LOG.info("{} -> {}", from?.gameProfile?.name ?: "Server", to.gameProfile.name)
         if (from != null) {
             partner[to.uuid] = from.uuid
             partner[from.uuid] = to.uuid

@@ -1,5 +1,6 @@
 package kami.claims.net
 
+import kami.claims.NameRules
 import kami.claims.KamiClaims
 import kami.claims.press.Article
 import kami.claims.press.ArticleKind
@@ -70,7 +71,7 @@ object PressDto {
 
     fun kinds(csv: String): Set<ArticleKind> = csv.split(',').take(MAX_FILTER).mapNotNull { k -> ArticleKind.entries.firstOrNull { it.name == k } }.toSet()
 
-    fun ids(csv: String): Set<String> = csv.split(',').filter { it.isNotBlank() && it.length <= 64 }.take(MAX_FILTER).toSet()
+    fun ids(csv: String): Set<String> = csv.split(',').filter { it.isNotBlank() && it.length <= 64 && it.all(NameRules::allows) }.take(MAX_FILTER).toSet()
 
     fun item(a: Article, lookup: (String) -> PressCountry?) = FeedItem(
         a.id, a.kind.name, a.title, a.subtitle, owner(a, lookup), a.authors.take(MAX_AUTHORS), a.created, a.templateKey, a.templateArgs.take(MAX_ARGS)

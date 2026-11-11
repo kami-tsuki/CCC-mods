@@ -113,7 +113,7 @@ object SkillEvents {
     val codec: Codec<LongOpenHashSet> = Codec.LONG_STREAM.xmap({ LongOpenHashSet(it.toArray()) }, { it.longStream() })
     private val placed = attachments.register("placed", Supplier { AttachmentType.builder(Supplier { LongOpenHashSet() }).serialize(codec) { it.isNotEmpty() }.build() })
     private val machines = setOf("create", "tfmg", "vintage")
-    private val marked = setOf(Kind.ORE, Kind.LOG, Kind.STONE)
+    private val marked = setOf(Kind.ORE, Kind.LOG)
     private val sword by lazy { ItemStack(Items.NETHERITE_SWORD) }
     private val windUsed = HashMap<UUID, Long>()
     private const val WIND_COOLDOWN_MS = 150_000L
@@ -149,7 +149,7 @@ object SkillEvents {
         attachments.register(MOD_BUS)
         FORGE_BUS.addListener<BlockEvent.EntityPlaceEvent>(EventPriority.LOWEST) { e ->
             val level = e.level as? ServerLevel ?: return@addListener
-            if (e.entity is ServerPlayer && kind(e.placedBlock) in marked) mark(level, e.pos, true)
+            if (kind(e.placedBlock) in marked) mark(level, e.pos, true)
         }
         FORGE_BUS.addListener<PistonEvent.Pre>(EventPriority.LOWEST) { pushed(it) }
         FORGE_BUS.addListener<ExplosionEvent.Detonate> { e -> (e.level as? ServerLevel)?.let { level -> e.affectedBlocks.forEach { mark(level, it, false) } } }
@@ -276,7 +276,14 @@ object SkillEvents {
         return seen.size
     }
 
-    private fun isPlaced(level: ServerLevel, pos: BlockPos) = level.getChunkAt(pos).getExistingDataOrNull(placed)?.contains(pos.asLong()) == true
+    private fun hasMark(level: ServerLevel, pos: BlockPos) = level.getChunkAt(pos).getExistingDataOrNull(placed)?.contains(pos.asLong()) == true
+
+    private fun isPlaced(level: ServerLevel, pos: BlockPos): Boolean {
+        if (!hasMark(level, pos)) return false
+        if (kind(level.getBlockState(pos)) in marked) return true
+        mark(level, pos, false)
+        return false
+    }
 
     private fun mark(level: ServerLevel, pos: BlockPos, on: Boolean) {
         val chunk = level.getChunkAt(pos)
@@ -325,7 +332,7 @@ object SkillEvents {
     private fun drops(e: BlockDropsEvent) {
         val kind = kind(e.state) ?: return
         val p = e.breaker as? ServerPlayer
-        val wasPlaced = kind != Kind.CROP && isPlaced(e.level, e.pos)
+        val wasPlaced = kind != Kind.CROP && hasMark(e.level, e.pos)
         if (wasPlaced) mark(e.level, e.pos, false)
         if (p == null || wasPlaced || kind == Kind.STONE || !SkillServer.enabled) return
         if (kind == Kind.LOG && branch(e.state)) return

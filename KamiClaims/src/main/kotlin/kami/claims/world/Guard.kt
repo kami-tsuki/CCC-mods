@@ -186,13 +186,14 @@ object Guard {
         val cl = Realm.index[key(dim, pos)]
         val free = block != null && action != Action.INTERACT && id(block) in Config.s.freeBlockSet
         val c = cl?.let { Realm.data.countries[it.country] }
-        if (free && (action == Action.PLACE || cl == null || cl.type == "infrastructure")) return true
+        val hostile = cl?.tenant != null || c != null && (who as? Player)?.let { Wars.enemy(it.stringUUID, c) } == true
+        if (free && (cl == null || cl.type == "infrastructure" || action == Action.PLACE && !hostile)) return true
         if (cl == null || c == null) {
             val state = block?.defaultBlockState()
             return (action in Config.s.nomanslandAllowSet && state?.`is`(wildBlocks) != true) || (action == Action.PLACE && cl == null && state != null && TempBlocks.fits(state))
         }
         val p = who as? Player
-        if (p == null || p is FakePlayer) return cl.def?.rule?.machines ?: false
+        if (p == null || p is FakePlayer) return cl.def?.rule?.machines == true && machineOrigin(level, dim, pos, cl, who)
         val raidable = raid && WarGuard.build(p, cl, action) &&
             if (action == Action.PLACE) block?.defaultBlockState()?.hasBlockEntity() != true else block == null || !container(level, pos)
         if (raidable) return true
@@ -202,6 +203,16 @@ object Guard {
         if (banned) return false
         return granted(access(c, cl, action), c, cl, p, action)
     }
+
+    private fun machineOrigin(level: LevelAccessor, dim: String, pos: BlockPos, cl: Claim, machine: Entity?): Boolean {
+        if (machine != null) return transferAllowed(level, machine.blockPosition(), pos)
+        val cx = pos.x shr 4
+        val cz = pos.z shr 4
+        return listOf(-1 to 0, 1 to 0, 0 to -1, 0 to 1).all { (dx, dz) -> Realm.index[Key(dim, cx + dx, cz + dz)].let { it?.country == cl.country && it?.tenant == cl.tenant } }
+    }
+
+    fun carried(carrier: Entity, pickup: BlockPos): Boolean =
+        if (carrier is Player) !blocked(carrier, pickup, Action.INTERACT) else transferAllowed(carrier.level(), carrier.blockPosition(), pickup)
 
     private fun container(level: LevelAccessor, pos: BlockPos): Boolean {
         val be = level.getBlockEntity(pos) ?: return false

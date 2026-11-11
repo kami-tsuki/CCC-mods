@@ -83,14 +83,24 @@ object TerrainSampler {
     }
 }
 
+private val unsafeDim = Regex("[^a-z0-9._-]")
+
+private fun safeDim(dim: String) = dim.lowercase().replace(unsafeDim, "_").replace("..", "__")
+
+private fun tilePath(root: Path?, dim: String, rx: Int, rz: Int): Path? = root?.let {
+    val base = it.normalize()
+    base.resolve("${safeDim(dim)}/r.$rx.$rz.png").normalize().takeIf { p -> p.startsWith(base) }
+}
+
 class TerrainTile(val dim: String, val rx: Int, val rz: Int, val image: NativeImage, val folder: Path?) {
-    val id: ResourceLocation = ResourceLocation.fromNamespaceAndPath(KamiLibs.ID, "terrain/${dim.replace(':', '_').replace('/', '_')}/${rx}_${rz}".replace('-', 'm'))
+    private val safeDim = safeDim(dim)
+    val id: ResourceLocation = ResourceLocation.fromNamespaceAndPath(KamiLibs.ID, "terrain/$safeDim/${rx}_${rz}".replace('-', 'm'))
     private var texture: DynamicTexture? = null
     var dirtyGpu = true
     var dirtyDisk = false
     var used = 0L
 
-    fun path(): Path? = folder?.resolve("${dim.replace(':', '_')}/r.$rx.$rz.png")
+    fun path(): Path? = tilePath(folder, dim, rx, rz)
 
     fun bind(): ResourceLocation {
         val tex = texture ?: DynamicTexture(image).also {
@@ -145,7 +155,7 @@ object TerrainCache {
         tiles[k]?.let { it.used = System.currentTimeMillis(); return it }
         if (!create && k in missing) return null
         val dir = serverFolder()
-        val path = dir?.resolve("${dim.replace(':', '_')}/r.$rx.$rz.png")
+        val path = tilePath(dir, dim, rx, rz)
         if (loading.size >= MAX_LOADING && k !in loading) dropPending()
         val job = loading[k] ?: CompletableFuture.supplyAsync({ path?.let(::readTile) }, io).also { loading[k] = it }
         if (!job.isDone) return null

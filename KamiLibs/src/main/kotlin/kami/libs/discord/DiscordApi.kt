@@ -92,7 +92,7 @@ object DiscordApi {
     }
 
     private fun chat(channel: Outbox.Channel, post: Post, sent: (Long) -> Unit) {
-        val text = Sanitize.outbound(post.text).take(MESSAGE_MAX)
+        val text = Sanitize.outbound(post.text, post.mentions).take(MESSAGE_MAX)
         if (text.isBlank()) return
         val name = Sanitize.name(post.name)
         val ids = post.mentions.toLongArray()
@@ -188,7 +188,7 @@ object DiscordApi {
 
     fun roomEvent(key: String, embed: Embed, card: Boolean = false) = Discord.guard("room-event") {
         val id = Rooms.byKey[key] ?: return@guard
-        if (Discord.active) event(Outbox.Channel.of(id), embed, clean = if (card) Sanitize::card else Sanitize::outbound)
+        if (Discord.active) event(Outbox.Channel.of(id), embed, clean = if (card) Sanitize::card else { text -> Sanitize.outbound(text) })
     }
 
     fun market(card: Card): Boolean {

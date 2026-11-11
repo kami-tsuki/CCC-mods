@@ -20,6 +20,7 @@ object Fame {
         if (stars !in 1..10) throw Fail("kami_claims.error.fame.range")
         val id = p.stringUUID
         if (id in c.members) throw Fail("kami_claims.error.fame.own")
+        if (Realm.of(id) == null) throw Fail("kami_claims.error.fame.citizen")
         val hours = p.stats.getValue(Stats.CUSTOM.get(Stats.PLAY_TIME)) / 72_000.0
         if (hours < w.fameMinPlaytimeHours) throw Fail("kami_claims.error.fame.playtime", v(fmt(w.fameMinPlaytimeHours)))
         c.ratings[id]?.let {

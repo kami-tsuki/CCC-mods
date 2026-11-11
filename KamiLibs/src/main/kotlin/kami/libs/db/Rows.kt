@@ -1,6 +1,10 @@
 package kami.libs.db
 
 class Rows<K>(table: String, private val keys: List<String>, columns: List<String>) {
+    init {
+        (keys + columns + table).forEach { require(Table.ident.matches(it)) { "Bad SQL identifier: $it" } }
+    }
+
     private val width = keys.size + columns.size
     private val upsert = "INSERT INTO $table (${(keys + columns).joinToString()}) VALUES (${List(width) { "?" }.joinToString()}) ON CONFLICT(${keys.joinToString()}) DO " +
         if (columns.isEmpty()) "NOTHING" else "UPDATE SET " + columns.joinToString { "$it = excluded.$it" }

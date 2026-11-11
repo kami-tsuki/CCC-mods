@@ -30,6 +30,11 @@ object Console {
         }
         val command = e.parseResults.reader.string.trim().removePrefix("/")
         val tokens = command.split(' ')
+        val root = tokens[0].substringAfter(':').lowercase()
+        if (root !in c.safe) {
+            if (throttle(who, root)) DiscordApi.console("$who: /${tokens[0]} [redacted]")
+            return
+        }
         val first = tokens.indexOfFirst { it.substringAfter(':').lowercase() !in ROOTS }
         val secret = tokens.size > 1 && tokens.withIndex().any { (i, t) -> (i == first || i > 0 && tokens[i - 1] == "run") && t.substringAfter(':').lowercase().let { it in c.redact || it in PRIVATE } }
         if (!secret && !throttle(who, command)) return

@@ -3137,6 +3137,7 @@
   "kami_claims.unit.hour.other": "%s hours",
   "kami_claims.error.fame.range": "Rate 0.5 to 5 stars in half steps.",
   "kami_claims.error.fame.own": "You cannot rate your own country.",
+  "kami_claims.error.fame.citizen": "Only citizens of a country can rate countries.",
   "kami_claims.error.fame.playtime": "You need %s hours of playtime to rate a country.",
   "kami_claims.error.fame.cooldown": "You can change this rating again in %s.",
   "kami_claims.error.war.self": "You cannot declare war on your own country.",

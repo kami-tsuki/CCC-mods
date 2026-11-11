@@ -163,7 +163,6 @@ object MapServer {
                 PacketDistributor.sendToPlayer(player, MapDone(r.seq, 0, 0, 0, 0))
                 return
             }
-            scans[player.uuid] = ScanLock(lock.dimension, lock.x0, lock.z0, lock.w, lock.h, System.currentTimeMillis() + SCAN_LOCK_MS)
         }
         if (!world.withinBudget(r.w.toLong() * r.h * r.cell * r.cell)) {
             PacketDistributor.sendToPlayer(player, MapDone(r.seq, 0, 0, 0, 0))

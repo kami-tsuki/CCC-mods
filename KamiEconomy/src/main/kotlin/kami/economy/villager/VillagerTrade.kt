@@ -3,6 +3,9 @@ package kami.economy.villager
 import kami.economy.Config
 import kami.economy.KamiEconomy
 import kami.economy.LOG
+import kami.economy.economy.Gate
+import kami.economy.economy.TradeStatus
+import kami.economy.economy.Variants
 import kami.libs.chat.Chat
 import kami.libs.chat.Tone
 import kami.libs.economy.Flow
@@ -117,6 +120,10 @@ object VillagerTrade {
     private fun once(m: VillagerMenu, p: ServerPlayer, v: AbstractVillager, loud: Boolean): Boolean {
         val o = v.offers.getOrNull(m.selected) ?: return false
         val line = Quotes.of(v).lines.getOrNull(m.selected) ?: return false
+        if (!o.isOutOfStock && line.priced && !line.barter) lock(p, o)?.let {
+            if (loud) p.displayClientMessage(Chat.bar(Tone.BAD, it), true)
+            return false
+        }
         val why = when {
             o.isOutOfStock -> "out_of_stock"
             !line.priced -> "no_price"
@@ -130,6 +137,14 @@ object VillagerTrade {
         v.notifyTrade(o)
         p.awardStat(Stats.TRADED_WITH_VILLAGER)
         return true
+    }
+
+    private fun lock(p: ServerPlayer, o: MerchantOffer): Phrase? {
+        val order = Quotes.order(o) as? Mapped.Order ?: return null
+        val action = if (order.side == Side.SELL) "buy" else "sell_market"
+        Gate.denial(p.uuid, action)?.let { return it }
+        val id = ItemSpec.id(order.goods.stack)
+        return TradeStatus.denial(action, id) ?: Variants.core(id).takeIf { it != id }?.let { TradeStatus.denial(action, it) }
     }
 
     private fun barter(m: VillagerMenu, p: ServerPlayer, o: MerchantOffer): String? {

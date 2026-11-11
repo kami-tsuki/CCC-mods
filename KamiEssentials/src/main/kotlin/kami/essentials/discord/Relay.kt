@@ -41,7 +41,8 @@ object Relay : DiscordFeature {
     private val recent = RateLimit<UUID>(5, 10_000L)
     private val incoming = RateLimit<UUID>(5, 10_000L)
     private const val MENTION_GAP_MS = 60_000L
-    private val pinged = HashMap<UUID, Long>()
+    private val senderPings = RateLimit<UUID>(3, 60_000L)
+    private val pinged =HashMap<UUID, Long>()
     private val mentioned = ConcurrentHashMap<UUID, Long>()
     private const val MAX_SPOKE = 2000
     private val spoke = ConcurrentHashMap<UUID, Long>()
@@ -61,7 +62,7 @@ object Relay : DiscordFeature {
         if (!d.enabled || !d.chat.toDiscord || !recent.allow(p.uuid)) return
         traffic("discord.out", p.uuid)
         val ids = LinkedHashSet<Long>()
-        val out = Templates.outsideCode(text) { part, _ -> resolve(part.replace("](", "]\\("), ids) }
+        val out = Templates.outsideCode(text) { part, _ -> resolve(p.uuid, part.replace("](", "]\\("), ids) }
         DiscordApi.chat(Post(Templates.fill(d.templates.username, values(p)), Avatars.of(p.uuid), out, ids)) { sent[it] = p.uuid }
     }
 
@@ -92,7 +93,7 @@ object Relay : DiscordFeature {
         if (!d.enabled || !d.chat.toDiscord || !recent.allow(p.uuid)) return
         traffic("discord.out", p.uuid)
         val ids = LinkedHashSet<Long>()
-        val out = Templates.outsideCode(text) { part, _ -> resolve(part.replace("](", "]\\("), ids) }
+        val out = Templates.outsideCode(text) { part, _ -> resolve(p.uuid, part.replace("](", "]\\("), ids) }
         val rank = DiscordText.get("kami_claims", DiscordText.FALLBACK, "kami_claims.rank.${c.rank.lowercase()}")
         DiscordApi.roomChat(c.country, Post("${p.gameProfile.name} · $rank", Avatars.of(p.uuid), out, ids)) { sent[it] = p.uuid }
     }
@@ -128,11 +129,11 @@ object Relay : DiscordFeature {
         p.playNotifySound(SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.5f, 1.2f)
     }
 
-    private fun resolve(part: String, ids: MutableSet<Long>) = mention.replace(part) { m ->
+    private fun resolve(sender: UUID, part: String, ids: MutableSet<Long>) = mention.replace(part) { m ->
         val found = Links.byName(m.groupValues[1])
         val link = found.singleOrNull() ?: found.firstOrNull { online(it) }
         val now = System.currentTimeMillis()
-        if (link != null && !Store[Flag.QUIET_DISCORD, link.id] && (link.discordId in ids || ids.size < MAX_MENTIONS && now - (mentioned[link.id] ?: 0L) >= MENTION_GAP_MS)) {
+        if (link != null && !Store[Flag.QUIET_DISCORD, link.id] && (link.discordId in ids || ids.size < MAX_MENTIONS && now - (mentioned[link.id] ?: 0L) >= MENTION_GAP_MS && senderPings.allow(sender, now))) {
             if (ids.add(link.discordId)) mentioned[link.id] = now
             "<@${link.discordId}>"
         } else m.value

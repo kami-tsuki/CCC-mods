@@ -776,9 +776,19 @@ object Ledger {
         val data = StackCodec.encode(stack, registries)
         if (data.length > MAX_STACK_DATA) return ListResult.TooLarge
         val label = stack.hoverName.string
-        write(Intent(id, IntentType.AUCTION_LIST, LedgerState.PENDING, actor = seller, auctionId = id, stackData = data, label = label, unitPrice = startPrice, buyNow = buyNowPrice ?: -1))
-        Auctions.insert(id, seller, data, label, startPrice, buyNowPrice)
-        write(Intent(id, IntentType.AUCTION_LIST, LedgerState.PAID, actor = seller, auctionId = id, stackData = data, label = label, unitPrice = startPrice, buyNow = buyNowPrice ?: -1))
+        val intent = Intent(id, IntentType.AUCTION_LIST, LedgerState.PENDING, actor = seller, auctionId = id, stackData = data, label = label, unitPrice = startPrice, buyNow = buyNowPrice ?: -1)
+        write(intent)
+        try {
+            Auctions.insert(id, seller, data, label, startPrice, buyNowPrice)
+            write(intent.copy(state = LedgerState.PAID))
+        } catch (e: Exception) {
+            if (Auctions.find(id) == null) {
+                write(intent.copy(state = LedgerState.VOID))
+                throw e
+            }
+            LOG.error("auction_list {} bookkeeping failed after insert", id, e)
+            write(intent.copy(state = LedgerState.PAID))
+        }
         return ListResult.Ok(id)
     }
 

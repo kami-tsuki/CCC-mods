@@ -21,6 +21,8 @@ object Trades {
     private val active = HashMap<UUID, Trade>()
     private const val XP_PAIR_COOLDOWN_MS = 10 * 60_000L
     private val xpPairs = HashMap<Pair<UUID, UUID>, Long>()
+    private const val DAY_MS = 24 * 3_600_000L
+    private val xpDays = HashMap<UUID, MutableList<Long>>()
     private const val REQUEST_COOLDOWN_MS = 3_000L
     private val lastRequest = HashMap<UUID, Long>()
 
@@ -29,7 +31,12 @@ object Trades {
         val t = now()
         if (xpPairs[key]?.let { t - it < XP_PAIR_COOLDOWN_MS } == true) return false
         xpPairs.values.removeIf { t - it >= XP_PAIR_COOLDOWN_MS }
+        xpDays.values.forEach { it.removeIf { at -> t - at >= DAY_MS } }
+        xpDays.values.removeIf { it.isEmpty() }
+        val cap = Config.s.tradeXpDaily
+        if (listOf(a, b).any { (xpDays[it]?.size ?: 0) >= cap }) return false
         xpPairs[key] = t
+        listOf(a, b).forEach { xpDays.getOrPut(it) { ArrayList() }.add(t) }
         return true
     }
 
@@ -103,6 +110,7 @@ object Trades {
     fun stop() {
         active.values.toSet().forEach { it.cancel(null, Phrase.of("kami_essentials.trade.reason.stopping")) }
         xpPairs.clear()
+        xpDays.clear()
         lastRequest.clear()
     }
 
