@@ -37,7 +37,7 @@ object Skills {
 
     private val caps = mapOf(
         RESEARCH_TIME to 0.5, RESEARCH_COST to 0.5, RESEARCH_INSIGHT to 0.5, SCAN_RANGE to 0.5, AUCTION_FEE to 0.9,
-        ORDER_SLOTS to 12.0, AUCTION_SLOTS to 10.0, INFINITE_LOTS to 6.0
+        ORDER_SLOTS to 12.0, AUCTION_SLOTS to 10.0, INFINITE_LOTS to 2.0
     )
 
     @Volatile var provider: SkillProvider? = null

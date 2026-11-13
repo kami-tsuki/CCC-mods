@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "title": "Gear",
   "scope": "any",
   "categories": [
@@ -2491,13 +2491,9 @@
       ],
       "tasks": [
         {
-          "type": "smelt",
-          "count": 16
-        },
-        {
-          "type": "deposit",
-          "item": "minecraft:diamond",
-          "count": 3
+          "type": "craft",
+          "output": "create_ironworks:copper_axe",
+          "count": 12
         }
       ],
       "unlocks": [
@@ -2625,6 +2621,22 @@
         {
           "type": "recipe",
           "id": "stackedblocksfarmersdelight:reverse/diamond_blocks"
+        },
+        {
+          "type": "recipe",
+          "id": "dndesires:seething/diamond_shard_from_deepslate_coal_ore"
+        },
+        {
+          "type": "recipe",
+          "id": "dndesires:seething/diamond_shard_from_coal_block"
+        },
+        {
+          "type": "recipe",
+          "id": "dndesires:crafting/diamond_from_diamond_shard"
+        },
+        {
+          "type": "recipe",
+          "id": "dndesires:crafting/diamond_shard_from_diamond"
         }
       ]
     },
@@ -2748,9 +2760,9 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:pressing",
-          "count": 16
+          "type": "craft",
+          "output": "smog:respirator",
+          "count": 12
         }
       ],
       "unlocks": [
@@ -2842,9 +2854,9 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:*",
-          "count": 16
+          "type": "craft",
+          "output": "create:redstone_requester",
+          "count": 12
         }
       ],
       "unlocks": [
@@ -2874,6 +2886,11 @@
         }
       ],
       "tasks": [
+        {
+          "type": "craft",
+          "output": "creategoggles:goggle_iron_helmet",
+          "count": 12
+        },
         {
           "type": "deposit",
           "item": "minecraft:diamond_helmet",
@@ -3175,9 +3192,9 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:*",
-          "count": 16
+          "type": "craft",
+          "output": "sophisticatedstorage:magnet_upgrade",
+          "count": 12
         }
       ],
       "unlocks": [
@@ -3580,8 +3597,9 @@
       ],
       "tasks": [
         {
-          "type": "smelt",
-          "count": 16
+          "type": "craft",
+          "output": "create_ironworks:steel_armor_boots",
+          "count": 28
         },
         {
           "type": "deposit",
@@ -3884,7 +3902,7 @@
     {
       "id": "tfmg_tools",
       "category": "tools",
-      "icon": "tfmg:electricians_wrench",
+      "icon": "powergrid:wire_cutter",
       "era": "steel_chemistry",
       "kind": "detail",
       "level": 67,
@@ -4155,9 +4173,9 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:pressing",
-          "count": 32
+          "type": "craft",
+          "output": "createbigpharma:empty_inhaler",
+          "count": 24
         }
       ],
       "unlocks": [
@@ -4238,13 +4256,19 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:pressing",
-          "count": 8
+          "recipeType": "create:mixing",
+          "output": "advancednetherite:netherite_iron_ingot",
+          "count": 16
+        },
+        {
+          "type": "craft",
+          "output": "advancednetherite:netherite_iron_block",
+          "count": 12
         },
         {
           "type": "deposit",
           "item": "advancednetherite:netherite_iron_ingot",
-          "count": 8
+          "count": 16
         }
       ],
       "unlocks": [
@@ -4308,8 +4332,14 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:*",
-          "count": 64
+          "recipeType": "create:compacting",
+          "output": "sulfuricresonance:molded_rubber_gasket",
+          "count": 52
+        },
+        {
+          "type": "craft",
+          "output": "createnuclear:reinforced_glass",
+          "count": 60
         }
       ],
       "unlocks": [
@@ -4521,9 +4551,14 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:*",
-          "count": 16
+          "type": "craft",
+          "output": "create:copper_backtank",
+          "count": 68
+        },
+        {
+          "type": "craft",
+          "output": "northstar:durable_fabric",
+          "count": 56
         }
       ],
       "unlocks": [
@@ -4556,12 +4591,18 @@
         {
           "type": "process",
           "recipeType": "create:pressing",
-          "count": 6
+          "output": "sulfuricresonance:resonant_iron_sheet",
+          "count": 68
+        },
+        {
+          "type": "craft",
+          "output": "create_ironworks:diamond_hammer",
+          "count": 44
         },
         {
           "type": "deposit",
           "item": "advancednetherite:netherite_gold_ingot",
-          "count": 6
+          "count": 16
         }
       ],
       "unlocks": [
@@ -4620,9 +4661,14 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:pressing",
-          "count": 4
+          "type": "craft",
+          "output": "advancednetherite:netherite_emerald_ingot",
+          "count": 16
+        },
+        {
+          "type": "craft",
+          "output": "advancednetherite:netherite_emerald_block",
+          "count": 12
         },
         {
           "type": "deposit",
@@ -4686,9 +4732,14 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:pressing",
-          "count": 4
+          "type": "craft",
+          "output": "advancednetherite:netherite_diamond_ingot",
+          "count": 16
+        },
+        {
+          "type": "craft",
+          "output": "advancednetherite:netherite_diamond_block",
+          "count": 12
         },
         {
           "type": "deposit",

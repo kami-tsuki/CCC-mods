@@ -8,6 +8,7 @@ import kami.economy.Sale
 import kami.economy.Settings
 import kami.economy.StarterGood
 import kami.economy.now
+import kami.libs.claims.ClaimsApi
 import kami.libs.economy.ServerBank
 import java.util.UUID
 import kotlin.test.AfterTest
@@ -22,7 +23,10 @@ class StocksTest {
     private val hour = 60 * 60 * 1000L
 
     @AfterTest
-    fun tearDown() = TestDb.close()
+    fun tearDown() {
+        ClaimsApi.register(null)
+        TestDb.close()
+    }
 
     private fun setup(supply: Int = 100, demand: Int = 100, sellCap: Int = 0, resell: Boolean = true) {
         Config.s = Settings(starterGoods = listOf(StarterGood(item, 20, 64, 32, supply, demand, sellCap = sellCap, resell = resell)))
@@ -135,5 +139,54 @@ class StocksTest {
         val limited = Matching.sellPlan(item, 128, "s", limit = 24)
         assertEquals(64, limited.filled)
         assertEquals(2L, limited.fills.single().orderId)
+    }
+
+    @Test
+    fun sellCapIsSharedByAllMembersOfACountry() {
+        setup(sellCap = 4)
+        val other = UUID.randomUUID().toString()
+        val loner = UUID.randomUUID().toString()
+        val claims = Fakes.claims()
+        claims.home[UUID.fromString(player)] = "aurelia"
+        claims.home[UUID.fromString(other)] = "aurelia"
+        claims.home[UUID.fromString(loner)] = "borealia"
+        ClaimsApi.register(claims)
+        Stocks.sold(player, item, 3)
+        assertEquals(1, Stocks.capLeft(other, item))
+        assertEquals(4, Stocks.capLeft(loner, item))
+        Stocks.sold(other, item, 1)
+        assertEquals(0, Stocks.capLeft(player, item))
+    }
+
+    @Test
+    fun recoveryIsLinearAndStopsAtTheBase() {
+        val day = 24 * hour
+        assertEquals(15.0, Stocks.recovered(10.0, 20.0, day, 0.25), 1e-9)
+        assertEquals(20.0, Stocks.recovered(10.0, 20.0, 3 * day, 0.25), 1e-9)
+        assertEquals(25.0, Stocks.recovered(30.0, 20.0, day, 0.25), 1e-9)
+        assertEquals(10.0, Stocks.recovered(10.0, 20.0, 3 * day, 0.0), 1e-9)
+    }
+
+    @Test
+    fun aDepressedCourseNeedsMoreThanAWeekToRecover() {
+        setup()
+        Market.book(item).also { Stocks.move(it, 10.0); it.moved = now() - 24 * hour }
+        assertTrue(Stocks.course(item) < 12.0)
+        Market.book(item).moved = now() - 6 * 24 * hour
+        assertTrue(Stocks.course(item) < 20.0)
+        Market.book(item).moved = now() - 11 * 24 * hour
+        assertEquals(20.0, Stocks.course(item), 1e-9)
+    }
+
+    @Test
+    fun aTradeStartsFromTheRecoveredCourseAndRestartsTheClock() {
+        setup()
+        Market.book(item).also { it.course = 10.0; it.moved = now() - 4 * 24 * hour }
+        val before = Stocks.course(item)
+        assertTrue(before > 10.0)
+        Pricing.observe(item, 20.0, 1, server = true, buy = true)
+        val book = Market.book(item)
+        assertTrue(book.course > before)
+        assertTrue(now() - book.moved < 5000)
     }
 }

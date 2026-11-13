@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "title": "Metallurgy",
   "scope": "any",
   "categories": [
@@ -10614,11 +10614,6 @@
         },
         {
           "type": "recipes",
-          "recipeType": "create:splashing",
-          "input": "*:crushed_raw_copper"
-        },
-        {
-          "type": "recipes",
           "recipeType": "create:pressing",
           "input": "#c:ingots/copper",
           "output": "create:copper_sheet"
@@ -10761,11 +10756,6 @@
         },
         {
           "type": "recipes",
-          "recipeType": "create:splashing",
-          "input": "*:crushed_raw_gold"
-        },
-        {
-          "type": "recipes",
           "recipeType": "create:pressing",
           "input": "#c:ingots/gold",
           "output": "create:golden_sheet"
@@ -10804,9 +10794,8 @@
       ],
       "unlocks": [
         {
-          "type": "recipes",
-          "recipeType": "create:splashing",
-          "input": "*:crushed_raw_iron"
+          "type": "recipe",
+          "id": "kami_js:smog/washing_iron"
         }
       ]
     },
@@ -10916,6 +10905,18 @@
         {
           "type": "recipe",
           "id": "kami_js:tfmg_slag/milling"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tfmg_slag/slag_block_stonecutting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tfmg_slag/slag_from_nuggets_compacting"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:tfmg_slag/slag_block_compacting"
         },
         {
           "type": "recipe",
@@ -11033,6 +11034,10 @@
         {
           "type": "recipe",
           "id": "chemica:crushing/tin_ingot"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:molten_metals/washing_crushed_tin"
         },
         {
           "type": "recipes",
@@ -11179,11 +11184,6 @@
         {
           "type": "recipe",
           "id": "createbb:zinc_crushing"
-        },
-        {
-          "type": "recipes",
-          "recipeType": "create:splashing",
-          "input": "*:crushed_raw_zinc"
         },
         {
           "type": "recipes",
@@ -12156,6 +12156,10 @@
         {
           "type": "recipe",
           "id": "chemica:mixing/electrum_grit"
+        },
+        {
+          "type": "recipe",
+          "id": "vintage:*/electrum_*"
         }
       ]
     },
@@ -12287,9 +12291,9 @@
       ],
       "tasks": [
         {
-          "type": "place",
+          "type": "mine",
           "block": "tfmg:fireclay",
-          "count": 4
+          "count": 8
         }
       ],
       "unlocks": [
@@ -12422,7 +12426,7 @@
       "tasks": [
         {
           "type": "place",
-          "block": "tfmg:coke_oven",
+          "block": "tfmg:fireproof_bricks",
           "count": 4
         }
       ],
@@ -12433,7 +12437,7 @@
         },
         {
           "type": "recipe",
-          "id": "tfmg:coking/*"
+          "id": "tfmg:coking/coal"
         },
         {
           "type": "recipe",
@@ -12450,6 +12454,14 @@
         {
           "type": "recipe",
           "id": "tfmg:crushing/lignite"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:limestone/crushing"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:limestone/crushing_recycling"
         }
       ]
     },
@@ -12619,12 +12631,8 @@
       ],
       "tasks": [
         {
-          "type": "smelt",
-          "count": 16
-        },
-        {
-          "type": "deposit",
-          "item": "minecraft:netherrack",
+          "type": "craft",
+          "output": "create:electron_tube",
           "count": 16
         }
       ],
@@ -12748,14 +12756,9 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:*",
-          "count": 16
-        },
-        {
-          "type": "deposit",
-          "item": "minecraft:iron_ingot",
-          "count": 16
+          "type": "craft",
+          "output": "create:mechanical_crafter",
+          "count": 12
         }
       ],
       "unlocks": [
@@ -12864,6 +12867,10 @@
         {
           "type": "recipe",
           "id": "create_ironworks:smeltable_steel"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:melting/melt_slag"
         }
       ]
     },
@@ -12889,8 +12896,9 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:mixing",
-          "count": 8
+          "recipeType": "create:crushing",
+          "output": "chemica:copper_dust",
+          "count": 12
         }
       ],
       "unlocks": [
@@ -12958,7 +12966,7 @@
       "tasks": [
         {
           "type": "place",
-          "block": "tfmg:blast_furnace_reinforcement",
+          "block": "tfmg:blast_furnace_hatch",
           "count": 8
         }
       ],
@@ -13036,13 +13044,15 @@
       ],
       "tasks": [
         {
-          "type": "smelt",
-          "count": 16
+          "type": "process",
+          "recipeType": "create:crushing",
+          "output": "tfmg:coal_coke_dust",
+          "count": 12
         },
         {
           "type": "deposit",
           "item": "tfmg:coal_coke",
-          "count": 8
+          "count": 16
         }
       ],
       "unlocks": [
@@ -13166,8 +13176,9 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:mixing",
-          "count": 8
+          "recipeType": "create:crushing",
+          "output": "chemica:constantan_dust",
+          "count": 12
         }
       ],
       "unlocks": [
@@ -13324,6 +13335,18 @@
         {
           "type": "recipe",
           "id": "tfmg:yellow_caution_block_from_ingots_aluminum_stonecutting"
+        },
+        {
+          "type": "recipe",
+          "id": "create:crushing/aluminum_ore"
+        },
+        {
+          "type": "recipe",
+          "id": "create:crushing/raw_aluminum"
+        },
+        {
+          "type": "recipe",
+          "id": "create:crushing/raw_aluminum_block"
         }
       ]
     },
@@ -13493,6 +13516,14 @@
         {
           "type": "recipe",
           "id": "sulfuricresonance:rotary_leaching/*"
+        },
+        {
+          "type": "recipe",
+          "id": "chemica:crushing/iron_ingot"
+        },
+        {
+          "type": "recipe",
+          "id": "chemica:crushing/zinc_ingot"
         }
       ]
     },
@@ -13555,6 +13586,10 @@
         {
           "type": "recipe",
           "id": "kami_js:chemica_ores/vanadium_salt_roasting"
+        },
+        {
+          "type": "recipe",
+          "id": "vintage:*/vanadium_*"
         }
       ]
     },
@@ -13644,9 +13679,9 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:*",
-          "count": 32
+          "type": "craft",
+          "output": "northstar:mars_stone_bricks",
+          "count": 44
         }
       ],
       "unlocks": [
@@ -14033,13 +14068,14 @@
       ],
       "tasks": [
         {
-          "type": "smelt",
+          "type": "craft",
+          "output": "tfmg:large_steel_cogwheel",
           "count": 32
         },
         {
-          "type": "deposit",
-          "item": "minecraft:netherite_scrap",
-          "count": 32
+          "type": "craft",
+          "output": "tfmg:steel_cogwheel",
+          "count": 20
         }
       ],
       "unlocks": [
@@ -14078,6 +14114,30 @@
         {
           "type": "recipe",
           "id": "createbigcannons:nethersteel_nugget"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:vat/nethersteel"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:casting/nethersteel"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:melting/melt_nethersteel_ingot"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:melting/melt_nethersteel_block"
+        },
+        {
+          "type": "recipe",
+          "id": "createbigcannons:melting/melt_nethersteel_nugget"
+        },
+        {
+          "type": "recipe",
+          "id": "vintage:*/nethersteel_*"
         }
       ]
     },
@@ -14152,6 +14212,22 @@
         {
           "type": "recipe",
           "id": "kami_js:leaching/fireproof_*"
+        },
+        {
+          "type": "recipe",
+          "id": "create:crushing/platinum_ore"
+        },
+        {
+          "type": "recipe",
+          "id": "create:crushing/raw_platinum"
+        },
+        {
+          "type": "recipe",
+          "id": "create:crushing/raw_platinum_block"
+        },
+        {
+          "type": "recipe",
+          "id": "vintage:*/platinum_*"
         }
       ]
     },
@@ -14172,8 +14248,16 @@
       ],
       "tasks": [
         {
-          "type": "smelt",
-          "count": 32
+          "type": "process",
+          "recipeType": "create:crushing",
+          "output": "create:crushed_raw_lead",
+          "count": 64
+        },
+        {
+          "type": "process",
+          "recipeType": "create:crushing",
+          "output": "chemica:crushed_raw_antimony",
+          "count": 40
         }
       ],
       "unlocks": [
@@ -14188,6 +14272,10 @@
         {
           "type": "recipe",
           "id": "kami_js:leaching/steel_*"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:pollution/tailings_crushing"
         }
       ]
     },
@@ -14210,7 +14298,14 @@
         {
           "type": "process",
           "recipeType": "create:crushing",
-          "count": 8
+          "output": "chemica:zinc_dust",
+          "count": 32
+        },
+        {
+          "type": "process",
+          "recipeType": "create:crushing",
+          "output": "chemica:gold_dust",
+          "count": 20
         }
       ],
       "unlocks": [
@@ -14298,9 +14393,21 @@
       ],
       "tasks": [
         {
+          "type": "process",
+          "recipeType": "create:pressing",
+          "output": "sulfuricresonance:resonant_copper_sheet",
+          "count": 36
+        },
+        {
+          "type": "process",
+          "recipeType": "create:pressing",
+          "output": "sulfuricresonance:resonant_gold_sheet",
+          "count": 20
+        },
+        {
           "type": "deposit",
           "item": "createbigcannons:nethersteel_ingot",
-          "count": 8
+          "count": 16
         },
         {
           "type": "deposit",
@@ -14374,7 +14481,14 @@
         {
           "type": "process",
           "recipeType": "create:crushing",
-          "count": 16
+          "output": "chemica:iron_dust",
+          "count": 36
+        },
+        {
+          "type": "process",
+          "recipeType": "create:crushing",
+          "output": "chemica:nickel_dust",
+          "count": 20
         }
       ],
       "unlocks": [
@@ -14494,7 +14608,7 @@
         },
         {
           "type": "recipe",
-          "id": "kami_js:northstar_unify/titanium_tetrachloride_from_raw_ore"
+          "id": "kami_js:northstar/titanium_tetrachloride_from_raw_ore"
         },
         {
           "type": "recipe",
@@ -14539,9 +14653,20 @@
       ],
       "tasks": [
         {
+          "type": "craft",
+          "output": "tfmg:steel_distillation_controller",
+          "count": 48
+        },
+        {
+          "type": "process",
+          "recipeType": "create:crushing",
+          "output": "create:crushed_raw_copper",
+          "count": 56
+        },
+        {
           "type": "deposit",
           "item": "createnuclear:raw_thorium",
-          "count": 8
+          "count": 16
         }
       ],
       "unlocks": [
@@ -14585,12 +14710,18 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:crushing",
-          "count": 8
+          "recipeType": "create:mixing",
+          "output": "chemica:platinum_catalyst",
+          "count": 48
+        },
+        {
+          "type": "smelt",
+          "output": "chemica:platinum_ingot",
+          "count": 40
         },
         {
           "type": "deposit",
-          "item": "createnuclear:raw_uranium_block",
+          "item": "createnuclear:raw_uranium",
           "count": 4
         }
       ],
@@ -14622,6 +14753,26 @@
         {
           "type": "recipe",
           "id": "kami_js:createsifter/compact_raw_uranium_piece"
+        },
+        {
+          "type": "recipe",
+          "id": "create:crushing/uranium_ore"
+        },
+        {
+          "type": "recipe",
+          "id": "create:crushing/raw_uranium"
+        },
+        {
+          "type": "recipe",
+          "id": "createsifter:sifting/compat/br_gravel_brass"
+        },
+        {
+          "type": "recipe",
+          "id": "createsifter:sifting/compat/br_gravel_advanced_brass"
+        },
+        {
+          "type": "recipe",
+          "id": "vintage:*/uranium_*"
         }
       ]
     },
@@ -14654,7 +14805,7 @@
       "unlocks": [
         {
           "type": "recipe",
-          "id": "kami_js:northstar_unify/raw_tungsten_crushing_chemica"
+          "id": "kami_js:northstar/raw_tungsten_crushing_chemica"
         },
         {
           "type": "recipe",
@@ -14783,7 +14934,7 @@
         },
         {
           "type": "recipe",
-          "id": "kami_js:northstar_unify/sifting_moon_sand"
+          "id": "kami_js:northstar/sifting_moon_sand"
         }
       ]
     },
@@ -14805,8 +14956,14 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:compacting",
-          "count": 8
+          "recipeType": "create:crushing",
+          "output": "chemica:coal_dust",
+          "count": 56
+        },
+        {
+          "type": "craft",
+          "output": "northstar:tungsten_block",
+          "count": 48
         }
       ],
       "unlocks": [
@@ -14842,13 +14999,19 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:mixing",
-          "count": 8
+          "recipeType": "create:compacting",
+          "output": "chemica:chromium_ingot",
+          "count": 80
+        },
+        {
+          "type": "smelt",
+          "output": "chemica:molybdenum_ingot",
+          "count": 68
         },
         {
           "type": "deposit",
           "item": "tfmg:steel_ingot",
-          "count": 8
+          "count": 16
         }
       ],
       "unlocks": [
@@ -14879,9 +15042,14 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:mixing",
-          "count": 8
+          "type": "smelt",
+          "output": "chemica:magnesium_ingot",
+          "count": 112
+        },
+        {
+          "type": "craft",
+          "output": "chemica:titanium_ingot",
+          "count": 72
         }
       ],
       "unlocks": [
@@ -14961,7 +15129,7 @@
         },
         {
           "type": "recipe",
-          "id": "kami_js:northstar_unify/sifting_mars_sand"
+          "id": "kami_js:northstar/sifting_mars_sand"
         },
         {
           "type": "recipe",
@@ -15004,7 +15172,13 @@
         {
           "type": "process",
           "recipeType": "create:mixing",
-          "count": 8
+          "output": "chemica:carbon_fiber_composite_sheet",
+          "count": 64
+        },
+        {
+          "type": "smelt",
+          "output": "chemica:vanadium_ingot",
+          "count": 76
         }
       ],
       "unlocks": [
@@ -15109,6 +15283,17 @@
       ],
       "tasks": [
         {
+          "type": "craft",
+          "output": "advancednetherite:netherite_gold_ingot",
+          "count": 16
+        },
+        {
+          "type": "process",
+          "recipeType": "create:mixing",
+          "output": "tfmg:magnet",
+          "count": 44
+        },
+        {
           "type": "deposit",
           "item": "tfmg:electrode_holder",
           "count": 4
@@ -15150,9 +15335,14 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:mixing",
-          "count": 8
+          "type": "smelt",
+          "output": "chemica:iridium_ingot",
+          "count": 16
+        },
+        {
+          "type": "smelt",
+          "output": "chemica:tungsten_ingot",
+          "count": 92
         }
       ],
       "unlocks": [
@@ -15228,9 +15418,19 @@
       ],
       "tasks": [
         {
+          "type": "craft",
+          "output": "advancednetherite:netherite_gold_ingot",
+          "count": 16
+        },
+        {
+          "type": "craft",
+          "output": "advancednetherite:netherite_gold_block",
+          "count": 12
+        },
+        {
           "type": "deposit",
           "item": "minecraft:emerald_block",
-          "count": 8
+          "count": 16
         },
         {
           "type": "deposit",
@@ -15359,6 +15559,16 @@
         }
       ],
       "tasks": [
+        {
+          "type": "craft",
+          "output": "advancednetherite:netherite_diamond_ingot",
+          "count": 16
+        },
+        {
+          "type": "craft",
+          "output": "tfmg:constantan_spool",
+          "count": 92
+        },
         {
           "type": "deposit",
           "item": "tfmg:electrode_holder",

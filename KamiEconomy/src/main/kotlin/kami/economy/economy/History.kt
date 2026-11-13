@@ -186,6 +186,8 @@ object History {
         return if (open > 0) ((last - open) * 1000 / open).roundToInt() else 0
     }
 
+    fun courseAt(item: String, t: Long): Double? = tracks[item]?.before(t)?.close?.takeIf { it > 0.0 }
+
     fun items(): Set<String> = tracks.keys
 
     fun dayVolume(item: String, now: Long) = tracks[item]?.five?.volumeSince(now - DAY_MS) ?: 0L

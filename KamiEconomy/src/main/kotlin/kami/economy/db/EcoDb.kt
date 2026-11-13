@@ -99,8 +99,12 @@ object EcoDb {
         "ALTER TABLE eco_villager ADD COLUMN lot INTEGER NOT NULL DEFAULT 1"
     ))
 
+    private val v9 = Migration("eco", 9, "course_moved", ddl = listOf(
+        "ALTER TABLE eco_book ADD COLUMN moved INTEGER NOT NULL DEFAULT 0"
+    ))
+
     fun register() {
-        Migrations.register("eco", listOf(v1, v2, v3, v4, v5, v6, v7, v8), after = listOf("libs"))
+        Migrations.register("eco", listOf(v1, v2, v3, v4, v5, v6, v7, v8, v9), after = listOf("libs"))
         SavePoint.register("economy") { SavePoint.join(Market.changes() + History.changes() + Quests.changes() + listOf(Ledger.changes(), TradeStatus.changes(), Watchlist.changes(), VillagerCourses.changes())) }
     }
 }

@@ -26,8 +26,8 @@ internal object MarketTables {
         Table<Data>("eco_market", listOf("id"), listOf("next_order_id", "day", "version", "frozen")) {
             listOf(listOf(1, it.nextOrderId, 0, it.version, Db.json.encodeToString(it.frozen)))
         },
-        Table<Data>("eco_book", listOf("item"), listOf("last_fill", "mid_price", "recent_fills")) { d ->
-            d.books.map { (k, b) -> listOf(k, b.lastFill, b.course, Db.json.encodeToString(b.recentFills)) }
+        Table<Data>("eco_book", listOf("item"), listOf("last_fill", "mid_price", "recent_fills", "moved")) { d ->
+            d.books.map { (k, b) -> listOf(k, b.lastFill, b.course, Db.json.encodeToString(b.recentFills), b.moved) }
         },
         Table<Data>("eco_order", listOf("item", "side", "id"), listOf("owner", "price", "amount", "placed_at", "synthetic", "lot", "peg", "peg_limit")) { d ->
             d.books.flatMap { (k, b) -> b.sells.map { order(k, SELL, it) } + b.buys.map { order(k, BUY, it) } }
@@ -66,7 +66,7 @@ internal object MarketTables {
         }.groupBy({ it.first }, { it.second })
         val books = s.map("eco_book", "item") { r ->
             val item = r.string("item")
-            Book(item, orders[item to SELL].orEmpty().toMutableList(), orders[item to BUY].orEmpty().toMutableList(), r.int("last_fill"), r.double("mid_price"), Db.json.decodeFromString(r.string("recent_fills")))
+            Book(item, orders[item to SELL].orEmpty().toMutableList(), orders[item to BUY].orEmpty().toMutableList(), r.int("last_fill"), r.double("mid_price"), Db.json.decodeFromString(r.string("recent_fills")), r.long("moved"))
         }
         val auctions = s.query("SELECT * FROM eco_auction ORDER BY pos") { r ->
             Auction(

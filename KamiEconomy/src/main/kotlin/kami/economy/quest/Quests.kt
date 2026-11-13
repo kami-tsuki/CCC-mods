@@ -7,6 +7,7 @@ import kami.economy.Order
 import kami.economy.QuestSettings
 import kami.economy.economy.Blacklist
 import kami.economy.economy.FillLinePlan
+import kami.economy.economy.History
 import kami.economy.economy.Matching
 import kami.economy.economy.Notify
 import kami.economy.economy.Stocks
@@ -253,7 +254,9 @@ object Quests {
     private fun plan(item: String, tier: Int, r: Int, spec: QuestSpec?): Plan? {
         val s = Config.s.quests
         val lot = Config.s.lotOf(item).coerceAtLeast(1)
-        val course = Stocks.course(item).takeIf { it > 0.0 } ?: ((dishes().firstOrNull { it.item == item }?.price ?: 0.0) * lot)
+        val live = Stocks.course(item).takeIf { it > 0.0 }
+        val course = live?.let { QuestRoll.capped(it, History.courseAt(item, now() - s.priceCapDays * QuestRoll.DAY) ?: Stocks.good(item)?.base?.toDouble(), s.priceCapPct) }
+            ?: ((dishes().firstOrNull { it.item == item }?.price ?: 0.0) * lot)
         if (course <= 0.0 || spec == null && course * (1 - s.offsetMax) < MIN_LOT_PRICE) return null
         val demand = Matching.demand(item).coerceAtLeast(0).toLong()
         val avail = Matching.available(item).coerceAtLeast(0).toLong()

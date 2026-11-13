@@ -130,4 +130,25 @@ class LevelUpgradeTest {
         val total = (11..250).sumOf { curve.cost(it) }
         assertTrue(total in 500_000L..580_000L, total.toString())
     }
+
+    @Test
+    fun researchXpIsCappedDailyAndFlattensAboveLevel30() {
+        assertEquals(400L, LevelDefaults.sources.getValue("research").dailyCap)
+        val config = LevelsConfig()
+        assertEquals(1000L, config.nodeXpFor(10))
+        assertEquals(3000L, config.nodeXpFor(30))
+        assertEquals(3000L + 20 * 20, config.nodeXpFor(50))
+        val stock = LevelDefaults.upgrade(LevelsConfig(sources = LevelDefaults.sources + ("research" to XpSource(0.1)), version = 4))
+        assertEquals(400L, stock.sources.getValue("research").dailyCap)
+        val edited = LevelDefaults.upgrade(LevelsConfig(sources = LevelDefaults.sources + ("research" to XpSource(0.2)), version = 4))
+        assertEquals(0L, edited.sources.getValue("research").dailyCap)
+    }
+
+    @Test
+    fun losslessProcessingIsNotCredited() {
+        assertTrue(!Processing.credits("create:filling", "minecraft:glass_bottle", "minecraft:honey_bottle"))
+        assertTrue(!Processing.credits("create:emptying", "minecraft:honey_bottle", "minecraft:glass_bottle"))
+        assertTrue(!Processing.credits("create:pressing", "minecraft:iron_ingot", "minecraft:iron_ingot"))
+        assertTrue(Processing.credits("create:pressing", "minecraft:iron_ingot", "create:iron_sheet"))
+    }
 }

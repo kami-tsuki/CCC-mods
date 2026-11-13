@@ -355,4 +355,28 @@ class LoansTest : WithDb() {
         Loans.createOffer(c, 1_000, 10, 10, tariff, minRep, -1, relist, "p1")
         return c.lendOffers.last().id
     }
+
+    @Test
+    fun defaultDefersLevelMoneyRewardsAndBlocksClaims() {
+        val c = country(0, "loan_small", "loan_slot_1")
+        Loans.take(c, "small", "p1")
+        Loans.collect(c, 0)
+        Loans.collect(c, 1)
+        c.treasury = 0
+        Loans.collect(c, 2)
+        assertTrue(Loans.inDefault(c))
+        val levels = LevelsConfig(rules = emptyMap(), capacities = mapOf(Capacity.TREASURY to 10_000), rewards = mapOf(2 to listOf(MoneyReward(100))))
+        Research.defs = Validator.build(ResearchSettings(baseline = emptyList()), levels, emptyMap(), emptyMap()).defs
+        c.level = 2
+        Levels.settleRewards(c)
+        assertEquals(0L, c.treasury)
+        assertEquals(1, c.rewardedLevel)
+        assertTrue(kami.claims.service.Planner.blockReason(c, Key("minecraft:overworld", 0, 0), "mining", emptySet(), 0, 0) != null)
+        c.treasury = 1_000
+        Loans.collect(c, 3)
+        assertFalse(Loans.inDefault(c))
+        Levels.settleRewards(c)
+        assertEquals(2, c.rewardedLevel)
+        assertTrue(c.ledger.any { it.kind == LedgerKind.LEVEL_REWARD })
+    }
 }

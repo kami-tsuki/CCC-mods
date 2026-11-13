@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "title": "Buffs",
   "scope": "country",
   "strict": true,
@@ -502,11 +502,11 @@
       "id": "treasury_4",
       "category": "invest_treasury",
       "icon": "minecraft:bricks",
-      "era": "early_industry",
+      "era": "steel_chemistry",
       "kind": "milestone",
-      "level": 30,
-      "cost": 170,
-      "time": "2h0m",
+      "level": 46,
+      "cost": 570,
+      "time": "2h57m",
       "requires": [
         {
           "type": "node",
@@ -516,7 +516,7 @@
       "tasks": [
         {
           "type": "trade_value",
-          "spurs": 900
+          "spurs": 2800
         }
       ],
       "unlocks": [
@@ -780,9 +780,9 @@
       "icon": "minecraft:cyan_terracotta",
       "era": "steel_chemistry",
       "kind": "milestone",
-      "level": 42,
-      "cost": 420,
-      "time": "2h41m",
+      "level": 70,
+      "cost": 1800,
+      "time": "5h19m",
       "requires": [
         {
           "type": "node",
@@ -792,7 +792,7 @@
       "tasks": [
         {
           "type": "taxes",
-          "spurs": 1400
+          "spurs": 5000
         }
       ],
       "unlocks": [
@@ -1332,11 +1332,11 @@
       "id": "loan_large",
       "category": "finance",
       "icon": "minecraft:gold_block",
-      "era": "advanced",
+      "era": "late",
       "kind": "milestone",
-      "level": 95,
-      "cost": 2500,
-      "time": "7h13m",
+      "level": 153,
+      "cost": 10000,
+      "time": "12h15m",
       "requires": [
         {
           "type": "node",
@@ -1346,7 +1346,7 @@
       "tasks": [
         {
           "type": "trade_value",
-          "spurs": 4500
+          "spurs": 14000
         }
       ],
       "unlocks": [
@@ -1477,9 +1477,9 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:*",
-          "count": 32
+          "type": "craft",
+          "output": "minecraft:golden_apple",
+          "count": 24
         }
       ],
       "unlocks": [
@@ -1604,9 +1604,9 @@
       "icon": "minecraft:gold_block",
       "era": "late",
       "kind": "milestone",
-      "level": 153,
-      "cost": 10000,
-      "time": "12h15m",
+      "level": 227,
+      "cost": 30000,
+      "time": "20h28m",
       "requires": [
         {
           "type": "node",
@@ -1616,7 +1616,7 @@
       "tasks": [
         {
           "type": "taxes",
-          "spurs": 10000
+          "spurs": 30000
         }
       ],
       "unlocks": [

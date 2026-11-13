@@ -69,6 +69,21 @@ class ResolverTest {
         assertEquals(mapOf("a:rare" to setOf("a:only")), resolution.items)
     }
 
+    @Test
+    fun fluidResultsJoinDisplayOnlyForGatedRecipes() {
+        val facts = WorldFacts(
+            listOf(
+                RecipeFact("a:vat", "t", fluids = { listOf("a:acid") }),
+                RecipeFact("a:mix", "t", listOf("a:salt"), display = listOf("a:salt"), fluids = { listOf("a:brine") }),
+                RecipeFact("a:open", "t", fluids = { listOf("a:water") })
+            ),
+            emptyList()
+        )
+        val resolution = Resolver(facts, defs(listOf(node("n", recipe("a:vat"), recipe("a:mix"))))).run()
+        assertEquals(mapOf("a:vat" to listOf("fluid:a:acid"), "a:mix" to listOf("a:salt", "fluid:a:brine")), resolution.outputs)
+        assertEquals(mapOf("a:salt" to setOf("a:mix")), resolution.items)
+    }
+
     @AfterTest
     fun restore() {
         Research.defs = ResearchDefs.EMPTY

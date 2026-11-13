@@ -68,6 +68,13 @@ class QuestsTest {
         checkNotNull(Quests.spawn(QuestSpec(item, 2, amount, 6, lotPrice = 150, boosts = boosts), announce = false))
 
     @Test
+    fun questPricesIgnoreACoursePushedPastTheReference() {
+        assertEquals(115.0, QuestRoll.capped(150.0, 100.0, 0.15), 1e-9)
+        assertEquals(90.0, QuestRoll.capped(90.0, 100.0, 0.15), 1e-9)
+        assertEquals(150.0, QuestRoll.capped(150.0, null, 0.15), 1e-9)
+    }
+
+    @Test
     fun dishQuestsNeedAPlayerAtTheFoodLevel() {
         assertTrue(QuestRoll.dishesOpen(emptyList(), 10))
         assertTrue(QuestRoll.dishesOpen(listOf(3, null), 10))

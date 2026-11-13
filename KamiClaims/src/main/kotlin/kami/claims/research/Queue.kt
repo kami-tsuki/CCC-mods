@@ -29,7 +29,6 @@ object Queue {
     private fun skill(country: Country, key: String) = Skills.bestOnline(country.members.keys.mapNotNull { it.toUuidOrNull() }, key)
 
     internal const val MAX_STEP_MS = 60_000L
-    private const val XP_PER_NODE_LEVEL = 100L
     private val log = Log.of("research")
     private var lastTick = 0L
     private val playtime = HashMap<String, Long>()
@@ -221,7 +220,7 @@ object Queue {
             Stats.event("research.time", subject, node.key, clock() - entry.startedAt)
             if (entry.queuedAt > 0) Stats.event("research.wait", subject, node.key, entry.startedAt - entry.queuedAt)
         }
-        Levels.add(country, "research", (node.xp ?: (XP_PER_NODE_LEVEL * maxOf(1, node.level))).toDouble())
+        Levels.add(country, "research", (node.xp ?: Research.defs.levels.nodeXpFor(maxOf(1, node.level))).toDouble())
         if (settings.announce) Mail.broadcast(country, Phrase.of("kami_claims.research.mail.done", node.label().asValue()), Tone.OK)
         Realm.changed(false)
         ResearchSync.touch(country)

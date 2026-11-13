@@ -46,6 +46,8 @@ data class QuestSettings(
     val offsetMin: Double = 0.05,
     val offsetMax: Double = 0.5,
     val cooldownDays: Double = 3.0,
+    val priceCapPct: Double = 0.15,
+    val priceCapDays: Int = 7,
     val bankFloor: Long = -1_000_000,
     val research: List<BoostRange> = listOf(BoostRange(5, 10, 1, 3), BoostRange(5, 15, 1, 5), BoostRange(10, 20, 2, 10), BoostRange(20, 30, 5, 10), BoostRange(25, 50, 6, 12)),
     val xp: List<BoostRange> = listOf(BoostRange(10, 20, 1, 3), BoostRange(10, 30, 2, 5), BoostRange(20, 50, 4, 8), BoostRange(40, 80, 6, 12), BoostRange(50, 100, 10, 20))
@@ -69,6 +71,8 @@ data class QuestSettings(
             offsetMean = offsetMean.coerceIn(0.0, 0.9),
             offsetSpread = offsetSpread.coerceIn(0.0, 0.5),
             cooldownDays = cooldownDays.coerceIn(0.0, 90.0),
+            priceCapPct = priceCapPct.coerceIn(0.0, 1.0),
+            priceCapDays = priceCapDays.coerceIn(1, 90),
             research = research.takeIf { it.size == 5 && it.all(BoostRange::valid) } ?: d.research,
             xp = xp.takeIf { it.size == 5 && it.all(BoostRange::valid) } ?: d.xp
         )
@@ -128,6 +132,7 @@ data class Settings(
     val serverSpread: Double = 0.05,
     val courseDepth: Int = 32,
     val courseClip: Double = 0.05,
+    val courseRecoveryPerDay: Double = 0.05,
 
     val creativeItemIds: List<String> = listOf(
         "minecraft:barrier", "minecraft:command_block", "minecraft:chain_command_block", "minecraft:repeating_command_block",
@@ -186,6 +191,7 @@ internal fun Settings.sane(): Settings = copy(
     serverSpread = serverSpread.coerceIn(0.0, 0.5),
     courseDepth = courseDepth.coerceAtLeast(1),
     courseClip = courseClip.coerceIn(0.01, 1.0),
+    courseRecoveryPerDay = courseRecoveryPerDay.coerceIn(0.0, 0.1),
     priceDeltaThresholdPct = priceDeltaThresholdPct.coerceIn(0.0, 1.0),
     auctionCheckIntervalTicks = auctionCheckIntervalTicks.coerceAtLeast(20),
     quests = quests.sane(),
@@ -223,7 +229,8 @@ private val sections = listOf(
             "catalog" to "Starter catalog version already merged. Removed goods stay removed.",
             "serverSpread" to "Spread the market adds when selling and subtracts when buying, 0-0.5.",
             "courseDepth" to "Depth in lots for non-starter items.",
-            "courseClip" to "Max course pull of one trade, 0.01-1."
+            "courseClip" to "Max course pull of one trade, 0.01-1.",
+            "courseRecoveryPerDay" to "Share of the base price a moved course drifts back per day, 0-0.1 (0.05 = 10 days for -50%). 0 = never."
         )
     ),
     Section(
@@ -247,6 +254,8 @@ private val sections = listOf(
             "quests.offsetMin" to "Min offset.",
             "quests.offsetMax" to "Max offset.",
             "quests.cooldownDays" to "Days until a used item is fully likely again.",
+            "quests.priceCapPct" to "Quest prices ignore a course more than this share above its base or its course priceCapDays ago, 0-1.",
+            "quests.priceCapDays" to "Days back for the reference course of the quest price cap.",
             "quests.bankFloor" to "Minimum server bank balance after a quest payout; the amount shrinks or the spawn is skipped.",
             "quests.research" to "Research boost per rarity: minPct, maxPct (5% steps), minHours, maxHours.",
             "quests.xp" to "Country XP boost per rarity: minPct, maxPct (10% steps), minHours, maxHours."

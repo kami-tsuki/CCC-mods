@@ -9,6 +9,7 @@ import kami.claims.now
 import kami.claims.research.Capacity
 import kami.claims.research.Buffs
 import kami.claims.research.Features
+import kami.claims.research.Loans
 import kami.claims.war.WarLocks
 import kami.libs.text.Phrase
 import kami.libs.util.Time.HOUR_MS
@@ -34,6 +35,7 @@ object Planner {
         val def = s.types[type] ?: return Phrase.of("kami_claims.error.unknown_type")
         Realm.index[k]?.let { cl -> return if (cl.country == c.id) Phrase.of("kami_claims.block.yours") else Phrase.of("kami_claims.block.owned", Realm.data.countries[cl.country]?.name ?: cl.country) }
         Realm.reservedFor(k.dim, k.x, k.z)?.let { if (it != c.id) return Phrase.of("kami_claims.detail.reserved", Realm.data.countries[it]?.name ?: it) }
+        if (Loans.inDefault(c)) return Phrase.of("kami_claims.block.default")
         Features.lockReason(c, Features.claimType(type))?.let { return it }
         if (owned.isNotEmpty() && Realm.neighbors(k).none { it in owned }) return Phrase.of("kami_claims.block.not_connected")
         Features.limit(c, Capacity.CHUNKS, count)?.let { return it }

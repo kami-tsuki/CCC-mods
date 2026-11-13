@@ -39,6 +39,9 @@ data class LevelsConfig(
     val curve: XpCurve = XpCurve(),
     val table: List<Long> = emptyList(),
     val maxLevel: Int = 1000,
+    val nodeXp: Int = 100,
+    val nodeXpSoftLevel: Int = 30,
+    val nodeXpTail: Int = 20,
     val xpFromLevel: Int = 10,
     val sources: Map<String, XpSource> = LevelDefaults.sources,
     val counted: List<String> = LevelDefaults.counted,
@@ -57,6 +60,8 @@ data class LevelsConfig(
         table.isNotEmpty() -> table[level - 2]
         else -> cumulative[level.coerceAtMost(Limits.MAX_LEVELS)]
     }
+
+    fun nodeXpFor(level: Int): Long = nodeXp.toLong() * minOf(level, nodeXpSoftLevel) + nodeXpTail.toLong() * (level - nodeXpSoftLevel).coerceAtLeast(0)
 
     fun xpFor(level: Int): Long = rules[level]?.xp ?: curveXp(level)
 
@@ -138,6 +143,10 @@ object Levels {
 
     private fun pay(country: Country, level: Int, rewards: List<Unlock>): Boolean {
         val money = rewards.filterIsInstance<MoneyReward>().sumOf { it.amount }
+        if (money > 0 && Loans.inDefault(country)) {
+            if (blocked.put(country.id, level) != level) Mail.broadcast(country, Phrase.of("kami_claims.level.mail.reward_default", Words.v(level), Words.money(money)), Tone.WARN)
+            return false
+        }
         if (money > Treasury.room(country)) {
             if (blocked.put(country.id, level) != level) Mail.broadcast(country, Phrase.of("kami_claims.level.mail.reward_blocked", Words.v(level), Words.money(money)), Tone.WARN)
             return false

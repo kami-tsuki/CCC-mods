@@ -20,7 +20,7 @@ object LevelDefaults {
     )
 
     val sources: Map<String, XpSource> = mapOf(
-        "research" to XpSource(0.1),
+        "research" to XpSource(0.1, 400),
         "tasks" to XpSource(30.0, 450),
         "taxes" to XpSource(0.2, 300),
         "claims" to XpSource(1.0, 150),
@@ -51,7 +51,7 @@ object LevelDefaults {
         10 to rule(MinCitizens(2), FlagSet, MinTreasury(1000))
     )
 
-    const val VERSION = 4
+    const val VERSION = 5
 
     private val housingRewards: Map<Int, List<Unlock>> = mapOf(
         13 to listOf(FeatureUnlock(Features.PLOTS_FAMILY)),
@@ -94,7 +94,8 @@ object LevelDefaults {
             sources = retune(retune(config.sources, "tasks", 20.0, 300), "playtime", 15.0, 300),
             rewards = retuneSlots(config.rewards)
         ).let(::upgrade)
-        config.version < 4 -> config.copy(version = 4, curve = retuneTail(config.curve))
+        config.version < 4 -> config.copy(version = 4, curve = retuneTail(config.curve)).let(::upgrade)
+        config.version < 5 -> config.copy(version = 5, sources = retune(config.sources, "research", 0.1, 0))
         else -> config
     }
 

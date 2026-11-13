@@ -12,6 +12,7 @@ import kami.claims.client.stackOf
 import kami.claims.client.store.ClientResearch
 import kami.claims.client.store.NodeStatus
 import kami.claims.net.NodeView
+import kami.claims.research.FLUID_PREFIX
 import kami.libs.ui.style.Draw
 import kami.libs.ui.style.Format
 import kami.libs.ui.text.tr
@@ -30,11 +31,13 @@ import mezz.jei.api.recipe.category.IRecipeCategory
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.navigation.ScreenRectangle
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.FormattedText
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
+import net.minecraft.world.level.material.Fluid
 import org.lwjgl.glfw.GLFW
 
 private const val W = 170
@@ -50,6 +53,7 @@ private const val GRID_COLS = 6
 private const val BUTTON_Y = 143
 private const val BUTTON_H = 16
 private const val GAP = 6
+private const val FLUID_SLOT_AMOUNT = 1000L
 private const val NODE_CONDITION = "kami_claims.research.cond.node"
 
 private const val TEXT = 0xFF404040.toInt()
@@ -79,8 +83,12 @@ class ResearchCategory(guiHelper: IGuiHelper) : IRecipeCategory<NodeView> {
 
     override fun setRecipe(builder: IRecipeLayoutBuilder, recipe: NodeView, focuses: IFocusGroup) {
         recipe.tasks.map(::taskItems).filter { it.isNotEmpty() }.forEach { builder.addInputSlot().addItemStacks(it) }
-        outputs(recipe).forEach { builder.addOutputSlot().addItemStack(it) }
+        val (fluidIds, itemIds) = (ClientResearch.outputs(recipe.key) + recipe.unlocks.filter(::isItemUnlock).map { it.id }).partition { it.startsWith(FLUID_PREFIX) }
+        itemIds.map(::stackOf).filterNot { it.isEmpty }.distinctBy { it.item }.forEach { builder.addOutputSlot().addItemStack(it) }
+        fluidIds.mapNotNull { fluidOf(it.removePrefix(FLUID_PREFIX)) }.distinct().forEach { builder.addOutputSlot().addFluidStack(it, FLUID_SLOT_AMOUNT) }
     }
+
+    private fun fluidOf(id: String): Fluid? = ResourceLocation.tryParse(id)?.let { BuiltInRegistries.FLUID.getOptional(it).orElse(null) }
 
     override fun createRecipeExtras(builder: IRecipeExtrasBuilder, recipe: NodeView, focuses: IFocusGroup) {
         builder.addScrollBoxWidget(W, BOX_H, 0, BOX_Y).setContents(details(recipe))
@@ -181,9 +189,6 @@ class ResearchCategory(guiHelper: IGuiHelper) : IRecipeCategory<NodeView> {
             others.forEach { add(line("• " + unlockText(it), TEXT)) }
         }
     }
-
-    private fun outputs(node: NodeView): List<ItemStack> =
-        (ClientResearch.outputs(node.key) + node.unlocks.filter(::isItemUnlock).map { it.id }).map(::stackOf).filterNot { it.isEmpty }.distinctBy { it.item }
 
     private fun line(text: String, color: Int): FormattedText = Component.literal(text).withColor(color)
 

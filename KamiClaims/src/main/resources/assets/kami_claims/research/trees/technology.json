@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "title": "Technology",
   "scope": "any",
   "categories": [
@@ -97,6 +97,11 @@
       "id": "food",
       "icon": "farmersdelight:cooking_pot",
       "order": 18
+    },
+    {
+      "id": "pollution",
+      "icon": "smog:air_scrubber",
+      "order": 19
     }
   ],
   "nodes": [
@@ -1399,7 +1404,155 @@
         },
         {
           "type": "recipe",
-          "id": "farmersdelight:cutting/*"
+          "id": "farmersdelight:cutting/*_log"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/*_wood"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/*_stem"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/*_hyphae"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/*_tulip"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/*_colony"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/*_basket"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/wild_*"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/palm_*"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/cooked_*"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/allium"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/azure_bluet"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/bamboo_block"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/beef"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/blue_orchid"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/cabbage"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/cake"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/chicken"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/clay"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/cod"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/cornflower"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/dandelion"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/gravel"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/ham"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/ink_sac"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/lily_of_the_valley"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/melon"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/mutton"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/oxeye_daisy"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/poppy"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/porkchop"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/pumpkin"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/rice_panicle"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/salmon"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/smoked_ham"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/tag_dough"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/torchflower"
+        },
+        {
+          "type": "recipe",
+          "id": "farmersdelight:cutting/wither_rose"
         }
       ]
     },
@@ -4361,6 +4514,14 @@
         {
           "type": "recipe",
           "id": "vintage:hammering/auto_upgrade"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:vintage/honey_bottle"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:lathe_laser/pulp_centrifuge"
         }
       ]
     },
@@ -4425,10 +4586,6 @@
         {
           "type": "recipe",
           "id": "smog:oil_burner"
-        },
-        {
-          "type": "recipe",
-          "id": "smog:charcoal_by_coking"
         },
         {
           "type": "recipe",
@@ -5271,7 +5428,7 @@
       "tasks": [
         {
           "type": "place",
-          "block": "tfmg:brass_fluid_valve",
+          "block": "create:fluid_pipe",
           "count": 4
         }
       ],
@@ -5634,7 +5791,7 @@
     },
     {
       "id": "smog_wastewater",
-      "category": "processing",
+      "category": "pollution",
       "icon": "smog:sludge_cake",
       "era": "early_industry",
       "kind": "detail",
@@ -5662,39 +5819,19 @@
       "unlocks": [
         {
           "type": "recipe",
-          "id": "kami_js:smog/*"
+          "id": "kami_js:smog/washing_copper"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:smog/washing_gold"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:smog/washing_zinc"
         },
         {
           "type": "recipe",
           "id": "smog:settling_wastewater"
-        },
-        {
-          "type": "recipe",
-          "id": "smog:filtering_clarified_water"
-        },
-        {
-          "type": "recipe",
-          "id": "smog:neutralizing_acidic_runoff"
-        },
-        {
-          "type": "recipe",
-          "id": "smog:dewatering_sludge"
-        },
-        {
-          "type": "recipe",
-          "id": "smog:crushing_sludge_cake"
-        },
-        {
-          "type": "recipe",
-          "id": "smog:filter_cartridge_basin_washing"
-        },
-        {
-          "type": "recipe",
-          "id": "smog:brick_from_sludge_cake"
-        },
-        {
-          "type": "recipe",
-          "id": "smog:gray_concrete_powder_from_industrial_dust"
         }
       ]
     },
@@ -5838,7 +5975,7 @@
       "tasks": [
         {
           "type": "place",
-          "block": "tfmg:blast_stove",
+          "block": "tfmg:cast_iron_fluid_tank",
           "count": 4
         },
         {
@@ -6418,6 +6555,10 @@
         {
           "type": "output",
           "id": "create:sturdy_sheet"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:sturdy_sheet/*"
         }
       ]
     },
@@ -6929,6 +7070,10 @@
         },
         {
           "type": "recipe",
+          "id": "kami_js:lathe_laser/diamond_block_disassembly"
+        },
+        {
+          "type": "recipe",
           "id": "northstar:sandpaper_polishing/diamond"
         },
         {
@@ -7437,9 +7582,9 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:pressing",
-          "count": 16
+          "type": "craft",
+          "output": "create:brass_hand",
+          "count": 12
         }
       ],
       "unlocks": [
@@ -7597,13 +7742,13 @@
       "tasks": [
         {
           "type": "craft",
-          "output": "dndesires:stirling_engine",
-          "count": 4
+          "output": "create:mechanical_press",
+          "count": 12
         },
         {
           "type": "deposit",
           "item": "create:precision_mechanism",
-          "count": 8
+          "count": 16
         }
       ],
       "unlocks": [
@@ -7803,7 +7948,7 @@
       "tasks": [
         {
           "type": "place",
-          "block": "tfmg:steel_gearbox",
+          "block": "tfmg:steel_cogwheel",
           "count": 8
         },
         {
@@ -7853,7 +7998,7 @@
       "tasks": [
         {
           "type": "place",
-          "block": "tfmg:steel_frame",
+          "block": "tfmg:steel_block",
           "count": 8
         }
       ],
@@ -8032,14 +8177,10 @@
       ],
       "tasks": [
         {
-          "type": "deposit",
-          "item": "minecraft:clay_ball",
-          "count": 16
-        },
-        {
-          "type": "deposit",
-          "item": "minecraft:gravel",
-          "count": 16
+          "type": "process",
+          "recipeType": "create:crushing",
+          "output": "create:cinder_flour",
+          "count": 12
         }
       ],
       "unlocks": [
@@ -8245,7 +8386,7 @@
       "tasks": [
         {
           "type": "place",
-          "block": "tfmg:winding_machine",
+          "block": "tfmg:heavy_machinery_casing",
           "count": 8
         }
       ],
@@ -8358,14 +8499,9 @@
       ],
       "tasks": [
         {
-          "type": "deposit",
-          "item": "minecraft:gunpowder",
-          "count": 16
-        },
-        {
           "type": "craft",
-          "output": "tfmg:steel_chemical_vat",
-          "count": 2
+          "output": "tfmg:cast_iron_chemical_vat",
+          "count": 20
         }
       ],
       "unlocks": [
@@ -8396,6 +8532,18 @@
         {
           "type": "recipe",
           "id": "kami_js:vintage/nitrate_dust_separation"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:vintage/coal_dust_desulfurization"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:mixing/gunpowder"
+        },
+        {
+          "type": "recipe",
+          "id": "sulfuricresonance:minecraft/saltpeter_gunpowder"
         }
       ]
     },
@@ -8575,22 +8723,18 @@
       ]
     },
     {
-      "id": "pg_basics",
+      "id": "pg_wire_1",
       "category": "electricity",
-      "icon": "powergrid:electric_motor",
-      "era": "steel_chemistry",
+      "icon": "powergrid:wire_connector",
+      "era": "early_industry",
       "kind": "milestone",
-      "level": 55,
-      "cost": 940,
-      "time": "3h41m",
+      "level": 17,
+      "cost": 56,
+      "time": "50m",
       "requires": [
         {
           "type": "node",
-          "id": "precision_mechanism"
-        },
-        {
-          "type": "node",
-          "id": "cardboard_packaging"
+          "id": "copper_casing"
         },
         {
           "type": "node",
@@ -8598,23 +8742,23 @@
         },
         {
           "type": "node",
-          "id": "metallurgy:iron_crushing"
+          "id": "metallurgy:gold_processing"
         },
         {
           "type": "node",
-          "id": "vt_compass"
+          "id": "metallurgy:zinc_processing"
         }
       ],
       "tasks": [
         {
-          "type": "place",
-          "block": "powergrid:conductive_casing",
+          "type": "deposit",
+          "item": "create:copper_sheet",
           "count": 8
         },
         {
-          "type": "deposit",
-          "item": "create:andesite_casing",
-          "count": 16
+          "type": "place",
+          "block": "create:copper_casing",
+          "count": 4
         }
       ],
       "unlocks": [
@@ -8632,10 +8776,6 @@
         },
         {
           "type": "recipe",
-          "id": "powergrid:crafting/copper_coil"
-        },
-        {
-          "type": "recipe",
           "id": "powergrid:crafting/pins"
         },
         {
@@ -8646,6 +8786,51 @@
           "type": "recipe",
           "id": "powergrid:crafting/heavy_wire_connector"
         },
+        {
+          "type": "recipe",
+          "id": "powergrid:crafting/grounding_rod"
+        },
+        {
+          "type": "recipe",
+          "id": "powergrid:crafting/potato_battery"
+        },
+        {
+          "type": "recipe",
+          "id": "powergrid:crafting/wire_cutter"
+        }
+      ]
+    },
+    {
+      "id": "pg_wire_2",
+      "category": "electricity",
+      "icon": "powergrid:insulated_copper_wire",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 21,
+      "cost": 25,
+      "time": "35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "pg_wire_1"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:brass"
+        },
+        {
+          "type": "node",
+          "id": "vt_redstone"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "powergrid:wire",
+          "count": 8
+        }
+      ],
+      "unlocks": [
         {
           "type": "recipe",
           "id": "powergrid:crafting/insulated_copper_wire"
@@ -8664,10 +8849,6 @@
         },
         {
           "type": "recipe",
-          "id": "powergrid:crafting/grounding_rod"
-        },
-        {
-          "type": "recipe",
           "id": "powergrid:crafting/lv_switch"
         },
         {
@@ -8676,7 +8857,217 @@
         },
         {
           "type": "recipe",
+          "id": "powergrid:deploying/copper_plating"
+        },
+        {
+          "type": "recipe",
+          "id": "powergrid:copper_plating_*"
+        },
+        {
+          "type": "recipe",
+          "id": "powergrid:crafting/copper_plating_slab"
+        },
+        {
+          "type": "recipe",
+          "id": "powergrid:crafting/copper_plating_stairs"
+        }
+      ]
+    },
+    {
+      "id": "pg_wire_3",
+      "category": "electricity",
+      "icon": "powergrid:light_bulb",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 25,
+      "cost": 35,
+      "time": "40m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "pg_wire_2"
+        },
+        {
+          "type": "node",
+          "id": "cardboard_packaging"
+        },
+        {
+          "type": "node",
+          "id": "tools_armor:backpack"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "create:electron_tube",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "powergrid:crafting/copper_coil"
+        },
+        {
+          "type": "recipe",
+          "id": "powergrid:crafting/light_bulb"
+        },
+        {
+          "type": "recipe",
+          "id": "powergrid:crafting/lv_light_bulb"
+        },
+        {
+          "type": "recipe",
+          "id": "powergrid:crafting/neon_bulb"
+        },
+        {
+          "type": "recipe",
+          "id": "powergrid:crafting/light_fixture"
+        }
+      ]
+    },
+    {
+      "id": "pg_wire_4",
+      "category": "electricity",
+      "icon": "powergrid:factory_light",
+      "era": "early_industry",
+      "kind": "detail",
+      "level": 29,
+      "cost": 45,
+      "time": "44m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "pg_wire_3"
+        },
+        {
+          "type": "node",
+          "id": "copycats"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "powergrid:light_bulb",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "powergrid:crafting/factory_light"
+        },
+        {
+          "type": "recipe",
+          "id": "powergrid:crafting/growth_lamp"
+        },
+        {
+          "type": "recipe",
+          "id": "powergrid:crafting/resistive_coil"
+        },
+        {
+          "type": "recipe",
+          "id": "powergrid:deploying/string_light_cord"
+        },
+        {
+          "type": "recipe",
+          "id": "powergrid:deploying/ceiling_tile"
+        }
+      ]
+    },
+    {
+      "id": "pg_motor_basic",
+      "category": "electricity",
+      "icon": "powergrid:constant_speed_motor",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 47,
+      "cost": 200,
+      "time": "1h10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:steel"
+        },
+        {
+          "type": "node",
+          "id": "pg_wire_4"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "powergrid:copper_coil",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:steel_ingot",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "powergrid:magnetization/*"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:power/motor_basic"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:power/magnet_basic"
+        }
+      ]
+    },
+    {
+      "id": "pg_generation_basic",
+      "category": "electricity",
+      "icon": "powergrid:generator_housing",
+      "era": "steel_chemistry",
+      "kind": "milestone",
+      "level": 52,
+      "cost": 830,
+      "time": "3h25m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "pg_motor_basic"
+        },
+        {
+          "type": "node",
+          "id": "chain_drives"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "powergrid:insulated_copper_wire",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "powergrid:copper_coil",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "kami_js:power/rotor_basic"
+        },
+        {
+          "type": "recipe",
           "id": "powergrid:crafting/generator_housing"
+        },
+        {
+          "type": "recipe",
+          "id": "powergrid:mechanical_crafting/generator_commutator"
+        },
+        {
+          "type": "recipe",
+          "id": "powergrid:crafting/generator_clutch"
         },
         {
           "type": "recipe",
@@ -8693,46 +9084,52 @@
         {
           "type": "recipe",
           "id": "powergrid:crafting/generator_vertical_commutator_from_conversion"
+        }
+      ]
+    },
+    {
+      "id": "pg_basics",
+      "category": "electricity",
+      "icon": "powergrid:electric_motor",
+      "era": "steel_chemistry",
+      "kind": "milestone",
+      "level": 55,
+      "cost": 940,
+      "time": "3h41m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "precision_mechanism"
         },
         {
-          "type": "recipe",
-          "id": "powergrid:crafting/generator_clutch"
+          "type": "node",
+          "id": "metallurgy:iron_crushing"
         },
+        {
+          "type": "node",
+          "id": "vt_compass"
+        },
+        {
+          "type": "node",
+          "id": "pg_wire_4"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "place",
+          "block": "powergrid:conductive_casing",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "create:andesite_casing",
+          "count": 16
+        }
+      ],
+      "unlocks": [
         {
           "type": "recipe",
           "id": "powergrid:crafting/voltage_gauge"
-        },
-        {
-          "type": "recipe",
-          "id": "powergrid:crafting/voltage_gauge_from_conversion"
-        },
-        {
-          "type": "recipe",
-          "id": "powergrid:crafting/current_gauge_from_conversion"
-        },
-        {
-          "type": "recipe",
-          "id": "powergrid:crafting/potato_battery"
-        },
-        {
-          "type": "recipe",
-          "id": "powergrid:magnetization/*"
-        },
-        {
-          "type": "recipe",
-          "id": "powergrid:mechanical_crafting/generator_commutator"
-        },
-        {
-          "type": "recipe",
-          "id": "powergrid:mechanical_crafting/generator_induction_rotor"
-        },
-        {
-          "type": "recipe",
-          "id": "powergrid:mechanical_crafting/generator_large_induction_rotor"
-        },
-        {
-          "type": "recipe",
-          "id": "powergrid:mechanical_crafting/electric_motor"
         },
         {
           "type": "recipe",
@@ -8744,11 +9141,11 @@
         },
         {
           "type": "recipe",
-          "id": "powergrid:deploying/copper_plating"
+          "id": "powergrid:crafting/voltage_gauge_from_conversion"
         },
         {
           "type": "recipe",
-          "id": "powergrid:copper_plating_*"
+          "id": "powergrid:crafting/current_gauge_from_conversion"
         }
       ]
     },
@@ -8951,6 +9348,10 @@
         {
           "type": "recipe",
           "id": "sulfuricresonance:minecraft/rubber_padding_craft"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:lathe_laser/stick_bulk"
         }
       ]
     },
@@ -8976,7 +9377,7 @@
       "tasks": [
         {
           "type": "place",
-          "block": "tfmg:fireproof_chemical_vat",
+          "block": "tfmg:steel_chemical_vat",
           "count": 8
         },
         {
@@ -9053,9 +9454,9 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "sulfuricresonance:*",
-          "count": 16
+          "type": "smelt",
+          "output": "sulfuricresonance:spent_ash",
+          "count": 20
         }
       ],
       "unlocks": [
@@ -9080,7 +9481,7 @@
     {
       "id": "tfmg_generator",
       "category": "electricity",
-      "icon": "tfmg:generator",
+      "icon": "powergrid:generator_housing",
       "era": "steel_chemistry",
       "kind": "milestone",
       "level": 57,
@@ -9094,6 +9495,10 @@
         {
           "type": "node",
           "id": "metallurgy:magnetic_alloy"
+        },
+        {
+          "type": "node",
+          "id": "pg_wire_1"
         }
       ],
       "tasks": [
@@ -9109,10 +9514,6 @@
         }
       ],
       "unlocks": [
-        {
-          "type": "recipe",
-          "id": "tfmg:sequenced_assembly/generator"
-        },
         {
           "type": "recipe",
           "id": "tfmg:sequenced_assembly/motor"
@@ -9139,18 +9540,6 @@
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/electric_post"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/materials/cable_connector"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/materials/copper_cable_hub"
-        },
-        {
-          "type": "recipe",
           "id": "tfmg:smelting/unfinished_insulator"
         },
         {
@@ -9171,11 +9560,11 @@
         },
         {
           "type": "recipe",
-          "id": "kami_js:sulfuric/capacitor_etched"
+          "id": "kami_js:magnet/charged_alloy"
         },
         {
           "type": "recipe",
-          "id": "kami_js:magnet/charged_alloy"
+          "id": "kami_js:power/motor_magnet"
         }
       ]
     },
@@ -9289,10 +9678,6 @@
         {
           "type": "node",
           "id": "metallurgy:graphite"
-        },
-        {
-          "type": "node",
-          "id": "drill_saw"
         }
       ],
       "tasks": [
@@ -9343,6 +9728,14 @@
         {
           "type": "recipe",
           "id": "chemica:vat_machine_recipe/centrifuge/ash"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:northstar/brine_from_createbb"
+        },
+        {
+          "type": "recipe",
+          "id": "createbb:brine"
         }
       ]
     },
@@ -9376,7 +9769,7 @@
       "tasks": [
         {
           "type": "place",
-          "block": "sulfuricresonance:ash_brick_block",
+          "block": "sulfuricresonance:sulfur_block",
           "count": 8
         }
       ],
@@ -9497,7 +9890,7 @@
       "tasks": [
         {
           "type": "deposit",
-          "item": "createbigpharma:amber_glass",
+          "item": "minecraft:glass",
           "count": 16
         },
         {
@@ -9688,6 +10081,44 @@
       ]
     },
     {
+      "id": "pg_generation",
+      "category": "electricity",
+      "icon": "powergrid:generator_induction_rotor",
+      "era": "steel_chemistry",
+      "kind": "milestone",
+      "level": 62,
+      "cost": 1250,
+      "time": "4h15m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "metallurgy:aluminum"
+        },
+        {
+          "type": "node",
+          "id": "pg_generation_basic"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "powergrid:insulated_copper_wire",
+          "count": 8
+        },
+        {
+          "type": "deposit",
+          "item": "tfmg:electromagnetic_coil",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "powergrid:mechanical_crafting/generator_induction_rotor"
+        }
+      ]
+    },
+    {
       "id": "pg_consumers",
       "category": "electricity",
       "icon": "powergrid:electric_fan",
@@ -9703,21 +10134,13 @@
         },
         {
           "type": "node",
-          "id": "fluid_basics"
-        },
-        {
-          "type": "node",
-          "id": "tools_armor:backpack"
-        },
-        {
-          "type": "node",
-          "id": "copycats"
+          "id": "pg_generation"
         }
       ],
       "tasks": [
         {
           "type": "place",
-          "block": "powergrid:electric_fan",
+          "block": "powergrid:generator_housing",
           "count": 8
         }
       ],
@@ -9733,10 +10156,6 @@
         {
           "type": "recipe",
           "id": "powergrid:crafting/heating_coil"
-        },
-        {
-          "type": "recipe",
-          "id": "powergrid:crafting/resistive_coil"
         },
         {
           "type": "recipe",
@@ -9756,39 +10175,7 @@
         },
         {
           "type": "recipe",
-          "id": "powergrid:crafting/light_bulb"
-        },
-        {
-          "type": "recipe",
-          "id": "powergrid:crafting/lv_light_bulb"
-        },
-        {
-          "type": "recipe",
-          "id": "powergrid:crafting/neon_bulb"
-        },
-        {
-          "type": "recipe",
-          "id": "powergrid:crafting/light_fixture"
-        },
-        {
-          "type": "recipe",
-          "id": "powergrid:crafting/factory_light"
-        },
-        {
-          "type": "recipe",
-          "id": "powergrid:crafting/growth_lamp"
-        },
-        {
-          "type": "recipe",
           "id": "powergrid:mechanical_crafting/basin_heater"
-        },
-        {
-          "type": "recipe",
-          "id": "powergrid:deploying/string_light_cord"
-        },
-        {
-          "type": "recipe",
-          "id": "powergrid:deploying/ceiling_tile"
         },
         {
           "type": "recipe",
@@ -9814,7 +10201,7 @@
       "tasks": [
         {
           "type": "place",
-          "block": "tfmg:aluminum_fluid_tank",
+          "block": "tfmg:steel_fluid_tank",
           "count": 8
         }
       ],
@@ -9875,7 +10262,7 @@
       "tasks": [
         {
           "type": "place",
-          "block": "tfmg:aluminum_cogwheel",
+          "block": "tfmg:large_steel_cogwheel",
           "count": 8
         }
       ],
@@ -9943,10 +10330,6 @@
         {
           "type": "node",
           "id": "metallurgy:aluminum"
-        },
-        {
-          "type": "node",
-          "id": "drill_saw"
         }
       ],
       "tasks": [
@@ -10004,6 +10387,22 @@
         {
           "type": "recipe",
           "id": "chemica:cutting/rubber_strip"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:power/insulated_wire_rubber"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:power/copper_coil_rubber"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:power/copper_cord_rubber"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:melting/melt_plastic_ingot"
         }
       ]
     },
@@ -10074,7 +10473,7 @@
       "tasks": [
         {
           "type": "place",
-          "block": "sulfuricresonance:thermochemical_boiler_interface",
+          "block": "sulfuricresonance:ash_brick_block",
           "count": 8
         },
         {
@@ -10197,13 +10596,8 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "sulfuricresonance:*",
-          "count": 16
-        },
-        {
-          "type": "deposit",
-          "item": "minecraft:blaze_rod",
+          "type": "craft",
+          "output": "create:mechanical_pump",
           "count": 16
         }
       ],
@@ -10311,8 +10705,8 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "tfmg:*",
+          "type": "craft",
+          "output": "tfmg:steel_gearbox",
           "count": 16
         }
       ],
@@ -10378,14 +10772,6 @@
         {
           "type": "recipe",
           "id": "powergrid:mechanical_crafting/carbon_pile_coil"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/materials/accumulator"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/materials/accumulatorfrom_lithium"
         }
       ]
     },
@@ -10445,7 +10831,7 @@
     },
     {
       "id": "wastewater_treatment",
-      "category": "chemistry",
+      "category": "pollution",
       "icon": "chemica:distilled_water_bucket",
       "era": "steel_chemistry",
       "kind": "detail",
@@ -10459,14 +10845,214 @@
         },
         {
           "type": "node",
-          "id": "smog_control"
+          "id": "distillery"
         },
         {
           "type": "node",
-          "id": "distillery"
+          "id": "vat_flocculation"
         }
       ],
       "tasks": [
+        {
+          "type": "process",
+          "recipeType": "create:mixing",
+          "output": "tfmg:asphalt_mixture",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "kami_js:pollution/distillation_*"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:pollution/lime_neutralization"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:pollution/carbonation_slag"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:pollution/brine_from_wastewater"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:pollution/polluted_water_electrolysis"
+        }
+      ]
+    },
+    {
+      "id": "sludge_pressing",
+      "category": "pollution",
+      "icon": "smog:industrial_dust",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 33,
+      "cost": 65,
+      "time": "1h5m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "smog_wastewater"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "process",
+          "recipeType": "create:compacting",
+          "count": 8
+        },
+        {
+          "type": "process",
+          "recipeType": "create:mixing",
+          "count": 8
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "smog:dewatering_sludge"
+        },
+        {
+          "type": "recipe",
+          "id": "smog:crushing_sludge_cake"
+        },
+        {
+          "type": "recipe",
+          "id": "smog:filter_cartridge_basin_washing"
+        },
+        {
+          "type": "recipe",
+          "id": "smog:gray_concrete_powder_from_industrial_dust"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:dust/*"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:pollution/sand_filter"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:pollution/failed_sludge_crushing"
+        },
+        {
+          "type": "recipe",
+          "id": "smog:filtering_clarified_water"
+        }
+      ]
+    },
+    {
+      "id": "acid_neutralization",
+      "category": "pollution",
+      "icon": "smog:acidic_runoff_bucket",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 48,
+      "cost": 190,
+      "time": "1h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "smog_wastewater"
+        },
+        {
+          "type": "node",
+          "id": "steel_fluids"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "craft",
+          "output": "tfmg:steel_mechanical_pump",
+          "count": 12
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "smog:neutralizing_acidic_runoff"
+        }
+      ]
+    },
+    {
+      "id": "vat_flocculation",
+      "category": "pollution",
+      "icon": "tfmg:limesand",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 58,
+      "cost": 320,
+      "time": "2h0m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "vat_mixer"
+        },
+        {
+          "type": "node",
+          "id": "sludge_pressing"
+        },
+        {
+          "type": "node",
+          "id": "sulfuric_acid"
+        },
+        {
+          "type": "node",
+          "id": "concrete"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:limesand",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "sulfuricresonance:sulfuric_acid_flask",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "kami_js:pollution/flocculation"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:soot/briquetting"
+        }
+      ]
+    },
+    {
+      "id": "oil_water_separation",
+      "category": "pollution",
+      "icon": "smog:refined_oil_bucket",
+      "era": "steel_chemistry",
+      "kind": "detail",
+      "level": 68,
+      "cost": 480,
+      "time": "2h30m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "distillery"
+        },
+        {
+          "type": "node",
+          "id": "vat_flocculation"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "smog:waste_oil_bucket",
+          "count": 16
+        },
         {
           "type": "process",
           "recipeType": "create:mixing",
@@ -10476,15 +11062,175 @@
       "unlocks": [
         {
           "type": "recipe",
-          "id": "kami_js:pollution/*"
+          "id": "kami_js:pollution/oil_separation"
+        }
+      ]
+    },
+    {
+      "id": "centrifugal_dewatering",
+      "category": "pollution",
+      "icon": "smog:clarified_water_bucket",
+      "era": "advanced",
+      "kind": "detail",
+      "level": 84,
+      "cost": 900,
+      "time": "3h10m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "vat_centrifuge"
+        },
+        {
+          "type": "node",
+          "id": "wastewater_treatment"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "process",
+          "recipeType": "tfmg:*",
+          "count": 16
+        },
+        {
+          "type": "deposit",
+          "item": "smog:filter_medium",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "kami_js:pollution/centrifuge_clarification"
+        }
+      ]
+    },
+    {
+      "id": "membrane_filtration",
+      "category": "pollution",
+      "icon": "smog:precision_filter_cartridge",
+      "era": "advanced",
+      "kind": "detail",
+      "level": 103,
+      "cost": 2000,
+      "time": "3h55m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "centrifugal_dewatering"
+        },
+        {
+          "type": "node",
+          "id": "polymers"
+        },
+        {
+          "type": "node",
+          "id": "plastics"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:plastic_sheet",
+          "count": 32
+        },
+        {
+          "type": "process",
+          "recipeType": "tfmg:*",
+          "count": 16
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "kami_js:pollution/membrane_filtration"
         },
         {
           "type": "recipe",
-          "id": "kami_js:chemistry/brine_from_wastewater"
+          "id": "kami_js:pollution/slurry_settling"
+        }
+      ]
+    },
+    {
+      "id": "waste_vitrification",
+      "category": "pollution",
+      "icon": "tfmg:slag",
+      "era": "advanced",
+      "kind": "detail",
+      "level": 120,
+      "cost": 3200,
+      "time": "4h35m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "arc_furnace"
+        },
+        {
+          "type": "node",
+          "id": "membrane_filtration"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "tfmg:coal_coke",
+          "count": 32
+        },
+        {
+          "type": "process",
+          "recipeType": "tfmg:*",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "kami_js:pollution/vitrification"
         },
         {
           "type": "recipe",
-          "id": "kami_js:gases/polluted_water_electrolysis"
+          "id": "kami_js:soot/hydrogenation"
+        }
+      ]
+    },
+    {
+      "id": "closed_loop_plant",
+      "category": "pollution",
+      "icon": "adpother:polluted_water_bucket",
+      "era": "advanced",
+      "kind": "detail",
+      "level": 140,
+      "cost": 4800,
+      "time": "5h28m",
+      "requires": [
+        {
+          "type": "node",
+          "id": "waste_vitrification"
+        },
+        {
+          "type": "node",
+          "id": "platinum_electrodes"
+        }
+      ],
+      "tasks": [
+        {
+          "type": "deposit",
+          "item": "chemica:platinum_catalyst",
+          "count": 32
+        },
+        {
+          "type": "process",
+          "recipeType": "tfmg:*",
+          "count": 32
+        }
+      ],
+      "unlocks": [
+        {
+          "type": "recipe",
+          "id": "kami_js:pollution/acid_recovery"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:pollution/electrolytic_recovery"
         }
       ]
     },
@@ -10505,6 +11251,10 @@
         {
           "type": "node",
           "id": "blast_furnace_machines"
+        },
+        {
+          "type": "node",
+          "id": "concrete"
         }
       ],
       "tasks": [
@@ -10539,6 +11289,14 @@
         {
           "type": "recipe",
           "id": "chemica:filling/helium"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:limestone/limesand_washing"
+        },
+        {
+          "type": "recipe",
+          "id": "chemica:industrial_blasting/nitrate_dust"
         }
       ]
     },
@@ -10546,9 +11304,9 @@
       "id": "pg_control",
       "category": "electricity",
       "icon": "powergrid:hv_switch",
-      "era": "steel_chemistry",
+      "era": "advanced",
       "kind": "milestone",
-      "level": 74,
+      "level": 76,
       "cost": 2100,
       "time": "5h51m",
       "requires": [
@@ -10563,12 +11321,16 @@
         {
           "type": "node",
           "id": "sensors_displays"
+        },
+        {
+          "type": "node",
+          "id": "tfmg_components"
         }
       ],
       "tasks": [
         {
           "type": "place",
-          "block": "powergrid:mv_switch",
+          "block": "powergrid:lv_switch",
           "count": 8
         },
         {
@@ -10672,10 +11434,6 @@
         },
         {
           "type": "recipe",
-          "id": "powergrid:crafting/wire_cutter"
-        },
-        {
-          "type": "recipe",
           "id": "powergrid:sequenced_assembly/bjt_npn"
         },
         {
@@ -10717,6 +11475,10 @@
         {
           "type": "recipe",
           "id": "kami_js:sulfuric/mv_switch"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:sulfuric/capacitor_etched"
         }
       ]
     },
@@ -10918,7 +11680,7 @@
       "tasks": [
         {
           "type": "place",
-          "block": "sulfuricresonance:resonant_heat_injector",
+          "block": "sulfuricresonance:thermochemical_boiler_interface",
           "count": 16
         },
         {
@@ -11086,6 +11848,10 @@
         {
           "type": "recipe",
           "id": "tfmg:crushing/dirt"
+        },
+        {
+          "type": "recipe",
+          "id": "chemica:crushing/silicon_ingot"
         }
       ]
     },
@@ -11132,13 +11898,21 @@
         {
           "type": "recipe",
           "id": "kami_js:sulfuric/superphosphate_*"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:vintage/phosphorus_dust_inefficient"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:chemica_ores/phosphorus_centrifuge"
         }
       ]
     },
     {
       "id": "tfmg_electricity",
       "category": "electricity",
-      "icon": "tfmg:voltmeter",
+      "icon": "powergrid:multimeter",
       "era": "advanced",
       "kind": "detail",
       "level": 79,
@@ -11181,59 +11955,7 @@
       "unlocks": [
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/aluminum_cable_hub"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/materials/brass_cable_hub"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/materials/steel_cable_hub"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/materials/heavy_cable_hub"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/materials/steel_casing_cable_hub"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/materials/cable_tube"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/materials/copycat_cable_block"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/materials/diagonal_cable_block"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/materials/glass_cable_insulator"
-        },
-        {
-          "type": "recipe",
           "id": "tfmg:crafting/materials/glass_insulator_segment"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/materials/electrical_switch"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/materials/large_switch"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/materials/voltmeter"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/materials/electric_measurement_block"
         },
         {
           "type": "recipe",
@@ -11241,55 +11963,11 @@
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/neon_tube"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/materials/circular_light"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/materials/modern_light"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/materials/electricians_wrench"
-        },
-        {
-          "type": "recipe",
           "id": "tfmg:crafting/materials/screwdriver"
         },
         {
           "type": "recipe",
-          "id": "tfmg:crafting/materials/*multimeter"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/aluminum_spool"
-        },
-        {
-          "type": "recipe",
           "id": "tfmg:aluminum_wire_from_ingots_aluminum_stonecutting"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/materials/aluminum_lamp"
-        },
-        {
-          "type": "recipe",
-          "id": "kami_js:sulfuric/aluminum_cable_hub_resonant"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/materials/electric_diode"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/materials/voltage_observer"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:sequenced_assembly/potentiometer"
         },
         {
           "type": "recipe",
@@ -11480,6 +12158,10 @@
         {
           "type": "recipe",
           "id": "chemica:vat_machine_recipe/vat_reaction/ammonium_persulfate"
+        },
+        {
+          "type": "recipe",
+          "id": "createbb:methanol_mixing"
         }
       ]
     },
@@ -11566,9 +12248,9 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "tfmg:*",
-          "count": 32
+          "type": "craft",
+          "output": "create:propeller",
+          "count": 24
         }
       ],
       "unlocks": [
@@ -11607,6 +12289,10 @@
         {
           "type": "node",
           "id": "base_catalysts"
+        },
+        {
+          "type": "node",
+          "id": "metallurgy:vanadium"
         }
       ],
       "tasks": [
@@ -11739,6 +12425,10 @@
         {
           "type": "node",
           "id": "tfmg_circuits"
+        },
+        {
+          "type": "node",
+          "id": "phosphoric_acid"
         }
       ],
       "tasks": [
@@ -11829,6 +12519,14 @@
         {
           "type": "recipe",
           "id": "createbigpharma:centrifuge_penicillin"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:pharmacy/phenylacetone"
+        },
+        {
+          "type": "recipe",
+          "id": "createbb:iodine"
         }
       ]
     },
@@ -12218,7 +12916,7 @@
     {
       "id": "transformers",
       "category": "electricity",
-      "icon": "tfmg:transformer",
+      "icon": "powergrid:transformer_core",
       "era": "advanced",
       "kind": "milestone",
       "level": 103,
@@ -12228,17 +12926,13 @@
         {
           "type": "node",
           "id": "pg_control"
-        },
-        {
-          "type": "node",
-          "id": "metallurgy:magnetic_alloy"
         }
       ],
       "tasks": [
         {
           "type": "place",
-          "block": "tfmg:transformer",
-          "count": 16
+          "block": "powergrid:hv_switch",
+          "count": 8
         },
         {
           "type": "deposit",
@@ -12247,10 +12941,6 @@
         }
       ],
       "unlocks": [
-        {
-          "type": "recipe",
-          "id": "tfmg:crafting/materials/transformer"
-        },
         {
           "type": "recipe",
           "id": "powergrid:sequenced_assembly/transformer_core"
@@ -12377,7 +13067,7 @@
         },
         {
           "type": "node",
-          "id": "metallurgy:silicon"
+          "id": "tfmg_circuits"
         }
       ],
       "tasks": [
@@ -12400,6 +13090,18 @@
         {
           "type": "recipe",
           "id": "powergrid:crafting/solar_panel_bearing"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:power/solar_mid"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:power/solar_late"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:power/solar_lubricated"
         }
       ]
     },
@@ -12516,12 +13218,16 @@
         {
           "type": "node",
           "id": "tfmg_circuits"
+        },
+        {
+          "type": "node",
+          "id": "concrete"
         }
       ],
       "tasks": [
         {
           "type": "place",
-          "block": "tfmg:fireproof_chemical_vat",
+          "block": "tfmg:steel_chemical_vat",
           "count": 16
         },
         {
@@ -12554,6 +13260,10 @@
         {
           "type": "recipe",
           "id": "tfmg:crafting/materials/fireproof_chemical_vat"
+        },
+        {
+          "type": "recipe",
+          "id": "kami_js:pollution/carbonation_molten_slag"
         }
       ]
     },
@@ -12574,12 +13284,16 @@
         {
           "type": "node",
           "id": "schematics"
+        },
+        {
+          "type": "node",
+          "id": "tfmg_circuits"
         }
       ],
       "tasks": [
         {
           "type": "place",
-          "block": "powergrid:circuit_design_table",
+          "block": "create:schematic_table",
           "count": 16
         }
       ],
@@ -12823,7 +13537,7 @@
     {
       "id": "large_generator",
       "category": "electricity",
-      "icon": "tfmg:rotor",
+      "icon": "powergrid:generator_large_induction_rotor",
       "era": "advanced",
       "kind": "milestone",
       "level": 124,
@@ -12833,6 +13547,10 @@
         {
           "type": "node",
           "id": "tfmg_electricity"
+        },
+        {
+          "type": "node",
+          "id": "pg_generation"
         }
       ],
       "tasks": [
@@ -12843,22 +13561,14 @@
         },
         {
           "type": "deposit",
-          "item": "tfmg:electric_motor",
+          "item": "powergrid:electric_motor",
           "count": 8
         }
       ],
       "unlocks": [
         {
           "type": "recipe",
-          "id": "tfmg:mechanical_crafting/rotor"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:mechanical_crafting/stator"
-        },
-        {
-          "type": "recipe",
-          "id": "tfmg:sequenced_assembly/heavy_motor"
+          "id": "powergrid:mechanical_crafting/generator_large_induction_rotor"
         }
       ]
     },
@@ -13395,6 +14105,17 @@
       ],
       "tasks": [
         {
+          "type": "process",
+          "recipeType": "create:pressing",
+          "output": "chemica:iridium_sheet",
+          "count": 16
+        },
+        {
+          "type": "smelt",
+          "output": "chemica:iridium_ingot",
+          "count": 12
+        },
+        {
           "type": "deposit",
           "item": "chemica:iridium_sheet",
           "count": 4
@@ -13529,7 +14250,7 @@
     {
       "id": "large_transformer",
       "category": "electricity",
-      "icon": "tfmg:large_coil",
+      "icon": "powergrid:transformer_core",
       "era": "advanced",
       "kind": "detail",
       "level": 143,
@@ -13539,23 +14260,19 @@
         {
           "type": "node",
           "id": "transformers"
-        },
-        {
-          "type": "node",
-          "id": "tfmg_generator"
         }
       ],
       "tasks": [
         {
-          "type": "place",
-          "block": "tfmg:large_coil",
+          "type": "deposit",
+          "item": "powergrid:transformer_core",
           "count": 16
         }
       ],
       "unlocks": [
         {
-          "type": "recipe",
-          "id": "tfmg:winding/large_coil"
+          "type": "block",
+          "id": "powergrid:transformer_medium"
         }
       ]
     },
@@ -13580,9 +14297,15 @@
       ],
       "tasks": [
         {
+          "type": "craft",
+          "output": "createbigpharma:glass_vial",
+          "count": 52
+        },
+        {
           "type": "process",
-          "recipeType": "createbigpharma:*",
-          "count": 32
+          "recipeType": "create:pressing",
+          "output": "sulfuricresonance:resonant_copper_sheet",
+          "count": 20
         }
       ],
       "unlocks": [
@@ -13880,7 +14603,7 @@
       "tasks": [
         {
           "type": "place",
-          "block": "chemica:high_cetane_diesel",
+          "block": "tfmg:electrode_holder",
           "count": 16
         },
         {
@@ -14335,6 +15058,22 @@
         {
           "type": "recipe",
           "id": "northstar:titanium_sheetmetal_vertical_slab_from_titanium_sheetmetal_stonecutting"
+        },
+        {
+          "type": "recipe",
+          "id": "northstar:compacting/carbon_from_biofuel"
+        },
+        {
+          "type": "recipe",
+          "id": "northstar:compacting/carbon_from_moon_sand"
+        },
+        {
+          "type": "recipe",
+          "id": "northstar:crushing/venus_glowstone_ore"
+        },
+        {
+          "type": "recipe",
+          "id": "northstar:crushing/venus_deep_glowstone_ore"
         }
       ]
     },
@@ -14409,14 +15148,24 @@
       ],
       "tasks": [
         {
+          "type": "craft",
+          "output": "createnuclear:reactor_blueprint_item",
+          "count": 52
+        },
+        {
+          "type": "craft",
+          "output": "chemica:empty_epoxy_circuit_board",
+          "count": 32
+        },
+        {
           "type": "deposit",
           "item": "minecraft:clock",
-          "count": 8
+          "count": 16
         },
         {
           "type": "deposit",
           "item": "minecraft:note_block",
-          "count": 8
+          "count": 16
         }
       ],
       "unlocks": [
@@ -14520,10 +15269,6 @@
         },
         {
           "type": "recipe",
-          "id": "northstar:mechanical_crafting/solar_panel"
-        },
-        {
-          "type": "recipe",
           "id": "northstar:crafting/large_fan"
         },
         {
@@ -14585,6 +15330,16 @@
       ],
       "tasks": [
         {
+          "type": "craft",
+          "output": "tfmg:glass_insulator_segment",
+          "count": 56
+        },
+        {
+          "type": "craft",
+          "output": "createnuclear:reinforced_glass",
+          "count": 64
+        },
+        {
           "type": "deposit",
           "item": "minecraft:nether_star",
           "count": 1
@@ -14627,7 +15382,7 @@
       "tasks": [
         {
           "type": "deposit",
-          "item": "createnuclear:yellowcake",
+          "item": "create:crushed_raw_uranium",
           "count": 16
         },
         {
@@ -14781,8 +15536,13 @@
       "tasks": [
         {
           "type": "craft",
-          "output": "northstar:rocket_thruster",
-          "count": 4
+          "output": "northstar:combustion_engine",
+          "count": 56
+        },
+        {
+          "type": "craft",
+          "output": "northstar:ice_box",
+          "count": 36
         }
       ],
       "unlocks": [
@@ -14883,8 +15643,13 @@
       "tasks": [
         {
           "type": "craft",
-          "output": "northstar:vent",
-          "count": 4
+          "output": "create:fluid_tank",
+          "count": 60
+        },
+        {
+          "type": "craft",
+          "output": "northstar:amethyst_crystal",
+          "count": 36
         }
       ],
       "unlocks": [
@@ -15078,8 +15843,8 @@
       ],
       "tasks": [
         {
-          "type": "craft",
-          "output": "northstar:sodium",
+          "type": "process",
+          "recipeType": "create:compacting",
           "count": 8
         },
         {
@@ -15218,8 +15983,13 @@
       "tasks": [
         {
           "type": "craft",
-          "output": "northstar:auto_lander",
-          "count": 4
+          "output": "northstar:lunar_sapphire_crystal",
+          "count": 88
+        },
+        {
+          "type": "craft",
+          "output": "northstar:large_fan",
+          "count": 56
         }
       ],
       "unlocks": [

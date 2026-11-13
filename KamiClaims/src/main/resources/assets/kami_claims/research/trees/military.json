@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "title": "Military",
   "scope": "any",
   "categories": [
@@ -527,6 +527,22 @@
         {
           "type": "output",
           "id": "minecraft:tnt_minecart"
+        },
+        {
+          "type": "recipe",
+          "id": "create_ironworks:misc/crafting/gunpowder"
+        },
+        {
+          "type": "recipe",
+          "id": "create_ironworks:misc/mixing/mixing_gunpowder"
+        },
+        {
+          "type": "recipe",
+          "id": "createsifter:sifting/sand_andesite"
+        },
+        {
+          "type": "recipe",
+          "id": "createsifter:sifting/sand_brass"
         }
       ]
     },
@@ -779,8 +795,8 @@
       "tasks": [
         {
           "type": "craft",
-          "output": "create:potato_cannon",
-          "count": 4
+          "output": "tfmg:steel_pipe",
+          "count": 28
         }
       ],
       "unlocks": [
@@ -902,7 +918,7 @@
       "tasks": [
         {
           "type": "craft",
-          "output": "tacz:attachment_workbench",
+          "output": "tacz:workbench_c",
           "count": 2
         },
         {
@@ -962,7 +978,7 @@
         },
         {
           "type": "recipe",
-          "id": "kami_js:createimmersivetacz/*"
+          "id": "kami_js:tacz_c/primer_from_nitropowder"
         },
         {
           "type": "recipe",
@@ -1043,10 +1059,6 @@
         },
         {
           "type": "recipe",
-          "id": "kami_js:tacz_c/fluid_bullet_9mm*"
-        },
-        {
-          "type": "recipe",
           "id": "tacz_c:bullet_76225*"
         },
         {
@@ -1055,19 +1067,11 @@
         },
         {
           "type": "recipe",
-          "id": "kami_js:tacz_c/fluid_bullet_76225*"
-        },
-        {
-          "type": "recipe",
           "id": "tacz_c:bullet_22wmr*"
         },
         {
           "type": "recipe",
           "id": "tacz_c:case_22wmr_cutting"
-        },
-        {
-          "type": "recipe",
-          "id": "kami_js:tacz_c/fluid_bullet_22wmr*"
         }
       ]
     },
@@ -1221,10 +1225,6 @@
         },
         {
           "type": "recipe",
-          "id": "kami_js:tacz_c/fluid_bullet_12g*"
-        },
-        {
-          "type": "recipe",
           "id": "tacz_c:base_12g_cutting"
         },
         {
@@ -1306,11 +1306,7 @@
         {
           "type": "process",
           "recipeType": "create:mixing",
-          "count": 8
-        },
-        {
-          "type": "deposit",
-          "item": "minecraft:gunpowder",
+          "output": "sulfuricresonance:reinforced_cinder_compound",
           "count": 16
         }
       ],
@@ -1363,10 +1359,6 @@
         {
           "type": "recipe",
           "id": "tacz_c:case_45acp_cutting"
-        },
-        {
-          "type": "recipe",
-          "id": "kami_js:tacz_c/fluid_bullet_45acp*"
         }
       ]
     },
@@ -1388,7 +1380,8 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:*",
+          "recipeType": "create:cutting",
+          "output": "tacz_c:case_22wmr",
           "count": 16
         }
       ],
@@ -1446,7 +1439,8 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:pressing",
+          "recipeType": "create:milling",
+          "output": "createbigcannons:nitropowder",
           "count": 16
         }
       ],
@@ -1730,10 +1724,6 @@
         {
           "type": "node",
           "id": "technology:pg_consumers"
-        },
-        {
-          "type": "node",
-          "id": "technology:electrolyzer"
         }
       ],
       "tasks": [
@@ -1772,7 +1762,8 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:*",
+          "recipeType": "create:cutting",
+          "output": "tacz_c:case_76225",
           "count": 16
         }
       ],
@@ -1817,10 +1808,6 @@
         {
           "type": "recipe",
           "id": "tacz_c:case_4570_cutting"
-        },
-        {
-          "type": "recipe",
-          "id": "kami_js:tacz_c/fluid_bullet_4570*"
         }
       ]
     },
@@ -1871,8 +1858,9 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:*",
-          "count": 32
+          "recipeType": "create:cutting",
+          "output": "tacz_c:case_45acp",
+          "count": 20
         }
       ],
       "unlocks": [
@@ -1933,9 +1921,9 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:pressing",
-          "count": 32
+          "type": "smelt",
+          "output": "createbigcannons:hardened_nitro",
+          "count": 20
         }
       ],
       "unlocks": [
@@ -2020,8 +2008,9 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:*",
-          "count": 32
+          "recipeType": "create:cutting",
+          "output": "tacz_c:case_12g",
+          "count": 24
         }
       ],
       "unlocks": [
@@ -2094,6 +2083,10 @@
         {
           "type": "output",
           "id": "tfmg:flamethrower"
+        },
+        {
+          "type": "recipe",
+          "id": "tfmg:mixing/napalm"
         }
       ]
     },
@@ -2119,13 +2112,14 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:pressing",
-          "count": 32
+          "recipeType": "create:mixing",
+          "output": "createbigcannons:congealed_nitro",
+          "count": 24
         },
         {
-          "type": "deposit",
-          "item": "minecraft:glass",
-          "count": 32
+          "type": "craft",
+          "output": "powergrid:copper_cord",
+          "count": 20
         }
       ],
       "unlocks": [
@@ -2185,7 +2179,7 @@
       "tasks": [
         {
           "type": "place",
-          "block": "tfmg:napalm_bomb",
+          "block": "minecraft:tnt",
           "count": 16
         },
         {
@@ -2263,10 +2257,6 @@
         {
           "type": "recipe",
           "id": "tacz_c:case_357mag_cutting"
-        },
-        {
-          "type": "recipe",
-          "id": "kami_js:tacz_c/fluid_bullet_357mag*"
         }
       ]
     },
@@ -2322,8 +2312,9 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:*",
-          "count": 32
+          "recipeType": "create:cutting",
+          "output": "tacz_c:copper_cup",
+          "count": 24
         }
       ],
       "unlocks": [
@@ -2350,9 +2341,9 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:pressing",
-          "count": 32
+          "type": "craft",
+          "output": "sulfuricresonance:parallel_thermochemical_gearbox",
+          "count": 24
         }
       ],
       "unlocks": [
@@ -2411,9 +2402,9 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:pressing",
-          "count": 32
+          "type": "craft",
+          "output": "tfmg:lithium_charge",
+          "count": 36
         }
       ],
       "unlocks": [
@@ -2485,10 +2476,6 @@
         {
           "type": "recipe",
           "id": "tacz_c:case_76239_cutting"
-        },
-        {
-          "type": "recipe",
-          "id": "kami_js:tacz_c/fluid_bullet_76239*"
         }
       ]
     },
@@ -2552,8 +2539,9 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:pressing",
-          "count": 32
+          "recipeType": "create:cutting",
+          "output": "create:shaft",
+          "count": 24
         }
       ],
       "unlocks": [
@@ -2580,9 +2568,9 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:pressing",
-          "count": 32
+          "type": "craft",
+          "output": "sulfuricresonance:thermochemical_gearbox",
+          "count": 24
         }
       ],
       "unlocks": [
@@ -2752,9 +2740,9 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:pressing",
-          "count": 32
+          "type": "craft",
+          "output": "sulfuricresonance:large_thermochemical_cogwheel",
+          "count": 28
         }
       ],
       "unlocks": [
@@ -2806,10 +2794,6 @@
         {
           "type": "recipe",
           "id": "tacz_c:case_792x57_cutting"
-        },
-        {
-          "type": "recipe",
-          "id": "kami_js:tacz_c/fluid_bullet_792x57*"
         }
       ]
     },
@@ -2831,8 +2815,9 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:*",
-          "count": 32
+          "recipeType": "create:cutting",
+          "output": "tacz_c:case_792x57",
+          "count": 28
         }
       ],
       "unlocks": [
@@ -2937,13 +2922,14 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:pressing",
-          "count": 32
+          "recipeType": "create:cutting",
+          "output": "chemica:rubber_strip",
+          "count": 56
         },
         {
-          "type": "deposit",
-          "item": "minecraft:redstone",
-          "count": 32
+          "type": "craft",
+          "output": "powergrid:copper_coil",
+          "count": 36
         }
       ],
       "unlocks": [
@@ -2999,19 +2985,11 @@
         },
         {
           "type": "recipe",
-          "id": "kami_js:tacz_c/fluid_bullet_55645*"
-        },
-        {
-          "type": "recipe",
           "id": "tacz_c:bullet_54539*"
         },
         {
           "type": "recipe",
           "id": "tacz_c:case_54539_cutting"
-        },
-        {
-          "type": "recipe",
-          "id": "kami_js:tacz_c/fluid_bullet_54539*"
         }
       ]
     },
@@ -3074,10 +3052,6 @@
         {
           "type": "recipe",
           "id": "tacz_c:case_50ae_cutting"
-        },
-        {
-          "type": "recipe",
-          "id": "kami_js:tacz_c/fluid_bullet_50ae*"
         }
       ]
     },
@@ -3099,8 +3073,9 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:*",
-          "count": 32
+          "recipeType": "create:cutting",
+          "output": "tacz_c:case_50ae",
+          "count": 28
         }
       ],
       "unlocks": [
@@ -3140,10 +3115,6 @@
         {
           "type": "recipe",
           "id": "tacz_c:case_3006_cutting"
-        },
-        {
-          "type": "recipe",
-          "id": "kami_js:tacz_c/fluid_bullet_3006*"
         }
       ]
     },
@@ -3235,9 +3206,14 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:*",
+          "type": "craft",
+          "output": "createbigcannons:powder_charge",
           "count": 32
+        },
+        {
+          "type": "craft",
+          "output": "create_ironworks:bronze_ingot",
+          "count": 20
         }
       ],
       "unlocks": [
@@ -3305,9 +3281,15 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:*",
+          "type": "craft",
+          "output": "create:brass_ingot",
           "count": 32
+        },
+        {
+          "type": "process",
+          "recipeType": "create:pressing",
+          "output": "tfmg:lead_sheet",
+          "count": 20
         }
       ],
       "unlocks": [
@@ -3346,9 +3328,14 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:pressing",
+          "type": "craft",
+          "output": "sulfuricresonance:thermochemical_cogwheel",
           "count": 32
+        },
+        {
+          "type": "craft",
+          "output": "sulfuricresonance:thermochemical_link_drive",
+          "count": 20
         }
       ],
       "unlocks": [
@@ -3396,8 +3383,14 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:*",
+          "recipeType": "create:mixing",
+          "output": "sulfuricresonance:pyroclast_bomb",
           "count": 32
+        },
+        {
+          "type": "craft",
+          "output": "tfmg:aluminum_nugget",
+          "count": 36
         }
       ],
       "unlocks": [
@@ -3471,8 +3464,15 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:*",
+          "recipeType": "create:cutting",
+          "output": "tacz_c:case_3006",
           "count": 32
+        },
+        {
+          "type": "process",
+          "recipeType": "create:cutting",
+          "output": "tacz_c:thin_copper_sheet",
+          "count": 20
         }
       ],
       "unlocks": [
@@ -3517,10 +3517,6 @@
         {
           "type": "recipe",
           "id": "tacz_c:case_5842_cutting"
-        },
-        {
-          "type": "recipe",
-          "id": "kami_js:tacz_c/fluid_bullet_5842*"
         }
       ]
     },
@@ -3575,8 +3571,15 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:*",
+          "recipeType": "create:cutting",
+          "output": "tacz_c:case_54539",
           "count": 32
+        },
+        {
+          "type": "process",
+          "recipeType": "create:cutting",
+          "output": "tacz_c:case_55645",
+          "count": 20
         }
       ],
       "unlocks": [
@@ -3851,19 +3854,11 @@
         },
         {
           "type": "recipe",
-          "id": "kami_js:tacz_c/fluid_bullet_5728*"
-        },
-        {
-          "type": "recipe",
           "id": "tacz_c:bullet_4630*"
         },
         {
           "type": "recipe",
           "id": "tacz_c:case_4630_cutting"
-        },
-        {
-          "type": "recipe",
-          "id": "kami_js:tacz_c/fluid_bullet_4630*"
         }
       ]
     },
@@ -3885,8 +3880,15 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:*",
-          "count": 32
+          "recipeType": "create:cutting",
+          "output": "tacz_c:case_4630",
+          "count": 36
+        },
+        {
+          "type": "process",
+          "recipeType": "create:cutting",
+          "output": "tacz_c:case_5728",
+          "count": 20
         }
       ],
       "unlocks": [
@@ -3985,8 +3987,15 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:pressing",
-          "count": 32
+          "recipeType": "create:cutting",
+          "output": "tacz_c:case_9mm",
+          "count": 36
+        },
+        {
+          "type": "process",
+          "recipeType": "create:mixing",
+          "output": "createimmersivetacz:primer",
+          "count": 20
         }
       ],
       "unlocks": [
@@ -4013,9 +4022,14 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:*",
-          "count": 32
+          "type": "smelt",
+          "output": "tacz_c:annealed_brass_cylinder",
+          "count": 36
+        },
+        {
+          "type": "craft",
+          "output": "tacz_c:primer_mix",
+          "count": 20
         }
       ],
       "unlocks": [
@@ -4046,14 +4060,14 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:pressing",
-          "count": 32
+          "type": "craft",
+          "output": "powergrid:insulated_copper_wire",
+          "count": 72
         },
         {
-          "type": "deposit",
-          "item": "minecraft:redstone",
-          "count": 32
+          "type": "craft",
+          "output": "tfmg:plastic_sheet",
+          "count": 44
         }
       ],
       "unlocks": [
@@ -4141,10 +4155,6 @@
         },
         {
           "type": "recipe",
-          "id": "kami_js:tacz_c/fluid_bullet_308*"
-        },
-        {
-          "type": "recipe",
           "id": "tacz_c:bullet_76254*"
         },
         {
@@ -4153,7 +4163,11 @@
         },
         {
           "type": "recipe",
-          "id": "kami_js:tacz_c/fluid_bullet_76254*"
+          "id": "tacz_c:bullet_6851fury*"
+        },
+        {
+          "type": "recipe",
+          "id": "tacz_c:case_6851fury_cutting"
         }
       ]
     },
@@ -4175,8 +4189,15 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:*",
-          "count": 32
+          "recipeType": "create:cutting",
+          "output": "tacz_c:case_308",
+          "count": 36
+        },
+        {
+          "type": "process",
+          "recipeType": "create:cutting",
+          "output": "tacz_c:case_6851fury",
+          "count": 20
         }
       ],
       "unlocks": [
@@ -4470,8 +4491,13 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:pressing",
+          "type": "craft",
+          "output": "sulfuricresonance:thermochemical_shaft",
+          "count": 36
+        },
+        {
+          "type": "craft",
+          "output": "tfmg:screwdriver",
           "count": 32
         }
       ],
@@ -4542,8 +4568,14 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:*",
-          "count": 32
+          "recipeType": "create:compacting",
+          "output": "createbigcannons:packed_gunpowder",
+          "count": 40
+        },
+        {
+          "type": "craft",
+          "output": "createbigcannons:empty_powder_charge",
+          "count": 24
         }
       ],
       "unlocks": [
@@ -4583,8 +4615,15 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:*",
-          "count": 32
+          "recipeType": "create:cutting",
+          "output": "tacz_c:case_76254",
+          "count": 40
+        },
+        {
+          "type": "process",
+          "recipeType": "create:cutting",
+          "output": "tacz_c:brass_cup",
+          "count": 36
         }
       ],
       "unlocks": [
@@ -4619,9 +4658,14 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:pressing",
-          "count": 64
+          "type": "craft",
+          "output": "create:redstone_link",
+          "count": 40
+        },
+        {
+          "type": "craft",
+          "output": "create:gearbox",
+          "count": 24
         }
       ],
       "unlocks": [
@@ -4660,9 +4704,14 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:mixing",
-          "count": 64
+          "type": "craft",
+          "output": "createbigcannons:gunpowder_pinch",
+          "count": 80
+        },
+        {
+          "type": "craft",
+          "output": "createbigcannons:impact_fuze",
+          "count": 52
         }
       ],
       "unlocks": [
@@ -4705,9 +4754,14 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:pressing",
-          "count": 64
+          "type": "craft",
+          "output": "create:transmitter",
+          "count": 44
+        },
+        {
+          "type": "craft",
+          "output": "create:gearshift",
+          "count": 28
         }
       ],
       "unlocks": [
@@ -4743,8 +4797,14 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:pressing",
-          "count": 64
+          "recipeType": "create:milling",
+          "output": "createbigcannons:nitropowder",
+          "count": 44
+        },
+        {
+          "type": "smelt",
+          "output": "createbigcannons:hardened_nitro",
+          "count": 28
         }
       ],
       "unlocks": [
@@ -4788,8 +4848,15 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:*",
-          "count": 64
+          "recipeType": "create:pressing",
+          "output": "create:iron_sheet",
+          "count": 44
+        },
+        {
+          "type": "process",
+          "recipeType": "create:compacting",
+          "output": "tacz_c:gunpowder_pellets",
+          "count": 28
         }
       ],
       "unlocks": [
@@ -4880,9 +4947,14 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:mixing",
-          "count": 64
+          "type": "craft",
+          "output": "createbigcannons:bag_of_grapeshot",
+          "count": 60
+        },
+        {
+          "type": "craft",
+          "output": "createbigcannons:powder_charge",
+          "count": 28
         }
       ],
       "unlocks": [
@@ -4967,8 +5039,14 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:pressing",
-          "count": 64
+          "recipeType": "create:mixing",
+          "output": "createbigcannons:congealed_nitro",
+          "count": 44
+        },
+        {
+          "type": "craft",
+          "output": "sulfuricresonance:parallel_thermochemical_gearbox",
+          "count": 28
         }
       ],
       "unlocks": [
@@ -5032,10 +5110,6 @@
         {
           "type": "recipe",
           "id": "tacz_c:case_500mag_cutting"
-        },
-        {
-          "type": "recipe",
-          "id": "kami_js:tacz_c/fluid_bullet_500mag*"
         }
       ]
     },
@@ -5157,10 +5231,6 @@
         },
         {
           "type": "recipe",
-          "id": "kami_js:tacz_c/fluid_grenade_booster_charge_40mm"
-        },
-        {
-          "type": "recipe",
           "id": "createimmersivetacz:ammo/40mmhe_casing"
         },
         {
@@ -5261,9 +5331,14 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:pressing",
-          "count": 64
+          "type": "craft",
+          "output": "create:large_cogwheel",
+          "count": 48
+        },
+        {
+          "type": "craft",
+          "output": "create:sequenced_gearshift",
+          "count": 28
         }
       ],
       "unlocks": [
@@ -5403,10 +5478,6 @@
         {
           "type": "recipe",
           "id": "tacz_c:case_338_cutting"
-        },
-        {
-          "type": "recipe",
-          "id": "kami_js:tacz_c/fluid_bullet_338*"
         }
       ]
     },
@@ -5467,12 +5538,13 @@
         {
           "type": "process",
           "recipeType": "create:pressing",
-          "count": 64
+          "output": "tfmg:synthetic_leather",
+          "count": 108
         },
         {
-          "type": "deposit",
-          "item": "minecraft:redstone",
-          "count": 64
+          "type": "craft",
+          "output": "tfmg:plastic_block",
+          "count": 68
         }
       ],
       "unlocks": [
@@ -5520,13 +5592,15 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:pressing",
-          "count": 64
+          "recipeType": "create:compacting",
+          "output": "tacz_c:gunpowder_cylinder",
+          "count": 56
         },
         {
-          "type": "deposit",
-          "item": "minecraft:iron_ingot",
-          "count": 64
+          "type": "process",
+          "recipeType": "create:pressing",
+          "output": "create:iron_sheet",
+          "count": 36
         }
       ],
       "unlocks": [
@@ -5588,8 +5662,14 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:pressing",
-          "count": 64
+          "recipeType": "create:mixing",
+          "output": "tfmg:copper_sulfate",
+          "count": 60
+        },
+        {
+          "type": "craft",
+          "output": "create:clutch",
+          "count": 36
         }
       ],
       "unlocks": [
@@ -5667,8 +5747,15 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:pressing",
-          "count": 64
+          "recipeType": "create:mixing",
+          "output": "chemica:iron_catalyst",
+          "count": 60
+        },
+        {
+          "type": "process",
+          "recipeType": "create:mixing",
+          "output": "chemica:copper_catalyst",
+          "count": 36
         }
       ],
       "unlocks": [
@@ -5704,8 +5791,14 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:pressing",
-          "count": 64
+          "recipeType": "create:milling",
+          "output": "createbigcannons:nitropowder",
+          "count": 60
+        },
+        {
+          "type": "smelt",
+          "output": "createbigcannons:hardened_nitro",
+          "count": 36
         }
       ],
       "unlocks": [
@@ -5777,9 +5870,14 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:pressing",
-          "count": 64
+          "type": "craft",
+          "output": "createbigcannons:nethersteel_ingot",
+          "count": 120
+        },
+        {
+          "type": "craft",
+          "output": "createbigcannons:nethersteel_block",
+          "count": 76
         }
       ],
       "unlocks": [
@@ -5819,10 +5917,6 @@
         {
           "type": "recipe",
           "id": "tacz_c:case_50bmg_cutting"
-        },
-        {
-          "type": "recipe",
-          "id": "kami_js:tacz_c/fluid_bullet_50bmg*"
         }
       ]
     },
@@ -5913,9 +6007,14 @@
       ],
       "tasks": [
         {
-          "type": "process",
-          "recipeType": "create:pressing",
-          "count": 64
+          "type": "craft",
+          "output": "create:cogwheel",
+          "count": 80
+        },
+        {
+          "type": "craft",
+          "output": "create:deployer",
+          "count": 52
         }
       ],
       "unlocks": [
@@ -5955,8 +6054,14 @@
       "tasks": [
         {
           "type": "process",
-          "recipeType": "create:pressing",
-          "count": 64
+          "recipeType": "create:mixing",
+          "output": "chemica:platinum_catalyst",
+          "count": 88
+        },
+        {
+          "type": "smelt",
+          "output": "chemica:platinum_ingot",
+          "count": 76
         }
       ],
       "unlocks": [

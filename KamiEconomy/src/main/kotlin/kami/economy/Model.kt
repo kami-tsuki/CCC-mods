@@ -45,7 +45,8 @@ class Book(
     val buys: MutableList<Order> = mutableListOf(),
     var lastFill: Int = 0,
     var course: Double = 0.0,
-    val recentFills: MutableList<Fill> = mutableListOf()
+    val recentFills: MutableList<Fill> = mutableListOf(),
+    var moved: Long = 0
 )
 
 @Serializable
@@ -97,6 +98,7 @@ object Market {
         attached = true
         Ledger.attach()
         data.books.values.forEach { if (it.sells.removeAll { o -> o.synthetic }) dirty = true }
+        data.books.values.forEach { if (it.moved == 0L && it.course > 0.0) { it.moved = now(); dirty = true } }
         runCatching { Quests.load() }.onFailure { LOG.error("Quests could not be loaded", it) }
         TradeStatus.load()
         Watchlist.load()

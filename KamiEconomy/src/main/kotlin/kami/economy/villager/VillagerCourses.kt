@@ -146,7 +146,7 @@ object VillagerCourses {
         }
         val lot = Config.s.lotOf(core)
         val book = Market.book(core)
-        book.course = Stocks.afterPlayer(core, c, coreUnit * lot, s.impact * coreCount / lot)
+        Stocks.move(book, Stocks.afterPlayer(core, c, coreUnit * lot, s.impact * coreCount / lot))
         e?.let {
             it.state = CourseState.LIVE
             it.course = book.course / lot

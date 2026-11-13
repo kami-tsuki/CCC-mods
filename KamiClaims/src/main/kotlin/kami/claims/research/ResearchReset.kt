@@ -11,7 +11,7 @@ import kami.libs.stats.Stats
 import kami.libs.text.Phrase
 
 object ResearchReset {
-    const val VERSION = 2
+    const val VERSION = 3
 
     class Refunded(val total: Long, val kept: Int)
 

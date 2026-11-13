@@ -2,7 +2,9 @@ package kami.claims.research
 
 import kami.libs.mc.Selectors
 
-class RecipeFact(val id: String, val type: String, val outputs: List<String> = emptyList(), val inputs: List<String> = emptyList(), val display: List<String> = outputs, val serializer: String = type) {
+const val FLUID_PREFIX = "fluid:"
+
+class RecipeFact(val id: String, val type: String, val outputs: List<String> = emptyList(), val inputs: List<String> = emptyList(), val display: List<String> = outputs, val serializer: String = type, val fluids: () -> List<String> = { emptyList() }) {
     fun typed(spec: String) = Selectors.glob(spec, type) || Selectors.glob(spec, serializer)
 }
 
@@ -58,7 +60,7 @@ class Resolver(private val world: WorldFacts, private val defs: ResearchDefs) {
         val levels = defs.levels.rewards.mapValues { (level, rewards) -> all(rewards, "level $level") - baseline }
         val locked = all(defs.settings.locked, "settings.locked") - baseline
         val gated = (nodes.values + levels.values + locked).merged()
-        val outputs = world.recipes.filter { it.id in gated.recipes && it.display.isNotEmpty() }.associate { it.id to it.display }
+        val outputs = world.recipes.filter { it.id in gated.recipes }.associate { it.id to it.display + it.fluids().map { fluid -> FLUID_PREFIX + fluid } }.filterValues { it.isNotEmpty() }
         val open = world.recipes.filter { it.id !in gated.recipes }.flatMapTo(HashSet()) { it.outputs }
         val items = HashMap<String, MutableSet<String>>()
         world.recipes.filter { it.id in gated.recipes }.forEach { recipe -> recipe.outputs.filter { it !in open }.forEach { items.getOrPut(it) { HashSet() } += recipe.id } }

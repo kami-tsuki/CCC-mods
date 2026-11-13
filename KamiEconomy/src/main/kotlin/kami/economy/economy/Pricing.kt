@@ -9,11 +9,11 @@ object Pricing {
     fun observe(item: String, perLot: Double, lots: Int, server: Boolean, buy: Boolean) {
         if (lots <= 0) return
         val c = Stocks.course(item)
-        Market.book(item).course = when {
+        Stocks.move(Market.book(item), when {
             !server -> Stocks.afterPlayer(item, c, perLot, lots.toDouble())
             buy -> Stocks.afterBuy(item, c, lots)
             else -> Stocks.afterSell(item, c, lots)
-        }
+        })
         Market.dirty = true
     }
 

@@ -18,6 +18,8 @@ internal object QuestRoll {
     private const val RESEARCH_STEP = 5
     private const val XP_STEP = 10
 
+    fun capped(course: Double, reference: Double?, pct: Double): Double = if (reference == null) course else minOf(course, reference * (1 + pct))
+
     fun rarity(clock: QuestClock, now: Long, s: QuestSettings, rnd: Random): Int {
         for (r in 4 downTo 2) {
             val (min, max) = s.pityHours[r - 2]
